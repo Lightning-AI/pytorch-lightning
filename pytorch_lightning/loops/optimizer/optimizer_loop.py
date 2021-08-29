@@ -16,6 +16,7 @@ from pytorch_lightning.loops.utilities import (
     check_finite_loss,
     _check_training_step_output,
     _process_training_step_output,
+    block_ddp_sync_behaviour,
 )
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.progress import OptimizationProgress
@@ -63,26 +64,6 @@ class OptimizerLoop(Loop):
         outputs = self.outputs
         self.outputs = {}
         return outputs
-
-    @contextmanager
-    def block_ddp_sync_behaviour(self, should_block_sync: bool = False) -> Generator[None, None, None]:
-        """
-        automatic_optimization = True
-        Blocks ddp sync gradients behaviour on backwards pass.
-        This is useful for skipping sync when accumulating gradients, reducing communication overhead
-
-        automatic_optimization = False
-        do not block ddp gradient sync when using manual optimization
-        as gradients are needed within the training step
-
-        Returns:
-            context manager with sync behaviour off
-        """
-        if isinstance(self.trainer.training_type_plugin, ParallelPlugin) and should_block_sync:
-            with self.trainer.training_type_plugin.block_backward_sync():
-                yield None
-        else:
-            yield None
 
     def backward(
         self,
@@ -137,7 +118,7 @@ class OptimizerLoop(Loop):
             # calculate loss (train step + train step end)
             # -------------------
             # automatic_optimization=True: perform ddp sync only when performing optimizer_step
-            with self.block_ddp_sync_behaviour():
+            with block_ddp_sync_behaviour(self.trainer, should_block_sync=True):
                 closure()
 
         # ------------------------------

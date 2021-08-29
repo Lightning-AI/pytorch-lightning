@@ -181,29 +181,7 @@ class TrainingBatchLoop(Loop):
             optimizer: the current optimizer or `None` in case of manual optimization
         """
         closure = self._make_closure(split_batch, batch_idx, opt_idx, optimizer, self._hiddens)
-
-        if self.trainer.fit_loop.should_accumulate():
-            # TODO: this case does not apply for manual opt
-            # For gradient accumulation
-
-            # -------------------
-            # calculate loss (train step + train step end)
-            # -------------------
-            # automatic_optimization=True: perform ddp sync only when performing optimizer_step
-            # automatic_optimization=False: don't block synchronization here
-            with self.block_ddp_sync_behaviour():
-                closure()
-
-        # ------------------------------
-        # BACKWARD PASS
-        # ------------------------------
-        # gradient update with accumulated gradients
-        else:
-            if self.trainer.lightning_module.automatic_optimization:
-                self._optimizer_step(optimizer, opt_idx, batch_idx, closure)
-            else:
-                closure()
-
+        closure()
         result = closure.get_result()
 
         if result:
@@ -315,29 +293,6 @@ class TrainingBatchLoop(Loop):
             splits = model_ref.tbptt_split_batch(batch, tbptt_steps)
         return splits
 
-    # TODO remove this
-    @contextmanager
-    def block_ddp_sync_behaviour(self, should_block_sync: bool = False) -> Generator[None, None, None]:
-        """
-        automatic_optimization = True
-        Blocks ddp sync gradients behaviour on backwards pass.
-        This is useful for skipping sync when accumulating gradients, reducing communication overhead
-
-        automatic_optimization = False
-        do not block ddp gradient sync when using manual optimization
-        as gradients are needed within the training step
-
-        Returns:
-            context manager with sync behaviour off
-        """
-        if isinstance(self.trainer.training_type_plugin, ParallelPlugin) and (
-            self.trainer.lightning_module.automatic_optimization or should_block_sync
-        ):
-            with self.trainer.training_type_plugin.block_backward_sync():
-                yield None
-        else:
-            yield None
-
     def backward(
         self,
         loss: Tensor,
@@ -354,15 +309,6 @@ class TrainingBatchLoop(Loop):
             opt_idx: Index of the current optimizer being used. ``None`` if using manual optimization.
         """
         self.trainer.accelerator.backward(loss, optimizer, opt_idx, *args, **kwargs)
-
-        # TODO verify this does not run in manual opt
-        # if not self.trainer.fit_loop.should_accumulate():
-        #     # track gradients
-        #
-        #     grad_norm_dict = self._track_and_norm_grad(optimizer=optimizer)
-        #     if grad_norm_dict:
-        #         self.trainer.lightning_module._current_fx_name = "on_after_backward"
-        #         self.trainer.lightning_module.log_grad_norm(grad_norm_dict)
         return loss
 
     def _update_running_loss(self, current_loss: Tensor) -> None:

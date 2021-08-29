@@ -11,12 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from typing import Any, Iterator, Mapping, Optional, Tuple
+from contextlib import contextmanager
+from typing import Any, Iterator, Mapping, Optional, Tuple, Generator
 
 import torch
 
 import pytorch_lightning as pl
+from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -113,3 +114,24 @@ def _prepare_dataloader_iter(data_fetcher: AbstractDataFetcher, batch_idx: int) 
     else:
         dataloader_iter = iter(data_fetcher)
     return dataloader_iter
+
+
+@contextmanager
+def block_ddp_sync_behaviour(trainer: "pl.Trainer", should_block_sync: bool = False) -> Generator[None, None, None]:
+    """
+    automatic_optimization = True
+    Blocks ddp sync gradients behaviour on backwards pass.
+    This is useful for skipping sync when accumulating gradients, reducing communication overhead
+
+    automatic_optimization = False
+    do not block ddp gradient sync when using manual optimization
+    as gradients are needed within the training step
+
+    Returns:
+        context manager with sync behaviour off
+    """
+    if isinstance(trainer.training_type_plugin, ParallelPlugin) and should_block_sync:
+        with trainer.training_type_plugin.block_backward_sync():
+            yield None
+    else:
+        yield None
