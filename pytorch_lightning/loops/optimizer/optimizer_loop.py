@@ -2,26 +2,26 @@ from collections import defaultdict
 from contextlib import contextmanager
 from copy import copy
 from functools import partial
-from typing import Any, Dict, Optional, Callable, Generator, Sequence, List
+from typing import Any, Callable, Dict, Generator, List, Optional, Sequence
 
 import torch
 from torch import Tensor
 from torch.optim import Optimizer
 
-from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops import Loop
-from pytorch_lightning.loops.closure import ClosureResult, Closure
+from pytorch_lightning.loops.closure import Closure, ClosureResult
 from pytorch_lightning.loops.utilities import (
-    check_finite_loss,
     _check_training_step_output,
     _process_training_step_output,
     block_ddp_sync_behaviour,
+    check_finite_loss,
 )
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.progress import OptimizationProgress
-from pytorch_lightning.utilities import AttributeDict, AMPType, DeviceType, grad_norm
+from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
 
 
 class OptimizerLoop(Loop):

@@ -27,18 +27,17 @@ from torch.optim import Optimizer
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.closure import Closure, ClosureResult
+from pytorch_lightning.loops.optimizer.optimizer_loop import OptimizerLoop
 from pytorch_lightning.loops.utilities import (
     _check_training_step_output,
     _process_training_step_output,
     check_finite_loss,
 )
-from pytorch_lightning.loops.optimizer.optimizer_loop import OptimizerLoop
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
