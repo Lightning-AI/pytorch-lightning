@@ -18,13 +18,14 @@ MLflow Logger
 import logging
 import os
 import re
+import tempfile
 from argparse import Namespace
+from pathlib import Path
 from time import time
 from typing import Any, Dict, Optional, Union
-from pathlib import Path
-import yaml
-import tempfile
+
 import torch
+import yaml
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only, rank_zero_warn
