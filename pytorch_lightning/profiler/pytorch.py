@@ -281,7 +281,7 @@ class PyTorchProfiler(BaseProfiler):
         self._export_to_chrome = export_to_chrome
         self._row_limit = row_limit
         self._sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
-        self._user_record_functions = set() if record_functions is None else record_functions
+        self._user_record_functions = record_functions or set()
         self._record_functions_start = self._user_record_functions | self.START_RECORD_FUNCTIONS
         self._record_functions = self._user_record_functions | self.RECORD_FUNCTIONS
         self._record_module_names = record_module_names
