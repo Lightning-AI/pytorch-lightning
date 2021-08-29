@@ -226,7 +226,7 @@ class TrainingBatchLoop(Loop):
         other functions such as `backward` and `zero_grad`.
         """
         step_fn = self._make_step_fn(split_batch, batch_idx, opt_idx, hiddens)
-        backward_fn = self._make_backward_fn(batch_idx, optimizer, opt_idx)
+        backward_fn = self._make_backward_fn(optimizer, opt_idx)
         zero_grad_fn = self._make_zero_grad_fn(batch_idx, opt_idx, optimizer)
 
         return Closure(
@@ -258,12 +258,7 @@ class TrainingBatchLoop(Loop):
         ):
             return zero_grad_fn
 
-    def _make_backward_fn(
-        self,
-        batch_idx: int,
-        optimizer: Optimizer,
-        opt_idx: int,
-    ) -> Optional[Callable[[Tensor], Tensor]]:
+    def _make_backward_fn(self, optimizer: Optimizer, opt_idx: int) -> Optional[Callable[[Tensor], Tensor]]:
         """
         Build a `backward` function that handles back-propagation through the output produced by the `training_step`
         function. Returns ``None`` in the case backward needs to be skipped, e.g., when manual optimization is on.
