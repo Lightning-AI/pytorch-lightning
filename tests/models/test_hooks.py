@@ -905,6 +905,9 @@ def test_trainer_datamodule_hook_system(tmpdir):
 
     called = []
     dm = HookedDataModule(called)
+    dm.reload_dataloaders_every_n_epochs = 1
+    dm.reload_train_dataloader_every_n_epochs = 1
+    dm.reload_val_dataloader_every_n_epochs = 1
     trainer.test(model, datamodule=dm, verbose=False)
     expected = [
         dict(name="prepare_data"),
