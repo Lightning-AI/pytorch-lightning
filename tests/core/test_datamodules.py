@@ -555,7 +555,7 @@ def test_define_as_dataclass():
         def train_dataloader(self):
             return torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)
 
-    # assets for the different dunder methods added by dataclass, when __init__ is impelmented, i.e.
+    # asserts for the different dunder methods added by dataclass, when __init__ is impelmented, i.e.
     # __repr__, __eq__, __lt__, __le__, etc.
     assert BoringDataModule1(batch_size=32)
     assert hasattr(BoringDataModule1, "__repr__")
@@ -569,7 +569,7 @@ def test_define_as_dataclass():
         def train_dataloader(self):
             return torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)
 
-    # assets for the different dunder methods added by dataclass, when super class is inherently initialized, i.e.
+    # asserts for the different dunder methods added by dataclass, when super class is inherently initialized, i.e.
     # __init__, __repr__, __eq__, __lt__, __le__, etc.
     assert BoringDataModule2(batch_size=32)
     assert hasattr(BoringDataModule2, "__repr__")
