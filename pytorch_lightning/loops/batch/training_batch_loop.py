@@ -272,10 +272,6 @@ class TrainingBatchLoop(Loop):
         def backward_fn(loss: Tensor):
             self.backward(loss, optimizer, opt_idx)
 
-            # when in dev debugging track the losses
-            # TODO: remove dev debugger tracking loss history
-            self.trainer.dev_debugger.track_train_loss_history(batch_idx, loss)
-
             # check if loss or model weights are nan
             if self.trainer.terminate_on_nan:
                 check_finite_loss(self.trainer.lightning_module, loss)
