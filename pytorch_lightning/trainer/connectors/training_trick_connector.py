@@ -14,9 +14,8 @@
 from typing import Dict, Optional, Union
 
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
-from pytorch_lightning.utilities import GradClipAlgorithmType
+from pytorch_lightning.utilities import GradClipAlgorithmType, rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import rank_zero_deprecation
 
 
 class TrainingTricksConnector:
@@ -38,8 +37,9 @@ class TrainingTricksConnector:
         else:
             # emit a deprecation warning
             rank_zero_deprecation(
-                "Trainer argument `terminate_on_nan` was deprecated in v1.5 release and will be removed in the v1.7 release."
-                "Please use trainer argument `detect_anomaly` instead."
+                "Trainer argument `terminate_on_nan` was deprecated in v1.5 release"
+                " and will be removed in the v1.7 release."
+                " Please use trainer argument `detect_anomaly` instead."
             )
             self.trainer.terminate_on_nan = terminate_on_nan
 
