@@ -133,7 +133,7 @@ class FitLoop(Loop):
             max_value: the value to check
 
         Returns:
-            bool: whether the limit for this value should be enabled
+            whether the limit for this value should be enabled
         """
         return max_value not in [None, -1]
 
