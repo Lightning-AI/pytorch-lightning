@@ -18,8 +18,9 @@ from typing import Any, Dict, List, Optional
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
+from pytorch_lightning.utilities import move_data_to_device
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn
 
 
 class ModelHooks:
@@ -540,7 +541,7 @@ class DataHooks:
                 return {'mnist': mnist_loader, 'cifar': cifar_loader}
 
         """
-        rank_zero_warn("`train_dataloader` must be implemented to be used with the Lightning Trainer")
+        raise NotImplementedError("`train_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def test_dataloader(self) -> EVAL_DATALOADERS:
         r"""
@@ -602,6 +603,7 @@ class DataHooks:
             In the case where you return multiple test dataloaders, the :meth:`test_step`
             will have an argument ``dataloader_idx`` which matches the order here.
         """
+        raise NotImplementedError("`test_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def val_dataloader(self) -> EVAL_DATALOADERS:
         r"""
@@ -654,6 +656,7 @@ class DataHooks:
             In the case where you return multiple validation dataloaders, the :meth:`validation_step`
             will have an argument ``dataloader_idx`` which matches the order here.
         """
+        raise NotImplementedError("`val_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def predict_dataloader(self) -> EVAL_DATALOADERS:
         r"""
@@ -679,18 +682,55 @@ class DataHooks:
             In the case where you return multiple prediction dataloaders, the :meth:`predict`
             will have an argument ``dataloader_idx`` which matches the order here.
         """
+        raise NotImplementedError("`predict_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def on_train_dataloader(self) -> None:
-        """Called before requesting the train dataloader."""
+        """Called before requesting the train dataloader.
+
+        .. deprecated:: v1.5
+            :meth:`on_train_dataloader` is deprecated and will be removed in v1.7.0.
+            Please use :meth:`train_dataloader()` directly.
+        """
+        rank_zero_deprecation(
+            "Method `on_train_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+            " Please use `train_dataloader()` directly."
+        )
 
     def on_val_dataloader(self) -> None:
-        """Called before requesting the val dataloader."""
+        """Called before requesting the val dataloader.
+
+        .. deprecated:: v1.5
+            :meth:`on_val_dataloader` is deprecated and will be removed in v1.7.0.
+            Please use :meth:`val_dataloader()` directly.
+        """
+        rank_zero_deprecation(
+            "Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+            " Please use `val_dataloader()` directly."
+        )
 
     def on_test_dataloader(self) -> None:
-        """Called before requesting the test dataloader."""
+        """Called before requesting the test dataloader.
+
+        .. deprecated:: v1.5
+            :meth:`on_test_dataloader` is deprecated and will be removed in v1.7.0.
+            Please use :meth:`test_dataloader()` directly.
+        """
+        rank_zero_deprecation(
+            "Method `on_test_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+            " Please use `test_dataloader()` directly."
+        )
 
     def on_predict_dataloader(self) -> None:
-        """Called before requesting the predict dataloader."""
+        """Called before requesting the predict dataloader.
+
+        .. deprecated:: v1.5
+            :meth:`on_predict_dataloader` is deprecated and will be removed in v1.7.0.
+            Please use :meth:`predict_dataloader()` directly.
+        """
+        rank_zero_deprecation(
+            "Method `on_predict_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+            " Please use `predict_dataloader()` directly."
+        )
 
     def transfer_batch_to_device(self, batch: Any, device: torch.device, dataloader_idx: int) -> Any:
         """
