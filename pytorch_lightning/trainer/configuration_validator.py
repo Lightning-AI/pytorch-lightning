@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.callbacks.base import Callback
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn
