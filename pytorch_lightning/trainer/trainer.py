@@ -1128,10 +1128,7 @@ class Trainer(
         self.reset_train_val_dataloaders(model)
 
         self.fit_loop.trainer = self
-        if self.detect_anomaly:
-            with torch.autograd.detect_anomaly():
-                self.fit_loop.run()
-        else:
+        with torch.autograd.set_detect_anomaly(self.detect_anomaly):
             self.fit_loop.run()
 
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
