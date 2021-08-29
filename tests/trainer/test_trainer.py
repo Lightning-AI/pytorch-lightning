@@ -844,8 +844,9 @@ def test_detect_anomaly_nan(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, detect_anomaly=True)
     with pytest.warns(
         UserWarning, match=r".*Error detected in MseLossBackward. Traceback of forward call that caused the error.*"
-    ) and pytest.raises(RuntimeError, match=r".*returned nan values in its 0th output.*"):
-        trainer.fit(model)
+    ):
+        with pytest.raises(RuntimeError, match=r"Function 'MseLossBackward' returned nan values in its 0th output."):
+            trainer.fit(model)
 
 
 def test_trainer_interrupted_flag(tmpdir):
