@@ -337,9 +337,6 @@ class MLFlowLogger(LightningLoggerBase):
             # Artifact path on mlflow
             artifact_path = f"model/checkpoints/{Path(p).stem}"
 
-            print(p)
-            print(artifact_path)
-
             # Log the checkpoint
             self.experiment.log_artifact(self._run_id, p, artifact_path)
 
