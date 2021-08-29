@@ -32,8 +32,7 @@ from pytorch_lightning.loops import TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.dataloader.prediction_loop import PredictionLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
-from pytorch_lightning.plugins import DDPSpawnPlugin, Plugin
-from pytorch_lightning.plugins.environments import ClusterEnvironment
+from pytorch_lightning.plugins import DDPSpawnPlugin, PLUGIN_INPUT
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
     BaseProfiler,
@@ -152,7 +151,7 @@ class Trainer(
         detect_anomaly: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: Optional[bool] = None,
-        plugins: Optional[Union[List[Union[Plugin, ClusterEnvironment, str]], Plugin, ClusterEnvironment, str]] = None,
+        plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         amp_backend: str = "native",
         amp_level: str = "O2",
         distributed_backend: Optional[str] = None,
@@ -383,8 +382,8 @@ class Trainer(
         self.tuner = Tuner(self)
 
         fit_loop = FitLoop(
-            min_epochs=(1 if (min_epochs is None and min_steps is None) else min_epochs),
-            max_epochs=(1000 if (max_epochs is None and max_steps is None) else max_epochs),
+            min_epochs=(1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs),
+            max_epochs=(1000 if (max_epochs is None and max_steps is None and max_time is None) else max_epochs),
         )
         training_epoch_loop = TrainingEpochLoop(min_steps, max_steps)
         training_batch_loop = TrainingBatchLoop()

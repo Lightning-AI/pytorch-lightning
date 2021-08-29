@@ -265,15 +265,15 @@ class ModelCheckpoint(Callback):
             save_on_train_epoch_end=self._save_on_train_epoch_end,
         )
 
-    def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """
-        When pretrain routine starts we build the ckpt dir on the fly
-        """
-        self.__resolve_ckpt_dir(trainer)
+    def on_init_end(self, trainer: "pl.Trainer") -> None:
         if self._save_on_train_epoch_end is None:
             # if the user runs validation multiple times per training epoch, we try to save checkpoint after
             # validation instead of on train epoch end
             self._save_on_train_epoch_end = trainer.val_check_interval == 1.0
+
+    def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        """When pretrain routine starts we build the ckpt dir on the fly."""
+        self.__resolve_ckpt_dir(trainer)
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._last_time_checked = time.monotonic()

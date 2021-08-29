@@ -12,10 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pathlib import Path
+from re import escape
 from unittest.mock import call, Mock
 
+import pytest
+
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from tests.helpers import BoringModel
+from tests.helpers.utils import no_warning_call
 
 
 def test_callbacks_configured_in_model(tmpdir):
@@ -132,3 +137,34 @@ def test_resume_callback_state_saved_by_type(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback], resume_from_checkpoint=ckpt_path)
     trainer.fit(model)
     assert callback.state == 111
+
+
+def test_resume_incomplete_callbacks_list_warning(tmpdir):
+    model = BoringModel()
+    callback0 = ModelCheckpoint(monitor="epoch")
+    callback1 = ModelCheckpoint(monitor="global_step")
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        callbacks=[callback0, callback1],
+    )
+    trainer.fit(model)
+    ckpt_path = trainer.checkpoint_callback.best_model_path
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        callbacks=[callback1],  # one callback is missing!
+        resume_from_checkpoint=ckpt_path,
+    )
+    with pytest.warns(UserWarning, match=escape(f"Please add the following callbacks: [{repr(callback0.state_key)}]")):
+        trainer.fit(model)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        callbacks=[callback1, callback0],  # all callbacks here, order switched
+        resume_from_checkpoint=ckpt_path,
+    )
+    with no_warning_call(UserWarning, match="Please add the following callbacks:"):
+        trainer.fit(model)

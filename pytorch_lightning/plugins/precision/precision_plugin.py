@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, List, Optional, Tuple, Union
+import contextlib
+from typing import Any, Callable, Generator, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -20,12 +21,11 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.hooks import CheckpointHooks
-from pytorch_lightning.plugins.base_plugin import Plugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.types import _PARAMETERS
 
 
-class PrecisionPlugin(Plugin, CheckpointHooks):
+class PrecisionPlugin(CheckpointHooks):
     """
     Base class for all plugins handling the precision-specific parts of the training.
     The class attribute precision must be overwritten in child classes.
@@ -136,3 +136,32 @@ class PrecisionPlugin(Plugin, CheckpointHooks):
         """Clip gradients by norm"""
         parameters = self.master_params(optimizer)
         torch.nn.utils.clip_grad_norm_(parameters, clip_val)
+
+    def pre_dispatch(self) -> None:
+        """Hook to do something before the training/evaluation/prediction starts."""
+
+    def dispatch(self, trainer: "pl.Trainer") -> None:
+        """Hook to do something when ``Accelerator.dispatch()`` gets called."""
+
+    def post_dispatch(self) -> None:
+        """Hook to do something after the training/evaluation/prediction finishes."""
+
+    @contextlib.contextmanager
+    def train_step_context(self) -> Generator:
+        """A contextmanager for the training step"""
+        yield
+
+    @contextlib.contextmanager
+    def val_step_context(self) -> Generator:
+        """A contextmanager for the validation step"""
+        yield
+
+    @contextlib.contextmanager
+    def test_step_context(self) -> Generator:
+        """A contextmanager for the test step"""
+        yield
+
+    @contextlib.contextmanager
+    def predict_step_context(self) -> Generator:
+        """A contextmanager for the predict step"""
+        yield
