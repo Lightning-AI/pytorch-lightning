@@ -38,7 +38,8 @@ class OptimizerLoop(Loop):
         return self.optim_progress.optimizer_idx >= len(self._optimizers)
 
     def reset(self) -> None:
-        self.optim_progress.optimizer_idx = 0
+        if not self.restarting:
+            self.optim_progress.optimizer_idx = 0
         self.outputs = [[] for _ in range(len(self.trainer.optimizers))]  # TODO: needed? see defaultdict above
 
     def on_run_start(self, batch: Any, hiddens: Any, optimizers: List[Optimizer], batch_idx: int) -> None:
@@ -46,11 +47,6 @@ class OptimizerLoop(Loop):
         self._optimizers = optimizers.copy()
 
     def advance(self, batch: Any, hiddens: Any, *args, **kwargs) -> None:
-        # handle optimization restart
-        # if self.restarting:
-        #     if opt_idx < self.optim_progress.optimizer_idx:
-        #         continue
-
         result = self._run_optimization(
             self._batch_idx,
             batch,
