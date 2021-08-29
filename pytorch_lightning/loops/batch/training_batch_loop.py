@@ -31,6 +31,7 @@ from pytorch_lightning.loops.utilities import (
     _check_training_step_output,
     _process_training_step_output,
     check_finite_loss,
+    _block_parallel_sync_behavior,
 )
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.progress import OptimizationProgress
@@ -186,9 +187,8 @@ class TrainingBatchLoop(Loop):
             # -------------------
             # calculate loss (train step + train step end)
             # -------------------
-            # automatic_optimization=True: perform ddp sync only when performing optimizer_step
-            # automatic_optimization=False: don't block synchronization here
-            with self.block_ddp_sync_behaviour():
+            # automatic_optimization: perform ddp sync only when performing optimizer_step
+            with _block_parallel_sync_behavior(self._trainer):
                 closure()
 
         # ------------------------------
@@ -459,28 +459,6 @@ class TrainingBatchLoop(Loop):
         if self.trainer.lightning_module.automatic_optimization and len(self.trainer.optimizers) > 1:
             model = self.trainer.lightning_module
             model.untoggle_optimizer(opt_idx)
-
-    @contextmanager
-    def block_ddp_sync_behaviour(self, should_block_sync: bool = False) -> Generator[None, None, None]:
-        """
-        automatic_optimization = True
-        Blocks ddp sync gradients behaviour on backwards pass.
-        This is useful for skipping sync when accumulating gradients, reducing communication overhead
-
-        automatic_optimization = False
-        do not block ddp gradient sync when using manual optimization
-        as gradients are needed within the training step
-
-        Returns:
-            context manager with sync behaviour off
-        """
-        if isinstance(self.trainer.training_type_plugin, ParallelPlugin) and (
-            self.trainer.lightning_module.automatic_optimization or should_block_sync
-        ):
-            with self.trainer.training_type_plugin.block_backward_sync():
-                yield None
-        else:
-            yield None
 
     def backward(
         self,

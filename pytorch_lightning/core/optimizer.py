@@ -17,6 +17,7 @@ from weakref import proxy
 
 from torch.optim import Optimizer
 
+from pytorch_lightning.loops.utilities import _block_parallel_sync_behavior
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -116,7 +117,7 @@ class LightningOptimizer:
         during the accumulation phase.
         Setting `sync_grad` to False will block this synchronization and improve performance.
         """
-        with self._trainer.fit_loop.epoch_loop.batch_loop.block_ddp_sync_behaviour(not sync_grad):
+        with _block_parallel_sync_behavior(self._trainer, block=(not sync_grad)):
             self._toggle_model()
             yield
             self._untoggle_model()
