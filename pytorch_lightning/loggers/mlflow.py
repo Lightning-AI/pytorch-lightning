@@ -343,7 +343,7 @@ class MLFlowLogger(LightningLoggerBase):
             # Create a temporary directory to log on mlflow
             with tempfile.TemporaryDirectory() as tmp_dir:
                 # Log the metadata
-                with open(f"{tmp_dir}/metadata.yml", "w") as tmp_file_metadata:
+                with open(f"{tmp_dir}/metadata.yaml", "w") as tmp_file_metadata:
                     yaml.dump(metadata, tmp_file_metadata, default_flow_style=False)
 
                 # Log the aliases
