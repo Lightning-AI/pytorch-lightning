@@ -1882,3 +1882,30 @@ def test_error_handling_all_stages(tmpdir, accelerator, num_processes):
         trainer.test(model)
     with pytest.raises(Exception, match=r"Error during predict"), patch("pytorch_lightning.Trainer._on_exception"):
         trainer.predict(model, model.val_dataloader(), return_predictions=False)
+
+
+def test_overridden_on_dataloaders(tmpdir):
+    model = BoringModel()
+    with pytest.deprecated_call(
+        match="Method `on_train_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+    ):
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+        trainer.fit(model)
+
+    with pytest.deprecated_call(
+        match="Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+    ):
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+        trainer.validate(model)
+
+    with pytest.deprecated_call(
+        match="Method `on_test_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+    ):
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+        trainer.test(model)
+
+    with pytest.deprecated_call(
+        match="Method `on_predict_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+    ):
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+        trainer.predict(model)

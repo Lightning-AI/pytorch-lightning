@@ -170,11 +170,15 @@ Below is an example of using both ``wrap`` and ``auto_wrap`` to create your mode
 FairScale Activation Checkpointing
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Activation checkpointing frees activations from memory as soon as they are not needed during the forward pass. They are then re-computed for the backwards pass as needed.
+Activation checkpointing frees activations from memory as soon as they are not needed during the forward pass. They are then re-computed for the backwards pass as needed. Activation checkpointing is very useful when you have intermediate layers that produce large activations.
 
 FairScales' checkpointing wrapper also handles batch norm layers correctly unlike the PyTorch implementation, ensuring stats are tracked correctly due to the multiple forward passes.
 
 This saves memory when training larger models however requires wrapping modules you'd like to use activation checkpointing on. See `here <https://fairscale.readthedocs.io/en/latest/api/nn/misc/checkpoint_activations.html>`__ for more information.
+
+.. warning::
+
+    Ensure to not wrap the entire model with activation checkpointing. This is not the intended usage of activation checkpointing, and will lead to failures as seen in `this discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/9144>`__.
 
 .. code-block:: python
 
@@ -185,7 +189,8 @@ This saves memory when training larger models however requires wrapping modules 
     class MyModel(pl.LightningModule):
         def __init__(self):
             # Wrap layers using checkpoint_wrapper
-            self.block = checkpoint_wrapper(nn.Sequential(nn.Linear(32, 32), nn.ReLU()))
+            self.block_1 = checkpoint_wrapper(nn.Sequential(nn.Linear(32, 32), nn.ReLU()))
+            self.block_2 = nn.Linear(32, 2)
 
 
 .. _deepspeed:
@@ -515,7 +520,36 @@ DeepSpeed Activation Checkpointing
 Activation checkpointing frees activations from memory as soon as they are not needed during the forward pass.
 They are then re-computed for the backwards pass as needed.
 
-This saves memory when training larger models however requires using a checkpoint function to run the module as shown below.
+Activation checkpointing is very useful when you have intermediate layers that produce large activations.
+
+This saves memory when training larger models, however requires using a checkpoint function to run modules as shown below.
+
+.. warning::
+
+    Ensure to not wrap the entire model with activation checkpointing. This is not the intended usage of activation checkpointing, and will lead to failures as seen in `this discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/9144>`__.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.plugins import DeepSpeedPlugin
+    import deepspeed
+
+
+    class MyModel(LightningModule):
+        ...
+
+        def __init__(self):
+            super().__init__()
+            self.block_1 = nn.Sequential(nn.Linear(32, 32), nn.ReLU())
+            self.block_2 = torch.nn.Linear(32, 2)
+
+        def forward(self, x):
+            # Use the DeepSpeed checkpointing function instead of calling the module directly
+            # checkpointing self.layer_h means the activations are deleted after use,
+            # and re-calculated during the backward passes
+            x = torch.utils.checkpoint.checkpoint(self.block_1, x)
+            return self.block_2(x)
+
 
 .. code-block:: python
 
@@ -528,12 +562,13 @@ This saves memory when training larger models however requires using a checkpoin
         ...
 
         def configure_sharded_model(self):
-            self.block = nn.Sequential(nn.Linear(32, 32), nn.ReLU())
+            self.block_1 = nn.Sequential(nn.Linear(32, 32), nn.ReLU())
+            self.block_2 = torch.nn.Linear(32, 2)
 
         def forward(self, x):
             # Use the DeepSpeed checkpointing function instead of calling the module directly
-            output = deepspeed.checkpointing.checkpoint(self.block, x)
-            return output
+            x = deepspeed.checkpointing.checkpoint(self.block_1, x)
+            return self.block_2(x)
 
 
     model = MyModel()

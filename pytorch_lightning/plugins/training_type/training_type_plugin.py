@@ -25,14 +25,13 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
-from pytorch_lightning.plugins.base_plugin import Plugin
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT
 
 TBroadcast = TypeVar("T")
 
 
-class TrainingTypePlugin(Plugin, ABC):
+class TrainingTypePlugin(ABC):
     """
     Base class for all training type plugins that change the behaviour of the training, validation and test-loop.
     """
@@ -352,3 +351,12 @@ class TrainingTypePlugin(Plugin, ABC):
         Called in the training loop before anything happens for that batch.
         """
         pass
+
+    def pre_dispatch(self) -> None:
+        """Hook to do something before the training/evaluation/prediction starts."""
+
+    def dispatch(self, trainer: "pl.Trainer") -> None:
+        """Hook to do something at trainer run_stage starts."""
+
+    def post_dispatch(self) -> None:
+        """Hook to do something after the training/evaluation/prediction finishes."""
