@@ -13,7 +13,7 @@
 # limitations under the License.
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -75,6 +75,25 @@ class ConfigValidator:
                 " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
             )
 
+        # ----------------------------------------------
+        # verify model does not have
+        # - on_train_dataloader
+        # - on_val_dataloader
+        # ----------------------------------------------
+        has_on_train_dataloader = is_overridden("on_train_dataloader", model)
+        if has_on_train_dataloader:
+            rank_zero_deprecation(
+                "Method `on_train_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+                " Please use `train_dataloader()` directly."
+            )
+
+        has_on_val_dataloader = is_overridden("on_val_dataloader", model)
+        if has_on_val_dataloader:
+            rank_zero_deprecation(
+                "Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+                " Please use `val_dataloader()` directly."
+            )
+
         trainer = self.trainer
 
         trainer.overriden_optimizer_step = is_overridden("optimizer_step", model)
@@ -102,10 +121,39 @@ class ConfigValidator:
         if has_step and not has_loader:
             rank_zero_warn(f"you defined a {step_name} but have no {loader_name}. Skipping {stage} loop")
 
+        # ----------------------------------------------
+        # verify model does not have
+        # - on_val_dataloader
+        # - on_test_dataloader
+        # ----------------------------------------------
+        has_on_val_dataloader = is_overridden("on_val_dataloader", model)
+        if has_on_val_dataloader:
+            rank_zero_deprecation(
+                "Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+                " Please use `val_dataloader()` directly."
+            )
+
+        has_on_test_dataloader = is_overridden("on_test_dataloader", model)
+        if has_on_test_dataloader:
+            rank_zero_deprecation(
+                "Method `on_test_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+                " Please use `test_dataloader()` directly."
+            )
+
     def __verify_predict_loop_configuration(self, model: "pl.LightningModule") -> None:
         has_predict_dataloader = is_overridden("predict_dataloader", model)
         if not has_predict_dataloader:
             raise MisconfigurationException("Dataloader not found for `Trainer.predict`")
+        # ----------------------------------------------
+        # verify model does not have
+        # - on_predict_dataloader
+        # ----------------------------------------------
+        has_on_predict_dataloader = is_overridden("on_predict_dataloader", model)
+        if has_on_predict_dataloader:
+            rank_zero_deprecation(
+                "Method `on_predict_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+                " Please use `predict_dataloader()` directly."
+            )
 
     def __verify_dp_batch_transfer_support(self, model: "pl.LightningModule") -> None:
         """Raise Misconfiguration exception since these hooks are not supported in DP mode"""
