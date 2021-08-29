@@ -152,8 +152,8 @@ class OptimizerLoop(Loop):
         if result:
             # if no result, user decided to skip optimization
             # otherwise update running loss + reset accumulated loss
-            # TODO: how to handle this?
-            # self._update_running_loss(result.loss)
+            # TODO: find proper way to handle updating running loss
+            self.trainer.fit_loop.epoch_loop.batch_loop._update_running_loss(result.loss)
 
             self._process_closure_result(result)
 
