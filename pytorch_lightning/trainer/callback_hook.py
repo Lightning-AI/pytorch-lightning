@@ -237,7 +237,7 @@ class TrainerCallbackHookMixin(ABC):
             callback.on_keyboard_interrupt(self, self.lightning_module)
 
     def on_exception(self, exception: BaseException) -> None:
-        """Called when the training is interrupted by any exception."""
+        """Called when any trainer execution is interrupted by an exception."""
         for callback in self.callbacks:
             callback.on_exception(self, self.lightning_module, exception)
 

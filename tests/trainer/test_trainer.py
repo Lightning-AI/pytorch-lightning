@@ -876,7 +876,7 @@ def test_trainer_interrupted_flag(tmpdir):
 def test_on_exception_hook(tmpdir):
     """Test the on_exception callback hook."""
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     class InterruptCallback(Callback):
         def __init__(self):

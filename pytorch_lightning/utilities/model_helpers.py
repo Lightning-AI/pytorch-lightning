@@ -41,8 +41,6 @@ def is_overridden(
             parent = pl.LightningModule
         elif isinstance(instance, pl.LightningDataModule):
             parent = pl.LightningDataModule
-        elif isinstance(instance, pl.Callback):
-            parent = pl.Callback
         if parent is None:
             raise ValueError("Expected a parent")
 

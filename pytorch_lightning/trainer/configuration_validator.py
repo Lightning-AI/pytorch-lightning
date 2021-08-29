@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn
 
 
 class ConfigValidator:
@@ -44,8 +43,6 @@ class ConfigValidator:
         elif self.trainer.state.fn == TrainerFn.PREDICTING:
             self.__verify_predict_loop_configuration(model)
         self.__verify_dp_batch_transfer_support(model)
-        # TODO(@daniellepintz): Delete _check_on_keyboard_interrupt in v1.7
-        self._check_on_keyboard_interrupt()
 
     def __verify_train_loop_configuration(self, model: "pl.LightningModule") -> None:
         # -----------------------------------
@@ -203,13 +200,4 @@ class ConfigValidator:
                 raise MisconfigurationException(
                     "The model taking a `dataloader_iter` argument in your `training_step` "
                     "is incompatible with `truncated_bptt_steps > 0`."
-                )
-
-    def _check_on_keyboard_interrupt(self) -> None:
-        """Checks if on_keyboard_interrupt is overriden and sends a deprecation warning."""
-        for callback in self.trainer.callbacks:
-            if is_overridden(method_name="on_keyboard_interrupt", instance=callback):
-                rank_zero_deprecation(
-                    "The `on_keyboard_interrupt` callback hook was deprecated in v1.5 and will be removed in v1.7."
-                    "Please use the `on_exception` callback hook instead."
                 )
