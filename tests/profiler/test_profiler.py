@@ -258,12 +258,6 @@ def test_pytorch_profiler_describe(pytorch_profiler):
     assert len(data) > 0
 
 
-def test_pytorch_profiler_raises(pytorch_profiler):
-    """Ensure errors are raised where expected."""
-    with pytest.raises(MisconfigurationException, match="profiled_functions` and `PyTorchProfiler.record"):
-        PyTorchProfiler(profiled_functions=["a"], record_functions=["b"])
-
-
 def test_advanced_profiler_cprofile_deepcopy(tmpdir):
     """Checks for pickle issue reported in #6522"""
     model = BoringModel()
