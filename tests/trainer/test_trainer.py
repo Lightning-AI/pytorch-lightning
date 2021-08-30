@@ -835,7 +835,7 @@ def test_nan_params_detection(tmpdir):
 
 
 def test_on_exception_hook(tmpdir):
-    """Test the on_exception callback hook."""
+    """Test the on_exception callback hook and the trainer interrupted flag."""
 
     model = BoringModel()
 
