@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from copy import copy
 from functools import partial
 from typing import Any, Callable, List, Optional, Tuple
@@ -29,7 +28,6 @@ from pytorch_lightning.loops.utilities import (
     _build_training_step_kwargs,
     _check_training_step_output,
     _process_training_step_output,
-    check_finite_loss,
 )
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AttributeDict
