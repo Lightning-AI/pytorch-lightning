@@ -167,7 +167,6 @@ class TrainingBatchLoop(Loop):
             # if no result, user decided to skip optimization
             # otherwise update running loss + reset accumulated loss
             self._update_running_loss(result.loss)
-            self._process_closure_result(result)
 
         return result
 
@@ -195,19 +194,6 @@ class TrainingBatchLoop(Loop):
     def _make_step_fn(self, split_batch: Any, batch_idx: int, hiddens: Any) -> Callable[[], dict]:
         """Build the step function that runs the `training_step` and processes its output."""
         return partial(self._training_step, split_batch, batch_idx, hiddens)
-
-    def _process_closure_result(self, opt_closure_result: Optional[ClosureResult]) -> None:
-        """Checks if the closure results is finite and optionally breaks if it is not
-
-        Args:
-            opt_closure_result: the result of the train step wrapped in an attribute dict
-        """
-        if not opt_closure_result:
-            return
-
-        # check if loss or model weights are nan
-        if self.trainer.terminate_on_nan:
-            check_finite_loss(self.trainer.lightning_module, opt_closure_result.loss)
 
     def _training_step(self, split_batch: Any, batch_idx: int, hiddens: Tensor) -> Optional[AttributeDict]:
         """Performs the training step for manual optimization.
