@@ -29,7 +29,7 @@ from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signatu
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
-def check_finite_loss(loss: torch.Tensor) -> None:
+def check_finite_loss(loss: Optional[torch.Tensor]) -> None:
     """Checks for finite loss value.
 
     Args:
