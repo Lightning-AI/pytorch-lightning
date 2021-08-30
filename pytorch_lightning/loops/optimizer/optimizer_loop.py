@@ -28,6 +28,7 @@ from pytorch_lightning.loops.utilities import (
     _process_training_step_output,
     block_ddp_sync_behaviour,
     check_finite_loss,
+    _build_training_step_kwargs,
 )
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
@@ -334,9 +335,8 @@ class OptimizerLoop(Loop):
 
         with self.trainer.profiler.profile("model_forward"):
 
-            # TODO: remove hack
-            step_kwargs = self.trainer.fit_loop.epoch_loop.batch_loop._build_kwargs(
-                split_batch, batch_idx, opt_idx, hiddens
+            step_kwargs = _build_training_step_kwargs(
+                self.trainer.lightning_module, self.trainer.optimizers, split_batch, batch_idx, opt_idx, hiddens
             )
 
             # manually capture logged metrics
