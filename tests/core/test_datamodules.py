@@ -577,6 +577,7 @@ def test_define_as_dataclass():
 
     # asserts for the different dunder methods added by dataclass, when super class is inherently initialized, i.e.
     # __init__, __repr__, __eq__, __lt__, __le__, etc.
+    assert BoringDataModule2(batch_size=32).prepare_data() is None
     assert BoringDataModule2(batch_size=32)
     assert hasattr(BoringDataModule2, "__repr__")
     assert BoringDataModule2(batch_size=32) == BoringDataModule2(batch_size=32)
