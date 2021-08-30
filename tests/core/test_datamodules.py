@@ -548,6 +548,7 @@ def test_define_as_dataclass():
 
     # makes sure that no functionality is broken and the user can still manually make
     # super().__init__ call with parameters
+    # also tests all the dataclass features that can be enabled without breaking anything
     @dataclass(init=True, repr=True, eq=True, order=True, unsafe_hash=True, frozen=False)
     class BoringDataModule1(LightningDataModule):
         batch_size: int = 32
