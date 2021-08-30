@@ -152,18 +152,14 @@ class TrainingBatchLoop(Loop):
         self,
         batch_idx: int,
         split_batch: Any,
-        opt_idx: Optional[int] = None,
-        optimizer: Optional[torch.optim.Optimizer] = None,
     ) -> Optional[ClosureResult]:
         """Runs closure (train step + backward) together with optimization if necessary.
 
         Args:
             batch_idx: the index of the current batch
             split_batch: the current tbptt split of the whole batch
-            opt_idx: the index of the current optimizer or `None` in case of manual optimization
-            optimizer: the current optimizer or `None` in case of manual optimization
         """
-        closure = self._make_closure(split_batch, batch_idx, opt_idx, optimizer, self._hiddens)
+        closure = self._make_closure(split_batch, batch_idx, self._hiddens)
         closure()
         result = closure.get_result()
 
@@ -179,15 +175,13 @@ class TrainingBatchLoop(Loop):
         self,
         split_batch: Any,
         batch_idx: int,
-        opt_idx: int,
-        optimizer: Optimizer,
         hiddens: Any,
     ) -> Closure:
         """
         Build a closure object that captures the given arguments and runs the `training_step` function and optionally
         other functions such as `backward` and `zero_grad`.
         """
-        step_fn = self._make_step_fn(split_batch, batch_idx, opt_idx, hiddens)
+        step_fn = self._make_step_fn(split_batch, batch_idx, hiddens)
         backward_fn = None
         zero_grad_fn = None
 
@@ -198,9 +192,9 @@ class TrainingBatchLoop(Loop):
             profiler=self.trainer.profiler,
         )
 
-    def _make_step_fn(self, split_batch: Any, batch_idx: int, opt_idx: int, hiddens: Any) -> Callable[[], dict]:
+    def _make_step_fn(self, split_batch: Any, batch_idx: int, hiddens: Any) -> Callable[[], dict]:
         """Build the step function that runs the `training_step` and processes its output."""
-        return partial(self._training_step, split_batch, batch_idx, opt_idx, hiddens)
+        return partial(self._training_step, split_batch, batch_idx, hiddens)
 
     def _process_closure_result(self, opt_closure_result: Optional[ClosureResult]) -> None:
         """Checks if the closure results is finite and optionally breaks if it is not
@@ -215,15 +209,12 @@ class TrainingBatchLoop(Loop):
         if self.trainer.terminate_on_nan:
             check_finite_loss(self.trainer.lightning_module, opt_closure_result.loss)
 
-    def _training_step(
-        self, split_batch: Any, batch_idx: int, opt_idx: int, hiddens: Tensor
-    ) -> Optional[AttributeDict]:
+    def _training_step(self, split_batch: Any, batch_idx: int, hiddens: Tensor) -> Optional[AttributeDict]:
         """Performs the actual train step with the tied hooks.
 
         Args:
             split_batch: the current tbptt split of the current batch
             batch_idx: the index of the current batch
-            opt_idx: the index of the current optimizer
             hiddens: the model's hidden state of the previous iteration
 
         Returns:
@@ -234,7 +225,7 @@ class TrainingBatchLoop(Loop):
 
         with self.trainer.profiler.profile("model_forward"):
             step_kwargs = _build_training_step_kwargs(
-                model_ref, self.trainer.optimizers, split_batch, batch_idx, opt_idx, hiddens
+                model_ref, self.trainer.optimizers, split_batch, batch_idx, opt_idx=None, hiddens=hiddens
             )
 
             # manually capture logged metrics
