@@ -67,10 +67,10 @@ class OptimizerLoop(Loop):
         self._optimizers = optimizers.copy()
 
     def advance(self, batch: Any, hiddens: Any, *args, **kwargs) -> None:
+        self._hiddens = hiddens
         result = self._run_optimization(
             self._batch_idx,
             batch,
-            hiddens,
             self.optim_progress.optimizer_idx,
             self._optimizers[self.optim_progress.optimizer_idx],
         )
@@ -79,10 +79,13 @@ class OptimizerLoop(Loop):
 
         self.optim_progress.optimizer_idx += 1
 
-    def on_run_end(self) -> Dict[int, Optional[AttributeDict]]:
+    def on_run_end(self) -> Tuple[Dict[int, Optional[AttributeDict]], Optional[Any]]:
         outputs = self.outputs
-        self.outputs = {}  # free memory
-        return outputs
+        hiddens = self._hiddens
+        # free memory
+        self.outputs = {}
+        self._hiddens = None
+        return outputs, hiddens
 
     def backward(
         self,
@@ -113,7 +116,6 @@ class OptimizerLoop(Loop):
         self,
         batch_idx: int,
         split_batch: Any,
-        hiddens: Any,
         opt_idx: Optional[int] = None,
         optimizer: Optional[torch.optim.Optimizer] = None,
     ) -> Optional[ClosureResult]:
@@ -128,7 +130,7 @@ class OptimizerLoop(Loop):
         # toggle model params
         self._run_optimization_start(opt_idx, optimizer)
 
-        closure = self._make_closure(split_batch, batch_idx, opt_idx, optimizer, hiddens)
+        closure = self._make_closure(split_batch, batch_idx, opt_idx, optimizer, self._hiddens)
 
         if self.trainer.fit_loop.should_accumulate():
             # For gradient accumulation
