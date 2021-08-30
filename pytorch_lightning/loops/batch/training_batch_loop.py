@@ -210,7 +210,7 @@ class TrainingBatchLoop(Loop):
             check_finite_loss(self.trainer.lightning_module, opt_closure_result.loss)
 
     def _training_step(self, split_batch: Any, batch_idx: int, hiddens: Tensor) -> Optional[AttributeDict]:
-        """Performs the actual train step with the tied hooks.
+        """Performs the training step for manual optimization.
 
         Args:
             split_batch: the current tbptt split of the current batch
@@ -218,7 +218,7 @@ class TrainingBatchLoop(Loop):
             hiddens: the model's hidden state of the previous iteration
 
         Returns:
-            an AttributeDict containing the loss value and the training step output.
+            an AttributeDict containing the training step output.
         """
         # give the PL module a result for logging
         model_ref = self.trainer.lightning_module
@@ -261,6 +261,7 @@ class TrainingBatchLoop(Loop):
             splits = model_ref.tbptt_split_batch(batch, tbptt_steps)
         return splits
 
+    # TODO: remove this method and update tests
     def backward(
         self,
         loss: Tensor,
