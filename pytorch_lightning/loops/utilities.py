@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import OrderedDict
-from typing import Any, Dict, Iterator, Mapping, Optional, Sequence, Tuple
+from contextlib import contextmanager
+from typing import Any, Dict, Generator, Iterator, Mapping, Optional, Sequence, Tuple
 
 import torch
 from torch import Tensor
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
+from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -168,3 +170,23 @@ def _prepare_dataloader_iter(data_fetcher: AbstractDataFetcher, batch_idx: int) 
     else:
         dataloader_iter = iter(data_fetcher)
     return dataloader_iter
+
+
+@contextmanager
+def _block_parallel_sync_behavior(trainer: "pl.Trainer", block: bool = True) -> Generator[None, None, None]:
+    """
+    Blocks synchronization in :class:`~pytorch_lightning.plugins.training_type.parallel.ParallelPlugin`.
+    This is useful for example when when accumulating gradients to reduce communication when it is not needed.
+
+    Args:
+        trainer: the trainer instance with a reference to a training type plugin
+        block: whether the context manager is enabled or not
+
+    Returns:
+        context manager with sync behaviour off
+    """
+    if isinstance(trainer.training_type_plugin, ParallelPlugin) and block:
+        with trainer.training_type_plugin.block_backward_sync():
+            yield None
+    else:
+        yield None

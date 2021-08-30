@@ -11,11 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from contextlib import contextmanager
 from copy import copy
 from functools import partial
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -27,12 +25,12 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.closure import Closure, ClosureResult
 from pytorch_lightning.loops.utilities import (
+    _block_parallel_sync_behavior,
     _build_training_step_kwargs,
     _check_training_step_output,
     _process_training_step_output,
     check_finite_loss,
 )
-from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
@@ -185,9 +183,8 @@ class TrainingBatchLoop(Loop):
             # -------------------
             # calculate loss (train step + train step end)
             # -------------------
-            # automatic_optimization=True: perform ddp sync only when performing optimizer_step
-            # automatic_optimization=False: don't block synchronization here
-            with self.block_ddp_sync_behaviour():
+            # automatic_optimization: perform ddp sync only when performing optimizer_step
+            with _block_parallel_sync_behavior(self._trainer):
                 closure()
 
         # ------------------------------
@@ -206,7 +203,6 @@ class TrainingBatchLoop(Loop):
             # if no result, user decided to skip optimization
             # otherwise update running loss + reset accumulated loss
             self._update_running_loss(result.loss)
-            self._process_closure_result(result)
 
         # untoggle model params
         self._run_optimization_end(opt_idx)
@@ -225,7 +221,7 @@ class TrainingBatchLoop(Loop):
         other functions such as `backward` and `zero_grad`.
         """
         step_fn = self._make_step_fn(split_batch, batch_idx, opt_idx, hiddens)
-        backward_fn = self._make_backward_fn(batch_idx, optimizer, opt_idx)
+        backward_fn = self._make_backward_fn(optimizer, opt_idx)
         zero_grad_fn = self._make_zero_grad_fn(batch_idx, opt_idx, optimizer)
 
         return Closure(
@@ -257,12 +253,7 @@ class TrainingBatchLoop(Loop):
         ):
             return zero_grad_fn
 
-    def _make_backward_fn(
-        self,
-        batch_idx: int,
-        optimizer: Optimizer,
-        opt_idx: int,
-    ) -> Optional[Callable[[Tensor], Tensor]]:
+    def _make_backward_fn(self, optimizer: Optimizer, opt_idx: int) -> Optional[Callable[[Tensor], Tensor]]:
         """
         Build a `backward` function that handles back-propagation through the output produced by the `training_step`
         function. Returns ``None`` in the case backward needs to be skipped, e.g., when manual optimization is on.
@@ -270,10 +261,6 @@ class TrainingBatchLoop(Loop):
 
         def backward_fn(loss: Tensor):
             self.backward(loss, optimizer, opt_idx)
-
-            # when in dev debugging track the losses
-            # TODO: remove dev debugger tracking loss history
-            self.trainer.dev_debugger.track_train_loss_history(batch_idx, loss)
 
             # check if loss or model weights are nan
             if self.trainer.terminate_on_nan:
@@ -283,19 +270,6 @@ class TrainingBatchLoop(Loop):
 
         if not self._skip_backward and self.trainer.lightning_module.automatic_optimization:
             return backward_fn
-
-    def _process_closure_result(self, opt_closure_result: Optional[ClosureResult]) -> None:
-        """Checks if the closure results is finite and optionally breaks if it is not
-
-        Args:
-            opt_closure_result: the result of the train step wrapped in an attribute dict
-        """
-        if not opt_closure_result:
-            return
-
-        # check if loss or model weights are nan
-        if self.trainer.terminate_on_nan:
-            check_finite_loss(self.trainer.lightning_module, opt_closure_result.loss)
 
     def _training_step(
         self, split_batch: Any, batch_idx: int, opt_idx: int, hiddens: Tensor
@@ -460,28 +434,6 @@ class TrainingBatchLoop(Loop):
         if self.trainer.lightning_module.automatic_optimization and len(self.trainer.optimizers) > 1:
             model = self.trainer.lightning_module
             model.untoggle_optimizer(opt_idx)
-
-    @contextmanager
-    def block_ddp_sync_behaviour(self, should_block_sync: bool = False) -> Generator[None, None, None]:
-        """
-        automatic_optimization = True
-        Blocks ddp sync gradients behaviour on backwards pass.
-        This is useful for skipping sync when accumulating gradients, reducing communication overhead
-
-        automatic_optimization = False
-        do not block ddp gradient sync when using manual optimization
-        as gradients are needed within the training step
-
-        Returns:
-            context manager with sync behaviour off
-        """
-        if isinstance(self.trainer.training_type_plugin, ParallelPlugin) and (
-            self.trainer.lightning_module.automatic_optimization or should_block_sync
-        ):
-            with self.trainer.training_type_plugin.block_backward_sync():
-                yield None
-        else:
-            yield None
 
     def backward(
         self,
