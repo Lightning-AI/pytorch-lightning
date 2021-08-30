@@ -15,13 +15,12 @@ import os
 from unittest.mock import DEFAULT, patch
 
 import pytest
+from torch import tensor
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import CometLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
-
-from torch import tensor
 
 
 def _patch_comet_atexit(monkeypatch):
