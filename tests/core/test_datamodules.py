@@ -535,17 +535,6 @@ def test_simple_hyperparameters_saving():
 
 
 def test_define_as_dataclass():
-    class RandomDataset(torch.utils.data.Dataset):
-        def __init__(self, size, length):
-            self.len = length
-            self.data = torch.randn(length, size)
-
-        def __getitem__(self, index):
-            return self.data[index]
-
-        def __len__(self):
-            return self.len
-
     # makes sure that no functionality is broken and the user can still manually make
     # super().__init__ call with parameters
     # also tests all the dataclass features that can be enabled without breaking anything
@@ -557,10 +546,7 @@ def test_define_as_dataclass():
         def __post_init__(self):
             super().__init__(dims=self.dims)
 
-        def train_dataloader(self):
-            return torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)
-
-    # asserts for the different dunder methods added by dataclass, when __init__ is impelmented, i.e.
+    # asserts for the different dunder methods added by dataclass, when __init__ is implemented, i.e.
     # __repr__, __eq__, __lt__, __le__, etc.
     assert BoringDataModule1(batch_size=32)
     assert hasattr(BoringDataModule1, "__repr__")
@@ -569,11 +555,7 @@ def test_define_as_dataclass():
     # asserts inherent calling of super().__init__ in case user doesn't make the call
     @dataclass
     class BoringDataModule2(LightningDataModule):
-
         batch_size: int = 2
-
-        def train_dataloader(self):
-            return torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)
 
     # asserts for the different dunder methods added by dataclass, when super class is inherently initialized, i.e.
     # __init__, __repr__, __eq__, __lt__, __le__, etc.
@@ -582,11 +564,10 @@ def test_define_as_dataclass():
     assert hasattr(BoringDataModule2, "__repr__")
     assert BoringDataModule2(batch_size=32) == BoringDataModule2(batch_size=32)
 
-    # checks that empty super().__init__ call isn't made incase LightningDataModule isn't the direct parent
+    # checks that empty super().__init__ call isn't made in case LightningDataModule isn't the direct parent
     # of the defined class.
     @dataclass
     class BoringDataModule3(SklearnDataModule):
-
         num_features: int = 32
         length: int = 800
         num_classes: int = 3
