@@ -215,7 +215,6 @@ class TrainingBatchLoop(Loop):
         if self.trainer.terminate_on_nan:
             check_finite_loss(self.trainer.lightning_module, opt_closure_result.loss)
 
-    # TODO: duplicated code
     def _training_step(
         self, split_batch: Any, batch_idx: int, opt_idx: int, hiddens: Tensor
     ) -> Optional[AttributeDict]:

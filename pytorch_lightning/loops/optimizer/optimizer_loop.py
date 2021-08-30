@@ -315,7 +315,6 @@ class OptimizerLoop(Loop):
         self.trainer.accelerator.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
         self.optim_progress.optimizer.zero_grad.increment_completed()
 
-    # TODO: duplicated code
     def _training_step(
         self, split_batch: Any, batch_idx: int, opt_idx: int, hiddens: Tensor
     ) -> Optional[AttributeDict]:
