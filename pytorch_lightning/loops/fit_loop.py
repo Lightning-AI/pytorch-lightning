@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import logging
-from contextlib import suppress
 from typing import Any, Dict, Optional
 
 from pytorch_lightning.loops import Loop
