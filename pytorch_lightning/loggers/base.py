@@ -19,6 +19,7 @@ import operator
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from functools import wraps
+from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 from weakref import ReferenceType
 
@@ -348,6 +349,45 @@ class LightningLoggerBase(ABC):
             metrics = {f"{self._prefix}{self.LOGGER_JOIN_CHAR}{k}": v for k, v in metrics.items()}
 
         return metrics
+
+    def _scan_checkpoints(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> List[ModelCheckpoint]:
+        """
+        Return the checkpoints to be logged.
+
+        Args:
+            checkpoint_callback: ModelCheckpoint callback reference
+        """
+        checkpoints = {
+            checkpoint_callback.last_model_path: checkpoint_callback.current_score,
+            checkpoint_callback.best_model_path: checkpoint_callback.best_model_score,
+            **checkpoint_callback.best_k_models,
+        }
+        checkpoints = sorted((Path(p).stat().st_mtime, p, s) for p, s in checkpoints.items() if Path(p).is_file())
+        checkpoints = [
+            c for c in checkpoints if c[1] not in self._logged_model_time.keys() or self._logged_model_time[c[1]] < c[0]
+        ]
+        return checkpoints
+
+    def _log_checkpoints(self, checkpoints: List[ModelCheckpoint]) -> None:
+        """
+        Log the given checkpoints.
+
+        Args:
+            checkpoints: list of checkpoints
+        """
+        pass
+
+    def _scan_and_log_checkpoints(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
+        """
+        Get and log the checkpoints to be logged.
+
+        Args:
+            checkpoint_callback: ModelCheckpoint callback reference
+        """
+        # Get the checkpoints
+        checkpoints = self._scan_checkpoints(checkpoint_callback)
+        # Log the checkpoints
+        self._log_checkpoints(checkpoints, checkpoint_callback)
 
 
 class LoggerCollection(LightningLoggerBase):

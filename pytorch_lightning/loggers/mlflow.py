@@ -22,7 +22,7 @@ import tempfile
 from argparse import Namespace
 from pathlib import Path
 from time import time
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from weakref import ReferenceType
 
 import torch
@@ -299,18 +299,9 @@ class MLFlowLogger(LightningLoggerBase):
         elif self._log_model is True:
             self._checkpoint_callback = checkpoint_callback
 
-    def _scan_and_log_checkpoints(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
-        # get checkpoints to be saved with associated score
-        checkpoints = {
-            checkpoint_callback.last_model_path: checkpoint_callback.current_score,
-            checkpoint_callback.best_model_path: checkpoint_callback.best_model_score,
-            **checkpoint_callback.best_k_models,
-        }
-        checkpoints = sorted((Path(p).stat().st_mtime, p, s) for p, s in checkpoints.items() if Path(p).is_file())
-        checkpoints = [
-            c for c in checkpoints if c[1] not in self._logged_model_time.keys() or self._logged_model_time[c[1]] < c[0]
-        ]
-
+    def _log_checkpoints(
+        self, checkpoints: List[ModelCheckpoint], checkpoint_callback: "ReferenceType[ModelCheckpoint]"
+    ) -> None:
         # log iteratively all new checkpoints
         for t, p, s in checkpoints:
             metadata = {
@@ -336,9 +327,6 @@ class MLFlowLogger(LightningLoggerBase):
 
             # Artifact path on mlflow
             artifact_path = f"model/checkpoints/{Path(p).stem}"
-
-            print(p)
-            print(artifact_path)
 
             # Log the checkpoint
             self.experiment.log_artifact(self._run_id, p, f"{artifact_path}")
