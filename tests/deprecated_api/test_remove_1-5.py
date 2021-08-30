@@ -25,12 +25,6 @@ from tests.helpers.runif import RunIf
 from tests.helpers.utils import no_warning_call
 
 
-def test_v1_5_0_running_sanity_check():
-    trainer = Trainer()
-    with pytest.deprecated_call(match="has been renamed to `Trainer.sanity_checking`"):
-        assert not trainer.running_sanity_check
-
-
 def test_v1_5_0_model_checkpoint_period(tmpdir):
     with no_warning_call(DeprecationWarning):
         ModelCheckpoint(dirpath=tmpdir)
