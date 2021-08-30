@@ -14,7 +14,7 @@
 
 from copy import copy
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple, Sequence
 
 import torch
 from torch import Tensor
@@ -40,12 +40,14 @@ class OptimizerLoop(Loop):
 
     def __init__(self):
         super().__init__()
-        self.outputs: Dict[int, Optional[AttributeDict]] = []  # defaultdict(list)
-        self.optim_progress = OptimizationProgress()
+        # TODO: use default dict here to simplify logic in loop
+        self.outputs: Dict[int, Optional[AttributeDict]] = []
+        self.optim_progress: OptimizationProgress = OptimizationProgress()
 
         self._skip_backward: bool = False
-        self._batch_idx = None
-        self._optimizers = None
+        self._batch_idx: Optional[int] = None
+        self._optimizers: Optional[Sequence[Optimizer]] = None
+        self._hiddens: Optional[Any] = None
 
     @property
     def done(self) -> bool:
