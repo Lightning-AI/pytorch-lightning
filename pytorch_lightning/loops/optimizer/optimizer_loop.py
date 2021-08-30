@@ -14,7 +14,7 @@
 
 from copy import copy
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import torch
 from torch import Tensor
@@ -24,11 +24,11 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.closure import Closure, ClosureResult
 from pytorch_lightning.loops.utilities import (
+    _build_training_step_kwargs,
     _check_training_step_output,
     _process_training_step_output,
     block_ddp_sync_behaviour,
     check_finite_loss,
-    _build_training_step_kwargs,
 )
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm

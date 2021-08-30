@@ -13,7 +13,7 @@
 # limitations under the License.
 from collections import OrderedDict
 from contextlib import contextmanager
-from typing import Any, Generator, Iterator, Mapping, Optional, Tuple, Sequence, Dict
+from typing import Any, Dict, Generator, Iterator, Mapping, Optional, Sequence, Tuple
 
 import torch
 from torch import Tensor

@@ -27,10 +27,10 @@ from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.closure import Closure, ClosureResult
 from pytorch_lightning.loops.optimizer.optimizer_loop import OptimizerLoop
 from pytorch_lightning.loops.utilities import (
+    _build_training_step_kwargs,
     _check_training_step_output,
     _process_training_step_output,
     check_finite_loss,
-    _build_training_step_kwargs,
 )
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AttributeDict
