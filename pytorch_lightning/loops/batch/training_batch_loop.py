@@ -28,10 +28,10 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.closure import Closure, ClosureResult
 from pytorch_lightning.loops.utilities import (
+    _block_parallel_sync_behavior,
     _check_training_step_output,
     _process_training_step_output,
     check_finite_loss,
-    _block_parallel_sync_behavior,
 )
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.progress import OptimizationProgress
