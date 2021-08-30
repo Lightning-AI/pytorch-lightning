@@ -24,7 +24,7 @@ from torch import nn, Tensor
 from torch.autograd.profiler import record_function
 
 from pytorch_lightning.profiler.base import BaseProfiler
-from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 
@@ -222,7 +222,6 @@ class PyTorchProfiler(BaseProfiler):
         sort_by_key: Optional[str] = None,
         record_functions: Set[str] = None,
         record_module_names: bool = True,
-        profiled_functions: Optional[List] = None,
         output_filename: Optional[str] = None,
         **profiler_kwargs: Any,
     ) -> None:
@@ -277,14 +276,12 @@ class PyTorchProfiler(BaseProfiler):
         """
         super().__init__(dirpath=dirpath, filename=filename, output_filename=output_filename)
 
-        record_functions = self.__deprecation_check(profiled_functions, record_functions)
-
         self._group_by_input_shapes = group_by_input_shapes and profiler_kwargs.get("record_shapes", False)
         self._emit_nvtx = emit_nvtx
         self._export_to_chrome = export_to_chrome
         self._row_limit = row_limit
         self._sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
-        self._user_record_functions = record_functions
+        self._user_record_functions = record_functions or set()
         self._record_functions_start = self._user_record_functions | self.START_RECORD_FUNCTIONS
         self._record_functions = self._user_record_functions | self.RECORD_FUNCTIONS
         self._record_module_names = record_module_names
@@ -330,27 +327,6 @@ class PyTorchProfiler(BaseProfiler):
         self._metric = profiler_kwargs.get("metric", "self_cpu_time_total")
         with_stack = profiler_kwargs.get("with_stack", False) or self._export_to_flame_graph
         self._profiler_kwargs["with_stack"] = with_stack
-
-    def __deprecation_check(
-        self, profiled_functions: Optional[List[str]], record_functions: Optional[Set[str]]
-    ) -> Set[str]:
-        if record_functions is None:
-            record_functions = set()
-
-        if profiled_functions is not None:
-            rank_zero_deprecation(
-                "`PyTorchProfiler.profiled_functions` has been renamed to"
-                " `record_functions` in v1.3 and will be removed in v1.5"
-            )
-            if not record_functions:
-                record_functions |= set(profiled_functions)
-            else:
-                raise MisconfigurationException(
-                    "You set `PytorchProfiler.profiled_functions` and `PyTorchProfiler.record_functions`."
-                    "  Please use only the later."
-                )
-
-        return record_functions
 
     @staticmethod
     def _default_schedule() -> Optional[callable]:
