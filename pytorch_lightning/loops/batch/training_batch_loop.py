@@ -130,10 +130,12 @@ class TrainingBatchLoop(Loop):
         self.trainer.logger_connector.on_train_split_start(batch_idx, split_idx, split_batch)
 
         if self.trainer.lightning_module.automatic_optimization:
+            # in automatic optimization, hand over execution to the OptimizerLoop
             optimizers = [optimizer for _, optimizer in self.get_active_optimizers(batch_idx)]
-            self.batch_outputs, self._hiddens = self.optimizer_loop.run(
-                split_batch, self._hiddens, optimizers, batch_idx
-            )
+            batch_outputs, self._hiddens = self.optimizer_loop.run(split_batch, self._hiddens, optimizers, batch_idx)
+            # combine outputs from each optimizer
+            for k in range(len(batch_outputs)):
+                self.batch_outputs[k].extend(batch_outputs[k])
         else:
             # in manual optimization, there is no looping over optimizers
             result = self._run_optimization(batch_idx, split_batch)
