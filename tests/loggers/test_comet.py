@@ -15,12 +15,13 @@ import os
 from unittest.mock import DEFAULT, patch
 
 import pytest
-from torch import tensor
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import CometLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
+
+from torch import tensor
 
 
 def _patch_comet_atexit(monkeypatch):
@@ -223,6 +224,7 @@ def test_comet_epoch_logging(comet, comet_experiment, tmpdir, monkeypatch):
     logger.experiment.log_metrics.assert_called_once_with({"test": 1}, epoch=1, step=123)
 
 
+@patch("pytorch_lightning.loggers.comet.CometExperiment")
 @patch("pytorch_lightning.loggers.comet.comet_ml")
 def test_comet_metrics_safe(comet, tmpdir, monkeypatch):
     """Test that CometLogger.log_metrics doesn't do inplace modification of metrics."""
