@@ -27,7 +27,7 @@ from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
-from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.datamodules import ClassifDataModule, SklearnDataModule
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
 from tests.helpers.utils import reset_seed
@@ -546,11 +546,15 @@ def test_define_as_dataclass():
         def __len__(self):
             return self.len
 
+    # makes sure that no functionality is broken and the user can still manually make
+    # super().__init__ call with parameters
     @dataclass(init=True, repr=True, eq=True, order=True, unsafe_hash=True, frozen=False)
     class BoringDataModule1(LightningDataModule):
-        def __init__(self, batch_size):
-            super().__init__()
-            self.batch_size = batch_size
+        batch_size: int = 32
+        dims: int = 2
+
+        def __post_init__(self):
+            super().__init__(dims=self.dims)
 
         def train_dataloader(self):
             return torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)
@@ -561,6 +565,7 @@ def test_define_as_dataclass():
     assert hasattr(BoringDataModule1, "__repr__")
     assert BoringDataModule1(batch_size=32) == BoringDataModule1(batch_size=32)
 
+    # asserts inherent calling of super().__init__ in case user doesn't make the call
     @dataclass
     class BoringDataModule2(LightningDataModule):
 
@@ -574,6 +579,26 @@ def test_define_as_dataclass():
     assert BoringDataModule2(batch_size=32)
     assert hasattr(BoringDataModule2, "__repr__")
     assert BoringDataModule2(batch_size=32) == BoringDataModule2(batch_size=32)
+
+    # checks that empty super().__init__ call isn't made incase LightningDataModule isn't the direct parent
+    # of the defined class.
+    @dataclass
+    class BoringDataModule3(SklearnDataModule):
+
+        num_features: int = 32
+        length: int = 800
+        num_classes: int = 3
+        batch_size: int = 2
+
+        def __post_init__(self):
+            super().__init__(
+                (torch.zeros((4, 2)), torch.zeros((4,))),
+                x_type=torch.float32,
+                y_type=torch.long,
+                batch_size=self.batch_size,
+            )
+
+    assert BoringDataModule3()
 
 
 def test_inconsistent_prepare_data_per_node(tmpdir):
