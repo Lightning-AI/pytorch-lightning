@@ -150,68 +150,64 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
 
 
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
-def test_wandb_log_model(wandb, tmpdir):
+@pytest.mark.parametrize("log_model", ["all", True, False])
+def test_wandb_log_model(wandb, tmpdir, log_model):
     """Test that the logger creates the folders and files in the right place."""
 
     wandb.run = None
+    # Reset mocks
+    wandb.init().log_artifact.reset_mock()
+    wandb.init.reset_mock()
+    # Get model, logger, trainer and train
     model = BoringModel()
-
-    # test log_model=True
-    logger = WandbLogger(log_model=True)
+    logger = WandbLogger(log_model=log_model)
     logger.experiment.id = "1"
     logger.experiment.project_name.return_value = "project"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
     trainer.fit(model)
-    wandb.init().log_artifact.assert_called_once()
 
-    # test log_model='all'
-    wandb.init().log_artifact.reset_mock()
-    wandb.init.reset_mock()
-    logger = WandbLogger(log_model="all")
-    logger.experiment.id = "1"
-    logger.experiment.project_name.return_value = "project"
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
-    trainer.fit(model)
-    assert wandb.init().log_artifact.call_count == 2
+    if log_model == "all":
+        assert wandb.init().log_artifact.call_count == 2
 
-    # test log_model=False
-    wandb.init().log_artifact.reset_mock()
-    wandb.init.reset_mock()
-    logger = WandbLogger(log_model=False)
-    logger.experiment.id = "1"
-    logger.experiment.project_name.return_value = "project"
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
-    trainer.fit(model)
-    assert not wandb.init().log_artifact.called
+    elif log_model is True:
+        wandb.init.assert_called_once()
 
-    # test correct metadata
-    import pytorch_lightning.loggers.wandb as pl_wandb
+        # test correct metadata
+        import pytorch_lightning.loggers.wandb as pl_wandb
 
-    pl_wandb._WANDB_GREATER_EQUAL_0_10_22 = True
-    wandb.init().log_artifact.reset_mock()
-    wandb.init.reset_mock()
-    wandb.Artifact.reset_mock()
-    logger = pl_wandb.WandbLogger(log_model=True)
-    logger.experiment.id = "1"
-    logger.experiment.project_name.return_value = "project"
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
-    trainer.fit(model)
-    wandb.Artifact.assert_called_once_with(
-        name="model-1",
-        type="model",
-        metadata={
-            "score": None,
-            "original_filename": "epoch=1-step=5-v3.ckpt",
-            "ModelCheckpoint": {
-                "monitor": None,
-                "mode": "min",
-                "save_last": None,
-                "save_top_k": 1,
-                "save_weights_only": False,
-                "_every_n_train_steps": 0,
+        pl_wandb._WANDB_GREATER_EQUAL_0_10_22 = True
+
+        # Reset mocks
+        wandb.init().log_artifact.reset_mock()
+        wandb.init.reset_mock()
+        wandb.Artifact.reset_mock()
+
+        logger = pl_wandb.WandbLogger(log_model=log_model)
+        logger.experiment.id = "1"
+        logger.experiment.project_name.return_value = "project"
+        trainer = Trainer(
+            default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3
+        )
+        trainer.fit(model)
+        wandb.Artifact.assert_called_once_with(
+            name="model-1",
+            type="model",
+            metadata={
+                "score": None,
+                "original_filename": "epoch=1-step=5-v1.ckpt",
+                "ModelCheckpoint": {
+                    "monitor": None,
+                    "mode": "min",
+                    "save_last": None,
+                    "save_top_k": 1,
+                    "save_weights_only": False,
+                    "_every_n_train_steps": 0,
+                },
             },
-        },
-    )
+        )
+
+    elif log_model is False:
+        assert not wandb.init().log_artifact.called
 
 
 def test_wandb_sanitize_callable_params(tmpdir):
