@@ -173,20 +173,19 @@ def _prepare_dataloader_iter(data_fetcher: AbstractDataFetcher, batch_idx: int) 
 
 
 @contextmanager
-def block_ddp_sync_behaviour(trainer: "pl.Trainer", should_block_sync: bool = False) -> Generator[None, None, None]:
+def _block_parallel_sync_behavior(trainer: "pl.Trainer", block: bool = True) -> Generator[None, None, None]:
     """
-    automatic_optimization = True
-    Blocks ddp sync gradients behaviour on backwards pass.
-    This is useful for skipping sync when accumulating gradients, reducing communication overhead
+    Blocks synchronization in :class:`~pytorch_lightning.plugins.training_type.parallel.ParallelPlugin`.
+    This is useful for example when when accumulating gradients to reduce communication when it is not needed.
 
-    automatic_optimization = False
-    do not block ddp gradient sync when using manual optimization
-    as gradients are needed within the training step
+    Args:
+        trainer: the trainer instance with a reference to a training type plugin
+        block: whether the context manager is enabled or not
 
     Returns:
         context manager with sync behaviour off
     """
-    if isinstance(trainer.training_type_plugin, ParallelPlugin) and should_block_sync:
+    if isinstance(trainer.training_type_plugin, ParallelPlugin) and block:
         with trainer.training_type_plugin.block_backward_sync():
             yield None
     else:

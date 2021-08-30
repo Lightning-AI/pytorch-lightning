@@ -24,10 +24,10 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.closure import Closure, ClosureResult
 from pytorch_lightning.loops.utilities import (
+    _block_parallel_sync_behavior,
     _build_training_step_kwargs,
     _check_training_step_output,
     _process_training_step_output,
-    block_ddp_sync_behaviour,
     check_finite_loss,
 )
 from pytorch_lightning.trainer.progress import OptimizationProgress
@@ -140,7 +140,7 @@ class OptimizerLoop(Loop):
             # calculate loss (train step + train step end)
             # -------------------
             # automatic_optimization=True: perform ddp sync only when performing optimizer_step
-            with block_ddp_sync_behaviour(self.trainer, should_block_sync=True):
+            with _block_parallel_sync_behavior(self.trainer, block=True):
                 closure()
 
         # ------------------------------

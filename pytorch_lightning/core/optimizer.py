@@ -116,9 +116,10 @@ class LightningOptimizer:
         during the accumulation phase.
         Setting `sync_grad` to False will block this synchronization and improve performance.
         """
-        from pytorch_lightning.loops.utilities import block_ddp_sync_behaviour
+        # local import here to avoid circular import
+        from pytorch_lightning.loops.utilities import _block_parallel_sync_behavior
 
-        with block_ddp_sync_behaviour(self._trainer, should_block_sync=(not sync_grad)):
+        with _block_parallel_sync_behavior(self._trainer, block=(not sync_grad)):
             self._toggle_model()
             yield
             self._untoggle_model()
