@@ -53,7 +53,7 @@ class TrainingBatchLoop(Loop):
         self.running_loss: TensorRunningAccum = TensorRunningAccum(window_length=20)
         # the current split index when the batch gets split into chunks in truncated backprop through time
         self.split_idx: Optional[int] = None
-        self.optim_progress = OptimizationProgress()
+        self.optimizer_loop = OptimizerLoop()
 
         self._warning_cache: WarningCache = WarningCache()
         self._hiddens: Optional[Tensor] = None
@@ -72,8 +72,8 @@ class TrainingBatchLoop(Loop):
             self._optimizer_freq_cumsum = np.cumsum(self.trainer.optimizer_frequencies)
         return self._optimizer_freq_cumsum
 
-    def connect(self, **kwargs: "Loop") -> None:
-        raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
+    def connect(self, optimizer_loop: "Loop") -> None:
+        self.optimizer_loop = optimizer_loop
 
     def run(self, batch: Any, batch_idx: int) -> AttributeDict:
         """Runs all the data splits and the ``on_batch_start`` and ``on_train_batch_start`` hooks
@@ -136,7 +136,6 @@ class TrainingBatchLoop(Loop):
         if self.trainer.lightning_module.automatic_optimization:
             optimizers = [optimizer for _, optimizer in self.get_active_optimizers(batch_idx)]
 
-            self.optimizer_loop = OptimizerLoop()
             self.optimizer_loop.trainer = self.trainer
             self.batch_outputs = self.optimizer_loop.run(split_batch, self._hiddens, optimizers, batch_idx)
             # for opt_idx, optimizer in self.get_active_optimizers(batch_idx):
