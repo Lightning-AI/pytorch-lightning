@@ -109,9 +109,9 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def autocast_context_manager(self) -> torch.cuda.amp.autocast:
         if self.use_cpu:
-            return torch.cpu.amp.autocast(fast_dtype=self._fast_dtype)
+            return torch.cpu.amp.autocast(dtype=self._fast_dtype)
         if self.is_bfloat16:
-            return torch.cuda.amp.autocast(fast_dtype=self._fast_dtype)
+            return torch.cuda.amp.autocast(dtype=self._fast_dtype)
         return torch.cuda.amp.autocast()
 
     @contextmanager
