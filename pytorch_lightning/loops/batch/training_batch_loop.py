@@ -30,7 +30,6 @@ from pytorch_lightning.loops.utilities import (
     _block_parallel_sync_behavior,
     _check_training_step_output,
     _process_training_step_output,
-    check_finite_loss,
 )
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
