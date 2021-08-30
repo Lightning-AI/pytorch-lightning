@@ -13,10 +13,9 @@
 # limitations under the License.
 
 from collections import OrderedDict
-from contextlib import contextmanager
 from copy import copy
 from functools import partial
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -33,7 +32,6 @@ from pytorch_lightning.loops.utilities import (
     _process_training_step_output,
     check_finite_loss,
 )
-from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
