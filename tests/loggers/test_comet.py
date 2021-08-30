@@ -231,4 +231,4 @@ def test_comet_metrics_safe(comet, tmpdir, monkeypatch):
     logger = CometLogger(project_name="test", save_dir=tmpdir)
     metrics = {"tensor": tensor([[1.0, 0.0], [0.0, 1.0]], requires_grad=True), "epoch": 1}
     logger.log_metrics(metrics)
-    assert metrics["tensor"].requires_grad == True
+    assert metrics["tensor"].requires_grad
