@@ -74,7 +74,7 @@ class AMPTestModel(BoringModel):
     "accelerator",
     [
         None,
-        pytest.param("dp", marks=pytest.mark.skip("dp + amp not supported currently")),  # TODO
+        pytest.param("dp", marks=pytest.mark.skip("dp + amp not supported on CPU currently")),  # TODO
         "ddp_spawn",
     ],
 )
@@ -108,7 +108,7 @@ def test_amp_cpus(tmpdir, accelerator, precision, num_processes):
     "accelerator",
     [
         None,
-        pytest.param("dp", marks=pytest.mark.skip("dp + amp not supported currently")),  # TODO
+        "dp",
         "ddp_spawn",
     ],
 )
