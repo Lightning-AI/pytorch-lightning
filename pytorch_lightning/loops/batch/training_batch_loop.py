@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from collections import OrderedDict
 from copy import copy
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -28,6 +26,7 @@ from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.closure import Closure, ClosureResult
 from pytorch_lightning.loops.utilities import (
     _block_parallel_sync_behavior,
+    _build_training_step_kwargs,
     _check_training_step_output,
     _process_training_step_output,
 )
@@ -37,7 +36,6 @@ from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -291,7 +289,9 @@ class TrainingBatchLoop(Loop):
         model_ref = self.trainer.lightning_module
 
         with self.trainer.profiler.profile("model_forward"):
-            step_kwargs = self._build_kwargs(split_batch, batch_idx, opt_idx, hiddens)
+            step_kwargs = _build_training_step_kwargs(
+                model_ref, self.trainer.optimizers, split_batch, batch_idx, opt_idx, hiddens
+            )
 
             # manually capture logged metrics
             model_ref._current_fx_name = "training_step"
@@ -493,46 +493,3 @@ class TrainingBatchLoop(Loop):
         # find optimzier index by looking for the first {item > current_place} in the cumsum list
         opt_idx = int(np.argmax(self.optimizer_freq_cumsum > current_place_in_loop))
         return [(opt_idx, self.trainer.optimizers[opt_idx])]
-
-    def _build_kwargs(self, batch: Any, batch_idx: int, opt_idx: int, hiddens: Optional[Tensor]) -> Dict[str, Any]:
-        """Builds the keyword arguments for training_step
-
-        Args:
-            batch: the batch to train on
-            batch_idx: the index of the current batch
-            opt_idx: the index of the current optimizer
-            hiddens: the hidden state of the previous RNN iteration
-
-        Returns:
-            the keyword arguments for the training step
-        """
-        # enable not needing to add opt_idx to training_step
-        step_kwargs = OrderedDict([("batch", batch)])
-
-        lightning_module = self.trainer.lightning_module
-        training_step_fx = getattr(lightning_module, "training_step")
-
-        if is_param_in_hook_signature(training_step_fx, "batch_idx", min_args=2):
-            step_kwargs["batch_idx"] = batch_idx
-
-        if len(self.trainer.optimizers) > 1:
-            has_opt_idx_in_train_step = is_param_in_hook_signature(training_step_fx, "optimizer_idx")
-            if has_opt_idx_in_train_step:
-                if not lightning_module.automatic_optimization:
-                    raise ValueError(
-                        "Your `LightningModule.training_step` signature contains an `optimizer_idx` argument but"
-                        " in manual optimization optimizers must be handled by the user. Remove the optimizer_idx"
-                        " argument or set `self.automatic_optimization = True`."
-                    )
-                step_kwargs["optimizer_idx"] = opt_idx
-            elif not has_opt_idx_in_train_step and lightning_module.automatic_optimization:
-                raise ValueError(
-                    f"Your LightningModule defines {len(self.trainer.optimizers)} optimizers but"
-                    " `training_step` is missing the `optimizer_idx` argument."
-                )
-
-        # pass hiddens if using tbptt
-        if self.trainer.lightning_module.truncated_bptt_steps > 0:
-            step_kwargs["hiddens"] = hiddens
-
-        return step_kwargs
