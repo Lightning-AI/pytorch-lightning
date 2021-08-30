@@ -216,13 +216,13 @@ class StochasticWeightAveraging(Callback):
             # performing only one pass over the train data-loader to compute activation statistics
             # Therefore, we will virtually increase `num_training_batches` by 1 and skip backward.
             trainer.num_training_batches += 1
-            trainer.fit_loop.epoch_loop._skip_backward = True
+            trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._skip_backward = True
             self._accumulate_grad_batches = trainer.accumulate_grad_batches
 
             trainer.accumulate_grad_batches = trainer.num_training_batches
 
     def on_train_epoch_end(self, trainer: "pl.Trainer", *args):
-        trainer.fit_loop._skip_backward = False
+        trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._skip_backward = False
 
     def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
         if self._model_contains_batch_norm and trainer.current_epoch == self.swa_end + 1:
