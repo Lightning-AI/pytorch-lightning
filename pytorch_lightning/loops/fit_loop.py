@@ -181,8 +181,7 @@ class FitLoop(Loop):
             self.trainer.train_dataloader.load_state_dict(self._dataloader_state_dict)
             self._dataloader_state_dict = {}
 
-        # TODO: specify the possible exception
-        with suppress(Exception):
+        if callable(getattr(self.trainer.train_dataloader.sampler, "set_epoch", None)):
             # set seed for distributed sampler (enables shuffling for each epoch)
             self.trainer.train_dataloader.sampler.set_epoch(self.current_epoch)
 
