@@ -36,6 +36,8 @@ from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
 
 
 class OptimizerLoop(Loop):
+    """Runs over a sequence of optimizers. This loop implements what is known in Lightning as Automatic Optimization."""
+
     def __init__(self):
         super().__init__()
         self.outputs: Dict[int, Optional[AttributeDict]] = []  # defaultdict(list)
@@ -47,6 +49,7 @@ class OptimizerLoop(Loop):
 
     @property
     def done(self) -> bool:
+        """Returns ``True`` when the last optimizer in the sequence has run."""
         return self.optim_progress.optimizer_idx >= len(self._optimizers)
 
     def connect(self, **kwargs: "Loop") -> None:
@@ -76,7 +79,7 @@ class OptimizerLoop(Loop):
 
     def on_run_end(self) -> Dict[int, Optional[AttributeDict]]:
         outputs = self.outputs
-        self.outputs = {}
+        self.outputs = {}  # free memory
         return outputs
 
     def backward(
