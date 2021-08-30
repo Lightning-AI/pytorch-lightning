@@ -10,9 +10,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 
 
-- Created new `pytorch_lightning.loggers.neptune.NeptuneLogger` consistent with new [neptune-client](https://github.com/neptune-ai/neptune-client) api ([#6867](https://github.com/PyTorchLightning/pytorch-lightning/pull/6867))
-
-
 - Register `ShardedTensor` state dict hooks in `LightningModule.__init__` if the pytorch version supports `ShardedTensor` ([#8944](https://github.com/PyTorchLightning/pytorch-lightning/pull/8944))
 
 
@@ -119,7 +116,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Rename `pytorch_lightning.loggers.neptune.NeptuneLogger` to `pytorch_lightning.loggers.neptune_legacy.NeptuneLegacyLogger` ([#6867](https://github.com/PyTorchLightning/pytorch-lightning/pull/6867))
+- `pytorch_lightning.loggers.neptune.NeptuneLogger` is now consistent with new [neptune-client](https://github.com/neptune-ai/neptune-client) API ([#6867](https://github.com/PyTorchLightning/pytorch-lightning/pull/6867)).
+
+  Old [neptune-client](https://github.com/neptune-ai/neptune-client) API is supported by `NeptuneClient` from [neptune-contrib](https://github.com/neptune-ai/neptune-contrib) repo.
+
 
 - Parsing of the `gpus` Trainer argument has changed: `gpus="n"` (str) no longer selects the GPU index n and instead selects the first n devices. ([#8770](https://github.com/PyTorchLightning/pytorch-lightning/pull/8770))
 
