@@ -115,7 +115,7 @@ def _build_training_step_kwargs(
     optimizers: Sequence[Optimizer],
     batch: Any,
     batch_idx: int,
-    opt_idx: int,
+    opt_idx: Optional[int],
     hiddens: Optional[Tensor],
 ) -> Dict[str, Any]:
     """Builds the keyword arguments for training_step
