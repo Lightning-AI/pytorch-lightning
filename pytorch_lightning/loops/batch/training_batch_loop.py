@@ -205,7 +205,6 @@ class TrainingBatchLoop(Loop):
             # if no result, user decided to skip optimization
             # otherwise update running loss + reset accumulated loss
             self._update_running_loss(result.loss)
-            self._process_closure_result(result)
 
         # untoggle model params
         self._run_optimization_end(opt_idx)
@@ -224,7 +223,7 @@ class TrainingBatchLoop(Loop):
         other functions such as `backward` and `zero_grad`.
         """
         step_fn = self._make_step_fn(split_batch, batch_idx, opt_idx, hiddens)
-        backward_fn = self._make_backward_fn(batch_idx, optimizer, opt_idx)
+        backward_fn = self._make_backward_fn(optimizer, opt_idx)
         zero_grad_fn = self._make_zero_grad_fn(batch_idx, opt_idx, optimizer)
 
         return Closure(
@@ -256,12 +255,7 @@ class TrainingBatchLoop(Loop):
         ):
             return zero_grad_fn
 
-    def _make_backward_fn(
-        self,
-        batch_idx: int,
-        optimizer: Optimizer,
-        opt_idx: int,
-    ) -> Optional[Callable[[Tensor], Tensor]]:
+    def _make_backward_fn(self, optimizer: Optimizer, opt_idx: int) -> Optional[Callable[[Tensor], Tensor]]:
         """
         Build a `backward` function that handles back-propagation through the output produced by the `training_step`
         function. Returns ``None`` in the case backward needs to be skipped, e.g., when manual optimization is on.
@@ -269,10 +263,6 @@ class TrainingBatchLoop(Loop):
 
         def backward_fn(loss: Tensor):
             self.backward(loss, optimizer, opt_idx)
-
-            # when in dev debugging track the losses
-            # TODO: remove dev debugger tracking loss history
-            self.trainer.dev_debugger.track_train_loss_history(batch_idx, loss)
 
             # check if loss or model weights are nan
             if self.trainer.terminate_on_nan:
@@ -282,19 +272,6 @@ class TrainingBatchLoop(Loop):
 
         if not self._skip_backward and self.trainer.lightning_module.automatic_optimization:
             return backward_fn
-
-    def _process_closure_result(self, opt_closure_result: Optional[ClosureResult]) -> None:
-        """Checks if the closure results is finite and optionally breaks if it is not
-
-        Args:
-            opt_closure_result: the result of the train step wrapped in an attribute dict
-        """
-        if not opt_closure_result:
-            return
-
-        # check if loss or model weights are nan
-        if self.trainer.terminate_on_nan:
-            check_finite_loss(self.trainer.lightning_module, opt_closure_result.loss)
 
     def _training_step(
         self, split_batch: Any, batch_idx: int, opt_idx: int, hiddens: Tensor
