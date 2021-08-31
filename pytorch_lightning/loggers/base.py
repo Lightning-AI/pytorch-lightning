@@ -381,7 +381,7 @@ class LoggerCollection(LightningLoggerBase):
     @property
     def experiment(self) -> List[Any]:
         """
-        Returns a list of experiment objects for all the loggers in the logger collection
+        Returns a list of experiment objects for all the loggers in the logger collection.
         """
         return [logger.experiment for logger in self._logger_iterable]
 
@@ -416,7 +416,7 @@ class LoggerCollection(LightningLoggerBase):
     @property
     def save_dir(self) -> Optional[str]:
         """
-        Returns `None` as checkpoints should be saved to default / chosen location when using multiple loggers
+        Returns ``None`` as checkpoints should be saved to default / chosen location when using multiple loggers.
         """
         # Checkpoints should be saved to default / chosen location when using multiple loggers
         return None
@@ -424,14 +424,14 @@ class LoggerCollection(LightningLoggerBase):
     @property
     def name(self) -> str:
         """
-        Returns the experiment names for all the loggers in the logger collection joined by an underscore
+        Returns the experiment names for all the loggers in the logger collection joined by an underscore.
         """
         return "_".join(str(logger.name) for logger in self._logger_iterable)
 
     @property
     def version(self) -> str:
         """
-        Returns the experiment versions for all the loggers in the logger collection joined by an underscore
+        Returns the experiment versions for all the loggers in the logger collection joined by an underscore.
         """
         return "_".join(str(logger.version) for logger in self._logger_iterable)
 
