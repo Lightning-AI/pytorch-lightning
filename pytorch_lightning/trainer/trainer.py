@@ -168,7 +168,7 @@ class Trainer(
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
 
-            amp_backend: The mixed precision backend to use ("native" or "apex")
+            amp_backend: The mixed precision backend to use ("native" or "apex").
 
             amp_level: The optimization level to use (O1, O2, etc...).
 
@@ -207,7 +207,7 @@ class Trainer(
             devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,
                 based on the accelerator type.
 
-            distributed_backend: Deprecated. Please use 'accelerator'
+            distributed_backend: Deprecated. Please use 'accelerator'.
 
             fast_dev_run: Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
                 of train, val and test to find any bugs (ie: a sort of unit test).
@@ -216,19 +216,19 @@ class Trainer(
 
             gpus: Number of GPUs to train on (int) or which GPUs to train on (list or str) applied per node
 
-            gradient_clip_val: The value at which to clip gradients. Passing ``gradient_clip_val=0`` (the default)
-                disables gradient clipping.
+            gradient_clip_val: The value at which to clip gradients. Passing ``gradient_clip_val=0`` disables gradient
+                clipping.
 
             gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
-                for clip_by_value, and ``gradient_clip_algorithm="norm"`` for clip_by_norm. Default: 'norm'
+                for clip_by_value, and ``gradient_clip_algorithm="norm"`` for clip_by_norm.
 
-            limit_train_batches: How much of training dataset to check (float = fraction, int = num_batches)
+            limit_train_batches: How much of training dataset to check (float = fraction, int = num_batches).
 
-            limit_val_batches: How much of validation dataset to check (float = fraction, int = num_batches)
+            limit_val_batches: How much of validation dataset to check (float = fraction, int = num_batches).
 
-            limit_test_batches: How much of test dataset to check (float = fraction, int = num_batches)
+            limit_test_batches: How much of test dataset to check (float = fraction, int = num_batches).
 
-            limit_predict_batches: How much of prediction dataset to check (float = fraction, int = num_batches)
+            limit_predict_batches: How much of prediction dataset to check (float = fraction, int = num_batches).
 
             logger: Logger (or iterable collection of loggers) for experiment tracking. A ``True`` value uses
                 the default ``TensorBoardLogger``. ``False`` will disable logging. If multiple loggers are
@@ -236,7 +236,7 @@ class Trainer(
                 profiler traces, etc.) are saved in ``default_root_dir`` rather than in the ``log_dir`` of any
                 of the individual loggers.
 
-            log_gpu_memory: None, 'min_max', 'all'. Might slow performance
+            log_gpu_memory: None, 'min_max', 'all'. Might slow performance.
 
             log_every_n_steps: How often to log within steps (defaults to every 50 steps).
 
@@ -285,7 +285,6 @@ class Trainer(
                 Set it to `-1` to run all batches in all validation dataloaders.
 
             reload_dataloaders_every_n_epochs: Set to a non-negative integer to reload dataloaders every n epochs.
-                Default: 0
 
             reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch.
 
@@ -333,7 +332,7 @@ class Trainer(
                 reload when reaching the minimum length of datasets.
 
             stochastic_weight_avg: Whether to use `Stochastic Weight Averaging (SWA)
-                <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>`_
+                <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>`_.
 
         """
         super().__init__()
