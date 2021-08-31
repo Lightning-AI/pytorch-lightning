@@ -250,6 +250,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated property `ModelCheckpoint.period` in favor of `ModelCheckpoint.every_n_epochs` ([#9213](https://github.com/PyTorchLightning/pytorch-lightning/pull/9213))
 
 
+- Removed deprecated property `LightningModule.datamodule` in favor of `Trainer.datamodule` ([#9233](https://github.com/PyTorchLightning/pytorch-lightning/pull/9233))
 
 ### Fixed
 
