@@ -68,7 +68,7 @@ class OptimizerLoop(Loop):
 
     def on_run_start(self, batch: Any, hiddens: Any, optimizers: List[Optimizer], batch_idx: int) -> None:
         self._batch_idx = batch_idx
-        self._optimizers = optimizers.copy()
+        self._optimizers = optimizers
 
     def advance(self, batch: Any, hiddens: Any, *args, **kwargs) -> None:
         self._hiddens = hiddens
