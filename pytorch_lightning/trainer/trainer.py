@@ -159,7 +159,7 @@ class Trainer(
         stochastic_weight_avg: bool = False,
     ):
         r"""
-        Customize every aspect of training via flags
+        Customize every aspect of training via flags.
 
         Args:
 
@@ -207,18 +207,20 @@ class Trainer(
             devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,
                 based on the accelerator type.
 
-            distributed_backend: deprecated. Please use 'accelerator'
+            distributed_backend: Deprecated. Please use 'accelerator'
 
-            fast_dev_run: runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
+            fast_dev_run: Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
                 of train, val and test to find any bugs (ie: a sort of unit test).
 
             flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
 
-            gpus: number of gpus to train on (int) or which GPUs to train on (list or str) applied per node
+            gpus: Number of GPUs to train on (int) or which GPUs to train on (list or str) applied per node
 
-            gradient_clip_val: 0 means don't clip.
+            gradient_clip_val: The value at which to clip gradients. Passing ``gradient_clip_val=0`` (the default)
+                disables gradient clipping.
 
-            gradient_clip_algorithm: 'value' means clip_by_value, 'norm' means clip_by_norm. Default: 'norm'
+            gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
+                for clip_by_value, and ``gradient_clip_algorithm="norm"`` for clip_by_norm. Default: 'norm'
 
             limit_train_batches: How much of training dataset to check (float = fraction, int = num_batches)
 
@@ -245,7 +247,7 @@ class Trainer(
                     Deprecated in v1.5.0 and will be removed in v1.7.0
                     Please set ``prepare_data_per_node`` in LightningDataModule or LightningModule directly instead.
 
-            process_position: orders the progress bar when running multiple models on same machine.
+            process_position: Orders the progress bar when running multiple models on same machine.
 
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
                 Ignored when a custom progress bar is passed to :paramref:`~Trainer.callbacks`. Default: None, means
@@ -275,9 +277,9 @@ class Trainer(
                 :class:`datetime.timedelta`, or a dictionary with keys that will be passed to
                 :class:`datetime.timedelta`.
 
-            num_nodes: number of GPU nodes for distributed training.
+            num_nodes: Number of GPU nodes for distributed training.
 
-            num_processes: number of processes for distributed training with distributed_backend="ddp_cpu"
+            num_processes: Number of processes for distributed training with ``accelerator="ddp_cpu"``.
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders.
@@ -331,7 +333,7 @@ class Trainer(
                 reload when reaching the minimum length of datasets.
 
             stochastic_weight_avg: Whether to use `Stochastic Weight Averaging (SWA)
-                <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>_`
+                <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>`_
 
         """
         super().__init__()
