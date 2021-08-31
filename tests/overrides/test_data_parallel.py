@@ -19,7 +19,6 @@ import torch.nn as nn
 from torch.nn import DataParallel
 
 from pytorch_lightning import LightningModule
-from pytorch_lightning.core.decorators import auto_move_data
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.data_parallel import (
     LightningParallelModule,
