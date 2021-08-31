@@ -410,6 +410,10 @@ class LoggerCollection(LightningLoggerBase):
         for logger in self._logger_iterable:
             logger.close()
 
+    @staticmethod
+    def all_equal(x):
+        return all(el == x[0] for el in x)
+
     @property
     def save_dir(self) -> Optional[str]:
         # Checkpoints should be saved to default / chosen location when using multiple loggers
@@ -417,11 +421,19 @@ class LoggerCollection(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        return "_".join(str(logger.name) for logger in self._logger_iterable)
+        names = (str(logger.name) for logger in self._logger_iterable)
+        if all_equal(names):
+            return names[0]
+        else:
+            return "_".join(names)
 
     @property
     def version(self) -> str:
-        return "_".join(str(logger.version) for logger in self._logger_iterable)
+        versions = (str(logger.version) for logger in self._logger_iterable)
+        if all_equal(versions):
+            return int(versions[0]) if versions[0].isdigit() else versions[0]
+        else:
+            return "_".join(versions)
 
 
 class DummyExperiment:
