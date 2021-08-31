@@ -157,6 +157,7 @@ class TrainingBatchLoop(Loop):
             batch_idx: the index of the current batch
             split_batch: the current tbptt split of the whole batch
         """
+        # TODO: replace call through closure by direct call (manual optimization)
         closure = self._make_closure(split_batch, batch_idx, self._hiddens)
         closure()
         result = closure.get_result()
