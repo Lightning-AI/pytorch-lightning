@@ -17,19 +17,9 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.decorators import auto_move_data
 from pytorch_lightning.plugins import DeepSpeedPlugin
-from pytorch_lightning.profiler import AdvancedProfiler, BaseProfiler, PyTorchProfiler, SimpleProfiler
 from tests.deprecated_api import no_deprecated_call
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
-
-
-@pytest.mark.parametrize("cls", (BaseProfiler, SimpleProfiler, AdvancedProfiler, PyTorchProfiler))
-def test_v1_5_0_profiler_output_filename(tmpdir, cls):
-    filepath = str(tmpdir / "test.txt")
-    with pytest.deprecated_call(match="`output_filename` parameter has been removed"):
-        profiler = cls(output_filename=filepath)
-    assert profiler.dirpath == tmpdir
-    assert profiler.filename == "test"
 
 
 def test_v1_5_0_auto_move_data():
