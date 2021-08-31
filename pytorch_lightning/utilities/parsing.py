@@ -221,7 +221,8 @@ def save_hyperparameters(
     else:
         if not frame:
             current_frame = inspect.currentframe()
-            # inspect.currentframe() return type is Optional[types.FrameType]: current_frame.f_back called only if available
+            # inspect.currentframe() return type is Optional[types.FrameType]
+            # current_frame.f_back called only if available
             if current_frame:
                 frame = current_frame.f_back
         if not isinstance(frame, types.FrameType):
