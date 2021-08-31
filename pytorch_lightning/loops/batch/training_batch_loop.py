@@ -11,10 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from collections import OrderedDict
 from contextlib import contextmanager
-from copy import copy
+from copy import deepcopy
 from functools import partial, update_wrapper
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple
 
@@ -147,12 +146,12 @@ class TrainingBatchLoop(Loop):
 
                 result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
                 if result:
-                    self.batch_outputs[opt_idx].append(copy(result.training_step_output))
+                    self.batch_outputs[opt_idx].append(deepcopy(result.training_step_output))
         else:
             # in manual optimization, there is no looping over optimizers
             result = self._run_optimization(batch_idx, split_batch)
             if result:
-                self.batch_outputs[0].append(copy(result.training_step_output))
+                self.batch_outputs[0].append(deepcopy(result.training_step_output))
 
     def teardown(self) -> None:
         # release memory
