@@ -300,7 +300,7 @@ class MLFlowLogger(LightningLoggerBase):
             self._checkpoint_callback = checkpoint_callback
 
     def _log_checkpoints(
-        self, checkpoint_callback: "ReferenceType[ModelCheckpoint]", checkpoints: List[ModelCheckpoint],
+        self, checkpoint_callback: "ReferenceType[ModelCheckpoint]", checkpoints: List[ModelCheckpoint]
     ) -> None:
         # log iteratively all new checkpoints
         for t, p, s in checkpoints:
