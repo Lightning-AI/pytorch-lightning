@@ -185,6 +185,11 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
 
     def update(self, value: _METRIC, batch_size: torch.Tensor) -> None:
         if self.is_tensor:
+            
+            # we shouuld detach the value from the graph is provide
+            if value.grad_fn is not None:
+                value = value.detach().clone()
+
             value = value.float()
             # performance: no need to accumulate on values only logged on_step
             if self.meta.on_step and not self.meta.on_epoch:
