@@ -240,6 +240,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed deprecated property `Trainer.running_sanity_check` in favor of `Trainer.sanity_checking` ([#9209](https://github.com/PyTorchLightning/pytorch-lightning/pull/9209))
 
+
+- Removed deprecated `BaseProfiler.output_filename` arg from it and its descendents in favor of `dirpath` and `filename` ([#9214](https://github.com/PyTorchLightning/pytorch-lightning/pull/9214))
+
 ### Fixed
 
 - Fixed save/load/resume from checkpoint for DeepSpeed Plugin (
