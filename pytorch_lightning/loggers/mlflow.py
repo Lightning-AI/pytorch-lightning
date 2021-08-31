@@ -329,12 +329,12 @@ class MLFlowLogger(LightningLoggerBase):
             artifact_path = f"model/checkpoints/{Path(p).stem}"
 
             # Log the checkpoint
-            self.experiment.log_artifact(self._run_id, p, f"{artifact_path}")
+            self.experiment.log_artifact(self._run_id, p, artifact_path)
 
             # Create a temporary directory to log on mlflow
             with tempfile.TemporaryDirectory() as tmp_dir:
                 # Log the metadata
-                with open(f"{tmp_dir}/metadata.yml", "w") as tmp_file_metadata:
+                with open(f"{tmp_dir}/metadata.yaml", "w") as tmp_file_metadata:
                     yaml.dump(metadata, tmp_file_metadata, default_flow_style=False)
 
                 # Log the aliases
