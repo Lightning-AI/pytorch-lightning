@@ -208,14 +208,12 @@ class NeptuneLogger(LightningLoggerBase):
     You can organize this way any type of metadata - images, parameters, metrics, model checkpoint, CSV files, etc.
 
     See Also:
-
-        - Read about `what object you can log to Neptune
-        <https://docs.neptune.ai/you-should-know/what-can-you-log-and-display>`_.
-        - Check `example run
-        <https://app.neptune.ai/o/common/org/new-pytorch-lightning-integration/e/NEWPL-101/all>`_
+        - Read about `what object you can log to Neptune <https://docs.neptune.ai/you-should-know/\
+        what-can-you-log-and-display>`_.
+        - Check `example run <https://app.neptune.ai/o/common/org/new-pytorch-lightning-integration/e/NEWPL-101/all>`_
         with multiple types of metadata logged.
-        - For more detailed user guide check
-        `neptune docs <https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning>`_.
+        - For more detailed info check `user guide <https://docs.neptune.ai/integrations-and-supported-tools/\
+        model-training/pytorch-lightning>`_.
 
     Args:
         api_key: Optional.
@@ -244,6 +242,8 @@ class NeptuneLogger(LightningLoggerBase):
             If required Neptune package in version >=0.9 is not installed on the device.
         TypeError:
             If configured project has not been migrated to new structure yet.
+        ValueError:
+            If argument passed to the logger's constructor is incorrect.
     """
 
     LOGGER_JOIN_CHAR = "/"
@@ -429,7 +429,6 @@ class NeptuneLogger(LightningLoggerBase):
 
             neptune_logger = NeptuneLogger(
                 api_key="ANONYMOUS",
-                close_after_fit=False,
                 project="common/new-pytorch-lightning-integration"
             )
 
@@ -575,7 +574,6 @@ class NeptuneLogger(LightningLoggerBase):
 
     @staticmethod
     def _raise_deprecated_api_usage(f_name, sample_code):
-        # TODO: product - review text
         raise ValueError(
             f"The function you've used is deprecated.\n"
             f"If you are looking for the Neptune logger using legacy Python API,"
