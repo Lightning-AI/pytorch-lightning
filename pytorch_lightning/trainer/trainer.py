@@ -25,7 +25,7 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
-from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.callbacks import Callback, RichProgressBar
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loops import TrainingBatchLoop, TrainingEpochLoop
@@ -1097,8 +1097,9 @@ class Trainer(
 
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
+            use_rich = isinstance(self.progress_bar_callback, RichProgressBar)
             max_depth = ModelSummary.MODES[self.weights_summary]
-            summarize(self.lightning_module, max_depth=max_depth)
+            summarize(self.lightning_module, max_depth=max_depth, use_rich=use_rich)
 
         self.call_hook("on_pretrain_routine_end")
 
