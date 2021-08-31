@@ -22,7 +22,6 @@ from fsspec.implementations.local import LocalFileSystem
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import BasicGAN, ParityModuleRNN
-from tests.helpers.datamodules import MNISTDataModule
 from tests.helpers.runif import RunIf
 
 
