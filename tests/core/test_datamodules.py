@@ -541,7 +541,7 @@ def test_hyperparameters_saving():
     assert data.hparams == AttributeDict({"arg0": 10, "arg1": "foo", "kwarg0": "bar"})
 
     data = DataModuleWithHparams_1(Namespace(**{"hello": "world"}), "foo", kwarg0="bar")
-    assert data.hparams == AttributeDict({"hello": "world"}) 
+    assert data.hparams == AttributeDict({"hello": "world"})
 
 
 def test_inconsistent_prepare_data_per_node(tmpdir):
