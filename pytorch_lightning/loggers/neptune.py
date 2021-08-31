@@ -109,9 +109,9 @@ class NeptuneLogger(LightningLoggerBase):
         from pytorch_lightning.loggers import NeptuneLogger
 
         neptune_logger = NeptuneLogger(
-            api_key="ANONYMOUS",                                 # replace with your own
-            project="common/new-pytorch-lightning-integration",  # format "<WORKSPACE/PROJECT>"
-            tags=["training", "resnet"],                         # optional
+            api_key="ANONYMOUS",                             # replace with your own
+            project="common/pytorch-lightning-integration",  # format "<WORKSPACE/PROJECT>"
+            tags=["training", "resnet"],                     # optional
         )
         trainer = Trainer(max_epochs=10, logger=neptune_logger)
 
@@ -148,7 +148,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     .. code-block:: python
 
-        neptune_logger = NeptuneLogger(project="common/new-pytorch-lightning-integration")
+        neptune_logger = NeptuneLogger(project="common/pytorch-lightning-integration")
 
         trainer = pl.Trainer(logger=neptune_logger)
         model = ...
@@ -174,7 +174,7 @@ class NeptuneLogger(LightningLoggerBase):
     .. code-block:: python
 
         neptune_logger = NeptuneLogger(
-            project="common/new-pytorch-lightning-integration",
+            project="common/pytorch-lightning-integration",
             log_model_checkpoints=False
         )
 
@@ -188,7 +188,7 @@ class NeptuneLogger(LightningLoggerBase):
         from pytorch_lightning.loggers import NeptuneLogger
 
         neptune_logger = NeptuneLogger(
-            project="common/new-pytorch-lightning-integration",
+            project="common/pytorch-lightning-integration",
             name="lightning-run",
             description="mlp quick run with pytorch-lightning",
             tags=["mlp", "quick-run"],
@@ -209,11 +209,11 @@ class NeptuneLogger(LightningLoggerBase):
 
     See Also:
         - Read about
-          `what object you can log to Neptune <https://docs.neptune.ai/you-should-know/ what-can-you-log-and-display>`_.
-        - Check `example run <https://app.neptune.ai/o/common/org/new-pytorch-lightning-integration/e/NEWPL-101/all>`_
+          `what object you can log to Neptune <https://docs.neptune.ai/you-should-know/what-can-you-log-and-display>`_.
+        - Check `example run <https://app.neptune.ai/o/common/org/pytorch-lightning-integration/e/PTL-1/all>`_
           with multiple types of metadata logged.
         - For more detailed info check
-          `user guide <https://docs.neptune.ai/integrations-and-supported-tools/ model-training/pytorch-lightning>`_.
+          `user guide <https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning>`_.
 
     Args:
         api_key: Optional.
