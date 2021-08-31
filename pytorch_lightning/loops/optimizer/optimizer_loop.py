@@ -36,7 +36,6 @@ from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
 
-
 _OUTPUTS_TYPE = List[List[Optional[ResultCollection]]]
 
 
