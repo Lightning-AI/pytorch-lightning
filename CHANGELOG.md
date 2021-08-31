@@ -277,8 +277,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed the CometLogger, no longer modifies the metrics in place. Instead creates a copy of metrics before performing any operations ([#9150](https://github.com/PyTorchLightning/pytorch-lightning/pull/9150))
 
 
-- Fixed `DDP` CUDA error: initialization error due a `copy` instead of `deepcopy` on ResultCollection ([#9239](https://github.com/PyTorchLightning/pytorch-lightning/pull/9239))
-
+- Fixed `DDP` "CUDA error: initialization error" due to a `copy` instead of `deepcopy` on `ResultCollection` ([#9239](https://github.com/PyTorchLightning/pytorch-lightning/pull/9239))
 
 
 ## [1.4.3] - 2021-08-17
