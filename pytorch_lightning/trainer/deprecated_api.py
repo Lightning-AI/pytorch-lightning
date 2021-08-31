@@ -17,15 +17,7 @@ from pytorch_lightning.utilities import rank_zero_deprecation
 
 class DeprecatedTrainerAttributes:
 
-    sanity_checking: bool
     fit_loop: FitLoop
-
-    @property
-    def running_sanity_check(self) -> bool:
-        rank_zero_deprecation(
-            "`Trainer.running_sanity_check` has been renamed to `Trainer.sanity_checking` and will be removed in v1.5."
-        )
-        return self.sanity_checking
 
     @property
     def train_loop(self) -> FitLoop:
