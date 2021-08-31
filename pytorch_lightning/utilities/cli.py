@@ -277,8 +277,7 @@ class LightningCLI:
             seed_everything(seed, workers=True)
 
         self.before_instantiate_classes()
-        self.instantiate_classes(self.subcommand)
-        self.add_configure_optimizers_method_to_model(self.subcommand)
+        self.instantiate_classes()
 
         if self.subcommand is not None:
             self._run_subcommand(self.subcommand)
@@ -396,16 +395,21 @@ class LightningCLI:
     def before_instantiate_classes(self) -> None:
         """Implement to run some code before instantiating the classes."""
 
-    def instantiate_classes(self, subcommand: Optional[str]) -> None:
+    def instantiate_classes(self) -> None:
         """Instantiates the classes and sets their attributes."""
         self.config_init = self.parser.instantiate_classes(self.config)
         self.datamodule = self._get(self.config_init, "data")
         self.model = self._get(self.config_init, "model")
-        callbacks = [self._get(self.config_init, c) for c in self._parser(subcommand).callback_keys]
-        self.trainer = self.instantiate_trainer(self._get(self.config_init, "trainer"), callbacks)
+        self._add_configure_optimizers_method_to_model(self.subcommand)
+        self.trainer = self.instantiate_trainer()
 
-    def instantiate_trainer(self, config: Dict[str, Any], callbacks: List[Callback]) -> Trainer:
+    def instantiate_trainer(self, callbacks: Optional[List[Callback]] = None) -> Trainer:
         """Instantiates the trainer."""
+        if callbacks is None:
+            callbacks = [self._get(self.config_init, c) for c in self._parser(self.subcommand).callback_keys]
+        return self._instantiate_trainer(self._get(self.config_init, "trainer"), callbacks)
+
+    def _instantiate_trainer(self, config: Dict[str, Any], callbacks: List[Callback]) -> Trainer:
         config["callbacks"] = config["callbacks"] or []
         config["callbacks"].extend(callbacks)
         if "callbacks" in self.trainer_defaults:
@@ -428,7 +432,7 @@ class LightningCLI:
         action_subcommand = action_subcommands[0]
         return action_subcommand._name_parser_map[subcommand]
 
-    def add_configure_optimizers_method_to_model(self, subcommand: Optional[str]) -> None:
+    def _add_configure_optimizers_method_to_model(self, subcommand: Optional[str]) -> None:
         """
         Adds to the model an automatically generated ``configure_optimizers`` method.
 
