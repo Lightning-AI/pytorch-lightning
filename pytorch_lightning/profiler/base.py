@@ -58,18 +58,9 @@ class BaseProfiler(AbstractProfiler):
         self,
         dirpath: Optional[Union[str, Path]] = None,
         filename: Optional[str] = None,
-        output_filename: Optional[str] = None,
     ) -> None:
         self.dirpath = dirpath
         self.filename = filename
-        if output_filename is not None:
-            rank_zero_deprecation(
-                "`Profiler` signature has changed in v1.3. The `output_filename` parameter has been removed in"
-                " favor of `dirpath` and `filename`. Support for the old signature will be removed in v1.5"
-            )
-            filepath = Path(output_filename)
-            self.dirpath = filepath.parent
-            self.filename = filepath.stem
 
         self._output_file: Optional[TextIO] = None
         self._write_stream: Optional[Callable] = None

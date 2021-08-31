@@ -32,15 +32,6 @@ def test_v1_5_0_model_checkpoint_period(tmpdir):
         ModelCheckpoint(dirpath=tmpdir, period=1)
 
 
-@pytest.mark.parametrize("cls", (BaseProfiler, SimpleProfiler, AdvancedProfiler, PyTorchProfiler))
-def test_v1_5_0_profiler_output_filename(tmpdir, cls):
-    filepath = str(tmpdir / "test.txt")
-    with pytest.deprecated_call(match="`output_filename` parameter has been removed"):
-        profiler = cls(output_filename=filepath)
-    assert profiler.dirpath == tmpdir
-    assert profiler.filename == "test"
-
-
 def test_v1_5_0_auto_move_data():
     with pytest.deprecated_call(match="deprecated in v1.3 and will be removed in v1.5.*was applied to `bar`"):
 
