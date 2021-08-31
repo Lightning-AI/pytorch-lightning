@@ -162,8 +162,6 @@ class OptimizerLoop(Loop):
             # TODO: find proper way to handle updating running loss
             self.trainer.fit_loop.epoch_loop.batch_loop._update_running_loss(result.loss)
 
-            self._process_closure_result(result)
-
         # untoggle model params
         self._run_optimization_end(opt_idx)
         return result
@@ -358,20 +356,6 @@ class OptimizerLoop(Loop):
         # the loss will get scaled for amp. avoid any modifications to it
         loss = closure_loss.detach().clone()
         return AttributeDict(closure_loss=closure_loss, loss=loss, result_collection=result_collection)
-
-    # TODO: this is duplicated
-    def _process_closure_result(self, opt_closure_result: Optional[ClosureResult]) -> None:
-        """Checks if the closure results is finite and optionally breaks if it is not
-
-        Args:
-            opt_closure_result: the result of the train step wrapped in an attribute dict
-        """
-        if not opt_closure_result:
-            return
-
-        # check if loss or model weights are nan
-        if self.trainer.terminate_on_nan:
-            check_finite_loss(self.trainer.lightning_module, opt_closure_result.loss)
 
     def _track_and_norm_grad(self, optimizer: torch.optim.Optimizer) -> Dict[str, float]:
         """Tracks gradient norms and clips the gradients of all parameters optimized by the current optimizer.
