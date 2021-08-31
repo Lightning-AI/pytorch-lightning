@@ -7,7 +7,7 @@ authors:
   - family-names: "William"
     given-names: "Falcon"
   - name: "The PyTorch Lightning team"
-version: 1.4.4
+version: 1.4
 doi: 10.5281/zenodo.3828935
 license: "Apache-2.0"
 url: "https://www.pytorchlightning.ai"
