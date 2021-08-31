@@ -24,13 +24,13 @@ for being able to run Model.load_from_checkpoint('...').
 
 Example usage within the Lightning checkpoint directory where 'latest' is found:
 
->>> from pytorch_lightning.utilities.deepspeed import convert_zero_checkpoint_to_fp32_state_dict
+>>> from pytorch_lightning.utilities.deepspeed import convert_zero_checkpoint_to_fp32_state_dict # doctest: +SKIP
 
 # Lightning deepspeed has saved a directory instead of a file
 
->>> save_path = "lightning_logs/version_0/checkpoints/epoch=0-step=0.ckpt/"
->>> output_path = "lightning_model.pt"
->>> convert_zero_checkpoint_to_fp32_state_dict(save_path, output_path)
+>>> save_path = "lightning_logs/version_0/checkpoints/epoch=0-step=0.ckpt/" # doctest: +SKIP
+>>> output_path = "lightning_model.pt" # doctest: +SKIP
+>>> convert_zero_checkpoint_to_fp32_state_dict(save_path, output_path) # doctest: +SKIP
 Saving fp32 state dict to lightning_model.pt
 """
 
