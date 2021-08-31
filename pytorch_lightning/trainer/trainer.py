@@ -247,6 +247,11 @@ class Trainer(
 
             process_position: orders the progress bar when running multiple models on same machine.
 
+                .. deprecated:: v1.5
+                    ``process_position`` has been deprecated in v1.5 and will be removed in v1.7.
+                    Please pass :class:`~pytorch_lightning.callbacks.progress.ProgressBar` with ``process_position``
+                    directly to the Trainer's ``callbacks`` argument instead.
+
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
                 Ignored when a custom progress bar is passed to :paramref:`~Trainer.callbacks`. Default: None, means
                 a suitable value will be chosen based on the environment (terminal, Google COLAB, etc.).
