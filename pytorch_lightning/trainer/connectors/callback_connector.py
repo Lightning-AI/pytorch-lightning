@@ -63,7 +63,7 @@ class CallbackConnector:
             rank_zero_deprecation(
                 f"Setting `Trainer(process_position={process_position})` is deprecated in v1.5 and will be removed"
                 " in v1.7. Please pass `pytorch_lightning.callbacks.progress.ProgressBar` with"
-                " ``process_position`` directly to the Trainer's `callbacks` argument instead."
+                " `process_position` directly to the Trainer's `callbacks` argument instead."
             )
         self.trainer._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
 
