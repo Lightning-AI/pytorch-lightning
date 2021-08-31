@@ -31,13 +31,6 @@ def test_v1_5_0_running_sanity_check():
         assert not trainer.running_sanity_check
 
 
-def test_v1_5_0_model_checkpoint_period(tmpdir):
-    with no_warning_call(DeprecationWarning):
-        ModelCheckpoint(dirpath=tmpdir)
-    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
-        ModelCheckpoint(dirpath=tmpdir, period=1)
-
-
 @pytest.mark.parametrize("cls", (BaseProfiler, SimpleProfiler, AdvancedProfiler, PyTorchProfiler))
 def test_v1_5_0_profiler_output_filename(tmpdir, cls):
     filepath = str(tmpdir / "test.txt")
