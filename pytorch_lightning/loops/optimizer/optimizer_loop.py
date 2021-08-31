@@ -14,7 +14,7 @@
 
 from copy import copy
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
 from torch import Tensor
@@ -30,10 +30,14 @@ from pytorch_lightning.loops.utilities import (
     _process_training_step_output,
     check_finite_loss,
 )
+from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
+
+
+_OUTPUTS_TYPE = List[List[Optional[ResultCollection]]]
 
 
 class OptimizerLoop(Loop):
@@ -42,12 +46,12 @@ class OptimizerLoop(Loop):
     def __init__(self):
         super().__init__()
         # TODO: use default dict here to simplify logic in loop
-        self.outputs: Dict[int, Optional[AttributeDict]] = []
+        self.outputs: _OUTPUTS_TYPE = []
         self.optim_progress: OptimizationProgress = OptimizationProgress()
 
         self._skip_backward: bool = False
         self._batch_idx: Optional[int] = None
-        self._optimizers: Optional[Sequence[Optimizer]] = None
+        self._optimizers: Optional[List[Optimizer]] = None
         self._hiddens: Optional[Any] = None
 
     @property
@@ -80,11 +84,11 @@ class OptimizerLoop(Loop):
 
         self.optim_progress.optimizer_idx += 1
 
-    def on_run_end(self) -> Tuple[Dict[int, Optional[AttributeDict]], Optional[Any]]:
+    def on_run_end(self) -> Tuple[_OUTPUTS_TYPE, Optional[Any]]:
         outputs = self.outputs
         hiddens = self._hiddens
         # free memory
-        self.outputs = {}
+        self.outputs = []
         self._hiddens = None
         return outputs, hiddens
 
@@ -369,7 +373,7 @@ class OptimizerLoop(Loop):
         if self.trainer.terminate_on_nan:
             check_finite_loss(self.trainer.lightning_module, opt_closure_result.loss)
 
-    def _track_and_norm_grad(self, optimizer: torch.optim.Optimizer) -> Dict[str, Tensor]:
+    def _track_and_norm_grad(self, optimizer: torch.optim.Optimizer) -> Dict[str, float]:
         """Tracks gradient norms and clips the gradients of all parameters optimized by the current optimizer.
 
         Args:
