@@ -185,8 +185,8 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
 
     def update(self, value: _METRIC, batch_size: torch.Tensor) -> None:
         if self.is_tensor:
-            
-            # we shouuld detach the value from the autograd graph
+
+            # we shouuld detach the value from the autograd graph
             if value.grad_fn is not None:
                 value = value.detach().clone()
 
