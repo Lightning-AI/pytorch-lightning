@@ -18,7 +18,6 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.decorators import auto_move_data
 from pytorch_lightning.plugins import DeepSpeedPlugin
-from pytorch_lightning.profiler import AdvancedProfiler, BaseProfiler, PyTorchProfiler, SimpleProfiler
 from tests.deprecated_api import no_deprecated_call
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
