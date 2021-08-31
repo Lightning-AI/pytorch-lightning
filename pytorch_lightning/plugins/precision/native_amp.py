@@ -52,7 +52,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             )
 
         self.use_cpu = use_cpu
-        self._fast_dtype = self._select_precision_dtype(precision)
+        self._dtype = self._select_precision_dtype(precision)
         self.backend = AMPType.NATIVE
         if not self.is_bfloat16:
             self.scaler = torch.cuda.amp.GradScaler()
@@ -72,7 +72,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     @property
     def is_bfloat16(self) -> bool:
-        return self._fast_dtype == torch.bfloat16
+        return self._dtype == torch.bfloat16
 
     def pre_backward(self, model: "pl.LightningModule", closure_loss: torch.Tensor) -> torch.Tensor:
         if self.is_bfloat16:
@@ -109,9 +109,9 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def autocast_context_manager(self) -> torch.cuda.amp.autocast:
         if self.use_cpu:
-            return torch.cpu.amp.autocast(dtype=self._fast_dtype)
+            return torch.cpu.amp.autocast(dtype=self._dtype)
         if self.is_bfloat16:
-            return torch.cuda.amp.autocast(dtype=self._fast_dtype)
+            return torch.cuda.amp.autocast(dtype=self._dtype)
         return torch.cuda.amp.autocast()
 
     @contextmanager
