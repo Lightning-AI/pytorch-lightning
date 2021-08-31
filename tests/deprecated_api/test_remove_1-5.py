@@ -15,27 +15,12 @@
 import pytest
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.decorators import auto_move_data
 from pytorch_lightning.plugins import DeepSpeedPlugin
 from pytorch_lightning.profiler import AdvancedProfiler, BaseProfiler, PyTorchProfiler, SimpleProfiler
 from tests.deprecated_api import no_deprecated_call
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
-from tests.helpers.utils import no_warning_call
-
-
-def test_v1_5_0_running_sanity_check():
-    trainer = Trainer()
-    with pytest.deprecated_call(match="has been renamed to `Trainer.sanity_checking`"):
-        assert not trainer.running_sanity_check
-
-
-def test_v1_5_0_model_checkpoint_period(tmpdir):
-    with no_warning_call(DeprecationWarning):
-        ModelCheckpoint(dirpath=tmpdir)
-    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
-        ModelCheckpoint(dirpath=tmpdir, period=1)
 
 
 @pytest.mark.parametrize("cls", (BaseProfiler, SimpleProfiler, AdvancedProfiler, PyTorchProfiler))
