@@ -12,15 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
-
+import pytest
 import torch
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DDPPlugin
-from tests.helpers.boring_model import BoringModel, RandomDataset
+from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
-from torch.utils.data import DataLoader
 
 
 class BoringModelGPU(BoringModel):
