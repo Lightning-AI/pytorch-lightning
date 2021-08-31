@@ -407,7 +407,6 @@ class Trainer(
                 f"`weights_summary` can be None, {', '.join(ModelSummary.MODES)}, but got {weights_summary}"
             )
         self.weights_summary = weights_summary
-        self.shown_warnings = set()
 
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init
