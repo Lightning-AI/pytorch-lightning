@@ -11,15 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from unittest import mock
 
 import pytest
 import torch
 from torch.nn.parallel import DistributedDataParallel
-from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DDPPlugin
+from pytorch_lightning.plugins.environments import LightningEnvironment
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
