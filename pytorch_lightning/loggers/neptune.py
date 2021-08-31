@@ -98,6 +98,14 @@ class NeptuneLogger(LightningLoggerBase):
 
         pip install neptune-client
 
+    or conda:
+
+    .. code-block:: bash
+
+        conda install -c conda-forge neptune-client
+
+    **Quickstart**
+
     Pass NeptuneLogger instance to the Trainer to log metadata with Neptune:
 
     .. testcode::
@@ -105,67 +113,79 @@ class NeptuneLogger(LightningLoggerBase):
         from pytorch_lightning import Trainer
         from pytorch_lightning.loggers import NeptuneLogger
 
-        # Arguments passed to the "NeptuneLogger" are used to create new run in neptune.
-        # We are using an "api_key" for the anonymous user "neptuner" but you can use your own.
         neptune_logger = NeptuneLogger(
-            api_key="ANONYMOUS",
-            project="common/new-pytorch-lightning-integration",
-            name="lightning-run",  # Optional
+            api_key="ANONYMOUS",                                 # replace with your own
+            project="common/new-pytorch-lightning-integration",  # format "<WORKSPACE/PROJECT>"
+            tags=["training", "resnet"],                         # optional
         )
         trainer = Trainer(max_epochs=10, logger=neptune_logger)
+
+    **How to use NeptuneLogger?**
 
     Use the logger anywhere in your :class:`~pytorch_lightning.core.lightning.LightningModule` as follows:
 
     .. code-block:: python
 
         from neptune.new.types import File
+        from pytorch_lightning import LightningModule
 
         class LitModel(LightningModule):
             def training_step(self, batch, batch_idx):
                 # log metrics
                 acc = ...
-                self.logger.experiment["train/acc"].log(acc)
+                self.log("train/loss", loss)
 
+            def any_lightning_module_function_or_hook(self):
                 # log images
                 img = ...
                 self.logger.experiment["train/misclassified_images"].log(File.as_image(img))
-
-            def any_lightning_module_function_or_hook(self):
-                # log model checkpoint
-                ...
-                self.logger.experiment["checkpoints/epoch37"].upload("epoch=37.ckpt")
 
                 # generic recipe
                 metadata = ...
                 self.logger.experiment["your/metadata/structure"].log(metadata)
 
-    Check `Neptune docs <https://docs.neptune.ai/user-guides/logging-and-managing-runs-results/logging-runs-data>`_
-    for more info about how to log various types metadata (scores, files, images, interactive visuals, CSVs, etc.).
+    Check `Neptune docs <https://docs.neptune.ai/you-should-know/logging-metadata>`_
+    for more info about how to log various types of metadata (scores, files, images, interactive visuals, CSVs, etc.).
 
-    **Log after training is finished**
+    **Log after fitting or testing is finished**
 
-    If you want to log objects after the training is finished use ``close_after_fit=False``:
+    You can log objects after the fitting or testing methods are finished:
+
+    .. code-block:: python
+
+        neptune_logger = NeptuneLogger(project="common/new-pytorch-lightning-integration")
+
+        trainer = pl.Trainer(logger=neptune_logger)
+        model = ...
+        datamodule = ...
+        trainer.fit(model, datamodule=datamodule)
+        trainer.test(model, datamodule=datamodule)
+
+        # Log objects after `fit` or `test` methods
+        # model summary
+        neptune_logger.log_model_summary(model=model, max_depth=-1)
+
+        # generic recipe
+        metadata = ...
+        neptune_logger.experiment["your/metadata/structure"].log(metadata)
+
+    **Log model checkpoints**
+
+    If you have :class:`~pytorch_lightning.callbacks.ModelCheckpoint` configured,
+    Neptune logger automatically logs model checkpoints.
+    Model weights will be uploaded to the: "model/checkpoints" namespace in the Neptune Run.
+    You can disable this option:
 
     .. code-block:: python
 
         neptune_logger = NeptuneLogger(
-            close_after_fit=False,
+            project="common/new-pytorch-lightning-integration",
+            log_model_checkpoints=False
         )
-        trainer = Trainer(logger=neptune_logger)
-        trainer.fit(model)
 
-        # Log metadata after trainer.fit() is done, for example diagnostics chart
-        from neptune.new.types import File
-        from scikitplot.metrics import plot_confusion_matrix
-        import matplotlib.pyplot as plt
-        ...
-        fig, ax = plt.subplots(figsize=(16, 12))
-        plot_confusion_matrix(y_true, y_pred, ax=ax)
-        neptune_logger.experiment["test/confusion_matrix"].upload(File.as_image(fig))
+    **Pass additional parameters to the Neptune run**
 
-    **Pass additional parameters to Neptune run**
-
-    You can also pass `kwargs` to specify the run in the greater detail, like ``tags`` and ``description``:
+    You can also pass ``neptune_run_kwargs`` to specify the run in the greater detail, like ``tags`` or ``description``:
 
     .. testcode::
 
@@ -177,7 +197,7 @@ class NeptuneLogger(LightningLoggerBase):
             name="lightning-run",
             description="mlp quick run with pytorch-lightning",
             tags=["mlp", "quick-run"],
-            )
+        )
         trainer = Trainer(max_epochs=3, logger=neptune_logger)
 
     Check `run documentation <https://docs.neptune.ai/essentials/api-reference/run>`_
@@ -193,10 +213,14 @@ class NeptuneLogger(LightningLoggerBase):
     You can organize this way any type of metadata - images, parameters, metrics, model checkpoint, CSV files, etc.
 
     See Also:
-        You can read about `what object you can log to Neptune <https://docs.neptune.ai/user-guides/
-        logging-and-managing-runs-results/logging-runs-data#what-objects-can-you-log-to-neptune>`_.
-        Also check `example run <https://app.neptune.ai/o/common/org/new-pytorch-lightning-integration/e/NEWPL-8/all>`_
-        with multiple type of metadata logged.
+
+        - Read about `what object you can log to Neptune
+        <https://docs.neptune.ai/you-should-know/what-can-you-log-and-display>`_.
+        - Check `example run
+        <https://app.neptune.ai/o/common/org/new-pytorch-lightning-integration/e/NEWPL-101/all>`_
+        with multiple types of metadata logged.
+        - For more detailed user guide check
+        `neptune docs <https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning>`_.
 
     Args:
         api_key: Optional.
@@ -206,20 +230,18 @@ class NeptuneLogger(LightningLoggerBase):
             It is recommended to keep it in the `NEPTUNE_API_TOKEN`
             environment variable and then you can drop ``api_key=None``.
         project: Optional.
-            Qualified name of a project in a form of "my_workspace/my_project" for example "tom/mask-rcnn".
+            Name of a project in a form of "my_workspace/my_project" for example "tom/mask-rcnn".
             If ``None``, the value of `NEPTUNE_PROJECT` environment variable will be taken.
             You need to create the project in https://neptune.ai first.
-        close_after_fit: Optional default ``True``.
-            If ``False`` the run will not be closed after training
-            and additional metrics, images or artifacts can be logged.
         name: Optional. Editable name of the run.
             Run name appears in the "all metadata/sys" section in Neptune UI.
-        run: Optional. Default is ``None``. The ID of the existing run.
-            If specified (e.g. "ABC-42"), connect to run with `sys/id` in project_name.
-            Input argument "name" will be overridden based on fetched run data.
-        prefix: A string to put at the beginning of metric keys.
-        base_namespace: Parent namespace under which parameters and metrics will be stored.
-        \**kwargs: Additional arguments like ``tags``, ``description``, ``capture_stdout``, ``capture_stderr`` etc.
+        run: Optional. Default is ``None``. The Neptune ``Run`` object.
+            If specified, this `Run`` will be used for logging, instead of a new Run.
+            When run object is passed you can't specify other neptune properties.
+        log_model_checkpoints: Optional. Default is ``True``. Log model checkpoint to Neptune.
+            Works only if ``ModelCheckpoint`` is passed to the ``Trainer``.
+        prefix: Optional. Default is ``"training"``. Root namespace for all metadata logging.
+        \**neptune_run_kwargs: Additional arguments like ``tags``, ``description``, ``capture_stdout``, etc.
             used when run is created.
 
     Raises:
@@ -280,12 +302,14 @@ class NeptuneLogger(LightningLoggerBase):
         ]
         if used_legacy_kwargs:
             raise ValueError(
-                # TODO: product - review text
-                f"Following kwargs used by you are deprecated: {used_legacy_kwargs}.\n"
-                "If you are looking for the Neptune logger using legacy Python API it has been renamed to"
-                " NeptuneLegacyLogger. The NeptuneLogger was re-written to use the neptune.new Python API"
-                " (learn more: https://neptune.ai/blog/neptune-new).\n"
-                "You should use arguments accepted by either NeptuneLogger.init or neptune.init"
+                f"Following kwargs are deprecated: {used_legacy_kwargs}.\n"
+                "If you are looking for the Neptune logger using legacy Python API,"
+                " it's still available as part of neptune-contrib package:\n"
+                "  - https://docs-legacy.neptune.ai/integrations/pytorch_lightning.html\n"
+                "The NeptuneLogger was re-written to use the neptune.new Python API\n"
+                "  - https://neptune.ai/blog/neptune-new\n"
+                "  - https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning\n"
+                "You should use arguments accepted by either NeptuneLogger.init() or neptune.init()"
             )
 
         # check if user used legacy kwargs expected in `NeptuneLogger` from neptune-pytorch-lightning package
@@ -295,17 +319,26 @@ class NeptuneLogger(LightningLoggerBase):
         ]
         if used_legacy_neptune_kwargs:
             raise ValueError(
-                # TODO: product - review text
-                f"Following kwargs used by you are deprecated: {used_legacy_neptune_kwargs}.\n"
+                f"Following kwargs are deprecated: {used_legacy_neptune_kwargs}.\n"
+                "If you are looking for the Neptune logger using legacy Python API,"
+                " it's still available as part of neptune-contrib package:\n"
+                "  - https://docs-legacy.neptune.ai/integrations/pytorch_lightning.html\n"
+                "The NeptuneLogger was re-written to use the neptune.new Python API\n"
+                "  - https://neptune.ai/blog/neptune-new\n"
+                "  - https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning\n"
+                "You should use arguments accepted by either NeptuneLogger.init() or neptune.init()"
             )
 
         # check if user passed new client `Run` object
         if run is not None and not isinstance(run, Run):
             raise ValueError(
-                # TODO: product - review text
                 "Run parameter expected to be of type `neptune.new.Run`.\n"
-                " NeptuneLegacyLogger. The NeptuneLogger was re-written to use the neptune.new Python API"
-                " (learn more: https://neptune.ai/blog/neptune-new)."
+                "If you are looking for the Neptune logger using legacy Python API,"
+                " it's still available as part of neptune-contrib package:\n"
+                "  - https://docs-legacy.neptune.ai/integrations/pytorch_lightning.html\n"
+                "The NeptuneLogger was re-written to use the neptune.new Python API\n"
+                "  - https://neptune.ai/blog/neptune-new\n"
+                "  - https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning\n"
             )
 
         # check if user passed redundant neptune.init arguments when passed run
@@ -314,9 +347,8 @@ class NeptuneLogger(LightningLoggerBase):
         ) or neptune_run_kwargs
         if run is not None and any_neptune_init_arg_passed:
             raise ValueError(
-                # TODO: product - review text
-                "When run object is passed you can't specify other neptune properties.\n"
-                " (learn more: https://neptune.ai/blog/neptune-new)."
+                "When an already initialized run object is provided"
+                " you can't provide other neptune.init() parameters.\n"
             )
 
     def __getstate__(self):
@@ -357,10 +389,13 @@ class NeptuneLogger(LightningLoggerBase):
                     **self._neptune_run_kwargs,
                 )
             except NeptuneLegacyProjectException as e:
-                raise TypeError(f"""
-                    Project {self._project} has not been imported to new structure yet.
-                    You can still integrate it with `NeptuneLegacyLogger`.
-                    """) from e
+                raise TypeError(
+                    f"""Project {self._project} has not been migrated to the new structure.
+                    You can still integrate it with the Neptune logger using legacy Python API
+                    available as part of neptune-contrib package:
+                      - https://docs-legacy.neptune.ai/integrations/pytorch_lightning.html\n
+                    """
+                ) from e
 
         if not self._run_instance_initialized:
             # make sure that we've log integration version for both newly created and outside `Run` instances
@@ -374,7 +409,7 @@ class NeptuneLogger(LightningLoggerBase):
         r"""
         Log hyper-parameters to the run.
 
-        Params will be logged using the ``param__`` scheme, for example: ``param__batch_size``, ``param__lr``.
+        Hyperparams will be logged under the "<prefix>/hyperparams" namespace.
 
         **Note**
 
@@ -458,7 +493,8 @@ class NeptuneLogger(LightningLoggerBase):
 
     def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
         """
-        Called after model checkpoint callback saves a new checkpoint
+        Automatically log checkpointed model.
+        Called after model checkpoint callback saves a new checkpoint.
 
         Args:
             checkpoint_callback: the model checkpoint callback instance
@@ -550,12 +586,17 @@ class NeptuneLogger(LightningLoggerBase):
     @staticmethod
     def _raise_deprecated_api_usage(f_name, sample_code):
         # TODO: product - review text
-        raise ValueError(f"The function you've used is deprecated.\n"
-                         f"If you are looking for the Neptune logger using legacy Python API it has been renamed to"
-                         f" NeptuneLegacyLogger. The NeptuneLogger was re-written to use the neptune.new Python API"
-                         f" (learn more: https://neptune.ai/blog/neptune-new).\n"
-                         f"Instead of `logger.{f_name}` you can use:\n"
-                         f"\t{sample_code}")
+        raise ValueError(
+            f"The function you've used is deprecated.\n"
+            f"If you are looking for the Neptune logger using legacy Python API,"
+            f" it's still available as part of neptune-contrib package:\n"
+            f"  - https://docs-legacy.neptune.ai/integrations/pytorch_lightning.html\n"
+            f"The NeptuneLogger was re-written to use the neptune.new Python API\n"
+            f"  - https://neptune.ai/blog/neptune-new\n"
+            f"  - https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning\n"
+            f"Instead of `logger.{f_name}` you can use:\n"
+            f"\t{sample_code}"
+        )
 
     @rank_zero_only
     def log_metric(self, *args, **kwargs):

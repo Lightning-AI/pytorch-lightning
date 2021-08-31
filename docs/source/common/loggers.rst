@@ -9,7 +9,7 @@
 Loggers
 *******
 
-Lightning supports the most popular logging frameworks (TensorBoard, Comet, etc...). TensorBoard is used by default,
+Lightning supports the most popular logging frameworks (TensorBoard, Comet, Neptune, etc...). TensorBoard is used by default,
 but you can pass to the :class:`~pytorch_lightning.trainer.trainer.Trainer` any combination of the following loggers.
 
 .. note::
@@ -107,6 +107,12 @@ First, install the package:
 
     pip install neptune-client
 
+or with conda:
+
+.. code-block:: bash
+
+    conda install -c conda-forge neptune-client
+
 Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
 .. testcode::
@@ -114,9 +120,9 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
     from pytorch_lightning.loggers import NeptuneLogger
 
     neptune_logger = NeptuneLogger(
-        api_key="ANONYMOUS",  # replace with your own
-        project="common/new-pytorch-lightning-integration",
-        name="default",  # Optional,
+        api_key="ANONYMOUS",                                 # replace with your own
+        project="common/new-pytorch-lightning-integration",  # format "<WORKSPACE/PROJECT>"
+        tags=["training", "resnet"],                         # optional
     )
     trainer = Trainer(logger=neptune_logger)
 
@@ -127,12 +133,15 @@ The :class:`~pytorch_lightning.loggers.NeptuneLogger` is available anywhere exce
 
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
-            # generic recipe
+            # generic recipe for logging custom metadata
             metadata = ...
             self.logger.experiment["your/metadata/structure"].log(metadata)
 
 .. seealso::
     :class:`~pytorch_lightning.loggers.NeptuneLogger` docs.
+
+    User guide in
+    `Neptune docs <https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning>`_.
 
 ----------------
 
