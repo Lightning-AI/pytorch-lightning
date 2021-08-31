@@ -429,7 +429,7 @@ class NeptuneLogger(LightningLoggerBase):
 
             neptune_logger = NeptuneLogger(
                 api_key="ANONYMOUS",
-                project="common/new-pytorch-lightning-integration"
+                project="common/pytorch-lightning-integration"
             )
 
             neptune_logger.log_hyperparams(PARAMS)
