@@ -17,8 +17,6 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.decorators import auto_move_data
 from pytorch_lightning.plugins import DeepSpeedPlugin
-from tests.deprecated_api import no_deprecated_call
-from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 
 
@@ -29,18 +27,6 @@ def test_v1_5_0_auto_move_data():
             @auto_move_data
             def bar(self):
                 pass
-
-
-def test_v1_5_0_datamodule_setter():
-    model = BoringModel()
-    datamodule = BoringDataModule()
-    with no_deprecated_call(match="The `LightningModule.datamodule`"):
-        model.datamodule = datamodule
-    from pytorch_lightning.core.lightning import warning_cache
-
-    warning_cache.clear()
-    _ = model.datamodule
-    assert any("The `LightningModule.datamodule`" in w for w in warning_cache)
 
 
 @RunIf(deepspeed=True)

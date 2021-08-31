@@ -106,12 +106,10 @@ def test_torchscript_retain_training_state():
 
 
 @pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
-def test_torchscript_properties(tmpdir, modelclass):
+def test_torchscript_properties(modelclass):
     """Test that scripted LightningModule has unnecessary methods removed."""
     model = modelclass()
-    model.datamodule = MNISTDataModule(tmpdir)
     script = model.to_torchscript()
-    assert not hasattr(script, "datamodule")
     assert not hasattr(model, "batch_size") or hasattr(script, "batch_size")
     assert not hasattr(model, "learning_rate") or hasattr(script, "learning_rate")
     assert not callable(getattr(script, "training_step", None))
