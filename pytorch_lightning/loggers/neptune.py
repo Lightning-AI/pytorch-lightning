@@ -1,5 +1,4 @@
-#
-# Copyright (c) 2021, Neptune Labs Sp. z o.o.
+# Copyright The PyTorch Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 """
 Neptune Logger
 --------------
@@ -33,13 +31,10 @@ import torch
 
 from pytorch_lightning import __version__
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import _module_available, rank_zero_only
-from pytorch_lightning.utilities.imports import _compare_version
+from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities.imports import _NEPTUNE_AVAILABLE, _NEPTUNE_GREATER_EQUAL_0_9
 from pytorch_lightning.utilities.model_summary import ModelSummary
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-
-_NEPTUNE_AVAILABLE = _module_available("neptune")
-_NEPTUNE_GREATER_EQUAL_0_9 = _NEPTUNE_AVAILABLE and _compare_version("neptune", operator.ge, "0.9.0")
 
 if _NEPTUNE_AVAILABLE and _NEPTUNE_GREATER_EQUAL_0_9:
     try:
@@ -353,7 +348,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     def __getstate__(self):
         state = self.__dict__.copy()
-        # Run instance can"t be pickled
+        # Run instance can't be pickled
         state["_run_instance"] = None
         return state
 
@@ -542,8 +537,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     @staticmethod
     def _get_full_model_name(model_path: str, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> str:
-        """Returns model name which is string `modle_path` appended to `checkpoint_callback.dirpath`.
-        The problem here is that model name may contain slashes('/')."""
+        """Returns model name which is string `modle_path` appended to `checkpoint_callback.dirpath`."""
         expected_model_path = f"{checkpoint_callback.dirpath}/"
         if not model_path.startswith(expected_model_path):
             raise ValueError(f"{model_path} was expected to start with {expected_model_path}.")
@@ -567,11 +561,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        """Gets the name of the experiment.
-
-        Returns:
-            The name of the experiment if not in offline mode else "offline-name".
-        """
+        """Return the experiment name."""
         return "NeptuneLogger"
 
     @property
