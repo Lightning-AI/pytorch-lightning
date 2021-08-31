@@ -15,12 +15,12 @@ from unittest import mock
 
 import torch
 from torch.nn.parallel import DistributedDataParallel
+from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DDPPlugin
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
-from torch.utils.data import DataLoader
 
 
 class BoringModelGPU(BoringModel):
