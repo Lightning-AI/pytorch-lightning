@@ -17,6 +17,7 @@ from functools import partial, wraps
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
 import torch
+from torch.functional import Tensor
 from torchmetrics import Metric
 
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
@@ -434,8 +435,12 @@ class ResultCollection(dict):
     ) -> None:
         """See :meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
         # no metrics should be logged with graphs
-        if not enable_graph and isinstance(value, torch.Tensor):
-            value = value.detach()
+        if not enable_graph:
+
+            def detach_fn(tensor: Tensor) -> Tensor:
+                return tensor.detach()
+
+            value = apply_to_collection(value, Tensor, detach_fn)
 
         # move metrics to cpu on TPU.
         if isinstance(value, torch.Tensor) and value.device.type == "xla":
