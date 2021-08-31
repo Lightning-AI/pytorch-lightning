@@ -263,7 +263,7 @@ class WandbLogger(LightningLoggerBase):
             self._scan_and_log_checkpoints(self._checkpoint_callback)
 
     def _log_checkpoints(
-        self, checkpoints: List[ModelCheckpoint], checkpoint_callback: "ReferenceType[ModelCheckpoint]"
+        self, checkpoint_callback: "ReferenceType[ModelCheckpoint]", checkpoints: List[ModelCheckpoint]
     ) -> None:
         # log iteratively all new checkpoints
         for t, p, s in checkpoints:
