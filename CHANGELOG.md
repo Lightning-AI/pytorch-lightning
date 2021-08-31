@@ -172,6 +172,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Updated deprecation of  `argparse_utils.py` from removal in 1.4 to 2.0 ([#9162](https://github.com/PyTorchLightning/pytorch-lightning/pull/9162))
 
 
+- Deprecated passing `process_position` to the `Trainer` constructor ([#9222](https://github.com/PyTorchLightning/pytorch-lightning/pull/9222))
+
+
 
 ### Removed
 
