@@ -151,7 +151,6 @@ def test_lightning_parallel_module_device_access(nest, unnest):
             super().__init__()
             self.layer = nn.Linear(2, 3)
 
-        @auto_move_data
         def training_step(self, batch, batch_idx):
             batch = unnest(batch)
             assert batch.shape == torch.Size([1, 1])

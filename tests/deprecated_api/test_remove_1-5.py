@@ -15,20 +15,10 @@
 import pytest
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.core.decorators import auto_move_data
 from pytorch_lightning.plugins import DeepSpeedPlugin
 from tests.deprecated_api import no_deprecated_call
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
-
-
-def test_v1_5_0_auto_move_data():
-    with pytest.deprecated_call(match="deprecated in v1.3 and will be removed in v1.5.*was applied to `bar`"):
-
-        class Foo:
-            @auto_move_data
-            def bar(self):
-                pass
 
 
 def test_v1_5_0_datamodule_setter():
