@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
+
 import pytest
 import torch
 from torch.nn.parallel import DistributedDataParallel
