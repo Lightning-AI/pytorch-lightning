@@ -184,7 +184,7 @@ def test_mlflow_logger_dirs_creation(tmpdir):
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
 @pytest.mark.parametrize("log_model", ["all", True, False])
-def test_mlflow_log_model(client, tmpdir, log_model):
+def test_mlflow_log_model(client, mlflow, tmpdir, log_model):
     """Test that the logger creates the folders and files in the right place."""
 
     # Reset mocks
