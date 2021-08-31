@@ -21,6 +21,7 @@ from torch import Tensor
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.utilities import _prepare_dataloader_iter
 from pytorch_lightning.trainer.progress import Progress
+from pytorch_lightning.utilities.fetching import AbstractDataFetcher
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -58,12 +59,12 @@ class EvaluationEpochLoop(Loop):
             self.batch_progress.current.reset()
 
     def on_run_start(
-        self, dataloader_iter: Iterator, dataloader_idx: int, dl_max_batches: int, num_dataloaders: int
+        self, data_fetcher: AbstractDataFetcher, dataloader_idx: int, dl_max_batches: int, num_dataloaders: int
     ) -> None:
         """Adds the passed arguments to the loop's state if necessary
 
         Args:
-            dataloader_iter: iterator over the dataloader
+            data_fetcher: the current data_fetcher wrapping the dataloader
             dataloader_idx: index of the current dataloader
             dl_max_batches: maximum number of batches the dataloader can produce
             num_dataloaders: the total number of dataloaders
@@ -72,10 +73,10 @@ class EvaluationEpochLoop(Loop):
         self._dl_max_batches = dl_max_batches
         self._num_dataloaders = num_dataloaders
 
-        self.dataloader_iter = _prepare_dataloader_iter(dataloader_iter, self.batch_progress.current.ready)
+        self.dataloader_iter = _prepare_dataloader_iter(data_fetcher, self.batch_progress.current.ready)
 
     def advance(
-        self, dataloader_iter: Iterator, dataloader_idx: int, dl_max_batches: int, num_dataloaders: int
+        self, data_fetcher: AbstractDataFetcher, dataloader_idx: int, dl_max_batches: int, num_dataloaders: int
     ) -> None:
         """Calls the evaluation step with the corresponding hooks and updates the logger connector.
 
@@ -88,7 +89,7 @@ class EvaluationEpochLoop(Loop):
         Raises:
             StopIteration: If the current batch is None
         """
-        void(dataloader_iter, dl_max_batches, num_dataloaders)
+        void(data_fetcher, dl_max_batches, num_dataloaders)
 
         batch_idx, (batch, _) = next(self.dataloader_iter)
 
@@ -198,9 +199,6 @@ class EvaluationEpochLoop(Loop):
         self.trainer.call_hook(hook_name, output, batch, batch_idx, dataloader_idx)
 
         self.trainer.logger_connector.on_batch_end()
-
-        # track debug metrics
-        self.trainer.dev_debugger.track_eval_loss_history(batch_idx, dataloader_idx, output)
 
     def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Dict[str, Union[Any, int]]:
         """Helper function to build the arguments for the current step
