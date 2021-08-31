@@ -139,7 +139,7 @@ class NeptuneLogger(LightningLoggerBase):
                 metadata = ...
                 self.logger.experiment["your/metadata/structure"].log(metadata)
 
-    Check `Neptune docs <https://docs.neptune.ai/you-should-know/logging-metadata>`_
+    Check `Logging metadata docs <https://docs.neptune.ai/you-should-know/logging-metadata>`_
     for more info about how to log various types of metadata (scores, files, images, interactive visuals, CSVs, etc.).
 
     **Log after fitting or testing is finished**
@@ -208,12 +208,12 @@ class NeptuneLogger(LightningLoggerBase):
     You can organize this way any type of metadata - images, parameters, metrics, model checkpoint, CSV files, etc.
 
     See Also:
-        - Read about `what object you can log to Neptune <https://docs.neptune.ai/you-should-know/\
-        what-can-you-log-and-display>`_.
+        - Read about
+          `what object you can log to Neptune <https://docs.neptune.ai/you-should-know/ what-can-you-log-and-display>`_.
         - Check `example run <https://app.neptune.ai/o/common/org/new-pytorch-lightning-integration/e/NEWPL-101/all>`_
-        with multiple types of metadata logged.
-        - For more detailed info check `user guide <https://docs.neptune.ai/integrations-and-supported-tools/\
-        model-training/pytorch-lightning>`_.
+          with multiple types of metadata logged.
+        - For more detailed info check
+          `user guide <https://docs.neptune.ai/integrations-and-supported-tools/ model-training/pytorch-lightning>`_.
 
     Args:
         api_key: Optional.
