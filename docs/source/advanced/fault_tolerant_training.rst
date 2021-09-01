@@ -14,10 +14,12 @@ Fault Tolerance Training requires PyTorch 1.7 or higher and can be enabled as fo
     PL_FAULT_TOLERANT_TRAINING=1 python script.py
 
 
-Before, when your fitting was failing in the middle of an epoch either in training or validation, PyTorch Lightning would restart on the following epoch.
+Before, when your fitting was failing in the middle of an epoch either in training or validation,
+PyTorch Lightning would restart at the next epoch and any progress made in the previous one would be lost.
+This would make benchmarking non reproducible as optimization has been interrupted and only partially restored.
 
-With Fault Tolerant Training enables, when your fitting fails in the middle of an epoch either in training or validation, Lightning will restart exactly where it fails
-and everything will be restored.
+With Fault Tolerant Training enabled, when your fitting fails in the middle of an epoch either in training or validation,
+Lightning will restart exactly where it fails and everything will be restored.
 
 What does Lightning do exactly ?
 --------------------------------
