@@ -275,7 +275,8 @@ class NeptuneLogger(LightningLoggerBase):
         except NeptuneOfflineModeFetchException:
             self._run_name = 'offline-name'
 
-    def _init_run_instance(self, api_key, project, name, run, neptune_run_kwargs) -> Run:
+    @staticmethod
+    def _init_run_instance(api_key, project, name, run, neptune_run_kwargs) -> Run:
         if run is not None:
             run_instance = run
         else:
