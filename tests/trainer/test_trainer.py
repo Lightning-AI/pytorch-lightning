@@ -834,10 +834,10 @@ def test_nan_params_detection(tmpdir):
     assert not torch.isfinite(params).all()
 
 
-def test_trainer_interrupted_flag(tmpdir):
-    """Test the flag denoting that a user interrupted training."""
+def test_on_exception_hook(tmpdir):
+    """Test the on_exception callback hook and the trainer interrupted flag."""
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     class InterruptCallback(Callback):
         def __init__(self):
@@ -846,10 +846,17 @@ def test_trainer_interrupted_flag(tmpdir):
         def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
             raise KeyboardInterrupt
 
+        def on_test_start(self, trainer, pl_module):
+            raise MisconfigurationException
+
     class HandleInterruptCallback(Callback):
         def __init__(self):
             super().__init__()
+            self.exception = None
             self.exc_info = None
+
+        def on_exception(self, trainer, pl_module, exception):
+            self.exception = exception
 
         def on_keyboard_interrupt(self, trainer, pl_module):
             self.exc_info = sys.exc_info()
@@ -867,47 +874,57 @@ def test_trainer_interrupted_flag(tmpdir):
         default_root_dir=tmpdir,
     )
     assert not trainer.interrupted
+    assert handle_interrupt_callback.exception is None
     assert handle_interrupt_callback.exc_info is None
     trainer.fit(model)
     assert trainer.interrupted
+    assert isinstance(handle_interrupt_callback.exception, KeyboardInterrupt)
     assert isinstance(handle_interrupt_callback.exc_info[1], KeyboardInterrupt)
+    with pytest.raises(MisconfigurationException):
+        trainer.test(model)
+    assert trainer.interrupted
+    assert isinstance(handle_interrupt_callback.exception, MisconfigurationException)
 
 
-def test_gradient_clipping(tmpdir):
-    """
-    Test gradient clipping
-    """
+@pytest.mark.parametrize(
+    "precision",
+    [32, pytest.param(16, marks=RunIf(min_gpus=1, amp_native=True))],
+)
+def test_gradient_clipping_by_norm(tmpdir, precision):
+    """Test gradient clipping by norm"""
     tutils.reset_seed()
 
-    model = EvalModelTemplate()
+    model = EvalModelTemplate()  # TODO: when precision=16, BoringModel produces NaN, but EvalModelTemplate not
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        max_epochs=1,
+        gpus=int(torch.cuda.is_available()),
+        precision=precision,
+        gradient_clip_algorithm="norm",
+        gradient_clip_val=1.0,
+    )
 
-    trainer = Trainer(max_steps=1, max_epochs=1, gradient_clip_val=1.0, default_root_dir=tmpdir)
+    old_backward = trainer.fit_loop.epoch_loop.batch_loop.backward
 
-    old_training_step_and_backward = trainer.fit_loop.epoch_loop.batch_loop.training_step_and_backward
-
-    def training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens):
-        """
-        wrap the forward step in a closure so second order methods work
-        """
+    def backward(*args, **kwargs):
         # test that gradient is clipped correctly
-        ret_val = old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
+        ret_val = old_backward(*args, **kwargs)
         parameters = model.parameters()
         grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
         assert (grad_norm - 1.0).abs() < 0.01, f"Gradient norm != 1.0: {grad_norm}"
-
         return ret_val
 
-    trainer.fit_loop.epoch_loop.batch_loop.training_step_and_backward = training_step_and_backward
-    # for the test
-    model.prev_called_batch_idx = 0
-
+    trainer.fit_loop.epoch_loop.batch_loop.backward = backward
     trainer.fit(model)
 
 
-def test_gradient_clipping_by_value(tmpdir):
-    """
-    Test gradient clipping by value
-    """
+@pytest.mark.parametrize(
+    "precision",
+    [32, pytest.param(16, marks=RunIf(min_gpus=1, amp_native=True))],
+)
+def test_gradient_clipping_by_value(tmpdir, precision):
+    """Test gradient clipping by value"""
     tutils.reset_seed()
 
     model = BoringModel()
@@ -916,105 +933,27 @@ def test_gradient_clipping_by_value(tmpdir):
     trainer = Trainer(
         max_steps=1,
         max_epochs=1,
+        precision=precision,
+        gpus=int(torch.cuda.is_available()),
         gradient_clip_val=grad_clip_val,
         gradient_clip_algorithm="value",
         default_root_dir=tmpdir,
     )
 
-    old_training_step_and_backward = trainer.fit_loop.epoch_loop.batch_loop.training_step_and_backward
+    old_backward = trainer.fit_loop.epoch_loop.batch_loop.backward
 
-    def training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens):
-        """
-        wrap the forward step in a closure so second order methods work
-        """
+    def backward(*args, **kwargs):
         # test that gradient is clipped correctly
-        ret_val = old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
+        ret_val = old_backward(*args, **kwargs)
         parameters = model.parameters()
         grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
         grad_max = torch.max(torch.stack(grad_max_list))
         assert (
             abs(grad_max.item() - grad_clip_val) < 1e-11
         ), f"Gradient max value {grad_max} != grad_clip_val {grad_clip_val} ."
-
         return ret_val
 
-    trainer.fit_loop.epoch_loop.batch_loop.training_step_and_backward = training_step_and_backward
-    # for the test
-    model.prev_called_batch_idx = 0
-
-    trainer.fit(model)
-
-
-@RunIf(min_gpus=1, amp_native=True)
-def test_gradient_clipping_fp16(tmpdir):
-    """
-    Test gradient clipping with fp16
-    """
-    tutils.reset_seed()
-
-    model = EvalModelTemplate()
-
-    trainer = Trainer(max_steps=1, max_epochs=1, precision=16, gpus=1, gradient_clip_val=1.0, default_root_dir=tmpdir)
-
-    old_training_step_and_backward = trainer.fit_loop.epoch_loop.batch_loop.training_step_and_backward
-
-    def training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens):
-        """
-        wrap the forward step in a closure so second order methods work
-        """
-        # test that gradient is clipped correctly
-        ret_val = old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
-        parameters = model.parameters()
-        grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
-        assert (grad_norm - 1.0).abs() < 0.01, f"Gradient norm != 1.0: {grad_norm}"
-
-        return ret_val
-
-    trainer.fit_loop.epoch_loop.batch_loop.training_step_and_backward = training_step_and_backward
-    model.prev_called_batch_idx = 0
-
-    trainer.fit(model)
-
-
-@RunIf(min_gpus=1, amp_native=True)
-def test_gradient_clipping_by_value_fp16(tmpdir):
-    """
-    Test gradient clipping by value with fp16
-    """
-    tutils.reset_seed()
-
-    model = BoringModel()
-    grad_clip_val = 1e-10
-    trainer = Trainer(
-        max_steps=1,
-        max_epochs=1,
-        precision=16,
-        gpus=1,
-        gradient_clip_val=grad_clip_val,
-        gradient_clip_algorithm="value",
-        default_root_dir=tmpdir,
-    )
-
-    old_training_step_and_backward = trainer.fit_loop.epoch_loop.batch_loop.training_step_and_backward
-
-    def training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens):
-        """
-        wrap the forward step in a closure so second order methods work
-        """
-        # test that gradient is clipped correctly
-        ret_val = old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
-        parameters = model.parameters()
-        grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
-        grad_max = torch.max(torch.stack(grad_max_list))
-        assert (
-            abs(grad_max.item() - grad_clip_val) < 1e-11
-        ), f"Gradient max value {grad_max} != grad_clip_val {grad_clip_val} ."
-
-        return ret_val
-
-    trainer.fit_loop.epoch_loop.batch_loop.training_step_and_backward = training_step_and_backward
-    model.prev_called_batch_idx = 0
-
+    trainer.fit_loop.epoch_loop.batch_loop.backward = backward
     trainer.fit(model)
 
 
@@ -1875,7 +1814,12 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
         def on_epoch_start(self, trainer, *_):
             assert isinstance(trainer.training_type_plugin.model, DistributedDataParallel)
 
-    initial = torch.cuda.memory_allocated(0)
+    def current_memory():
+        # before measuring the memory force release any leftover allocations, including CUDA tensors
+        gc.collect()
+        return torch.cuda.memory_allocated(0)
+
+    initial = current_memory()
 
     model = TestModel()
     trainer_kwargs = dict(
@@ -1893,22 +1837,90 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
     assert list(trainer.optimizers[0].state.values())[0]["exp_avg_sq"].device == torch.device("cpu")
     assert trainer.callback_metrics["train_loss"].device == torch.device("cpu")
 
-    # before measuring the memory force release any leftover allocations, including CUDA tensors
-    gc.collect()
-    memory_1 = torch.cuda.memory_allocated(0)
-    assert memory_1 == initial
+    assert current_memory() <= initial
 
     deepcopy(trainer)
 
-    # before measuring the memory force release any leftover allocations, including CUDA tensors
-    gc.collect()
-    memory_2 = torch.cuda.memory_allocated(0)
-    assert memory_2 == initial
+    assert current_memory() <= initial
 
     trainer_2 = Trainer(**trainer_kwargs)
     trainer_2.fit(model)
 
-    # before measuring the memory force release any leftover allocations, including CUDA tensors
-    gc.collect()
-    memory_3 = torch.cuda.memory_allocated(0)
-    assert memory_3 == initial
+    assert current_memory() <= initial
+
+
+class TrainerStagesErrorsModel(BoringModel):
+    def on_train_start(self) -> None:
+        raise Exception("Error during train")
+
+    def on_validation_start(self) -> None:
+        raise Exception("Error during validation")
+
+    def on_test_start(self) -> None:
+        raise Exception("Error during test")
+
+    def on_predict_start(self) -> None:
+        raise Exception("Error during predict")
+
+
+@pytest.mark.parametrize(
+    "accelerator,num_processes",
+    [
+        (None, 1),
+        pytest.param("ddp_cpu", 2, marks=RunIf(skip_windows=True)),
+    ],
+)
+def test_error_handling_all_stages(tmpdir, accelerator, num_processes):
+    model = TrainerStagesErrorsModel()
+    trainer = Trainer(default_root_dir=tmpdir, accelerator=accelerator, num_processes=num_processes, fast_dev_run=True)
+
+    with pytest.raises(Exception, match=r"Error during train"), patch(
+        "pytorch_lightning.Trainer._on_exception"
+    ) as exception_hook:
+        trainer.fit(model)
+    exception_hook.assert_called()
+
+    with pytest.raises(Exception, match=r"Error during validation"), patch(
+        "pytorch_lightning.Trainer._on_exception"
+    ) as exception_hook:
+        trainer.validate(model)
+    exception_hook.assert_called()
+
+    with pytest.raises(Exception, match=r"Error during test"), patch(
+        "pytorch_lightning.Trainer._on_exception"
+    ) as exception_hook:
+        trainer.test(model)
+    exception_hook.assert_called()
+
+    with pytest.raises(Exception, match=r"Error during predict"), patch(
+        "pytorch_lightning.Trainer._on_exception"
+    ) as exception_hook:
+        trainer.predict(model, model.val_dataloader(), return_predictions=False)
+    exception_hook.assert_called()
+
+
+def test_overridden_on_dataloaders(tmpdir):
+    model = BoringModel()
+    with pytest.deprecated_call(
+        match="Method `on_train_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+    ):
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+        trainer.fit(model)
+
+    with pytest.deprecated_call(
+        match="Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+    ):
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+        trainer.validate(model)
+
+    with pytest.deprecated_call(
+        match="Method `on_test_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+    ):
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+        trainer.test(model)
+
+    with pytest.deprecated_call(
+        match="Method `on_predict_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+    ):
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+        trainer.predict(model)

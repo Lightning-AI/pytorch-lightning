@@ -24,24 +24,32 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
-from pytorch_lightning.plugins.base_plugin import Plugin
-from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.cloud_io import atomic_save
-from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.plugins import TorchCheckpointIO
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT
 
 TBroadcast = TypeVar("T")
 
 
-class TrainingTypePlugin(Plugin, ABC):
+class TrainingTypePlugin(ABC):
     """
     Base class for all training type plugins that change the behaviour of the training, validation and test-loop.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, checkpoint_io: Optional[CheckpointIO] = None) -> None:
         self._model: Optional[Module] = None
         self._results: Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]] = None
+        checkpoint_io = checkpoint_io if checkpoint_io is not None else TorchCheckpointIO()
+        self._checkpoint_io = checkpoint_io
         self._call_configure_sharded_model_hook = True
+
+    @property
+    def checkpoint_io(self) -> CheckpointIO:
+        return self._checkpoint_io
+
+    @checkpoint_io.setter
+    def checkpoint_io(self, plugin: CheckpointIO) -> None:
+        self._checkpoint_io = plugin
 
     def connect(self, model: Module) -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin"""
@@ -145,8 +153,9 @@ class TrainingTypePlugin(Plugin, ABC):
         """
         return self._results
 
-    def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
-        return pl_load(checkpoint_path, map_location=(lambda storage, loc: storage))
+    def load_checkpoint(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
+        torch.cuda.empty_cache()
+        return self.checkpoint_io.load_checkpoint(checkpoint_path)
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         self.lightning_module.load_state_dict(checkpoint["state_dict"])
@@ -192,31 +201,12 @@ class TrainingTypePlugin(Plugin, ABC):
     def test_step_end(self, output):
         return output
 
-    def on_save(self, checkpoint: Dict[str, Union[Any, torch.Tensor]]) -> Dict[str, Union[Any, torch.Tensor]]:
-        return checkpoint
-
     def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
         """Wraps the dataloader if necessary
 
         Args:
             dataloader: iterable. Ideally of type: :class:`torch.utils.data.DataLoader`
         """
-        return dataloader
-
-    def on_reset_train_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        """Called before resetting the train dataloader."""
-        return dataloader
-
-    def on_reset_val_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        """Called before resetting the val dataloader."""
-        return dataloader
-
-    def on_reset_test_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        """Called before resetting the test dataloader."""
-        return dataloader
-
-    def on_reset_predict_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        """Called before resetting the predict dataloader."""
         return dataloader
 
     def init_optimizers(self, trainer: "pl.Trainer", model: "pl.LightningModule"):
@@ -280,17 +270,8 @@ class TrainingTypePlugin(Plugin, ABC):
             checkpoint: dict containing model and trainer state
             filepath: write-target file's path
         """
-        # dump states as a checkpoint dictionary object
-        checkpoint = self.on_save(checkpoint)
-        if self.is_global_zero:
-            try:
-                # write the checkpoint dictionary on the file
-                atomic_save(checkpoint, filepath)
-            except AttributeError as err:
-                key = pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY
-                checkpoint.pop(key, None)
-                rank_zero_warn(f"Warning, `{key}` dropped from checkpoint. An attribute is not picklable: {err}")
-                atomic_save(checkpoint, filepath)
+        if self.should_rank_save_checkpoint:
+            return self.checkpoint_io.save_checkpoint(checkpoint, filepath)
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
@@ -370,3 +351,12 @@ class TrainingTypePlugin(Plugin, ABC):
         Called in the training loop before anything happens for that batch.
         """
         pass
+
+    def pre_dispatch(self) -> None:
+        """Hook to do something before the training/evaluation/prediction starts."""
+
+    def dispatch(self, trainer: "pl.Trainer") -> None:
+        """Hook to do something at trainer run_stage starts."""
+
+    def post_dispatch(self) -> None:
+        """Hook to do something after the training/evaluation/prediction finishes."""

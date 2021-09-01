@@ -629,3 +629,10 @@ def test_accelerator_ddp_for_cpu(tmpdir):
     trainer = Trainer(accelerator="ddp", num_processes=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.training_type_plugin, DDPPlugin)
+
+
+@pytest.mark.parametrize("precision", [1, 12, "invalid"])
+def test_validate_precision_type(tmpdir, precision):
+
+    with pytest.raises(MisconfigurationException, match=f"Precision {precision} is invalid"):
+        Trainer(precision=precision)

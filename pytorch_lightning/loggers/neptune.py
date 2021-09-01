@@ -267,17 +267,35 @@ class NeptuneLogger(LightningLoggerBase):
 
     @property
     def save_dir(self) -> Optional[str]:
+        """
+        Gets the save directory of the experiment which in this case is ``None`` because Neptune does not save locally.
+
+        Returns:
+            None
+        """
         # Neptune does not save any local files
         return None
 
     @property
     def name(self) -> str:
+        """
+        Gets the name of the experiment.
+
+        Returns:
+            The name of the experiment if not in offline mode else "offline-name".
+        """
         if self.offline_mode:
             return "offline-name"
         return self.experiment.name
 
     @property
     def version(self) -> str:
+        """
+        Gets the id of the experiment.
+
+        Returns:
+            The id of the experiment if not in offline mode else "offline-id-1234".
+        """
         if self.offline_mode:
             return "offline-id-1234"
         return self.experiment.id

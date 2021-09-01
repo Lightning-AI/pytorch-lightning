@@ -170,11 +170,15 @@ Below is an example of using both ``wrap`` and ``auto_wrap`` to create your mode
 FairScale Activation Checkpointing
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Activation checkpointing frees activations from memory as soon as they are not needed during the forward pass. They are then re-computed for the backwards pass as needed.
+Activation checkpointing frees activations from memory as soon as they are not needed during the forward pass. They are then re-computed for the backwards pass as needed. Activation checkpointing is very useful when you have intermediate layers that produce large activations.
 
 FairScales' checkpointing wrapper also handles batch norm layers correctly unlike the PyTorch implementation, ensuring stats are tracked correctly due to the multiple forward passes.
 
 This saves memory when training larger models however requires wrapping modules you'd like to use activation checkpointing on. See `here <https://fairscale.readthedocs.io/en/latest/api/nn/misc/checkpoint_activations.html>`__ for more information.
+
+.. warning::
+
+    Ensure to not wrap the entire model with activation checkpointing. This is not the intended usage of activation checkpointing, and will lead to failures as seen in `this discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/9144>`__.
 
 .. code-block:: python
 
@@ -185,7 +189,8 @@ This saves memory when training larger models however requires wrapping modules 
     class MyModel(pl.LightningModule):
         def __init__(self):
             # Wrap layers using checkpoint_wrapper
-            self.block = checkpoint_wrapper(nn.Sequential(nn.Linear(32, 32), nn.ReLU()))
+            self.block_1 = checkpoint_wrapper(nn.Sequential(nn.Linear(32, 32), nn.ReLU()))
+            self.block_2 = nn.Linear(32, 2)
 
 
 .. _deepspeed:
@@ -202,13 +207,15 @@ DeepSpeed also offers lower level training optimizations, and efficient optimize
 
 Below is a summary of all the configurations of DeepSpeed.
 
-* :ref:`deepspeed-zero-stage-2` - **Shard optimizer states and gradients**, remains at parity with DDP with memory improvement
+* :ref:`deepspeed-zero-stage-1` - **Shard optimizer states**, remains at speed parity with DDP whilst providing memory improvement
 
-* :ref:`deepspeed-zero-stage-2-offload` - **Offload optimizer states and gradients to CPU**. Increases communication, but significant memory improvement
+* :ref:`deepspeed-zero-stage-2` - **Shard optimizer states and gradients**, remains at speed parity with DDP whilst providing even more memory improvement
 
-* :ref:`deepspeed-zero-stage-3` - **Shard optimizer states, gradients, (Optional) activations and parameters**. Increases communication volume, but even more memory improvement
+* :ref:`deepspeed-zero-stage-2-offload` - **Offload optimizer states and gradients to CPU**. Increases distributed communication volume and GPU-CPU device transfer, but provides significant memory improvement
 
-* :ref:`deepspeed-zero-stage-3-offload` - **Offload optimizer states, gradients, (Optional) activations and parameters to CPU**. Increases communication, but even more signficant memory improvement.
+* :ref:`deepspeed-zero-stage-3` - **Shard optimizer states, gradients, parameters and optionally activations**. Increases distributed communication volume, but provides even more memory improvement
+
+* :ref:`deepspeed-zero-stage-3-offload` - **Offload optimizer states, gradients, parameters and optionally activations to CPU**. Increases distributed communication volume and GPU-CPU device transfer, but even more signficant memory improvement.
 
 * :ref:`deepspeed-activation-checkpointing` - **Free activations after forward pass**. Increases computation, but provides memory improvement for all stages.
 
@@ -227,12 +234,30 @@ If you run into an issue with the install or later in training, ensure that the 
     When saving a checkpoint we rely on DeepSpeed which saves a directory containing the model and various components.
 
 
+.. _deepspeed-zero-stage-1:
+
+DeepSpeed ZeRO Stage 1
+""""""""""""""""""""""
+
+`DeepSpeed ZeRO Stage 1 <https://www.deepspeed.ai/tutorials/zero/#zero-overview>`_ partitions your optimizer states (Stage 1) across your GPUs to reduce memory.
+
+It is recommended to skip Stage 1 and use Stage 2, which comes with larger memory improvements and still remains efficient. Stage 1 is useful to pair with certain optimizations such as `Torch ORT <https://github.com/pytorch/ort>`__.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+
+    model = MyModel()
+    trainer = Trainer(gpus=4, plugins="deepspeed_stage_1", precision=16)
+    trainer.fit(model)
+
+
 .. _deepspeed-zero-stage-2:
 
 DeepSpeed ZeRO Stage 2
 """"""""""""""""""""""
 
-By default, we enable `DeepSpeed ZeRO Stage 2 <https://www.deepspeed.ai/tutorials/zero/#zero-overview>`_, which partitions your optimizer states (Stage 1) and your gradients (Stage 2) across your GPUs to reduce memory. In most cases, this is more efficient or at parity with DDP, primarily due to the optimized custom communications written by the DeepSpeed team.
+`DeepSpeed ZeRO Stage 2 <https://www.deepspeed.ai/tutorials/zero/#zero-overview>`_ partitions your optimizer states (Stage 1) and your gradients (Stage 2) across your GPUs to reduce memory. In most cases, this is more efficient or at parity with DDP, primarily due to the optimized custom communications written by the DeepSpeed team.
 As a result, benefits can also be seen on a single GPU. Do note that the default bucket sizes allocate around ``3.6GB`` of VRAM to use during distributed communications, which can be tweaked when instantiating the plugin described in a few sections below.
 
 .. code-block:: python
@@ -281,7 +306,9 @@ You can also modify the ZeRO-Offload parameters via the plugin as below.
 
     model = MyModel()
     trainer = Trainer(
-        gpus=4, plugins=DeepSpeedPlugin(cpu_offload=True, allgather_bucket_size=5e8, reduce_bucket_size=5e8), precision=16
+        gpus=4,
+        plugins=DeepSpeedPlugin(offload_optimizer=True, allgather_bucket_size=5e8, reduce_bucket_size=5e8),
+        precision=16,
     )
     trainer.fit(model)
 
@@ -495,7 +522,36 @@ DeepSpeed Activation Checkpointing
 Activation checkpointing frees activations from memory as soon as they are not needed during the forward pass.
 They are then re-computed for the backwards pass as needed.
 
-This saves memory when training larger models however requires using a checkpoint function to run the module as shown below.
+Activation checkpointing is very useful when you have intermediate layers that produce large activations.
+
+This saves memory when training larger models, however requires using a checkpoint function to run modules as shown below.
+
+.. warning::
+
+    Ensure to not wrap the entire model with activation checkpointing. This is not the intended usage of activation checkpointing, and will lead to failures as seen in `this discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/9144>`__.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.plugins import DeepSpeedPlugin
+    import deepspeed
+
+
+    class MyModel(LightningModule):
+        ...
+
+        def __init__(self):
+            super().__init__()
+            self.block_1 = nn.Sequential(nn.Linear(32, 32), nn.ReLU())
+            self.block_2 = torch.nn.Linear(32, 2)
+
+        def forward(self, x):
+            # Use the DeepSpeed checkpointing function instead of calling the module directly
+            # checkpointing self.layer_h means the activations are deleted after use,
+            # and re-calculated during the backward passes
+            x = torch.utils.checkpoint.checkpoint(self.block_1, x)
+            return self.block_2(x)
+
 
 .. code-block:: python
 
@@ -508,12 +564,13 @@ This saves memory when training larger models however requires using a checkpoin
         ...
 
         def configure_sharded_model(self):
-            self.block = nn.Sequential(nn.Linear(32, 32), nn.ReLU())
+            self.block_1 = nn.Sequential(nn.Linear(32, 32), nn.ReLU())
+            self.block_2 = torch.nn.Linear(32, 2)
 
         def forward(self, x):
             # Use the DeepSpeed checkpointing function instead of calling the module directly
-            output = deepspeed.checkpointing.checkpoint(self.block, x)
-            return output
+            x = deepspeed.checkpointing.checkpoint(self.block_1, x)
+            return self.block_2(x)
 
 
     model = MyModel()
@@ -526,7 +583,7 @@ This saves memory when training larger models however requires using a checkpoin
         gpus=4,
         plugins=DeepSpeedPlugin(
             stage=3,
-            cpu_offload=True,  # Enable CPU Offloading
+            offload_optimizer=True,  # Enable CPU Offloading
             cpu_checkpointing=True,  # (Optional) offload activations to CPU
         ),
         precision=16,
@@ -604,7 +661,7 @@ In some cases you may want to define your own DeepSpeed Config, to access all pa
         },
         "zero_optimization": {
             "stage": 2,  # Enable Stage 2 ZeRO (Optimizer/Gradient state partitioning)
-            "cpu_offload": True,  # Enable Offloading optimizer state/calculation to the host CPU
+            "offload_optimizer": True,  # Enable Offloading optimizer state/calculation to the host CPU
             "contiguous_gradients": True,  # Reduce gradient fragmentation.
             "overlap_comm": True,  # Overlap reduce/backward operation of gradients for speed.
             "allgather_bucket_size": 2e8,  # Number of elements to all gather at once.

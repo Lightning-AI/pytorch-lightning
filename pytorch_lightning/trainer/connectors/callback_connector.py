@@ -19,6 +19,7 @@ from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, 
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
 class CallbackConnector:
@@ -58,6 +59,12 @@ class CallbackConnector:
         self._configure_timer_callback(max_time)
 
         # init progress bar
+        if process_position != 0:
+            rank_zero_deprecation(
+                f"Setting `Trainer(process_position={process_position})` is deprecated in v1.5 and will be removed"
+                " in v1.7. Please pass `pytorch_lightning.callbacks.progress.ProgressBar` with"
+                " `process_position` directly to the Trainer's `callbacks` argument instead."
+            )
         self.trainer._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
 
         # push all checkpoint callbacks to the end
@@ -139,7 +146,7 @@ class CallbackConnector:
         In addition, all :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks
         will be pushed to the end of the list, ensuring they run last.
         """
-        model_callbacks = self.trainer.model.configure_callbacks()
+        model_callbacks = self.trainer.call_hook("configure_callbacks")
         if not model_callbacks:
             return
         model_callback_types = {type(c) for c in model_callbacks}

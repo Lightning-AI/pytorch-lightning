@@ -25,7 +25,7 @@ from pytorch_lightning.plugins import DataParallelPlugin
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, rank_zero_warn
+from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -155,9 +155,7 @@ class Accelerator:
         """
         self.training_type_plugin.teardown()
 
-    def batch_to_device(
-        self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
-    ) -> Any:
+    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
         """Moves the batch to the correct device.
         The returned batch is of the same type as the input batch, just having all tensors on the correct device.
 
@@ -171,7 +169,7 @@ class Accelerator:
 
         if model is not None and not isinstance(self.training_type_plugin, DataParallelPlugin):
             # no need to transfer batch to device in DP mode
-            return model._apply_batch_transfer_handler(batch, device, dataloader_idx)
+            return model._apply_batch_transfer_handler(batch, device=device, dataloader_idx=dataloader_idx)
 
         return move_data_to_device(batch, device)
 
@@ -188,7 +186,7 @@ class Accelerator:
                 - hiddens(:class:`~torch.Tensor`): Passed in if
                   :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
         """
-        with self.precision_plugin.train_step_context(), self.training_type_plugin.train_step_context():
+        with self.precision_plugin.train_step_context():
             return self.training_type_plugin.training_step(*step_kwargs.values())
 
     def post_training_step(self) -> None:
@@ -206,7 +204,7 @@ class Accelerator:
                 - dataloader_idx (int): The index of the dataloader that produced this batch
                   (only if multiple val dataloaders used)
         """
-        with self.precision_plugin.val_step_context(), self.training_type_plugin.val_step_context():
+        with self.precision_plugin.val_step_context():
             return self.training_type_plugin.validation_step(*step_kwargs.values())
 
     def test_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> Optional[STEP_OUTPUT]:
@@ -221,7 +219,7 @@ class Accelerator:
                 - dataloader_idx (int): The index of the dataloader that produced this batch
                   (only if multiple test dataloaders used).
         """
-        with self.precision_plugin.test_step_context(), self.training_type_plugin.test_step_context():
+        with self.precision_plugin.test_step_context():
             return self.training_type_plugin.test_step(*step_kwargs.values())
 
     def predict_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> STEP_OUTPUT:
@@ -236,7 +234,7 @@ class Accelerator:
                 - dataloader_idx (int): The index of the dataloader that produced this batch
                   (only if multiple predict dataloaders used).
         """
-        with self.precision_plugin.predict_step_context(), self.training_type_plugin.predict_step_context():
+        with self.precision_plugin.predict_step_context():
             return self.training_type_plugin.predict_step(*step_kwargs.values())
 
     def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
@@ -373,9 +371,6 @@ class Accelerator:
         """
         return self.training_type_plugin.lightning_module_state_dict()
 
-    def on_save(self, checkpoint: Dict[str, Union[Any, Tensor]]) -> Dict[str, Union[Any, Tensor]]:
-        return self.training_type_plugin.on_save(checkpoint)
-
     def barrier(self, name: Optional[str] = None) -> None:
         self.training_type_plugin.barrier(name=name)
 
@@ -410,22 +405,6 @@ class Accelerator:
         """
         return self.training_type_plugin.process_dataloader(dataloader)
 
-    def on_reset_train_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        """Called before resetting the train dataloader."""
-        return self.training_type_plugin.on_reset_train_dataloader(dataloader)
-
-    def on_reset_val_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        """Called before resetting the val dataloader."""
-        return self.training_type_plugin.on_reset_val_dataloader(dataloader)
-
-    def on_reset_test_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        """Called before resetting the test dataloader."""
-        return self.training_type_plugin.on_reset_test_dataloader(dataloader)
-
-    def on_reset_predict_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        """Called before resetting the predict dataloader."""
-        return self.training_type_plugin.on_reset_predict_dataloader(dataloader)
-
     @property
     def results(self) -> Any:
         """
@@ -446,32 +425,6 @@ class Accelerator:
         """
         with self.training_type_plugin.model_sharded_context():
             yield
-
-    # todo: remove in v1.5
-    def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: "pl.LightningModule") -> None:
-        """
-        Attaches the training type plugin to the accelerator.
-        Also transfers ownership of the model to this plugin
-
-        .. deprecated::v1.3
-            Will be removed in v1.5.0.
-        """
-        rank_zero_warn(
-            "Accelerator method `connect_training_type_plugin` was deprecated in v1.3. It will be removed in v1.5."
-        )
-        self.setup_training_type_plugin()
-
-    # todo: remove in v1.5
-    def connect_precision_plugin(self, plugin: PrecisionPlugin) -> None:
-        """Attaches the precision plugin to the accelerator
-
-        .. deprecated::v1.3
-            Will be removed in v1.5.0.
-        """
-        rank_zero_warn(
-            "Accelerator method `connect_precision_plugin` was deprecated in v1.3. It will be removed in v1.5."
-        )
-        self.setup_precision_plugin()
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
@@ -522,10 +475,6 @@ class Accelerator:
 
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         return self.training_type_plugin.update_global_step(total_batch_idx, current_global_step)
-
-    def on_train_epoch_end(self) -> None:
-        """Hook to do something on the end of an training epoch."""
-        pass
 
     def on_train_start(self) -> None:
         """Called when train begins."""

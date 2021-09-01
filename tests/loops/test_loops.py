@@ -379,6 +379,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         pass
 
     ckpt_path = str(tmpdir / ".pl_auto_save.ckpt")
+    assert os.path.exists(ckpt_path)
     checkpoint = torch.load(ckpt_path)
 
     optim_progress = trainer.fit_loop.epoch_loop.batch_loop.optim_progress
@@ -503,7 +504,13 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     assert checkpoint["loops"]["fit_loop"] == expected
 
     trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"], restart_progress=False)
-    assert trainer.fit_loop.state_dict() == checkpoint["loops"]["fit_loop"]
+    state_dict = trainer.fit_loop.state_dict()
+
+    # need to remove these elements for comparison; comparing with `fit_loop.state_dict()` would require the
+    # fit loop to have an iterator, which is only available during training
+    checkpoint["loops"]["fit_loop"]["state_dict"]["dataloader_state_dict"] = ANY
+
+    assert state_dict == checkpoint["loops"]["fit_loop"]
 
     trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"])
     state_dict = trainer.fit_loop.state_dict()

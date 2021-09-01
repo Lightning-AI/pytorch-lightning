@@ -24,7 +24,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
 if _OMEGACONF_AVAILABLE:
@@ -60,16 +60,8 @@ class CheckpointConnector:
         if not checkpoint_path:
             return
 
-        # clear cache before restore
-        torch.cuda.empty_cache()
-
-        # Try to read the checkpoint file at `checkpoint_path`. If not exist, do not restore checkpoint.
-        fs = get_filesystem(checkpoint_path)
-        if not fs.exists(checkpoint_path):
-            raise FileNotFoundError(f"Checkpoint at {checkpoint_path} not found. Aborting training.")
-
-        rank_zero_info(f"Restoring states from the checkpoint file at {checkpoint_path}")
-        self._loaded_checkpoint = self.trainer.training_type_plugin.load_checkpoint_file(checkpoint_path)
+        rank_zero_info(f"Restoring states from the checkpoint path at {checkpoint_path}")
+        self._loaded_checkpoint = self.trainer.training_type_plugin.load_checkpoint(checkpoint_path)
 
     def resume_end(self) -> None:
         """Signal the connector that all states have resumed and memory for the checkpoint object can be released."""
@@ -152,7 +144,7 @@ class CheckpointConnector:
         """Restore only the model weights."""
         checkpoint = self._loaded_checkpoint
         if checkpoint_path is not None:
-            checkpoint = self.trainer.training_type_plugin.load_checkpoint_file(checkpoint_path)
+            checkpoint = self.trainer.training_type_plugin.load_checkpoint(checkpoint_path)
 
         self.trainer.lightning_module.on_load_checkpoint(checkpoint)
         self.trainer.training_type_plugin.load_model_state_dict(checkpoint)
@@ -294,8 +286,6 @@ class CheckpointConnector:
 
         model.on_hpc_save(checkpoint)
 
-        checkpoint = self.trainer.accelerator.on_save(checkpoint)
-
         # do the actual save
         # TODO: fix for anything with multiprocess DP, DDP, DDP2
         try:
@@ -303,9 +293,7 @@ class CheckpointConnector:
         except AttributeError as err:
             if pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
                 del checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
-            rank_zero_warn(
-                "warning, `hyper_parameters` dropped from checkpoint." f" An attribute is not picklable {err}"
-            )
+            rank_zero_warn(f"warning, `hyper_parameters` dropped from checkpoint. An attribute is not picklable {err}")
             atomic_save(checkpoint, filepath)
 
         return filepath
@@ -350,7 +338,7 @@ class CheckpointConnector:
             "pytorch-lightning_version": pl.__version__,
             "state_dict": self._get_lightning_module_state_dict(),
         }
-        if _fault_tolerant_enabled():
+        if _fault_tolerant_training():
             checkpoint["loops"] = self._get_loops_state_dict()
 
         if not weights_only:
@@ -453,7 +441,7 @@ class CheckpointConnector:
     def _get_lightning_module_state_dict(self) -> Dict[str, torch.Tensor]:
         metrics = (
             [m for m in self.trainer.lightning_module.modules() if isinstance(m, Metric)]
-            if _fault_tolerant_enabled()
+            if _fault_tolerant_training()
             else []
         )
 

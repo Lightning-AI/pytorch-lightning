@@ -90,7 +90,7 @@ class ModelCheckpoint(Callback):
             the quantity monitored will be saved.
             if ``save_top_k == 0``, no models are saved.
             if ``save_top_k == -1``, all models are saved.
-            Please note that the monitors are checked every ``period`` epochs.
+            Please note that the monitors are checked every ``every_n_epochs`` epochs.
             if ``save_top_k >= 2`` and the callback is called multiple
             times inside an epoch, the name of the saved file will be
             appended with a version count starting with ``v1``.
@@ -124,12 +124,6 @@ class ModelCheckpoint(Callback):
             where both values for ``every_n_epochs`` and ``check_val_every_n_epoch`` evenly divide E.
         save_on_train_epoch_end: Whether to run checkpointing at the end of the training epoch.
             If this is ``False``, then the check runs at the end of the validation.
-        period: Interval (number of epochs) between checkpoints.
-
-            .. warning::
-               This argument has been deprecated in v1.3 and will be removed in v1.5.
-
-            Use ``every_n_epochs`` instead.
         every_n_val_epochs: Number of epochs between checkpoints.
 
             .. warning::
@@ -194,6 +188,12 @@ class ModelCheckpoint(Callback):
         trainer.fit(model)
         checkpoint_callback.best_model_path
 
+    .. tip:: Saving and restoring multiple checkpoint callbacks at the same time is supported under variation in the
+        following arguments:
+
+        *monitor, mode, every_n_train_steps, every_n_epochs, train_time_interval, save_on_train_epoch_end*
+
+        Read more: :ref:`Persisting Callback State`
     """
 
     CHECKPOINT_JOIN_CHAR = "-"
@@ -216,7 +216,6 @@ class ModelCheckpoint(Callback):
         train_time_interval: Optional[timedelta] = None,
         every_n_epochs: Optional[int] = None,
         save_on_train_epoch_end: Optional[bool] = None,
-        period: Optional[int] = None,
         every_n_val_epochs: Optional[int] = None,
     ):
         super().__init__()
@@ -245,18 +244,29 @@ class ModelCheckpoint(Callback):
 
         self.__init_monitor_mode(mode)
         self.__init_ckpt_dir(dirpath, filename)
-        self.__init_triggers(every_n_train_steps, every_n_epochs, train_time_interval, period)
+        self.__init_triggers(every_n_train_steps, every_n_epochs, train_time_interval)
         self.__validate_init_configuration()
 
-    def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """
-        When pretrain routine starts we build the ckpt dir on the fly
-        """
-        self.__resolve_ckpt_dir(trainer)
+    @property
+    def state_key(self) -> str:
+        return self._generate_state_key(
+            monitor=self.monitor,
+            mode=self.mode,
+            every_n_train_steps=self._every_n_train_steps,
+            every_n_epochs=self._every_n_epochs,
+            train_time_interval=self._train_time_interval,
+            save_on_train_epoch_end=self._save_on_train_epoch_end,
+        )
+
+    def on_init_end(self, trainer: "pl.Trainer") -> None:
         if self._save_on_train_epoch_end is None:
             # if the user runs validation multiple times per training epoch, we try to save checkpoint after
             # validation instead of on train epoch end
             self._save_on_train_epoch_end = trainer.val_check_interval == 1.0
+
+    def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        """When pretrain routine starts we build the ckpt dir on the fly."""
+        self.__resolve_ckpt_dir(trainer)
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._last_time_checked = time.monotonic()
@@ -332,9 +342,9 @@ class ModelCheckpoint(Callback):
             rank_zero_info("Saving latest checkpoint...")
         # as we advance one step at end of training, we use `global_step - 1` to avoid saving duplicates
         monitor_candidates = self._monitor_candidates(trainer, trainer.current_epoch, trainer.global_step - 1)
-        trainer.train_loop.global_step -= 1
+        trainer.fit_loop.global_step -= 1
         self._save_last_checkpoint(trainer, monitor_candidates)
-        trainer.train_loop.global_step += 1
+        trainer.fit_loop.global_step += 1
 
     def on_save_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
@@ -457,7 +467,6 @@ class ModelCheckpoint(Callback):
         every_n_train_steps: Optional[int],
         every_n_epochs: Optional[int],
         train_time_interval: Optional[timedelta],
-        period: Optional[int],
     ) -> None:
 
         # Default to running once after each validation epoch if neither
@@ -474,30 +483,9 @@ class ModelCheckpoint(Callback):
         self._every_n_epochs: int = every_n_epochs
         self._every_n_train_steps: int = every_n_train_steps
 
-        # period takes precedence over every_n_epochs for backwards compatibility
-        if period is not None:
-            rank_zero_deprecation(
-                "Argument `period` in `ModelCheckpoint` is deprecated in v1.3 and will be removed in v1.5."
-                " Please use `every_n_epochs` instead."
-            )
-            self._every_n_epochs = period
-        self._period = self._every_n_epochs
-
     @property
-    def period(self) -> Optional[int]:
-        rank_zero_deprecation(
-            "Property `period` in `ModelCheckpoint` is deprecated in v1.3 and will be removed in v1.5."
-            " Please use `every_n_epochs` instead."
-        )
-        return self._period
-
-    @period.setter
-    def period(self, value: Optional[int]) -> None:
-        rank_zero_deprecation(
-            "Property `period` in `ModelCheckpoint` is deprecated in v1.3 and will be removed in v1.5."
-            " Please use `every_n_epochs` instead."
-        )
-        self._period = value
+    def every_n_epochs(self) -> Optional[int]:
+        return self._every_n_epochs
 
     def _del_model(self, trainer: "pl.Trainer", filepath: str) -> None:
         if trainer.should_rank_save_checkpoint and self._fs.exists(filepath):

@@ -18,6 +18,7 @@ from torch.utils.data._utils.collate import default_collate
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.loops.closure import Closure
 from pytorch_lightning.trainer.states import RunningStage
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.deterministic_model import DeterministicModel
@@ -146,7 +147,7 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     trainer.state.stage = RunningStage.TRAINING
     # make sure training outputs what is expected
     batch_idx, batch = 0, next(iter(model.train_dataloader()))
-    out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx, 0)
+    out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx)
     assert out.signal == 0
 
     train_step_out = out.training_step_output
@@ -156,10 +157,11 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     assert train_step_out.minimize.item() == 171
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.fit_loop.epoch_loop.batch_loop.training_step_and_backward(
+    opt_closure = trainer.fit_loop.epoch_loop.batch_loop._make_closure(
         batch, batch_idx, 0, trainer.optimizers[0], hiddens=None
     )
-    assert opt_closure_result["loss"].item() == 171
+    opt_closure_result = opt_closure()
+    assert opt_closure_result.item() == 171
 
 
 def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
@@ -219,7 +221,7 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     trainer.state.stage = RunningStage.TRAINING
     # make sure training outputs what is expected
     batch_idx, batch = 0, next(iter(model.train_dataloader()))
-    out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx, 0)
+    out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx)
     assert out.signal == 0
 
     train_step_out = out.training_step_output
@@ -229,10 +231,11 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     assert train_step_out.minimize.item() == 171
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.fit_loop.epoch_loop.batch_loop.training_step_and_backward(
+    opt_closure = trainer.fit_loop.epoch_loop.batch_loop._make_closure(
         batch, batch_idx, 0, trainer.optimizers[0], hiddens=None
     )
-    assert opt_closure_result["loss"].item() == 171
+    opt_closure_result = opt_closure()
+    assert opt_closure_result.item() == 171
 
 
 def test_train_step_no_return(tmpdir):
@@ -258,6 +261,8 @@ def test_train_step_no_return(tmpdir):
 
     trainer = Trainer(**trainer_args)
 
+    Closure.warning_cache.clear()
+
     with pytest.warns(UserWarning, match=r"training_step returned None.*"):
         trainer.fit(model)
 
@@ -267,6 +272,8 @@ def test_train_step_no_return(tmpdir):
     model = TestModel()
     model.automatic_optimization = False
     trainer = Trainer(**trainer_args)
+
+    Closure.warning_cache.clear()
 
     with no_warning_call(UserWarning, match=r"training_step returned None.*"):
         trainer.fit(model)
@@ -293,6 +300,8 @@ def test_training_step_no_return_when_even(tmpdir):
         checkpoint_callback=False,
     )
 
+    Closure.warning_cache.clear()
+
     with pytest.warns(UserWarning, match=r".*training_step returned None.*"):
         trainer.fit(model)
 
@@ -300,7 +309,7 @@ def test_training_step_no_return_when_even(tmpdir):
 
     # manually check a few batches
     for batch_idx, batch in enumerate(model.train_dataloader()):
-        out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx, 0)
+        out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx)
         if not batch_idx % 2:
             assert out.training_step_output == [[]]
         assert out.signal == 0
@@ -344,7 +353,7 @@ def test_training_step_none_batches(tmpdir):
 
     # manually check a few batches
     for batch_idx, batch in enumerate(model.train_dataloader()):
-        out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx, 0)
+        out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx)
         if not batch_idx % 2:
             assert out.training_step_output == [[]]
         assert out.signal == 0

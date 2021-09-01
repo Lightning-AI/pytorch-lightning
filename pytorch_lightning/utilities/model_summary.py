@@ -199,7 +199,7 @@ class ModelSummary:
             if mode in ModelSummary.MODES:
                 max_depth = ModelSummary.MODES[mode]
                 rank_zero_deprecation(
-                    f"Argument `mode` in `ModelSummary` is deprecated in v1.4"
+                    "Argument `mode` in `ModelSummary` is deprecated in v1.4"
                     f" and will be removed in v1.6. Use `max_depth={max_depth}` to replicate `mode={mode}` behaviour."
                 )
             else:
@@ -314,6 +314,7 @@ class ModelSummary:
         if self._model.example_input_array is not None:
             arrays.append(["In sizes", self.in_sizes])
             arrays.append(["Out sizes", self.out_sizes])
+
         total_parameters = self.total_parameters
         trainable_parameters = self.trainable_parameters
         model_size = self.model_size
@@ -459,7 +460,7 @@ def summarize(
         if mode in ModelSummary.MODES:
             max_depth = ModelSummary.MODES[mode]
             rank_zero_deprecation(
-                f"Argument `mode` in `LightningModule.summarize` is deprecated in v1.4"
+                "Argument `mode` in `LightningModule.summarize` is deprecated in v1.4"
                 f" and will be removed in v1.6. Use `max_depth={max_depth}` to replicate `mode={mode}` behavior."
             )
             model_summary = ModelSummary(lightning_module, max_depth=max_depth)

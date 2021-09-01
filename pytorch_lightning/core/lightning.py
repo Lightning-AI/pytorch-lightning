@@ -31,13 +31,12 @@ from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
 
-from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
-from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities import _TORCH_SHARDED_TENSOR_AVAILABLE, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
@@ -57,7 +56,6 @@ class LightningModule(
     ABC,
     DeviceDtypeModuleMixin,
     HyperparametersMixin,
-    GradInformation,
     ModelIO,
     ModelHooks,
     DataHooks,
@@ -114,6 +112,8 @@ class LightningModule(
         self._param_requires_grad_state = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
         self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
+
+        self._register_sharded_tensor_state_dict_hooks_if_available()
 
         # deprecated, will be removed in 1.6
         self._loaded_optimizer_states_dict = {}
@@ -272,7 +272,7 @@ class LightningModule(
         return self.trainer.logger if self.trainer else None
 
     def _apply_batch_transfer_handler(
-        self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
+        self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0
     ) -> Any:
         device = device or self.device
         batch = self.on_before_batch_transfer(batch, dataloader_idx)
@@ -404,9 +404,22 @@ class LightningModule(
         on_step = self.__auto_choose_log_on_step(on_step)
         on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
+        if self.trainer is None:
+            raise MisconfigurationException(
+                "You are trying to `self.log()` but the `self.trainer` reference is not registered on the model yet."
+                " This is most likely because the model hasn't been passed to the `Trainer`"
+            )
         results = self.trainer._results
-        assert results is not None
-        assert self._current_fx_name is not None
+        if results is None:
+            raise MisconfigurationException(
+                "You are trying to `self.log()` but the loop `ResultCollection` is not registered"
+                " yet. This is most likely because you are trying to log in a `predict` hook,"
+                " but it doesn't support logging"
+            )
+        if self._current_fx_name is None:
+            raise MisconfigurationException(
+                "You are trying to `self.log()` but it is not managed by the `Trainer` control flow"
+            )
         FxValidator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
 
         # make sure user doesn't introduce logic for multi-dataloaders
@@ -442,6 +455,15 @@ class LightningModule(
                     f" You can fix this by calling `self.log({name}, ..., metric_attribute=name)` where `name` is one"
                     f" of {list(self._metric_attributes.values())}"
                 )
+
+        if (
+            self.trainer.training
+            and is_param_in_hook_signature(self.training_step, "dataloader_iter", explicit=True)
+            and batch_size is None
+        ):
+            raise MisconfigurationException(
+                "With `def training_step(self, dataloader_iter)`, `self.log(..., batch_size=...)` should be provided."
+            )
 
         results.log(
             self._current_fx_name,
@@ -556,61 +578,6 @@ class LightningModule(
                 self.log_dict(grad_norm_dict, on_step=False, on_epoch=True, prog_bar=False, logger=True)
         """
         self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-
-    def write_prediction(
-        self, name: str, value: Union[torch.Tensor, List[torch.Tensor]], filename: str = "predictions.pt"
-    ):
-        """
-        Write predictions to disk using ``torch.save``
-
-        Example::
-
-            self.write_prediction('pred', torch.tensor(...), filename='my_predictions.pt')
-
-        Args:
-            name: a string indicating the name to save the predictions under
-            value: the predictions, either a single :class:`~torch.Tensor` or a list of them
-            filename: name of the file to save the predictions to
-
-        Note:
-            when running in distributed mode, calling ``write_prediction`` will create a file for
-            each device with respective names: ``filename_rank_0.pt``, ``filename_rank_1.pt``, ...
-
-        .. deprecated::v1.3
-            Will be removed in v1.5.0.
-        """
-        rank_zero_deprecation(
-            "LightningModule method `write_prediction` was deprecated in v1.3 and will be removed in v1.5."
-        )
-
-        self.trainer._evaluation_loop.predictions._add_prediction(name, value, filename)
-
-    def write_prediction_dict(self, predictions_dict: Dict[str, Any], filename: str = "predictions.pt"):
-        """
-        Write a dictonary of predictions to disk at once using ``torch.save``
-
-        Example::
-
-            pred_dict = {'pred1': torch.tensor(...), 'pred2': torch.tensor(...)}
-            self.write_prediction_dict(pred_dict)
-
-        Args:
-            predictions_dict: dict containing predictions, where each prediction should
-                either be single :class:`~torch.Tensor` or a list of them
-
-        Note:
-            when running in distributed mode, calling ``write_prediction_dict`` will create a file for
-            each device with respective names: ``filename_rank_0.pt``, ``filename_rank_1.pt``, ...
-
-        .. deprecated::v1.3
-            Will be removed in v1.5.0.
-        """
-        rank_zero_deprecation(
-            "LightningModule method `write_prediction_dict` was deprecated in v1.3 and will be removed in v1.5."
-        )
-
-        for k, v in predictions_dict.items():
-            self.write_prediction(k, v, filename)
 
     def __auto_choose_log_on_step(self, on_step: Optional[bool]) -> bool:
         if on_step is None:
@@ -1804,9 +1771,7 @@ class LightningModule(
         if avg_training_loss is not None:
             tqdm_dict["loss"] = f"{avg_training_loss:.3g}"
 
-        module_tbptt_enabled = self.truncated_bptt_steps > 0
-        trainer_tbptt_enabled = self.trainer.truncated_bptt_steps is not None and self.trainer.truncated_bptt_steps > 0
-        if module_tbptt_enabled or trainer_tbptt_enabled:
+        if self.truncated_bptt_steps > 0:
             tqdm_dict["split_idx"] = self.trainer.fit_loop.split_idx
 
         if self.trainer.logger is not None and self.trainer.logger.version is not None:
@@ -2031,3 +1996,16 @@ class LightningModule(
             state.pop("test_dataloader", None)
             state.pop("predict_dataloader", None)
         return state
+
+    def _register_sharded_tensor_state_dict_hooks_if_available(self) -> None:
+        """
+        Adds ShardedTensor state dict hooks if ShardedTensors are supported. These hooks ensure that
+        ShardedTensors are included when saving, and are loaded the LightningModule correctly.
+        """
+        if not _TORCH_SHARDED_TENSOR_AVAILABLE:
+            return
+
+        from torch.distributed._sharded_tensor import pre_load_state_dict_hook, state_dict_hook
+
+        self._register_state_dict_hook(state_dict_hook)
+        self._register_load_state_dict_pre_hook(pre_load_state_dict_hook, True)

@@ -43,6 +43,15 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
+def test_model_checkpoint_state_key():
+    early_stopping = ModelCheckpoint(monitor="val_loss")
+    expected_id = (
+        "ModelCheckpoint{'monitor': 'val_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
+        " 'train_time_interval': None, 'save_on_train_epoch_end': None}"
+    )
+    assert early_stopping.state_key == expected_id
+
+
 class LogInTwoMethods(BoringModel):
     def training_step(self, batch, batch_idx):
         out = super().training_step(batch, batch_idx)
@@ -148,7 +157,10 @@ def test_model_checkpoint_score_and_ckpt(
         assert chk["epoch"] == epoch + 1
         assert chk["global_step"] == limit_train_batches * (epoch + 1)
 
-        mc_specific_data = chk["callbacks"]["ModelCheckpoint"]
+        mc_specific_data = chk["callbacks"][
+            f"ModelCheckpoint{{'monitor': '{monitor}', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
+            " 'train_time_interval': None, 'save_on_train_epoch_end': True}"
+        ]
         assert mc_specific_data["dirpath"] == checkpoint.dirpath
         assert mc_specific_data["monitor"] == monitor
         assert mc_specific_data["current_score"] == score
@@ -259,7 +271,10 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         expected_global_step = per_val_train_batches * (global_ix + 1) + (leftover_train_batches * epoch_num)
         assert chk["global_step"] == expected_global_step
 
-        mc_specific_data = chk["callbacks"]["ModelCheckpoint"]
+        mc_specific_data = chk["callbacks"][
+            f"ModelCheckpoint{{'monitor': '{monitor}', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
+            " 'train_time_interval': None, 'save_on_train_epoch_end': False}"
+        ]
         assert mc_specific_data["dirpath"] == checkpoint.dirpath
         assert mc_specific_data["monitor"] == monitor
         assert mc_specific_data["current_score"] == score
@@ -553,8 +568,7 @@ def test_invalid_trigger_combination(tmpdir):
 
 def test_none_every_n_train_steps_val_epochs(tmpdir):
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir)
-    assert checkpoint_callback.period == 1
-    assert checkpoint_callback._every_n_epochs == 1
+    assert checkpoint_callback.every_n_epochs == 1
     assert checkpoint_callback._every_n_train_steps == 0
 
 
@@ -592,55 +606,12 @@ def test_model_checkpoint_save_last_none_monitor(tmpdir, caplog):
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
-@pytest.mark.parametrize("period", list(range(4)))
-def test_model_checkpoint_period(tmpdir, period: int):
-    model = LogInTwoMethods()
-    epochs = 5
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, filename="{epoch}", save_top_k=-1, period=period)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=[checkpoint_callback],
-        max_epochs=epochs,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        logger=False,
-    )
-    trainer.fit(model)
-
-    # check that the correct ckpts were created
-    expected = [f"epoch={e}.ckpt" for e in range(epochs) if not (e + 1) % period] if period > 0 else []
-    assert set(os.listdir(tmpdir)) == set(expected)
-
-
 @pytest.mark.parametrize("every_n_epochs", list(range(4)))
 def test_model_checkpoint_every_n_epochs(tmpdir, every_n_epochs):
     model = LogInTwoMethods()
     epochs = 5
     checkpoint_callback = ModelCheckpoint(
         dirpath=tmpdir, filename="{epoch}", save_top_k=-1, every_n_epochs=every_n_epochs
-    )
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=[checkpoint_callback],
-        max_epochs=epochs,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        logger=False,
-    )
-    trainer.fit(model)
-
-    # check that the correct ckpts were created
-    expected = [f"epoch={e}.ckpt" for e in range(epochs) if not (e + 1) % every_n_epochs] if every_n_epochs > 0 else []
-    assert set(os.listdir(tmpdir)) == set(expected)
-
-
-@pytest.mark.parametrize("every_n_epochs", list(range(4)))
-def test_model_checkpoint_every_n_epochs_and_period(tmpdir, every_n_epochs):
-    """Tests that if period is set, it takes precedence over every_n_epochs for backwards compatibility."""
-    model = LogInTwoMethods()
-    epochs = 5
-    checkpoint_callback = ModelCheckpoint(
-        dirpath=tmpdir, filename="{epoch}", save_top_k=-1, every_n_epochs=(2 * every_n_epochs), period=every_n_epochs
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -857,7 +828,12 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
 
     assert ckpt_last_epoch["epoch"] == ckpt_last["epoch"]
     assert ckpt_last_epoch["global_step"] == ckpt_last["global_step"]
-    assert ckpt_last["callbacks"]["ModelCheckpoint"] == ckpt_last_epoch["callbacks"]["ModelCheckpoint"]
+
+    ckpt_id = (
+        "ModelCheckpoint{'monitor': 'early_stop_on', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
+        " 'train_time_interval': None, 'save_on_train_epoch_end': True}"
+    )
+    assert ckpt_last["callbacks"][ckpt_id] == ckpt_last_epoch["callbacks"][ckpt_id]
 
     # it is easier to load the model objects than to iterate over the raw dict of tensors
     model_last_epoch = LogInTwoMethods.load_from_checkpoint(path_last_epoch)
@@ -1095,7 +1071,13 @@ def test_current_score(tmpdir):
     trainer.fit(TestModel())
     assert model_checkpoint.current_score == 0.3
     ckpts = [torch.load(str(ckpt)) for ckpt in tmpdir.listdir()]
-    ckpts = [ckpt["callbacks"]["ModelCheckpoint"] for ckpt in ckpts]
+    ckpts = [
+        ckpt["callbacks"][
+            "ModelCheckpoint{'monitor': 'foo', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
+            " 'train_time_interval': None, 'save_on_train_epoch_end': True}"
+        ]
+        for ckpt in ckpts
+    ]
     assert sorted(ckpt["current_score"] for ckpt in ckpts) == [0.1, 0.2, 0.3]
 
 
@@ -1111,6 +1093,7 @@ def test_current_score_when_nan(tmpdir, mode: str):
     model_checkpoint = ModelCheckpoint(dirpath=tmpdir, save_top_k=1, monitor="foo", mode=mode)
     trainer = Trainer(
         default_root_dir=tmpdir,
+        max_epochs=1,
         limit_train_batches=1,
         limit_val_batches=1,
         callbacks=[model_checkpoint],
@@ -1133,6 +1116,7 @@ def test_hparams_type(tmpdir, hparams_type):
 
     model_checkpoint = ModelCheckpoint(dirpath=tmpdir, save_top_k=1, monitor="foo")
     trainer = Trainer(
+        max_epochs=1,
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,

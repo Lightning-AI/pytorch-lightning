@@ -17,12 +17,12 @@ import torch
 
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
+from pytorch_lightning.loops.utilities import _prepare_dataloader_iter
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import Progress, SchedulerProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import WarningCache
 
 
 class TrainingEpochLoop(loops.Loop):
@@ -38,9 +38,9 @@ class TrainingEpochLoop(loops.Loop):
         super().__init__()
         self.min_steps: int = min_steps
         self.max_steps: int = max_steps
+
         self.global_step: int = 0
-        # the total batch index across all epochs
-        self.total_batch_idx: int = 0
+        # manually tracking which is the last batch is necessary for iterable dataset support
         self.is_last_batch: Optional[bool] = None
         self.batch_progress = Progress()
         self.scheduler_progress = SchedulerProgress()
@@ -49,9 +49,14 @@ class TrainingEpochLoop(loops.Loop):
         self.val_loop: Optional["loops.EvaluationLoop"] = None
 
         self._results = ResultCollection(training=True)
-        self._dataloader_idx: Optional[int] = None
-        self._warning_cache: WarningCache = WarningCache()
         self._epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
+
+    @property
+    def total_batch_idx(self) -> int:
+        """Returns the current batch index (across epochs)"""
+        # use `ready` instead of `completed` in case this is accessed after `completed` has been increased
+        # but before the next `ready` increase
+        return self.batch_progress.total.ready - 1
 
     @property
     def batch_idx(self) -> int:
@@ -70,7 +75,9 @@ class TrainingEpochLoop(loops.Loop):
         return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
 
     def connect(
-        self, batch_loop: Optional[TrainingBatchLoop] = None, val_loop: Optional["loops.EvaluationLoop"] = None
+        self,
+        batch_loop: TrainingBatchLoop = None,
+        val_loop: Optional["loops.EvaluationLoop"] = None,
     ) -> None:
         """Optionally connect a custom batch or validation loop to this training epoch loop."""
         if batch_loop is not None:
@@ -81,7 +88,6 @@ class TrainingEpochLoop(loops.Loop):
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""
         self.is_last_batch = False
-        self._dataloader_idx = 0
 
         # track epoch output
         self._epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
@@ -91,14 +97,16 @@ class TrainingEpochLoop(loops.Loop):
             self.scheduler_progress.current.reset()
             self.batch_loop.optim_progress.reset_on_epoch()
 
-    def on_run_start(self, *args: Any, **kwargs: Any) -> None:
+    def on_run_start(self, dataloader_iter: Iterator, **kwargs: Any) -> None:
         # hook
         self.trainer.logger_connector.on_epoch_start()
         self.trainer.call_hook("on_epoch_start")
         self.trainer.call_hook("on_train_epoch_start")
         self.trainer.fit_loop.epoch_progress.increment_started()
 
-    def advance(self, dataloader_iter: Iterator, **kwargs: Any) -> None:
+        self.dataloader_iter = _prepare_dataloader_iter(dataloader_iter, self.batch_idx + 1)
+
+    def advance(self, *args: Any, **kwargs: Any) -> None:
         """Runs a single training batch.
 
         Args:
@@ -107,21 +115,20 @@ class TrainingEpochLoop(loops.Loop):
         Raises:
             StopIteration: When the epoch is canceled by the user returning -1
         """
-        _, (batch, is_last) = next(dataloader_iter)
-        self.is_last_batch = is_last
+        batch_idx, (batch, is_last) = next(self.dataloader_iter)
 
-        # ------------------------------------
-        # TRAINING_STEP + TRAINING_STEP_END
-        # ------------------------------------
-        with self.trainer.profiler.profile("training_batch_to_device"):
-            batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=self._dataloader_idx)
+        if not self.trainer.data_connector.train_data_fetcher.store_on_device:
+            with self.trainer.profiler.profile("training_batch_to_device"):
+                batch = self.trainer.accelerator.batch_to_device(batch)
 
         self.batch_progress.increment_ready()
 
         with self.trainer.profiler.profile("run_training_batch"):
-            batch_output = self.batch_loop.run(batch, self.batch_idx, self._dataloader_idx)
+            batch_output = self.batch_loop.run(batch, batch_idx)
 
         self.batch_progress.increment_processed()
+
+        self.is_last_batch = is_last
 
         # when returning -1 from train_step, we end epoch early
         if batch_output.signal == -1:
@@ -137,9 +144,7 @@ class TrainingEpochLoop(loops.Loop):
         processed_batch_end_outputs = self._prepare_outputs(batch_end_outputs, batch_mode=True)
 
         # hook
-        self.trainer.call_hook(
-            "on_train_batch_end", processed_batch_end_outputs, batch, self.batch_idx, self._dataloader_idx
-        )
+        self.trainer.call_hook("on_train_batch_end", processed_batch_end_outputs, batch, self.batch_idx, 0)
         self.trainer.call_hook("on_batch_end")
         self.trainer.logger_connector.on_batch_end()
 
@@ -176,13 +181,8 @@ class TrainingEpochLoop(loops.Loop):
         # update plateau LR scheduler after metrics are logged
         self.update_lr_schedulers("step", update_plateau_schedulers=True)
 
-        self.total_batch_idx += 1
-
         # progress global step according to grads progress
         self._increment_accumulated_grad_global_step()
-
-        if self.done:
-            raise StopIteration
 
     def on_run_end(self) -> List[List[STEP_OUTPUT]]:
         """Calls the on_epoch_end hook.
@@ -227,7 +227,8 @@ class TrainingEpochLoop(loops.Loop):
         self.trainer.call_hook("on_epoch_end")
         self.trainer.logger_connector.on_epoch_end()
 
-        self.update_lr_schedulers("epoch", update_plateau_schedulers=True)
+        if self._num_training_batches_reached(self.is_last_batch):
+            self.update_lr_schedulers("epoch", update_plateau_schedulers=True)
 
         epoch_output = self._epoch_output
         # free memory
@@ -350,7 +351,7 @@ class TrainingEpochLoop(loops.Loop):
         """Increments global step according to grads progress"""
         if not self._should_accumulate():
             self.global_step = self.trainer.accelerator.update_global_step(
-                self.total_batch_idx, self.trainer.global_step
+                self.batch_progress.current.ready, self.trainer.global_step
             )
 
     def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:

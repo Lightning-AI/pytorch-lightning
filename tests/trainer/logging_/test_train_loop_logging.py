@@ -212,76 +212,6 @@ def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
     assert trainer.logged_metrics["bar"] == result
 
 
-def test_tbptt_log(tmpdir):
-    truncated_bptt_steps = 2
-    N, T, F = 32, 15, 1  # batches x timesteps (sequence size) x features
-    batch_size = 10
-    assert T % truncated_bptt_steps != 0, "Should test leftover time steps"
-
-    class MockSeq2SeqDataset(torch.utils.data.Dataset):
-        def __init__(self):
-            self.x_seq = torch.randn(N, T, F)
-            self.y_seq = torch.randn(N, T, F)
-
-        def __getitem__(self, index):
-            return self.x_seq[index], self.y_seq[index]
-
-        def __len__(self):
-            return N
-
-    class TestModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.test_hidden = None
-            self.layer = torch.nn.LSTM(input_size=F, hidden_size=T, batch_first=True)
-
-        def training_step(self, batch, batch_idx, hiddens):
-            assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
-            if hiddens is not None:
-                assert hiddens.grad_fn is None
-            split_idx = self.trainer.fit_loop.split_idx
-            self.test_hidden = torch.tensor(split_idx, requires_grad=True, dtype=torch.float).pow(2)
-
-            x, y = batch
-            if self.trainer.fit_loop.epoch_loop.batch_loop.done:
-                # last split idx, not aligned
-                assert x.shape[1] == T % truncated_bptt_steps
-                assert y.shape[1] == T % truncated_bptt_steps
-            else:
-                assert x.shape[1] == truncated_bptt_steps
-                assert y.shape[1] == truncated_bptt_steps
-
-            pred, _ = self(x)
-            loss = torch.nn.functional.mse_loss(pred, y)
-
-            self.log("a", loss, on_epoch=True)
-
-            return {"loss": loss, "hiddens": self.test_hidden}
-
-        def on_train_batch_start(self, *args, **kwargs) -> None:
-            self.test_hidden = None
-
-        def train_dataloader(self):
-            return torch.utils.data.DataLoader(dataset=MockSeq2SeqDataset(), batch_size=batch_size)
-
-    model = TestModel()
-    model.training_epoch_end = None
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_val_batches=0,
-        truncated_bptt_steps=truncated_bptt_steps,
-        max_epochs=2,
-        log_every_n_steps=2,
-        weights_summary=None,
-    )
-    trainer.fit(model)
-
-    assert trainer.fit_loop.batch_idx == N // batch_size
-    assert trainer.fit_loop.split_idx == T // truncated_bptt_steps
-    assert set(trainer.logged_metrics) == {"a_step", "a_epoch", "epoch"}
-
-
 def test_different_batch_types_for_sizing(tmpdir):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -429,37 +359,74 @@ def test_log_works_in_train_callback(tmpdir):
         assert is_included if should_include else not is_included
 
 
-@pytest.mark.parametrize("gpus", [None, pytest.param(1, marks=RunIf(min_gpus=1))])
+class LoggingSyncDistModel(BoringModel):
+    def __init__(self, fake_result):
+        super().__init__()
+        self.fake_result = fake_result
+
+    @property
+    def rank(self) -> int:
+        return self.trainer.global_rank
+
+    def training_step(self, batch, batch_idx):
+        value = self.fake_result + self.rank
+        self.log("foo", value, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="sum")
+        self.log("foo_2", 2, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="sum")
+        self.log("foo_3", 2, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="mean")
+        self.log("foo_4", value, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="mean")
+        self.log("foo_5", batch_idx + self.rank, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="max")
+
+        self.log("foo_6", value, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
+        self.log("foo_7", 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
+        self.log("foo_8", 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="mean")
+        self.log("foo_9", value, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="mean")
+        self.log("foo_10", batch_idx, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="max")
+        return super().training_step(batch, batch_idx)
+
+    def validation_step(self, batch, batch_idx):
+        self.log("bar", self.fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
+        self.log("bar_2", self.fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="mean")
+        self.log("bar_3", batch_idx + self.rank, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="max")
+        return super().validation_step(batch, batch_idx)
+
+
+@pytest.mark.parametrize(
+    "gpus", [None, pytest.param(1, marks=RunIf(min_gpus=1)), pytest.param(2, marks=RunIf(min_gpus=2))]
+)
 def test_logging_sync_dist_true(tmpdir, gpus):
     """
     Tests to ensure that the sync_dist flag works (should just return the original value)
     """
     fake_result = 1
-
-    class TestModel(BoringModel):
-        def training_step(self, batch, batch_idx):
-            self.log("foo", fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
-            self.log("foo_2", 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
-            return super().training_step(batch, batch_idx)
-
-        def validation_step(self, batch, batch_idx):
-            self.log("bar", fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
-            return super().validation_step(batch, batch_idx)
-
-    model = TestModel()
+    model = LoggingSyncDistModel(fake_result)
     trainer = Trainer(
+        max_epochs=1,
         default_root_dir=tmpdir,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        max_epochs=2,
+        limit_train_batches=3,
+        limit_val_batches=3,
         weights_summary=None,
         gpus=gpus,
     )
     trainer.fit(model)
 
-    assert trainer.logged_metrics["foo"] == fake_result
-    assert trainer.logged_metrics["foo_2"] == 2
-    assert trainer.logged_metrics["bar"] == fake_result
+    num_devices = 1 if gpus is None else gpus
+    use_multiple_devices = num_devices > 1
+    total = fake_result * num_devices + 1
+
+    metrics = trainer.callback_metrics
+    assert metrics["foo"] == total if use_multiple_devices else fake_result
+    assert metrics["foo_2"] == 2 * num_devices
+    assert metrics["foo_3"] == 2
+    assert metrics["foo_4"] == total / num_devices if use_multiple_devices else 1
+    assert metrics["foo_5"] == fake_result * 2 + 1 if use_multiple_devices else fake_result * 2
+    assert metrics["foo_6"] == fake_result * 3 * 2 + 3 if use_multiple_devices else fake_result * 3 * 2
+    assert metrics["foo_7"] == 2 * num_devices * 3
+    assert metrics["foo_8"] == 2
+    assert metrics["foo_9"] == (fake_result * 2 + 1) / num_devices if use_multiple_devices else fake_result
+    assert metrics["foo_10"] == 2
+    assert metrics["bar"] == fake_result * 3 * num_devices
+    assert metrics["bar_2"] == fake_result
+    assert metrics["bar_3"] == 2 + int(use_multiple_devices)
 
 
 @RunIf(min_gpus=2, special=True)
@@ -715,7 +682,8 @@ def test_sanity_metrics_are_reset(tmpdir):
 
 
 @RunIf(min_gpus=2)
-def test_log_gpu_memory_without_logging_on_step(tmpdir):
+@pytest.mark.parametrize("log_gpu_memory", ["all", "min_max"])
+def test_log_gpu_memory_without_logging_on_step(tmpdir, log_gpu_memory):
 
     model = BoringModel()
     trainer = Trainer(
@@ -723,10 +691,13 @@ def test_log_gpu_memory_without_logging_on_step(tmpdir):
         max_epochs=1,
         limit_train_batches=1,
         limit_val_batches=0,
-        log_gpu_memory="all",
+        log_gpu_memory=log_gpu_memory,
         log_every_n_steps=1,
         gpus=[1],
     )
     trainer.fit(model)
-
-    assert "gpu_id: 1/memory.used (MB)" in trainer.logged_metrics
+    if log_gpu_memory == "min_max":
+        assert "min_gpu_mem" in trainer.logged_metrics
+        assert "max_gpu_mem" in trainer.logged_metrics
+    else:
+        assert "gpu_id: 1/memory.used (MB)" in trainer.logged_metrics

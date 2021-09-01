@@ -27,8 +27,8 @@ from torchmetrics import Metric, MetricCollection
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync, MetricSource, ResultCollection
-from pytorch_lightning.utilities.imports import _fault_tolerant_enabled, _TORCH_GREATER_EQUAL_1_7
+from pytorch_lightning.trainer.connectors.logger_connector.result import MetricSource, ResultCollection
+from pytorch_lightning.utilities.imports import _fault_tolerant_training, _TORCH_GREATER_EQUAL_1_7
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -336,7 +336,7 @@ def test_lightning_module_logging_result_collection(tmpdir, device):
             # default sync fn
             new_results = ResultCollection(False, device)
             new_results.load_state_dict(state_dict, map_location="cpu")
-            assert new_results["validation_step.v"].meta.sync.fn == _Sync.no_op
+            assert new_results["validation_step.v"].meta.sync.fn is None
 
             # check map location
             assert new_results["validation_step.v"].value.device.type == "cpu"
@@ -384,7 +384,7 @@ def result_collection_reload(**kwargs):
     and final accumulation with Fault Tolerant Training is correct.
     """
 
-    if not _fault_tolerant_enabled():
+    if not _fault_tolerant_training():
         pytest.skip("Fault tolerant not available")
 
     num_processes = kwargs.get("gpus", 1)

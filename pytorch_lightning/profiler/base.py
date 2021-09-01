@@ -17,9 +17,8 @@ import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, TextIO, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Optional, TextIO, Union
 
-from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 log = logging.getLogger(__name__)
@@ -58,18 +57,9 @@ class BaseProfiler(AbstractProfiler):
         self,
         dirpath: Optional[Union[str, Path]] = None,
         filename: Optional[str] = None,
-        output_filename: Optional[str] = None,
     ) -> None:
         self.dirpath = dirpath
         self.filename = filename
-        if output_filename is not None:
-            rank_zero_deprecation(
-                "`Profiler` signature has changed in v1.3. The `output_filename` parameter has been removed in"
-                " favor of `dirpath` and `filename`. Support for the old signature will be removed in v1.5"
-            )
-            filepath = Path(output_filename)
-            self.dirpath = filepath.parent
-            self.filename = filepath.stem
 
         self._output_file: Optional[TextIO] = None
         self._write_stream: Optional[Callable] = None
@@ -78,7 +68,7 @@ class BaseProfiler(AbstractProfiler):
         self._stage: Optional[str] = None
 
     @contextmanager
-    def profile(self, action_name: str) -> None:
+    def profile(self, action_name: str) -> Generator:
         """
         Yields a context manager to encapsulate the scope of a profiled action.
 
@@ -96,7 +86,7 @@ class BaseProfiler(AbstractProfiler):
         finally:
             self.stop(action_name)
 
-    def profile_iterable(self, iterable, action_name: str) -> None:
+    def profile_iterable(self, iterable: Iterable, action_name: str) -> Generator:
         iterator = iter(iterable)
         while True:
             try:

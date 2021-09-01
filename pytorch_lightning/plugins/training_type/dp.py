@@ -17,6 +17,7 @@ import torch
 from torch.nn import DataParallel
 
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -29,8 +30,12 @@ class DataParallelPlugin(ParallelPlugin):
     device and each gets a split of the data.
     """
 
-    def __init__(self, parallel_devices: Optional[List[torch.device]]):
-        super().__init__(parallel_devices=parallel_devices, cluster_environment=None)
+    def __init__(
+        self,
+        parallel_devices: Optional[List[torch.device]],
+        checkpoint_io: Optional[CheckpointIO] = None,
+    ):
+        super().__init__(parallel_devices=parallel_devices, cluster_environment=None, checkpoint_io=checkpoint_io)
 
     @property
     def global_rank(self) -> int:
@@ -114,3 +119,10 @@ class DataParallelPlugin(ParallelPlugin):
         if not is_overridden("test_step_end", self.lightning_module):
             return self.reduce(output)
         return output
+
+    def teardown(self) -> None:
+        if self.on_gpu:
+            # GPU teardown
+            self.lightning_module.cpu()
+            # clean up memory
+            torch.cuda.empty_cache()
