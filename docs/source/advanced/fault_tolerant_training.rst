@@ -132,4 +132,4 @@ we noticed a 50 % performance drop.
 
 For more traditional training such as a Resnet18 on CIFAR 10, we usually observe a 5% to 15 % range depending on `batch size` or `number of workers`.
 
-More detailed benchmark would be shared and there are some possible optimizations left too.
+More detailed benchmark would be shared in the future.
