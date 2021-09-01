@@ -129,7 +129,7 @@ class HyperparametersMixin:
         """
         The collection of hyperparameters saved with :meth:`save_hyperparameters`. It is mutable by the user.
         For the frozen set of initial hyperparameters, use :attr:`hparams_initial`.
-        
+
         Returns:
             Union[AttributeDict, dict, Namespace]: mutable hyperparameters dicionary
         """
@@ -142,7 +142,7 @@ class HyperparametersMixin:
         """
         The collection of hyperparameters saved with :meth:`save_hyperparameters`. These contents are read-only.
         Manual updates to the saved hyperparameters can instead be performed through :attr:`hparams`.
-        
+
         Returns:
             AttributeDict: immutable initial hyperparameters
         """
