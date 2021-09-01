@@ -217,7 +217,7 @@ def save_hyperparameters(
         obj._set_hparams(hp)
         obj._hparams_initial = copy.deepcopy(obj._hparams)
         return
-    # everything else
+    # non-container args parsing
     else:
         if not frame:
             current_frame = inspect.currentframe()
