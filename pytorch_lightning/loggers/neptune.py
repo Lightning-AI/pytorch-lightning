@@ -20,7 +20,6 @@ __all__ = [
 ]
 
 import logging
-import operator
 import os
 from argparse import Namespace
 from functools import reduce
@@ -52,10 +51,10 @@ else:
 
 log = logging.getLogger(__name__)
 
-INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
+_INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
 
-# kwargs used in NeptuneLogger for legacy client (current NeptuneLegacyLogger)
-LEGACY_NEPTUNE_INIT_KWARGS = [
+# kwargs used in previous NeptuneLogger version, now deprecated
+_LEGACY_NEPTUNE_INIT_KWARGS = [
     "project_name",
     "offline_mode",
     "experiment_name",
@@ -77,7 +76,7 @@ LEGACY_NEPTUNE_INIT_KWARGS = [
 ]
 
 # kwargs used in legacy NeptuneLogger from neptune-pytorch-lightning package
-LEGACY_NEPTUNE_LOGGER_KWARGS = [
+_LEGACY_NEPTUNE_LOGGER_KWARGS = [
     "base_namespace",
     "close_after_fit",
 ]
@@ -293,7 +292,7 @@ class NeptuneLogger(LightningLoggerBase):
         # check if user used legacy kwargs expected in `NeptuneLegacyLogger`
         used_legacy_kwargs = [
             legacy_kwarg for legacy_kwarg in neptune_run_kwargs
-            if legacy_kwarg in LEGACY_NEPTUNE_INIT_KWARGS
+            if legacy_kwarg in _LEGACY_NEPTUNE_INIT_KWARGS
         ]
         if used_legacy_kwargs:
             raise ValueError(
@@ -310,7 +309,7 @@ class NeptuneLogger(LightningLoggerBase):
         # check if user used legacy kwargs expected in `NeptuneLogger` from neptune-pytorch-lightning package
         used_legacy_neptune_kwargs = [
             legacy_kwarg for legacy_kwarg in neptune_run_kwargs
-            if legacy_kwarg in LEGACY_NEPTUNE_LOGGER_KWARGS
+            if legacy_kwarg in _LEGACY_NEPTUNE_LOGGER_KWARGS
         ]
         if used_legacy_neptune_kwargs:
             raise ValueError(
@@ -395,7 +394,7 @@ class NeptuneLogger(LightningLoggerBase):
         if not self._run_instance_initialized:
             # make sure that we've log integration version for both newly created and outside `Run` instances
             self._run_instance_initialized = True
-            self._run_instance[INTEGRATION_VERSION_KEY] = __version__
+            self._run_instance[_INTEGRATION_VERSION_KEY] = __version__
 
         return self._run_instance
 

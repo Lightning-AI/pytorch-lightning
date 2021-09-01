@@ -28,7 +28,7 @@ class Run:
     _short_id = "foo"
 
     def __setitem__(self, key, value):
-        # just pass assignment of INTEGRATION_VERSION_KEY
+        # just pass assignment of _INTEGRATION_VERSION_KEY
         pass
 
 
