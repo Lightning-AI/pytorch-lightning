@@ -277,9 +277,9 @@ def test_exception_when_no_tpu_found(tmpdir):
 
 @pytest.mark.parametrize("tpu_cores", [1, 8, [1]])
 @RunIf(tpu=True)
-def test_distributed_backend_set_when_using_tpu(tmpdir, tpu_cores):
-    """Test if distributed_backend is set to `tpu` when tpu_cores is not None."""
-    assert Trainer(tpu_cores=tpu_cores).distributed_backend == "tpu"
+def test_accelerator_set_when_using_tpu(tmpdir, tpu_cores):
+    """Test if accelerator is set to `tpu` when tpu_cores is not None."""
+    assert Trainer(tpu_cores=tpu_cores).accelerator == "tpu"
 
 
 @RunIf(tpu=True)
