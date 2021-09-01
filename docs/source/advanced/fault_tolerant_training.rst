@@ -70,7 +70,7 @@ A :class:`~torch.utils.data.distributed.Sampler` should always be used to encaps
 and both the sampler and its iterator should be made available as attributes on the dataset,
 so Lightning can access them to track progress.
 
-Here is the recommended way to implement IterableDataset:
+Here is the recommended way to implement your iterable dataset:
 
 .. code-block:: python
 
@@ -94,7 +94,7 @@ Here is the recommended way to implement IterableDataset:
 .. note::
 
     Implementing the `__next__` method has the advantage of separating the iterator creation from its consumption,
-    which is essential for Lightning to properly capture it.
+    which is essential for Lightning to properly capture progress.
 
 
 The current known limitations
