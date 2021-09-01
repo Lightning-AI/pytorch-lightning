@@ -170,6 +170,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Deprecated `on_{train/val/test/predict}_dataloader()` from `LightningModule` and `LightningDataModule` [#9098](https://github.com/PyTorchLightning/pytorch-lightning/pull/9098)
 
+
+- Deprecated passing `process_position` to the `Trainer` constructor in favor of adding the `ProgressBar` callback with `process_position` directly to the list of callbacks ([#9222](https://github.com/PyTorchLightning/pytorch-lightning/pull/9222))
+
+
 ### Removed
 
 - Removed deprecated `metrics` ([#8586](https://github.com/PyTorchLightning/pytorch-lightning/pull/8586/))
@@ -241,8 +245,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated property `Trainer.running_sanity_check` in favor of `Trainer.sanity_checking` ([#9209](https://github.com/PyTorchLightning/pytorch-lightning/pull/9209))
 
 
-- Removed deprecated property `ModelCheckpoint.period` in favor of `ModelCheckpoint.every_n_epochs` ([#9213](https://github.com/PyTorchLightning/pytorch-lightning/pull/9213))
+- Removed deprecated `BaseProfiler.output_filename` arg from it and its descendants in favor of `dirpath` and `filename` ([#9214](https://github.com/PyTorchLightning/pytorch-lightning/pull/9214))
 
+
+- Removed deprecated property `ModelCheckpoint.period` in favor of `ModelCheckpoint.every_n_epochs` ([#9213](https://github.com/PyTorchLightning/pytorch-lightning/pull/9213))
 
 ### Fixed
 
@@ -266,7 +272,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed not setting a default value for `max_epochs` if `max_time` was specified on the `Trainer` constructor ([#9072](https://github.com/PyTorchLightning/pytorch-lightning/pull/9072))
 
+
 - Fixed the CometLogger, no longer modifies the metrics in place. Instead creates a copy of metrics before performing any operations ([#9150](https://github.com/PyTorchLightning/pytorch-lightning/pull/9150))
+
+
+- Fixed `DDP` "CUDA error: initialization error" due to a `copy` instead of `deepcopy` on `ResultCollection` ([#9239](https://github.com/PyTorchLightning/pytorch-lightning/pull/9239))
 
 
 ## [1.4.3] - 2021-08-17
