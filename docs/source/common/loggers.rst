@@ -120,9 +120,9 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
     from pytorch_lightning.loggers import NeptuneLogger
 
     neptune_logger = NeptuneLogger(
-        api_key="ANONYMOUS",                                 # replace with your own
+        api_key="ANONYMOUS",  # replace with your own
         project="common/new-pytorch-lightning-integration",  # format "<WORKSPACE/PROJECT>"
-        tags=["training", "resnet"],                         # optional
+        tags=["training", "resnet"],  # optional
     )
     trainer = Trainer(logger=neptune_logger)
 

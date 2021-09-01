@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from collections import namedtuple
 import unittest
-from unittest.mock import MagicMock, call, patch
+from collections import namedtuple
+from unittest.mock import call, MagicMock, patch
 
 import pytest
 import torch
 
-from pytorch_lightning import Trainer, __version__
+from pytorch_lightning import __version__, Trainer
 from pytorch_lightning.loggers import NeptuneLogger
 from tests.helpers import BoringModel
 
@@ -56,13 +56,7 @@ def tmpdir_unittest_fixture(request, tmpdir):
 class TestNeptuneLogger(unittest.TestCase):
     def test_neptune_online(self, neptune):
         created_run_mock = MagicMock(
-            __getitem__=MagicMock(
-                return_value=MagicMock(
-                    fetch=MagicMock(
-                        return_value="TEST-1"
-                    )
-                )
-            )
+            __getitem__=MagicMock(return_value=MagicMock(fetch=MagicMock(return_value="TEST-1")))
         )
 
         neptune.init.return_value = created_run_mock
@@ -77,10 +71,7 @@ class TestNeptuneLogger(unittest.TestCase):
         created_run_mock.__getitem__.assert_called_once_with(
             "sys/name",
         )
-        created_run_mock.__setitem__.assert_called_once_with(
-            "source_code/integrations/pytorch-lightning",
-            __version__
-        )
+        created_run_mock.__setitem__.assert_called_once_with("source_code/integrations/pytorch-lightning", __version__)
 
     @patch("pytorch_lightning.loggers.neptune.Run", Run)
     def test_online_with_custom_run(self, neptune):
@@ -163,6 +154,7 @@ class TestNeptuneLogger(unittest.TestCase):
         class LoggingModel(BoringModel):
             def validation_epoch_end(self, outputs):
                 self.log("some/key", 42)
+
         # and
         logger, run_instance_mock, _ = self._get_logger_with_mocks(api_key="test", project="project")
 
@@ -177,12 +169,7 @@ class TestNeptuneLogger(unittest.TestCase):
         run_instance_mock.__getitem__.return_value.log.assert_has_calls([call(42)])
 
     def test_log_hyperparams(self, neptune):
-        params = {
-            "foo": "bar",
-            "nested_foo": {
-                "bar": 42
-            }
-        }
+        params = {"foo": "bar", "nested_foo": {"bar": 42}}
         test_variants = [
             ({}, "training/hyperparams"),
             ({"prefix": "custom_prefix"}, "custom_prefix/hyperparams"),
@@ -190,8 +177,7 @@ class TestNeptuneLogger(unittest.TestCase):
         ]
         for prefix, hyperparams_key in test_variants:
             # given:
-            logger, run_instance_mock, _ = self._get_logger_with_mocks(
-                api_key="test", project="project", **prefix)
+            logger, run_instance_mock, _ = self._get_logger_with_mocks(api_key="test", project="project", **prefix)
 
             # when: log hyperparams
             logger.log_hyperparams(params)
@@ -215,7 +201,8 @@ class TestNeptuneLogger(unittest.TestCase):
         for prefix, (metrics_foo_key, metrics_bar_key) in test_variants:
             # given:
             logger, run_instance_mock, run_attr_mock = self._get_logger_with_mocks(
-                api_key="test", project="project", **prefix)
+                api_key="test", project="project", **prefix
+            )
 
             # when: log metrics
             logger.log_metrics(metrics)
@@ -237,8 +224,7 @@ class TestNeptuneLogger(unittest.TestCase):
 
         for prefix, model_summary_key in test_variants:
             # given:
-            logger, run_instance_mock, _ = self._get_logger_with_mocks(
-                api_key="test", project="project", **prefix)
+            logger, run_instance_mock, _ = self._get_logger_with_mocks(api_key="test", project="project", **prefix)
             file_from_content_mock = neptune.types.File.from_content()
 
             # when: log metrics
@@ -259,7 +245,8 @@ class TestNeptuneLogger(unittest.TestCase):
         for prefix, model_key_prefix in test_variants:
             # given:
             logger, run_instance_mock, run_attr_mock = self._get_logger_with_mocks(
-                api_key="test", project="project", **prefix)
+                api_key="test", project="project", **prefix
+            )
             cb_mock = MagicMock(
                 dirpath="path/to/models",
                 last_model_path="path/to/models/last",
@@ -284,11 +271,13 @@ class TestNeptuneLogger(unittest.TestCase):
             run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/last")
             run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model1")
             run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model2/with/slashes")
-            run_attr_mock.upload.assert_has_calls([
-                call("path/to/models/last"),
-                call("path/to/models/model1"),
-                call("path/to/models/model2/with/slashes"),
-            ])
+            run_attr_mock.upload.assert_has_calls(
+                [
+                    call("path/to/models/last"),
+                    call("path/to/models/model1"),
+                    call("path/to/models/model2/with/slashes"),
+                ]
+            )
 
     def test_save_dir(self, neptune):
         # given
@@ -366,23 +355,14 @@ class TestNeptuneLoggerUtils(unittest.TestCase):
         input_dict = {
             "foo": {
                 "bar": {
-                    "lvl1_1": {
-                        "lvl2": {
-                            "lvl3_1": "some non important value",
-                            "lvl3_2": "some non important value"
-                        }
-                    },
+                    "lvl1_1": {"lvl2": {"lvl3_1": "some non important value", "lvl3_2": "some non important value"}},
                     "lvl1_2": "some non important value",
                 },
-                "other_non_important": {"val100": 100}
+                "other_non_important": {"val100": 100},
             },
-            "other_non_important": {"val42": 42}
+            "other_non_important": {"val42": 42},
         }
-        expected_keys = {
-            "lvl1_1/lvl2/lvl3_1",
-            "lvl1_1/lvl2/lvl3_2",
-            "lvl1_2"
-        }
+        expected_keys = {"lvl1_1/lvl2/lvl3_1", "lvl1_1/lvl2/lvl3_2", "lvl1_2"}
 
         # expect:
         self.assertEqual(NeptuneLogger._get_full_model_names_from_exp_structure(input_dict, "foo/bar"), expected_keys)

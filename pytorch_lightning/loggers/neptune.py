@@ -38,12 +38,12 @@ from pytorch_lightning.utilities.model_summary import ModelSummary
 if _NEPTUNE_AVAILABLE and _NEPTUNE_GREATER_EQUAL_0_9:
     try:
         from neptune import new as neptune
-        from neptune.new.run import Run
         from neptune.new.exceptions import NeptuneLegacyProjectException, NeptuneOfflineModeFetchException
+        from neptune.new.run import Run
     except ImportError:
         import neptune
-        from neptune.run import Run
         from neptune.exceptions import NeptuneLegacyProjectException
+        from neptune.run import Run
 else:
     # needed for test mocks, and function signatures
     neptune, Run = None, None
@@ -107,9 +107,9 @@ class NeptuneLogger(LightningLoggerBase):
         from pytorch_lightning.loggers import NeptuneLogger
 
         neptune_logger = NeptuneLogger(
-            api_key="ANONYMOUS",                             # replace with your own
+            api_key="ANONYMOUS",  # replace with your own
             project="common/pytorch-lightning-integration",  # format "<WORKSPACE/PROJECT>"
-            tags=["training", "resnet"],                     # optional
+            tags=["training", "resnet"],  # optional
         )
         trainer = Trainer(max_epochs=10, logger=neptune_logger)
 
@@ -121,6 +121,7 @@ class NeptuneLogger(LightningLoggerBase):
 
         from neptune.new.types import File
         from pytorch_lightning import LightningModule
+
 
         class LitModel(LightningModule):
             def training_step(self, batch, batch_idx):
@@ -172,8 +173,7 @@ class NeptuneLogger(LightningLoggerBase):
     .. code-block:: python
 
         neptune_logger = NeptuneLogger(
-            project="common/pytorch-lightning-integration",
-            log_model_checkpoints=False
+            project="common/pytorch-lightning-integration", log_model_checkpoints=False
         )
 
     **Pass additional parameters to the Neptune run**
@@ -249,15 +249,16 @@ class NeptuneLogger(LightningLoggerBase):
     ARTIFACTS_KEY = "artifacts"
 
     def __init__(
-            self,
-            *,  # force users to call `NeptuneLogger` initializer with `kwargs`
-            api_key: Optional[str] = None,
-            project: Optional[str] = None,
-            name: Optional[str] = None,
-            run: Optional["Run"] = None,
-            log_model_checkpoints: Optional[bool] = True,
-            prefix: str = "training",
-            **neptune_run_kwargs):
+        self,
+        *,  # force users to call `NeptuneLogger` initializer with `kwargs`
+        api_key: Optional[str] = None,
+        project: Optional[str] = None,
+        name: Optional[str] = None,
+        run: Optional["Run"] = None,
+        log_model_checkpoints: Optional[bool] = True,
+        prefix: str = "training",
+        **neptune_run_kwargs,
+    ):
 
         # verify if user passed proper init arguments
         self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)
@@ -271,9 +272,9 @@ class NeptuneLogger(LightningLoggerBase):
         self._run_short_id = self.run._short_id  # skipcq: PYL-W0212
         try:
             self.run.wait()
-            self._run_name = self._run_instance['sys/name'].fetch()
+            self._run_name = self._run_instance["sys/name"].fetch()
         except NeptuneOfflineModeFetchException:
-            self._run_name = 'offline-name'
+            self._run_name = "offline-name"
 
     @staticmethod
     def _init_run_instance(api_key, project, name, run, neptune_run_kwargs) -> Run:
@@ -310,16 +311,16 @@ class NeptuneLogger(LightningLoggerBase):
 
     @staticmethod
     def _verify_input_arguments(
-            api_key: Optional[str],
-            project: Optional[str],
-            name: Optional[str],
-            run: Optional["Run"],
-            neptune_run_kwargs: dict):
+        api_key: Optional[str],
+        project: Optional[str],
+        name: Optional[str],
+        run: Optional["Run"],
+        neptune_run_kwargs: dict,
+    ):
 
         # check if user used legacy kwargs expected in `NeptuneLegacyLogger`
         used_legacy_kwargs = [
-            legacy_kwarg for legacy_kwarg in neptune_run_kwargs
-            if legacy_kwarg in _LEGACY_NEPTUNE_INIT_KWARGS
+            legacy_kwarg for legacy_kwarg in neptune_run_kwargs if legacy_kwarg in _LEGACY_NEPTUNE_INIT_KWARGS
         ]
         if used_legacy_kwargs:
             raise ValueError(
@@ -335,8 +336,7 @@ class NeptuneLogger(LightningLoggerBase):
 
         # check if user used legacy kwargs expected in `NeptuneLogger` from neptune-pytorch-lightning package
         used_legacy_neptune_kwargs = [
-            legacy_kwarg for legacy_kwarg in neptune_run_kwargs
-            if legacy_kwarg in _LEGACY_NEPTUNE_LOGGER_KWARGS
+            legacy_kwarg for legacy_kwarg in neptune_run_kwargs if legacy_kwarg in _LEGACY_NEPTUNE_LOGGER_KWARGS
         ]
         if used_legacy_neptune_kwargs:
             raise ValueError(
@@ -363,9 +363,7 @@ class NeptuneLogger(LightningLoggerBase):
             )
 
         # check if user passed redundant neptune.init arguments when passed run
-        any_neptune_init_arg_passed = any(
-            (arg is not None for arg in [api_key, project, name])
-        ) or neptune_run_kwargs
+        any_neptune_init_arg_passed = any(arg is not None for arg in [api_key, project, name]) or neptune_run_kwargs
         if run is not None and any_neptune_init_arg_passed:
             raise ValueError(
                 "When an already initialized run object is provided"
@@ -467,9 +465,7 @@ class NeptuneLogger(LightningLoggerBase):
     @rank_zero_only
     def finalize(self, status: str) -> None:
         if status:
-            self.experiment[
-                self._construct_path_with_prefix("status")
-            ] = status
+            self.experiment[self._construct_path_with_prefix("status")] = status
 
         super().finalize(status)
 
@@ -485,9 +481,9 @@ class NeptuneLogger(LightningLoggerBase):
 
     def log_model_summary(self, model, max_depth=-1):
         model_str = str(ModelSummary(model=model, max_depth=max_depth))
-        self.experiment[
-            self._construct_path_with_prefix("model/summary")
-        ] = neptune.types.File.from_content(content=model_str, extension="txt")
+        self.experiment[self._construct_path_with_prefix("model/summary")] = neptune.types.File.from_content(
+            content=model_str, extension="txt"
+        )
 
     def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
         """
@@ -507,9 +503,7 @@ class NeptuneLogger(LightningLoggerBase):
         if checkpoint_callback.last_model_path:
             model_last_name = self._get_full_model_name(checkpoint_callback.last_model_path, checkpoint_callback)
             file_names.add(model_last_name)
-            self.experiment[f"{checkpoints_namespace}/{model_last_name}"].upload(
-                checkpoint_callback.last_model_path
-            )
+            self.experiment[f"{checkpoints_namespace}/{model_last_name}"].upload(checkpoint_callback.last_model_path)
 
         # save best k models
         for key in checkpoint_callback.best_k_models.keys():
@@ -520,10 +514,7 @@ class NeptuneLogger(LightningLoggerBase):
         # remove old models logged to experiment if they are not part of best k models at this point
         if self.experiment.exists(checkpoints_namespace):
             exp_structure = self.experiment.get_structure()
-            uploaded_model_names = self._get_full_model_names_from_exp_structure(
-                exp_structure,
-                checkpoints_namespace
-            )
+            uploaded_model_names = self._get_full_model_names_from_exp_structure(exp_structure, checkpoints_namespace)
 
             for file_to_drop in list(uploaded_model_names - file_names):
                 del self.experiment[f"{checkpoints_namespace}/{file_to_drop}"]
@@ -534,9 +525,9 @@ class NeptuneLogger(LightningLoggerBase):
                 self._construct_path_with_prefix("model/best_model_path")
             ] = checkpoint_callback.best_model_path
         if checkpoint_callback.best_model_score:
-            self.experiment[
-                self._construct_path_with_prefix("model/best_model_score")
-            ] = checkpoint_callback.best_model_score.cpu().detach().numpy()
+            self.experiment[self._construct_path_with_prefix("model/best_model_score")] = (
+                checkpoint_callback.best_model_score.cpu().detach().numpy()
+            )
 
     @staticmethod
     def _get_full_model_name(model_path: str, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> str:
@@ -544,7 +535,7 @@ class NeptuneLogger(LightningLoggerBase):
         expected_model_path = f"{checkpoint_callback.dirpath}/"
         if not model_path.startswith(expected_model_path):
             raise ValueError(f"{model_path} was expected to start with {expected_model_path}.")
-        return model_path[len(expected_model_path):]
+        return model_path[len(expected_model_path) :]
 
     @classmethod
     def _get_full_model_names_from_exp_structure(cls, exp_structure: dict, namespace: str) -> Set[str]:
@@ -596,20 +587,20 @@ class NeptuneLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_image(self, *args, **kwargs):
-        self._raise_deprecated_api_usage("log_image",
-                                         f"logger.run['{self._prefix}/key'].log(File('path_to_image'))")
+        self._raise_deprecated_api_usage("log_image", f"logger.run['{self._prefix}/key'].log(File('path_to_image'))")
 
     @rank_zero_only
     def log_artifact(self, *args, **kwargs):
-        self._raise_deprecated_api_usage("log_artifact",
-                                         f"logger.run['{self._prefix}/{self.ARTIFACTS_KEY}/key'].log('path_to_file')")
+        self._raise_deprecated_api_usage(
+            "log_artifact", f"logger.run['{self._prefix}/{self.ARTIFACTS_KEY}/key'].log('path_to_file')"
+        )
 
     @rank_zero_only
     def set_property(self, *args, **kwargs):
-        self._raise_deprecated_api_usage("log_artifact",
-                                         f"logger.run['{self._prefix}/{self.PARAMETERS_KEY}/key'].log(value)")
+        self._raise_deprecated_api_usage(
+            "log_artifact", f"logger.run['{self._prefix}/{self.PARAMETERS_KEY}/key'].log(value)"
+        )
 
     @rank_zero_only
     def append_tags(self, *args, **kwargs):
-        self._raise_deprecated_api_usage("append_tags",
-                                         "logger.run['sys/tags'].add(['foo', 'bar'])")
+        self._raise_deprecated_api_usage("append_tags", "logger.run['sys/tags'].add(['foo', 'bar'])")
