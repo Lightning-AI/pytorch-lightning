@@ -424,8 +424,8 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         obj.setup = cls._track_data_hook_calls(obj, obj.setup)
         obj.teardown = cls._track_data_hook_calls(obj, obj.teardown)
 
-        # calling LightningDataModule.__init__ on obj, to ensure in all cases of inheritance it is called,
-        # even if explicit call to super().__init__ hasn't been made
+        # calling this to ensure the `LightningDataModule` is initialized for all cases of inheritance,
+        # even if `super().__init__` hasn't been explicitly called in the class
         LightningDataModule.__init__(obj)
         return obj
 
