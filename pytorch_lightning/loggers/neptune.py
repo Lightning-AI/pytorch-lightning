@@ -172,9 +172,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     .. code-block:: python
 
-        neptune_logger = NeptuneLogger(
-            project="common/pytorch-lightning-integration", log_model_checkpoints=False
-        )
+        neptune_logger = NeptuneLogger(project="common/pytorch-lightning-integration", log_model_checkpoints=False)
 
     **Pass additional parameters to the Neptune run**
 
