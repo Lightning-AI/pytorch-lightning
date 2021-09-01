@@ -72,7 +72,7 @@ def run():
     )
 
     yield_batch_loop = YieldLoop()
-    trainer.fit_loop.epoch_loop.connect(batch_loop=yield_batch_loop)
+    trainer.fit_loop.epoch_loop.batch_loop.connect(optimizer_loop=yield_batch_loop)
 
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
 
