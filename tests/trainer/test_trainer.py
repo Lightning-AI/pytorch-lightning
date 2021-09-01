@@ -1860,11 +1860,54 @@ class TrainerStagesErrorsModel(BoringModel):
 def test_error_handling_all_stages(tmpdir, accelerator, num_processes):
     model = TrainerStagesErrorsModel()
     trainer = Trainer(default_root_dir=tmpdir, accelerator=accelerator, num_processes=num_processes, fast_dev_run=True)
-    with pytest.raises(Exception, match=r"Error during train"), patch("pytorch_lightning.Trainer._on_exception"):
+
+    with pytest.raises(Exception, match=r"Error during train"), patch(
+        "pytorch_lightning.Trainer._on_exception"
+    ) as exception_hook:
         trainer.fit(model)
-    with pytest.raises(Exception, match=r"Error during validation"), patch("pytorch_lightning.Trainer._on_exception"):
+    exception_hook.assert_called()
+
+    with pytest.raises(Exception, match=r"Error during validation"), patch(
+        "pytorch_lightning.Trainer._on_exception"
+    ) as exception_hook:
         trainer.validate(model)
-    with pytest.raises(Exception, match=r"Error during test"), patch("pytorch_lightning.Trainer._on_exception"):
+    exception_hook.assert_called()
+
+    with pytest.raises(Exception, match=r"Error during test"), patch(
+        "pytorch_lightning.Trainer._on_exception"
+    ) as exception_hook:
         trainer.test(model)
-    with pytest.raises(Exception, match=r"Error during predict"), patch("pytorch_lightning.Trainer._on_exception"):
+    exception_hook.assert_called()
+
+    with pytest.raises(Exception, match=r"Error during predict"), patch(
+        "pytorch_lightning.Trainer._on_exception"
+    ) as exception_hook:
         trainer.predict(model, model.val_dataloader(), return_predictions=False)
+    exception_hook.assert_called()
+
+
+def test_overridden_on_dataloaders(tmpdir):
+    model = BoringModel()
+    with pytest.deprecated_call(
+        match="Method `on_train_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+    ):
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+        trainer.fit(model)
+
+    with pytest.deprecated_call(
+        match="Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+    ):
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+        trainer.validate(model)
+
+    with pytest.deprecated_call(
+        match="Method `on_test_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+    ):
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+        trainer.test(model)
+
+    with pytest.deprecated_call(
+        match="Method `on_predict_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+    ):
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+        trainer.predict(model)

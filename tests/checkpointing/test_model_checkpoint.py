@@ -568,8 +568,7 @@ def test_invalid_trigger_combination(tmpdir):
 
 def test_none_every_n_train_steps_val_epochs(tmpdir):
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir)
-    assert checkpoint_callback.period == 1
-    assert checkpoint_callback._every_n_epochs == 1
+    assert checkpoint_callback.every_n_epochs == 1
     assert checkpoint_callback._every_n_train_steps == 0
 
 
@@ -607,55 +606,12 @@ def test_model_checkpoint_save_last_none_monitor(tmpdir, caplog):
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
-@pytest.mark.parametrize("period", list(range(4)))
-def test_model_checkpoint_period(tmpdir, period: int):
-    model = LogInTwoMethods()
-    epochs = 5
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, filename="{epoch}", save_top_k=-1, period=period)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=[checkpoint_callback],
-        max_epochs=epochs,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        logger=False,
-    )
-    trainer.fit(model)
-
-    # check that the correct ckpts were created
-    expected = [f"epoch={e}.ckpt" for e in range(epochs) if not (e + 1) % period] if period > 0 else []
-    assert set(os.listdir(tmpdir)) == set(expected)
-
-
 @pytest.mark.parametrize("every_n_epochs", list(range(4)))
 def test_model_checkpoint_every_n_epochs(tmpdir, every_n_epochs):
     model = LogInTwoMethods()
     epochs = 5
     checkpoint_callback = ModelCheckpoint(
         dirpath=tmpdir, filename="{epoch}", save_top_k=-1, every_n_epochs=every_n_epochs
-    )
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=[checkpoint_callback],
-        max_epochs=epochs,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        logger=False,
-    )
-    trainer.fit(model)
-
-    # check that the correct ckpts were created
-    expected = [f"epoch={e}.ckpt" for e in range(epochs) if not (e + 1) % every_n_epochs] if every_n_epochs > 0 else []
-    assert set(os.listdir(tmpdir)) == set(expected)
-
-
-@pytest.mark.parametrize("every_n_epochs", list(range(4)))
-def test_model_checkpoint_every_n_epochs_and_period(tmpdir, every_n_epochs):
-    """Tests that if period is set, it takes precedence over every_n_epochs for backwards compatibility."""
-    model = LogInTwoMethods()
-    epochs = 5
-    checkpoint_callback = ModelCheckpoint(
-        dirpath=tmpdir, filename="{epoch}", save_top_k=-1, every_n_epochs=(2 * every_n_epochs), period=every_n_epochs
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
