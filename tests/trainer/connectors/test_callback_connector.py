@@ -64,28 +64,55 @@ class StatefulCallback0(Callback):
 
 
 class StatefulCallback1(Callback):
+    def __init__(self, unique=None, other=None):
+        self._unique = unique
+        self._other = other
+
+    @property
+    def state_key(self):
+        return self._generate_state_key(unique=self._unique)
+
     def on_save_checkpoint(self, *args):
-        return {"content1": 1}
+        return {"content1": self._unique}
 
 
 def test_all_callback_states_saved_before_checkpoint_callback(tmpdir):
-    """Test that all callback states get saved even if the ModelCheckpoint is not given as last."""
+    """
+    Test that all callback states get saved even if the ModelCheckpoint is not given as last
+    and when there are multiple callbacks of the same type.
+    """
 
     callback0 = StatefulCallback0()
-    callback1 = StatefulCallback1()
+    callback1 = StatefulCallback1(unique="one")
+    callback2 = StatefulCallback1(unique="two", other=2)
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, filename="all_states")
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_steps=1, limit_val_batches=1, callbacks=[callback0, checkpoint_callback, callback1]
+        default_root_dir=tmpdir,
+        max_steps=1,
+        limit_val_batches=1,
+        callbacks=[
+            callback0,
+            # checkpoint callback does not have to be at the end
+            checkpoint_callback,
+            # callback2 and callback3 have the same type
+            callback1,
+            callback2,
+        ],
     )
     trainer.fit(model)
 
     ckpt = torch.load(str(tmpdir / "all_states.ckpt"))
     state0 = ckpt["callbacks"]["StatefulCallback0"]
-    state1 = ckpt["callbacks"]["StatefulCallback1"]
+    state1 = ckpt["callbacks"]["StatefulCallback1{'unique': 'one'}"]
+    state2 = ckpt["callbacks"]["StatefulCallback1{'unique': 'two'}"]
     assert "content0" in state0 and state0["content0"] == 0
-    assert "content1" in state1 and state1["content1"] == 1
-    assert "ModelCheckpoint" in ckpt["callbacks"]
+    assert "content1" in state1 and state1["content1"] == "one"
+    assert "content1" in state2 and state2["content1"] == "two"
+    assert (
+        "ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
+        " 'train_time_interval': None, 'save_on_train_epoch_end': True}" in ckpt["callbacks"]
+    )
 
 
 def test_attach_model_callbacks():

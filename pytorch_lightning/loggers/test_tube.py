@@ -20,7 +20,7 @@ from typing import Any, Dict, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import _module_available, rank_zero_warn
+from pytorch_lightning.utilities import _module_available, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
 _TESTTUBE_AVAILABLE = _module_available("test_tube")
@@ -35,6 +35,10 @@ class TestTubeLogger(LightningLoggerBase):
     r"""
     Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format
     but using a nicer folder structure (see `full docs <https://williamfalcon.github.io/test-tube>`_).
+
+    Warning:
+        The test-tube package is no longer maintained and PyTorch Lightning will remove the :class:´TestTubeLogger´
+        in v1.7.0.
 
     Install it with pip:
 
@@ -97,6 +101,10 @@ class TestTubeLogger(LightningLoggerBase):
         log_graph: bool = False,
         prefix: str = "",
     ):
+        rank_zero_deprecation(
+            "The TestTubeLogger is deprecated since v1.5 and will be removed in v1.7. We recommend switching to the"
+            " `pytorch_lightning.loggers.TensorBoardLogger` as an alternative."
+        )
         if Experiment is None:
             raise ImportError(
                 "You want to use `test_tube` logger which is not installed yet,"
@@ -197,10 +205,22 @@ class TestTubeLogger(LightningLoggerBase):
 
     @property
     def save_dir(self) -> Optional[str]:
+        """
+        Gets the save directory.
+
+        Returns:
+            The path to the save directory.
+        """
         return self._save_dir
 
     @property
     def name(self) -> str:
+        """
+        Gets the experiment name.
+
+        Returns:
+             The experiment name if the experiment exists, else the name specified in the constructor.
+        """
         if self._experiment is None:
             return self._name
 
@@ -208,6 +228,12 @@ class TestTubeLogger(LightningLoggerBase):
 
     @property
     def version(self) -> int:
+        """
+        Gets the experiment version.
+
+        Returns:
+             The experiment version if the experiment exists, else the next version.
+        """
         if self._experiment is None:
             return self._version
 

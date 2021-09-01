@@ -16,8 +16,12 @@ from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial, wraps
+from random import getstate as python_get_rng_state
+from random import setstate as python_set_rng_state
 from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Tuple, Union
 
+import numpy as np
+import torch
 from torch.utils.data import Dataset, get_worker_info, Sampler
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
 
@@ -168,6 +172,16 @@ class MergedIteratorState:
         state[latest_worker_id] = new_state
         self.latest_worker_id = latest_worker_id
 
+    @property
+    def sampler_states(self) -> Dict[int, Any]:
+        """Returns the merged sampler states for all worker processes."""
+        return {0: self.state[k].sampler_state[0] for k in self.state.keys()}
+
+    @property
+    def dataset_states(self) -> Dict[int, Any]:
+        """Returns the merged dataset states for all worker processes."""
+        return {k: self.state[k].dataset_state[k] for k in self.state.keys()}
+
     @classmethod
     def from_state_dict(cls, state_dict) -> "MergedIteratorState":
         if state_dict["represent_map_dataset"]:
@@ -188,7 +202,12 @@ class MergedIteratorState:
 
 
 class CaptureMapDataset(Dataset):
-    """This class is used to capture the state from the map-based state dataset."""
+    """This class is used to capture the state from the map-based state dataset.
+
+    Note:
+        We currently don't support restoring if we fail during the first `N = num_workers` batches, where
+        `num_workers` is the number of workers spawned by the dataloader.
+    """
 
     def __init__(self, dataset: Dataset) -> None:
         self.dataset = dataset
@@ -202,8 +221,7 @@ class CaptureMapDataset(Dataset):
     def __getitem__(self, item) -> Tuple[Any, Dict[int, Dict]]:
         if self._cached_state_dict is not None:
             if self.worker_id in self._cached_state_dict:
-                # TODO: reset random states
-                pass
+                set_rng_states(self._cached_state_dict[self.worker_id]["rng_states"])
             self._cached_state_dict = None
 
         data = self.dataset[item]
@@ -227,7 +245,19 @@ class CaptureMapDataset(Dataset):
         self._cached_state_dict = state_dict
 
     def _state_dict(self) -> Dict[int, Dict[str, Any]]:
-        return {self.worker_id: {"rng_states": {}}}
+        return {self.worker_id: {"rng_states": collect_rng_states()}}
+
+
+def collect_rng_states() -> Dict[str, Any]:
+    """Collect the global random state of :mod:`torch`, :mod:`numpy` and Python."""
+    return {"torch": torch.get_rng_state(), "numpy": np.random.get_state(), "python": python_get_rng_state()}
+
+
+def set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
+    """Set the global random state of :mod:`torch`, :mod:`numpy` and Python in the current process."""
+    torch.set_rng_state(rng_state_dict.get("torch"))
+    np.random.set_state(rng_state_dict.get("numpy"))
+    python_set_rng_state(rng_state_dict.get("python"))
 
 
 class CaptureIterableDataset(IterableDataset):
@@ -518,7 +548,7 @@ def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: 
 def patch_dataloader_iterator(
     dataloader: DataLoader,
     iterator: Iterator,
-    data_fecher: "pl.utilities.fetching.DataFetcher",
+    data_fetcher: "pl.utilities.fetching.DataFetcher",
     num_batches_fetched: int = 0,
 ) -> None:
     assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
@@ -558,7 +588,7 @@ def patch_dataloader_iterator(
                         num_batches_fetched=num_batches_fetched,
                     )
                 ]
-            data_fecher._store_dataloader_iter_state(it, state)
+            data_fetcher._store_dataloader_iter_state(it, state)
             return batch
 
         return wrapper

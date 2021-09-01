@@ -28,12 +28,11 @@ from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.loops import IteratorBatchProcessor, TrainingBatchLoop, TrainingEpochLoop
+from pytorch_lightning.loops import TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.dataloader.prediction_loop import PredictionLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
-from pytorch_lightning.plugins import DDPSpawnPlugin, Plugin
-from pytorch_lightning.plugins.environments import ClusterEnvironment
+from pytorch_lightning.plugins import DDPSpawnPlugin, PLUGIN_INPUT
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
     BaseProfiler,
@@ -81,7 +80,6 @@ from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT, EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 log = logging.getLogger(__name__)
@@ -122,7 +120,7 @@ class Trainer(
         track_grad_norm: Union[int, float, str] = -1,
         check_val_every_n_epoch: int = 1,
         fast_dev_run: Union[int, bool] = False,
-        accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
+        accumulate_grad_batches: Union[int, Dict[int, int]] = 1,
         max_epochs: Optional[int] = None,
         min_epochs: Optional[int] = None,
         max_steps: Optional[int] = None,
@@ -137,7 +135,7 @@ class Trainer(
         log_every_n_steps: int = 50,
         accelerator: Optional[Union[str, Accelerator]] = None,
         sync_batchnorm: bool = False,
-        precision: int = 32,
+        precision: Union[int, str] = 32,
         weights_summary: Optional[str] = "top",
         weights_save_path: Optional[str] = None,
         num_sanity_val_steps: int = 2,
@@ -151,8 +149,8 @@ class Trainer(
         replace_sampler_ddp: bool = True,
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
-        prepare_data_per_node: bool = True,
-        plugins: Optional[Union[List[Union[Plugin, ClusterEnvironment, str]], Plugin, ClusterEnvironment, str]] = None,
+        prepare_data_per_node: Optional[bool] = None,
+        plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         amp_backend: str = "native",
         amp_level: str = "O2",
         distributed_backend: Optional[str] = None,
@@ -161,7 +159,7 @@ class Trainer(
         stochastic_weight_avg: bool = False,
     ):
         r"""
-        Customize every aspect of training via flags
+        Customize every aspect of training via flags.
 
         Args:
 
@@ -170,7 +168,7 @@ class Trainer(
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
 
-            amp_backend: The mixed precision backend to use ("native" or "apex")
+            amp_backend: The mixed precision backend to use ("native" or "apex").
 
             amp_level: The optimization level to use (O1, O2, etc...).
 
@@ -209,26 +207,28 @@ class Trainer(
             devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,
                 based on the accelerator type.
 
-            distributed_backend: deprecated. Please use 'accelerator'
+            distributed_backend: Deprecated. Please use 'accelerator'.
 
-            fast_dev_run: runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
+            fast_dev_run: Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
                 of train, val and test to find any bugs (ie: a sort of unit test).
 
             flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
 
-            gpus: number of gpus to train on (int) or which GPUs to train on (list or str) applied per node
+            gpus: Number of GPUs to train on (int) or which GPUs to train on (list or str) applied per node
 
-            gradient_clip_val: 0 means don't clip.
+            gradient_clip_val: The value at which to clip gradients. Passing ``gradient_clip_val=0`` disables gradient
+                clipping.
 
-            gradient_clip_algorithm: 'value' means clip_by_value, 'norm' means clip_by_norm. Default: 'norm'
+            gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
+                for clip_by_value, and ``gradient_clip_algorithm="norm"`` for clip_by_norm.
 
-            limit_train_batches: How much of training dataset to check (float = fraction, int = num_batches)
+            limit_train_batches: How much of training dataset to check (float = fraction, int = num_batches).
 
-            limit_val_batches: How much of validation dataset to check (float = fraction, int = num_batches)
+            limit_val_batches: How much of validation dataset to check (float = fraction, int = num_batches).
 
-            limit_test_batches: How much of test dataset to check (float = fraction, int = num_batches)
+            limit_test_batches: How much of test dataset to check (float = fraction, int = num_batches).
 
-            limit_predict_batches: How much of prediction dataset to check (float = fraction, int = num_batches)
+            limit_predict_batches: How much of prediction dataset to check (float = fraction, int = num_batches).
 
             logger: Logger (or iterable collection of loggers) for experiment tracking. A ``True`` value uses
                 the default ``TensorBoardLogger``. ``False`` will disable logging. If multiple loggers are
@@ -236,14 +236,23 @@ class Trainer(
                 profiler traces, etc.) are saved in ``default_root_dir`` rather than in the ``log_dir`` of any
                 of the individual loggers.
 
-            log_gpu_memory: None, 'min_max', 'all'. Might slow performance
+            log_gpu_memory: None, 'min_max', 'all'. Might slow performance.
 
             log_every_n_steps: How often to log within steps (defaults to every 50 steps).
 
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
 
-            process_position: orders the progress bar when running multiple models on same machine.
+                .. deprecated:: v1.5
+                    Deprecated in v1.5.0 and will be removed in v1.7.0
+                    Please set ``prepare_data_per_node`` in LightningDataModule or LightningModule directly instead.
+
+            process_position: Orders the progress bar when running multiple models on same machine.
+
+                .. deprecated:: v1.5
+                    ``process_position`` has been deprecated in v1.5 and will be removed in v1.7.
+                    Please pass :class:`~pytorch_lightning.callbacks.progress.ProgressBar` with ``process_position``
+                    directly to the Trainer's ``callbacks`` argument instead.
 
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
                 Ignored when a custom progress bar is passed to :paramref:`~Trainer.callbacks`. Default: None, means
@@ -255,8 +264,8 @@ class Trainer(
 
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
 
-            precision: Double precision (64), full precision (32) or half precision (16). Can be used on CPU, GPU or
-                TPUs.
+            precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
+                Can be used on CPU, GPU or TPUs.
 
             max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
                 If both max_epochs and max_steps are not specified, defaults to ``max_epochs`` = 1000.
@@ -273,15 +282,14 @@ class Trainer(
                 :class:`datetime.timedelta`, or a dictionary with keys that will be passed to
                 :class:`datetime.timedelta`.
 
-            num_nodes: number of GPU nodes for distributed training.
+            num_nodes: Number of GPU nodes for distributed training.
 
-            num_processes: number of processes for distributed training with distributed_backend="ddp_cpu"
+            num_processes: Number of processes for distributed training with ``accelerator="ddp_cpu"``.
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders.
 
             reload_dataloaders_every_n_epochs: Set to a non-negative integer to reload dataloaders every n epochs.
-                Default: 0
 
             reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch.
 
@@ -329,7 +337,7 @@ class Trainer(
                 reload when reaching the minimum length of datasets.
 
             stochastic_weight_avg: Whether to use `Stochastic Weight Averaging (SWA)
-                <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>_`
+                <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>`_.
 
         """
         super().__init__()
@@ -373,8 +381,8 @@ class Trainer(
         self.tuner = Tuner(self)
 
         fit_loop = FitLoop(
-            min_epochs=(1 if (min_epochs is None and min_steps is None) else min_epochs),
-            max_epochs=(1000 if (max_epochs is None and max_steps is None) else max_epochs),
+            min_epochs=(1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs),
+            max_epochs=(1000 if (max_epochs is None and max_steps is None and max_time is None) else max_epochs),
         )
         training_epoch_loop = TrainingEpochLoop(min_steps, max_steps)
         training_batch_loop = TrainingBatchLoop()
@@ -400,7 +408,6 @@ class Trainer(
                 f"`weights_summary` can be None, {', '.join(ModelSummary.MODES)}, but got {weights_summary}"
             )
         self.weights_summary = weights_summary
-        self.shown_warnings = set()
 
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init
@@ -915,25 +922,12 @@ class Trainer(
         rank_zero_info(f"Loading model weights from checkpoint at {self._ckpt_path}")
         self.checkpoint_connector.restore_model_weights(self._ckpt_path)
 
-    def _maybe_switch_to_iterator_batch_processor(self, model: "pl.LightningModule") -> None:
-        training_step_fx = getattr(model, "training_step")
-        if is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):
-            log.warning(
-                "Found `dataloader_iter` argument in the `training_step`. Note that the support for "
-                "this signature is experimental and the behavior may subject to change."
-            )
-            batch_loop = IteratorBatchProcessor(self, model)
-            self.fit_loop.epoch_loop.connect(batch_loop)
-
     def _run(self, model: "pl.LightningModule") -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
 
         self.config_validator.verify_loop_configurations(model)
-
-        if self.training:
-            self._maybe_switch_to_iterator_batch_processor(model)
 
         # attach model log function to callback
         self.callback_connector.attach_model_logging_functions(model)
@@ -1070,6 +1064,7 @@ class Trainer(
         # these `teardown` calls are here instead of in `_call_teardown_hook` since they are internal teardowns
         # which need to happen before.
         self.accelerator.teardown()
+        self.data_connector.teardown()
         self._active_loop.teardown()
         self.logger_connector.teardown()
 

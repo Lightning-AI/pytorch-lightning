@@ -67,7 +67,7 @@ This option uses Python's cProfiler_ to provide a report of time spent on *each*
     trainer = Trainer(..., profiler=profiler)
 
 The profiler's results will be printed at the completion of a training `fit()`. This profiler
-report can be quite long, so you can also specify an `output_filename` to save the report instead
+report can be quite long, so you can also specify a `dirpath` and `filename` to save the report instead
 of logging it to the output in your terminal. The output below shows the profiling for the action
 `get_train_batch`.
 
