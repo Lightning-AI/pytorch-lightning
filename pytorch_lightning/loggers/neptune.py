@@ -29,17 +29,17 @@ from weakref import ReferenceType
 import torch
 
 from pytorch_lightning import __version__
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.imports import _NEPTUNE_AVAILABLE, _NEPTUNE_GREATER_EQUAL_0_9
 from pytorch_lightning.utilities.model_summary import ModelSummary
-from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
 if _NEPTUNE_AVAILABLE and _NEPTUNE_GREATER_EQUAL_0_9:
     try:
         from neptune import new as neptune
         from neptune.new.run import Run
-        from neptune.new.exceptions import NeptuneLegacyProjectException
+        from neptune.new.exceptions import NeptuneLegacyProjectException, NeptuneOfflineModeFetchException
     except ImportError:
         import neptune
         from neptune.run import Run
@@ -47,7 +47,6 @@ if _NEPTUNE_AVAILABLE and _NEPTUNE_GREATER_EQUAL_0_9:
 else:
     # needed for test mocks, and function signatures
     neptune, Run = None, None
-
 
 log = logging.getLogger(__name__)
 
@@ -273,6 +272,13 @@ class NeptuneLogger(LightningLoggerBase):
 
         self._run_instance = run  # if run is None, instance will be initialized in first call to `run()`
         self._run_instance_initialized = False
+
+        self._run_short_id = self.run._short_id  # skipcq: PYL-W0212
+        try:
+            self.run.wait()
+            self._run_name = run['sys/name'].fetch()
+        except NeptuneOfflineModeFetchException:
+            self._run_name = 'offline-name'
 
     def _construct_path_with_prefix(self, *keys) -> str:
         """Return sequence of keys joined by `LOGGER_JOIN_CHAR`, started with
@@ -559,17 +565,13 @@ class NeptuneLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        """Return the experiment name."""
-        return "NeptuneLogger"
+        """Return the experiment name or 'offline-name' when exp is run in offline mode."""
+        return self._run_name
 
     @property
     def version(self) -> str:
-        """Gets the id of the experiment.
-
-        Returns:
-            The id of the experiment if not in offline mode else "offline-id-1234".
-        """
-        return self.run._short_id  # skipcq: PYL-W0212
+        """Return the experiment version. It's Neptune Run's short_id"""
+        return self._run_short_id
 
     @staticmethod
     def _raise_deprecated_api_usage(f_name, sample_code):
