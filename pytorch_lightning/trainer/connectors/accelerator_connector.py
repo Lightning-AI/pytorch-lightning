@@ -111,7 +111,6 @@ class AcceleratorConnector:
         self._accelerator_type = None
 
         self.strategy = strategy.lower() if isinstance(strategy, str) else strategy
-
         self._init_deterministic(deterministic)
 
         self.num_processes = num_processes
@@ -257,6 +256,7 @@ class AcceleratorConnector:
     def _warn_if_devices_flag_ignored(self) -> None:
         if self.devices is None:
             return
+
         devices_warning = f"The flag `devices={self.devices}` will be ignored, as you have set"
         if self.accelerator in ("auto", DeviceType.TPU):
             if self.tpu_cores is not None:
