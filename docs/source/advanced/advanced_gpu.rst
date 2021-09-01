@@ -306,7 +306,9 @@ You can also modify the ZeRO-Offload parameters via the plugin as below.
 
     model = MyModel()
     trainer = Trainer(
-        gpus=4, plugins=DeepSpeedPlugin(offload_optimizer=True, allgather_bucket_size=5e8, reduce_bucket_size=5e8), precision=16
+        gpus=4,
+        plugins=DeepSpeedPlugin(offload_optimizer=True, allgather_bucket_size=5e8, reduce_bucket_size=5e8),
+        precision=16,
     )
     trainer.fit(model)
 
