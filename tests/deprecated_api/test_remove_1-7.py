@@ -13,7 +13,7 @@
 # limitations under the License.
 """ Test deprecated functionality which will be removed in v1.7.0 """
 from unittest import mock
-
+import torch
 import pytest
 
 from pytorch_lightning import LightningDataModule, Trainer
@@ -124,11 +124,24 @@ def test_v1_7_0_process_position_trainer_constructor(tmpdir):
         _ = Trainer(process_position=5)
 
 
+class BoringCallbackDDPSpawnModel(BoringModel):
+    def __init__(self):
+        super().__init__()
+
+    def add_to_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+        queue.put("test_val")
+        return super().add_to_queue(queue)
+
+    def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+        self.test_val = queue.get()
+        return super().get_from_queue(queue)
+
+
 @RunIf(min_gpus=2)
 def test_v1_7_0_deprecate_add_get_queue(tmpdir):
     """Tests if device is set correctly when training for DDPSpawnPlugin."""
-    with pytest.deprecated_call(match=r"`LightningModule.add_to_queue` method was deprecated in v1.5"):
-        _ = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, accelerator="ddp_spawn")
+    model = BoringCallbackDDPSpawnModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, accelerator="ddp_spawn")
 
-    with pytest.deprecated_call(match=r"`LightningModule.get_from_queue` method was deprecated in v1.5"):
-        _ = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, accelerator="ddp_spawn")
+    with pytest.deprecated_call(match=r"`LightningModule.add_to_queue` method was deprecated in v1.5"):
+        trainer.fit(model)

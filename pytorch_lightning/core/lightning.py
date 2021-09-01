@@ -30,7 +30,6 @@ from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
 
-from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -47,6 +46,7 @@ from pytorch_lightning.utilities.parsing import collect_init_args
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
+from pytorch_lightning.plugins import DDPSpawnPlugin
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
@@ -1963,10 +1963,10 @@ class LightningModule(
 
         .. deprecated:: v1.5
             This method was deprecated in v1.5 in favor of
-            `pytorch_lightning.plugins.training_type.ddp_spawn.add_to_queue`
+            `DDPSpawnPlugin.add_to_queue`
             and will be removed in v1.7.
         """
-        if type(self.trainer.training_type_plugin) == DDPSpawnPlugin:
+        if self.trainer and isinstance(self.trainer.training_type_plugin, DDPSpawnPlugin):
             self.trainer.training_type_plugin.add_to_queue(self.trainer, queue)
 
     def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
@@ -1979,10 +1979,10 @@ class LightningModule(
 
         .. deprecated:: v1.5
             This method was deprecated in v1.5 in favor of
-            `pytorch_lightning.plugins.training_type.ddp_spawn.get_from_queue`
+            `DDPSpawnPlugin.get_from_queue`
             and will be removed in v1.7.
         """
-        if type(self.trainer.training_type_plugin) == DDPSpawnPlugin:
+        if self.trainer and isinstance(self.trainer.training_type_plugin, DDPSpawnPlugin):
             self.trainer.training_type_plugin.get_from_queue(self.trainer, queue)
 
     @contextmanager

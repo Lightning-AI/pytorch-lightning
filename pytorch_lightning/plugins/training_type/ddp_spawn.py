@@ -23,6 +23,7 @@ import torch.distributed
 import torch.multiprocessing as mp
 from torch.nn.parallel.distributed import DistributedDataParallel
 
+from pytorch_lightning.utilities.model_helpers import is_overridden
 import pytorch_lightning as pl
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
@@ -215,16 +216,18 @@ class DDPSpawnPlugin(ParallelPlugin):
         # ensure that spawned processes go through teardown before joining
         trainer._call_teardown_hook()
 
-    # TODO(@daniellepintz): add trainer as an argument in v1.7
-    def post_dispatch(self):
+    def post_dispatch(self, trainer: "pl.Trainer"):
         # restore main state with best weights
         best_path = self.mp_queue.get()
         last_path = self.mp_queue.get()
         self._results = self.mp_queue.get()
         # get the `callback_metrics` and set it to the trainer
         # only in case the user does not override it.
-        # TODO(@daniellepintz): update line to `self.get_from_queue(trainer, self.mp_queue)` in v1.7
-        self.lightning_module.get_from_queue(self.mp_queue)
+        # TODO(@daniellepintz): Remove the else in v1.7
+        if is_overridden("get_from_queue", trainer.training_type_plugin, DDPSpawnPlugin):
+            self.get_from_queue(trainer, self.mp_queue)
+        else:
+            self.lightning_module.get_from_queue(self.mp_queue)
 
         # recover the weights of the processes trained in the children
         self.__recover_child_process_weights(best_path, last_path)
@@ -290,8 +293,11 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.mp_queue.put(best_model_path)
             self.mp_queue.put(last_path)
             self.mp_queue.put(results)
-            # TODO(@daniellepintz): update line to `self.add_to_queue(trainer, self.mp_queue)` in v1.7
-            self.lightning_module.add_to_queue(self.mp_queue)  # adds the `callback_metrics` to the queue
+            # TODO(@daniellepintz): Remove the else in v1.7
+            if is_overridden("add_to_queue", trainer.training_type_plugin, DDPSpawnPlugin):
+                self.add_to_queue(trainer, self.mp_queue)
+            else:
+                self.lightning_module.add_to_queue(self.mp_queue)  # adds the `callback_metrics` to the queue
 
     def __recover_child_process_weights(self, best_path, last_path):
         # transfer back the best path to the trainer
@@ -361,15 +367,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         if not self.lightning_module.automatic_optimization:
             self.model.require_backward_grad_sync = True
 
-    @classmethod
-    def register_plugins(cls, plugin_registry: Dict) -> None:
-        plugin_registry.register(
-            "ddp_spawn_find_unused_parameters_false",
-            cls,
-            description="DDPSpawn Plugin with `find_unused_parameters` as False",
-            find_unused_parameters=False,
-        )
-
     def add_to_queue(self, trainer: "pl.Trainer", queue: torch.multiprocessing.SimpleQueue) -> None:
         """
         Appends the :attr:`trainer.callback_metrics` dictionary to the given queue.
@@ -394,6 +391,15 @@ class DDPSpawnPlugin(ParallelPlugin):
         # NOTE: `add_to_queue` needs to be called before
         callback_metrics: dict = queue.get()
         trainer.callback_metrics.update(apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x)))
+
+    @classmethod
+    def register_plugins(cls, plugin_registry: Dict) -> None:
+        plugin_registry.register(
+            "ddp_spawn_find_unused_parameters_false",
+            cls,
+            description="DDPSpawn Plugin with `find_unused_parameters` as False",
+            find_unused_parameters=False,
+        )
 
     def teardown(self) -> None:
         if isinstance(self.model, DistributedDataParallel):
