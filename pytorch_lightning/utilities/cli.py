@@ -403,11 +403,17 @@ class LightningCLI:
         self._add_configure_optimizers_method_to_model(self.subcommand)
         self.trainer = self.instantiate_trainer()
 
-    def instantiate_trainer(self, callbacks: Optional[List[Callback]] = None) -> Trainer:
-        """Instantiates the trainer."""
-        if callbacks is None:
-            callbacks = [self._get(self.config_init, c) for c in self._parser(self.subcommand).callback_keys]
-        return self._instantiate_trainer(self._get(self.config_init, "trainer"), callbacks)
+    def instantiate_trainer(self, **kwargs: Any) -> Trainer:
+        """
+        Instantiates the trainer.
+
+        Args:
+            kwargs: Any custom trainer arguments.
+        """
+        extra_callbacks = [self._get(self.config_init, c) for c in self._parser(self.subcommand).callback_keys]
+        trainer_config = self._get(self.config_init, "trainer")
+        trainer_config.update(kwargs)
+        return self._instantiate_trainer(trainer_config, extra_callbacks)
 
     def _instantiate_trainer(self, config: Dict[str, Any], callbacks: List[Callback]) -> Trainer:
         config["callbacks"] = config["callbacks"] or []
