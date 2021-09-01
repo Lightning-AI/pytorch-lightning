@@ -210,5 +210,5 @@ class ConfigValidator:
             if is_overridden(method_name="on_keyboard_interrupt", instance=callback):
                 rank_zero_deprecation(
                     "The `on_keyboard_interrupt` callback hook was deprecated in v1.5 and will be removed in v1.7."
-                    "Please use the `on_exception` callback hook instead."
+                    " Please use the `on_exception` callback hook instead."
                 )
