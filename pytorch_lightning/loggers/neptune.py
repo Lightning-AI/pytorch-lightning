@@ -24,7 +24,7 @@ import operator
 import os
 from argparse import Namespace
 from functools import reduce
-from typing import Any, Dict, Optional, Set, Union
+from typing import Any, Dict, Generator, Optional, Set, Union
 from weakref import ReferenceType
 
 import torch
@@ -550,7 +550,7 @@ class NeptuneLogger(LightningLoggerBase):
         return set(cls._dict_paths(uploaded_models_dict))
 
     @classmethod
-    def _dict_paths(cls, d: dict, path_in_build: str = None):
+    def _dict_paths(cls, d: dict, path_in_build: str = None) -> Generator:
         for k, v in d.items():
             path = f"{path_in_build}/{k}" if path_in_build is not None else k
             if not isinstance(v, dict):
