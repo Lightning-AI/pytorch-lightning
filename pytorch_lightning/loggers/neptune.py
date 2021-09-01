@@ -20,22 +20,21 @@ __all__ = [
 ]
 
 import logging
+import operator
 import os
-import warnings
 from argparse import Namespace
 from functools import reduce
-from typing import Any, Dict, Generator, List, Optional, Set, Union
+from typing import Any, Dict, Generator, Optional, Set, Union
 from weakref import ReferenceType
 
 import torch
-from neptune.new.types import File as NeptuneFile
 
 from pytorch_lightning import __version__
-from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.imports import _NEPTUNE_AVAILABLE, _NEPTUNE_GREATER_EQUAL_0_9
 from pytorch_lightning.utilities.model_summary import ModelSummary
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
 if _NEPTUNE_AVAILABLE and _NEPTUNE_GREATER_EQUAL_0_9:
     try:
@@ -50,11 +49,12 @@ else:
     # needed for test mocks, and function signatures
     neptune, Run = None, None
 
+
 log = logging.getLogger(__name__)
 
 INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
 
-# kwargs used in previous NeptuneLogger version, now deprecated
+# kwargs used in NeptuneLogger for legacy client (current NeptuneLegacyLogger)
 LEGACY_NEPTUNE_INIT_KWARGS = [
     "project_name",
     "offline_mode",
@@ -573,50 +573,43 @@ class NeptuneLogger(LightningLoggerBase):
         return self.run._short_id  # skipcq: PYL-W0212
 
     @staticmethod
-    def _log_experimental_feature_info(f_name, sample_code):
-        warnings.warn(
-            "The function you've used is experimental, it may change or be abandoned in the future.\n"
-            "If you are looking for the Neptune logger using legacy Python API,"
-            " it's still available as part of neptune-contrib package:\n"
-            "  - https://docs-legacy.neptune.ai/integrations/pytorch_lightning.html\n"
-            "The NeptuneLogger was re-written to use the neptune.new Python API\n"
-            "  - https://neptune.ai/blog/neptune-new\n"
-            "  - https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning\n"
+    def _raise_deprecated_api_usage(f_name, sample_code):
+        raise ValueError(
+            f"The function you've used is deprecated.\n"
+            f"If you are looking for the Neptune logger using legacy Python API,"
+            f" it's still available as part of neptune-contrib package:\n"
+            f"  - https://docs-legacy.neptune.ai/integrations/pytorch_lightning.html\n"
+            f"The NeptuneLogger was re-written to use the neptune.new Python API\n"
+            f"  - https://neptune.ai/blog/neptune-new\n"
+            f"  - https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning\n"
             f"Instead of `logger.{f_name}` you can use:\n"
             f"\t{sample_code}"
         )
 
     @rank_zero_only
-    def log_metric(self, key: str, metric):
-        self._log_experimental_feature_info("log_metric", f"logger.run['{self._prefix}/key'].log(42)")
-        self.run[f'{self._prefix}/{key}'].log(metric)
+    def log_metric(self, *args, **kwargs):
+        self._raise_deprecated_api_usage("log_metric", f"logger.run['{self._prefix}/key'].log(42)")
 
     @rank_zero_only
-    def log_text(self, key: str, value):
-        self._log_experimental_feature_info("log_text", f"logger.run['{self._prefix}/key'].log('text')")
-        self.run[f'{self._prefix}/{key}'].log(str(value))
+    def log_text(self, *args, **kwargs):
+        self._raise_deprecated_api_usage("log_text", f"logger.run['{self._prefix}/key'].log('text')")
 
     @rank_zero_only
-    def log_image(self, key: str, img):
-        self._log_experimental_feature_info("log_image", f"logger.run['{self._prefix}/key'].log(File('path_to_image'))")
-        if isinstance(img, str):
-            # if `img` is path to file, convert it to file object
-            img = NeptuneFile(img)
-        self.run[f'{self._prefix}/{key}'].log(img)
+    def log_image(self, *args, **kwargs):
+        self._raise_deprecated_api_usage("log_image",
+                                         f"logger.run['{self._prefix}/key'].log(File('path_to_image'))")
 
     @rank_zero_only
-    def log_artifact(self, key: str, artifact: str):
-        self._log_experimental_feature_info("log_artifact",
-                                            f"logger.run['{self._prefix}/{self.ARTIFACTS_KEY}/key'].log('path_to_file')")
-        self.run[f'{self._prefix}/{self.ARTIFACTS_KEY}/{key}'].log(artifact)
+    def log_artifact(self, *args, **kwargs):
+        self._raise_deprecated_api_usage("log_artifact",
+                                         f"logger.run['{self._prefix}/{self.ARTIFACTS_KEY}/key'].log('path_to_file')")
 
     @rank_zero_only
-    def set_property(self, key: str, prop):
-        self._log_experimental_feature_info("log_artifact",
-                                            f"logger.run['{self._prefix}/{self.PARAMETERS_KEY}/key'] = value")
-        self.run[f'{self._prefix}/{self.ARTIFACTS_KEY}/{key}'] = prop
+    def set_property(self, *args, **kwargs):
+        self._raise_deprecated_api_usage("log_artifact",
+                                         f"logger.run['{self._prefix}/{self.PARAMETERS_KEY}/key'].log(value)")
 
     @rank_zero_only
-    def append_tags(self, tags: List[str]):
-        self._log_experimental_feature_info("append_tags", "logger.run['sys/tags'].add(['foo', 'bar'])")
-        self.run['sys/tags'].add(tags)
+    def append_tags(self, *args, **kwargs):
+        self._raise_deprecated_api_usage("append_tags",
+                                         "logger.run['sys/tags'].add(['foo', 'bar'])")
