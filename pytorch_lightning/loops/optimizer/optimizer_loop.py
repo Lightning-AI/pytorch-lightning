@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from copy import copy
+from copy import deepcopy
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -79,7 +79,7 @@ class OptimizerLoop(Loop):
             self._optimizers[self.optim_progress.optimizer_idx],
         )
         if result:
-            self.outputs[self.optim_progress.optimizer_idx].append(copy(result.result_collection))
+            self.outputs[self.optim_progress.optimizer_idx].append(deepcopy(result.result_collection))
 
         self.optim_progress.optimizer_idx += 1
 
