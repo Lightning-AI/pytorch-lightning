@@ -28,8 +28,18 @@ class Run:
     _short_id = "foo"
 
     def __setitem__(self, key, value):
-        # just pass assignment of _INTEGRATION_VERSION_KEY
+        # called once
+        assert key == "source_code/integrations/pytorch-lightning"
+        assert value == __version__
+
+    def wait(self):
+        # for test purposes
         pass
+
+    def __getitem__(self, item):
+        # called once
+        assert item == "sys/name"
+        return MagicMock()
 
 
 @pytest.fixture
@@ -45,16 +55,32 @@ def tmpdir_unittest_fixture(request, tmpdir):
 @patch("pytorch_lightning.loggers.neptune.neptune")
 class TestNeptuneLogger(unittest.TestCase):
     def test_neptune_online(self, neptune):
+        created_run_mock = MagicMock(
+            __getitem__=MagicMock(
+                return_value=MagicMock(
+                    fetch=MagicMock(
+                        return_value="TEST-1"
+                    )
+                )
+            )
+        )
+
+        neptune.init.return_value = created_run_mock
         logger = NeptuneLogger(api_key="test", project="project")
 
-        created_run = neptune.init()
-
-        self.assertIsNone(logger._run_instance)
-        _ = logger.experiment
-        self.assertEqual(logger._run_instance, created_run)
-        self.assertEqual(logger.name, "NeptuneLogger")
-        self.assertEqual(logger.version, created_run._short_id)
-        self.assertEqual(neptune.init.call_count, 2)  # one call was made during test
+        self.assertEqual(logger._run_instance, created_run_mock)
+        self.assertEqual(logger.name, "TEST-1")
+        self.assertEqual(logger.version, created_run_mock._short_id)
+        self.assertEqual(neptune.init.call_count, 1)
+        self.assertEqual(created_run_mock.__getitem__.call_count, 1)
+        self.assertEqual(created_run_mock.__setitem__.call_count, 1)
+        created_run_mock.__getitem__.assert_called_once_with(
+            "sys/name",
+        )
+        created_run_mock.__setitem__.assert_called_once_with(
+            "source_code/integrations/pytorch-lightning",
+            __version__
+        )
 
     @patch("pytorch_lightning.loggers.neptune.Run", Run)
     def test_online_with_custom_run(self, neptune):
@@ -171,12 +197,9 @@ class TestNeptuneLogger(unittest.TestCase):
             logger.log_hyperparams(params)
 
             # then
-            self.assertEqual(run_instance_mock.__setitem__.call_count, 2)
+            self.assertEqual(run_instance_mock.__setitem__.call_count, 1)
             self.assertEqual(run_instance_mock.__getitem__.call_count, 0)
-            run_instance_mock.__setitem__.assert_has_calls([
-                call("source_code/integrations/pytorch-lightning", __version__),
-                call(hyperparams_key, params),
-            ])
+            run_instance_mock.__setitem__.assert_called_once_with(hyperparams_key, params)
 
     def test_log_metrics(self, neptune):
         metrics = {
@@ -198,12 +221,10 @@ class TestNeptuneLogger(unittest.TestCase):
             logger.log_metrics(metrics)
 
             # then:
-            self.assertEqual(run_instance_mock.__setitem__.call_count, 1)
+            self.assertEqual(run_instance_mock.__setitem__.call_count, 0)
             self.assertEqual(run_instance_mock.__getitem__.call_count, 2)
             run_instance_mock.__getitem__.assert_any_call(metrics_foo_key)
             run_instance_mock.__getitem__.assert_any_call(metrics_bar_key)
-            run_instance_mock.__setitem__.assert_called_once_with(
-                "source_code/integrations/pytorch-lightning", __version__)
             run_attr_mock.log.assert_has_calls([call(42), call(555)])
 
     def test_log_model_summary(self, neptune):
@@ -224,12 +245,9 @@ class TestNeptuneLogger(unittest.TestCase):
             logger.log_model_summary(model)
 
             # then:
-            self.assertEqual(run_instance_mock.__setitem__.call_count, 2)
+            self.assertEqual(run_instance_mock.__setitem__.call_count, 1)
             self.assertEqual(run_instance_mock.__getitem__.call_count, 0)
-            run_instance_mock.__setitem__.assert_has_calls([
-                call("source_code/integrations/pytorch-lightning", __version__),
-                call(model_summary_key, file_from_content_mock),
-            ])
+            run_instance_mock.__setitem__.assert_called_once_with(model_summary_key, file_from_content_mock)
 
     def test_after_save_checkpoint(self, neptune):
         test_variants = [
@@ -257,13 +275,12 @@ class TestNeptuneLogger(unittest.TestCase):
             logger.after_save_checkpoint(cb_mock)
 
             # then:
-            self.assertEqual(run_instance_mock.__setitem__.call_count, 2)
+            self.assertEqual(run_instance_mock.__setitem__.call_count, 1)
             self.assertEqual(run_instance_mock.__getitem__.call_count, 3)
             self.assertEqual(run_attr_mock.upload.call_count, 3)
-            run_instance_mock.__setitem__.assert_has_calls([
-                call("source_code/integrations/pytorch-lightning", __version__),
-                call(f"{model_key_prefix}/best_model_path", "path/to/models/best_model"),
-            ])
+            run_instance_mock.__setitem__.assert_called_once_with(
+                f"{model_key_prefix}/best_model_path", "path/to/models/best_model"
+            )
             run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/last")
             run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model1")
             run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model2/with/slashes")
@@ -315,7 +332,8 @@ class TestNeptuneLoggerDeprecatedUsages(unittest.TestCase):
         for legacy_kwarg in legacy_neptune_kwargs:
             self._assert_legacy_usage(NeptuneLogger, **{legacy_kwarg: None})
 
-    def test_legacy_functions(self):
+    @patch("pytorch_lightning.loggers.neptune.neptune")
+    def test_legacy_functions(self, neptune):
         logger = NeptuneLogger(api_key="test", project="project")
 
         # test all  functions

@@ -263,22 +263,42 @@ class NeptuneLogger(LightningLoggerBase):
         self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)
 
         super().__init__()
-        self._api_key = api_key
-        self._project = project
-        self._name = name
-        self._neptune_run_kwargs = neptune_run_kwargs
         self._log_model_checkpoints = log_model_checkpoints
         self._prefix = prefix
 
-        self._run_instance = run  # if run is None, instance will be initialized in first call to `run()`
-        self._run_instance_initialized = False
+        self._run_instance = self._init_run_instance(api_key, project, name, run, neptune_run_kwargs)
 
         self._run_short_id = self.run._short_id  # skipcq: PYL-W0212
         try:
             self.run.wait()
-            self._run_name = run['sys/name'].fetch()
+            self._run_name = self._run_instance['sys/name'].fetch()
         except NeptuneOfflineModeFetchException:
             self._run_name = 'offline-name'
+
+    def _init_run_instance(self, api_key, project, name, run, neptune_run_kwargs) -> Run:
+        if run is not None:
+            run_instance = run
+        else:
+            try:
+                run_instance = neptune.init(
+                    project=project,
+                    api_token=api_key,
+                    name=name,
+                    **neptune_run_kwargs,
+                )
+            except NeptuneLegacyProjectException as e:
+                raise TypeError(
+                    f"""Project {project} has not been migrated to the new structure.
+                    You can still integrate it with the Neptune logger using legacy Python API
+                    available as part of neptune-contrib package:
+                      - https://docs-legacy.neptune.ai/integrations/pytorch_lightning.html\n
+                    """
+                ) from e
+
+        # make sure that we've log integration version for both newly created and outside `Run` instances
+        run_instance[_INTEGRATION_VERSION_KEY] = __version__
+
+        return run_instance
 
     def _construct_path_with_prefix(self, *keys) -> str:
         """Return sequence of keys joined by `LOGGER_JOIN_CHAR`, started with
@@ -380,28 +400,6 @@ class NeptuneLogger(LightningLoggerBase):
 
     @property
     def run(self) -> Run:
-        if self._run_instance is None:
-            try:
-                self._run_instance = neptune.init(
-                    project=self._project,
-                    api_token=self._api_key,
-                    name=self._name,
-                    **self._neptune_run_kwargs,
-                )
-            except NeptuneLegacyProjectException as e:
-                raise TypeError(
-                    f"""Project {self._project} has not been migrated to the new structure.
-                    You can still integrate it with the Neptune logger using legacy Python API
-                    available as part of neptune-contrib package:
-                      - https://docs-legacy.neptune.ai/integrations/pytorch_lightning.html\n
-                    """
-                ) from e
-
-        if not self._run_instance_initialized:
-            # make sure that we've log integration version for both newly created and outside `Run` instances
-            self._run_instance_initialized = True
-            self._run_instance[_INTEGRATION_VERSION_KEY] = __version__
-
         return self._run_instance
 
     @rank_zero_only
