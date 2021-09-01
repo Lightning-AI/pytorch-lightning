@@ -101,7 +101,8 @@ class NeptuneLogger(LightningLoggerBase):
 
     Pass NeptuneLogger instance to the Trainer to log metadata with Neptune:
 
-    .. testcode::
+    .. code-block:: python
+
 
         from pytorch_lightning import Trainer
         from pytorch_lightning.loggers import NeptuneLogger
