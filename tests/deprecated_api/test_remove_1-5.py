@@ -16,10 +16,8 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.decorators import auto_move_data
-from pytorch_lightning.plugins import DeepSpeedPlugin
 from tests.deprecated_api import no_deprecated_call
 from tests.helpers import BoringDataModule, BoringModel
-from tests.helpers.runif import RunIf
 
 
 def test_v1_5_0_auto_move_data():
@@ -41,16 +39,6 @@ def test_v1_5_0_datamodule_setter():
     warning_cache.clear()
     _ = model.datamodule
     assert any("The `LightningModule.datamodule`" in w for w in warning_cache)
-
-
-@RunIf(deepspeed=True)
-@pytest.mark.parametrize(
-    "params", [dict(cpu_offload=True), dict(cpu_offload_params=True), dict(cpu_offload_use_pin_memory=True)]
-)
-def test_v1_5_0_deepspeed_cpu_offload(tmpdir, params):
-
-    with pytest.deprecated_call(match="is deprecated since v1.4 and will be removed in v1.5"):
-        DeepSpeedPlugin(**params)
 
 
 def test_v1_5_0_distributed_backend_trainer_flag():

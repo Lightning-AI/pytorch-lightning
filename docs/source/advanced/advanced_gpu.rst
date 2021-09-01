@@ -306,7 +306,9 @@ You can also modify the ZeRO-Offload parameters via the plugin as below.
 
     model = MyModel()
     trainer = Trainer(
-        gpus=4, plugins=DeepSpeedPlugin(cpu_offload=True, allgather_bucket_size=5e8, reduce_bucket_size=5e8), precision=16
+        gpus=4,
+        plugins=DeepSpeedPlugin(offload_optimizer=True, allgather_bucket_size=5e8, reduce_bucket_size=5e8),
+        precision=16,
     )
     trainer.fit(model)
 
@@ -581,7 +583,7 @@ This saves memory when training larger models, however requires using a checkpoi
         gpus=4,
         plugins=DeepSpeedPlugin(
             stage=3,
-            cpu_offload=True,  # Enable CPU Offloading
+            offload_optimizer=True,  # Enable CPU Offloading
             cpu_checkpointing=True,  # (Optional) offload activations to CPU
         ),
         precision=16,
@@ -659,7 +661,7 @@ In some cases you may want to define your own DeepSpeed Config, to access all pa
         },
         "zero_optimization": {
             "stage": 2,  # Enable Stage 2 ZeRO (Optimizer/Gradient state partitioning)
-            "cpu_offload": True,  # Enable Offloading optimizer state/calculation to the host CPU
+            "offload_optimizer": True,  # Enable Offloading optimizer state/calculation to the host CPU
             "contiguous_gradients": True,  # Reduce gradient fragmentation.
             "overlap_comm": True,  # Overlap reduce/backward operation of gradients for speed.
             "allgather_bucket_size": 2e8,  # Number of elements to all gather at once.
