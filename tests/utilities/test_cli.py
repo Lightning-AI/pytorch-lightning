@@ -967,3 +967,5 @@ def test_lightning_cli_reinstantiate_trainer():
     assert {c.__class__ for c in trainer.callbacks} == {c.__class__ for c in cli.trainer.callbacks}.union(
         {TestCallback}
     )
+    # the existing config is not updated
+    assert cli.config_init["trainer"]["max_epochs"] is None
