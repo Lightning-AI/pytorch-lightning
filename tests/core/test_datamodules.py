@@ -540,7 +540,7 @@ def test_define_as_dataclass():
     # also tests all the dataclass features that can be enabled without breaking anything
     @dataclass(init=True, repr=True, eq=True, order=True, unsafe_hash=True, frozen=False)
     class BoringDataModule1(LightningDataModule):
-        batch_size: int = 32
+        batch_size: int
         dims: int = 2
 
         def __post_init__(self):
@@ -548,7 +548,7 @@ def test_define_as_dataclass():
 
     # asserts for the different dunder methods added by dataclass, when __init__ is implemented, i.e.
     # __repr__, __eq__, __lt__, __le__, etc.
-    assert BoringDataModule1().dims == 2
+    assert BoringDataModule1(batch_size=64).dims == 2
     assert BoringDataModule1(batch_size=32)
     assert hasattr(BoringDataModule1, "__repr__")
     assert BoringDataModule1(batch_size=32) == BoringDataModule1(batch_size=32)
@@ -556,7 +556,7 @@ def test_define_as_dataclass():
     # asserts inherent calling of super().__init__ in case user doesn't make the call
     @dataclass
     class BoringDataModule2(LightningDataModule):
-        batch_size: int = 2
+        batch_size: int
 
     # asserts for the different dunder methods added by dataclass, when super class is inherently initialized, i.e.
     # __init__, __repr__, __eq__, __lt__, __le__, etc.
