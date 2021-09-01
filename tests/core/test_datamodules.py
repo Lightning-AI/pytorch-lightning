@@ -548,6 +548,7 @@ def test_define_as_dataclass():
 
     # asserts for the different dunder methods added by dataclass, when __init__ is implemented, i.e.
     # __repr__, __eq__, __lt__, __le__, etc.
+    assert BoringDataModule1().dims == 2
     assert BoringDataModule1(batch_size=32)
     assert hasattr(BoringDataModule1, "__repr__")
     assert BoringDataModule1(batch_size=32) == BoringDataModule1(batch_size=32)
@@ -559,9 +560,9 @@ def test_define_as_dataclass():
 
     # asserts for the different dunder methods added by dataclass, when super class is inherently initialized, i.e.
     # __init__, __repr__, __eq__, __lt__, __le__, etc.
-    assert BoringDataModule2(batch_size=32).prepare_data() is None
     assert BoringDataModule2(batch_size=32)
     assert hasattr(BoringDataModule2, "__repr__")
+    assert BoringDataModule2(batch_size=32).prepare_data() is None
     assert BoringDataModule2(batch_size=32) == BoringDataModule2(batch_size=32)
 
     # checking for all the different multilevel inhertiance scenarios, for init call on LightningDataModule
@@ -589,12 +590,10 @@ def test_define_as_dataclass():
         def __init__(self):
             ...
 
-    hasattr(BoringModuleBase1(num_features=2), "_has_prepared_data")
-    hasattr(BoringModuleBase2(num_features=2), "_has_prepared_data")
-    hasattr(BoringModuleDerived1(num_features=2), "_has_prepared_data")
-    hasattr(BoringModuleDerived2(), "_has_prepared_data")
-    hasattr(BoringModuleDerived3(), "_has_prepared_data")
-    hasattr(BoringModuleDerived4(), "_has_prepared_data")
+    assert hasattr(BoringModuleDerived1(num_features=2), "_has_prepared_data")
+    assert hasattr(BoringModuleDerived2(), "_has_prepared_data")
+    assert hasattr(BoringModuleDerived3(), "_has_prepared_data")
+    assert hasattr(BoringModuleDerived4(), "_has_prepared_data")
 
 
 def test_inconsistent_prepare_data_per_node(tmpdir):
