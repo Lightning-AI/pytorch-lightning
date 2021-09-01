@@ -43,7 +43,7 @@ class ConfigValidator:
         elif self.trainer.state.fn == TrainerFn.PREDICTING:
             self.__verify_predict_loop_configuration(model)
         self.__verify_dp_batch_transfer_support(model)
-        # TODO(@daniellepintz): Delete _check_on_keyboard_interrupt in v1.7
+        # TODO: Delete _check_on_keyboard_interrupt in v1.7
         self._check_on_keyboard_interrupt()
 
     def __verify_train_loop_configuration(self, model: "pl.LightningModule") -> None:
