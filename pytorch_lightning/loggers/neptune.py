@@ -406,12 +406,12 @@ class NeptuneLogger(LightningLoggerBase):
 
         Hyperparams will be logged under the "<prefix>/hyperparams" namespace.
 
-        **Note**
+        Note:
 
-        You can also log parameters by directly using the logger instance:
-        ``neptune_logger.experiment["model/hyper-parameters"] = params_dict``.
+            You can also log parameters by directly using the logger instance:
+            ``neptune_logger.experiment["model/hyper-parameters"] = params_dict``.
 
-        In this way you can keep hierarchical structure of the parameters.
+            In this way you can keep hierarchical structure of the parameters.
 
         Args:
             params: `dict`.
