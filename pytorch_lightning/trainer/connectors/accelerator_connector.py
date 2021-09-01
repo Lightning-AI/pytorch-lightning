@@ -582,10 +582,7 @@ class AcceleratorConnector:
         )
 
     def select_training_type_plugin(self) -> TrainingTypePlugin:
-        if (
-            isinstance(self.accelerator, Accelerator)
-            and self.accelerator.training_type_plugin is not None
-        ):
+        if isinstance(self.accelerator, Accelerator) and self.accelerator.training_type_plugin is not None:
             plugin = self.accelerator.training_type_plugin
         elif self.use_ddp2:
             plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
