@@ -11,12 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from collections import OrderedDict
-from contextlib import contextmanager
-from copy import copy
+from copy import deepcopy
 from functools import partial
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -28,17 +25,17 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.closure import Closure, ClosureResult
 from pytorch_lightning.loops.utilities import (
+    _block_parallel_sync_behavior,
+    _build_training_step_kwargs,
     _check_training_step_output,
     _process_training_step_output,
     check_finite_loss,
 )
-from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -145,12 +142,12 @@ class TrainingBatchLoop(Loop):
 
                 result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
                 if result:
-                    self.batch_outputs[opt_idx].append(copy(result.result_collection))
+                    self.batch_outputs[opt_idx].append(deepcopy(result.result_collection))
         else:
             # in manual optimization, there is no looping over optimizers
             result = self._run_optimization(batch_idx, split_batch)
             if result:
-                self.batch_outputs[0].append(copy(result.result_collection))
+                self.batch_outputs[0].append(deepcopy(result.result_collection))
 
     def teardown(self) -> None:
         # release memory
@@ -186,9 +183,8 @@ class TrainingBatchLoop(Loop):
             # -------------------
             # calculate loss (train step + train step end)
             # -------------------
-            # automatic_optimization=True: perform ddp sync only when performing optimizer_step
-            # automatic_optimization=False: don't block synchronization here
-            with self.block_ddp_sync_behaviour():
+            # automatic_optimization: perform ddp sync only when performing optimizer_step
+            with _block_parallel_sync_behavior(self._trainer):
                 closure()
 
         # ------------------------------
@@ -207,7 +203,6 @@ class TrainingBatchLoop(Loop):
             # if no result, user decided to skip optimization
             # otherwise update running loss + reset accumulated loss
             self._update_running_loss(result.loss)
-            self._process_closure_result(result)
 
         # untoggle model params
         self._run_optimization_end(opt_idx)
@@ -226,7 +221,7 @@ class TrainingBatchLoop(Loop):
         other functions such as `backward` and `zero_grad`.
         """
         step_fn = self._make_step_fn(split_batch, batch_idx, opt_idx, hiddens)
-        backward_fn = self._make_backward_fn(batch_idx, optimizer, opt_idx)
+        backward_fn = self._make_backward_fn(optimizer, opt_idx)
         zero_grad_fn = self._make_zero_grad_fn(batch_idx, opt_idx, optimizer)
 
         return Closure(
@@ -258,12 +253,7 @@ class TrainingBatchLoop(Loop):
         ):
             return zero_grad_fn
 
-    def _make_backward_fn(
-        self,
-        batch_idx: int,
-        optimizer: Optimizer,
-        opt_idx: int,
-    ) -> Optional[Callable[[Tensor], Tensor]]:
+    def _make_backward_fn(self, optimizer: Optimizer, opt_idx: int) -> Optional[Callable[[Tensor], Tensor]]:
         """
         Build a `backward` function that handles back-propagation through the output produced by the `training_step`
         function. Returns ``None`` in the case backward needs to be skipped, e.g., when manual optimization is on.
@@ -271,10 +261,6 @@ class TrainingBatchLoop(Loop):
 
         def backward_fn(loss: Tensor):
             self.backward(loss, optimizer, opt_idx)
-
-            # when in dev debugging track the losses
-            # TODO: remove dev debugger tracking loss history
-            self.trainer.dev_debugger.track_train_loss_history(batch_idx, loss)
 
             # check if loss or model weights are nan
             if self.trainer.terminate_on_nan:
@@ -284,19 +270,6 @@ class TrainingBatchLoop(Loop):
 
         if not self._skip_backward and self.trainer.lightning_module.automatic_optimization:
             return backward_fn
-
-    def _process_closure_result(self, opt_closure_result: Optional[ClosureResult]) -> None:
-        """Checks if the closure results is finite and optionally breaks if it is not
-
-        Args:
-            opt_closure_result: the result of the train step wrapped in an attribute dict
-        """
-        if not opt_closure_result:
-            return
-
-        # check if loss or model weights are nan
-        if self.trainer.terminate_on_nan:
-            check_finite_loss(self.trainer.lightning_module, opt_closure_result.loss)
 
     def _training_step(
         self, split_batch: Any, batch_idx: int, opt_idx: int, hiddens: Tensor
@@ -316,7 +289,9 @@ class TrainingBatchLoop(Loop):
         model_ref = self.trainer.lightning_module
 
         with self.trainer.profiler.profile("model_forward"):
-            step_kwargs = self._build_kwargs(split_batch, batch_idx, opt_idx, hiddens)
+            step_kwargs = _build_training_step_kwargs(
+                model_ref, self.trainer.optimizers, split_batch, batch_idx, opt_idx, hiddens
+            )
 
             # manually capture logged metrics
             model_ref._current_fx_name = "training_step"
@@ -460,28 +435,6 @@ class TrainingBatchLoop(Loop):
             model = self.trainer.lightning_module
             model.untoggle_optimizer(opt_idx)
 
-    @contextmanager
-    def block_ddp_sync_behaviour(self, should_block_sync: bool = False) -> Generator[None, None, None]:
-        """
-        automatic_optimization = True
-        Blocks ddp sync gradients behaviour on backwards pass.
-        This is useful for skipping sync when accumulating gradients, reducing communication overhead
-
-        automatic_optimization = False
-        do not block ddp gradient sync when using manual optimization
-        as gradients are needed within the training step
-
-        Returns:
-            context manager with sync behaviour off
-        """
-        if isinstance(self.trainer.training_type_plugin, ParallelPlugin) and (
-            self.trainer.lightning_module.automatic_optimization or should_block_sync
-        ):
-            with self.trainer.training_type_plugin.block_backward_sync():
-                yield None
-        else:
-            yield None
-
     def backward(
         self,
         loss: Tensor,
@@ -540,46 +493,3 @@ class TrainingBatchLoop(Loop):
         # find optimzier index by looking for the first {item > current_place} in the cumsum list
         opt_idx = int(np.argmax(self.optimizer_freq_cumsum > current_place_in_loop))
         return [(opt_idx, self.trainer.optimizers[opt_idx])]
-
-    def _build_kwargs(self, batch: Any, batch_idx: int, opt_idx: int, hiddens: Optional[Tensor]) -> Dict[str, Any]:
-        """Builds the keyword arguments for training_step
-
-        Args:
-            batch: the batch to train on
-            batch_idx: the index of the current batch
-            opt_idx: the index of the current optimizer
-            hiddens: the hidden state of the previous RNN iteration
-
-        Returns:
-            the keyword arguments for the training step
-        """
-        # enable not needing to add opt_idx to training_step
-        step_kwargs = OrderedDict([("batch", batch)])
-
-        lightning_module = self.trainer.lightning_module
-        training_step_fx = getattr(lightning_module, "training_step")
-
-        if is_param_in_hook_signature(training_step_fx, "batch_idx", min_args=2):
-            step_kwargs["batch_idx"] = batch_idx
-
-        if len(self.trainer.optimizers) > 1:
-            has_opt_idx_in_train_step = is_param_in_hook_signature(training_step_fx, "optimizer_idx")
-            if has_opt_idx_in_train_step:
-                if not lightning_module.automatic_optimization:
-                    raise ValueError(
-                        "Your `LightningModule.training_step` signature contains an `optimizer_idx` argument but"
-                        " in manual optimization optimizers must be handled by the user. Remove the optimizer_idx"
-                        " argument or set `self.automatic_optimization = True`."
-                    )
-                step_kwargs["optimizer_idx"] = opt_idx
-            elif not has_opt_idx_in_train_step and lightning_module.automatic_optimization:
-                raise ValueError(
-                    f"Your LightningModule defines {len(self.trainer.optimizers)} optimizers but"
-                    " `training_step` is missing the `optimizer_idx` argument."
-                )
-
-        # pass hiddens if using tbptt
-        if self.trainer.lightning_module.truncated_bptt_steps > 0:
-            step_kwargs["hiddens"] = hiddens
-
-        return step_kwargs

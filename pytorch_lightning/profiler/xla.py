@@ -69,7 +69,7 @@ class XLAProfiler(BaseProfiler):
         This Profiler will help you debug and optimize training workload performance
         for your models using Cloud TPU performance tools.
         """
-        super().__init__(dirpath=None, filename=None, output_filename=None)
+        super().__init__(dirpath=None, filename=None)
         self.port = port
         self._recording_map: Dict = {}
         self._step_recoding_map: Dict = {}

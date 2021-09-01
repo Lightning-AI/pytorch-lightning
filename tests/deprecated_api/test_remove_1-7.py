@@ -139,3 +139,9 @@ def test_v1_7_0_on_interrupt(tmpdir):
         match="The `on_keyboard_interrupt` callback hook was deprecated in v1.5 and will be removed in v1.7"
     ):
         trainer.fit(model)
+
+
+
+def test_v1_7_0_process_position_trainer_constructor(tmpdir):
+    with pytest.deprecated_call(match=r"Setting `Trainer\(process_position=5\)` is deprecated in v1.5"):
+        _ = Trainer(process_position=5)

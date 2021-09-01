@@ -276,6 +276,10 @@ class Callback(abc.ABC):
         """Called when any trainer execution is interrupted by an exception."""
         pass
 
+    def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: BaseException) -> None:
+        """Called when any trainer execution is interrupted by an exception."""
+        pass
+
     def on_save_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
     ) -> dict:
