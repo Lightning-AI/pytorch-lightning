@@ -69,7 +69,7 @@ class TrainerDataLoadingMixin(ABC):
         if not isinstance(dataloader, DataLoader):
             return
 
-        using_spawn = self.accelerator_connector.distributed_backend == "ddp_spawn"
+        using_spawn = self.accelerator_connector.accelerator == "ddp_spawn"
         num_cpus = multiprocessing.cpu_count()
 
         # ddp_spawn + num_workers > 0 don't mix! tell the user
