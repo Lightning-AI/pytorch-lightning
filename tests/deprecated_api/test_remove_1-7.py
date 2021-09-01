@@ -116,3 +116,8 @@ def test_v1_7_0_deprecated_on_train_dataloader(tmpdir):
 def test_v1_7_0_test_tube_logger(_, tmpdir):
     with pytest.deprecated_call(match="The TestTubeLogger is deprecated since v1.5 and will be removed in v1.7"):
         _ = TestTubeLogger(tmpdir)
+
+
+def test_v1_7_0_process_position_trainer_constructor(tmpdir):
+    with pytest.deprecated_call(match=r"Setting `Trainer\(process_position=5\)` is deprecated in v1.5"):
+        _ = Trainer(process_position=5)

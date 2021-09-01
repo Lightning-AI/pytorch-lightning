@@ -62,6 +62,7 @@ class FxValidator:
         on_predict_batch_start=None,
         on_predict_batch_end=None,
         on_keyboard_interrupt=None,
+        on_exception=None,
         on_save_checkpoint=None,
         on_load_checkpoint=None,
         setup=None,
