@@ -372,13 +372,13 @@ def test_deepspeed_custom_activation_checkpointing_params(tmpdir):
 
 @RunIf(min_gpus=1, deepspeed=True)
 def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_config):
-    """Ensure if we use a config and turn off cpu_offload, that this is set to False within the config."""
+    """Ensure if we use a config and turn off offload_optimizer, that this is set to False within the config."""
 
-    deepspeed_zero_config["zero_optimization"]["cpu_offload"] = False
+    deepspeed_zero_config["zero_optimization"]["offload_optimizer"] = False
 
     class TestCallback(Callback):
         def on_before_accelerator_backend_setup(self, trainer, pl_module) -> None:
-            assert trainer.training_type_plugin.config["zero_optimization"]["cpu_offload"] is False
+            assert trainer.training_type_plugin.config["zero_optimization"]["offload_optimizer"] is False
             raise SystemExit()
 
     model = BoringModel()

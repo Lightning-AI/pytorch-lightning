@@ -834,10 +834,10 @@ def test_nan_params_detection(tmpdir):
     assert not torch.isfinite(params).all()
 
 
-def test_trainer_interrupted_flag(tmpdir):
-    """Test the flag denoting that a user interrupted training."""
+def test_on_exception_hook(tmpdir):
+    """Test the on_exception callback hook and the trainer interrupted flag."""
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     class InterruptCallback(Callback):
         def __init__(self):
@@ -846,10 +846,17 @@ def test_trainer_interrupted_flag(tmpdir):
         def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
             raise KeyboardInterrupt
 
+        def on_test_start(self, trainer, pl_module):
+            raise MisconfigurationException
+
     class HandleInterruptCallback(Callback):
         def __init__(self):
             super().__init__()
+            self.exception = None
             self.exc_info = None
+
+        def on_exception(self, trainer, pl_module, exception):
+            self.exception = exception
 
         def on_keyboard_interrupt(self, trainer, pl_module):
             self.exc_info = sys.exc_info()
@@ -867,10 +874,16 @@ def test_trainer_interrupted_flag(tmpdir):
         default_root_dir=tmpdir,
     )
     assert not trainer.interrupted
+    assert handle_interrupt_callback.exception is None
     assert handle_interrupt_callback.exc_info is None
     trainer.fit(model)
     assert trainer.interrupted
+    assert isinstance(handle_interrupt_callback.exception, KeyboardInterrupt)
     assert isinstance(handle_interrupt_callback.exc_info[1], KeyboardInterrupt)
+    with pytest.raises(MisconfigurationException):
+        trainer.test(model)
+    assert trainer.interrupted
+    assert isinstance(handle_interrupt_callback.exception, MisconfigurationException)
 
 
 @pytest.mark.parametrize(
