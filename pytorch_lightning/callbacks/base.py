@@ -268,7 +268,7 @@ class Callback(abc.ABC):
         .. deprecated:: v1.5
             This callback hook was deprecated in v1.5 in favor of `on_exception` and will be removed in v1.7.
 
-        Called when any trainer execution is interrupted by ``KeyboardInterrupt``.
+        Called when any trainer execution is interrupted by KeyboardInterrupt.
         """
         pass
 
