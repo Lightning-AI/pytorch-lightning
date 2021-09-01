@@ -74,8 +74,6 @@ def test_ddp_spawn_extra_parameters(tmpdir):
     val_name: str = "val_acc"
     model = BoringCallbackDDPSpawnModel(val_name, val)
     dm = BoringDataModule()
-    # TODO(@daniellepintz): delete pytest.deprecated_call in v1.7
-    with pytest.deprecated_call(match=r"DataModule property `dims` was deprecated in v1.5"):
-        trainer.fit(model, datamodule=dm)
+    trainer.fit(model, datamodule=dm)
     assert trainer.callback_metrics[val_name] == torch.tensor(val)
     assert model.test_val == "test_val"

@@ -19,6 +19,7 @@ from pytorch_lightning import LightningDataModule
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
+from tests.helpers.runif import RunIf
 
 
 def test_v1_7_0_deprecated_lightning_module_summarize(tmpdir):
@@ -80,3 +81,13 @@ def test_v1_7_0_datamodule_dims_property(tmpdir):
         _ = dm.dims
     with pytest.deprecated_call(match=r"DataModule property `dims` was deprecated in v1.5"):
         _ = LightningDataModule(dims=(1, 1, 1))
+
+
+@RunIf(min_gpus=2)
+def test_v1_7_0_deprecate_add_get_queue(tmpdir):
+    """Tests if device is set correctly when training for DDPSpawnPlugin."""
+    with pytest.deprecated_call(match=r"`LightningModule.add_to_queue` method was deprecated in v1.5"):
+        _ = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, accelerator="ddp_spawn")
+
+    with pytest.deprecated_call(match=r"`LightningModule.get_from_queue` method was deprecated in v1.5"):
+        _ = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, accelerator="ddp_spawn")

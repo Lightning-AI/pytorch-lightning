@@ -30,6 +30,7 @@ from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
 
+from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -1954,7 +1955,8 @@ class LightningModule(
             `pytorch_lightning.plugins.training_type.ddp_spawn.add_to_queue`
             and will be removed in v1.7.
         """
-        self.trainer.training_type_plugin.add_to_queue(self.trainer, queue)
+        if type(self.trainer.training_type_plugin) == DDPSpawnPlugin:
+            self.trainer.training_type_plugin.add_to_queue(self.trainer, queue)
 
     def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
         """
@@ -1969,7 +1971,8 @@ class LightningModule(
             `pytorch_lightning.plugins.training_type.ddp_spawn.get_from_queue`
             and will be removed in v1.7.
         """
-        self.trainer.training_type_plugin.get_from_queue(self.trainer, queue)
+        if type(self.trainer.training_type_plugin) == DDPSpawnPlugin:
+            self.trainer.training_type_plugin.get_from_queue(self.trainer, queue)
 
     @contextmanager
     def _prevent_trainer_and_dataloaders_deepcopy(self) -> None:
