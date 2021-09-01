@@ -124,9 +124,6 @@ class DeepSpeedPlugin(DDPPlugin):
         contiguous_memory_optimization: bool = False,
         synchronize_checkpoint_boundary: bool = False,
         load_full_weights: bool = False,
-        cpu_offload: bool = False,
-        cpu_offload_params: bool = False,
-        cpu_offload_use_pin_memory: bool = False,
     ) -> None:
         """
         Provides capabilities to run training using the DeepSpeed library,
@@ -262,17 +259,6 @@ class DeepSpeedPlugin(DDPPlugin):
             raise MisconfigurationException(
                 "To use the DeepSpeed plugin, you must have DeepSpeed installed. pip install deepspeed"
             )
-
-        if cpu_offload or cpu_offload_params or cpu_offload_use_pin_memory:
-            _warn(
-                "The usage of `cpu_offload`, `cpu_offload_params`, and `cpu_offload_use_pin_memory` "
-                "is deprecated since v1.4 and will be removed in v1.5."
-                " From now on use `offload_optimizer`, `offload_parameters` and `pin_memory`.",
-                category=LightningDeprecationWarning,
-            )
-            offload_optimizer = cpu_offload
-            offload_parameters = cpu_offload_params
-            pin_memory = cpu_offload_use_pin_memory
 
         super().__init__(
             parallel_devices=parallel_devices,
