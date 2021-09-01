@@ -27,22 +27,23 @@ def load(
     map_location: Optional[
         Union[str, Callable, torch.device, Dict[Union[str, torch.device], Union[str, torch.device]]]
     ] = None,
+    **storage_options
 ) -> Any:
     if not isinstance(path_or_url, (str, Path)):
         # any sort of BytesIO or similiar
         return torch.load(path_or_url, map_location=map_location)
     if str(path_or_url).startswith("http"):
         return torch.hub.load_state_dict_from_url(str(path_or_url), map_location=map_location)
-    fs = get_filesystem(path_or_url)
+    fs = get_filesystem(path_or_url, **storage_options)
     with fs.open(path_or_url, "rb") as f:
         return torch.load(f, map_location=map_location)
 
 
-def get_filesystem(path: Union[str, Path]) -> AbstractFileSystem:
+def get_filesystem(path: Union[str, Path], **storage_options) -> AbstractFileSystem:
     path = str(path)
     if "://" in path:
         # use the fileystem from the protocol specified
-        return fsspec.filesystem(path.split(":", 1)[0])
+        return fsspec.filesystem(path.split(":", 1)[0], **storage_options)
     # use local filesystem
     return LocalFileSystem()
 
