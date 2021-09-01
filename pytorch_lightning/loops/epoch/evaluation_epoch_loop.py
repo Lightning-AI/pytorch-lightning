@@ -233,3 +233,7 @@ class EvaluationEpochLoop(Loop):
         if self.trainer.testing:
             return is_overridden("test_epoch_end", model)
         return is_overridden("validation_epoch_end", model)
+
+    def teardown(self) -> None:
+        # in case the model changes
+        self._should_track_batch_outputs_for_epoch_end.cache_clear()
