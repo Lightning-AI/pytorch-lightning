@@ -424,12 +424,9 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         obj.setup = cls._track_data_hook_calls(obj, obj.setup)
         obj.teardown = cls._track_data_hook_calls(obj, obj.teardown)
 
-        # mro defines the resolution order of superclasses during inheritance for a method call.
-        # We check that LightningDataModule is immediately next in line to the subclass 'cls',
-        # to make sure not to initialize any other subclass.
-        mro = cls.mro()
-        if mro[mro.index(cls) + 1] == LightningDataModule:
-            super(cls, obj).__init__()
+        # calling LightningDataModule.__init__ on obj, to ensure in all cases of inheritance it is called,
+        # even if explicit call to super().__init__ hasn't been made
+        LightningDataModule.__init__(obj)
         return obj
 
     @staticmethod

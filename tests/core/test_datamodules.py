@@ -27,7 +27,7 @@ from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
-from tests.helpers.datamodules import ClassifDataModule, SklearnDataModule
+from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
 from tests.helpers.utils import reset_seed
@@ -564,24 +564,37 @@ def test_define_as_dataclass():
     assert hasattr(BoringDataModule2, "__repr__")
     assert BoringDataModule2(batch_size=32) == BoringDataModule2(batch_size=32)
 
-    # checks that empty super().__init__ call isn't made in case LightningDataModule isn't the direct parent
-    # of the defined class.
+    # checking for all the different multilevel inhertiance scenarios, for init call on LightningDataModule
     @dataclass
-    class BoringDataModule3(SklearnDataModule):
-        num_features: int = 32
-        length: int = 800
-        num_classes: int = 3
-        batch_size: int = 2
+    class BoringModuleBase1(LightningDataModule):
+        num_features: int
 
-        def __post_init__(self):
-            super().__init__(
-                (torch.zeros((4, 2)), torch.zeros((4,))),
-                x_type=torch.float32,
-                y_type=torch.long,
-                batch_size=self.batch_size,
-            )
+    class BoringModuleBase2(LightningDataModule):
+        def __init__(self, num_features: int):
+            self.num_features = num_features
 
-    assert BoringDataModule3()
+    @dataclass
+    class BoringModuleDerived1(BoringModuleBase1):
+        ...
+
+    class BoringModuleDerived2(BoringModuleBase1):
+        def __init__(self):
+            ...
+
+    @dataclass
+    class BoringModuleDerived3(BoringModuleBase2):
+        ...
+
+    class BoringModuleDerived4(BoringModuleBase2):
+        def __init__(self):
+            ...
+
+    hasattr(BoringModuleBase1(num_features=2), "_has_prepared_data")
+    hasattr(BoringModuleBase2(num_features=2), "_has_prepared_data")
+    hasattr(BoringModuleDerived1(num_features=2), "_has_prepared_data")
+    hasattr(BoringModuleDerived2(), "_has_prepared_data")
+    hasattr(BoringModuleDerived3(), "_has_prepared_data")
+    hasattr(BoringModuleDerived4(), "_has_prepared_data")
 
 
 def test_inconsistent_prepare_data_per_node(tmpdir):
