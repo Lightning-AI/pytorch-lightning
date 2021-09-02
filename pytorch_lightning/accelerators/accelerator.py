@@ -21,9 +21,8 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins import DataParallelPlugin
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
-from pytorch_lightning.plugins.training_type import TrainingTypePlugin
+from pytorch_lightning.plugins.training_type import TrainingTypePlugin, DataParallelPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
