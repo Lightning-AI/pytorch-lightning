@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import pickle
 import unittest
 from collections import namedtuple
 from unittest.mock import call, MagicMock, patch
@@ -25,7 +26,7 @@ from tests.helpers import BoringModel
 
 
 class Run:
-    _short_id = "foo"
+    _short_id = "TEST-42"
 
     def __setitem__(self, key, value):
         # called once
@@ -39,7 +40,12 @@ class Run:
     def __getitem__(self, item):
         # called once
         assert item == "sys/name"
-        return MagicMock()
+        return MagicMock(
+            fetch=MagicMock(return_value="Test name")
+        )
+
+    def __getstate__(self):
+        raise pickle.PicklingError("Runs are unpickleable")
 
 
 @pytest.fixture
@@ -82,6 +88,13 @@ class TestNeptuneLogger(unittest.TestCase):
         self.assertEqual(logger._run_instance, created_run)
         self.assertEqual(logger.version, created_run._short_id)
         self.assertEqual(neptune.init.call_count, 0)
+
+    @patch("pytorch_lightning.loggers.neptune.Run", Run)
+    def test_neptune_pickling(self, neptune):
+        unpickleable_run = Run()
+        logger = NeptuneLogger(run=unpickleable_run)
+
+        pickle.dumps(logger)
 
     @patch("pytorch_lightning.loggers.neptune.Run", Run)
     def test_online_with_wrong_kwargs(self, neptune):
