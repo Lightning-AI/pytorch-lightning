@@ -589,9 +589,9 @@ class CombinedLoaderIterator:
             # along side with the user data.
             # the metadata are extracted and store directly on the iterator
             # to simplify the collection on `state_dict` call.
-            batch, samplers_state_dict = CaptureIterableDataset.extract_samplers_state_dict_from_batch(batch)
+            # batch, samplers_state_dict = CaptureIterableDataset.extract_samplers_state_dict_from_batch(batch)
             # store the `sampler_state_dict` on the iterator
-            CaptureIterableDataset.store_samplers_state_dict(iterator, samplers_state_dict)
+            # CaptureIterableDataset.store_samplers_state_dict(iterator, samplers_state_dict)
             return batch
 
         return apply_to_collection(loader_iters, Iterator, next_fn)
