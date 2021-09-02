@@ -149,8 +149,7 @@ You can always use regular logger methods: ``log_metrics()`` and ``log_hyperpara
 .. seealso::
     :class:`~pytorch_lightning.loggers.NeptuneLogger` docs.
 
-    User guide in
-    `Neptune docs <https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning>`_.
+    Logger `user guide <https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning>`_.
 
 ----------------
 
