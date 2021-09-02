@@ -13,8 +13,9 @@
 # limitations under the License.
 """ Test deprecated functionality which will be removed in v1.7.0 """
 from unittest import mock
-import torch
+
 import pytest
+import torch
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.loggers import TestTubeLogger
