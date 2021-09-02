@@ -34,7 +34,7 @@ from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
-from pytorch_lightning.plugins import DDPSpawnPlugin
+from pytorch_lightning.plugins.training_type import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
 from pytorch_lightning.utilities import _TORCH_SHARDED_TENSOR_AVAILABLE, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
