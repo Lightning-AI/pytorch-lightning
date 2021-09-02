@@ -133,9 +133,18 @@ The :class:`~pytorch_lightning.loggers.NeptuneLogger` is available anywhere exce
 
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
-            # generic recipe for logging custom metadata
+            # generic recipe for logging custom metadata (neptune specific)
             metadata = ...
             self.logger.experiment["your/metadata/structure"].log(metadata)
+
+Note that syntax: ``self.logger.experiment["your/metadata/structure"].log(metadata)``
+is specific to Neptune and it extends logger capabilities.
+Specifically, it allows you to log various types of metadata like scores, files,
+images, interactive visuals, CSVs, etc. Refer to the
+`Neptune docs <https://docs.neptune.ai/you-should-know/logging-metadata#essential-logging-methods>`_
+for more detailed explanations.
+
+You can always use regular logger methods: ``log_metrics()`` and ``log_hyperparams()`` as these are also supported.
 
 .. seealso::
     :class:`~pytorch_lightning.loggers.NeptuneLogger` docs.
