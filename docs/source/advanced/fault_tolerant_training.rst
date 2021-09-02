@@ -51,7 +51,7 @@ If you are using a single map-based dataset by sub-classing :class:`~torch.utils
         def __len__(self):
             return self.len
 
-If you are using a single iterable-based dataset, there are some limitations. To support fault-tolerancy, you will need to use and expose a sampler within your dataset.
+If you are using a single iterable-based dataset, there are some limitations. To support fault-tolerance, you will need to use and expose a sampler within your dataset.
 
 For example, the following implementation for an iterable dataset sub-classing :class:`~torch.utils.data.IterableDataset` won't be supported.
 
