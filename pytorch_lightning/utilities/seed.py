@@ -48,13 +48,15 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
     max_seed_value = np.iinfo(np.uint32).max
     min_seed_value = np.iinfo(np.uint32).min
 
-    if seed is None:
-        global_seed = os.environ.get("PL_GLOBAL_SEED")
-        if isinstance(global_seed, str) and all(char.isdigit() for char in global_seed):
-            seed = int(global_seed)
-        else:
-            rank_zero_warn(f"No correct seed found, seed set to {seed}")
-            seed = _select_seed_randomly(max_seed_value, max_seed_value)
+    try:
+        # Mypy typing is ignored below as the code simplicity is prefered to mypy correctness. Also, possible errors
+        # are handled by the exception.
+        if seed is None:
+            seed = os.environ.get("PL_GLOBAL_SEED")  # type: ignore
+        seed = int(seed)  # type: ignore
+    except (TypeError, ValueError):
+        seed = _select_seed_randomly(min_seed_value, max_seed_value)
+        rank_zero_warn(f"No correct seed found, seed set to {seed}")
 
     if not (min_seed_value <= seed <= max_seed_value):
         rank_zero_warn(f"{seed} is not in bounds, numpy accepts from {min_seed_value} to {max_seed_value}")
