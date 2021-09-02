@@ -888,8 +888,14 @@ class SequentialIterableDataset(IterableDataset):
         return self
 
     def __next__(self):
-        indice = next(self.sampler_iter)
-        return torch.tensor([indice]).float()
+        indices = next(self.sampler_iter)
+        return torch.tensor([indices]).float()
+
+
+class SequentialDictIterableDataset(SequentialIterableDataset):
+    def __next__(self):
+        indices = next(self.sampler_iter)
+        return {"data": torch.tensor([indices]).float()}
 
 
 class TestModel(LightningModule):
@@ -902,6 +908,7 @@ class TestModel(LightningModule):
     def training_step(self, batch, batch_idx):
         if self.global_step == self.fail_on_step:
             raise CustomException()
+        batch = batch["data"] if isinstance(batch, dict) else batch
         self.seen_batches.append(torch.stack(batch) if isinstance(batch, list) else batch)
         loss = sum(self.layer(b).sum() for b in batch)
         return loss
@@ -931,6 +938,7 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1):
         # single training dataset
         [RandomGetItemDataset],
         [SequentialIterableDataset],
+        [SequentialDictIterableDataset],
         # multiple training datasets (combinded dataloader)
         [SequentialGetItemDataset, SequentialIterableDataset],
         [SequentialIterableDataset, SequentialIterableDataset],
