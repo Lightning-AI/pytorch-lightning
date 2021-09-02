@@ -70,7 +70,7 @@ For example, the following implementation for an iterable dataset sub-classing :
                 yield torch.randn(self.size)
 
 
-There is 2 primary reasons why Lightning can't support the previous implementation.
+There are two primary reasons why Lightning can't support the previous implementation.
 
 First, Lightning can't infer what you are iterating over.
 Right now, Lightning Fault Tolerant Training requires a :class:`~torch.utils.data.distributed.Sampler` to be used
