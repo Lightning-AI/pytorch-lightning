@@ -551,6 +551,7 @@ def test_hyperparameters_saving():
     data = DataModuleWithHparams_1({"hello": "world"}, "foo", kwarg0="bar")
     assert data.hparams == AttributeDict({"hello": "world"})
 
+
 def test_inconsistent_prepare_data_per_node(tmpdir):
     with pytest.raises(MisconfigurationException, match="Inconsistent settings found for `prepare_data_per_node`."):
         model = BoringModel()
