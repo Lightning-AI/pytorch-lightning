@@ -31,7 +31,7 @@ What does Lightning do exactly ?
 Currently supported
 -------------------
 
-If you are using a single map-based dataset, everything should work as expected.
+If you are using a single map-based dataset by sub-classing :class:`~torch.utils.data.Dataset`, everything should work as expected.
 
 .. code-block:: python
 
@@ -51,7 +51,7 @@ If you are using a single map-based dataset, everything should work as expected.
 
 If you are using a single iterable-based dataset, there is some limitations. You need to use and expose a sampler within your dataset.
 
-This won't be supported as Lightning can't infer you are iterating over count.
+For example, the following implementation for an iterable dataset sub-classing :class:`~torch.utils.data.IterableDataset` won't be supported.
 
 .. code-block:: python
 
@@ -68,11 +68,17 @@ This won't be supported as Lightning can't infer you are iterating over count.
                 yield torch.randn(self.size)
 
 
-A :class:`~torch.utils.data.distributed.Sampler` should always be used to encapsulate the fetching logic
-and both the sampler and its iterator should be made available as attributes on the dataset,
+There is 2 primary reasons why Lightning can't support the previous implementation.
+
+First, Lightning can't infer what you are iterating over.
+Right now, Lightning Fault Tolerant Training requires a :class:`~torch.utils.data.distributed.Sampler` to be used
+to encapsulate the fetching logic and both the sampler and its iterator should be made available as attributes on the dataset,
 so Lightning can access them to track progress.
 
-Here is the recommended way to implement your iterable dataset:
+Secondly, implementing the `__next__` method is required as it separates iterator creation from its consumption,
+    which is essential for Lightning to wrap the iterator before their consumption.
+
+If your iterable dataset are implemented in the following way, everything should works as expected.
 
 .. code-block:: python
 
@@ -83,20 +89,24 @@ Here is the recommended way to implement your iterable dataset:
     class RandomIterableDataset(IterableDataset):
         def __init__(self, size: int, length: int):
             self.data = torch.randn(length, size)
+
+            # expose the sampler as an attribute
             self.sampler = RandomSampler(range(length))
 
         def __iter__(self) -> "RandomIterableDataset":
+            # expose the generator from the sampler as an attribute
+            # the ``sampler_iter`` will be wrapped by Lightning to ensure
+            # we can capture random seeds and iteration count for fast-forward samplers
+            # while restarting.
             self.sampler_iter = iter(self.sampler)
             return self
 
         def __next__(self) -> torch.Tensor:
+            # call next on the iterator and get the associated data.
+            # the logic here can become more complex but the sampler
+            # should be the central piece for fetching the next sample
             index = next(self.sampler_iter)
             return self.data[index]
-
-.. note::
-
-    Implementing the `__next__` method has the advantage of separating the iterator creation from its consumption,
-    which is essential for Lightning to properly capture progress.
 
 
 The current known limitations
