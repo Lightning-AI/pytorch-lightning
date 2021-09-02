@@ -2,9 +2,9 @@ from typing import Any, Optional, Tuple
 
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.utilities import (
+    _build_training_step_kwargs,
     _check_training_step_output,
     _process_training_step_output,
-    _build_training_step_kwargs,
 )
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 
