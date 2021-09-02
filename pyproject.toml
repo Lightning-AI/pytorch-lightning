@@ -76,5 +76,6 @@ module = [
     "pytorch_lightning.utilities.memory",
     "pytorch_lightning.utilities.parsing",
     "pytorch_lightning.utilities.xla_device",
+    "pytorch_lightning.tuner.auto_gpu_select",
 ]
 ignore_errors = "False"

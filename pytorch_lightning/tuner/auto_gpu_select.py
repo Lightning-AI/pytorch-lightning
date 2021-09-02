@@ -16,7 +16,7 @@ import torch
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-def pick_multiple_gpus(nb):
+def pick_multiple_gpus(nb: int) -> list[int]:
     """
     Raises:
         MisconfigurationException:
@@ -37,7 +37,7 @@ def pick_multiple_gpus(nb):
     return picked
 
 
-def pick_single_gpu(exclude_gpus: list):
+def pick_single_gpu(exclude_gpus: list[int]) -> int:
     """
     Raises:
         RuntimeError:
