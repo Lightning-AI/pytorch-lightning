@@ -64,7 +64,7 @@ module = [
     "pytorch_lightning.callbacks.pruning",
     "pytorch_lightning.loops.closure",
     "pytorch_lightning.trainer.evaluation_loop",
-    "pytorch_lightning.trainer.connectors.logger_connector.logger_connector",
+    "pytorch_lightning.trainer.connectors.logger_connector.*",
     "pytorch_lightning.utilities.apply_func",
     "pytorch_lightning.utilities.argparse",
     "pytorch_lightning.utilities.cli",
