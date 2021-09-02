@@ -144,7 +144,7 @@ class ModelIO:
             # overwrite hparams by the given file (if they exist in the checkpoint)
             if cls.CHECKPOINT_HYPER_PARAMS_KEY not in checkpoint:
                 checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY] = {}
-            checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY].update(hparams)    
+            checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY].update(hparams)
 
         # for past checkpoint need to add the new key
         if cls.CHECKPOINT_HYPER_PARAMS_KEY not in checkpoint:
