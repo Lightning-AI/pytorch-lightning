@@ -849,7 +849,6 @@ def test_detect_anomaly_nan(tmpdir):
             trainer.fit(model)
 
 
-
 def test_on_exception_hook(tmpdir):
     """Test the on_exception callback hook and the trainer interrupted flag."""
 
