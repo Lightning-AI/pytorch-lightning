@@ -193,7 +193,6 @@ class OptimizationProgress(BaseProgress):
 
     def reset_on_epoch(self) -> None:
         self.optimizer.reset_on_epoch()
-        self.optimizer_idx = 0
 
     def load_state_dict(self, state_dict: dict) -> None:
         self.optimizer.load_state_dict(state_dict["optimizer"])
