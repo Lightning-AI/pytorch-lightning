@@ -99,7 +99,7 @@ def garbage_collection_cuda() -> None:
             raise
 
 
-def get_memory_profile(mode: str) -> Union[Dict[str, float]]:
+def get_memory_profile(mode: str) -> Dict[str, float]:
     """Get a profile of the current memory usage.
 
     Args:
