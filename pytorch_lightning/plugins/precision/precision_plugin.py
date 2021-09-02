@@ -110,16 +110,14 @@ class PrecisionPlugin(CheckpointHooks):
 
     def _track_and_norm_grad(self, trainer: "pl.Trainer") -> None:
         """Tracks the model's gradient norms."""
-        # FIXME: do we need `can_log`?
-        can_log = (trainer.global_step + 1) % trainer.log_every_n_steps == 0
-        should_track = float(trainer.track_grad_norm) > 0
-        if should_track and can_log:
-            grad_norm_dict = grad_norm(trainer.lightning_module, trainer.track_grad_norm)
-            if grad_norm_dict:
-                prev_fx = trainer.lightning_module._current_fx_name
-                trainer.lightning_module._current_fx_name = "on_before_optimizer_step"
-                trainer.lightning_module.log_grad_norm(grad_norm_dict)
-                trainer.lightning_module._current_fx_name = prev_fx
+        if float(trainer.track_grad_norm) < 0:
+            return
+        grad_norm_dict = grad_norm(trainer.lightning_module, trainer.track_grad_norm)
+        if grad_norm_dict:
+            prev_fx = trainer.lightning_module._current_fx_name
+            trainer.lightning_module._current_fx_name = "on_before_optimizer_step"
+            trainer.lightning_module.log_grad_norm(grad_norm_dict)
+            trainer.lightning_module._current_fx_name = prev_fx
 
     def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int) -> None:
         """Hook to do something after each optimizer step."""

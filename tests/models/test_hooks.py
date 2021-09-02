@@ -236,7 +236,7 @@ class HookedModel(BoringModel):
         super().__init__()
         pl_module_hooks = get_members(LightningModule)
         # remove non-hooks
-        pl_module_hooks.difference_update({"optimizers"})
+        pl_module_hooks.difference_update({"optimizers", "log", "log_dict"})
         # remove most `nn.Module` hooks
         module_hooks = get_members(torch.nn.Module)
         module_hooks.difference_update({"forward", "zero_grad", "train"})
@@ -280,6 +280,7 @@ class HookedModel(BoringModel):
         using_plugin = kwargs.get("amp_backend") or kwargs.get("plugins")
         out = []
         on_before_optimizer_step = [
+            dict(name="log_grad_norm", args=ANY),
             dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY, 0)),
             dict(name="on_before_optimizer_step", args=(ANY, 0)),
         ]
@@ -343,6 +344,7 @@ class HookedModel(BoringModel):
                     dict(name="on_after_backward"),
                     # `manual_backward` calls the previous 3
                     dict(name="manual_backward", args=(ANY,)),
+                    dict(name="log_grad_norm", args=ANY),
                     dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY, 0)),
                     dict(name="on_before_optimizer_step", args=(ANY, 0)),
                     dict(name="training_step", args=(ANY, i)),
@@ -455,6 +457,7 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         progress_bar_refresh_rate=0,
         weights_summary=None,
         callbacks=[callback],
+        track_grad_norm=1,
         **kwargs,
     )
 
