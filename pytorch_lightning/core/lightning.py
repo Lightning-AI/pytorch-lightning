@@ -30,11 +30,11 @@ from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
 
+import pytorch_lightning as pl
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
-from pytorch_lightning.plugins.training_type import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
 from pytorch_lightning.utilities import _TORCH_SHARDED_TENSOR_AVAILABLE, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
@@ -1954,7 +1954,7 @@ class LightningModule(
             `DDPSpawnPlugin.add_to_queue`
             and will be removed in v1.7.
         """
-        if self.trainer and isinstance(self.trainer.training_type_plugin, DDPSpawnPlugin):
+        if self.trainer and isinstance(self.trainer.training_type_plugin, pl.plugins.training_type.DDPSpawnPlugin):
             self.trainer.training_type_plugin.add_to_queue(self.trainer, queue)
 
     def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
@@ -1970,7 +1970,7 @@ class LightningModule(
             `DDPSpawnPlugin.get_from_queue`
             and will be removed in v1.7.
         """
-        if self.trainer and isinstance(self.trainer.training_type_plugin, DDPSpawnPlugin):
+        if self.trainer and isinstance(self.trainer.training_type_plugin, pl.plugins.training_type.DDPSpawnPlugin):
             self.trainer.training_type_plugin.get_from_queue(self.trainer, queue)
 
     @contextmanager
