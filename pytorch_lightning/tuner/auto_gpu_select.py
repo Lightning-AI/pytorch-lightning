@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
+from typing import List
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-def pick_multiple_gpus(nb: int) -> list[int]:
+def pick_multiple_gpus(nb: int) -> List[int]:
     """
     Raises:
         MisconfigurationException:
@@ -37,7 +38,7 @@ def pick_multiple_gpus(nb: int) -> list[int]:
     return picked
 
 
-def pick_single_gpu(exclude_gpus: list[int]) -> int:
+def pick_single_gpu(exclude_gpus: List[int]) -> int:
     """
     Raises:
         RuntimeError:
