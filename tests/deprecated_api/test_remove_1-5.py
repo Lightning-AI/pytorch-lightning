@@ -15,20 +15,6 @@
 import pytest
 
 from pytorch_lightning import Trainer
-from tests.deprecated_api import no_deprecated_call
-from tests.helpers import BoringDataModule, BoringModel
-
-
-def test_v1_5_0_datamodule_setter():
-    model = BoringModel()
-    datamodule = BoringDataModule()
-    with no_deprecated_call(match="The `LightningModule.datamodule`"):
-        model.datamodule = datamodule
-    from pytorch_lightning.core.lightning import warning_cache
-
-    warning_cache.clear()
-    _ = model.datamodule
-    assert any("The `LightningModule.datamodule`" in w for w in warning_cache)
 
 
 def test_v1_5_0_distributed_backend_trainer_flag():

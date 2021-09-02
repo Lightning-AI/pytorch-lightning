@@ -66,7 +66,6 @@ class LightningModule(
     # since none of these are important when using JIT, we are going to ignore them.
     __jit_unused_properties__ = (
         [
-            "datamodule",
             "example_input_array",
             "on_gpu",
             "current_epoch",
@@ -104,7 +103,6 @@ class LightningModule(
 
         # optionally can be set by user
         self._example_input_array = None
-        self._datamodule = None
         self._current_fx_name: Optional[str] = None
         self._current_dataloader_idx: Optional[int] = None
         self._automatic_optimization: bool = True
@@ -204,15 +202,6 @@ class LightningModule(
         return self.trainer.local_rank if self.trainer else 0
 
     @property
-    def datamodule(self) -> Any:
-        warning_cache.deprecation(
-            "The `LightningModule.datamodule` property is deprecated in v1.3 and will be removed in v1.5."
-            " Access the datamodule through using `self.trainer.datamodule` instead.",
-            stacklevel=6,
-        )
-        return self._datamodule
-
-    @property
     def loaded_optimizer_states_dict(self) -> dict:
         warning_cache.deprecation(
             "The `LightningModule.loaded_optimizer_states_dict` property is deprecated in v1.4"
@@ -229,10 +218,6 @@ class LightningModule(
             stacklevel=6,
         )
         self._loaded_optimizer_states_dict = val
-
-    @datamodule.setter
-    def datamodule(self, datamodule: Any) -> None:
-        self._datamodule = datamodule
 
     @property
     def on_gpu(self):
@@ -1858,7 +1843,10 @@ class LightningModule(
 
         if "example_outputs" not in kwargs:
             self.eval()
-            kwargs["example_outputs"] = self(input_sample)
+            if isinstance(input_sample, Tuple):
+                kwargs["example_outputs"] = self(*input_sample)
+            else:
+                kwargs["example_outputs"] = self(input_sample)
 
         torch.onnx.export(self, input_sample, file_path, **kwargs)
         self.train(mode)
@@ -1990,7 +1978,6 @@ class LightningModule(
         state = dict(self.__dict__)
         if self._should_prevent_trainer_and_dataloaders_deepcopy:
             state["trainer"] = None
-            state["_datamodule"] = None
             state.pop("train_dataloader", None)
             state.pop("val_dataloader", None)
             state.pop("test_dataloader", None)

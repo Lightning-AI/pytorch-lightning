@@ -46,6 +46,7 @@ from pytorch_lightning.utilities.distributed import (
     sync_ddp_if_available,
 )
 from pytorch_lightning.utilities.seed import reset_seed
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
@@ -201,7 +202,10 @@ class DDPSpawnPlugin(ParallelPlugin):
         if self.sync_batchnorm:
             self.model = self.configure_sync_batchnorm(self.model)
 
-        self.configure_ddp()
+        # skip wrapping the model if we are not fitting as no gradients need to be exchanged
+        trainer_fn = self.lightning_module.trainer.state.fn
+        if trainer_fn == TrainerFn.FITTING:
+            self.configure_ddp()
 
         self.barrier()
 
@@ -254,7 +258,7 @@ class DDPSpawnPlugin(ParallelPlugin):
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
 
-    def configure_ddp(self):
+    def configure_ddp(self) -> None:
         self.pre_configure_ddp()
         self._model = DistributedDataParallel(
             LightningDistributedModule(self.model), device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
@@ -340,17 +344,22 @@ class DDPSpawnPlugin(ParallelPlugin):
             tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
-    def training_step(self, *args, **kwargs):
+    def training_step(self, *args, **kwargs) -> Optional[Any]:
         return self.model(*args, **kwargs)
 
-    def validation_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        if isinstance(self.model, DistributedDataParallel):
+            # used when calling `trainer.fit`
+            return self.model(*args, **kwargs)
+        else:
+            # used when calling `trainer.validate`
+            return self.lightning_module.validation_step(*args, **kwargs)
 
-    def test_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        return self.lightning_module.test_step(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def predict_step(self, *args, **kwargs) -> Any:
+        return self.lightning_module.predict_step(*args, **kwargs)
 
     def post_training_step(self):
         if not self.lightning_module.automatic_optimization:
