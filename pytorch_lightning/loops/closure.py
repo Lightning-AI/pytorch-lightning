@@ -39,8 +39,7 @@ class ClosureResult:
 
 
 class AbstractClosure(ABC):
-    """
-    Abstract base class for optimizer closures in Lightning.
+    """Abstract base class for optimizer closures in Lightning.
 
     Formally, a closure is binding variables from an external scope to a function that does a computation on these
     variables without taking them explicitly as input. This has the benefit that a closure can be passed to an
@@ -55,8 +54,11 @@ class AbstractClosure(ABC):
         self._result: Optional[ClosureResult] = None
 
     def get_result(self) -> Optional[ClosureResult]:
-        """The cached result from the last time the closure was called. Once accessed, the internal reference
-        gets reset and the consumer will have to hold on to the reference as long as necessary."""
+        """The cached result from the last time the closure was called.
+
+        Once accessed, the internal reference gets reset and the consumer will have to hold on to the reference as long
+        as necessary.
+        """
         result = self._result
         self._result = None  # free memory
         return result
@@ -73,8 +75,7 @@ class AbstractClosure(ABC):
 
 
 class Closure(AbstractClosure):
-    """
-    An implementation of a :class:`AbstractClosure` for optimization in Lightning that combines three elementary
+    """An implementation of a :class:`AbstractClosure` for optimization in Lightning that combines three elementary
     closures into one: ``training_step``, ``backward`` and ``zero_grad``.
 
     The Closure gets created by the training loop(s) and is then passed to the

@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-This script will generate 2 traces: one for `training_step` and one for `validation_step`.
-The traces can be visualized in 2 ways:
+"""This script will generate 2 traces: one for `training_step` and one for `validation_step`. The traces can be
+visualized in 2 ways:
+
 * With Chrome:
     1. Open Chrome and copy/paste this url: `chrome://tracing/`.
     2. Once tracing opens, click on `Load` at the top-right and load one of the generated traces.

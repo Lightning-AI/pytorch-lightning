@@ -39,7 +39,7 @@ class Tqdm(_tqdm):
 
     @staticmethod
     def format_num(n) -> str:
-        """Add additional padding to the formatted numbers"""
+        """Add additional padding to the formatted numbers."""
         should_be_padded = isinstance(n, (float, str))
         if not isinstance(n, str):
             n = _tqdm.format_num(n)
@@ -326,7 +326,10 @@ class ProgressBar(ProgressBarBase):
 
 
 def convert_inf(x: Optional[Union[int, float]]) -> Optional[Union[int, float]]:
-    """The tqdm doesn't support inf/nan values. We have to convert it to None."""
+    """The tqdm doesn't support inf/nan values.
+
+    We have to convert it to None.
+    """
     if x is None or math.isinf(x) or math.isnan(x):
         return None
     return x

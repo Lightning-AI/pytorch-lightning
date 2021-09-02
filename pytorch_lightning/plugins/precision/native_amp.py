@@ -29,8 +29,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
-    """
-    Plugin for native mixed precision training with :mod:`torch.cuda.amp`.
+    """Plugin for native mixed precision training with :mod:`torch.cuda.amp`.
 
     Args:
         precision: Whether to use torch.float16 (16) or torch.bfloat16 (bf16).
@@ -116,25 +115,25 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     @contextmanager
     def train_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context"""
+        """Enable autocast context."""
         with self.autocast_context_manager():
             yield
 
     @contextmanager
     def val_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context"""
+        """Enable autocast context."""
         with self.autocast_context_manager():
             yield
 
     @contextmanager
     def test_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context"""
+        """Enable autocast context."""
         with self.autocast_context_manager():
             yield
 
     @contextmanager
     def predict_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context"""
+        """Enable autocast context."""
         with self.autocast_context_manager():
             yield
 

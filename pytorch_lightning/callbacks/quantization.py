@@ -30,10 +30,9 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 def wrap_qat_forward_context(
     quant_cb, model: "pl.LightningModule", func: Callable, trigger_condition: Optional[Union[Callable, int]] = None
 ) -> Callable:
-    """
-    Decorator to wrap forward path as it is needed to quantize inputs and dequantize outputs for in/out compatibility
-    Moreover this version has the (de)quantization conditional as it may not be needed for the training all the time
-    """
+    """Decorator to wrap forward path as it is needed to quantize inputs and dequantize outputs for in/out
+    compatibility Moreover this version has the (de)quantization conditional as it may not be needed for the
+    training all the time."""
     # todo: consider using registering hook before/after forward
     @functools.wraps(func)
     def wrapper(data) -> Any:
@@ -54,9 +53,8 @@ def wrap_qat_forward_context(
 
 
 def wrap_quantize_forward_context(model: "pl.LightningModule", func: Callable) -> Callable:
-    """
-    Decorator to wrap forward path as it is needed to quantize inputs and dequantize outputs for in/out compatibility
-    """
+    """Decorator to wrap forward path as it is needed to quantize inputs and dequantize outputs for in/out
+    compatibility."""
     # todo: consider using registering hook before/after forward
     @functools.wraps(func)
     def wrapper(data) -> Any:
@@ -69,7 +67,7 @@ def wrap_quantize_forward_context(model: "pl.LightningModule", func: Callable) -
 
 
 def _recursive_hasattr(obj: Any, attribs: str, state: bool = True) -> bool:
-    """recursive check if model has some layers denoted with '.'"""
+    """recursive check if model has some layers denoted with '.'."""
     if "." in attribs:
         attrib, attribs = attribs.split(".", 1)
         if hasattr(obj, attrib):

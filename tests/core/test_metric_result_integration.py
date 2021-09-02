@@ -97,7 +97,7 @@ def _ddp_test_fn(rank, worldsize):
 
 @RunIf(skip_windows=True, min_gpus=2)
 def test_result_reduce_ddp():
-    """Make sure result logging works with DDP"""
+    """Make sure result logging works with DDP."""
     tutils.set_random_master_port()
 
     worldsize = 2
@@ -208,9 +208,7 @@ def my_sync_dist(x, *_, **__):
 
 
 def test_result_collection_restoration(tmpdir):
-    """
-    This test make sure metrics are properly reloaded on failure.
-    """
+    """This test make sure metrics are properly reloaded on failure."""
 
     result = ResultCollection(True, torch.device("cpu"))
     metric_a = DummyMetric()
@@ -379,10 +377,8 @@ class DummyMeanMetric(Metric):
 
 def result_collection_reload(**kwargs):
 
-    """
-    This test is going to validate ResultCollection is properly being reload
-    and final accumulation with Fault Tolerant Training is correct.
-    """
+    """This test is going to validate ResultCollection is properly being reload and final accumulation with Fault
+    Tolerant Training is correct."""
 
     if not _fault_tolerant_training():
         pytest.skip("Fault tolerant not available")
@@ -499,7 +495,7 @@ def test_result_collection_reload_2_gpus(tmpdir):
 
 
 def test_metric_collections(tmpdir):
-    """This test ensures the metric attribute is properly found even with complex nested metric structure"""
+    """This test ensures the metric attribute is properly found even with complex nested metric structure."""
 
     class TestModel(BoringModel):
         def __init__(self):

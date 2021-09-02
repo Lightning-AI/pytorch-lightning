@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Test that the warnings actually appear and they have the correct `stacklevel`
+"""Test that the warnings actually appear and they have the correct `stacklevel`
 
 Needs to be run outside of `pytest` as it captures all the warnings.
 """

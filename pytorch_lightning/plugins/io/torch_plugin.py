@@ -22,10 +22,8 @@ from pytorch_lightning.utilities.types import _PATH
 
 
 class TorchCheckpointIO(CheckpointIO):
-    """
-    CheckpointIO that utilizes :func:`torch.save` and :func:`torch.load`
-     to save and load checkpoints respectively, common for most use cases.
-    """
+    """CheckpointIO that utilizes :func:`torch.save` and :func:`torch.load` to save and load checkpoints
+    respectively, common for most use cases."""
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
         try:
@@ -42,8 +40,8 @@ class TorchCheckpointIO(CheckpointIO):
     def load_checkpoint(
         self, path: _PATH, map_location: Optional[Callable] = lambda storage, loc: storage
     ) -> Dict[str, Any]:
-        """
-        Loads checkpoint using :func:`torch.load`, with additional handling for ``fsspec`` remote loading of files.
+        """Loads checkpoint using :func:`torch.load`, with additional handling for ``fsspec`` remote loading of
+        files.
 
         Args:
             path: Path to checkpoint

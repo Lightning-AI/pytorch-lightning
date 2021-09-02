@@ -268,10 +268,8 @@ class ManualOptimizationExtendedModel(BoringModel):
 
 @RunIf(min_gpus=2)
 def test_manual_optimization_and_return_tensor(tmpdir):
-    """
-    This test verify that in `manual_optimization`
-    we don't add gradient when the user return loss in `training_step`
-    """
+    """This test verify that in `manual_optimization` we don't add gradient when the user return loss in
+    `training_step`"""
 
     model = ManualOptimizationExtendedModel()
     model.training_step_end = None
@@ -293,11 +291,8 @@ def test_manual_optimization_and_return_tensor(tmpdir):
 
 @RunIf(min_gpus=2)
 def test_manual_optimization_and_return_detached_tensor(tmpdir):
-    """
-    This test verify that in `manual_optimization`
-    we don't add gradient when the user return loss in `training_step`
-    When the tensor is detached, return MisConfiguration Error.
-    """
+    """This test verify that in `manual_optimization` we don't add gradient when the user return loss in
+    `training_step` When the tensor is detached, return MisConfiguration Error."""
 
     model = ManualOptimizationExtendedModel()
     model.detach = True
@@ -322,10 +317,8 @@ def test_manual_optimization_and_return_detached_tensor(tmpdir):
 
 @RunIf(min_gpus=1)
 def test_manual_optimization_and_accumulated_gradient(tmpdir):
-    """
-    This test verify that in `automatic_optimization=False`,
-    step is being called only when we shouldn't accumulate.
-    """
+    """This test verify that in `automatic_optimization=False`, step is being called only when we shouldn't
+    accumulate."""
     seed_everything(234)
 
     class ExtendedModel(BoringModel):
@@ -411,9 +404,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
 
 @RunIf(min_gpus=1)
 def test_multiple_optimizers_step(tmpdir):
-    """
-    Tests that `step` works with several optimizers
-    """
+    """Tests that `step` works with several optimizers."""
 
     class TestModel(ManualOptModel):
 
@@ -482,9 +473,7 @@ def test_multiple_optimizers_step(tmpdir):
 
 
 def test_step_with_optimizer_closure(tmpdir):
-    """
-    Tests that `step` works with optimizer_closure
-    """
+    """Tests that `step` works with optimizer_closure."""
 
     class TestModel(BoringModel):
 
@@ -556,9 +545,7 @@ def test_step_with_optimizer_closure(tmpdir):
 
 
 def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
-    """
-    Tests that `step` works with optimizer_closure and accumulated_grad
-    """
+    """Tests that `step` works with optimizer_closure and accumulated_grad."""
 
     class TestModel(BoringModel):
         def __init__(self):
@@ -613,9 +600,7 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
 
 @patch("torch.optim.SGD.step")
 def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
-    """
-    Tests that `step` works with optimizer_closure and extra arguments
-    """
+    """Tests that `step` works with optimizer_closure and extra arguments."""
 
     class TestModel(BoringModel):
         def __init__(self):
@@ -664,9 +649,7 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
 @patch("torch.optim.Adam.step")
 @patch("torch.optim.SGD.step")
 def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, mock_adam_step, tmpdir):
-    """
-    Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
-    """
+    """Tests that `step` works with optimizer_closure and different accumulated_gradient frequency."""
 
     class TestModel(BoringModel):
         def __init__(self):
@@ -847,18 +830,14 @@ def train_manual_optimization(tmpdir, accelerator, model_cls=TesManualOptimizati
 
 @RunIf(min_gpus=2, special=True)
 def test_step_with_optimizer_closure_with_different_frequencies_ddp(tmpdir):
-    """
-    Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
-    """
+    """Tests that `step` works with optimizer_closure and different accumulated_gradient frequency."""
 
     train_manual_optimization(tmpdir, "ddp")
 
 
 @RunIf(min_gpus=2)
 def test_step_with_optimizer_closure_with_different_frequencies_ddp_spawn(tmpdir):
-    """
-    Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
-    """
+    """Tests that `step` works with optimizer_closure and different accumulated_gradient frequency."""
 
     train_manual_optimization(tmpdir, "ddp_spawn")
 
@@ -925,10 +904,7 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp_with_toggle_
 
 
 def test_lr_schedulers(tmpdir):
-    """
-    Test `lr_schedulers()` returns the same objects
-    in the same order as `configure_optimizers()` returns.
-    """
+    """Test `lr_schedulers()` returns the same objects in the same order as `configure_optimizers()` returns."""
 
     class TestModel(BoringModel):
         def __init__(self):
@@ -1001,9 +977,7 @@ def test_lr_schedulers_reduce_lr_on_plateau(tmpdir, scheduler_as_dict):
 
 
 def test_lr_scheduler_step_not_called(tmpdir):
-    """
-    Test `lr_scheduler.step()` is not called in manual optimization.
-    """
+    """Test `lr_scheduler.step()` is not called in manual optimization."""
 
     class TestModel(BoringModel):
         def __init__(self):
@@ -1038,9 +1012,7 @@ def test_lr_scheduler_step_not_called(tmpdir):
 @RunIf(min_gpus=1)
 @pytest.mark.parametrize("precision", [16, 32])
 def test_multiple_optimizers_logging(precision, tmpdir):
-    """
-    Tests that metrics are properly being logged.
-    """
+    """Tests that metrics are properly being logged."""
 
     class TestModel(BoringModel):
         def __init__(self):

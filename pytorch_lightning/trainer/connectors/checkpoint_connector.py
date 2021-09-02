@@ -46,8 +46,7 @@ class CheckpointConnector:
             return os.path.join(dir_path_hpc, f"hpc_ckpt_{max_version}.ckpt")
 
     def resume_start(self) -> None:
-        """
-        Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
+        """Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
 
         1. from HPC weights if found
         2. from `resume_from_checkpoint` file if provided
@@ -65,7 +64,8 @@ class CheckpointConnector:
         self._loaded_checkpoint = self.trainer.training_type_plugin.load_checkpoint(checkpoint_path)
 
     def resume_end(self) -> None:
-        """Signal the connector that all states have resumed and memory for the checkpoint object can be released."""
+        """Signal the connector that all states have resumed and memory for the checkpoint object can be
+        released."""
         if self.resume_checkpoint_path:
             rank_zero_info(f"Restored all states from the checkpoint file at {self.resume_checkpoint_path}")
         self.resume_checkpoint_path = None
@@ -78,9 +78,8 @@ class CheckpointConnector:
         self.trainer.training_type_plugin.barrier("CheckpointConnector.resume_end")
 
     def restore(self, checkpoint_path: Optional[Union[Path, str]] = None) -> None:
-        """
-        Attempt to restore everything at once from a 'PyTorch-Lightning checkpoint' file
-        through file-read and state-restore, in this priority:
+        """Attempt to restore everything at once from a 'PyTorch-Lightning checkpoint' file through file-read and
+        state-restore, in this priority:
 
         1. from HPC weights if found
         2. from `resume_from_checkpoint` file if provided
@@ -115,10 +114,10 @@ class CheckpointConnector:
             datamodule.on_load_checkpoint(self._loaded_checkpoint)
 
     def restore_model(self) -> None:
-        """
-        Restores a model's weights from a PyTorch Lightning checkpoint. Hooks are called first go give
-        the LightningModule a chance to modify the contents, then finally the model gets updated with
-        the loaded weights.
+        """Restores a model's weights from a PyTorch Lightning checkpoint.
+
+        Hooks are called first go give the LightningModule a chance to modify the contents, then finally the model gets
+        updated with the loaded weights.
         """
         if not self._loaded_checkpoint:
             return
@@ -151,9 +150,9 @@ class CheckpointConnector:
         self.trainer.training_type_plugin.load_model_state_dict(checkpoint)
 
     def restore_training_state(self) -> None:
-        """
-        Restore the trainer state from the pre-loaded checkpoint. This includes the precision settings, loop progress,
-        optimizer states and learning rate scheduler states.
+        """Restore the trainer state from the pre-loaded checkpoint.
+
+        This includes the precision settings, loop progress, optimizer states and learning rate scheduler states.
         """
         if not self._loaded_checkpoint:
             return
@@ -180,8 +179,8 @@ class CheckpointConnector:
         self.trainer.on_load_checkpoint(self._loaded_checkpoint)
 
     def restore_loops(self) -> None:
-        """
-        Restores the loop progress from the pre-loaded checkpoint.
+        """Restores the loop progress from the pre-loaded checkpoint.
+
         Calls hooks on the loops to give it a chance to restore its state from the checkpoint.
         """
         if not self._loaded_checkpoint:
@@ -384,11 +383,9 @@ class CheckpointConnector:
         return checkpoint
 
     def hpc_load(self, checkpoint_path: str) -> None:
-        """
-        Attempts to restore the full training and model state from a HPC checkpoint file.
+        """Attempts to restore the full training and model state from a HPC checkpoint file.
 
-        .. deprecated:: v1.4
-            Will be removed in v1.6. Use :meth:`restore` instead.
+        .. deprecated:: v1.4     Will be removed in v1.6. Use :meth:`restore` instead.
         """
         rank_zero_deprecation(
             "`CheckpointConnector.hpc_load()` was deprecated in v1.4 and will be removed in v1.6."
@@ -398,6 +395,7 @@ class CheckpointConnector:
 
     def max_ckpt_version_in_folder(self, dir_path: Union[str, Path], name_key: str = "ckpt_") -> Optional[int]:
         """List up files in `dir_path` with `name_key`, then yield maximum suffix number.
+
         Args:
             dir_path: path of directory which may contain files whose name include `name_key`
             name_key: file name prefix

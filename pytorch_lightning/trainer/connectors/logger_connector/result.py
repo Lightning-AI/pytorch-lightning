@@ -294,8 +294,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
 
 
 class ResultMetricCollection(dict):
-    """
-    Dict wrapper for easy access to metadata.
+    """Dict wrapper for easy access to metadata.
 
     All of the leaf items should be instances of
     :class:`~pytorch_lightning.trainer.connectors.logger_connector.result.ResultMetric`
@@ -378,10 +377,8 @@ class ResultCollection(dict):
 
     @property
     def minimize(self) -> Optional[torch.Tensor]:
-        """
-        The :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` loss
-        will be saved as the ``minimize`` attribute.
-        """
+        """The :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` loss will be saved as the
+        ``minimize`` attribute."""
         return self._minimize
 
     @minimize.setter
@@ -480,7 +477,10 @@ class ResultCollection(dict):
         self.update_metrics(key, value)
 
     def register_key(self, key: str, meta: _Metadata, value: _METRIC_COLLECTION) -> None:
-        """Create one ResultMetric object per value. Value can be provided as a nested collection"""
+        """Create one ResultMetric object per value.
+
+        Value can be provided as a nested collection
+        """
 
         def fn(v: _IN_METRIC) -> ResultMetric:
             metric = ResultMetric(meta, isinstance(v, torch.Tensor))
@@ -573,8 +573,7 @@ class ResultCollection(dict):
         return metrics
 
     def reset(self, metrics: Optional[bool] = None, fx: Optional[str] = None) -> None:
-        """
-        Reset the result collection
+        """Reset the result collection.
 
         Args:
             metrics: If True, only ``torchmetrics.Metric`` results are reset,

@@ -12,7 +12,7 @@ from tests.helpers import BoringModel
 
 @pytest.mark.parametrize("tuner_alg", ["batch size scaler", "learning rate finder"])
 def test_skip_on_fast_dev_run_tuner(tmpdir, tuner_alg):
-    """Test that tuner algorithms are skipped if fast dev run is enabled"""
+    """Test that tuner algorithms are skipped if fast dev run is enabled."""
 
     model = BoringModel()
     model.lr = 0.1  # avoid no-lr-found exception
@@ -30,9 +30,7 @@ def test_skip_on_fast_dev_run_tuner(tmpdir, tuner_alg):
 
 @pytest.mark.parametrize("fast_dev_run", [1, 4])
 def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
-    """
-    Test that ModelCheckpoint, EarlyStopping and Logger are turned off with fast_dev_run
-    """
+    """Test that ModelCheckpoint, EarlyStopping and Logger are turned off with fast_dev_run."""
 
     class FastDevRunModel(BoringModel):
         def __init__(self):

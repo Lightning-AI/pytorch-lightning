@@ -45,8 +45,7 @@ def rank_zero_experiment(fn: Callable) -> Callable:
 
 
 class LightningLoggerBase(ABC):
-    """
-    Base class for experiment loggers.
+    """Base class for experiment loggers.
 
     Args:
         agg_key_funcs:
@@ -73,8 +72,7 @@ class LightningLoggerBase(ABC):
         self._agg_default_func = agg_default_func
 
     def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
-        """
-        Called after model checkpoint callback saves a new checkpoint
+        """Called after model checkpoint callback saves a new checkpoint.
 
         Args:
             checkpoint_callback: the model checkpoint callback instance
@@ -86,8 +84,7 @@ class LightningLoggerBase(ABC):
         agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
         agg_default_func: Callable[[Sequence[float]], float] = np.mean,
     ):
-        """
-        Update aggregation methods.
+        """Update aggregation methods.
 
         Args:
             agg_key_funcs:
@@ -111,8 +108,7 @@ class LightningLoggerBase(ABC):
     def _aggregate_metrics(
         self, metrics: Dict[str, float], step: Optional[int] = None
     ) -> Tuple[int, Optional[Dict[str, float]]]:
-        """
-        Aggregates metrics.
+        """Aggregates metrics.
 
         Args:
             metrics: Dictionary with metric names as keys and measured quantities as values
@@ -155,9 +151,7 @@ class LightningLoggerBase(ABC):
             self.log_metrics(metrics=metrics_to_log, step=agg_step)
 
     def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
-        """
-        Aggregates and records metrics.
-        This method doesn't log the passed metrics instantaneously, but instead
+        """Aggregates and records metrics. This method doesn't log the passed metrics instantaneously, but instead
         it aggregates them and logs only if metrics are ready to be logged.
 
         Args:
@@ -196,8 +190,7 @@ class LightningLoggerBase(ABC):
 
     @staticmethod
     def _sanitize_callable_params(params: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Sanitize callable params dict, e.g. ``{'a': <function_**** at 0x****>} -> {'a': 'function_****'}``.
+        """Sanitize callable params dict, e.g. ``{'a': <function_**** at 0x****>} -> {'a': 'function_****'}``.
 
         Args:
             params: Dictionary containing the hyperparameters
@@ -223,8 +216,7 @@ class LightningLoggerBase(ABC):
 
     @staticmethod
     def _flatten_dict(params: Dict[Any, Any], delimiter: str = "/") -> Dict[str, Any]:
-        """
-        Flatten hierarchical dict, e.g. ``{'a': {'b': 'c'}} -> {'a/b': 'c'}``.
+        """Flatten hierarchical dict, e.g. ``{'a': {'b': 'c'}} -> {'a/b': 'c'}``.
 
         Args:
             params: Dictionary containing the hyperparameters
@@ -259,8 +251,7 @@ class LightningLoggerBase(ABC):
 
     @staticmethod
     def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Returns params with non-primitvies converted to strings for logging.
+        """Returns params with non-primitvies converted to strings for logging.
 
         >>> params = {"float": 0.3,
         ...           "int": 1,
@@ -289,8 +280,7 @@ class LightningLoggerBase(ABC):
 
     @abstractmethod
     def log_hyperparams(self, params: argparse.Namespace, *args, **kwargs):
-        """
-        Record hyperparameters.
+        """Record hyperparameters.
 
         Args:
             params: :class:`~argparse.Namespace` containing the hyperparameters
@@ -299,8 +289,7 @@ class LightningLoggerBase(ABC):
         """
 
     def log_graph(self, model: "pl.LightningModule", input_array=None) -> None:
-        """
-        Record model graph
+        """Record model graph.
 
         Args:
             model: lightning model
@@ -313,8 +302,7 @@ class LightningLoggerBase(ABC):
         self._finalize_agg_metrics()
 
     def finalize(self, status: str) -> None:
-        """
-        Do any processing that is necessary to finalize an experiment.
+        """Do any processing that is necessary to finalize an experiment.
 
         Args:
             status: Status that the experiment finished with (e.g. success, failed, aborted)
@@ -327,10 +315,8 @@ class LightningLoggerBase(ABC):
 
     @property
     def save_dir(self) -> Optional[str]:
-        """
-        Return the root directory where experiment logs get saved, or `None` if the logger does not
-        save data locally.
-        """
+        """Return the root directory where experiment logs get saved, or `None` if the logger does not save data
+        locally."""
         return None
 
     @property
@@ -351,9 +337,7 @@ class LightningLoggerBase(ABC):
 
 
 class LoggerCollection(LightningLoggerBase):
-    """
-    The :class:`LoggerCollection` class is used to iterate all logging actions over
-    the given `logger_iterable`.
+    """The :class:`LoggerCollection` class is used to iterate all logging actions over the given `logger_iterable`.
 
     Args:
         logger_iterable: An iterable collection of loggers
@@ -437,7 +421,7 @@ class LoggerCollection(LightningLoggerBase):
 
 
 class DummyExperiment:
-    """Dummy experiment"""
+    """Dummy experiment."""
 
     def nop(self, *args, **kw):
         pass
@@ -451,9 +435,9 @@ class DummyExperiment:
 
 
 class DummyLogger(LightningLoggerBase):
-    """
-    Dummy logger for internal use. It is useful if we want to disable user's
-    logger for a feature, but still ensure that user code can run
+    """Dummy logger for internal use.
+
+    It is useful if we want to disable user's logger for a feature, but still ensure that user code can run
     """
 
     def __init__(self):
@@ -491,9 +475,8 @@ def merge_dicts(
     agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
     default_func: Callable[[Sequence[float]], float] = np.mean,
 ) -> Dict:
-    """
-    Merge a sequence with dictionaries into one dictionary by aggregating the
-    same keys with some given function.
+    """Merge a sequence with dictionaries into one dictionary by aggregating the same keys with some given
+    function.
 
     Args:
         dicts:
