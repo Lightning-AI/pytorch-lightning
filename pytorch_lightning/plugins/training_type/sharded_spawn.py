@@ -33,7 +33,7 @@ if _FAIRSCALE_AVAILABLE:
 class DDPSpawnShardedPlugin(DDPSpawnPlugin):
     """Optimizer sharded training provided by FairScale."""
 
-    def configure_ddp(self):
+    def configure_ddp(self) -> None:
         self._wrap_optimizers()
         self._model = ShardedDataParallel(
             LightningShardedDataParallel(self.model), sharded_optimizer=self.lightning_module.trainer.optimizers
