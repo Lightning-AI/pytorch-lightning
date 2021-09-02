@@ -505,7 +505,7 @@ class Trainer(
         """
         try:
             return trainer_fn(*args, **kwargs)
-        # TODO(@daniellepintz): treat KeyboardInterrupt as BaseException (delete the code below) in v1.7
+        # TODO: treat KeyboardInterrupt as BaseException (delete the code below) in v1.7
         except KeyboardInterrupt as exception:
             rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
             # user could press Ctrl+c many times... only shutdown once
@@ -513,7 +513,6 @@ class Trainer(
                 self.state.status = TrainerStatus.INTERRUPTED
                 self.on_keyboard_interrupt()
                 self.on_exception(exception)
-                raise exception
         except BaseException as exception:
             self.state.status = TrainerStatus.INTERRUPTED
             if distributed_available() and self.world_size > 1:

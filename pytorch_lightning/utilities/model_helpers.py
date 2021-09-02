@@ -36,6 +36,16 @@ def is_overridden(
         # if `self.lightning_module` was passed as instance, it can be `None`
         return False
 
+    if parent is None:
+        if isinstance(instance, pl.LightningModule):
+            parent = pl.LightningModule
+        elif isinstance(instance, pl.LightningDataModule):
+            parent = pl.LightningDataModule
+        elif isinstance(instance, pl.Callback):
+            parent = pl.Callback
+        if parent is None:
+            raise ValueError("Expected a parent")
+
     instance_attr = getattr(instance, method_name, None)
     # `functools.wraps()` support
     if hasattr(instance_attr, "__wrapped__"):
@@ -49,16 +59,6 @@ def is_overridden(
         instance_attr = instance_attr.func
     if instance_attr is None:
         return False
-
-    if parent is None:
-        if isinstance(instance, pl.LightningModule):
-            parent = pl.LightningModule
-        elif isinstance(instance, pl.LightningDataModule):
-            parent = pl.LightningDataModule
-        elif isinstance(instance, pl.Callback):
-            parent = pl.Callback
-        if parent is None:
-            raise ValueError("Expected a parent")
 
     parent_attr = getattr(parent, method_name, None)
     if parent_attr is None:
