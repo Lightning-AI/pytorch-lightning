@@ -135,7 +135,7 @@ class FitLoop(Loop):
         Returns:
             whether the limit for this value should be enabled
         """
-        return max_value not in [None, -1]
+        return max_value not in (None, -1)
 
     @property
     def done(self) -> bool:
