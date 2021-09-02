@@ -1400,8 +1400,5 @@ class Trainer(
 
     @contextmanager
     def _evaluation_context(self) -> Generator:
-        with torch.inference_mode() if _TORCH_GREATER_EQUAL_1_9 and self.state.fn in (
-            TrainerFn.TESTING,
-            TrainerFn.PREDICTING,
-        ) else torch.no_grad():
+        with torch.inference_mode() if _TORCH_GREATER_EQUAL_1_9 else torch.no_grad():
             yield
