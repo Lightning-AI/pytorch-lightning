@@ -211,8 +211,6 @@ def save_hyperparameters(
     elif len(args) == 1 and isinstance(args[0], (Namespace, dict)):
         # todo: omegaconf?
         hp = args[0]
-        if isinstance(args[0], dict):
-            hp = Namespace(**args[0])
         obj._hparams_name = "hparams"
         obj._set_hparams(hp)
         obj._hparams_initial = copy.deepcopy(obj._hparams)
