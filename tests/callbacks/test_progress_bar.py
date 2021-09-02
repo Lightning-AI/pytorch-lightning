@@ -418,7 +418,7 @@ class PrintModel(BoringModel):
         return super().predict_step(*args, **kwargs)
 
 
-@mock.patch("pytorch_lightning.callbacks.progress.Tqdm.write")
+@mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm.write")
 def test_progress_bar_print(tqdm_write, tmpdir):
     """Test that printing in the LightningModule redirects arguments to the progress bar."""
     model = PrintModel()
@@ -445,7 +445,7 @@ def test_progress_bar_print(tqdm_write, tmpdir):
     ]
 
 
-@mock.patch("pytorch_lightning.callbacks.progress.Tqdm.write")
+@mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm.write")
 def test_progress_bar_print_no_train(tqdm_write, tmpdir):
     """Test that printing in the LightningModule redirects arguments to the progress bar without training."""
     model = PrintModel()
@@ -472,7 +472,7 @@ def test_progress_bar_print_no_train(tqdm_write, tmpdir):
 
 
 @mock.patch("builtins.print")
-@mock.patch("pytorch_lightning.callbacks.progress.Tqdm.write")
+@mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm.write")
 def test_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
     """Test that printing in LightningModule goes through built-in print function when progress bar is disabled."""
     model = PrintModel()
