@@ -126,13 +126,11 @@ If you believe this to be useful, please open a `feature request <https://github
 Performance Impacts
 -------------------
 
-Fault Tolerant Training was tested on common and worse case scenarios in the term of performance impacts.
+Fault-tolerant Training was tested on common and worst-case scenarios in order to measure the impact of the internal state tracking on the total training time.
+On tiny models like the `BoringModel and RandomDataset <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/bug_report_model.py>`_
+which has virtually no data loading and processing overhead, we noticed up to 50 % longer training time with fault tolerance enabled.
+In this worst-case scenario, fault-tolerant adds an overhead that is noticable in comparison to the compute time for dataloading itself.
+However, for more realistic training workloads where data loading and preprocessing is more expensive, the constant overhead that fault tolerance adds becomes less noticable or not noticable at all.
+For example, when training with ResNet50 on CIFAR 10 we have observed a 0.5% to 1% longer training time depending on `batch size` or `number of workers`.
 
-Using the `BoringModel and RandomDataset <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/bug_report_model.py>`_
-
-which represents the worse case scenario as highly optimized for speed due in-memory tensors and single multilayer perceptron layer,
-we noticed a 50 % performance drop.
-
-For more traditional training such as a Resnet18 on CIFAR 10, we usually observe a 5% to 15 % range depending on `batch size` or `number of workers`.
-
-More detailed benchmark would be shared in the future.
+More detailed benchmarks will be shared in the future.
