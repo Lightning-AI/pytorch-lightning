@@ -274,8 +274,7 @@ class PyTorchProfiler(BaseProfiler):
                 If arg ``schedule`` is not a ``Callable``.
                 If arg ``schedule`` does not return a ``torch.profiler.ProfilerAction``.
         """
-        super().__init__(dirpath=dirpath, filename=filename, output_filename=output_filename)
-
+        super().__init__(dirpath=dirpath, filename=filename)
         self._group_by_input_shapes = group_by_input_shapes and profiler_kwargs.get("record_shapes", False)
         self._emit_nvtx = emit_nvtx
         self._export_to_chrome = export_to_chrome

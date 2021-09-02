@@ -285,15 +285,20 @@ def test_lightning_cli_args_callbacks(tmpdir):
     assert cli.trainer.ran_asserts
 
 
-def test_lightning_cli_configurable_callbacks(tmpdir):
+@pytest.mark.parametrize("run", (False, True))
+def test_lightning_cli_configurable_callbacks(tmpdir, run):
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
             parser.add_lightning_class_args(LearningRateMonitor, "learning_rate_monitor")
 
-    cli_args = [f"--trainer.default_root_dir={tmpdir}", "--learning_rate_monitor.logging_interval=epoch"]
+        def fit(self, **_):
+            pass
+
+    cli_args = ["fit"] if run else []
+    cli_args += [f"--trainer.default_root_dir={tmpdir}", "--learning_rate_monitor.logging_interval=epoch"]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
-        cli = MyLightningCLI(BoringModel, run=False)
+        cli = MyLightningCLI(BoringModel, run=run)
 
     callback = [c for c in cli.trainer.callbacks if isinstance(c, LearningRateMonitor)]
     assert len(callback) == 1
