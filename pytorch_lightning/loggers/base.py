@@ -21,6 +21,7 @@ from argparse import Namespace
 from functools import wraps
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
+from weakref import ReferenceType
 
 import numpy as np
 import torch
@@ -356,7 +357,8 @@ class LightningLoggerBase(ABC):
         Log the given checkpoints.
 
         Args:
-            checkpoints: list of checkpoints
+            checkpoint_callback: ModelCheckpoint callback reference.
+            checkpoints: list of checkpoints.
         """
         pass
 
