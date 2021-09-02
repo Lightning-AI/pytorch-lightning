@@ -330,6 +330,9 @@ class DDPPlugin(ParallelPlugin):
             )
 
     def pre_dispatch(self):
+        # share ddp pids to all processes
+        self._share_information_to_prevent_deadlock()
+
         # move the model to the correct device
         self.model_to_device()
 
@@ -337,9 +340,6 @@ class DDPPlugin(ParallelPlugin):
             self.model = self.configure_sync_batchnorm(self.model)
 
         self.configure_ddp()
-
-        # share ddp pids to all processes
-        self._share_information_to_prevent_deadlock()
 
     def post_dispatch(self) -> None:
         self.cluster_environment.teardown()
@@ -435,6 +435,10 @@ class DDPPlugin(ParallelPlugin):
             return
 
         sync_dir = self._sync_dir
+
+        if not sync_dir:
+            rank_zero_warn("Error handling mechanism for deadlock detection is uninitialized. Skipping check.")
+            return
 
         # The cluster may be configured to periodically purge the `/tmp`
         # directory, in which case `sync_dir` may not exist anymore at this
