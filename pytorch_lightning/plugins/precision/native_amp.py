@@ -96,6 +96,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
                 " To request, please file a Github issue in PyTorch and tag @mcarilli"
             )
         result = True
+        # FIXME: is this correct for manual?
         if model.automatic_optimization:
             result = lambda_closure()
         self.scaler.unscale_(optimizer)

@@ -97,9 +97,9 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         **kwargs: Any,
     ) -> bool:
         """Hook to do something before each optimizer step."""
+        lambda_closure()  # APEX amp does not support closures
         super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
         # the following should be in a `optimizer_step` hook but we don't have one in the precision plugin.
-        lambda_closure()  # APEX amp does not support closures
         optimizer.step(**kwargs)
         return False
 
