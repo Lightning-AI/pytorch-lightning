@@ -161,6 +161,12 @@ class CSVLogger(LightningLoggerBase):
 
     @property
     def save_dir(self) -> Optional[str]:
+        """
+        The current directory where logs are saved.
+
+        Returns:
+            The path to current directory where logs are saved.
+        """
         return self._save_dir
 
     @property
@@ -204,10 +210,22 @@ class CSVLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
+        """
+        Gets the name of the experiment.
+
+        Returns:
+            The name of the experiment.
+        """
         return self._name
 
     @property
     def version(self) -> int:
+        """
+        Gets the version of the experiment.
+
+        Returns:
+            The version of the experiment if it is specified, else the next version.
+        """
         if self._version is None:
             self._version = self._get_next_version()
         return self._version
