@@ -254,7 +254,7 @@ class MLFlowLogger(LightningLoggerBase):
 
         # log checkpoints as artifacts
         if self._checkpoint_callback:
-            self._scan_and_log_checkpoints(self._checkpoint_callback)
+            self._scan_and_log_checkpoints(self._checkpoint_callback, self._logged_model_time)
 
         status = "FINISHED" if status == "success" else status
         if self.experiment.get_run(self.run_id):
@@ -295,7 +295,7 @@ class MLFlowLogger(LightningLoggerBase):
     def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
         # log checkpoints as artifacts
         if self._log_model == "all" or self._log_model is True and checkpoint_callback.save_top_k == -1:
-            self._scan_and_log_checkpoints(checkpoint_callback)
+            self._scan_and_log_checkpoints(checkpoint_callback, self._logged_model_time)
         elif self._log_model is True:
             self._checkpoint_callback = checkpoint_callback
 

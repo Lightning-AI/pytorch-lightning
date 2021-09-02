@@ -21,7 +21,6 @@ from argparse import Namespace
 from functools import wraps
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
-from weakref import ReferenceType
 
 import numpy as np
 import torch
@@ -350,28 +349,8 @@ class LightningLoggerBase(ABC):
 
         return metrics
 
-    def _scan_checkpoints(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> List[ModelCheckpoint]:
-        """
-        Return the checkpoints to be logged.
-
-        Args:
-            checkpoint_callback: ModelCheckpoint callback reference
-        """
-        checkpoints = {
-            checkpoint_callback.last_model_path: checkpoint_callback.current_score,
-            checkpoint_callback.best_model_path: checkpoint_callback.best_model_score,
-            **checkpoint_callback.best_k_models,
-        }
-        checkpoints = sorted((Path(p).stat().st_mtime, p, s) for p, s in checkpoints.items() if Path(p).is_file())
-        checkpoints = [
-            c for c in checkpoints if c[1] not in self._logged_model_time.keys() or self._logged_model_time[c[1]] < c[0]
-        ]
-        return checkpoints
-
     def _log_checkpoints(
-        self,
-        checkpoint_callback: "ReferenceType[ModelCheckpoint]",
-        checkpoints: List[ModelCheckpoint],
+        self, checkpoint_callback: "ReferenceType[ModelCheckpoint]", checkpoints: List[ModelCheckpoint],
     ) -> None:
         """
         Log the given checkpoints.
@@ -381,15 +360,18 @@ class LightningLoggerBase(ABC):
         """
         pass
 
-    def _scan_and_log_checkpoints(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
+    def _scan_and_log_checkpoints(
+        self, checkpoint_callback: "ReferenceType[ModelCheckpoint]", logged_model_time: dict
+    ) -> None:
         """
         Get and log the checkpoints to be logged.
 
         Args:
-            checkpoint_callback: ModelCheckpoint callback reference
+            checkpoint_callback: ModelCheckpoint callback reference.
+            logged_model_time: dictionary containing the logged model times.
         """
         # Get the checkpoints
-        checkpoints = self._scan_checkpoints(checkpoint_callback)
+        checkpoints = scan_checkpoints(checkpoint_callback, logged_model_time)
         # Log the checkpoints
         self._log_checkpoints(checkpoint_callback, checkpoints)
 
@@ -567,3 +549,24 @@ def merge_dicts(
             d_out[k] = (fn or default_func)(values_to_agg)
 
     return d_out
+
+
+def scan_checkpoints(
+    checkpoint_callback: "ReferenceType[ModelCheckpoint]", logged_model_time: dict
+) -> List[ModelCheckpoint]:
+    """
+    Return the checkpoints to be logged.
+
+    Args:
+        checkpoint_callback: ModelCheckpoint callback reference.
+        logged_model_time: dictionary containing the logged model times.
+    """
+
+    checkpoints = {
+        checkpoint_callback.last_model_path: checkpoint_callback.current_score,
+        checkpoint_callback.best_model_path: checkpoint_callback.best_model_score,
+        **checkpoint_callback.best_k_models,
+    }
+    checkpoints = sorted((Path(p).stat().st_mtime, p, s) for p, s in checkpoints.items() if Path(p).is_file())
+    checkpoints = [c for c in checkpoints if c[1] not in logged_model_time.keys() or logged_model_time[c[1]] < c[0]]
+    return checkpoints
