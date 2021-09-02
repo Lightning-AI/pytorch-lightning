@@ -1,32 +1,33 @@
-Fault Tolerant Training
+Fault-tolerant Training
 =======================
 
-.. warning:: Fault Tolerant Training is currently an experimental feature within Lightning.
+.. warning:: Fault-tolerant Training is currently an experimental feature within Lightning.
 
-Fault Tolerance Training is an internal mechanism that enables PyTorch Lightning to recover from a failure in hardware or software.
-
-This is particularly interesting while training in the cloud with preemptive instance which can fail at any time.
-
-Fault Tolerance Training requires PyTorch 1.7 or higher and can be enabled as follows:
+Fault-tolerant Training is an internal mechanism that enables PyTorch Lightning to recover from a failure in hardware or software.
+This is particularly interesting while training in the cloud with preemptive instances which can shutdown at any time.
+Fault Tolerance requires PyTorch 1.7 or higher and can be enabled as follows:
 
 .. code-block:: bash
 
     PL_FAULT_TOLERANT_TRAINING=1 python script.py
 
 
-Before, when your fitting was failing in the middle of an epoch either in training or validation,
-PyTorch Lightning would restart at the next epoch and any progress made in the previous one would be lost.
-This would make benchmarking non reproducible as optimization has been interrupted and only partially restored.
+Until now and without enabling fault tolerance, a `Trainer.fit()` failing in the middle of an epoch either in training or validation
+would require the user to restart that epoch completely and any progress made during the epoch would be lost.
+This would make benchmarking non-reproducible as optimization has been interrupted and only partially restored.
 
-With Fault Tolerant Training enabled, when your fitting fails in the middle of an epoch either in training or validation,
-Lightning will restart exactly where it fails and everything will be restored.
+With Fault Tolerant Training enabled, when `Trainer.fit()` fails in the middle of an epoch either in training or validation,
+Lightning will restart exactly where it failed and everything will be restored.
 
 What does Lightning do exactly ?
 --------------------------------
 
-* Lightning keeps track of your samplers indices and random seeds across multiple processes and workers. This enables random transforms and batch fetching to be done in the exact same as it would have without the failure.
-* Lightning keeps track of optimizers, lr_schedulers, callbacks, etc..
-* Lightning keep tracks of logging internal states, so your metric reduction on epoch end isn't affected by the failure and model selection can continue as expected.
+Lightning keeps track of the following state updates during training:
+
+* Samplers indices and random states across multiple processes and workers: This enables restoring random transforms and batch fetching to the exact state as it was right before the failure.
+* Optimizers, learning rate schedulers, callbacks, etc..
+* Loop progression
+* Logging internal states such that metric reductions on epoch end are not getting affected by the failure and model selection can continue as expected.
 
 Currently supported
 -------------------
