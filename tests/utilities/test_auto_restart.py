@@ -249,7 +249,7 @@ class RangeIterableDataset(IterableDataset):
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 30 sec and should be skipped in Azure CI")
 @pytest.mark.parametrize("num_workers", [0, 1, 2])
-def test_fast_forward_sampler_over_iterative_dataset(num_workers):
+def test_fast_forward_sampler_over_iterable_dataset(num_workers):
     """
     This test ensures ``FastForwardSampler`` and ``CaptureIterableDataset`` are properly being
     used to capture workers states.
@@ -273,8 +273,8 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers):
 
     state_dict = {"iter_sampler": {}}
     for batch in batches[:2]:
-        batch, _state_dict = CaptureIterableDataset.extract_samplers_state_dict_from_batch(batch)
-        for k, v in _state_dict[0].items():
+        batch, _state_dict = batch["data"], batch[AutoRestartBatchKeys.PL_RESTART_META]
+        for k, v in _state_dict.items():
             state_dict[k].update(v)
 
     assert len(state_dict["iter_sampler"]) == (num_workers if num_workers > 1 else 1)
@@ -581,8 +581,8 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
     # restarting on epoch 0 / real batch 2
     state_dict = {"iter_sampler": {}}
     for batch in epoch_results[0][2:4]:
-        batch, _state_dict = CaptureIterableDataset.extract_samplers_state_dict_from_batch(batch)
-        for k, v in _state_dict[0].items():
+        batch, _state_dict = batch["data"], batch[AutoRestartBatchKeys.PL_RESTART_META]
+        for k, v in _state_dict.items():
             state_dict[k].update(v)
 
     dataset = ClassificationDataset(range(dataset_length), labels)
