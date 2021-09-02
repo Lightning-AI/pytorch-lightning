@@ -3,7 +3,7 @@ Fault-tolerant Training
 
 .. warning:: Fault-tolerant Training is currently an experimental feature within Lightning.
 
-Fault-tolerant Training is an internal mechanism that enables PyTorch Lightning to recover from a failure in hardware or software.
+Fault-tolerant Training is an internal mechanism that enables PyTorch Lightning to recover from a hardware or software failure.
 This is particularly interesting while training in the cloud with preemptive instances which can shutdown at any time.
 Fault Tolerance requires PyTorch 1.7 or higher and can be enabled as follows:
 
