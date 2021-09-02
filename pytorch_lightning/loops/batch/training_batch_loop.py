@@ -30,7 +30,6 @@ from pytorch_lightning.loops.utilities import (
     _process_training_step_output,
 )
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
-from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
