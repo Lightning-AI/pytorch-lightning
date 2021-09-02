@@ -22,8 +22,8 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.warnings import rank_zero_warn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
+from pytorch_lightning.utilities.warnings import rank_zero_warn
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf.dictconfig import DictConfig
