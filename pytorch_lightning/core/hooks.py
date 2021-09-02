@@ -720,7 +720,7 @@ class DataHooks:
                     batch.samples = batch.samples.to(device)
                     batch.targets = batch.targets.to(device)
                 elif dataloader_idx == 0:
-                    # skip device transfer for the first dataloader
+                    # skip device transfer for the first dataloader or anything you wish
                     pass
                 else:
                     batch = super().transfer_batch_to_device(data, device)
