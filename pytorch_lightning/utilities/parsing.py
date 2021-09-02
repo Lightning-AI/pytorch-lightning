@@ -23,6 +23,10 @@ from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.warnings import rank_zero_warn
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
+
+if _OMEGACONF_AVAILABLE:
+    from omegaconf.dictconfig import DictConfig
 
 
 def str_to_bool_or_str(val: str) -> Union[str, bool]:
@@ -204,12 +208,14 @@ def save_hyperparameters(
     obj: Any, *args: Any, ignore: Optional[Union[Sequence[str], str]] = None, frame: Optional[types.FrameType] = None
 ) -> None:
     """See :meth:`~pytorch_lightning.LightningModule.save_hyperparameters`"""
+    hparams_container_types = [Namespace, dict]
+    if _OMEGACONF_AVAILABLE:
+        hparams_container_types.append(DictConfig)
     # empty container
     if len(args) == 1 and not isinstance(args, str) and not args[0]:
         return
     # container
-    elif len(args) == 1 and isinstance(args[0], (Namespace, dict)):
-        # todo: omegaconf?
+    elif len(args) == 1 and isinstance(args[0], tuple(hparams_container_types)):
         hp = args[0]
         obj._hparams_name = "hparams"
         obj._set_hparams(hp)
