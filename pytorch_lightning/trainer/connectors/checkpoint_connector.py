@@ -340,10 +340,12 @@ class CheckpointConnector:
         }
         if _fault_tolerant_training():
             checkpoint["loops"] = self._get_loops_state_dict()
+            self.trainer.training_type_plugin.barrier("checkpoint_connector.dump_checkpoint.loops")
 
         if not weights_only:
             # dump callbacks
             checkpoint["callbacks"] = self.trainer.on_save_checkpoint(checkpoint)
+            self.trainer.training_type_plugin.barrier("checkpoint_connector.dump_checkpoint.callbacks")
 
             optimizer_states = []
             for i, optimizer in enumerate(self.trainer.optimizers):
@@ -352,12 +354,14 @@ class CheckpointConnector:
                 optimizer_states.append(optimizer_state)
 
             checkpoint["optimizer_states"] = optimizer_states
+            self.trainer.training_type_plugin.barrier("checkpoint_connector.dump_checkpoint.optimizer_states")
 
             # dump lr schedulers
             lr_schedulers = []
             for scheduler in self.trainer.lr_schedulers:
                 lr_schedulers.append(scheduler["scheduler"].state_dict())
             checkpoint["lr_schedulers"] = lr_schedulers
+            self.trainer.training_type_plugin.barrier("checkpoint_connector.dump_checkpoint.lr_schedulers")
 
             self.trainer.precision_plugin.on_save_checkpoint(checkpoint)
 
@@ -374,8 +378,10 @@ class CheckpointConnector:
 
         # give the model a chance to dump a few things
         model.on_save_checkpoint(checkpoint)
+        self.trainer.training_type_plugin.barrier("checkpoint_connector.dump_checkpoint.model_on_save_checkpoint")
         if self.trainer.datamodule is not None:
             self.trainer.datamodule.on_save_checkpoint(checkpoint)
+            self.trainer.training_type_plugin.barrier("checkpoint_connector.datamodule_on_save_checkpoint")
 
         return checkpoint
 
