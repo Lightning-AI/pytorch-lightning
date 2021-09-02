@@ -19,6 +19,7 @@ from unittest.mock import call, PropertyMock
 
 import pytest
 import torch
+from omegaconf import OmegaConf
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -550,6 +551,9 @@ def test_hyperparameters_saving():
 
     data = DataModuleWithHparams_1({"hello": "world"}, "foo", kwarg0="bar")
     assert data.hparams == AttributeDict({"hello": "world"})
+
+    data = DataModuleWithHparams_1(OmegaConf.create({"hello": "world"}), "foo", kwarg0="bar")
+    assert data.hparams == OmegaConf.create({"hello": "world"})
 
 
 def test_inconsistent_prepare_data_per_node(tmpdir):
