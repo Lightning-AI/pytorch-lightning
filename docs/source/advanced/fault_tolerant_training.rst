@@ -50,7 +50,8 @@ If you are using a single map-based dataset, everything should work as expected.
         def __len__(self):
             return self.len
 
-If you are using a single iterable-based dataset, there is some limitations. You need to use and expose a sampler within your dataset.
+If you are using a single iterable-based dataset, there are some limitations.
+You need to use and expose a sampler within your dataset.
 
 This won't be supported as Lightning can't infer you are iterating over count.
 
@@ -103,7 +104,7 @@ Here is the recommended way to implement your iterable dataset:
 The current known limitations
 -----------------------------
 
-If you are using multiple a collection of train dataloaders, Lightning won't be able to restore the random state properly.
+If you are using multiple training dataloaders, Lightning won't be able to restore the random state properly.
 
 .. testcode::
 
