@@ -16,7 +16,6 @@ from functools import partial
 from typing import Any, Callable, List, Optional, Tuple
 
 import numpy as np
-import torch
 from deprecate import void
 from torch import Tensor
 from torch.optim import Optimizer
