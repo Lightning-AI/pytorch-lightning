@@ -112,7 +112,6 @@ class Tuner:
 
                 - ``model``
                 - ``model.hparams``
-                - ``model.datamodule``
                 - ``trainer.datamodule`` (the datamodule passed to the tune method)
         """
         self.trainer.auto_scale_batch_size = True
