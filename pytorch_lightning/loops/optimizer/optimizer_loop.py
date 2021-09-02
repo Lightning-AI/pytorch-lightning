@@ -28,12 +28,12 @@ from pytorch_lightning.loops.utilities import (
     _build_training_step_kwargs,
     _check_training_step_output,
     _process_training_step_output,
-    check_finite_loss,
 )
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
 
 _OUTPUTS_TYPE = List[List[Optional[ResultCollection]]]
@@ -219,9 +219,9 @@ class OptimizerLoop(Loop):
         def backward_fn(loss: Tensor):
             self.backward(loss, optimizer, opt_idx)
 
-            # check if loss or model weights are nan
+            # check if model weights are nan
             if self.trainer.terminate_on_nan:
-                check_finite_loss(self.trainer.lightning_module, loss)
+                detect_nan_parameters(self.trainer.lightning_module)
 
             return loss
 
