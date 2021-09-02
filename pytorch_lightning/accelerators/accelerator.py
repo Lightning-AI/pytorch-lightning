@@ -27,7 +27,7 @@ from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
-from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
+from pytorch_lightning.utilities.enums import AMPType, LightningEnum
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _NATIVE_AMP_AVAILABLE:
@@ -303,17 +303,6 @@ class Accelerator:
         """Zeros all model parameter's gradients"""
         model_ref = self.lightning_module
         model_ref.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
-
-    def clip_gradients(
-        self,
-        optimizer: Optimizer,
-        clip_val: Union[int, float],
-        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
-    ) -> None:
-        """clips all the optimizer parameters to the given value"""
-        self.precision_plugin.clip_gradients(
-            optimizer, clip_val, gradient_clip_algorithm=gradient_clip_algorithm, model=self.model
-        )
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         """

@@ -277,6 +277,7 @@ class HookedModel(BoringModel):
     def _auto_train_batch(trainer, model, batches, device=torch.device("cpu"), current_epoch=0, **kwargs):
         using_native_amp = kwargs.get("amp_backend") == "native"
         using_deepspeed = kwargs.get("plugins") == "deepspeed"
+        using_plugin = kwargs.get("amp_backend") or kwargs.get("plugins")
         out = []
         on_before_optimizer_step = [
             dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY, 0)),
@@ -292,10 +293,8 @@ class HookedModel(BoringModel):
                     dict(name="Callback.on_batch_start", args=(trainer, model)),
                     dict(name="Callback.on_train_batch_start", args=(trainer, model, ANY, i, 0)),
                     dict(name="on_train_batch_start", args=(ANY, i, 0)),
-                    # these are before the training step because
-                    # they are not part of the `training_step_and_backward` closure, however,
-                    # with native amp, the closure is run first and then the optimizer step.
-                    *(on_before_optimizer_step if not using_native_amp else []),
+                    # without a precision plugin, we execute the closure inside the `optimizer.step`
+                    *(on_before_optimizer_step if not using_plugin else []),
                     dict(name="forward", args=(ANY,)),
                     dict(name="training_step", args=(ANY, i)),
                     dict(name="training_step_end", args=(dict(loss=ANY),)),
@@ -308,7 +307,7 @@ class HookedModel(BoringModel):
                     *([dict(name="backward", args=(ANY, ANY, 0))] if not using_deepspeed else []),
                     dict(name="Callback.on_after_backward", args=(trainer, model)),
                     dict(name="on_after_backward"),
-                    *(on_before_optimizer_step if using_native_amp else []),
+                    *(on_before_optimizer_step if using_plugin else []),
                     dict(
                         name="optimizer_step",
                         args=(current_epoch, i, ANY, 0, ANY),
@@ -554,7 +553,9 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         dict(name="Callback.teardown", args=(trainer, model), kwargs=dict(stage="fit")),
         dict(name="teardown", kwargs=dict(stage="fit")),
     ]
-    assert called == expected
+    assert [c["name"] for c in called] == [e["name"] for e in expected]
+    for c, e in zip(called, expected):
+        assert c["name"] == e["name"]
 
 
 def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
