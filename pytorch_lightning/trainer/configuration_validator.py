@@ -43,7 +43,7 @@ class ConfigValidator:
         elif self.trainer.state.fn == TrainerFn.PREDICTING:
             self.__verify_predict_loop_configuration(model)
         self.__verify_dp_batch_transfer_support(model)
-        # TODO(@daniellepintz): Delete _check_on_keyboard_interrupt in v1.7
+        # TODO: Delete _check_on_keyboard_interrupt in v1.7
         self._check_on_keyboard_interrupt()
 
     def __verify_train_loop_configuration(self, model: "pl.LightningModule") -> None:
@@ -210,5 +210,5 @@ class ConfigValidator:
             if is_overridden(method_name="on_keyboard_interrupt", instance=callback):
                 rank_zero_deprecation(
                     "The `on_keyboard_interrupt` callback hook was deprecated in v1.5 and will be removed in v1.7."
-                    "Please use the `on_exception` callback hook instead."
+                    " Please use the `on_exception` callback hook instead."
                 )
