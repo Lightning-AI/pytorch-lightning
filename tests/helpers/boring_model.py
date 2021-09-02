@@ -99,10 +99,10 @@ class BoringModel(LightningModule):
         # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
         return torch.nn.functional.mse_loss(pred, torch.ones_like(pred))
 
-    # def step(self, x):
-    #     x = self(x)
-    #     out = torch.nn.functional.mse_loss(x, torch.ones_like(prediction))
-    #     return out
+    def step(self, x):
+        x = self(x)
+        out = torch.nn.functional.mse_loss(x, torch.ones_like(x))
+        return out
 
     def training_step(self, batch, batch_idx):
         pred = self(batch)
