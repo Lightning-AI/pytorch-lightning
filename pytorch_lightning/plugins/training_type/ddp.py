@@ -49,6 +49,7 @@ from pytorch_lightning.utilities import (
 )
 from pytorch_lightning.utilities.distributed import (
     distributed_available,
+    get_init_process_group_kwargs,
     init_ddp_connection,
     rank_zero_only,
     ReduceOp,
@@ -127,6 +128,7 @@ class DDPPlugin(ParallelPlugin):
         self._model_averaging_period = model_averaging_period
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
+        self._init_process_group_kwargs = get_init_process_group_kwargs(kwargs)
         self.set_world_ranks()
 
     @property
@@ -265,7 +267,7 @@ class DDPPlugin(ParallelPlugin):
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
-        init_ddp_connection(self.cluster_environment, self.torch_distributed_backend)
+        init_ddp_connection(self.cluster_environment, self.torch_distributed_backend, **self._init_process_group_kwargs)
 
         # set the ranks and devices
         self.dist.rank = self.global_rank

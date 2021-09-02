@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
 import logging
 import os
 from functools import wraps
 from platform import python_version
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
@@ -401,3 +402,12 @@ def init_ddp_connection(
             f"All DDP processes registered. Starting ddp with {world_size} processes\n"
             f"{'-' * 100}\n"
         )
+
+
+def get_init_process_group_kwargs(plugin_kwargs: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """
+    Utility function to get init_process_group kwargs from the plugin_kwargs.
+    """
+    init_params = set(inspect.signature(torch.distributed.init_process_group).parameters)
+    kwargs = {k: v for k, v in plugin_kwargs.items() if k in init_params}
+    return kwargs

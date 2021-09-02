@@ -40,6 +40,7 @@ from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import (
     distributed_available,
+    get_init_process_group_kwargs,
     init_ddp_connection,
     rank_zero_only,
     ReduceOp,
@@ -99,6 +100,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
         self._local_rank = 0
+        self._init_process_group_kwargs = get_init_process_group_kwargs(kwargs)
         self.set_world_ranks()
 
     @property
@@ -186,7 +188,13 @@ class DDPSpawnPlugin(ParallelPlugin):
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
-        init_ddp_connection(self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size)
+        init_ddp_connection(
+            self.cluster_environment,
+            self.torch_distributed_backend,
+            self.global_rank,
+            self.world_size,
+            **self._init_process_group_kwargs,
+        )
 
         # TODO: we moved it to the trainer.fit after calling pre_dispatch
         #   ... need to double check that it is the correct place
