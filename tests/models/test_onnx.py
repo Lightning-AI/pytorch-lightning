@@ -20,10 +20,32 @@ import torch
 
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
-from pytorch_lightning import Trainer
+from pytorch_lightning import LightningModule, Trainer
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
-from tests.utilities.test_model_summary import UnorderedModel
+
+
+class UnorderedModel(LightningModule):
+    """A model in which the layers not defined in order of execution."""
+
+    def __init__(self):
+        super().__init__()
+        # note: the definition order is intentionally scrambled for this test
+        self.layer2 = nn.Linear(10, 2)
+        self.combine = nn.Linear(7, 9)
+        self.layer1 = nn.Linear(3, 5)
+        self.relu = nn.ReLU()
+        # this layer is unused, therefore input-/output shapes are unknown
+        self.unused = nn.Conv2d(1, 1, 1)
+
+        self.example_input_array = (torch.rand(2, 3), torch.rand(2, 10))
+
+    def forward(self, x, y):
+        out1 = self.layer1(x)
+        out2 = self.layer2(y)
+        out = self.relu(torch.cat((out1, out2), 1))
+        out = self.combine(out)
+        return out
 
 
 def test_model_saves_with_input_sample(tmpdir):
