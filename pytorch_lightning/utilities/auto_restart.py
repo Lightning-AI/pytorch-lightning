@@ -485,6 +485,27 @@ def patch_dataloader_iterator(
     data_fetcher: "pl.utilities.fetching.DataFetcher",
     num_batches_fetched: int = 0,
 ) -> None:
+    """
+    Patches the iterator of a PyTorch dataloader by injecting logic for fault-tolerant training when it is
+    necessary to remove the sampler state dict from provided data batch.
+
+    The custom data has this format:
+    .. code-block:: python
+        {
+            "batch": ...,  # data returned by DataLoader
+            "__pl_restart_meta": {
+                "sampler0": {
+                    0: {"current_iteration": ...},
+                    1: {"current_iteration": ...},
+                },
+                "sampler1": ...,
+            },
+        }
+    Each sampler in the worker process tracks the current iteration. We return all of them to the main process
+    as part of the sample and then a special collate function :func:`_capture_metadata_collate`
+    will extract the current iteration as part of the metadata returned by a custom batch.
+    """
+
     assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
 
     def _next_data_wrapper(fn, it, dl, num_batches_fetched) -> Callable:
