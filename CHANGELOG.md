@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 
 
-- Added `log_model` parameter to `MLFlowLogger` ([#9138](https://github.com/PyTorchLightning/pytorch-lightning/pull/9138))
+- Added `log_model` parameter to `MLFlowLogger` ([#9187](https://github.com/PyTorchLightning/pytorch-lightning/pull/9187))
 
 
 - Register `ShardedTensor` state dict hooks in `LightningModule.__init__` if the pytorch version supports `ShardedTensor` ([#8944](https://github.com/PyTorchLightning/pytorch-lightning/pull/8944))
