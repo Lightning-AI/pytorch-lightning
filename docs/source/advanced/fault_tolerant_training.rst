@@ -5,6 +5,14 @@ Fault-tolerant Training
 
 Fault-tolerant Training is an internal mechanism that enables PyTorch Lightning to recover from a hardware or software failure.
 This is particularly interesting while training in the cloud with preemptive instances which can shutdown at any time.
+
+Until now, a ``Trainer.fit()`` failing in the middle of an epoch during training or validation
+would require the user to restart that epoch completely, losing any progress made during the epoch.
+This would make benchmarking non-reproducible as optimization has been interrupted and only partially restored.
+
+With Fault Tolerant Training, when ``Trainer.fit()`` fails in the middle of an epoch during training or validation,
+Lightning will restart exactly where it failed, and everything will be restored.
+
 Fault Tolerance requires PyTorch 1.7 or higher and can be enabled as follows:
 
 .. code-block:: bash
@@ -12,15 +20,8 @@ Fault Tolerance requires PyTorch 1.7 or higher and can be enabled as follows:
     PL_FAULT_TOLERANT_TRAINING=1 python script.py
 
 
-Until now and without enabling fault tolerance, a `Trainer.fit()` failing in the middle of an epoch either in training or validation
-would require the user to restart that epoch completely and any progress made during the epoch would be lost.
-This would make benchmarking non-reproducible as optimization has been interrupted and only partially restored.
-
-With Fault Tolerant Training enabled, when `Trainer.fit()` fails in the middle of an epoch either in training or validation,
-Lightning will restart exactly where it failed and everything will be restored.
-
-What does Lightning do exactly ?
---------------------------------
+Under The Hood
+--------------
 
 Lightning keeps track of the following state updates during training:
 
@@ -29,7 +30,7 @@ Lightning keeps track of the following state updates during training:
 * Loop progression
 * Logging internal states such that metric reductions on epoch end are not getting affected by the failure and model selection can continue as expected.
 
-Currently supported
+Currently Supported
 -------------------
 
 If you are using a single map-based dataset by sub-classing :class:`~torch.utils.data.Dataset`, everything should work as expected.
@@ -50,8 +51,7 @@ If you are using a single map-based dataset by sub-classing :class:`~torch.utils
         def __len__(self):
             return self.len
 
-If you are using a single iterable-based dataset, there are some limitations.
-You need to use and expose a sampler within your dataset.
+If you are using a single iterable-based dataset, there are some limitations. To support fault-tolerancy, you will need to use and expose a sampler within your dataset.
 
 For example, the following implementation for an iterable dataset sub-classing :class:`~torch.utils.data.IterableDataset` won't be supported.
 
@@ -60,6 +60,7 @@ For example, the following implementation for an iterable dataset sub-classing :
     from torch.utils.data import IterableDataset, DataLoader
 
 
+    # does not support fault tolerance training!
     class RandomIterableDataset(IterableDataset):
         def __init__(self, size: int, count: int):
             self.count = count
@@ -72,13 +73,8 @@ For example, the following implementation for an iterable dataset sub-classing :
 
 There are two primary reasons why Lightning can't support the previous implementation.
 
-First, Lightning can't infer what you are iterating over.
-Right now, Lightning Fault Tolerant Training requires a :class:`~torch.utils.data.distributed.Sampler` to be used
-to encapsulate the fetching logic and both the sampler and its iterator should be made available as attributes on the dataset,
-so Lightning can access them to track progress.
-
-Secondly, implementing the `__next__` method is required as it separates iterator creation from its consumption,
-which is essential for Lightning to wrap the iterator before their consumption.
+* Lightning cannot infer what you are iterating over, making it difficult to restart training. Lightning Fault Tolerant Training requires a :class:`~torch.utils.data.distributed.Sampler` to be used to encapsulate the fetching logic, requiring both the sampler and an iterator to be made available as attributes within the dataset, so Lightning can access them to track progress.
+* Implementing the `__next__` method is required as it separates iterator creation from its consumption, which is essential for Lightning to wrap the iterator before their consumption.
 
 If your iterable dataset are implemented in the following way, everything should works as expected.
 
@@ -111,8 +107,8 @@ If your iterable dataset are implemented in the following way, everything should
             return self.data[index]
 
 
-The current known limitations
------------------------------
+Current Known Limitations
+-------------------------
 
 If you are using multiple training dataloaders, Lightning won't be able to restore the random state properly.
 
@@ -139,13 +135,12 @@ Performance Impacts
 
 Fault-tolerant Training was tested on common and worst-case scenarios in order to measure the impact of the internal state tracking on the total training time.
 On tiny models like the `BoringModel and RandomDataset <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/bug_report_model.py>`_
-which has virtually no data loading and processing overhead, we noticed up to 50 % longer training time with fault tolerance enabled.
-In this worst-case scenario, fault-tolerant adds an overhead that is noticable in comparison to the compute time for dataloading itself.
-However, for more realistic training workloads where data loading and preprocessing is more expensive, the constant overhead that fault tolerance adds becomes less noticable or not noticable at all.
-For example, when training with ResNet50 on CIFAR 10 we have observed a 0.5% to 1% longer training time depending on `batch size` or `number of workers`.
+which has virtually no data loading and processing overhead, we noticed up to 50% longer training time with fault tolerance enabled.
+In this worst-case scenario, fault-tolerant adds an overhead that is noticeable in comparison to the compute time for dataloading itself.
+However, for more realistic training workloads where data loading and preprocessing is more expensive, the constant overhead that fault tolerance adds becomes less noticeable or not noticeable at all.
+For example, when training with ResNet50 on CIFAR 10 we have observed a 0.5% to 1% increase in training time depending on ``batch size`` or ``number of workers``.
 
 More detailed benchmarks will be shared in the future.
-
 
 .. note::
 
