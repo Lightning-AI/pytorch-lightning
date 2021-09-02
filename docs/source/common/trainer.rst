@@ -908,7 +908,7 @@ Stop training once this number of epochs is reached
     trainer = Trainer(max_epochs=1000)
 
 If both ``max_epochs`` and ``max_steps`` aren't specified, ``max_epochs`` will default to ``1000``.
-To disable this default, set ``max_epochs = -1``.
+To enable infinite training, set ``max_epochs = -1``.
 
 min_epochs
 ^^^^^^^^^^
