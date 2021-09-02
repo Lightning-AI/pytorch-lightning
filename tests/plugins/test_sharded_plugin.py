@@ -4,12 +4,17 @@ from unittest import mock
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin
+from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
+
+if _FAIRSCALE_AVAILABLE:
+    from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
 
 
 @pytest.mark.parametrize("clip_val", [0, 10])
@@ -249,3 +254,37 @@ def test_ddp_sharded_plugin_manual_optimization(tmpdir):
     model = ManualBoringModel()
     trainer = Trainer(default_root_dir=tmpdir, accelerator="ddp_sharded", fast_dev_run=2, gpus=2)
     trainer.fit(model)
+
+
+class BoringModelSharded(BoringModel):
+    def on_train_start(self) -> None:
+        """Check if trainer module is wrapped as ShardedDataParallel during training stage."""
+        assert isinstance(self.trainer.model, ShardedDataParallel)
+
+    def on_test_start(self) -> None:
+        """Check if trainer module remains as LightningModule during test stage."""
+        assert isinstance(self.trainer.model, LightningModule)
+
+    def on_validation_start(self) -> None:
+        """Check if trainer module remains as LightningModule during test stage."""
+        if self.trainer.state.fn == TrainerFn.FITTING:
+            assert isinstance(self.trainer.model, ShardedDataParallel)
+        else:
+            assert isinstance(self.trainer.model, LightningModule)
+
+    def on_predict_start(self) -> None:
+        """Check if trainer module remains as LightningModule during prediction stage."""
+        assert isinstance(self.trainer.model, LightningModule)
+
+
+@RunIf(skip_windows=True, fairscale=True)
+def test_configure_ddp(tmpdir):
+    """Tests with ddp sharded plugin."""
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="ddp_sharded", fast_dev_run=True)
+
+    model = BoringModelSharded()
+
+    trainer.fit(model)
+    trainer.test(model, dataloaders=model.test_dataloader())
+    trainer.validate(model, dataloaders=model.val_dataloader())
+    trainer.predict(model, dataloaders=model.predict_dataloader())

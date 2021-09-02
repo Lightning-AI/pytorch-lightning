@@ -18,6 +18,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
 import torch
 from torchmetrics import Metric
+from typing_extensions import TypedDict
 
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities import rank_zero_warn
@@ -33,6 +34,17 @@ from pytorch_lightning.utilities.warnings import WarningCache
 # TODO(@tchaton): Typing-pickle issue on python<3.7 (https://github.com/cloudpipe/cloudpickle/pull/318)
 _METRIC = Any  # Union[Metric, torch.Tensor]
 _METRIC_COLLECTION = Union[_METRIC, Mapping[str, _METRIC]]
+_OUT_METRIC = Union[torch.Tensor, Dict[str, torch.Tensor]]
+_PBAR_METRIC = Union[float, Dict[str, float]]
+_OUT_DICT = Dict[str, _OUT_METRIC]
+_PBAR_DICT = Dict[str, _PBAR_METRIC]
+
+
+class _METRICS(TypedDict):
+    callback: _OUT_DICT
+    log: _OUT_DICT
+    pbar: _PBAR_DICT
+
 
 warning_cache = WarningCache()
 
@@ -532,7 +544,7 @@ class ResultCollection(dict):
             forked_name += dataloader_suffix
         return name, forked_name
 
-    def metrics(self, on_step: bool) -> Dict[MetricSource, Dict[str, _METRIC]]:
+    def metrics(self, on_step: bool) -> _METRICS:
         metrics = {k: {} for k in MetricSource}
 
         for _, result_metric in self.valid_items():

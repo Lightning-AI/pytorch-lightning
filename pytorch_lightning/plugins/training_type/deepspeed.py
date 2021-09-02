@@ -818,3 +818,12 @@ class DeepSpeedPlugin(DDPPlugin):
     @checkpoint_io.setter
     def checkpoint_io(self, plugin: CheckpointIO) -> None:
         raise MisconfigurationException("DeepSpeed currently does not support custom checkpoint plugins.")
+
+    def validation_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+    def test_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+    def predict_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
