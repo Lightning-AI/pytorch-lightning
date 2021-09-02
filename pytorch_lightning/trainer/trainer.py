@@ -513,6 +513,7 @@ class Trainer(
                 self.state.status = TrainerStatus.INTERRUPTED
                 self.on_keyboard_interrupt()
                 self.on_exception(exception)
+                raise exception
         except BaseException as exception:
             self.state.status = TrainerStatus.INTERRUPTED
             if distributed_available() and self.world_size > 1:
@@ -522,7 +523,7 @@ class Trainer(
             # reset bookkeeping
             self.state.stage = None
             self.on_exception(exception)
-            raise
+            raise exception
 
     def fit(
         self,
