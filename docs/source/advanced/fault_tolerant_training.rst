@@ -145,3 +145,11 @@ However, for more realistic training workloads where data loading and preprocess
 For example, when training with ResNet50 on CIFAR 10 we have observed a 0.5% to 1% longer training time depending on `batch size` or `number of workers`.
 
 More detailed benchmarks will be shared in the future.
+
+
+.. note::
+
+    The extra time is coming from several parts:
+
+    - Capturing the iteration count + random states for each sample within each DataLoader workers and pass it through the data_queue
+    - Extra logic to handle / store the dataloader's states from each batch.
