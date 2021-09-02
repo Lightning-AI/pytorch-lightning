@@ -579,14 +579,7 @@ class CombinedLoaderIterator:
         Returns
             Any: a collections of batch data
         """
-
-        def next_fn(iterator: Iterator):
-            batch = next(iterator)
-            if not _fault_tolerant_training():
-                return batch
-            return batch
-
-        return apply_to_collection(loader_iters, Iterator, next_fn)
+        return apply_to_collection(loader_iters, Iterator, next)
 
     @staticmethod
     def create_loader_iters(
