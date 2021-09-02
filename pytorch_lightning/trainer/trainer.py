@@ -444,8 +444,8 @@ class Trainer(
             gradient_clip_algorithm,
             track_grad_norm,
             accumulate_grad_batches,
-            terminate_on_nan,
             detect_anomaly,
+            terminate_on_nan,
         )
         self._setup_on_init(num_sanity_val_steps)
 

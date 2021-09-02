@@ -277,7 +277,7 @@ class TrainingBatchLoop(Loop):
             self.trainer.dev_debugger.track_train_loss_history(batch_idx, loss)
 
             # check if loss or model weights are nan
-            if self.trainer.terminate_on_nan:
+            if self.trainer.terminate_on_nan or self.trainer.detect_anomaly:
                 check_finite_loss(self.trainer.lightning_module, loss)
 
             return loss
@@ -295,7 +295,7 @@ class TrainingBatchLoop(Loop):
             return
 
         # check if loss or model weights are nan
-        if self.trainer.terminate_on_nan:
+        if self.trainer.terminate_on_nan or self.trainer.detect_anomaly:
             check_finite_loss(self.trainer.lightning_module, opt_closure_result.loss)
 
     def _training_step(
