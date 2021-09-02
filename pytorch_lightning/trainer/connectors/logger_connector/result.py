@@ -17,9 +17,9 @@ from functools import partial, wraps
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
 import torch
-from mypy_extensions import TypedDict
 from torch.functional import Tensor
 from torchmetrics import Metric
+from typing_extensions import TypedDict
 
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities import rank_zero_warn
