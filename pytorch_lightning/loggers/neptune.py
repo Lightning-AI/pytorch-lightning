@@ -139,8 +139,13 @@ class NeptuneLogger(LightningLoggerBase):
                 metadata = ...
                 self.logger.experiment["your/metadata/structure"].log(metadata)
 
-    Check `Logging metadata docs <https://docs.neptune.ai/you-should-know/logging-metadata>`_
-    for more info about how to log various types of metadata (scores, files, images, interactive visuals, CSVs, etc.).
+    Note that syntax: ``self.logger.experiment["your/metadata/structure"].log(metadata)`` is specific to Neptune
+    and it extends logger capabilities. Specifically, it allows you to log various types of metadata
+    like scores, files, images, interactive visuals, CSVs, etc.
+    Refer to the `Neptune docs <https://docs.neptune.ai/you-should-know/logging-metadata#essential-logging-methods>`_
+    for more detailed explanations.
+    You can also use regular logger methods ``log_metrics()``, and ``log_hyperparams()`` with NeptuneLogger
+    as these are also supported.
 
     **Log after fitting or testing is finished**
 
@@ -393,6 +398,15 @@ class NeptuneLogger(LightningLoggerBase):
                     # log images
                     img = ...
                     self.logger.experiment["train/misclassified_images"].log(File.as_image(img))
+
+        Note that syntax: ``self.logger.experiment["your/metadata/structure"].log(metadata)``
+        is specific to Neptune and it extends logger capabilities.
+        Specifically, it allows you to log various types of metadata like scores, files,
+        images, interactive visuals, CSVs, etc. Refer to the
+        `Neptune docs <https://docs.neptune.ai/you-should-know/logging-metadata#essential-logging-methods>`_
+        for more detailed explanations.
+        You can also use regular logger methods ``log_metrics()``, and ``log_hyperparams()``
+        with NeptuneLogger as these are also supported.
         """
         return self.run
 
