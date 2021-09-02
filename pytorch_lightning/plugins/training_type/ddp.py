@@ -369,6 +369,20 @@ class DDPPlugin(ParallelPlugin):
         )
         self._register_ddp_hooks()
 
+    @property
+    def should_rank_save_checkpoint(self) -> bool:
+        """Returns whether the checkpoint should be saved (rank based)"""
+        if self.num_nodes > 1:
+            sync_dir = None
+            if self.is_global_zero:
+                sync_dir = tempfile.mkdtemp()
+            self.barrier()
+            sync_dir = self.broadcast(sync_dir)
+            shared_file_system = self.all_gather(torch.tensor(int(os.path.exists(sync_dir)))).sum() == self.world_size
+            if shared_file_system:
+                return self.local_rank == 0
+        return self.is_global_zero
+
     def determine_ddp_device_ids(self):
         if self.root_device.type == "cpu":
             return None
