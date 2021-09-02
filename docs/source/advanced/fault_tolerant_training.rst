@@ -78,7 +78,7 @@ to encapsulate the fetching logic and both the sampler and its iterator should b
 so Lightning can access them to track progress.
 
 Secondly, implementing the `__next__` method is required as it separates iterator creation from its consumption,
-    which is essential for Lightning to wrap the iterator before their consumption.
+which is essential for Lightning to wrap the iterator before their consumption.
 
 If your iterable dataset are implemented in the following way, everything should works as expected.
 
