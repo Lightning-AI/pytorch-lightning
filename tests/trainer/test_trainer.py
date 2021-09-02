@@ -876,8 +876,7 @@ def test_on_exception_hook(tmpdir):
     assert not trainer.interrupted
     assert handle_interrupt_callback.exception is None
     assert handle_interrupt_callback.exc_info is None
-    with pytest.raises(KeyboardInterrupt):
-        trainer.fit(model)
+    trainer.fit(model)
     assert trainer.interrupted
     assert isinstance(handle_interrupt_callback.exception, KeyboardInterrupt)
     assert isinstance(handle_interrupt_callback.exc_info[1], KeyboardInterrupt)
