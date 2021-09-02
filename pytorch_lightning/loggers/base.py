@@ -351,7 +351,9 @@ class LightningLoggerBase(ABC):
         return metrics
 
     def _log_checkpoints(
-        self, checkpoint_callback: "ReferenceType[ModelCheckpoint]", checkpoints: List[ModelCheckpoint],
+        self,
+        checkpoint_callback: "ReferenceType[ModelCheckpoint]",
+        checkpoints: List[ModelCheckpoint],
     ) -> None:
         """
         Log the given checkpoints.
