@@ -682,6 +682,7 @@ class DeepSpeedPlugin(DDPPlugin):
         _exclude_keys = ["state_dict", "optimizer_states", "lr_schedulers"]
         checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
         self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint)
+        self.barrier("save_checkpoint")
 
     def load_checkpoint(self, checkpoint_path: Union[str, Path]) -> Optional[Dict[str, Any]]:
         if self.load_full_weights and self.zero_stage_3:

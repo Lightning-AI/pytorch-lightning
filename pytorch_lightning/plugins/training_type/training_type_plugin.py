@@ -272,6 +272,7 @@ class TrainingTypePlugin(ABC):
         """
         if self.should_rank_save_checkpoint:
             return self.checkpoint_io.save_checkpoint(checkpoint, filepath)
+        self.barrier("save_checkpoint")
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
