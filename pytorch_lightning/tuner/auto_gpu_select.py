@@ -31,7 +31,7 @@ def pick_multiple_gpus(nb: int) -> List[int]:
 
     nb = torch.cuda.device_count() if nb == -1 else nb
 
-    picked = []
+    picked = [] # type: List[int]
     for _ in range(nb):
         picked.append(pick_single_gpu(exclude_gpus=picked))
 
