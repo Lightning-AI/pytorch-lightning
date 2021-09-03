@@ -29,7 +29,7 @@ from pytorch_lightning.profiler.pytorch import RegisterRecordFunction
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
-from tests.helpers import BoringModel
+from tests.helpers import BoringModel, ManualOptimBoringModel
 from tests.helpers.runif import RunIf
 
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
@@ -303,7 +303,28 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         assert any(f"{local_rank}-validation_step" in f for f in files)
 
 
-def test_pytorch_profiler_trainer_test(tmpdir):
+@pytest.mark.parametrize("boring_model_cls", [BoringModel, ManualOptimBoringModel])
+def test_pytorch_profiler_trainer_fit(boring_model_cls, tmpdir):
+    """Ensure that the profiler can be given to the trainer and test step are properly recorded."""
+    pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", schedule=None)
+    model = boring_model_cls()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_test_batches=2, profiler=pytorch_profiler)
+    trainer.fit(model)
+
+    assert sum(e.name == "test_step" for e in pytorch_profiler.function_events)
+
+    path = pytorch_profiler.dirpath / f"test-{pytorch_profiler.filename}.txt"
+    assert path.read_text("utf-8")
+
+    if _KINETO_AVAILABLE:
+        files = sorted(file for file in os.listdir(tmpdir) if file.endswith(".json"))
+        assert any(f"test-{pytorch_profiler.filename}" in f for f in files)
+        path = pytorch_profiler.dirpath / f"test-{pytorch_profiler.filename}.txt"
+        assert path.read_text("utf-8")
+
+
+@pytest.mark.parametrize("boring_model_cls", [BoringModel, ManualOptimBoringModel])
+def test_pytorch_profiler_trainer_test(boring_model_cls, tmpdir):
     """Ensure that the profiler can be given to the trainer and test step are properly recorded."""
     pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", schedule=None)
     model = BoringModel()

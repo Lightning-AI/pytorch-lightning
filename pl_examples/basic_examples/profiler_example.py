@@ -22,6 +22,7 @@ The traces can be visualized in 2 ways:
     2. tensorboard --logdir={FOLDER}
 """
 
+from pytorch_lightning.profiler.pytorch import PyTorchProfiler
 import sys
 
 import torch
@@ -43,17 +44,29 @@ DEFAULT_CMD_LINE = (
 
 
 class ModelToProfile(LightningModule):
-    def __init__(self, name: str = "resnet50"):
+    def __init__(self, name: str = "resnet18", automatic_optimization: bool = True):
         super().__init__()
         self.model = getattr(models, name)(pretrained=True)
         self.criterion = torch.nn.CrossEntropyLoss()
+        self.automatic_optimization = automatic_optimization
+        self.training_step = self.automatic_optimization_training_step if automatic_optimization else self.manual_optimization_training_step
 
-    def training_step(self, batch, batch_idx):
+    def automatic_optimization_training_step(self, batch, batch_idx):
         inputs, labels = batch
         outputs = self.model(inputs)
         loss = self.criterion(outputs, labels)
         self.log("train_loss", loss)
         return loss
+
+    def manual_optimization_training_step(self, batch, batch_idx):
+        opt = self.optimizers()
+        opt.zero_grad()
+        inputs, labels = batch
+        outputs = self.model(inputs)
+        loss = self.criterion(outputs, labels)
+        self.log("train_loss", loss)
+        self.manual_backward(loss)
+        opt.step()
 
     def validation_step(self, batch, batch_idx):
         inputs, labels = batch
@@ -77,18 +90,18 @@ class CIFAR10DataModule(LightningDataModule):
         trainset = torchvision.datasets.CIFAR10(
             root=_DATASETS_PATH, train=True, download=True, transform=self.transform
         )
-        return torch.utils.data.DataLoader(trainset, batch_size=32, shuffle=True, num_workers=0)
+        return torch.utils.data.DataLoader(trainset, batch_size=2, shuffle=True, num_workers=0)
 
     def val_dataloader(self, *args, **kwargs):
         valset = torchvision.datasets.CIFAR10(root=_DATASETS_PATH, train=False, download=True, transform=self.transform)
-        return torch.utils.data.DataLoader(valset, batch_size=32, shuffle=True, num_workers=0)
+        return torch.utils.data.DataLoader(valset, batch_size=2, shuffle=True, num_workers=0)
 
 
 def cli_main():
     if len(sys.argv) == 1:
         sys.argv += DEFAULT_CMD_LINE
 
-    LightningCLI(ModelToProfile, CIFAR10DataModule)
+    LightningCLI(ModelToProfile, CIFAR10DataModule, save_config_callback=None, trainer_defaults={"profiler": PyTorchProfiler()})
 
 
 if __name__ == "__main__":

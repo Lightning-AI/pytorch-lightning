@@ -129,8 +129,18 @@ class ScheduleWrapper:
         self._start_action_name: Optional[str] = None
 
     @property
+    def is_training(self) -> bool:
+        return (
+            self._current_action is not None 
+            and (
+                self._current_action.startswith("optimizer_step_and_closure_") 
+                or self._current_action == "training_step"
+            )
+        )
+
+    @property
     def num_step(self) -> int:
-        if self._current_action is not None and self._current_action.startswith("optimizer_step_and_closure_"):
+        if self.is_training:
             return self._num_optimizer_step_and_closure
         if self._current_action == "validation_step":
             return self._num_validation_step
@@ -141,7 +151,7 @@ class ScheduleWrapper:
         return 0
 
     def _step(self) -> None:
-        if self._current_action is not None and self._current_action.startswith("optimizer_step_and_closure_"):
+        if self.is_training:
             self._num_optimizer_step_and_closure += 1
         elif self._current_action == "validation_step":
             if self._start_action_name == "on_fit_start":
@@ -156,7 +166,7 @@ class ScheduleWrapper:
 
     @property
     def has_finished(self) -> bool:
-        if self._current_action is not None and self._current_action.startswith("optimizer_step_and_closure_"):
+        if self.is_training:
             return self._optimizer_step_and_closure_reached_end
         if self._current_action == "validation_step":
             return self._validation_step_reached_end
@@ -174,7 +184,7 @@ class ScheduleWrapper:
         self._step()
         action = self._schedule(self.num_step)
         if action == ProfilerAction.RECORD_AND_SAVE:
-            if self._current_action is not None and self._current_action.startswith("optimizer_step_and_closure_"):
+            if self.is_training:
                 self._optimizer_step_and_closure_reached_end = True
             elif self._current_action == "validation_step":
                 self._validation_step_reached_end = True
@@ -196,7 +206,7 @@ class PyTorchProfiler(BaseProfiler):
         "predict_step",
     }
     RECORD_FUNCTION_PREFIX = "optimizer_step_and_closure_"
-    STEP_FUNCTIONS = {"validation_step", "test_step", "predict_step"}
+    STEP_FUNCTIONS = {"training_step", "validation_step", "test_step", "predict_step"}
     STEP_FUNCTION_PREFIX = "optimizer_step_and_closure_"
     AVAILABLE_SORT_KEYS = {
         "cpu_time",
