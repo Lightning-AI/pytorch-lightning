@@ -200,11 +200,7 @@ class FitLoop(Loop):
         data_fetcher = self.trainer.data_connector.get_profiled_dataloader(dataloader)
 
         with self.trainer.profiler.profile("run_training_epoch"):
-            # run train epoch
-            epoch_output = self.epoch_loop.run(data_fetcher)
-
-            if epoch_output is None:
-                return
+            self.epoch_loop.run(data_fetcher)
 
             # the global step is manually decreased here due to backwards compatibility with existing loggers
             # as they expect that the same step is used when logging epoch end metrics even when the batch loop has

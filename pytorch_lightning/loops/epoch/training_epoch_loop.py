@@ -184,7 +184,7 @@ class TrainingEpochLoop(loops.Loop):
         # progress global step according to grads progress
         self._increment_accumulated_grad_global_step()
 
-    def on_run_end(self) -> List[List[STEP_OUTPUT]]:
+    def on_run_end(self) -> None:
         """Calls the on_epoch_end hook.
 
         Returns:
@@ -193,15 +193,13 @@ class TrainingEpochLoop(loops.Loop):
         Raises:
             MisconfigurationException: ``train_epoch_end`` does not return ``None``
         """
-        if self.batch_progress.current.ready == 0:
-            # dataloader/iterator did not produce a batch
-            return
-
         # inform logger the batch loop has finished
         self.trainer.logger_connector.epoch_end_reached()
 
         # prepare epoch output
         processed_outputs = self._prepare_outputs(self._epoch_output, batch_mode=False)
+        # free memory
+        self._epoch_output = None
 
         # get the model and call model.training_epoch_end
         model = self.trainer.lightning_module
@@ -229,11 +227,6 @@ class TrainingEpochLoop(loops.Loop):
 
         if self._num_training_batches_reached(self.is_last_batch):
             self.update_lr_schedulers("epoch", update_plateau_schedulers=True)
-
-        epoch_output = self._epoch_output
-        # free memory
-        self._epoch_output = None
-        return epoch_output
 
     def teardown(self) -> None:
         self._results.cpu()
