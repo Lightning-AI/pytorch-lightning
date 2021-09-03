@@ -102,7 +102,7 @@ def _process_training_step_output(
     if trainer.terminate_on_nan:
         check_finite_loss(loss)
 
-    # the loss shouldn't be moved to cpu.
+    # the loss shouldn't be moved to cpu.
     if trainer.move_metrics_to_cpu:
         results.cpu()
 
