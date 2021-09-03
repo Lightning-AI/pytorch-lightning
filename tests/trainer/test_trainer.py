@@ -32,7 +32,7 @@ from torch.utils.data import DataLoader
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, Timer
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -520,27 +520,34 @@ def test_trainer_max_steps_and_epochs_validation(max_epochs, max_steps, incorrec
 
 
 @pytest.mark.parametrize(
-    "max_epochs,max_steps,is_done",
+    "max_epochs,max_steps,is_done,correct_trainer_epochs",
     [
-        (None, None, False),
-        (-1, None, False),
-        (None, -1, False),
-        (5, -1, False),
-        (-1, 10, False),
-        (None, 0, True),
-        (0, None, True),
-        (-1, 0, True),
-        (0, -1, True),
+        (None, None, False, 1000),
+        (-1, None, False, -1),
+        (None, -1, False, None),
+        (5, -1, False, 5),
+        (-1, 10, False, -1),
+        (None, 0, True, None),
+        (0, None, True, 0),
+        (-1, 0, True, -1),
+        (0, -1, True, 0),
     ],
 )
-def test_trainer_max_steps_and_epochs_fit_loop_done(max_epochs, max_steps, is_done):
+def test_trainer_max_steps_and_epochs_fit_loop_done(
+    max_epochs,
+    max_steps,
+    is_done,
+    correct_trainer_epochs
+):
     trainer = Trainer(max_epochs=max_epochs, max_steps=max_steps)
 
-    assert trainer.max_epochs == max_epochs
+    assert trainer.max_epochs == correct_trainer_epochs
     assert trainer.max_steps == max_steps
-    assert trainer.max_time is None
     assert trainer.fit_loop.done is is_done
 
+    # Make sure there is no timer
+    timer_callbacks = [c for c in trainer.callbacks if isinstance(c, Timer)]
+    assert len(timer_callbacks) == 0
 
 def test_trainer_min_steps_and_epochs(tmpdir):
     """Verify model trains according to specified min steps"""
