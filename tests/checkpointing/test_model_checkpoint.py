@@ -1204,3 +1204,21 @@ def test_trainer_checkpoint_callback_bool(tmpdir):
     mc = ModelCheckpoint(dirpath=tmpdir)
     with pytest.raises(MisconfigurationException, match="Invalid type provided for checkpoint_callback"):
         Trainer(checkpoint_callback=mc)
+
+
+def test_check_val_every_n_epochs_top_k_integration(tmpdir):
+    model = BoringModel()
+    mc = ModelCheckpoint(dirpath=tmpdir, monitor="epoch", save_top_k=-1, filename="{epoch}")
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        num_sanity_val_steps=0,
+        max_epochs=5,
+        check_val_every_n_epoch=2,
+        callbacks=mc,
+        weights_summary=None,
+        logger=False,
+    )
+    trainer.fit(model)
+    assert set(os.listdir(tmpdir)) == {"epoch=1.ckpt", "epoch=3.ckpt"}
