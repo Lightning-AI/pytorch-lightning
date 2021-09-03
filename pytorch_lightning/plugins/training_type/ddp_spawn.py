@@ -227,11 +227,11 @@ class DDPSpawnPlugin(ParallelPlugin):
         self._results = self.mp_queue.get()
         # get the `callback_metrics` and set it to the trainer
         # only in case the user does not override it.
-        # TODO(@daniellepintz): Remove the else in v1.7
-        if is_overridden("get_from_queue", trainer.training_type_plugin, DDPSpawnPlugin):
-            self.get_from_queue(trainer, self.mp_queue)
-        else:
+        # TODO: Remove the if in v1.7
+        if is_overridden("get_from_queue", self.lightning_module):
             self.lightning_module.get_from_queue(self.mp_queue)
+        else:
+            self.get_from_queue(trainer, self.mp_queue)
 
         # recover the weights of the processes trained in the children
         self.__recover_child_process_weights(best_path, last_path)
@@ -297,11 +297,12 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.mp_queue.put(best_model_path)
             self.mp_queue.put(last_path)
             self.mp_queue.put(results)
-            # TODO(@daniellepintz): Remove the else in v1.7
-            if is_overridden("add_to_queue", trainer.training_type_plugin, DDPSpawnPlugin):
-                self.add_to_queue(trainer, self.mp_queue)
+            # adds the `callback_metrics` to the queue
+            # TODO: Remove the if in v1.7
+            if is_overridden("add_to_queue", self.lightning_module):
+                self.lightning_module.add_to_queue(self.mp_queue)
             else:
-                self.lightning_module.add_to_queue(self.mp_queue)  # adds the `callback_metrics` to the queue
+                self.add_to_queue(trainer, self.mp_queue)
 
     def __recover_child_process_weights(self, best_path, last_path):
         # transfer back the best path to the trainer
