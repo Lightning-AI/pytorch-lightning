@@ -5,10 +5,8 @@ name: Recurrent events
 on:
   push:
     branches: [ master ]
-  pull_request:
-    branches: [master]
-  # schedule:
-  #   - cron: "*/20 * * * *" # At every 20 minutes
+  schedule:
+    - cron: "*/20 * * * *" # At every 20 minutes
 
 env:
   GKE_CLUSTER: lightning-cluster
