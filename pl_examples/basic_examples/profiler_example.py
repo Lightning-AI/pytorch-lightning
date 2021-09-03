@@ -22,7 +22,6 @@ The traces can be visualized in 2 ways:
     2. tensorboard --logdir={FOLDER}
 """
 
-from pytorch_lightning.profiler.pytorch import PyTorchProfiler
 import sys
 
 import torch
@@ -32,6 +31,7 @@ import torchvision.transforms as T
 
 from pl_examples import _DATASETS_PATH, cli_lightning_logo
 from pytorch_lightning import LightningDataModule, LightningModule
+from pytorch_lightning.profiler.pytorch import PyTorchProfiler
 from pytorch_lightning.utilities.cli import LightningCLI
 
 DEFAULT_CMD_LINE = (
@@ -49,7 +49,11 @@ class ModelToProfile(LightningModule):
         self.model = getattr(models, name)(pretrained=True)
         self.criterion = torch.nn.CrossEntropyLoss()
         self.automatic_optimization = automatic_optimization
-        self.training_step = self.automatic_optimization_training_step if automatic_optimization else self.manual_optimization_training_step
+        self.training_step = (
+            self.automatic_optimization_training_step
+            if automatic_optimization
+            else self.manual_optimization_training_step
+        )
 
     def automatic_optimization_training_step(self, batch, batch_idx):
         inputs, labels = batch
@@ -101,7 +105,9 @@ def cli_main():
     if len(sys.argv) == 1:
         sys.argv += DEFAULT_CMD_LINE
 
-    LightningCLI(ModelToProfile, CIFAR10DataModule, save_config_callback=None, trainer_defaults={"profiler": PyTorchProfiler()})
+    LightningCLI(
+        ModelToProfile, CIFAR10DataModule, save_config_callback=None, trainer_defaults={"profiler": PyTorchProfiler()}
+    )
 
 
 if __name__ == "__main__":

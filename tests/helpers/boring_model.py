@@ -187,7 +187,6 @@ class BoringDataModule(LightningDataModule):
 
 
 class ManualOptimBoringModel(BoringModel):
-
     def __init__(self):
         super().__init__()
         self.automatic_optimization = False
