@@ -950,3 +950,22 @@ def test_lightning_cli_parse_kwargs_with_subcommands(tmpdir):
     validate_mock.assert_called()
     assert cli.trainer.limit_train_batches == 1.0
     assert cli.trainer.limit_val_batches == 3
+
+
+def test_lightning_cli_reinstantiate_trainer():
+    with mock.patch("sys.argv", ["any.py"]):
+        cli = LightningCLI(BoringModel, run=False)
+    assert cli.trainer.max_epochs == 1000
+
+    class TestCallback(Callback):
+        ...
+
+    # make sure a new trainer can be easily created
+    trainer = cli.instantiate_trainer(max_epochs=123, callbacks=[TestCallback()])
+    # the new config is used
+    assert trainer.max_epochs == 123
+    assert {c.__class__ for c in trainer.callbacks} == {c.__class__ for c in cli.trainer.callbacks}.union(
+        {TestCallback}
+    )
+    # the existing config is not updated
+    assert cli.config_init["trainer"]["max_epochs"] is None

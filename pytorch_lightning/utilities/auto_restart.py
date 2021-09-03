@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial, wraps
@@ -26,7 +25,6 @@ from torch.utils.data import Dataset, get_worker_info, Sampler
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -354,72 +352,6 @@ class CaptureIterableDataset(IterableDataset):
     def __next__(self) -> Dict[str, Any]:
         return next(self.iter_data)
 
-    @staticmethod
-    def store_samplers_state_dict(iterator: Iterator, sampler_state_dict: List) -> None:
-        """
-        This function is used to store and update sampler state dict on its associated iterator.
-        In Lightning, as the iterator is wrapped into a prefetching function,
-        we needed to introduce a cache to delay updating the ``sampler_state_dict``.
-        """
-        iterator_state_dict = getattr(iterator, "_sampler_state_dict", None)
-        iterator_state_dict_cache = getattr(iterator, "_sampler_state_dict_cache", None)
-        # handle the logic this way due Trainer prefetching.
-        if iterator_state_dict is None:
-            iterator._sampler_state_dict = sampler_state_dict
-        elif iterator_state_dict_cache is None:
-            iterator._sampler_state_dict_cache = sampler_state_dict
-        else:
-            for attr_cache, state_dict in zip(iterator_state_dict, iterator._sampler_state_dict_cache):
-                for k, v in state_dict.items():
-                    attr_cache[k].update(v)
-            iterator._sampler_state_dict_cache = sampler_state_dict
-
-    @staticmethod
-    def _sanitize_batch_from_sampler_state(data: Any, state_dicts: List):
-        """
-        This function is used to remove the sampler state dict from provided data batch.
-        The custom data has this format:
-
-        .. code-block:: python
-
-            {
-                "batch": ...,  # data returned by DataLoader
-                "__pl_restart_meta": {
-                    "sampler0": {
-                        0: {"current_iteration": ...},
-                        1: {"current_iteration": ...},
-                    },
-                    "sampler1": ...,
-                },
-            }
-
-        Each sampler in the worker process tracks the current iteration. We return all of them to the main process
-        as part of the sample and then a special collate function :func:`_capture_metadata_collate`
-        will extract the current iteration as part of the metadata returned by a custom batch.
-        """
-
-        def _sanitize(data: Mapping):
-            out = []
-            for k, v in data.items():
-                if k == AutoRestartBatchKeys.PL_RESTART_META:
-                    state_dicts.append(v)
-                    return data["data"]
-                out.append((k, CaptureIterableDataset._sanitize_batch_from_sampler_state(v, state_dicts)))
-            return out
-
-        return apply_to_collection(data, Mapping, _sanitize)
-
-    @staticmethod
-    def extract_samplers_state_dict_from_batch(batch) -> List[Dict[int, Any]]:
-        """
-        This function is used to convert a batch into a state_dict
-        """
-        samplers_state_dict = []
-
-        batch = CaptureIterableDataset._sanitize_batch_from_sampler_state(batch, samplers_state_dict)
-
-        return batch, samplers_state_dict
-
 
 def _find_fast_forward_samplers(dataloader: DataLoader) -> Optional[FastForwardSampler]:
     """
@@ -551,6 +483,27 @@ def patch_dataloader_iterator(
     data_fetcher: "pl.utilities.fetching.DataFetcher",
     num_batches_fetched: int = 0,
 ) -> None:
+    """
+    Patches the iterator of a PyTorch dataloader by injecting logic for fault-tolerant training when it is
+    necessary to remove the sampler state dict from provided data batch.
+
+    The custom data has this format:
+    .. code-block:: python
+        {
+            "batch": ...,  # data returned by DataLoader
+            "__pl_restart_meta": {
+                "sampler0": {
+                    0: {"current_iteration": ...},
+                    1: {"current_iteration": ...},
+                },
+                "sampler1": ...,
+            },
+        }
+    Each sampler in the worker process tracks the current iteration. We return all of them to the main process
+    as part of the sample and then a special collate function :func:`_capture_metadata_collate`
+    will extract the current iteration as part of the metadata returned by a custom batch.
+    """
+
     assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
 
     def _next_data_wrapper(fn, it, dl, num_batches_fetched) -> Callable:
