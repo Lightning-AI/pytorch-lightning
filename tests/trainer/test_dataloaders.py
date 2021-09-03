@@ -868,10 +868,11 @@ def test_warning_with_iterable_dataset_and_len(tmpdir):
     trainer.predict(model, dataloaders=dataloader)
 
 
-def test_iterable_dataset_stop_iteration_at_epoch_beginning():
-    """Test that the training loop skips execution if the iterator is empty from an epoch."""
+@pytest.mark.parametrize("yield_at_all", (False, True))
+def test_iterable_dataset_stop_iteration_at_epoch_beginning(yield_at_all):
+    """Test that the training loop skips execution if the iterator is empty from the start."""
 
-    class RandomDataset(IterableDataset):
+    class TestDataset(IterableDataset):
         def __init__(self, gen):
             self.gen = gen
 
@@ -879,41 +880,20 @@ def test_iterable_dataset_stop_iteration_at_epoch_beginning():
             return iter(self.gen())
 
     class TestModel(BoringModel):
-        def train_dataloader(self):
-            return DataLoader(RandomDataset(self.gen), batch_size=2)
-
         def gen(self):
-            # produce data in epoch 0
-            # no data otherwise
-            if self.current_epoch == 0:
+            # produce data in epoch 0, no data otherwise
+            if yield_at_all and self.current_epoch == 0:
                 yield torch.rand(32)
                 yield torch.rand(32)
                 yield torch.rand(32)
 
     model = TestModel()
+    train_dataloader = DataLoader(TestDataset(model.gen), batch_size=2)
     trainer = Trainer(
         default_root_dir=os.getcwd(), max_epochs=2, weights_summary=None  # we expect the second epoch to be skipped
     )
-    trainer.fit(model)
-    assert trainer.global_step == 2
-    assert trainer.current_epoch == 1
-
-
-def test_iterable_dataset_stop_iteration_at_start():
-    """Test that the training loop skips execution if the iterator is empty."""
-
-    class RandomDataset(IterableDataset):
-        def __iter__(self):
-            return iter(self.gen())
-
-        def gen(self):
-            yield from []
-
-    model = BoringModel()
-    train_dataloader = DataLoader(RandomDataset(), batch_size=2)
-    trainer = Trainer(default_root_dir=os.getcwd(), max_epochs=2)
     trainer.fit(model, train_dataloader=train_dataloader)
-    assert trainer.global_step == 0
+    assert trainer.global_step == 2 * yield_at_all
     assert trainer.current_epoch == 1
 
 
