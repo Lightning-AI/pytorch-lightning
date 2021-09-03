@@ -130,7 +130,7 @@ class TrainingBatchLoop(Loop):
                 self.batch_outputs[k].extend(batch_outputs[k])
         else:
             # in manual optimization, hand over execution to the ManualOptimization loop
-            output = self.manual_loop.run(split_batch, self._hiddens, batch_idx)
+            output = self.manual_loop.run(split_batch, batch_idx, self._hiddens)
             if output:
                 result, self._hiddens = output
                 self.batch_outputs[0].append(deepcopy(result))
