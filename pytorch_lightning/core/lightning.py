@@ -1271,8 +1271,9 @@ class LightningModule(
             }
 
         When there are schedulers in which the ``.step()`` method is conditioned on a value, such as the
-        :class:`torch.optim.lr_scheduler.ReduceLROnPlateau` scheduler, Lightning requires that the ``lr_scheduler_config``
-        contains the keyword ``"monitor"`` set to the metric name that the scheduler should be conditioned on.
+        :class:`torch.optim.lr_scheduler.ReduceLROnPlateau` scheduler, Lightning requires that the
+        ``lr_scheduler_config`` contains the keyword ``"monitor"`` set to the metric name that the scheduler
+        should be conditioned on.
 
         .. testcode::
 
