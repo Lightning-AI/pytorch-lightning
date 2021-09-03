@@ -116,7 +116,7 @@ class ScheduleWrapper:
         self._current_action = current_action
 
     def reset(self):
-        self._num_optimizer_step_and_closure = 0
+        self._num_optimizer_step_and_closure = -1
         self._num_validation_step = 0
         self._num_test_step = 0
         self._num_predict_step = 0
@@ -178,7 +178,7 @@ class ScheduleWrapper:
             return ProfilerAction.NONE
 
         self._step()
-        action = self._schedule(self.num_step)
+        action = self._schedule(max(self.num_step, 0))
         if action == ProfilerAction.RECORD_AND_SAVE:
             if self.is_training:
                 self._optimizer_step_and_closure_reached_end = True

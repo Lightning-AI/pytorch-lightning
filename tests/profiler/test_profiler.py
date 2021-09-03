@@ -459,7 +459,7 @@ def test_profiler_teardown(tmpdir, cls):
 
     profiler = cls(dirpath=tmpdir, filename="profiler")
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, profiler=profiler, callbacks=[TestCallback()])
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1, profiler=profiler, callbacks=[TestCallback()])
     trainer.fit(model)
 
     assert profiler._output_file is None
