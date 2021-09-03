@@ -198,21 +198,22 @@ class TrainingEpochLoop(loops.Loop):
 
         # get the model and call model.training_epoch_end
         model = self.trainer.lightning_module
-        if is_overridden("training_epoch_end", model):
+        if is_overridden("training_epoch_end", model) and self._epoch_output:
             processed_outputs = self._prepare_outputs(self._epoch_output, batch_mode=False)
+            # check that the dataloader/iterator produced a batch
+            if processed_outputs:
+                # run training_epoch_end
+                # refresh the result for custom logging at the epoch level
+                model._current_fx_name = "training_epoch_end"
 
-            # run training_epoch_end
-            # refresh the result for custom logging at the epoch level
-            model._current_fx_name = "training_epoch_end"
+                # lightningmodule hook
+                training_epoch_end_output = model.training_epoch_end(processed_outputs)
 
-            # lightningmodule hook
-            training_epoch_end_output = model.training_epoch_end(processed_outputs)
-
-            if training_epoch_end_output is not None:
-                raise MisconfigurationException(
-                    "training_epoch_end expects a return of None. "
-                    "HINT: remove the return statement in training_epoch_end"
-                )
+                if training_epoch_end_output is not None:
+                    raise MisconfigurationException(
+                        "training_epoch_end expects a return of None. "
+                        "HINT: remove the return statement in training_epoch_end"
+                    )
         # free memory
         self._epoch_output = None
 
