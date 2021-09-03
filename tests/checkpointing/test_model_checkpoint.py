@@ -1252,7 +1252,7 @@ def test_trainer_checkpoint_callback_bool(tmpdir):
 
 def test_check_val_every_n_epochs_top_k_integration(tmpdir):
     model = BoringModel()
-    mc = ModelCheckpoint(dirpath=tmpdir, monitor="epoch", save_top_k=5, filename="{epoch}")
+    mc = ModelCheckpoint(dirpath=tmpdir, monitor="epoch", save_top_k=-1, filename="{epoch}")
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=1,
