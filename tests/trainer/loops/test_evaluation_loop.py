@@ -16,8 +16,9 @@ from unittest import mock
 import torch
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning import Trainer
 from pytorch_lightning.loops import EvaluationEpochLoop
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -122,8 +123,8 @@ def test_evaluation_loop_doesnt_store_outputs_if_epoch_end_not_overridden(tmpdir
             super().on_advance_end()
 
     model = TestModel()
-    # make sure this hook is not overridden
-    model.test_epoch_end = LightningModule.test_epoch_end
+    model.test_epoch_end = None
+    assert not is_overridden("test_epoch_end", model)
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=3)
     trainer.test_loop.connect(TestLoop())
