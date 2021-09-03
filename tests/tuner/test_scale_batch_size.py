@@ -151,12 +151,10 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
             del self.batch_size
             return dataloader
 
-    datamodule_model = MNISTDataModule(data_dir=tmpdir, batch_size=111)  # this datamodule should get ignored!
     datamodule_fit = MNISTDataModule(data_dir=tmpdir, batch_size=before_batch_size)
 
     model_class = HparamsEvalModelTemplate if use_hparams else EvalModelTemplate
     model = model_class(**hparams)
-    model.datamodule = datamodule_model  # unused when another module gets passed to .tune() / .fit()
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=True, gpus=1)
     trainer.tune(model, datamodule_fit)
@@ -165,8 +163,6 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
     assert before_batch_size != after_batch_size
     assert after_batch_size <= len(trainer.train_dataloader.dataset)
     assert datamodule_fit.batch_size == after_batch_size
-    # should be left unchanged, since it was not passed to .tune()
-    assert datamodule_model.batch_size == 111
 
 
 def test_auto_scale_batch_size_duplicate_attribute_warning(tmpdir):

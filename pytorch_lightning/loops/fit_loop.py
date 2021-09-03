@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import logging
-from contextlib import suppress
 from typing import Any, Dict, Optional
 
 from pytorch_lightning.loops import Loop
@@ -109,12 +108,12 @@ class FitLoop(Loop):
     @property
     def _skip_backward(self) -> bool:
         """Determines whether the loop will skip backward during automatic optimization."""
-        return self.epoch_loop.batch_loop._skip_backward
+        return self.epoch_loop.batch_loop.optimizer_loop._skip_backward
 
     @_skip_backward.setter
     def _skip_backward(self, value: bool) -> None:
         """Determines whether the loop will skip backward during automatic optimization."""
-        self.epoch_loop.batch_loop._skip_backward = value
+        self.epoch_loop.batch_loop.optimizer_loop._skip_backward = value
 
     @property
     def _results(self) -> ResultCollection:
@@ -181,8 +180,7 @@ class FitLoop(Loop):
             self.trainer.train_dataloader.load_state_dict(self._dataloader_state_dict)
             self._dataloader_state_dict = {}
 
-        # TODO: specify the possible exception
-        with suppress(Exception):
+        if callable(getattr(self.trainer.train_dataloader.sampler, "set_epoch", None)):
             # set seed for distributed sampler (enables shuffling for each epoch)
             self.trainer.train_dataloader.sampler.set_epoch(self.current_epoch)
 

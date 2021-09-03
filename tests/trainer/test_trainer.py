@@ -20,6 +20,7 @@ import sys
 from argparse import Namespace
 from copy import deepcopy
 from pathlib import Path
+from unittest import mock
 from unittest.mock import ANY, call, patch
 
 import cloudpickle
@@ -787,7 +788,8 @@ def test_disabled_validation(tmpdir):
     assert model.validation_epoch_end_invoked, "did not run `validation_epoch_end` with `fast_dev_run=True`"
 
 
-def test_nan_loss_detection(tmpdir):
+@mock.patch("torch.Tensor.backward")
+def test_nan_loss_detection(backward_mock, tmpdir):
     class CurrentModel(BoringModel):
         test_batch_inf = 3
 
@@ -808,12 +810,14 @@ def test_nan_loss_detection(tmpdir):
     with pytest.raises(ValueError, match=r".*The loss returned in `training_step` is.*"):
         trainer.fit(model)
         assert trainer.global_step == model.test_batch_inf
+        assert backward_mock.call_count == model.test_batch_inf
 
     for param in model.parameters():
         assert torch.isfinite(param).all()
 
 
-def test_nan_params_detection(tmpdir):
+@mock.patch("torch.Tensor.backward")
+def test_nan_params_detection(backward_mock, tmpdir):
     class CurrentModel(BoringModel):
         test_batch_nan = 3
 
@@ -828,16 +832,17 @@ def test_nan_params_detection(tmpdir):
     with pytest.raises(ValueError, match=r".*Detected nan and/or inf values in `layer.bias`.*"):
         trainer.fit(model)
         assert trainer.global_step == model.test_batch_nan
+        assert backward_mock.call_count == model.test_batch_nan + 1
 
     # after aborting the training loop, model still has nan-valued params
     params = torch.cat([param.view(-1) for param in model.parameters()])
     assert not torch.isfinite(params).all()
 
 
-def test_trainer_interrupted_flag(tmpdir):
-    """Test the flag denoting that a user interrupted training."""
+def test_on_exception_hook(tmpdir):
+    """Test the on_exception callback hook and the trainer interrupted flag."""
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     class InterruptCallback(Callback):
         def __init__(self):
@@ -846,10 +851,17 @@ def test_trainer_interrupted_flag(tmpdir):
         def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
             raise KeyboardInterrupt
 
+        def on_test_start(self, trainer, pl_module):
+            raise MisconfigurationException
+
     class HandleInterruptCallback(Callback):
         def __init__(self):
             super().__init__()
+            self.exception = None
             self.exc_info = None
+
+        def on_exception(self, trainer, pl_module, exception):
+            self.exception = exception
 
         def on_keyboard_interrupt(self, trainer, pl_module):
             self.exc_info = sys.exc_info()
@@ -867,10 +879,16 @@ def test_trainer_interrupted_flag(tmpdir):
         default_root_dir=tmpdir,
     )
     assert not trainer.interrupted
+    assert handle_interrupt_callback.exception is None
     assert handle_interrupt_callback.exc_info is None
     trainer.fit(model)
     assert trainer.interrupted
+    assert isinstance(handle_interrupt_callback.exception, KeyboardInterrupt)
     assert isinstance(handle_interrupt_callback.exc_info[1], KeyboardInterrupt)
+    with pytest.raises(MisconfigurationException):
+        trainer.test(model)
+    assert trainer.interrupted
+    assert isinstance(handle_interrupt_callback.exception, MisconfigurationException)
 
 
 @pytest.mark.parametrize(
@@ -892,7 +910,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
         gradient_clip_val=1.0,
     )
 
-    old_backward = trainer.fit_loop.epoch_loop.batch_loop.backward
+    old_backward = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.backward
 
     def backward(*args, **kwargs):
         # test that gradient is clipped correctly
@@ -902,7 +920,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
         assert (grad_norm - 1.0).abs() < 0.01, f"Gradient norm != 1.0: {grad_norm}"
         return ret_val
 
-    trainer.fit_loop.epoch_loop.batch_loop.backward = backward
+    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.backward = backward
     trainer.fit(model)
 
 
@@ -927,7 +945,7 @@ def test_gradient_clipping_by_value(tmpdir, precision):
         default_root_dir=tmpdir,
     )
 
-    old_backward = trainer.fit_loop.epoch_loop.batch_loop.backward
+    old_backward = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.backward
 
     def backward(*args, **kwargs):
         # test that gradient is clipped correctly
@@ -940,7 +958,7 @@ def test_gradient_clipping_by_value(tmpdir, precision):
         ), f"Gradient max value {grad_max} != grad_clip_val {grad_clip_val} ."
         return ret_val
 
-    trainer.fit_loop.epoch_loop.batch_loop.backward = backward
+    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.backward = backward
     trainer.fit(model)
 
 

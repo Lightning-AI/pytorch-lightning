@@ -13,6 +13,7 @@
 # limitations under the License.
 import pickle
 from argparse import ArgumentParser, Namespace
+from dataclasses import dataclass
 from typing import Any, Dict
 from unittest import mock
 from unittest.mock import call, PropertyMock
@@ -554,6 +555,68 @@ def test_hyperparameters_saving():
 
     data = DataModuleWithHparams_1(OmegaConf.create({"hello": "world"}), "foo", kwarg0="bar")
     assert data.hparams == OmegaConf.create({"hello": "world"})
+
+
+def test_define_as_dataclass():
+    # makes sure that no functionality is broken and the user can still manually make
+    # super().__init__ call with parameters
+    # also tests all the dataclass features that can be enabled without breaking anything
+    @dataclass(init=True, repr=True, eq=True, order=True, unsafe_hash=True, frozen=False)
+    class BoringDataModule1(LightningDataModule):
+        batch_size: int
+        dims: int = 2
+
+        def __post_init__(self):
+            super().__init__(dims=self.dims)
+
+    # asserts for the different dunder methods added by dataclass, when __init__ is implemented, i.e.
+    # __repr__, __eq__, __lt__, __le__, etc.
+    assert BoringDataModule1(batch_size=64).dims == 2
+    assert BoringDataModule1(batch_size=32)
+    assert hasattr(BoringDataModule1, "__repr__")
+    assert BoringDataModule1(batch_size=32) == BoringDataModule1(batch_size=32)
+
+    # asserts inherent calling of super().__init__ in case user doesn't make the call
+    @dataclass
+    class BoringDataModule2(LightningDataModule):
+        batch_size: int
+
+    # asserts for the different dunder methods added by dataclass, when super class is inherently initialized, i.e.
+    # __init__, __repr__, __eq__, __lt__, __le__, etc.
+    assert BoringDataModule2(batch_size=32)
+    assert hasattr(BoringDataModule2, "__repr__")
+    assert BoringDataModule2(batch_size=32).prepare_data() is None
+    assert BoringDataModule2(batch_size=32) == BoringDataModule2(batch_size=32)
+
+    # checking for all the different multilevel inhertiance scenarios, for init call on LightningDataModule
+    @dataclass
+    class BoringModuleBase1(LightningDataModule):
+        num_features: int
+
+    class BoringModuleBase2(LightningDataModule):
+        def __init__(self, num_features: int):
+            self.num_features = num_features
+
+    @dataclass
+    class BoringModuleDerived1(BoringModuleBase1):
+        ...
+
+    class BoringModuleDerived2(BoringModuleBase1):
+        def __init__(self):
+            ...
+
+    @dataclass
+    class BoringModuleDerived3(BoringModuleBase2):
+        ...
+
+    class BoringModuleDerived4(BoringModuleBase2):
+        def __init__(self):
+            ...
+
+    assert hasattr(BoringModuleDerived1(num_features=2), "_has_prepared_data")
+    assert hasattr(BoringModuleDerived2(), "_has_prepared_data")
+    assert hasattr(BoringModuleDerived3(), "_has_prepared_data")
+    assert hasattr(BoringModuleDerived4(), "_has_prepared_data")
 
 
 def test_inconsistent_prepare_data_per_node(tmpdir):

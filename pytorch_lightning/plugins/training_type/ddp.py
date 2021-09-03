@@ -56,6 +56,7 @@ from pytorch_lightning.utilities.distributed import (
 )
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _TORCH_GREATER_EQUAL_1_10:
     from torch.distributed.optim import DistributedOptimizer, PostLocalSGDOptimizer, ZeroRedundancyOptimizer
@@ -361,7 +362,7 @@ class DDPPlugin(ParallelPlugin):
         trainer.optimizers = optimizers
         trainer.convert_to_lightning_optimizers()
 
-    def configure_ddp(self):
+    def configure_ddp(self) -> None:
         self.pre_configure_ddp()
         self._model = DistributedDataParallel(
             LightningDistributedModule(self.model), device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
@@ -374,16 +375,19 @@ class DDPPlugin(ParallelPlugin):
         return [self.root_device.index]
 
     def pre_dispatch(self):
+        # share ddp pids to all processes
+        self._share_information_to_prevent_deadlock()
+
         # move the model to the correct device
         self.model_to_device()
 
         if self.sync_batchnorm:
             self.model = self.configure_sync_batchnorm(self.model)
 
-        self.configure_ddp()
-
-        # share ddp pids to all processes
-        self._share_information_to_prevent_deadlock()
+        # skip wrapping the model if we are not fitting as no gradients need to be exchanged
+        trainer_fn = self.lightning_module.trainer.state.fn
+        if trainer_fn == TrainerFn.FITTING:
+            self.configure_ddp()
 
     def post_dispatch(self) -> None:
         self.cluster_environment.teardown()
@@ -424,17 +428,22 @@ class DDPPlugin(ParallelPlugin):
             tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
-    def training_step(self, *args, **kwargs):
+    def training_step(self, *args, **kwargs) -> Optional[Any]:
         return self.model(*args, **kwargs)
 
-    def validation_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        if isinstance(self.model, DistributedDataParallel):
+            # used when calling `trainer.fit`
+            return self.model(*args, **kwargs)
+        else:
+            # used when calling `trainer.validate`
+            return self.lightning_module.validation_step(*args, **kwargs)
 
-    def test_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        return self.lightning_module.test_step(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def predict_step(self, *args, **kwargs) -> Any:
+        return self.lightning_module.predict_step(*args, **kwargs)
 
     def post_training_step(self):
         if not self.lightning_module.automatic_optimization:
@@ -479,6 +488,10 @@ class DDPPlugin(ParallelPlugin):
             return
 
         sync_dir = self._sync_dir
+
+        if not sync_dir:
+            rank_zero_warn("Error handling mechanism for deadlock detection is uninitialized. Skipping check.")
+            return
 
         # The cluster may be configured to periodically purge the `/tmp`
         # directory, in which case `sync_dir` may not exist anymore at this
