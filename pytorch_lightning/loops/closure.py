@@ -14,7 +14,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Dict
 
 from torch import Tensor
 
@@ -101,7 +101,7 @@ class Closure(AbstractClosure):
 
     def __init__(
         self,
-        step_fn: Callable[[], dict],
+        step_fn: Callable[[], Optional[Dict]],
         backward_fn: Optional[Callable[[Tensor], Tensor]] = None,
         zero_grad_fn: Optional[Callable[[], None]] = None,
         profiler: Optional[BaseProfiler] = None,

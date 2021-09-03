@@ -162,6 +162,10 @@ class OptimizerLoop(Loop):
             # if no result, user decided to skip optimization
             # otherwise update running loss + reset accumulated loss
             # TODO: find proper way to handle updating running loss
+            assert self.trainer.fit_loop is not None
+            assert self.trainer.fit_loop.epoch_loop is not None
+            assert self.trainer.fit_loop.epoch_loop.batch_loop is not None
+            assert result.loss is not None
             self.trainer.fit_loop.epoch_loop.batch_loop._update_running_loss(result.loss)
 
         # untoggle model params
@@ -277,7 +281,7 @@ class OptimizerLoop(Loop):
         model_ref = self.trainer.lightning_module
 
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-        using_native_amp = self.trainer.amp_backend == AMPType.NATIVE
+        using_native_amp = self.trainer.amp_backend is not None and self.trainer.amp_backend == AMPType.NATIVE
 
         # native amp + lbfgs is a no go right now
         if using_native_amp and is_lbfgs:

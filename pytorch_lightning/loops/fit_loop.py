@@ -108,11 +108,15 @@ class FitLoop(Loop):
     @property
     def _skip_backward(self) -> bool:
         """Determines whether the loop will skip backward during automatic optimization."""
+        assert self.epoch_loop.batch_loop is not None
+        assert self.epoch_loop.batch_loop.optimizer_loop is not None
         return self.epoch_loop.batch_loop.optimizer_loop._skip_backward
 
     @_skip_backward.setter
     def _skip_backward(self, value: bool) -> None:
         """Determines whether the loop will skip backward during automatic optimization."""
+        assert self.epoch_loop.batch_loop is not None
+        assert self.epoch_loop.batch_loop.optimizer_loop is not None
         self.epoch_loop.batch_loop.optimizer_loop._skip_backward = value
 
     @property
