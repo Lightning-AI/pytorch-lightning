@@ -189,7 +189,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             if self.meta.is_mean_reduction:
                 self.add_state("cumulated_batch_size", torch.tensor(0, dtype=torch.float), dist_reduce_fx=torch.sum)
 
-    def update(self, value: _IN_METRIC, batch_size: torch.Tensor) -> None:  # type: ignore
+    def update(self, value: _IN_METRIC, batch_size: torch.Tensor) -> None:
         if self.is_tensor:
             value = value.float()
             # performance: no need to accumulate on values only logged on_step
@@ -246,8 +246,8 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
                 )
 
             # return cached value
-            if self._computed is not None:
-                return self._computed
+            if self._computed is not None:  # type: ignore
+                return self._computed  # type: ignore
             self._computed = compute(*args, **kwargs)
             return self._computed
 
@@ -475,7 +475,7 @@ class ResultCollection(dict):
             )
 
         if batch_size is not None:
-            self.batch_size = batch_size  # type: ignore  # mypy/issues/3004
+            self.batch_size = batch_size
 
         self.update_metrics(key, value)
 
@@ -593,9 +593,9 @@ class ResultCollection(dict):
 
     def extract_batch_size(self, batch: Any) -> None:
         try:
-            self.batch_size = extract_batch_size(batch)  # type: ignore  # mypy/issues/3004
+            self.batch_size = extract_batch_size(batch)
         except RecursionError:
-            self.batch_size = 1  # type: ignore  # mypy/issues/3004
+            self.batch_size = 1
 
     def to(self, *args: Any, **kwargs: Any) -> "ResultCollection":
         """Move all data to the given device."""
