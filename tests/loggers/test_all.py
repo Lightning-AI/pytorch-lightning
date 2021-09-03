@@ -236,6 +236,7 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
         TensorBoardLogger,
         TestTubeLogger,
         # The WandbLogger gets tested for pickling in its own test.
+        # The NeptuneLogger gets tested for pickling in its own test.
     ],
 )
 def test_loggers_pickle_all(tmpdir, monkeypatch, logger_class):

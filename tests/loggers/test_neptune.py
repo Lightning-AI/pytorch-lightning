@@ -22,12 +22,12 @@ import torch
 
 from pytorch_lightning import __version__, Trainer
 from pytorch_lightning.loggers import NeptuneLogger
-from pytorch_lightning.loggers.neptune import NeptuneFile
 from tests.helpers import BoringModel
 
 
 class Run:
     _short_id = "TEST-42"
+    _project_name = "test-project"
 
     def __setitem__(self, key, value):
         # called once
@@ -41,9 +41,7 @@ class Run:
     def __getitem__(self, item):
         # called once
         assert item == "sys/name"
-        return MagicMock(
-            fetch=MagicMock(return_value="Test name")
-        )
+        return MagicMock(fetch=MagicMock(return_value="Test name"))
 
     def __getstate__(self):
         raise pickle.PicklingError("Runs are unpickleable")
@@ -94,8 +92,13 @@ class TestNeptuneLogger(unittest.TestCase):
     def test_neptune_pickling(self, neptune):
         unpickleable_run = Run()
         logger = NeptuneLogger(run=unpickleable_run)
+        self.assertEqual(0, neptune.init.call_count)
 
-        pickle.dumps(logger)
+        pickled_logger = pickle.dumps(logger)
+        unpickled = pickle.loads(pickled_logger)
+
+        neptune.init.assert_called_once_with(project="test-project", api_token=None, run="TEST-42")
+        self.assertIsNotNone(unpickled.experiment)
 
     @patch("pytorch_lightning.loggers.neptune.Run", Run)
     def test_online_with_wrong_kwargs(self, neptune):
@@ -345,7 +348,6 @@ class TestNeptuneLoggerDeprecatedUsages(unittest.TestCase):
         attr_mock = logger._run_instance.__getitem__
         attr_mock.reset_mock()
         fake_image = dict()
-        neptune_file_instance_mock = neptune.new.types.File.return_value
 
         logger.log_metric("metric", 42)
         logger.log_text("text", "some string")
@@ -355,18 +357,20 @@ class TestNeptuneLoggerDeprecatedUsages(unittest.TestCase):
 
         assert attr_mock.call_count == 5
         assert warnings_mock.warn.call_count == 5
-        attr_mock.assert_has_calls([
-            call("training/metric"),
-            call().log(42),
-            call("training/text"),
-            call().log("some string"),
-            call("training/image_obj"),
-            call().log(fake_image),
-            call("training/image_str"),
-            call().log(neptune_file_mock()),
-            call("training/artifacts/artifact"),
-            call().log("some/path"),
-        ])
+        attr_mock.assert_has_calls(
+            [
+                call("training/metric"),
+                call().log(42),
+                call("training/text"),
+                call().log("some string"),
+                call("training/image_obj"),
+                call().log(fake_image),
+                call("training/image_str"),
+                call().log(neptune_file_mock()),
+                call("training/artifacts/artifact"),
+                call().log("some/path"),
+            ]
+        )
 
         # test Exception raising functions  functions
         self._assert_legacy_usage(logger.set_property)

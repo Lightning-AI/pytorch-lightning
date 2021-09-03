@@ -256,15 +256,15 @@ class NeptuneLogger(LightningLoggerBase):
     ARTIFACTS_KEY = "artifacts"
 
     def __init__(
-            self,
-            *,  # force users to call `NeptuneLogger` initializer with `kwargs`
-            api_key: Optional[str] = None,
-            project: Optional[str] = None,
-            name: Optional[str] = None,
-            run: Optional["Run"] = None,
-            log_model_checkpoints: Optional[bool] = True,
-            prefix: str = "training",
-            **neptune_run_kwargs,
+        self,
+        *,  # force users to call `NeptuneLogger` initializer with `kwargs`
+        api_key: Optional[str] = None,
+        project: Optional[str] = None,
+        name: Optional[str] = None,
+        run: Optional["Run"] = None,
+        log_model_checkpoints: Optional[bool] = True,
+        prefix: str = "training",
+        **neptune_run_kwargs,
     ):
 
         # verify if user passed proper init arguments
@@ -283,8 +283,7 @@ class NeptuneLogger(LightningLoggerBase):
         except NeptuneOfflineModeFetchException:
             self._run_name = "offline-name"
 
-    @staticmethod
-    def _init_run_instance(api_key, project, name, run, neptune_run_kwargs) -> Run:
+    def _init_run_instance(self, api_key, project, name, run, neptune_run_kwargs) -> Run:
         if run is not None:
             run_instance = run
         else:
@@ -307,6 +306,10 @@ class NeptuneLogger(LightningLoggerBase):
         # make sure that we've log integration version for both newly created and outside `Run` instances
         run_instance[_INTEGRATION_VERSION_KEY] = __version__
 
+        # keep api_key and project, they will be required when resuming Run for pickled logger
+        self._api_key = api_key
+        self._project_name = run_instance._project_name  # skipcq: PYL-W0212
+
         return run_instance
 
     def _construct_path_with_prefix(self, *keys) -> str:
@@ -318,11 +321,11 @@ class NeptuneLogger(LightningLoggerBase):
 
     @staticmethod
     def _verify_input_arguments(
-            api_key: Optional[str],
-            project: Optional[str],
-            name: Optional[str],
-            run: Optional["Run"],
-            neptune_run_kwargs: dict,
+        api_key: Optional[str],
+        project: Optional[str],
+        name: Optional[str],
+        run: Optional["Run"],
+        neptune_run_kwargs: dict,
     ):
 
         # check if user used legacy kwargs expected in `NeptuneLegacyLogger`
@@ -382,6 +385,10 @@ class NeptuneLogger(LightningLoggerBase):
         # Run instance can't be pickled
         state["_run_instance"] = None
         return state
+
+    def __setstate__(self, state):
+        self.__dict__ = state
+        self._run_instance = neptune.init(project=self._project_name, api_token=self._api_key, run=self._run_short_id)
 
     @property
     @rank_zero_experiment
@@ -551,7 +558,7 @@ class NeptuneLogger(LightningLoggerBase):
         expected_model_path = f"{checkpoint_callback.dirpath}/"
         if not model_path.startswith(expected_model_path):
             raise ValueError(f"{model_path} was expected to start with {expected_model_path}.")
-        return model_path[len(expected_model_path):]
+        return model_path[len(expected_model_path) :]
 
     @classmethod
     def _get_full_model_names_from_exp_structure(cls, exp_structure: dict, namespace: str) -> Set[str]:
@@ -581,20 +588,19 @@ class NeptuneLogger(LightningLoggerBase):
 
     @staticmethod
     def _signal_deprecated_api_usage(f_name, sample_code, raise_exception=False):
-        msg_suffix = \
-            (f"If you are looking for the Neptune logger using legacy Python API,"
-             f" it's still available as part of neptune-contrib package:\n"
-             f"  - https://docs-legacy.neptune.ai/integrations/pytorch_lightning.html\n"
-             f"The NeptuneLogger was re-written to use the neptune.new Python API\n"
-             f"  - https://neptune.ai/blog/neptune-new\n"
-             f"  - https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning\n"
-             f"Instead of `logger.{f_name}` you can use:\n"
-             f"\t{sample_code}")
+        msg_suffix = (
+            f"If you are looking for the Neptune logger using legacy Python API,"
+            f" it's still available as part of neptune-contrib package:\n"
+            f"  - https://docs-legacy.neptune.ai/integrations/pytorch_lightning.html\n"
+            f"The NeptuneLogger was re-written to use the neptune.new Python API\n"
+            f"  - https://neptune.ai/blog/neptune-new\n"
+            f"  - https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning\n"
+            f"Instead of `logger.{f_name}` you can use:\n"
+            f"\t{sample_code}"
+        )
 
         if raise_exception:
-            raise ValueError(
-                f"The function you've used is deprecated.\n" + msg_suffix
-            )
+            raise ValueError(f"The function you've used is deprecated.\n" + msg_suffix)
         else:
             warnings.warn(
                 f"The function you've used is deprecated and will be shut down in pytorch-lightning 1.7.0.\n"
@@ -604,14 +610,12 @@ class NeptuneLogger(LightningLoggerBase):
     @rank_zero_only
     def log_metric(self, key: str, metric):
         self._signal_deprecated_api_usage("log_metric", f"logger.run['{self._prefix}/key'].log(42)")
-        self.run[f'{self._prefix}/{key}'].log(metric)
-
+        self.run[f"{self._prefix}/{key}"].log(metric)
 
     @rank_zero_only
     def log_text(self, key: str, value):
         self._signal_deprecated_api_usage("log_text", f"logger.run['{self._prefix}/key'].log('text')")
-        self.run[f'{self._prefix}/{key}'].log(str(value))
-
+        self.run[f"{self._prefix}/{key}"].log(str(value))
 
     @rank_zero_only
     def log_image(self, key: str, img):
@@ -619,27 +623,23 @@ class NeptuneLogger(LightningLoggerBase):
         if isinstance(img, str):
             # if `img` is path to file, convert it to file object
             img = NeptuneFile(img)
-        self.run[f'{self._prefix}/{key}'].log(img)
-
+        self.run[f"{self._prefix}/{key}"].log(img)
 
     @rank_zero_only
     def log_artifact(self, key: str, artifact: str):
-        self._signal_deprecated_api_usage("log_artifact",
-                                          f"logger.run['{self._prefix}/{self.ARTIFACTS_KEY}/key'].log('path_to_file')")
-        self.run[f'{self._prefix}/{self.ARTIFACTS_KEY}/{key}'].log(artifact)
-
+        self._signal_deprecated_api_usage(
+            "log_artifact", f"logger.run['{self._prefix}/{self.ARTIFACTS_KEY}/key'].log('path_to_file')"
+        )
+        self.run[f"{self._prefix}/{self.ARTIFACTS_KEY}/{key}"].log(artifact)
 
     @rank_zero_only
     def set_property(self, *args, **kwargs):
         self._signal_deprecated_api_usage(
-            "log_artifact", f"logger.run['{self._prefix}/{self.PARAMETERS_KEY}/key'].log(value)",
-            raise_exception=True
+            "log_artifact", f"logger.run['{self._prefix}/{self.PARAMETERS_KEY}/key'].log(value)", raise_exception=True
         )
-
 
     @rank_zero_only
     def append_tags(self, *args, **kwargs):
         self._signal_deprecated_api_usage(
-            "append_tags", "logger.run['sys/tags'].add(['foo', 'bar'])",
-            raise_exception=True
+            "append_tags", "logger.run['sys/tags'].add(['foo', 'bar'])", raise_exception=True
         )
