@@ -17,17 +17,15 @@ import os
 import shutil
 import subprocess
 import uuid
-from typing import Any, Dict, Union
+from typing import Any, Dict
 
 import torch
 from torch.nn import Module
 
-_RECURSIVE_DICT_WITH_TENSORS = Union[Dict[str, torch.Tensor], Dict[Any, Any]]
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
-def recursive_detach(
-    in_dict: _RECURSIVE_DICT_WITH_TENSORS, to_cpu: bool = False
-) -> Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor], Any]]:
+def recursive_detach(in_dict: Any, to_cpu: bool = False) -> Any:
     """Detach all tensors in `in_dict`.
 
     May operate recursively if some of the values in `in_dict` are dictionaries
@@ -41,16 +39,14 @@ def recursive_detach(
     Return:
         out_dict: Dictionary with detached tensors
     """
-    out_dict = {}
-    for k, v in in_dict.items():
-        if isinstance(v, dict):
-            v = recursive_detach(v, to_cpu=to_cpu)
-        elif callable(getattr(v, "detach", None)):
-            v = v.detach()
-            if to_cpu:
-                v = v.cpu()
-        out_dict[k] = v
-    return out_dict
+
+    def detach_and_move(t: torch.Tensor, to_cpu: bool) -> torch.Tensor:
+        t = t.detach()
+        if to_cpu:
+            t = t.cpu()
+        return t
+
+    return apply_to_collection(in_dict, torch.Tensor, detach_and_move, to_cpu=to_cpu)
 
 
 def is_oom_error(exception: BaseException) -> bool:
@@ -99,7 +95,7 @@ def garbage_collection_cuda() -> None:
             raise
 
 
-def get_memory_profile(mode: str) -> Union[Dict[str, float], Dict[int, float]]:
+def get_memory_profile(mode: str) -> Dict[str, float]:
     """Get a profile of the current memory usage.
 
     Args:
