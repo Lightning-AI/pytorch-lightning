@@ -57,6 +57,7 @@ class ManualOptimization(Loop):
         Returns:
             post-processed outputs from the training step, or ``None`` if training step returned nothing
         """
+        assert self.trainer is not None
         ligtning_module = self.trainer.lightning_module
 
         with self.trainer.profiler.profile("model_forward"):
