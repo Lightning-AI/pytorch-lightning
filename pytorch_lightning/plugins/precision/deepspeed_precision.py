@@ -42,11 +42,14 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         **kwargs: Any,
     ) -> bool:
         """Hook to do something before each optimizer step."""
-        lambda_closure()  # DeepSpeed does not support closures
+        result = lambda_closure()  # DeepSpeed does not support closures
         super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
-        # the following should be in a `optimizer_step` hook but we don't have one in the precision plugin.
-        deepspeed_engine = model.trainer.model
-        deepspeed_engine.step()
+        skipped_backward = result is None
+        # in manual optimization, the closure does not return a value
+        if not model.automatic_optimization or not skipped_backward:
+            # the following should be in a `optimizer_step` hook but we don't have one in the precision plugin.
+            deepspeed_engine = model.trainer.model
+            deepspeed_engine.step()
         return False
 
     def backward(self, model: "pl.LightningModule", closure_loss: Tensor, *args: Any, **kwargs: Any) -> None:
