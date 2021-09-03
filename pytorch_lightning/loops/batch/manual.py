@@ -57,18 +57,17 @@ class ManualOptimization(Loop):
         Returns:
             post-processed outputs from the training step, or ``None`` if training step returned nothing
         """
-        # give the PL module a result for logging
-        model_ref = self.trainer.lightning_module
+        ligtning_module = self.trainer.lightning_module
 
         with self.trainer.profiler.profile("model_forward"):
 
             # TODO: does not need optimizers or opt_idx
             step_kwargs = _build_training_step_kwargs(
-                model_ref, self.trainer.optimizers, batch, batch_idx, opt_idx=None, hiddens=hiddens
+                ligtning_module, self.trainer.optimizers, batch, batch_idx, opt_idx=None, hiddens=hiddens
             )
 
             # manually capture logged metrics
-            model_ref._current_fx_name = "training_step"
+            ligtning_module._current_fx_name = "training_step"
             with self.trainer.profiler.profile("training_step"):
                 training_step_output = self.trainer.accelerator.training_step(step_kwargs)
                 self.trainer.accelerator.post_training_step()
@@ -77,7 +76,7 @@ class ManualOptimization(Loop):
 
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
 
-            _check_training_step_output(self.trainer.lightning_module, training_step_output)
+            _check_training_step_output(ligtning_module, training_step_output)
 
             result_collection, hiddens = _process_training_step_output(self.trainer, training_step_output)
             if result_collection is None:
