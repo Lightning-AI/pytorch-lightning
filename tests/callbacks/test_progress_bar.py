@@ -560,24 +560,22 @@ def _test_progress_bar_max_val_check_interval(
         assert trainer.progress_bar_callback.main_progress_bar.total == total_train_batches + total_val_batches
 
 
-def test_progress_bar_resume():
+def test_progress_bar_main_bar_resume():
     """Test that the progress bar can resume its counters based on the Trainer state."""
     bar = ProgressBar()
     trainer = Mock()
     model = Mock()
 
-    trainer.val_check_batch = 1
     trainer.check_val_every_n_epoch = 1
     trainer.current_epoch = 1
     trainer.num_training_batches = 5
-    trainer.num_val_batches = [1]
+    trainer.val_check_batch = 5
+    trainer.num_val_batches = [2]
     trainer.fit_loop.epoch_loop.batch_progress.current.completed = 3
-
-    # with mock.patch("pytorch_lightning.callbacks.progress.tqdm") as tqdm_mock:
-    #     tqdm_mock.n.assert_not_called()
 
     bar.on_init_end(trainer)
     bar.on_train_start(trainer, model)
     bar.on_train_epoch_start(trainer, model)
 
     assert bar.main_progress_bar.n == 3
+    assert bar.main_progress_bar.total == 7
