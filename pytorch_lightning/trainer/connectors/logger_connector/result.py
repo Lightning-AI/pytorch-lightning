@@ -25,6 +25,7 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
 from pytorch_lightning.utilities.data import extract_batch_size
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -436,11 +437,7 @@ class ResultCollection(dict):
         """See :meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
         # no metrics should be logged with graphs
         if not enable_graph:
-
-            def detach_fn(tensor: torch.Tensor) -> torch.Tensor:
-                return tensor.detach()
-
-            value = apply_to_collection(value, torch.Tensor, detach_fn)
+            value = recursive_detach(value)
 
         # move metrics to cpu on TPU.
         if isinstance(value, torch.Tensor) and value.device.type == "xla":
