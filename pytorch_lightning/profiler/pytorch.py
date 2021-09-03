@@ -130,12 +130,8 @@ class ScheduleWrapper:
 
     @property
     def is_training(self) -> bool:
-        return (
-            self._current_action is not None 
-            and (
-                self._current_action.startswith("optimizer_step_and_closure_") 
-                or self._current_action == "training_step"
-            )
+        return self._current_action is not None and (
+            self._current_action.startswith("optimizer_step_and_closure_") or self._current_action == "training_step"
         )
 
     @property
