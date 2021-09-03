@@ -229,7 +229,7 @@ class ProgressBar(ProgressBarBase):
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
             total_val_batches = total_val_batches * val_checks_per_epoch
         total_batches = total_train_batches + total_val_batches
-        reset(self.main_progress_bar, total=total_batches, current=(self.train_batch_idx + self.val_batch_idx))
+        reset(self.main_progress_bar, total=total_batches, current=self.train_batch_idx)
         self.main_progress_bar.set_description(f"Epoch {trainer.current_epoch}")
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):

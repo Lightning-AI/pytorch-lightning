@@ -154,10 +154,10 @@ class ProgressBarBase(Callback):
         self._trainer = trainer
 
     def on_train_start(self, trainer, pl_module):
-        self._train_batch_idx = trainer.fit_loop.batch_idx
+        self._train_batch_idx = 0
 
     def on_train_epoch_start(self, trainer, pl_module):
-        self._train_batch_idx = 0
+        self._train_batch_idx = trainer.fit_loop.epoch_loop.batch_progress.current.completed
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         self._train_batch_idx += 1
