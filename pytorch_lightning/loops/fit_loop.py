@@ -21,6 +21,7 @@ from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 log = logging.getLogger(__name__)
 
@@ -36,6 +37,12 @@ class FitLoop(Loop):
 
     def __init__(self, min_epochs: Optional[int] = None, max_epochs: Optional[int] = None):
         super().__init__()
+         # Allow max_epochs or max_steps to be zero, since this will be handled by fit_loop.done
+        if max_epochs and max_epochs < -1:
+            raise MisconfigurationException(
+                f"`max_epochs` must be a positive integer or -1. You passed in {max_epochs}."
+            )
+
         self.max_epochs = max_epochs
         self.min_epochs = min_epochs
         self.epoch_loop: Optional[TrainingEpochLoop] = None
@@ -98,6 +105,11 @@ class FitLoop(Loop):
     @max_steps.setter
     def max_steps(self, value: int) -> None:
         """Sets the maximum number of steps (forwards to epoch_loop)"""
+        if value and value < -1:
+            raise MisconfigurationException(
+                f"`max_steps` must be a positive integer or -1. You passed in {value}."
+            )
+
         # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
         self.epoch_loop.max_steps = value
 
