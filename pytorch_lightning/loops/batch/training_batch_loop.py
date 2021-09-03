@@ -15,7 +15,6 @@ from copy import deepcopy
 from typing import Any, List, Optional, Tuple
 
 import numpy as np
-import torch
 from deprecate import void
 from torch import Tensor
 from torch.optim import Optimizer
@@ -157,25 +156,6 @@ class TrainingBatchLoop(Loop):
         with self.trainer.profiler.profile("tbptt_split_batch"):
             splits = model_ref.tbptt_split_batch(batch, tbptt_steps)
         return splits
-
-    # TODO: remove this method and update tests
-    def backward(
-        self,
-        loss: Tensor,
-        optimizer: Optional[torch.optim.Optimizer],
-        opt_idx: Optional[int] = None,
-        *args: Any,
-        **kwargs: Any,
-    ) -> Tensor:
-        """Performs the backward step.
-
-        Args:
-            loss: The loss value to back-propagate on
-            optimizer: Current optimizer being used. ``None`` if using manual optimization.
-            opt_idx: Index of the current optimizer being used. ``None`` if using manual optimization.
-        """
-        self.trainer.accelerator.backward(loss, optimizer, opt_idx, *args, **kwargs)
-        return loss
 
     def _update_running_loss(self, current_loss: Tensor) -> None:
         """Updates the running loss value with the current value"""

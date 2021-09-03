@@ -579,22 +579,7 @@ class CombinedLoaderIterator:
         Returns
             Any: a collections of batch data
         """
-
-        def next_fn(iterator: Iterator):
-            batch = next(iterator)
-            if not _fault_tolerant_training():
-                return batch
-            # when fault tolerant is enabled, the iterator will return
-            # `FastForwardSampler` state_dict metadata
-            # along side with the user data.
-            # the metadata are extracted and store directly on the iterator
-            # to simplify the collection on `state_dict` call.
-            batch, samplers_state_dict = CaptureIterableDataset.extract_samplers_state_dict_from_batch(batch)
-            # store the `sampler_state_dict` on the iterator
-            CaptureIterableDataset.store_samplers_state_dict(iterator, samplers_state_dict)
-            return batch
-
-        return apply_to_collection(loader_iters, Iterator, next_fn)
+        return apply_to_collection(loader_iters, Iterator, next)
 
     @staticmethod
     def create_loader_iters(
