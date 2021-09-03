@@ -423,6 +423,10 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         obj.prepare_data = cls._track_data_hook_calls(obj, obj.prepare_data)
         obj.setup = cls._track_data_hook_calls(obj, obj.setup)
         obj.teardown = cls._track_data_hook_calls(obj, obj.teardown)
+
+        # calling this to ensure the `LightningDataModule` is initialized for all cases of inheritance,
+        # even if `super().__init__` hasn't been explicitly called in the class
+        LightningDataModule.__init__(obj)
         return obj
 
     @staticmethod

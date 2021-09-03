@@ -66,7 +66,7 @@ class TrainerProperties(ABC):
     checkpoint_connector: CheckpointConnector
     reload_dataloaders_every_n_epochs: int
     limit_val_batches: int
-    logger: LightningLoggerBase
+    logger: Optional[LightningLoggerBase]
     logger_connector: LoggerConnector
     state: TrainerState
 
