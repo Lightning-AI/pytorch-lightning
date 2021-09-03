@@ -493,12 +493,12 @@ def test_trainer_max_steps_and_epochs(tmpdir):
 
     # if max_steps is positive and max_epochs is negative, use max_steps
     trainer_kwargs["max_epochs"] = -1
-    trainer_kwargs["max_steps"] = 3 * 2 * num_train_samples
+    trainer_kwargs["max_steps"] = 3
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.global_step == 3 * 2 * num_train_samples
+    assert trainer.global_step == 3
 
 
 @pytest.mark.parametrize(
