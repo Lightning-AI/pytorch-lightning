@@ -46,7 +46,7 @@ class ManualOptimization(Loop):
     def reset(self) -> None:
         self._done = False
 
-    def advance(self, batch: Any, batch_idx: int, hiddens: Optional[Any] = None) -> None:
+    def advance(self, batch: Any, batch_idx: int, hiddens: Optional[Any] = None) -> None:  # type: ignore [override]
         """Performs the training step for manual optimization.
 
         Args:
@@ -89,5 +89,5 @@ class ManualOptimization(Loop):
         output = self._output
         self._hiddens, self._output = None, None  # free memory
         if output is None:
-            return
+            return None
         return output, hiddens

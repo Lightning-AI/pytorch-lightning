@@ -163,7 +163,7 @@ class TrainerProperties(ABC):
         return self.accelerator.lightning_module
 
     @property
-    def optimizers(self) -> Optional[List[Optimizer]]:
+    def optimizers(self) -> List[Optimizer]:
         return self.accelerator.optimizers
 
     @optimizers.setter
