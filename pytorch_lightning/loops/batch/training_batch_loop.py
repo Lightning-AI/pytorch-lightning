@@ -60,7 +60,7 @@ class TrainingBatchLoop(Loop):
 
     def connect(self, optimizer_loop: "Loop", manual_loop: ManualOptimization) -> None:
         self.optimizer_loop = optimizer_loop
-        self.manual_loop = ManualOptimization()
+        self.manual_loop = manual_loop
 
     def run(self, batch: Any, batch_idx: int) -> AttributeDict:
         """Runs all the data splits and the ``on_batch_start`` and ``on_train_batch_start`` hooks
