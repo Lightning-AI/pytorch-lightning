@@ -22,6 +22,7 @@ import torch
 
 from pytorch_lightning import __version__, Trainer
 from pytorch_lightning.loggers import NeptuneLogger
+from pytorch_lightning.loggers.neptune import NeptuneFile
 from tests.helpers import BoringModel
 
 
@@ -334,20 +335,42 @@ class TestNeptuneLoggerDeprecatedUsages(unittest.TestCase):
         for legacy_kwarg in legacy_neptune_kwargs:
             self._assert_legacy_usage(NeptuneLogger, **{legacy_kwarg: None})
 
+    @patch("pytorch_lightning.loggers.neptune.warnings")
+    @patch("pytorch_lightning.loggers.neptune.NeptuneFile")
     @patch("pytorch_lightning.loggers.neptune.neptune")
-    def test_legacy_functions(self, neptune):
+    def test_legacy_functions(self, neptune, neptune_file_mock, warnings_mock):
         logger = NeptuneLogger(api_key="test", project="project")
 
-        # test all  functions
-        self._assert_legacy_usage(logger.log_metric)
-        self._assert_legacy_usage(logger.log_text)
-        self._assert_legacy_usage(logger.log_image)
-        self._assert_legacy_usage(logger.log_artifact)
+        # test deprecated functions which will be shut down in pytorch-lightning 1.7.0
+        attr_mock = logger._run_instance.__getitem__
+        attr_mock.reset_mock()
+        fake_image = dict()
+        neptune_file_instance_mock = neptune.new.types.File.return_value
+
+        logger.log_metric("metric", 42)
+        logger.log_text("text", "some string")
+        logger.log_image("image_obj", fake_image)
+        logger.log_image("image_str", "img/path")
+        logger.log_artifact("artifact", "some/path")
+
+        assert attr_mock.call_count == 5
+        assert warnings_mock.warn.call_count == 5
+        attr_mock.assert_has_calls([
+            call("training/metric"),
+            call().log(42),
+            call("training/text"),
+            call().log("some string"),
+            call("training/image_obj"),
+            call().log(fake_image),
+            call("training/image_str"),
+            call().log(neptune_file_mock()),
+            call("training/artifacts/artifact"),
+            call().log("some/path"),
+        ])
+
+        # test Exception raising functions  functions
         self._assert_legacy_usage(logger.set_property)
         self._assert_legacy_usage(logger.append_tags)
-
-        # test random args
-        self._assert_legacy_usage(logger.log_metric, 42, foo="bar")
 
 
 class TestNeptuneLoggerUtils(unittest.TestCase):
