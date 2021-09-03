@@ -16,6 +16,7 @@ Test logging in the evaluation loop
 """
 import collections
 import itertools
+from tests.helpers.runif import RunIf
 from unittest import mock
 from unittest.mock import call
 
@@ -616,3 +617,17 @@ def test_logging_dict_on_validation_step(tmpdir):
     )
 
     trainer.fit(model)
+
+
+@RunIf(min_gpus=1)
+def test_move_metrics_to_cpu(tmpdir):
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        amp_backend="native",
+        precision=16,
+        move_metrics_to_cpu=True,
+        gpus=1,
+    )
+    trainer.fit(BoringModel())
