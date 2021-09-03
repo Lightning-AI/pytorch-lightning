@@ -48,7 +48,7 @@ def test_trainer_flag(caplog):
         trainer.fit(TestModel())
     timer = [c for c in trainer.callbacks if isinstance(c, Timer)][0]
     assert timer._duration == 1
-    assert trainer.max_epochs is None
+    assert trainer.max_epochs == -1
     assert trainer.max_steps is None
 
 
@@ -58,19 +58,26 @@ def test_trainer_flag(caplog):
         (None, None),
         ("00:00:00:22", timedelta(seconds=22)),
         ("12:34:56:65", timedelta(days=12, hours=34, minutes=56, seconds=65)),
-        (timedelta(weeks=52, milliseconds=1), timedelta(weeks=52, milliseconds=1)),
+        (
+            timedelta(weeks=52, milliseconds=1),
+            timedelta(weeks=52, milliseconds=1),
+        ),
         (dict(weeks=52, days=1), timedelta(weeks=52, days=1)),
     ],
 )
 def test_timer_parse_duration(duration, expected):
     timer = Timer(duration=duration)
-    assert (timer.time_remaining() == expected is None) or (timer.time_remaining() == expected.total_seconds())
+    assert (timer.time_remaining() == expected is None) or (
+        timer.time_remaining() == expected.total_seconds()
+    )
 
 
 def test_timer_interval_choice():
     Timer(duration=timedelta(), interval="step")
     Timer(duration=timedelta(), interval="epoch")
-    with pytest.raises(MisconfigurationException, match="Unsupported parameter value"):
+    with pytest.raises(
+        MisconfigurationException, match="Unsupported parameter value"
+    ):
         Timer(duration=timedelta(), interval="invalid")
 
 
@@ -109,7 +116,9 @@ def test_timer_stops_training(tmpdir, caplog):
     duration = timedelta(milliseconds=100)
     timer = Timer(duration=duration)
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1000, callbacks=[timer])
+    trainer = Trainer(
+        default_root_dir=tmpdir, max_epochs=1000, callbacks=[timer]
+    )
     with caplog.at_level(logging.INFO):
         trainer.fit(model)
     assert trainer.global_step > 1
@@ -141,7 +150,12 @@ def test_timer_duration_min_steps_override(tmpdir, min_steps, min_epochs):
     model = BoringModel()
     duration = timedelta(0)
     timer = Timer(duration=duration)
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[timer], min_steps=min_steps, min_epochs=min_epochs)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[timer],
+        min_steps=min_steps,
+        min_epochs=min_epochs,
+    )
     trainer.fit(model)
     if min_epochs:
         assert trainer.current_epoch >= min_epochs - 1
@@ -157,7 +171,11 @@ def test_timer_resume_training(tmpdir):
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1)
 
     # initial training
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=100, callbacks=[timer, checkpoint_callback])
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=100,
+        callbacks=[timer, checkpoint_callback],
+    )
     trainer.fit(model)
     assert not timer._offset
     assert timer.time_remaining() <= 0
