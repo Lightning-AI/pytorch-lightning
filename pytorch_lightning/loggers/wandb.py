@@ -19,7 +19,7 @@ import operator
 import os
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, List
 from weakref import ReferenceType
 
 import torch.nn as nn
@@ -252,7 +252,7 @@ class WandbLogger(LightningLoggerBase):
     def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
         # log checkpoints as artifacts
         if self._log_model == "all" or self._log_model is True and checkpoint_callback.save_top_k == -1:
-            self._scan_and_log_checkpoints(checkpoint_callback)
+            self._scan_and_log_checkpoints(checkpoint_callback, self._logged_model_time)
         elif self._log_model is True:
             self._checkpoint_callback = checkpoint_callback
 
@@ -260,20 +260,11 @@ class WandbLogger(LightningLoggerBase):
     def finalize(self, status: str) -> None:
         # log checkpoints as artifacts
         if self._checkpoint_callback:
-            self._scan_and_log_checkpoints(self._checkpoint_callback)
+            self._scan_and_log_checkpoints(self._checkpoint_callback, self._logged_model_time)
 
-    def _scan_and_log_checkpoints(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
-        # get checkpoints to be saved with associated score
-        checkpoints = {
-            checkpoint_callback.last_model_path: checkpoint_callback.current_score,
-            checkpoint_callback.best_model_path: checkpoint_callback.best_model_score,
-            **checkpoint_callback.best_k_models,
-        }
-        checkpoints = sorted((Path(p).stat().st_mtime, p, s) for p, s in checkpoints.items() if Path(p).is_file())
-        checkpoints = [
-            c for c in checkpoints if c[1] not in self._logged_model_time.keys() or self._logged_model_time[c[1]] < c[0]
-        ]
-
+    def _log_checkpoints(
+        self, checkpoint_callback: "ReferenceType[ModelCheckpoint]", checkpoints: List[ModelCheckpoint]
+    ) -> None:
         # log iteratively all new checkpoints
         for t, p, s in checkpoints:
             metadata = (
