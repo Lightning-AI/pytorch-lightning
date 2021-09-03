@@ -13,3 +13,4 @@
 # limitations under the License.
 
 from pytorch_lightning.loops.batch.training_batch_loop import TrainingBatchLoop  # noqa: F401
+from pytorch_lightning.loops.batch.manual import ManualOptimization  # noqa: F401
