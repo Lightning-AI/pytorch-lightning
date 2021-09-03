@@ -164,7 +164,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `DataModule` properties: `train_transforms`, `val_transforms`, `test_transforms`, `size`, `dims` ([#8851](https://github.com/PyTorchLightning/pytorch-lightning/pull/8851))
 
 
-- Deprecated `add_to_queue`, `get_from_queue` from Lightning Module in favor of overriding the same functions in the DDPSpawnPlugins ([9118](https://github.com/PyTorchLightning/pytorch-lightning/pull/9118))
+- Deprecated `add_to_queue`, `get_from_queue` from `LightningModule` in favor of corresponding methods in the `DDPSpawnPlugins` ([9118](https://github.com/PyTorchLightning/pytorch-lightning/pull/9118))
 
 
 - Deprecated `prepare_data_per_node` flag on Trainer and set it as a property of `DataHooks`, accessible in the `LightningModule` and `LightningDataModule` ([#8958](https://github.com/PyTorchLightning/pytorch-lightning/pull/8958))
