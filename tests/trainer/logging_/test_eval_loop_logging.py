@@ -617,17 +617,3 @@ def test_logging_dict_on_validation_step(tmpdir):
     )
 
     trainer.fit(model)
-
-
-@RunIf(min_gpus=1)
-def test_move_metrics_to_cpu(tmpdir):
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        amp_backend="native",
-        precision=16,
-        move_metrics_to_cpu=True,
-        gpus=1,
-    )
-    trainer.fit(BoringModel())

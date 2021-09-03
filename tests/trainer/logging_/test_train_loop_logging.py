@@ -701,3 +701,22 @@ def test_log_gpu_memory_without_logging_on_step(tmpdir, log_gpu_memory):
         assert "max_gpu_mem" in trainer.logged_metrics
     else:
         assert "gpu_id: 1/memory.used (MB)" in trainer.logged_metrics
+
+
+@RunIf(min_gpus=1)
+def test_move_metrics_to_cpu(tmpdir):
+
+    class TestModel(BoringModel):
+
+        def on_before_backward(self, loss: torch.Tensor) -> None:
+            assert loss.device.type == "cuda"
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        amp_backend="native",
+        precision=16,
+        move_metrics_to_cpu=True,
+        gpus=1,
+    )
+    trainer.fit(TestModel())
