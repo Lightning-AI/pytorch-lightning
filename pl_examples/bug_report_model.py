@@ -1,11 +1,10 @@
 import os
+from time import sleep
 
 import torch
 from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning import LightningModule, Trainer
-
-from time import sleep
 
 
 class RandomDataset(Dataset):
