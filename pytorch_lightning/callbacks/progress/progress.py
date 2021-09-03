@@ -229,7 +229,7 @@ class ProgressBar(ProgressBarBase):
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
             total_val_batches = total_val_batches * val_checks_per_epoch
         total_batches = total_train_batches + total_val_batches
-        reset(self.main_progress_bar, total_batches)
+        reset(self.main_progress_bar, total=total_batches, current=(self.train_batch_idx + self.val_batch_idx))
         self.main_progress_bar.set_description(f"Epoch {trainer.current_epoch}")
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
@@ -243,11 +243,11 @@ class ProgressBar(ProgressBarBase):
     def on_validation_start(self, trainer, pl_module):
         super().on_validation_start(trainer, pl_module)
         if trainer.sanity_checking:
-            reset(self.val_progress_bar, sum(trainer.num_sanity_val_batches))
+            reset(self.val_progress_bar, total=sum(trainer.num_sanity_val_batches), current=self.val_batch_idx)
         else:
             self._update_bar(self.main_progress_bar)  # fill up remaining
             self.val_progress_bar = self.init_validation_tqdm()
-            reset(self.val_progress_bar, self.total_val_batches)
+            reset(self.val_progress_bar, total=self.total_val_batches, current=self.val_batch_idx)
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
@@ -333,7 +333,8 @@ def convert_inf(x: Optional[Union[int, float]]) -> Optional[Union[int, float]]:
     return x
 
 
-def reset(bar: tqdm, total: Optional[int] = None) -> None:
+def reset(bar: tqdm, total: Optional[int] = None, current: int = 0) -> None:
     """Resets the tqdm bar to 0 progress with a new total, unless it is disabled."""
     if not bar.disable:
         bar.reset(total=convert_inf(total))
+        bar.n = current
