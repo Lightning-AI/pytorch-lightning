@@ -17,7 +17,7 @@ import os
 import shutil
 import subprocess
 import uuid
-from typing import Any, Dict, Union
+from typing import Any, Dict
 
 import torch
 from torch.nn import Module
