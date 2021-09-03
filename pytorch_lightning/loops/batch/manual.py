@@ -24,15 +24,25 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import ResultC
 
 
 class ManualOptimization(Loop):
+    """
+    A special loop implementing what is known in Lightning as Manual Optimization where the optimization happens
+    entirely in the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` and therefore the user
+    is responsible for back-propagating gradients and making calls to the optimizers.
+
+    This loop is a trivial case because it performs only a single iteration (calling directly into the module's
+    :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`) and passing through the output(s).
+    """
+
     @property
     def done(self) -> bool:
         return False
 
     def reset(self) -> None:
-        pass
+        raise NotImplementedError
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
-        pass
+        """Unimplemented for manual optimization as there is no effective progression of the loop."""
+        raise NotImplementedError
 
     def run(
         self, batch: Any, batch_idx: int, hiddens: Optional[Any] = None
