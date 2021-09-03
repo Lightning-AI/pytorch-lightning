@@ -33,20 +33,20 @@ class ManualOptimization(Loop):
     :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`) and passing through the output(s).
     """
 
+    def __init__(self) -> None:
+        super().__init__()
+        self._done: bool = False
+        self._hiddens: Optional[Any] = None
+        self._output: Optional[ResultCollection] = None
+
     @property
     def done(self) -> bool:
-        return False
+        return self._done
 
     def reset(self) -> None:
-        raise NotImplementedError
+        self._done = False
 
-    def advance(self, *args: Any, **kwargs: Any) -> None:
-        """Unimplemented for manual optimization as there is no effective progression of the loop."""
-        raise NotImplementedError
-
-    def run(
-        self, batch: Any, batch_idx: int, hiddens: Optional[Any] = None
-    ) -> Optional[Tuple[ResultCollection, Optional[Any]]]:
+    def advance(self, batch: Any, batch_idx: int, hiddens: Optional[Any] = None) -> None:
         """Performs the training step for manual optimization.
 
         Args:
@@ -62,7 +62,6 @@ class ManualOptimization(Loop):
 
         with self.trainer.profiler.profile("model_forward"):
 
-            # TODO: does not need optimizers or opt_idx
             step_kwargs = _build_training_step_kwargs(
                 ligtning_module, self.trainer.optimizers, batch, batch_idx, opt_idx=None, hiddens=hiddens
             )
@@ -80,7 +79,15 @@ class ManualOptimization(Loop):
             _check_training_step_output(ligtning_module, training_step_output)
 
             result_collection, hiddens = _process_training_step_output(self.trainer, training_step_output)
-            if result_collection is None:
-                return
 
-        return result_collection, hiddens
+        self._done = True
+        self._hiddens = hiddens
+        self._output = result_collection
+
+    def on_run_end(self) -> Optional[Tuple[ResultCollection, Optional[Any]]]:
+        hiddens = self._hiddens
+        output = self._output
+        self._hiddens, self._output = None, None  # free memory
+        if output is None:
+            return
+        return output, hiddens
