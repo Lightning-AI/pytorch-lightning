@@ -556,9 +556,7 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         dict(name="Callback.teardown", args=(trainer, model), kwargs=dict(stage="fit")),
         dict(name="teardown", kwargs=dict(stage="fit")),
     ]
-    assert [c["name"] for c in called] == [e["name"] for e in expected]
-    for c, e in zip(called, expected):
-        assert c["name"] == e["name"]
+    assert called == expected
 
 
 def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
