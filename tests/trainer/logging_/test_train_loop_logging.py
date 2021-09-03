@@ -705,9 +705,7 @@ def test_log_gpu_memory_without_logging_on_step(tmpdir, log_gpu_memory):
 
 @RunIf(min_gpus=1)
 def test_move_metrics_to_cpu(tmpdir):
-
     class TestModel(BoringModel):
-
         def on_before_backward(self, loss: torch.Tensor) -> None:
             assert loss.device.type == "cuda"
 
