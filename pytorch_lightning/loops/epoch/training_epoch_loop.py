@@ -196,15 +196,11 @@ class TrainingEpochLoop(loops.Loop):
         # inform logger the batch loop has finished
         self.trainer.logger_connector.epoch_end_reached()
 
-        # prepare epoch output
-        processed_outputs = self._prepare_outputs(self._epoch_output, batch_mode=False)
-        # free memory
-        self._epoch_output = None
-
         # get the model and call model.training_epoch_end
         model = self.trainer.lightning_module
-
         if is_overridden("training_epoch_end", model):
+            processed_outputs = self._prepare_outputs(self._epoch_output, batch_mode=False)
+
             # run training_epoch_end
             # refresh the result for custom logging at the epoch level
             model._current_fx_name = "training_epoch_end"
@@ -217,6 +213,8 @@ class TrainingEpochLoop(loops.Loop):
                     "training_epoch_end expects a return of None. "
                     "HINT: remove the return statement in training_epoch_end"
                 )
+        # free memory
+        self._epoch_output = None
 
         self.trainer.fit_loop.epoch_progress.increment_processed()
 
