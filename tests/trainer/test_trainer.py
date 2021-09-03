@@ -520,7 +520,7 @@ def test_trainer_max_steps_and_epochs_validation(max_epochs, max_steps, incorrec
             limit_val_batches=0,
             limit_train_batches=2,
         )
-        model = EvalModelTemplate()
+        model = BoringModel()
         trainer.fit(model)
 
 
