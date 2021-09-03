@@ -566,11 +566,12 @@ def test_progress_bar_main_bar_resume():
     trainer = Mock()
     model = Mock()
 
+    trainer.sanity_checking = False
     trainer.check_val_every_n_epoch = 1
     trainer.current_epoch = 1
     trainer.num_training_batches = 5
     trainer.val_check_batch = 5
-    trainer.num_val_batches = [2]
+    trainer.num_val_batches = [3]
     trainer.fit_loop.epoch_loop.batch_progress.current.completed = 3
 
     bar.on_init_end(trainer)
@@ -578,4 +579,12 @@ def test_progress_bar_main_bar_resume():
     bar.on_train_epoch_start(trainer, model)
 
     assert bar.main_progress_bar.n == 3
-    assert bar.main_progress_bar.total == 7
+    assert bar.main_progress_bar.total == 8
+
+    # bar.on_train_epoch_end(trainer, model)
+    bar.on_validation_start(trainer, model)
+    bar.on_validation_epoch_start(trainer, model)
+
+    # restarting mid validation epoch is not currently supported
+    assert bar.val_progress_bar.n == 0
+    assert bar.val_progress_bar.total == 3
