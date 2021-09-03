@@ -184,7 +184,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         rank_zero_deprecation("DataModule property `dims` was deprecated in v1.5 and will be removed in v1.7.")
         self._dims = d
 
-    def size(self, dim=None) -> Union[Tuple, int]:
+    def size(self, dim=None) -> Union[Tuple, List[Tuple]]:
         """
         Return the dimension of each input either as a tuple or list of tuples. You can index this
         just as you would with a torch tensor.
@@ -423,6 +423,10 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         obj.prepare_data = cls._track_data_hook_calls(obj, obj.prepare_data)
         obj.setup = cls._track_data_hook_calls(obj, obj.setup)
         obj.teardown = cls._track_data_hook_calls(obj, obj.teardown)
+
+        # calling this to ensure the `LightningDataModule` is initialized for all cases of inheritance,
+        # even if `super().__init__` hasn't been explicitly called in the class
+        LightningDataModule.__init__(obj)
         return obj
 
     @staticmethod

@@ -36,7 +36,7 @@ from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, Hyperparameter
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
-from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities import _TORCH_SHARDED_TENSOR_AVAILABLE, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
@@ -66,7 +66,6 @@ class LightningModule(
     # since none of these are important when using JIT, we are going to ignore them.
     __jit_unused_properties__ = (
         [
-            "datamodule",
             "example_input_array",
             "on_gpu",
             "current_epoch",
@@ -104,7 +103,6 @@ class LightningModule(
 
         # optionally can be set by user
         self._example_input_array = None
-        self._datamodule = None
         self._current_fx_name: Optional[str] = None
         self._current_dataloader_idx: Optional[int] = None
         self._automatic_optimization: bool = True
@@ -112,6 +110,8 @@ class LightningModule(
         self._param_requires_grad_state = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
         self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
+
+        self._register_sharded_tensor_state_dict_hooks_if_available()
 
         # deprecated, will be removed in 1.6
         self._loaded_optimizer_states_dict = {}
@@ -202,15 +202,6 @@ class LightningModule(
         return self.trainer.local_rank if self.trainer else 0
 
     @property
-    def datamodule(self) -> Any:
-        warning_cache.deprecation(
-            "The `LightningModule.datamodule` property is deprecated in v1.3 and will be removed in v1.5."
-            " Access the datamodule through using `self.trainer.datamodule` instead.",
-            stacklevel=6,
-        )
-        return self._datamodule
-
-    @property
     def loaded_optimizer_states_dict(self) -> dict:
         warning_cache.deprecation(
             "The `LightningModule.loaded_optimizer_states_dict` property is deprecated in v1.4"
@@ -227,10 +218,6 @@ class LightningModule(
             stacklevel=6,
         )
         self._loaded_optimizer_states_dict = val
-
-    @datamodule.setter
-    def datamodule(self, datamodule: Any) -> None:
-        self._datamodule = datamodule
 
     @property
     def on_gpu(self):
@@ -453,6 +440,15 @@ class LightningModule(
                     f" You can fix this by calling `self.log({name}, ..., metric_attribute=name)` where `name` is one"
                     f" of {list(self._metric_attributes.values())}"
                 )
+
+        if (
+            self.trainer.training
+            and is_param_in_hook_signature(self.training_step, "dataloader_iter", explicit=True)
+            and batch_size is None
+        ):
+            raise MisconfigurationException(
+                "With `def training_step(self, dataloader_iter)`, `self.log(..., batch_size=...)` should be provided."
+            )
 
         results.log(
             self._current_fx_name,
@@ -1422,7 +1418,7 @@ class LightningModule(
         self._verify_is_manual_optimization("manual_backward")
 
         # backward
-        self.trainer.fit_loop.epoch_loop.batch_loop.backward(loss, None, None, *args, **kwargs)
+        self.trainer.accelerator.backward(loss, None, None, *args, **kwargs)
 
     def backward(
         self, loss: Tensor, optimizer: Optional[Optimizer], optimizer_idx: Optional[int], *args, **kwargs
@@ -1847,7 +1843,10 @@ class LightningModule(
 
         if "example_outputs" not in kwargs:
             self.eval()
-            kwargs["example_outputs"] = self(input_sample)
+            if isinstance(input_sample, Tuple):
+                kwargs["example_outputs"] = self(*input_sample)
+            else:
+                kwargs["example_outputs"] = self(input_sample)
 
         torch.onnx.export(self, input_sample, file_path, **kwargs)
         self.train(mode)
@@ -1979,9 +1978,21 @@ class LightningModule(
         state = dict(self.__dict__)
         if self._should_prevent_trainer_and_dataloaders_deepcopy:
             state["trainer"] = None
-            state["_datamodule"] = None
             state.pop("train_dataloader", None)
             state.pop("val_dataloader", None)
             state.pop("test_dataloader", None)
             state.pop("predict_dataloader", None)
         return state
+
+    def _register_sharded_tensor_state_dict_hooks_if_available(self) -> None:
+        """
+        Adds ShardedTensor state dict hooks if ShardedTensors are supported. These hooks ensure that
+        ShardedTensors are included when saving, and are loaded the LightningModule correctly.
+        """
+        if not _TORCH_SHARDED_TENSOR_AVAILABLE:
+            return
+
+        from torch.distributed._sharded_tensor import pre_load_state_dict_hook, state_dict_hook
+
+        self._register_state_dict_hook(state_dict_hook)
+        self._register_load_state_dict_pre_hook(pre_load_state_dict_hook, True)

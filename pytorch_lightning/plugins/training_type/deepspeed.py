@@ -37,7 +37,7 @@ from pytorch_lightning.utilities.distributed import log, rank_zero_info, rank_ze
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.types import LRSchedulerTypeTuple
-from pytorch_lightning.utilities.warnings import _warn, LightningDeprecationWarning, rank_zero_warn, WarningCache
+from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
 
 warning_cache = WarningCache()
 
@@ -124,9 +124,6 @@ class DeepSpeedPlugin(DDPPlugin):
         contiguous_memory_optimization: bool = False,
         synchronize_checkpoint_boundary: bool = False,
         load_full_weights: bool = False,
-        cpu_offload: bool = False,
-        cpu_offload_params: bool = False,
-        cpu_offload_use_pin_memory: bool = False,
     ) -> None:
         """
         Provides capabilities to run training using the DeepSpeed library,
@@ -262,17 +259,6 @@ class DeepSpeedPlugin(DDPPlugin):
             raise MisconfigurationException(
                 "To use the DeepSpeed plugin, you must have DeepSpeed installed. pip install deepspeed"
             )
-
-        if cpu_offload or cpu_offload_params or cpu_offload_use_pin_memory:
-            _warn(
-                "The usage of `cpu_offload`, `cpu_offload_params`, and `cpu_offload_use_pin_memory` "
-                "is deprecated since v1.4 and will be removed in v1.5."
-                " From now on use `offload_optimizer`, `offload_parameters` and `pin_memory`.",
-                category=LightningDeprecationWarning,
-            )
-            offload_optimizer = cpu_offload
-            offload_parameters = cpu_offload_params
-            pin_memory = cpu_offload_use_pin_memory
 
         super().__init__(
             parallel_devices=parallel_devices,
@@ -697,12 +683,12 @@ class DeepSpeedPlugin(DDPPlugin):
         checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
         self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint)
 
-    def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Optional[Dict[str, Any]]:
+    def load_checkpoint(self, checkpoint_path: Union[str, Path]) -> Optional[Dict[str, Any]]:
         if self.load_full_weights and self.zero_stage_3:
             # Broadcast to ensure we load from the rank 0 checkpoint
             # This doesn't have to be the case when using deepspeed sharded checkpointing
             checkpoint_path = self.broadcast(checkpoint_path)
-            return super().load_checkpoint_file(checkpoint_path)
+            return super().load_checkpoint(checkpoint_path)
 
         # Rely on deepspeed to load the checkpoint and necessary information
         from pytorch_lightning.trainer.states import TrainerFn
@@ -730,7 +716,7 @@ class DeepSpeedPlugin(DDPPlugin):
         return False
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        # override to do nothing, deepspeed engine already loaded the weights in `load_checkpoint_file()`
+        # override to do nothing, deepspeed engine already loaded the weights in `load_checkpoint()`
         if self.load_full_weights and self.zero_stage_3:
             self.model_to_device()
             self._restore_zero_state(checkpoint)
@@ -782,7 +768,7 @@ class DeepSpeedPlugin(DDPPlugin):
         load(self.lightning_module, prefix="")
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        # override to do nothing, deepspeed engine already loaded the states in `load_checkpoint_file()`
+        # override to do nothing, deepspeed engine already loaded the states in `load_checkpoint()`
         pass
 
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
@@ -832,3 +818,12 @@ class DeepSpeedPlugin(DDPPlugin):
     @checkpoint_io.setter
     def checkpoint_io(self, plugin: CheckpointIO) -> None:
         raise MisconfigurationException("DeepSpeed currently does not support custom checkpoint plugins.")
+
+    def validation_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+    def test_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+    def predict_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)

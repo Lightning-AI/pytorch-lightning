@@ -30,6 +30,8 @@ ARGS_DEFAULT = (
     "--trainer.max_epochs 1 "
     "--trainer.limit_train_batches 2 "
     "--trainer.limit_val_batches 2 "
+    "--trainer.limit_test_batches 2 "
+    "--trainer.limit_predict_batches 2 "
     "--data.batch_size 32 "
 )
 ARGS_GPU = ARGS_DEFAULT + "--trainer.gpus 1 "
@@ -97,8 +99,7 @@ def test_examples_cpu_autoencoder(tmpdir, cli_args):
 
 
 @pytest.mark.skipif(not _DALI_AVAILABLE, reason="Nvidia DALI required")
-@RunIf(min_gpus=1)
-@pytest.mark.skipif(platform.system() != "Linux", reason="Only applies to Linux platform.")
+@RunIf(min_gpus=1, skip_windows=True)
 @pytest.mark.parametrize("cli_args", [ARGS_GPU])
 def test_examples_mnist_dali(tmpdir, cli_args):
     run(tmpdir, "pl_examples.basic_examples.dali_image_classifier", cli_args)

@@ -119,3 +119,10 @@ class DataParallelPlugin(ParallelPlugin):
         if not is_overridden("test_step_end", self.lightning_module):
             return self.reduce(output)
         return output
+
+    def teardown(self) -> None:
+        if self.on_gpu:
+            # GPU teardown
+            self.lightning_module.cpu()
+            # clean up memory
+            torch.cuda.empty_cache()

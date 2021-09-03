@@ -23,6 +23,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
+from tests.utilities.test_model_summary import UnorderedModel
 
 
 def test_model_saves_with_input_sample(tmpdir):
@@ -66,10 +67,17 @@ def test_model_saves_with_example_output(tmpdir):
     assert os.path.exists(file_path) is True
 
 
-def test_model_saves_with_example_input_array(tmpdir):
-    """Test that ONNX model saves with_example_input_array and size is greater than 3 MB"""
-    model = BoringModel()
-    model.example_input_array = torch.randn(5, 32)
+@pytest.mark.parametrize(
+    ["modelclass", "input_sample"],
+    [
+        (BoringModel, torch.randn(1, 32)),
+        (UnorderedModel, (torch.rand(2, 3), torch.rand(2, 10))),
+    ],
+)
+def test_model_saves_with_example_input_array(tmpdir, modelclass, input_sample):
+    """Test that ONNX model saves with example_input_array and size is greater than 3 MB"""
+    model = modelclass()
+    model.example_input_array = input_sample
 
     file_path = os.path.join(tmpdir, "model.onnx")
     model.to_onnx(file_path)

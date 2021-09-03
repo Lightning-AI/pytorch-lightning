@@ -12,17 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial, wraps
+from random import getstate as python_get_rng_state
+from random import setstate as python_set_rng_state
 from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Tuple, Union
 
+import numpy as np
+import torch
 from torch.utils.data import Dataset, get_worker_info, Sampler
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -168,6 +170,16 @@ class MergedIteratorState:
         state[latest_worker_id] = new_state
         self.latest_worker_id = latest_worker_id
 
+    @property
+    def sampler_states(self) -> Dict[int, Any]:
+        """Returns the merged sampler states for all worker processes."""
+        return {0: self.state[k].sampler_state[0] for k in self.state.keys()}
+
+    @property
+    def dataset_states(self) -> Dict[int, Any]:
+        """Returns the merged dataset states for all worker processes."""
+        return {k: self.state[k].dataset_state[k] for k in self.state.keys()}
+
     @classmethod
     def from_state_dict(cls, state_dict) -> "MergedIteratorState":
         if state_dict["represent_map_dataset"]:
@@ -188,7 +200,12 @@ class MergedIteratorState:
 
 
 class CaptureMapDataset(Dataset):
-    """This class is used to capture the state from the map-based state dataset."""
+    """This class is used to capture the state from the map-based state dataset.
+
+    Note:
+        We currently don't support restoring if we fail during the first `N = num_workers` batches, where
+        `num_workers` is the number of workers spawned by the dataloader.
+    """
 
     def __init__(self, dataset: Dataset) -> None:
         self.dataset = dataset
@@ -202,8 +219,7 @@ class CaptureMapDataset(Dataset):
     def __getitem__(self, item) -> Tuple[Any, Dict[int, Dict]]:
         if self._cached_state_dict is not None:
             if self.worker_id in self._cached_state_dict:
-                # TODO: reset random states
-                pass
+                set_rng_states(self._cached_state_dict[self.worker_id]["rng_states"])
             self._cached_state_dict = None
 
         data = self.dataset[item]
@@ -227,7 +243,19 @@ class CaptureMapDataset(Dataset):
         self._cached_state_dict = state_dict
 
     def _state_dict(self) -> Dict[int, Dict[str, Any]]:
-        return {self.worker_id: {"rng_states": {}}}
+        return {self.worker_id: {"rng_states": collect_rng_states()}}
+
+
+def collect_rng_states() -> Dict[str, Any]:
+    """Collect the global random state of :mod:`torch`, :mod:`numpy` and Python."""
+    return {"torch": torch.get_rng_state(), "numpy": np.random.get_state(), "python": python_get_rng_state()}
+
+
+def set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
+    """Set the global random state of :mod:`torch`, :mod:`numpy` and Python in the current process."""
+    torch.set_rng_state(rng_state_dict.get("torch"))
+    np.random.set_state(rng_state_dict.get("numpy"))
+    python_set_rng_state(rng_state_dict.get("python"))
 
 
 class CaptureIterableDataset(IterableDataset):
@@ -323,72 +351,6 @@ class CaptureIterableDataset(IterableDataset):
 
     def __next__(self) -> Dict[str, Any]:
         return next(self.iter_data)
-
-    @staticmethod
-    def store_samplers_state_dict(iterator: Iterator, sampler_state_dict: List) -> None:
-        """
-        This function is used to store and update sampler state dict on its associated iterator.
-        In Lightning, as the iterator is wrapped into a prefetching function,
-        we needed to introduce a cache to delay updating the ``sampler_state_dict``.
-        """
-        iterator_state_dict = getattr(iterator, "_sampler_state_dict", None)
-        iterator_state_dict_cache = getattr(iterator, "_sampler_state_dict_cache", None)
-        # handle the logic this way due Trainer prefetching.
-        if iterator_state_dict is None:
-            iterator._sampler_state_dict = sampler_state_dict
-        elif iterator_state_dict_cache is None:
-            iterator._sampler_state_dict_cache = sampler_state_dict
-        else:
-            for attr_cache, state_dict in zip(iterator_state_dict, iterator._sampler_state_dict_cache):
-                for k, v in state_dict.items():
-                    attr_cache[k].update(v)
-            iterator._sampler_state_dict_cache = sampler_state_dict
-
-    @staticmethod
-    def _sanitize_batch_from_sampler_state(data: Any, state_dicts: List):
-        """
-        This function is used to remove the sampler state dict from provided data batch.
-        The custom data has this format:
-
-        .. code-block:: python
-
-            {
-                "batch": ...,  # data returned by DataLoader
-                "__pl_restart_meta": {
-                    "sampler0": {
-                        0: {"current_iteration": ...},
-                        1: {"current_iteration": ...},
-                    },
-                    "sampler1": ...,
-                },
-            }
-
-        Each sampler in the worker process tracks the current iteration. We return all of them to the main process
-        as part of the sample and then a special collate function :func:`_capture_metadata_collate`
-        will extract the current iteration as part of the metadata returned by a custom batch.
-        """
-
-        def _sanitize(data: Mapping):
-            out = []
-            for k, v in data.items():
-                if k == AutoRestartBatchKeys.PL_RESTART_META:
-                    state_dicts.append(v)
-                    return data["data"]
-                out.append((k, CaptureIterableDataset._sanitize_batch_from_sampler_state(v, state_dicts)))
-            return out
-
-        return apply_to_collection(data, Mapping, _sanitize)
-
-    @staticmethod
-    def extract_samplers_state_dict_from_batch(batch) -> List[Dict[int, Any]]:
-        """
-        This function is used to convert a batch into a state_dict
-        """
-        samplers_state_dict = []
-
-        batch = CaptureIterableDataset._sanitize_batch_from_sampler_state(batch, samplers_state_dict)
-
-        return batch, samplers_state_dict
 
 
 def _find_fast_forward_samplers(dataloader: DataLoader) -> Optional[FastForwardSampler]:
@@ -518,9 +480,30 @@ def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: 
 def patch_dataloader_iterator(
     dataloader: DataLoader,
     iterator: Iterator,
-    data_fecher: "pl.utilities.fetching.DataFetcher",
+    data_fetcher: "pl.utilities.fetching.DataFetcher",
     num_batches_fetched: int = 0,
 ) -> None:
+    """
+    Patches the iterator of a PyTorch dataloader by injecting logic for fault-tolerant training when it is
+    necessary to remove the sampler state dict from provided data batch.
+
+    The custom data has this format:
+    .. code-block:: python
+        {
+            "batch": ...,  # data returned by DataLoader
+            "__pl_restart_meta": {
+                "sampler0": {
+                    0: {"current_iteration": ...},
+                    1: {"current_iteration": ...},
+                },
+                "sampler1": ...,
+            },
+        }
+    Each sampler in the worker process tracks the current iteration. We return all of them to the main process
+    as part of the sample and then a special collate function :func:`_capture_metadata_collate`
+    will extract the current iteration as part of the metadata returned by a custom batch.
+    """
+
     assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
 
     def _next_data_wrapper(fn, it, dl, num_batches_fetched) -> Callable:
@@ -558,7 +541,7 @@ def patch_dataloader_iterator(
                         num_batches_fetched=num_batches_fetched,
                     )
                 ]
-            data_fecher._store_dataloader_iter_state(it, state)
+            data_fetcher._store_dataloader_iter_state(it, state)
             return batch
 
         return wrapper

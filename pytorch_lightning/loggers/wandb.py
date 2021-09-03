@@ -29,7 +29,7 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experi
 from pytorch_lightning.utilities import _module_available, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _compare_version
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.warnings import rank_zero_warn
 
 _WANDB_AVAILABLE = _module_available("wandb")
 _WANDB_GREATER_EQUAL_0_10_22 = _compare_version("wandb", operator.ge, "0.10.22")
@@ -219,15 +219,33 @@ class WandbLogger(LightningLoggerBase):
 
     @property
     def save_dir(self) -> Optional[str]:
+        """
+        Gets the save directory.
+
+        Returns:
+            The path to the save directory.
+        """
         return self._save_dir
 
     @property
     def name(self) -> Optional[str]:
+        """
+        Gets the name of the experiment.
+
+        Returns:
+            The name of the experiment if the experiment exists else the name given to the constructor.
+        """
         # don't create an experiment if we don't have one
         return self._experiment.project_name() if self._experiment else self._name
 
     @property
     def version(self) -> Optional[str]:
+        """
+        Gets the id of the experiment.
+
+        Returns:
+            The id of the experiment if the experiment exists else the id given to the constructor.
+        """
         # don't create an experiment if we don't have one
         return self._experiment.id if self._experiment else self._id
 

@@ -13,6 +13,7 @@
 # limitations under the License.
 import pickle
 from argparse import ArgumentParser
+from dataclasses import dataclass
 from typing import Any, Dict
 from unittest import mock
 from unittest.mock import call, PropertyMock
@@ -23,6 +24,7 @@ import torch
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities import AttributeDict
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -41,13 +43,10 @@ def test_can_prepare_data(local_rank, node_rank):
     # 1 no DM
     # prepare_data_per_node = True
     # local rank = 0   (True)
-    trainer.prepare_data_per_node = True
-
     dm.random_full = None
     dm._has_prepared_data = False
     local_rank.return_value = 0
     assert trainer.local_rank == 0
-    assert trainer.data_connector.can_prepare_data()
 
     trainer.data_connector.prepare_data()
     assert dm.random_full is not None
@@ -57,7 +56,6 @@ def test_can_prepare_data(local_rank, node_rank):
     dm._has_prepared_data = False
     local_rank.return_value = 1
     assert trainer.local_rank == 1
-    assert not trainer.data_connector.can_prepare_data()
 
     trainer.data_connector.prepare_data()
     assert dm.random_full is None
@@ -66,10 +64,9 @@ def test_can_prepare_data(local_rank, node_rank):
     # global rank = 0   (True)
     dm.random_full = None
     dm._has_prepared_data = False
-    trainer.prepare_data_per_node = False
+    dm.prepare_data_per_node = False
     node_rank.return_value = 0
     local_rank.return_value = 0
-    assert trainer.data_connector.can_prepare_data()
 
     trainer.data_connector.prepare_data()
     assert dm.random_full is not None
@@ -79,14 +76,12 @@ def test_can_prepare_data(local_rank, node_rank):
     dm._has_prepared_data = False
     node_rank.return_value = 1
     local_rank.return_value = 0
-    assert not trainer.data_connector.can_prepare_data()
 
     trainer.data_connector.prepare_data()
     assert dm.random_full is None
 
     node_rank.return_value = 0
     local_rank.return_value = 1
-    assert not trainer.data_connector.can_prepare_data()
 
     trainer.data_connector.prepare_data()
     assert dm.random_full is None
@@ -94,24 +89,22 @@ def test_can_prepare_data(local_rank, node_rank):
     # 2 dm
     # prepar per node = True
     # local rank = 0 (True)
-    trainer.prepare_data_per_node = True
+    dm.prepare_data_per_node = True
     local_rank.return_value = 0
 
-    # is_overridden prepare data = True
-    # has been called
-    # False
-    dm._has_prepared_data = True
-    assert not trainer.data_connector.can_prepare_data()
+    with mock.patch.object(trainer.datamodule, "prepare_data") as dm_mock:
+        # is_overridden prepare data = True
+        # has been called
+        # False
+        dm._has_prepared_data = True
+        trainer.data_connector.prepare_data()
+        dm_mock.assert_not_called()
 
-    # has not been called
-    # True
-    dm._has_prepared_data = False
-    assert trainer.data_connector.can_prepare_data()
-
-    # is_overridden prepare data = False
-    # True
-    dm.prepare_data = None
-    assert trainer.data_connector.can_prepare_data()
+        # has not been called
+        # True
+        dm._has_prepared_data = False
+        trainer.data_connector.prepare_data()
+        dm_mock.assert_called_once()
 
 
 def test_hooks_no_recursion_error():
@@ -488,8 +481,10 @@ def test_dm_init_from_datasets_dataloaders(iterable):
     with mock.patch("pytorch_lightning.core.datamodule.DataLoader") as dl_mock:
         dm.train_dataloader()
         dl_mock.assert_called_once_with(train_ds, batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True)
-    assert dm.val_dataloader() is None
-    assert dm.test_dataloader() is None
+    with pytest.raises(NotImplementedError):
+        _ = dm.val_dataloader()
+    with pytest.raises(NotImplementedError):
+        _ = dm.test_dataloader()
 
     train_ds_sequence = [ds(), ds()]
     dm = LightningDataModule.from_datasets(train_ds_sequence, batch_size=4, num_workers=0)
@@ -501,8 +496,10 @@ def test_dm_init_from_datasets_dataloaders(iterable):
                 call(train_ds_sequence[1], batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True),
             ]
         )
-    assert dm.val_dataloader() is None
-    assert dm.test_dataloader() is None
+    with pytest.raises(NotImplementedError):
+        _ = dm.val_dataloader()
+    with pytest.raises(NotImplementedError):
+        _ = dm.test_dataloader()
 
     valid_ds = ds()
     test_ds = ds()
@@ -512,7 +509,8 @@ def test_dm_init_from_datasets_dataloaders(iterable):
         dl_mock.assert_called_with(valid_ds, batch_size=2, shuffle=False, num_workers=0, pin_memory=True)
         dm.test_dataloader()
         dl_mock.assert_called_with(test_ds, batch_size=2, shuffle=False, num_workers=0, pin_memory=True)
-    assert dm.train_dataloader() is None
+    with pytest.raises(NotImplementedError):
+        _ = dm.train_dataloader()
 
     valid_dss = [ds(), ds()]
     test_dss = [ds(), ds()]
@@ -539,3 +537,75 @@ class DataModuleWithHparams(LightningDataModule):
 def test_simple_hyperparameters_saving():
     data = DataModuleWithHparams(10, "foo", kwarg0="bar")
     assert data.hparams == AttributeDict({"arg0": 10, "arg1": "foo", "kwarg0": "bar"})
+
+
+def test_define_as_dataclass():
+    # makes sure that no functionality is broken and the user can still manually make
+    # super().__init__ call with parameters
+    # also tests all the dataclass features that can be enabled without breaking anything
+    @dataclass(init=True, repr=True, eq=True, order=True, unsafe_hash=True, frozen=False)
+    class BoringDataModule1(LightningDataModule):
+        batch_size: int
+        dims: int = 2
+
+        def __post_init__(self):
+            super().__init__(dims=self.dims)
+
+    # asserts for the different dunder methods added by dataclass, when __init__ is implemented, i.e.
+    # __repr__, __eq__, __lt__, __le__, etc.
+    assert BoringDataModule1(batch_size=64).dims == 2
+    assert BoringDataModule1(batch_size=32)
+    assert hasattr(BoringDataModule1, "__repr__")
+    assert BoringDataModule1(batch_size=32) == BoringDataModule1(batch_size=32)
+
+    # asserts inherent calling of super().__init__ in case user doesn't make the call
+    @dataclass
+    class BoringDataModule2(LightningDataModule):
+        batch_size: int
+
+    # asserts for the different dunder methods added by dataclass, when super class is inherently initialized, i.e.
+    # __init__, __repr__, __eq__, __lt__, __le__, etc.
+    assert BoringDataModule2(batch_size=32)
+    assert hasattr(BoringDataModule2, "__repr__")
+    assert BoringDataModule2(batch_size=32).prepare_data() is None
+    assert BoringDataModule2(batch_size=32) == BoringDataModule2(batch_size=32)
+
+    # checking for all the different multilevel inhertiance scenarios, for init call on LightningDataModule
+    @dataclass
+    class BoringModuleBase1(LightningDataModule):
+        num_features: int
+
+    class BoringModuleBase2(LightningDataModule):
+        def __init__(self, num_features: int):
+            self.num_features = num_features
+
+    @dataclass
+    class BoringModuleDerived1(BoringModuleBase1):
+        ...
+
+    class BoringModuleDerived2(BoringModuleBase1):
+        def __init__(self):
+            ...
+
+    @dataclass
+    class BoringModuleDerived3(BoringModuleBase2):
+        ...
+
+    class BoringModuleDerived4(BoringModuleBase2):
+        def __init__(self):
+            ...
+
+    assert hasattr(BoringModuleDerived1(num_features=2), "_has_prepared_data")
+    assert hasattr(BoringModuleDerived2(), "_has_prepared_data")
+    assert hasattr(BoringModuleDerived3(), "_has_prepared_data")
+    assert hasattr(BoringModuleDerived4(), "_has_prepared_data")
+
+
+def test_inconsistent_prepare_data_per_node(tmpdir):
+    with pytest.raises(MisconfigurationException, match="Inconsistent settings found for `prepare_data_per_node`."):
+        model = BoringModel()
+        dm = BoringDataModule()
+        trainer = Trainer(prepare_data_per_node=False)
+        trainer.model = model
+        trainer.datamodule = dm
+        trainer.data_connector.prepare_data()

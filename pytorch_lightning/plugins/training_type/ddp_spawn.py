@@ -40,12 +40,13 @@ from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import (
     distributed_available,
-    rank_zero_info,
+    init_ddp_connection,
     rank_zero_only,
     ReduceOp,
     sync_ddp_if_available,
 )
 from pytorch_lightning.utilities.seed import reset_seed
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
@@ -185,7 +186,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
-        self.init_ddp_connection(self.global_rank, self.world_size)
+        init_ddp_connection(self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size)
 
         # TODO: we moved it to the trainer.fit after calling pre_dispatch
         #   ... need to double check that it is the correct place
@@ -201,7 +202,10 @@ class DDPSpawnPlugin(ParallelPlugin):
         if self.sync_batchnorm:
             self.model = self.configure_sync_batchnorm(self.model)
 
-        self.configure_ddp()
+        # skip wrapping the model if we are not fitting as no gradients need to be exchanged
+        trainer_fn = self.lightning_module.trainer.state.fn
+        if trainer_fn == TrainerFn.FITTING:
+            self.configure_ddp()
 
         self.barrier()
 
@@ -254,33 +258,12 @@ class DDPSpawnPlugin(ParallelPlugin):
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
 
-    def configure_ddp(self):
+    def configure_ddp(self) -> None:
         self.pre_configure_ddp()
         self._model = DistributedDataParallel(
             LightningDistributedModule(self.model), device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
         )
         self._register_ddp_hooks()
-
-    def init_ddp_connection(self, global_rank: Optional[int], world_size: Optional[int]) -> None:
-        # TODO: this code is duplicated in DDP and DDPSpawn, make this a function
-        global_rank = global_rank if global_rank is not None else self.cluster_environment.global_rank()
-        world_size = world_size if world_size is not None else self.cluster_environment.world_size()
-        os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-
-        if not torch.distributed.is_initialized():
-            log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
-            torch.distributed.init_process_group(
-                self.torch_distributed_backend, rank=global_rank, world_size=world_size
-            )
-
-            # on rank=0 let everyone know training is starting
-            rank_zero_info(
-                f"{'-' * 100}\n"
-                f"distributed_backend={self.torch_distributed_backend}\n"
-                f"All DDP processes registered. Starting ddp with {self.world_size} processes\n"
-                f"{'-' * 100}\n"
-            )
 
     def determine_ddp_device_ids(self):
         if self.root_device.type == "cpu":
@@ -301,7 +284,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             last_path = None
             if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
-                atomic_save(self.on_save(state_dict), last_path)
+                atomic_save(state_dict, last_path)
 
             # todo, pass complete checkpoint as state dictionary
             self.mp_queue.put(best_model_path)
@@ -361,17 +344,22 @@ class DDPSpawnPlugin(ParallelPlugin):
             tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
-    def training_step(self, *args, **kwargs):
+    def training_step(self, *args, **kwargs) -> Optional[Any]:
         return self.model(*args, **kwargs)
 
-    def validation_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        if isinstance(self.model, DistributedDataParallel):
+            # used when calling `trainer.fit`
+            return self.model(*args, **kwargs)
+        else:
+            # used when calling `trainer.validate`
+            return self.lightning_module.validation_step(*args, **kwargs)
 
-    def test_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        return self.lightning_module.test_step(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def predict_step(self, *args, **kwargs) -> Any:
+        return self.lightning_module.predict_step(*args, **kwargs)
 
     def post_training_step(self):
         if not self.lightning_module.automatic_optimization:
@@ -385,3 +373,13 @@ class DDPSpawnPlugin(ParallelPlugin):
             description="DDPSpawn Plugin with `find_unused_parameters` as False",
             find_unused_parameters=False,
         )
+
+    def teardown(self) -> None:
+        if isinstance(self.model, DistributedDataParallel):
+            self.model = self.lightning_module
+
+        if self.on_gpu:
+            # GPU teardown
+            self.lightning_module.cpu()
+            # clean up memory
+            torch.cuda.empty_cache()

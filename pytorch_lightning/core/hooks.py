@@ -18,8 +18,9 @@ from typing import Any, Dict, List, Optional
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
+from pytorch_lightning.utilities import move_data_to_device
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
 class ModelHooks:
@@ -372,6 +373,16 @@ class ModelHooks:
 class DataHooks:
     """Hooks to be used for data related stuff."""
 
+    def __init__(self) -> None:
+        """
+        Attributes:
+            prepare_data_per_node:
+                If True, each LOCAL_RANK=0 will call prepare data.
+                Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data.
+        """
+        super().__init__()
+        self.prepare_data_per_node: bool = True
+
     def prepare_data(self) -> None:
         """
         Use this to download and prepare data.
@@ -404,6 +415,10 @@ class DataHooks:
 
             # call on GLOBAL_RANK=0 (great for shared file systems)
             Trainer(prepare_data_per_node=False)
+
+        Note:
+            Setting ``prepare_data_per_node`` with the trainer flag is deprecated and will be removed in v1.7.0.
+            Please set ``prepare_data_per_node`` in LightningDataModule or LightningModule directly instead.
 
         This is called before requesting the dataloaders:
 
@@ -526,7 +541,7 @@ class DataHooks:
                 return {'mnist': mnist_loader, 'cifar': cifar_loader}
 
         """
-        rank_zero_warn("`train_dataloader` must be implemented to be used with the Lightning Trainer")
+        raise NotImplementedError("`train_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def test_dataloader(self) -> EVAL_DATALOADERS:
         r"""
@@ -588,6 +603,7 @@ class DataHooks:
             In the case where you return multiple test dataloaders, the :meth:`test_step`
             will have an argument ``dataloader_idx`` which matches the order here.
         """
+        raise NotImplementedError("`test_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def val_dataloader(self) -> EVAL_DATALOADERS:
         r"""
@@ -640,6 +656,7 @@ class DataHooks:
             In the case where you return multiple validation dataloaders, the :meth:`validation_step`
             will have an argument ``dataloader_idx`` which matches the order here.
         """
+        raise NotImplementedError("`val_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def predict_dataloader(self) -> EVAL_DATALOADERS:
         r"""
@@ -665,18 +682,55 @@ class DataHooks:
             In the case where you return multiple prediction dataloaders, the :meth:`predict`
             will have an argument ``dataloader_idx`` which matches the order here.
         """
+        raise NotImplementedError("`predict_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def on_train_dataloader(self) -> None:
-        """Called before requesting the train dataloader."""
+        """Called before requesting the train dataloader.
+
+        .. deprecated:: v1.5
+            :meth:`on_train_dataloader` is deprecated and will be removed in v1.7.0.
+            Please use :meth:`train_dataloader()` directly.
+        """
+        rank_zero_deprecation(
+            "Method `on_train_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+            " Please use `train_dataloader()` directly."
+        )
 
     def on_val_dataloader(self) -> None:
-        """Called before requesting the val dataloader."""
+        """Called before requesting the val dataloader.
+
+        .. deprecated:: v1.5
+            :meth:`on_val_dataloader` is deprecated and will be removed in v1.7.0.
+            Please use :meth:`val_dataloader()` directly.
+        """
+        rank_zero_deprecation(
+            "Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+            " Please use `val_dataloader()` directly."
+        )
 
     def on_test_dataloader(self) -> None:
-        """Called before requesting the test dataloader."""
+        """Called before requesting the test dataloader.
+
+        .. deprecated:: v1.5
+            :meth:`on_test_dataloader` is deprecated and will be removed in v1.7.0.
+            Please use :meth:`test_dataloader()` directly.
+        """
+        rank_zero_deprecation(
+            "Method `on_test_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+            " Please use `test_dataloader()` directly."
+        )
 
     def on_predict_dataloader(self) -> None:
-        """Called before requesting the predict dataloader."""
+        """Called before requesting the predict dataloader.
+
+        .. deprecated:: v1.5
+            :meth:`on_predict_dataloader` is deprecated and will be removed in v1.7.0.
+            Please use :meth:`predict_dataloader()` directly.
+        """
+        rank_zero_deprecation(
+            "Method `on_predict_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+            " Please use `predict_dataloader()` directly."
+        )
 
     def transfer_batch_to_device(self, batch: Any, device: torch.device, dataloader_idx: int) -> Any:
         """
@@ -714,11 +768,14 @@ class DataHooks:
 
         Example::
 
-            def transfer_batch_to_device(self, batch, device):
+            def transfer_batch_to_device(self, batch, device, dataloader_idx):
                 if isinstance(batch, CustomBatch):
                     # move all tensors in your custom data structure to the device
                     batch.samples = batch.samples.to(device)
                     batch.targets = batch.targets.to(device)
+                elif dataloader_idx == 0:
+                    # skip device transfer for the first dataloader or anything you wish
+                    pass
                 else:
                     batch = super().transfer_batch_to_device(data, device)
                 return batch

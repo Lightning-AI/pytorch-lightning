@@ -108,6 +108,8 @@ jobs:
         bash pl_examples/run_examples.sh --trainer.gpus=1
         bash pl_examples/run_examples.sh --trainer.gpus=2 --trainer.accelerator=ddp
         bash pl_examples/run_examples.sh --trainer.gpus=2 --trainer.accelerator=ddp --trainer.precision=16
+        bash pl_examples/run_examples.sh --trainer.gpus=2 --trainer.accelerator=dp
+        bash pl_examples/run_examples.sh --trainer.gpus=2 --trainer.accelerator=dp --trainer.precision=16
       env:
         PL_USE_MOCKED_MNIST: "1"
       displayName: 'Testing: examples'
