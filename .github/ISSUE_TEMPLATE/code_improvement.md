@@ -2,7 +2,7 @@
 name: Code improvement
 about: Suggest a code improvement, i.e. refactoring, deprecation, etc.
 title: ''
-labels: enhancement, refactors / code health
+labels: refactors / code health
 assignees: ''
 ---
 
