@@ -511,6 +511,7 @@ class Trainer(
             if not self.interrupted:
                 self.state.status = TrainerStatus.INTERRUPTED
                 self.on_keyboard_interrupt()
+                self._on_exception()
                 self.on_exception(exception)
         except BaseException as exception:
             self.state.status = TrainerStatus.INTERRUPTED
