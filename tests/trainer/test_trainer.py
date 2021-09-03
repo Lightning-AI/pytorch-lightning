@@ -505,9 +505,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     "max_epochs,max_steps,incorrect_variable,incorrect_value",
     [
         (-100, None, "max_epochs", -100),
-        (1.5, None, "max_epochs", 1.5),
         (1, -2, "max_steps", -2),
-        (1, 0.5, "max_steps", -2),
     ],
 )
 def test_trainer_max_steps_and_epochs_validation(max_epochs, max_steps, incorrect_variable, incorrect_value):
@@ -516,7 +514,14 @@ def test_trainer_max_steps_and_epochs_validation(max_epochs, max_steps, incorrec
         MisconfigurationException,
         match=f"`{incorrect_variable}` must be a positive integer or -1. You passed in {incorrect_value}",
     ):
-        trainer = Trainer(max_epochs=max_epochs, max_steps=max_steps)
+        trainer = Trainer(
+            max_epochs=max_epochs,
+            max_steps=max_steps,
+            limit_val_batches=0,
+            limit_train_batches=2,
+        )
+        model = EvalModelTemplate()
+        trainer.fit(model)
 
 
 @pytest.mark.parametrize(
