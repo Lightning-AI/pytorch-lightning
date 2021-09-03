@@ -17,6 +17,10 @@ from typing import Optional
 
 @dataclass
 class BaseProgress:
+    """
+    Mixin that implements state-loading utiltiies for dataclasses.
+    """
+
     def state_dict(self) -> dict:
         return asdict(self)
 
@@ -41,6 +45,7 @@ class Tracker(BaseProgress):
         processed: Intended to be incremented after the event is processed.
         completed: Intended to be incremented after the event completes (e.g. after ``on_*_end`` runs).
 
+    These attributes should be increased in order, that is, :attr:`ready` first and :attr:`completed` last.
     Attributes set to ``None`` are treated as unused and are restricted.
     """
 
@@ -60,17 +65,23 @@ class Tracker(BaseProgress):
             self.completed = 0
 
     def __setattr__(self, key: str, value: int) -> None:
+        """Restrict writing to attributes set to ``None``."""
         if getattr(self, key, 0) is None:
             raise AttributeError(f"The '{key}' attribute is meant to be unused")
         return super().__setattr__(key, value)
 
     def __repr__(self) -> str:
-        # hide `None` fields
+        """Custom implementation to hide ``None`` fields."""
         args = [f"{k}={v}" for k, v in self.__dict__.items() if v is not None]
         return f"{self.__class__.__name__}({', '.join(args)})"
 
     def reset_on_restart(self) -> None:
-        """Reset the progress on restart"""
+        """
+        Reset the progress on restart.
+        If there is a failure before all attributes are increased,
+        we restore the attributes to the last fully completed value.
+        """
+        # choose in case `processed` is unused
         value = self.completed if self.processed is None else self.processed
 
         if self.ready is not None:
@@ -89,8 +100,8 @@ class Progress(BaseProgress):
     Track aggregated and current progress.
 
     Args:
-        total: Intended to track the total progress of an event
-        current: Intended to track the current progress of an event
+        total: Intended to track the total progress of an event.
+        current: Intended to track the current progress of an event.
     """
 
     total: Tracker = field(default_factory=Tracker)
@@ -114,6 +125,7 @@ class Progress(BaseProgress):
 
     @classmethod
     def from_defaults(cls, **kwargs: Optional[int]) -> "Progress":
+        """Utility function to easily create an instance from keyword arguments to both ``Tracker``s."""
         return cls(total=Tracker(**kwargs), current=Tracker(**kwargs))
 
     def load_state_dict(self, state_dict: dict) -> None:
@@ -128,8 +140,8 @@ class DataLoaderProgress(Progress):
     These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
 
     Args:
-        total: Tracks the total dataloader progress
-        current: Tracks the current dataloader progress
+        total: Tracks the total dataloader progress.
+        current: Tracks the current dataloader progress.
     """
 
     total: Tracker = field(default_factory=lambda: Tracker(started=None, processed=None))
@@ -139,12 +151,12 @@ class DataLoaderProgress(Progress):
 @dataclass
 class SchedulerProgress(Progress):
     """
-    Tracks the scheduler progress
+    Tracks the scheduler progress.
     These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
 
     Args:
-        total: Tracks the total scheduler progress
-        current: Tracks the current scheduler progress
+        total: Tracks the total scheduler progress.
+        current: Tracks the current scheduler progress.
     """
 
     total: Tracker = field(default_factory=lambda: Tracker(started=None, processed=None))
@@ -180,7 +192,7 @@ class OptimizationProgress(BaseProgress):
 
     Args:
         optimizer: Tracks optimizer progress.
-        optimizer_idx: The index of the current optimizer.
+        optimizer_idx: The index of the current optimizer. Used to know which optimizer we were using when restarting.
     """
 
     # TODO: support for multiple optimizers
