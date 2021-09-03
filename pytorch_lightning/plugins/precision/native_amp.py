@@ -109,9 +109,9 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def autocast_context_manager(self) -> torch.cuda.amp.autocast:
         if self.use_cpu:
-            return torch.cpu.amp.autocast(dtype=self._dtype)
+            return torch.cpu.amp.autocast(dtype=self._dtype)  # Only reached in pytorch==1.10 where this is ok. skipcq
         if self.is_bfloat16:
-            return torch.cuda.amp.autocast(dtype=self._dtype)
+            return torch.cuda.amp.autocast(dtype=self._dtype)  # Only reached in pytorch==1.10 where this is ok. skipcq
         return torch.cuda.amp.autocast()
 
     @contextmanager
