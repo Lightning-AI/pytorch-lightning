@@ -461,6 +461,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
             "current": {"ready": be_sch_steps, "started": None, "processed": None, "completed": be_sch_steps},
         },
         "epoch_loop.batch_loop.state_dict": ANY,
+        "epoch_loop.batch_loop.manual_loop.state_dict": ANY,
         "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
         "epoch_loop.batch_loop.optimizer_loop.optim_progress": {
             "optimizer_idx": stop_optimizer,
