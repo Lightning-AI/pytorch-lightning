@@ -14,7 +14,7 @@
 
 from copy import deepcopy
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple, cast
+from typing import Any, Callable, cast, Dict, List, Optional, Tuple
 
 import torch
 from torch import Tensor
