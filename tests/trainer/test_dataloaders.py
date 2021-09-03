@@ -869,7 +869,7 @@ def test_warning_with_iterable_dataset_and_len(tmpdir):
 
 
 def test_iterable_dataset_stop_iteration_at_epoch_beginning():
-    """Test that the training loop skips execution if the iterator is empty from the start."""
+    """Test that the training loop skips execution if the iterator is empty from an epoch."""
 
     class RandomDataset(IterableDataset):
         def __init__(self, gen):
@@ -896,6 +896,24 @@ def test_iterable_dataset_stop_iteration_at_epoch_beginning():
     )
     trainer.fit(model)
     assert trainer.global_step == 2
+    assert trainer.current_epoch == 1
+
+
+def test_iterable_dataset_stop_iteration_at_start():
+    """Test that the training loop skips execution if the iterator is empty."""
+
+    class RandomDataset(IterableDataset):
+        def __iter__(self):
+            return iter(self.gen())
+
+        def gen(self):
+            yield from []
+
+    model = BoringModel()
+    train_dataloader = DataLoader(RandomDataset(), batch_size=2)
+    trainer = Trainer(default_root_dir=os.getcwd(), max_epochs=2)
+    trainer.fit(model, train_dataloader=train_dataloader)
+    assert trainer.global_step == 0
     assert trainer.current_epoch == 1
 
 
