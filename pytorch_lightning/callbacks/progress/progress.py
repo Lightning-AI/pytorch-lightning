@@ -334,7 +334,7 @@ def convert_inf(x: Optional[Union[int, float]]) -> Optional[Union[int, float]]:
 
 
 def reset(bar: tqdm, total: Optional[int] = None, current: int = 0) -> None:
-    """Resets the tqdm bar to 0 progress with a new total, unless it is disabled."""
+    """Resets the tqdm bar to the desired position and sets a new total, unless it is disabled."""
     if not bar.disable:
         bar.reset(total=convert_inf(total))
         bar.n = current
