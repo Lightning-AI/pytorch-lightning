@@ -26,7 +26,6 @@ import torch
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests.helpers import BoringModel, RandomDataset
-from tests.helpers.runif import RunIf
 
 
 def test__validation_step__log(tmpdir):
