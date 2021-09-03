@@ -19,7 +19,7 @@ import operator
 import os
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, Optional, Union, List
+from typing import Any, Dict, List, Optional, Union
 from weakref import ReferenceType
 
 import torch.nn as nn

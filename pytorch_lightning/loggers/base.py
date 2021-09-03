@@ -18,8 +18,8 @@ import functools
 import operator
 from abc import ABC, abstractmethod
 from argparse import Namespace
-from pathlib import Path
 from functools import wraps
+from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 from weakref import ReferenceType
 
@@ -351,7 +351,9 @@ class LightningLoggerBase(ABC):
         return metrics
 
     def _log_checkpoints(
-        self, checkpoint_callback: "ReferenceType[ModelCheckpoint]", checkpoints: List[ModelCheckpoint],
+        self,
+        checkpoint_callback: "ReferenceType[ModelCheckpoint]",
+        checkpoints: List[ModelCheckpoint],
     ) -> None:
         """
         Log the given checkpoints.
