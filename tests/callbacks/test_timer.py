@@ -67,17 +67,13 @@ def test_trainer_flag(caplog):
 )
 def test_timer_parse_duration(duration, expected):
     timer = Timer(duration=duration)
-    assert (timer.time_remaining() == expected is None) or (
-        timer.time_remaining() == expected.total_seconds()
-    )
+    assert (timer.time_remaining() == expected is None) or (timer.time_remaining() == expected.total_seconds())
 
 
 def test_timer_interval_choice():
     Timer(duration=timedelta(), interval="step")
     Timer(duration=timedelta(), interval="epoch")
-    with pytest.raises(
-        MisconfigurationException, match="Unsupported parameter value"
-    ):
+    with pytest.raises(MisconfigurationException, match="Unsupported parameter value"):
         Timer(duration=timedelta(), interval="invalid")
 
 
@@ -116,9 +112,7 @@ def test_timer_stops_training(tmpdir, caplog):
     duration = timedelta(milliseconds=100)
     timer = Timer(duration=duration)
 
-    trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1000, callbacks=[timer]
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1000, callbacks=[timer])
     with caplog.at_level(logging.INFO):
         trainer.fit(model)
     assert trainer.global_step > 1

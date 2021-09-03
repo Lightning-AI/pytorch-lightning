@@ -533,12 +533,7 @@ def test_trainer_max_steps_and_epochs_validation(max_epochs, max_steps, incorrec
         (0, -1, True, 0),
     ],
 )
-def test_trainer_max_steps_and_epochs_fit_loop_done(
-    max_epochs,
-    max_steps,
-    is_done,
-    correct_trainer_epochs
-):
+def test_trainer_max_steps_and_epochs_fit_loop_done(max_epochs, max_steps, is_done, correct_trainer_epochs):
     trainer = Trainer(max_epochs=max_epochs, max_steps=max_steps)
 
     assert trainer.max_epochs == correct_trainer_epochs
@@ -548,6 +543,7 @@ def test_trainer_max_steps_and_epochs_fit_loop_done(
     # Make sure there is no timer
     timer_callbacks = [c for c in trainer.callbacks if isinstance(c, Timer)]
     assert len(timer_callbacks) == 0
+
 
 def test_trainer_min_steps_and_epochs(tmpdir):
     """Verify model trains according to specified min steps"""
