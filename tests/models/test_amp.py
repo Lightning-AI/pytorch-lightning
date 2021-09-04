@@ -106,11 +106,7 @@ def test_amp_cpus(tmpdir, accelerator, precision, num_processes):
 @RunIf(min_gpus=2)
 @pytest.mark.parametrize(
     "accelerator",
-    [
-        None,
-        "dp",
-        "ddp_spawn"
-    ],
+    [None, "dp", "ddp_spawn"],
 )
 @pytest.mark.parametrize(
     "precision",
