@@ -514,7 +514,7 @@ def test_trainer_max_steps_and_epochs_validation(max_epochs, max_steps, incorrec
         MisconfigurationException,
         match=f"`{incorrect_variable}` must be a positive integer or -1. You passed in {incorrect_value}",
     ):
-        trainer = Trainer(max_epochs=max_epochs, max_steps=max_steps)
+        Trainer(max_epochs=max_epochs, max_steps=max_steps)
 
 
 @pytest.mark.parametrize(

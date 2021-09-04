@@ -58,10 +58,7 @@ def test_trainer_flag(caplog):
         (None, None),
         ("00:00:00:22", timedelta(seconds=22)),
         ("12:34:56:65", timedelta(days=12, hours=34, minutes=56, seconds=65)),
-        (
-            timedelta(weeks=52, milliseconds=1),
-            timedelta(weeks=52, milliseconds=1),
-        ),
+        (timedelta(weeks=52, milliseconds=1), timedelta(weeks=52, milliseconds=1)),
         (dict(weeks=52, days=1), timedelta(weeks=52, days=1)),
     ],
 )
@@ -144,12 +141,7 @@ def test_timer_duration_min_steps_override(tmpdir, min_steps, min_epochs):
     model = BoringModel()
     duration = timedelta(0)
     timer = Timer(duration=duration)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=[timer],
-        min_steps=min_steps,
-        min_epochs=min_epochs,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=[timer], min_steps=min_steps, min_epochs=min_epochs)
     trainer.fit(model)
     if min_epochs:
         assert trainer.current_epoch >= min_epochs - 1
