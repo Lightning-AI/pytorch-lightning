@@ -317,8 +317,6 @@ class DDPPlugin(ParallelPlugin):
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
 
-            # Post-localSDG is only available after 1.9,
-            # and `torch.distributed.optim` package currently is not available on Windows.
             if (
                 _TORCH_GREATER_EQUAL_1_10
                 and isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState)
