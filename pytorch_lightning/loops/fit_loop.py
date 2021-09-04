@@ -105,10 +105,9 @@ class FitLoop(Loop):
     @max_steps.setter
     def max_steps(self, value: int) -> None:
         """Sets the maximum number of steps (forwards to epoch_loop)"""
+        # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
         if value and value < -1:
             raise MisconfigurationException(f"`max_steps` must be a positive integer or -1. You passed in {value}.")
-
-        # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
         self.epoch_loop.max_steps = value
 
     @property
