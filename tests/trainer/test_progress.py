@@ -20,6 +20,7 @@ from pytorch_lightning.trainer.progress import (
     OptimizerProgress,
     ProcessedTracker,
     Progress,
+    ReadyCompletedTracker,
     StartedTracker,
 )
 
@@ -65,6 +66,27 @@ def test_epoch_loop_progress_increment_sequence():
     batch.increment_completed()
     assert batch.total == ProcessedTracker(ready=1, started=1, processed=1, completed=1)
     assert batch.current == ProcessedTracker(ready=1, started=1, processed=1, completed=1)
+
+
+def test_progress_raises():
+    with pytest.raises(ValueError, match="instances should be of the same class"):
+        Progress(ReadyCompletedTracker(), ProcessedTracker())
+
+    p = Progress(ReadyCompletedTracker(), ReadyCompletedTracker())
+    with pytest.raises(TypeError, match="ReadyCompletedTracker` doesn't have a `started` attribute"):
+        p.increment_started()
+    with pytest.raises(TypeError, match="ReadyCompletedTracker` doesn't have a `processed` attribute"):
+        p.increment_processed()
+
+
+def test_reset_on_restart():
+    t = StartedTracker(ready=3, started=3, completed=2)
+    t.reset_on_restart()
+    assert t == StartedTracker(ready=2, started=2, completed=2)
+
+    t = ProcessedTracker(ready=4, started=4, processed=3, completed=2)
+    t.reset_on_restart()
+    assert t == ProcessedTracker(ready=3, started=3, processed=3, completed=3)
 
 
 def test_optimizer_progress_default_factory():

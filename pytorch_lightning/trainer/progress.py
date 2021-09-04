@@ -137,13 +137,13 @@ class Progress(BaseProgress):
 
     def increment_started(self) -> None:
         if not isinstance(self.total, StartedTracker):
-            raise TypeError(f"{self.total.__class__.__name__} object doesn't have a `started` attribute")
+            raise TypeError(f"`{self.total.__class__.__name__}` doesn't have a `started` attribute")
         self.total.started += 1
         self.current.started += 1
 
     def increment_processed(self) -> None:
         if not isinstance(self.total, ProcessedTracker):
-            raise TypeError(f"{self.total.__class__.__name__} object doesn't have a `processed` attribute")
+            raise TypeError(f"`{self.total.__class__.__name__}` doesn't have a `processed` attribute")
         self.total.processed += 1
         self.current.processed += 1
 
