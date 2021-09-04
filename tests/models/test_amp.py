@@ -109,7 +109,7 @@ def test_amp_cpus(tmpdir, accelerator, precision, num_processes):
     [
         None,
         "dp",
-        "ddp_spawn",
+        "ddp_spawn"
     ],
 )
 @pytest.mark.parametrize(
