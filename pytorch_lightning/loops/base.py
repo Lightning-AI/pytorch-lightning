@@ -52,7 +52,9 @@ class Loop(ABC):
         self._trainer: Optional["pl.Trainer"] = None
 
     @property
-    def trainer(self) -> Optional["pl.Trainer"]:
+    def trainer(self) -> "pl.Trainer":
+        if self._trainer is None:
+            raise RuntimeError("The loop is not attached to a Trainer.")
         return self._trainer
 
     @trainer.setter

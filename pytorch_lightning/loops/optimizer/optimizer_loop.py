@@ -62,7 +62,7 @@ class OptimizerLoop(Loop):
         raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
 
     def reset(self) -> None:
-        assert self.trainer is not None
+
         if not self.restarting:
             self.optim_progress.optimizer_idx = 0
         self.outputs = [[] for _ in range(len(self.trainer.optimizers))]
@@ -107,7 +107,7 @@ class OptimizerLoop(Loop):
             optimizer: Current optimizer being used
             opt_idx: Index of the current optimizer being used
         """
-        assert self.trainer is not None
+
         self.trainer.accelerator.backward(loss, optimizer, opt_idx, *args, **kwargs)
 
         if not self.trainer.fit_loop.should_accumulate():
@@ -133,7 +133,7 @@ class OptimizerLoop(Loop):
             optimizer: the current optimizer
             opt_idx: the index of the current optimizer
         """
-        assert self.trainer is not None
+
         # toggle model params
         self._run_optimization_start(opt_idx, optimizer)
 
@@ -184,7 +184,7 @@ class OptimizerLoop(Loop):
         Build a closure object that captures the given arguments and runs the `training_step` function and optionally
         other functions such as `backward` and `zero_grad`.
         """
-        assert self.trainer is not None
+
         step_fn = self._make_step_fn(split_batch, batch_idx, opt_idx, hiddens)
         backward_fn = self._make_backward_fn(optimizer, opt_idx)
         zero_grad_fn = self._make_zero_grad_fn(batch_idx, opt_idx, optimizer)
@@ -207,7 +207,6 @@ class OptimizerLoop(Loop):
         Build a `zero_grad` function that zeroes the gradients before back-propagation.
         Returns ``None`` in the case backward needs to be skipped, e.g., when manual optimization is on.
         """
-        assert self.trainer is not None
 
         def zero_grad_fn():
             self._on_before_zero_grad(optimizer)
@@ -230,7 +229,7 @@ class OptimizerLoop(Loop):
         """
 
         def backward_fn(loss: Tensor):
-            assert self.trainer is not None
+
             self.backward(loss, optimizer, opt_idx)
 
             # check if model weights are nan
@@ -252,7 +251,7 @@ class OptimizerLoop(Loop):
             optimizer: the optimizer to use
 
         """
-        assert self.trainer is not None
+
         # make sure only the gradients of the current optimizer's parameters are calculated
         # in the training step to prevent dangling gradients in multiple-optimizer setup.
         if len(self.trainer.optimizers) > 1:
@@ -260,7 +259,7 @@ class OptimizerLoop(Loop):
             model.toggle_optimizer(optimizer, opt_idx)
 
     def _run_optimization_end(self, opt_idx: int) -> None:
-        assert self.trainer is not None
+
         if len(self.trainer.optimizers) > 1:
             model = self.trainer.lightning_module
             model.untoggle_optimizer(opt_idx)
@@ -277,7 +276,7 @@ class OptimizerLoop(Loop):
             train_step_and_backward_closure: the closure function performing the train step and computing the
                 gradients. By default called by the optimizer (if possible)
         """
-        assert self.trainer is not None
+
         model_ref = self.trainer.lightning_module
 
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
@@ -315,7 +314,7 @@ class OptimizerLoop(Loop):
         Args:
             optimizer: the current optimizer
         """
-        assert self.trainer is not None
+
         self.optim_progress.optimizer.zero_grad.increment_ready()
         self.trainer.call_hook("on_before_zero_grad", optimizer)
         self.optim_progress.optimizer.zero_grad.increment_started()
@@ -328,7 +327,7 @@ class OptimizerLoop(Loop):
             optimizer: the current optimizer
             opt_idx: the index of the current optimizer
         """
-        assert self.trainer is not None
+
         self.trainer.accelerator.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
         self.optim_progress.optimizer.zero_grad.increment_completed()
 
@@ -346,7 +345,7 @@ class OptimizerLoop(Loop):
         Returns:
             an AttributeDict containing the loss value and the training step output.
         """
-        assert self.trainer is not None
+
         # give the PL module a result for logging
         model_ref = self.trainer.lightning_module
 
@@ -384,7 +383,7 @@ class OptimizerLoop(Loop):
         Args:
             optimizer: the current optimizer
         """
-        assert self.trainer is not None
+
         # track gradient norms
         grad_norm_dict = {}
         can_log = (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0
