@@ -25,14 +25,24 @@ from pytorch_lightning.trainer.progress import (
 )
 
 
-def test_progress_reset():
+def test_tracker_reset():
     p = StartedTracker(ready=1, started=2)
     p.reset()
     assert p == StartedTracker()
 
 
+def test_tracker_reset_on_restart():
+    t = StartedTracker(ready=3, started=3, completed=2)
+    t.reset_on_restart()
+    assert t == StartedTracker(ready=2, started=2, completed=2)
+
+    t = ProcessedTracker(ready=4, started=4, processed=3, completed=2)
+    t.reset_on_restart()
+    assert t == ProcessedTracker(ready=3, started=3, processed=3, completed=3)
+
+
 @pytest.mark.parametrize("attr", ("ready", "started", "processed", "completed"))
-def test_base_progress_increment(attr):
+def test_progress_increment(attr):
     p = Progress()
     fn = getattr(p, f"increment_{attr}")
     fn()
@@ -41,14 +51,14 @@ def test_base_progress_increment(attr):
     assert p.current == expected
 
 
-def test_base_progress_from_defaults():
+def test_progress_from_defaults():
     actual = Progress.from_defaults(StartedTracker, completed=5)
     expected = Progress(total=StartedTracker(completed=5), current=StartedTracker(completed=5))
     assert actual == expected
 
 
-def test_epoch_loop_progress_increment_sequence():
-    """Test sequences for incrementing batches reads and epochs."""
+def test_progress_increment_sequence():
+    """Test sequence for incrementing."""
     batch = Progress()
 
     batch.increment_ready()
@@ -77,16 +87,6 @@ def test_progress_raises():
         p.increment_started()
     with pytest.raises(TypeError, match="ReadyCompletedTracker` doesn't have a `processed` attribute"):
         p.increment_processed()
-
-
-def test_reset_on_restart():
-    t = StartedTracker(ready=3, started=3, completed=2)
-    t.reset_on_restart()
-    assert t == StartedTracker(ready=2, started=2, completed=2)
-
-    t = ProcessedTracker(ready=4, started=4, processed=3, completed=2)
-    t.reset_on_restart()
-    assert t == ProcessedTracker(ready=3, started=3, processed=3, completed=3)
 
 
 def test_optimizer_progress_default_factory():
