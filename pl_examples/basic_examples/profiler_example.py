@@ -106,7 +106,7 @@ def cli_main():
         sys.argv += DEFAULT_CMD_LINE
 
     LightningCLI(
-        ModelToProfile, CIFAR10DataModule, save_config_callback=None, trainer_defaults={"profiler": PyTorchProfiler()}
+        ModelToProfile, CIFAR10DataModule, save_config_overwrite=True, trainer_defaults={"profiler": PyTorchProfiler()}
     )
 
 
