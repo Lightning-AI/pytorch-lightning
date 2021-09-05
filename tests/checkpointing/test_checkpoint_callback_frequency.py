@@ -17,34 +17,18 @@ from unittest import mock
 import pytest
 import torch
 
-from pytorch_lightning import callbacks, seed_everything, Trainer
+from pytorch_lightning import callbacks, Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_mc_called(tmpdir):
-    seed_everything(1234)
-
-    # -----------------
-    # TRAIN LOOP ONLY
-    # -----------------
-    train_step_only_model = BoringModel()
-    train_step_only_model.validation_step = None
-
+def test_checkpoint_callback_disabled(tmpdir):
     # no callback
     trainer = Trainer(max_epochs=3, checkpoint_callback=False)
-    trainer.fit(train_step_only_model)
-    assert len(trainer.dev_debugger.checkpoint_callback_history) == 0
-
-    # -----------------
-    # TRAIN + VAL LOOP ONLY
-    # -----------------
-    val_train_model = BoringModel()
-    # no callback
-    trainer = Trainer(max_epochs=3, checkpoint_callback=False)
-    trainer.fit(val_train_model)
-    assert len(trainer.dev_debugger.checkpoint_callback_history) == 0
+    assert not any(isinstance(c, ModelCheckpoint) for c in trainer.callbacks)
+    trainer.fit(BoringModel())
+    assert not any(isinstance(c, ModelCheckpoint) for c in trainer.callbacks)
 
 
 @mock.patch("torch.save")

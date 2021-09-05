@@ -44,7 +44,6 @@ class InternalDebugger:
         self.enabled = os.environ.get("PL_DEV_DEBUG", "0") == "1"
         self.trainer = trainer
         self.early_stopping_history: List[Dict[str, Any]] = []
-        self.checkpoint_callback_history: List[Dict[str, Any]] = []
         self.events: List[Dict[str, Any]] = []
         self.saved_lr_scheduler_updates: List[Dict[str, Union[int, float, str, torch.Tensor, None]]] = []
         self.train_dataloader_calls: List[Dict[str, Any]] = []
