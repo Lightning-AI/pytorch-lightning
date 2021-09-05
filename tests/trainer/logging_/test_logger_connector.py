@@ -22,7 +22,7 @@ from torchmetrics import Accuracy, AveragePrecision
 from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.trainer import Trainer
-from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
+from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.trainer.connectors.logger_connector.result import MetricSource, ResultCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
@@ -116,7 +116,7 @@ def test_fx_validator(tmpdir):
         callbacks_func
     ), "Detected new callback function. Need to add its logging permission to FxValidator and update this test"
 
-    validator = FxValidator()
+    validator = _FxValidator()
 
     for func_name in funcs_name:
         # This summarizes where and what is currently possible to log using `self.log`

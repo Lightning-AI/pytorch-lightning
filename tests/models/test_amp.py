@@ -74,7 +74,7 @@ class AMPTestModel(BoringModel):
     "accelerator",
     [
         None,
-        pytest.param("dp", marks=pytest.mark.skip("dp + amp not supported currently")),  # TODO
+        pytest.param("dp", marks=pytest.mark.skip("dp + amp not supported on CPU currently")),  # TODO
         "ddp_spawn",
     ],
 )
@@ -106,11 +106,7 @@ def test_amp_cpus(tmpdir, accelerator, precision, num_processes):
 @RunIf(min_gpus=2)
 @pytest.mark.parametrize(
     "accelerator",
-    [
-        None,
-        pytest.param("dp", marks=pytest.mark.skip("dp + amp not supported currently")),  # TODO
-        "ddp_spawn",
-    ],
+    [None, "dp", "ddp_spawn"],
 )
 @pytest.mark.parametrize(
     "precision",
