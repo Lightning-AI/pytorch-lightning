@@ -68,15 +68,15 @@ class TrainerProperties(ABC):
     _weights_save_path: str
 
     accelerator_connector: AcceleratorConnector
-    accumulate_grad_batches: Union[int, Dict[int, int]]
+    accumulate_grad_batches: int
     callbacks: List[Callback]
     checkpoint_connector: CheckpointConnector
     gradient_clip_algorithm: GradClipAlgorithmType
     gradient_clip_val: float
-    reload_dataloaders_every_n_epochs: int
     limit_val_batches: int
     logger: Optional[LightningLoggerBase]
     logger_connector: LoggerConnector
+    reload_dataloaders_every_n_epochs: int
     state: TrainerState
     terminate_on_nan: bool
     track_grad_norm: Union[int, float, str]
