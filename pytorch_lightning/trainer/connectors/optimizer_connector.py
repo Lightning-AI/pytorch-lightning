@@ -79,27 +79,11 @@ class OptimizerConnector:
                             RuntimeWarning,
                         )
                         continue
+
                 # update LR
-                old_lr = lr_scheduler["scheduler"].optimizer.param_groups[0]["lr"]
-
                 self.trainer.fit_loop.epoch_loop.scheduler_progress.increment_ready()
-
                 if lr_scheduler["reduce_on_plateau"]:
                     lr_scheduler["scheduler"].step(monitor_val)
                 else:
                     lr_scheduler["scheduler"].step()
-
-                new_lr = lr_scheduler["scheduler"].optimizer.param_groups[0]["lr"]
-
                 self.trainer.fit_loop.epoch_loop.scheduler_progress.increment_completed()
-
-                if self.trainer.dev_debugger.enabled:
-                    self.trainer.dev_debugger.track_lr_schedulers_update(
-                        self.trainer.fit_loop.batch_idx,
-                        interval,
-                        scheduler_idx,
-                        old_lr,
-                        new_lr,
-                        monitor_key=monitor_key,
-                        monitor_val=monitor_val,
-                    )

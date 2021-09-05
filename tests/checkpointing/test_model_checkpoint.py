@@ -143,9 +143,7 @@ def test_model_checkpoint_score_and_ckpt(
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     ckpt_files = list(Path(tmpdir).glob("*.ckpt"))
-    lr_scheduler_debug = trainer.dev_debugger.saved_lr_scheduler_updates
     assert len(ckpt_files) == len(model.scores) == max_epochs
-    assert len(lr_scheduler_debug) == max_epochs
 
     for epoch in range(max_epochs):
         score = model.scores[epoch]
@@ -171,9 +169,6 @@ def test_model_checkpoint_score_and_ckpt(
             # checkpoint is saved after updating lr_scheduler states
             assert actual_step_count == epoch + 2  # step_count starts at 1
             assert actual_lr == lr * gamma ** (epoch + 1)
-
-        assert lr_scheduler_debug[epoch]["monitor_val"] == (score if reduce_lr_on_plateau else None)
-        assert lr_scheduler_debug[epoch]["monitor_key"] == (monitor if reduce_lr_on_plateau else None)
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
@@ -246,10 +241,8 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     ckpt_files = list(Path(tmpdir).glob("*.ckpt"))
-    lr_scheduler_debug = trainer.dev_debugger.saved_lr_scheduler_updates
 
     assert len(ckpt_files) == len(model.scores) == per_epoch_val_checks * max_epochs
-    assert len(lr_scheduler_debug) == max_epochs
 
     def _make_assertions(epoch, ix, version=""):
         global_ix = ix + per_epoch_val_checks * epoch
@@ -289,10 +282,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
 
     for epoch in range(max_epochs):
         for i in range(per_epoch_val_checks):
-            score = _make_assertions(epoch, i)
-
-        assert lr_scheduler_debug[epoch]["monitor_val"] == (score if reduce_lr_on_plateau else None)
-        assert lr_scheduler_debug[epoch]["monitor_key"] == (monitor if reduce_lr_on_plateau else None)
+            _make_assertions(epoch, i)
 
 
 @pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
