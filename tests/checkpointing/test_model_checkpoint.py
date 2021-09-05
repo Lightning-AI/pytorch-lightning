@@ -23,7 +23,7 @@ from logging import INFO
 from pathlib import Path
 from typing import Union
 from unittest import mock
-from unittest.mock import Mock, patch, call, MagicMock
+from unittest.mock import call, MagicMock, Mock, patch
 
 import cloudpickle
 import pytest
