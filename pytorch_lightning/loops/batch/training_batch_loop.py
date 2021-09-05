@@ -137,6 +137,10 @@ class TrainingBatchLoop(Loop):
             if result:
                 self.batch_outputs[0].append(deepcopy(result.result_collection))
 
+                # clear reference to this step's training loss so that it can be garbage
+                # collected before the next training step
+                trainer._results.minimize = None
+
     def teardown(self) -> None:
         # release memory
         self._remaining_splits = None
