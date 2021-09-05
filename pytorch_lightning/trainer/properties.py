@@ -16,7 +16,7 @@ import os
 from abc import ABC
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
-from typing import cast, Dict, List, Optional, Type, TypeVar, Union
+from typing import cast, List, Optional, Type, TypeVar, Union
 
 import torch
 from torch.optim import Optimizer
