@@ -360,8 +360,10 @@ class OptimizerLoop(Loop):
             if result_collection is None:
                 return None
 
-        # accumulate loss. if accumulate_grad_batches==1, no effect
+        # output validation already done, here loss can't be None
         assert result_collection.minimize is not None
+
+        # accumulate loss. if accumulate_grad_batches==1, no effect
         closure_loss = result_collection.minimize / self.trainer.accumulate_grad_batches
         # the loss will get scaled for amp. avoid any modifications to it
         loss = closure_loss.detach().clone()
