@@ -53,7 +53,9 @@ class NestedLoop(Loop):
 def test_connect_loops_direct(loop_name):
     """Test Trainer referenes in loops on assignment."""
     loop = NestedLoop()
-    assert loop.trainer is None
+
+    with pytest.raises(RuntimeError, match="The loop is not attached to a Trainer"):
+        _ = loop.trainer
 
     trainer = Trainer()
 
@@ -68,8 +70,12 @@ def test_connect_loops_recursive():
     child0 = NestedLoop()
     child1 = NestedLoop()
     main_loop.connect(child0, child1)
-    assert main_loop.trainer is None
-    assert main_loop.child_loop0.trainer is None
+
+    with pytest.raises(RuntimeError, match="The loop is not attached to a Trainer"):
+        _ = main_loop.trainer
+
+    with pytest.raises(RuntimeError, match="The loop is not attached to a Trainer"):
+        _ = main_loop.child_loop0.trainer
 
     trainer = Trainer()
     trainer.fit_loop = main_loop
@@ -86,7 +92,9 @@ def test_connect_subloops(tmpdir):
     new_batch_loop = TrainingBatchLoop()
     epoch_loop.connect(batch_loop=new_batch_loop)
     assert epoch_loop.batch_loop is new_batch_loop
-    assert new_batch_loop.trainer is None
+
+    with pytest.raises(RuntimeError, match="The loop is not attached to a Trainer"):
+        _ = new_batch_loop.trainer
 
     trainer.fit(model)
     assert new_batch_loop.trainer is trainer
