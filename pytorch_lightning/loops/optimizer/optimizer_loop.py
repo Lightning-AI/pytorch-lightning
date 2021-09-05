@@ -201,7 +201,7 @@ class OptimizerLoop(Loop):
     def _make_zero_grad_fn(self, batch_idx: int, opt_idx: int, optimizer: Optimizer) -> Optional[Callable[[], None]]:
         """
         Build a `zero_grad` function that zeroes the gradients before back-propagation.
-        Returns ``None`` in the case backward needs to be skipped, e.g., when manual optimization is on.
+        Returns ``None`` in the case backward needs to be skipped.
         """
 
         def zero_grad_fn():
@@ -221,7 +221,7 @@ class OptimizerLoop(Loop):
     ) -> Optional[Callable[[Tensor], Tensor]]:
         """
         Build a `backward` function that handles back-propagation through the output produced by the `training_step`
-        function. Returns ``None`` in the case backward needs to be skipped, e.g., when manual optimization is on.
+        function. Returns ``None`` in the case backward needs to be skipped.
         """
 
         def backward_fn(loss: Tensor):
