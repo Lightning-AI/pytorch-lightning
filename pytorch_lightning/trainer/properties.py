@@ -16,7 +16,7 @@ import os
 from abc import ABC
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
-from typing import cast, List, Optional, Type, TypeVar, Union, Dict
+from typing import cast, Dict, List, Optional, Type, TypeVar, Union
 
 import torch
 from torch.optim import Optimizer
@@ -42,9 +42,9 @@ from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerSta
 from pytorch_lightning.utilities import (
     DeviceType,
     DistributedType,
+    GradClipAlgorithmType,
     rank_zero_deprecation,
     rank_zero_warn,
-    GradClipAlgorithmType,
 )
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
