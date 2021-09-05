@@ -16,6 +16,7 @@ import os
 import pickle
 from typing import List, Optional
 from unittest import mock
+from unittest.mock import Mock
 
 import cloudpickle
 import numpy as np
@@ -98,12 +99,12 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
         new_trainer.fit(model)
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_early_stopping_no_extraneous_invocations(tmpdir):
     """Test to ensure that callback methods aren't being invoked outside of the callback handler."""
     model = ClassificationModel()
     dm = ClassifDataModule()
     early_stop_callback = EarlyStopping(monitor="train_loss")
+    early_stop_callback._run_early_stopping_check = Mock()
     expected_count = 4
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -111,12 +112,13 @@ def test_early_stopping_no_extraneous_invocations(tmpdir):
         limit_train_batches=4,
         limit_val_batches=4,
         max_epochs=expected_count,
+        checkpoint_callback=False,
     )
     trainer.fit(model, datamodule=dm)
 
     assert trainer.early_stopping_callback == early_stop_callback
     assert trainer.early_stopping_callbacks == [early_stop_callback]
-    assert len(trainer.dev_debugger.early_stopping_history) == expected_count
+    assert early_stop_callback._run_early_stopping_check.call_count == expected_count
 
 
 @pytest.mark.parametrize(
