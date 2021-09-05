@@ -66,7 +66,9 @@ class OptimizerLoop(Loop):
             self.optim_progress.optimizer_idx = 0
         self.outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
-    def on_run_start(self, batch: Any, hiddens: Any, optimizers: List[Optimizer], batch_idx: int) -> None:  # type: ignore[override]
+    def on_run_start(  # type: ignore[override]
+        self, batch: Any, hiddens: Any, optimizers: List[Optimizer], batch_idx: int
+    ) -> None:
         self._batch_idx = batch_idx
         self._optimizers = optimizers
 
