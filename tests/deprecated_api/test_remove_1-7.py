@@ -106,7 +106,7 @@ def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
             print("on_predict_dataloader")
 
     def _run(model, task="fit"):
-        trainer = Trainer(fast_dev_run=2)
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
         getattr(trainer, task)(model)
 
     model = CustomBoringModel()
