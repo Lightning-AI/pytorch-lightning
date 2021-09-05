@@ -23,7 +23,7 @@ from logging import INFO
 from pathlib import Path
 from typing import Union
 from unittest import mock
-from unittest.mock import Mock
+from unittest.mock import Mock, patch, call, MagicMock
 
 import cloudpickle
 import pytest
@@ -760,7 +760,6 @@ def test_ckpt_metric_names(tmpdir):
     assert len(val) > 3
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_default_checkpoint_behavior(tmpdir):
     seed_everything(1234)
 
@@ -769,11 +768,21 @@ def test_default_checkpoint_behavior(tmpdir):
         default_root_dir=tmpdir, max_epochs=3, progress_bar_refresh_rate=0, limit_train_batches=5, limit_val_batches=5
     )
 
-    trainer.fit(model)
-    results = trainer.test()
+    with patch.object(ModelCheckpoint, "_save_model", wraps=trainer.checkpoint_callback._save_model) as save_mock:
+        trainer.fit(model)
+        results = trainer.test()
 
     assert len(results) == 1
-    assert len(trainer.dev_debugger.checkpoint_callback_history) == 3
+    assert save_mock.call_count == 3
+
+    save_dir = tmpdir / "lightning_logs" / "version_0" / "checkpoints"
+    save_mock.assert_has_calls(
+        [
+            call(trainer, save_dir / "epoch=0-step=4.ckpt"),
+            call(trainer, save_dir / "epoch=1-step=9.ckpt"),
+            call(trainer, save_dir / "epoch=2-step=14.ckpt"),
+        ]
+    )
 
     # make sure the checkpoint we saved has the metric in the name
     ckpts = os.listdir(os.path.join(tmpdir, "lightning_logs", "version_0", "checkpoints"))
@@ -842,9 +851,8 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
         assert w0.eq(w1).all()
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize("mode", ["min", "max"])
-def test_checkpointing_with_nan_as_first(tmpdir, mode: int):
+def test_checkpointing_with_nan_as_first(tmpdir, mode):
     monitor = [float("nan")]
     monitor += [5, 7, 8] if mode == "max" else [8, 7, 5]
 
@@ -855,8 +863,11 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode: int):
 
     model = CurrentModel()
 
+    callback = ModelCheckpoint(monitor="abc", mode=mode, save_top_k=1, dirpath=tmpdir)
+    callback._save_model = MagicMock()
+
     trainer = Trainer(
-        callbacks=[ModelCheckpoint(monitor="abc", mode=mode, save_top_k=1, dirpath=tmpdir)],
+        callbacks=[callback],
         default_root_dir=tmpdir,
         val_check_interval=1.0,
         max_epochs=len(monitor),
@@ -864,7 +875,8 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode: int):
     trainer.fit(model)
 
     # check that last one is also the best one
-    assert trainer.dev_debugger.checkpoint_callback_history[-1]["epoch"] == len(monitor) - 1
+    assert callback._save_model.call_count == len(monitor)
+    assert mode == "min" and callback.best_model_score == 5 or mode == "max" and callback.best_model_score == 8
 
 
 def test_checkpoint_repeated_strategy(tmpdir):
