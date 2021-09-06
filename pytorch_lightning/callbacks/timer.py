@@ -148,7 +148,9 @@ class Timer(Callback):
             return
         self._check_time_remaining(trainer)
 
-    def on_train_epoch_end(self, trainer: "pl.Trainer", *args, **kwargs) -> None:
+    def on_train_epoch_end(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", unused: Optional = None
+    ) -> None:
         if self._interval != Interval.epoch or self._duration is None:
             return
         self._check_time_remaining(trainer)
