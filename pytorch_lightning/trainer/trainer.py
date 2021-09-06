@@ -509,6 +509,7 @@ class Trainer(
         """
         try:
             return trainer_fn(*args, **kwargs)
+        # TODO: treat KeyboardInterrupt as BaseException (delete the code below) in v1.7
         except KeyboardInterrupt as exception:
             rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
             # user could press Ctrl+c many times... only shutdown once
