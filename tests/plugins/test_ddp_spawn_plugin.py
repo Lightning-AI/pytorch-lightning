@@ -99,10 +99,6 @@ def test_ddp_spawn_add_get_queue(tmpdir):
         default_root_dir=tmpdir, fast_dev_run=True, num_processes=2, accelerator="ddp_cpu", plugins=[ddp_spawn_plugin]
     )
 
-    assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
-    assert trainer.training_type_plugin.on_gpu
-    assert trainer.training_type_plugin.root_device == torch.device("cuda:0")
-
     val: float = 1.0
     val_name: str = "val_acc"
     model = BoringCallbackDDPSpawnModel(val_name, val)

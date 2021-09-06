@@ -139,7 +139,6 @@ class BoringCallbackDDPSpawnModel(BoringModel):
 
 
 def test_v1_7_0_deprecate_add_get_queue(tmpdir):
-    """Tests if device is set correctly when training for DDPSpawnPlugin."""
     model = BoringCallbackDDPSpawnModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, num_processes=2, accelerator="ddp_cpu")
 
