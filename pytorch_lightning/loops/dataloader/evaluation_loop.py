@@ -37,7 +37,7 @@ class EvaluationLoop(DataLoaderLoop):
 
     @property
     def num_dataloaders(self) -> int:
-        """Returns the total number of dataloaders"""
+        """Returns the total number of dataloaders."""
         # case where user does:
         # return dl1, dl2
         dataloaders = self.dataloaders
@@ -50,7 +50,7 @@ class EvaluationLoop(DataLoaderLoop):
 
     @property
     def dataloaders(self) -> Sequence[DataLoader]:
-        """Returns the validation or test dataloaders"""
+        """Returns the validation or test dataloaders."""
         if self.trainer.testing:
             return self.trainer.test_dataloaders
         return self.trainer.val_dataloaders
@@ -61,7 +61,7 @@ class EvaluationLoop(DataLoaderLoop):
 
     @property
     def done(self) -> bool:
-        """Returns whether all dataloaders are processed or evaluation should be skipped altogether"""
+        """Returns whether all dataloaders are processed or evaluation should be skipped altogether."""
         return super().done or self.skip
 
     @property
@@ -71,7 +71,7 @@ class EvaluationLoop(DataLoaderLoop):
         return sum(max_batches) == 0
 
     def reset(self) -> None:
-        """Resets the internal state of the loop"""
+        """Resets the internal state of the loop."""
         self._max_batches = self.get_max_batches()
         # bookkeeping
         self.outputs = []
@@ -85,7 +85,8 @@ class EvaluationLoop(DataLoaderLoop):
         return []
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
-        """Runs the ``on_evaluation_model_eval``, ``on_evaluation_start`` and ``on_evaluation_epoch_start`` hooks"""
+        """Runs the ``on_evaluation_model_eval``, ``on_evaluation_start`` and ``on_evaluation_epoch_start``
+        hooks."""
         void(*args, **kwargs)
         # hook
         self.on_evaluation_model_eval()
@@ -94,7 +95,7 @@ class EvaluationLoop(DataLoaderLoop):
         self.on_evaluation_epoch_start()
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
-        """Performs evaluation on one single dataloader"""
+        """Performs evaluation on one single dataloader."""
         void(*args, **kwargs)
 
         dataloader_idx: int = self.current_dataloader_idx
@@ -113,7 +114,7 @@ class EvaluationLoop(DataLoaderLoop):
             self._has_run = True
 
     def on_run_end(self) -> Any:
-        """Runs the ``on_evaluation_epoch_end`` hook"""
+        """Runs the ``on_evaluation_epoch_end`` hook."""
         outputs = self.outputs
 
         # free memory
@@ -141,7 +142,7 @@ class EvaluationLoop(DataLoaderLoop):
         return eval_loop_results
 
     def get_max_batches(self) -> List[Union[int, float]]:
-        """Returns the max number of batches for each dataloader"""
+        """Returns the max number of batches for each dataloader."""
         if self.trainer.testing:
             max_batches = self.trainer.num_test_batches
         else:
@@ -155,14 +156,14 @@ class EvaluationLoop(DataLoaderLoop):
         return max_batches
 
     def reload_evaluation_dataloaders(self) -> None:
-        """Reloads dataloaders if necessary"""
+        """Reloads dataloaders if necessary."""
         if self.trainer.testing:
             self.trainer.reset_test_dataloader()
         elif self.trainer.val_dataloaders is None or self.trainer._should_reload_dl_epoch:
             self.trainer.reset_val_dataloader()
 
     def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
-        """Runs ``on_{validation/test}_start`` hooks"""
+        """Runs ``on_{validation/test}_start`` hooks."""
         assert self._results is not None
         self._results.to(device=self.trainer.lightning_module.device)
 
@@ -172,14 +173,14 @@ class EvaluationLoop(DataLoaderLoop):
             self.trainer.call_hook("on_validation_start", *args, **kwargs)
 
     def on_evaluation_model_eval(self) -> None:
-        """Sets model to eval mode"""
+        """Sets model to eval mode."""
         if self.trainer.testing:
             self.trainer.call_hook("on_test_model_eval")
         else:
             self.trainer.call_hook("on_validation_model_eval")
 
     def on_evaluation_model_train(self) -> None:
-        """Sets model to train mode"""
+        """Sets model to train mode."""
         model_ref = self.trainer.lightning_module
         if self.trainer.testing:
             model_ref.on_test_model_train()
@@ -187,7 +188,7 @@ class EvaluationLoop(DataLoaderLoop):
             model_ref.on_validation_model_train()
 
     def on_evaluation_end(self, *args: Any, **kwargs: Any) -> None:
-        """Runs ``on_{validation/test}_end`` hook"""
+        """Runs ``on_{validation/test}_end`` hook."""
         if self.trainer.testing:
             self.trainer.call_hook("on_test_end", *args, **kwargs)
         else:
@@ -197,7 +198,7 @@ class EvaluationLoop(DataLoaderLoop):
         self.trainer.logger_connector.reset(metrics=True)
 
     def on_evaluation_epoch_start(self, *args: Any, **kwargs: Any) -> None:
-        """Runs ``on_epoch_start`` and ``on_{validation/test}_epoch_start`` hooks"""
+        """Runs ``on_epoch_start`` and ``on_{validation/test}_epoch_start`` hooks."""
         self.trainer.logger_connector.on_epoch_start()
         self.trainer.call_hook("on_epoch_start", *args, **kwargs)
 
@@ -228,7 +229,7 @@ class EvaluationLoop(DataLoaderLoop):
                 model.validation_epoch_end(outputs)
 
     def on_evaluation_epoch_end(self) -> None:
-        """Runs ``on_{validation/test}_epoch_end`` hook"""
+        """Runs ``on_{validation/test}_epoch_end`` hook."""
         hook_name = "on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end"
         self.trainer.call_hook(hook_name)
         self.trainer.call_hook("on_epoch_end")
