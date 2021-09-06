@@ -239,7 +239,8 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
 
 
 def test_train_step_no_return(tmpdir):
-    """Tests that only training_step raises a warning when nothing is returned in case of automatic_optimization."""
+    """Tests that only training_step raises a warning when nothing is returned in case of
+    automatic_optimization."""
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):

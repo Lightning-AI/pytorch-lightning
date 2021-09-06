@@ -169,9 +169,7 @@ def test_apply_batch_transfer_handler(model_getter_mock):
 
 @RunIf(min_gpus=2, special=True)
 def test_transfer_batch_hook_ddp(tmpdir):
-    """
-    Test custom data are properly moved to the right device using ddp
-    """
+    """Test custom data are properly moved to the right device using ddp."""
 
     class CustomBatch:
         def __init__(self, data):
@@ -295,7 +293,7 @@ class HookedModel(BoringModel):
                     dict(name="Callback.on_train_batch_start", args=(trainer, model, ANY, i, 0)),
                     dict(name="on_train_batch_start", args=(ANY, i, 0)),
                     # without a precision plugin, we execute the closure inside the `optimizer.step`
-                    *(on_before_optimizer_step if not using_plugin else []),
+                    *([] if using_plugin else on_before_optimizer_step),
                     dict(name="forward", args=(ANY,)),
                     dict(name="training_step", args=(ANY, i)),
                     dict(name="training_step_end", args=(dict(loss=ANY),)),
@@ -324,6 +322,7 @@ class HookedModel(BoringModel):
     @staticmethod
     def _manual_train_batch(trainer, model, batches, device=torch.device("cpu"), **kwargs):
         using_deepspeed = kwargs.get("plugins") == "deepspeed"
+        using_plugin = kwargs.get("amp_backend") or kwargs.get("plugins")
         out = []
         for i in range(batches):
             out.extend(
@@ -344,9 +343,12 @@ class HookedModel(BoringModel):
                     dict(name="on_after_backward"),
                     # `manual_backward` calls the previous 3
                     dict(name="manual_backward", args=(ANY,)),
+                    *([dict(name="closure")] if using_plugin else []),
                     dict(name="log_grad_norm", args=ANY),
                     dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY, 0)),
                     dict(name="on_before_optimizer_step", args=(ANY, 0)),
+                    # without a precision plugin, we execute the closure inside the `optimizer.step`
+                    *([] if using_plugin else [dict(name="closure")]),
                     dict(name="training_step", args=(ANY, i)),
                     dict(name="training_step_end", args=(dict(loss=ANY),)),
                     dict(name="Callback.on_train_batch_end", args=(trainer, model, dict(loss=ANY), ANY, i, 0)),
@@ -442,7 +444,7 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
             opt = self.optimizers()
             opt.zero_grad()
             self.manual_backward(loss)
-            opt.step()
+            opt.step(lambda: called.append({"name": "closure"}))
             return {"loss": loss}
 
     model = TestModel(called)
@@ -769,9 +771,7 @@ def test_trainer_model_hook_system_predict(tmpdir):
 
 
 def test_hooks_with_different_argument_names(tmpdir):
-    """
-    Test that argument names can be anything in the hooks
-    """
+    """Test that argument names can be anything in the hooks."""
 
     class CustomBoringModel(BoringModel):
         def assert_args(self, x, batch_nb):

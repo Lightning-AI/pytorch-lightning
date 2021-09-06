@@ -91,9 +91,7 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt: str):
 
 
 def test_log_momentum_no_momentum_optimizer(tmpdir):
-    """
-    Test that if optimizer doesn't have momentum then a warning is raised with log_momentum=True.
-    """
+    """Test that if optimizer doesn't have momentum then a warning is raised with log_momentum=True."""
 
     class LogMomentumModel(BoringModel):
         def configure_optimizers(self):

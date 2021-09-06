@@ -843,10 +843,8 @@ class AcceleratorConnector:
             self.num_processes = hvd.local_size()
 
     def check_interactive_compatibility(self):
-        """
-        Raises a `MisconfigurationException` if the accelerator and/or plugin
-        is not compatible with an interactive environment
-        """
+        """Raises a `MisconfigurationException` if the accelerator and/or plugin is not compatible with an
+        interactive environment."""
         from pytorch_lightning.utilities import _IS_INTERACTIVE
 
         if _IS_INTERACTIVE and self._distrib_type is not None and not self._distrib_type.is_interactive_compatible():

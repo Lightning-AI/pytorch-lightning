@@ -29,8 +29,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
-    """
-    Plugin for native mixed precision training with :mod:`torch.cuda.amp`.
+    """Plugin for native mixed precision training with :mod:`torch.cuda.amp`.
 
     Args:
         precision: Whether to use torch.float16 (16) or torch.bfloat16 (bf16).
@@ -52,7 +51,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             )
 
         self.use_cpu = use_cpu
-        self._fast_dtype = self._select_precision_dtype(precision)
+        self._dtype = self._select_precision_dtype(precision)
         self.backend = AMPType.NATIVE
         if not self.is_bfloat16:
             self.scaler = torch.cuda.amp.GradScaler()
@@ -72,7 +71,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     @property
     def is_bfloat16(self) -> bool:
-        return self._fast_dtype == torch.bfloat16
+        return self._dtype == torch.bfloat16
 
     def pre_backward(self, model: "pl.LightningModule", closure_loss: torch.Tensor) -> torch.Tensor:
         if self.is_bfloat16:
@@ -96,46 +95,45 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
                 f"native PyTorch amp and lbfgs are not compatible (optimizer {optimizer_idx})."
                 " To request, please file a Github issue in PyTorch and tag @mcarilli"
             )
-        result = True
-        # FIXME: is this correct for manual?
-        if model.automatic_optimization:
-            result = lambda_closure()
+        result = lambda_closure()  # native amp does not support closures
         self.scaler.unscale_(optimizer)
         super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
-        # lambda_closure returning None indicates that backward has been skipped
-        if result is not None:
+        skipped_backward = result is None
+        # in manual optimization, the closure does not return a value
+        if not model.automatic_optimization or not skipped_backward:
+            # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
             self.scaler.step(optimizer)
             self.scaler.update()
         return False
 
     def autocast_context_manager(self) -> torch.cuda.amp.autocast:
         if self.use_cpu:
-            return torch.cpu.amp.autocast(fast_dtype=self._fast_dtype)
+            return torch.cpu.amp.autocast(dtype=self._dtype)  # Only reached in pytorch==1.10 where this is ok. skipcq
         if self.is_bfloat16:
-            return torch.cuda.amp.autocast(fast_dtype=self._fast_dtype)
+            return torch.cuda.amp.autocast(dtype=self._dtype)  # Only reached in pytorch==1.10 where this is ok. skipcq
         return torch.cuda.amp.autocast()
 
     @contextmanager
     def train_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context"""
+        """Enable autocast context."""
         with self.autocast_context_manager():
             yield
 
     @contextmanager
     def val_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context"""
+        """Enable autocast context."""
         with self.autocast_context_manager():
             yield
 
     @contextmanager
     def test_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context"""
+        """Enable autocast context."""
         with self.autocast_context_manager():
             yield
 
     @contextmanager
     def predict_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context"""
+        """Enable autocast context."""
         with self.autocast_context_manager():
             yield
 
