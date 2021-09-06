@@ -13,13 +13,14 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Optional
 
 from torch import Tensor
 
 from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.utilities.memory import recursive_detach
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
@@ -30,12 +31,51 @@ class ClosureResult:
     Attributes:
         closure_loss: The loss with a graph attached.
         loss: A detached copy of the closure loss.
-        result_collection: A collection of results returned by the closure.
+        FIXME
     """
 
     closure_loss: Optional[Tensor]
-    loss: Optional[Tensor]
-    result_collection: Optional[ResultCollection]
+    hiddens: Optional[Tensor]
+    loss: Optional[Tensor] = None
+    extra: Dict[str, Tensor] = field(default_factory=dict)
+
+    def __post_init__(self):
+        self._set_loss()
+
+    def _set_loss(self) -> None:
+        if self.closure_loss is not None:
+            # the loss will get scaled for amp. avoid any modifications to it
+            self.loss = self.closure_loss.detach().clone()
+
+    @classmethod
+    def from_training_step_output(cls, training_step_output: Optional[STEP_OUTPUT]) -> "ClosureResult":
+        loss = None
+        hiddens = None
+        extra = {}
+
+        if isinstance(training_step_output, dict):
+            # this should not modify the `training_step_output`, as the user could be using it after `training_step_end`
+            loss = training_step_output.get("loss")
+            hiddens = training_step_output.get("hiddens")
+            # detach hiddens to avoid `RuntimeError: Trying to backward through the graph a second time`
+            hiddens = recursive_detach(hiddens)
+            # use the setter instead of `dict.update` because it calls `detach` on the tensor items
+            # FIXME detach?
+            extra = {k: v for k, v in training_step_output.items() if k not in ("loss", "hiddens")}
+        elif isinstance(training_step_output, Tensor):
+            loss = training_step_output
+
+        # map to results under the hood
+        return cls(loss, hiddens, extra=extra)
+
+    def apply_accumulation(self, value: int) -> None:
+        """Accumulate loss.
+
+        If ``accumulate_grad_batches == 1``, no effect.
+        """
+        if self.closure_loss is not None:
+            self.closure_loss /= value
+            self._set_loss()
 
 
 class AbstractClosure(ABC):
@@ -53,25 +93,26 @@ class AbstractClosure(ABC):
         super().__init__()
         self._result: Optional[ClosureResult] = None
 
-    def get_result(self) -> Optional[ClosureResult]:
+    def get_result(self) -> ClosureResult:
         """The cached result from the last time the closure was called.
 
         Once accessed, the internal reference gets reset and the consumer will have to hold on to the reference as long
         as necessary.
         """
+        if self._result is None:
+            raise ValueError("Called `get_result` but the closure hasn't been executed yet")
         result = self._result
         self._result = None  # free memory
         return result
 
     @abstractmethod
-    def closure(self, *args: Any, **kwargs: Any) -> Optional[ClosureResult]:
+    def closure(self, *args: Any, **kwargs: Any) -> ClosureResult:
         """Implements the behavior of the closure once it is getting called."""
         pass
 
     def __call__(self, *args: Any, **kwargs: Any) -> Optional[Tensor]:
         self._result = self.closure(*args, **kwargs)
-        if self._result is not None:
-            return self._result.loss
+        return self._result.loss
 
 
 class Closure(AbstractClosure):
@@ -102,7 +143,7 @@ class Closure(AbstractClosure):
 
     def __init__(
         self,
-        step_fn: Callable[[], Optional[Dict]],
+        step_fn: Callable[[], ClosureResult],
         backward_fn: Optional[Callable[[Tensor], Tensor]] = None,
         zero_grad_fn: Optional[Callable[[], None]] = None,
         profiler: Optional[BaseProfiler] = None,
@@ -113,19 +154,20 @@ class Closure(AbstractClosure):
         self._zero_grad_fn = zero_grad_fn
         self._profiler = PassThroughProfiler() if profiler is None else profiler
 
-    def closure(self, *args: Any, **kwargs: Any) -> Optional[ClosureResult]:
+    def closure(self, *args: Any, **kwargs: Any) -> ClosureResult:
         with self._profiler.profile("training_step_and_backward"):
             step_output = self._step_fn()
-            step_output = ClosureResult(**step_output) if step_output else None
 
-            if step_output is None:
-                self.warning_cache.warn("training_step returned None. If this was on purpose, ignore this warning...")
+            if step_output.closure_loss is None:
+                self.warning_cache.warn(
+                    "`training_step` returned `None`. If this was on purpose, ignore this warning..."
+                )
 
             if self._zero_grad_fn is not None:
                 with self._profiler.profile("zero_grad"):
                     self._zero_grad_fn()
 
-            if self._backward_fn is not None and step_output is not None and step_output.closure_loss is not None:
+            if self._backward_fn is not None and step_output.closure_loss is not None:
                 with self._profiler.profile("backward"):
                     step_output.closure_loss = self._backward_fn(step_output.closure_loss)
 

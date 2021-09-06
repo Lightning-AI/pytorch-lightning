@@ -153,8 +153,8 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     train_step_out = out.training_step_output
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out.minimize, torch.Tensor)
-    assert train_step_out.minimize.item() == 171
+    assert isinstance(train_step_out.loss, torch.Tensor)
+    assert train_step_out.loss.item() == 171
 
     # make sure the optimizer closure returns the correct things
     opt_closure = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._make_closure(
@@ -227,8 +227,8 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     train_step_out = out.training_step_output
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out.minimize, torch.Tensor)
-    assert train_step_out.minimize.item() == 171
+    assert isinstance(train_step_out.loss, torch.Tensor)
+    assert train_step_out.loss.item() == 171
 
     # make sure the optimizer closure returns the correct things
     opt_closure = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._make_closure(
@@ -249,6 +249,7 @@ def test_train_step_no_return(tmpdir):
             self.log("a", loss, on_step=True, on_epoch=True)
 
         def training_epoch_end(self, outputs) -> None:
+            print(outputs)
             assert len(outputs) == 0
 
         def validation_step(self, batch, batch_idx):
@@ -264,7 +265,7 @@ def test_train_step_no_return(tmpdir):
 
     Closure.warning_cache.clear()
 
-    with pytest.warns(UserWarning, match=r"training_step returned None.*"):
+    with pytest.warns(UserWarning, match=r"training_step` returned `None"):
         trainer.fit(model)
 
     assert model.training_step_called
@@ -276,7 +277,7 @@ def test_train_step_no_return(tmpdir):
 
     Closure.warning_cache.clear()
 
-    with no_warning_call(UserWarning, match=r"training_step returned None.*"):
+    with no_warning_call(UserWarning, match=r"training_step` returned `None"):
         trainer.fit(model)
 
 

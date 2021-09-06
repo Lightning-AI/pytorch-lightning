@@ -13,7 +13,7 @@
 # limitations under the License.
 from collections import OrderedDict
 from contextlib import contextmanager
-from typing import Any, Dict, Generator, Iterator, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, Generator, Iterator, Mapping, Optional, Sequence
 
 import torch
 from torch import Tensor
@@ -21,8 +21,6 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins import ParallelPlugin
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -47,69 +45,23 @@ def _check_training_step_output(model: "pl.LightningModule", training_step_outpu
         model: a reference to the trainer
         training_step_output: the output of the training step (before wrapping in an AttributeDict)
     """
-    if isinstance(training_step_output, torch.Tensor) and not model.automatic_optimization:
-        if training_step_output.grad_fn is None:
-            # TODO: Find why - RuntimeError: Expected to mark a variable ready only once ...
-            raise MisconfigurationException("In manual optimization, `training_step` should not return a Tensor")
-    elif model.automatic_optimization:
-        if not any(
-            (
-                isinstance(training_step_output, torch.Tensor),
-                (isinstance(training_step_output, Mapping) and "loss" in training_step_output),
-                training_step_output is None,
-            )
+    if (
+        isinstance(training_step_output, torch.Tensor)
+        and not model.automatic_optimization
+        and training_step_output.grad_fn is None
+    ):
+        # FIXME: do we consider it as an extra?
+        raise MisconfigurationException("In manual optimization, `training_step` should not return a Tensor")
+    if model.automatic_optimization:
+        if not (
+            isinstance(training_step_output, torch.Tensor)
+            or (isinstance(training_step_output, Mapping) and "loss" in training_step_output)
+            or training_step_output is None
         ):
             raise MisconfigurationException(
                 "In automatic optimization, `training_step` must either return a Tensor, "
                 "a dict with key 'loss' or None (where the step will be skipped)."
             )
-
-
-def _process_training_step_output(
-    trainer: "pl.Trainer", training_step_output: STEP_OUTPUT
-) -> Tuple[Optional[ResultCollection], Optional[Any]]:
-    """Adds the :param:`training_step_output` to the trainer's results.
-
-    Args:
-        trainer: a reference to the trainer
-        training_step_output: the output of the training step (before wrapping into an AttributeDict)
-
-    Returns:
-        the updated results (None if the training_step's output was None) and hiddens exract from the results
-    """
-    if training_step_output is None:
-        return None, None
-
-    results = trainer._results
-
-    loss = None
-    hiddens = None
-
-    # handle dict return
-    if isinstance(training_step_output, dict):
-        # this should not modify the `training_step_output`, as the user could be using it after `training_step_end`
-        loss = training_step_output.get("loss")
-        hiddens = training_step_output.get("hiddens")
-        # detach hiddens to avoid `RuntimeError: Trying to backward through the graph a second time`
-        hiddens = apply_to_collection(hiddens, torch.Tensor, lambda t: t.detach())
-        # use the setter instead of `dict.update` because it calls `detach` on the tensor items
-        results.extra = {k: v for k, v in training_step_output.items() if k not in ("loss", "hiddens")}
-
-    # handle scalar return
-    elif isinstance(training_step_output, torch.Tensor):
-        loss = training_step_output
-
-    if trainer.terminate_on_nan:
-        check_finite_loss(loss)
-
-    # the loss shouldn't be moved to cpu.
-    if trainer.move_metrics_to_cpu:
-        results.cpu()
-
-    # map to results under the hood
-    results.minimize = loss
-
-    return results, hiddens
 
 
 def _build_training_step_kwargs(

@@ -351,7 +351,6 @@ class ResultCollection(dict):
     def __init__(self, training: bool, device: Optional[Union[str, torch.device]] = None) -> None:
         super().__init__()
         self.training = training
-        self._minimize: Optional[torch.Tensor] = None
         self._batch_size = torch.tensor(1, device=device)
         self.device: Optional[Union[str, torch.device]] = device
 
@@ -374,43 +373,6 @@ class ResultCollection(dict):
     @batch_size.setter
     def batch_size(self, value: int) -> None:
         self._batch_size = torch.tensor(value, device=self.device)
-
-    @property
-    def minimize(self) -> Optional[torch.Tensor]:
-        """The :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` loss will be saved as the
-        ``minimize`` attribute."""
-        return self._minimize
-
-    @minimize.setter
-    def minimize(self, loss: Optional[torch.Tensor]) -> None:
-        if loss is not None and not isinstance(loss, torch.Tensor):
-            raise ValueError(f"`Result.minimize` must be a `torch.Tensor`, found: {loss}")
-        self._minimize = loss
-
-    @property
-    def extra(self) -> Dict[str, Any]:
-        """
-        Extras are any keys other than the loss returned by
-        :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`
-        """
-        self.setdefault("_extra", {})
-        return self["_extra"]
-
-    @extra.setter
-    def extra(self, extra: Dict[str, Any]) -> None:
-        def check_fn(v: torch.Tensor) -> torch.Tensor:
-            if v.grad_fn is not None:
-                warning_cache.deprecation(
-                    f"One of the returned values {set(extra.keys())} has a `grad_fn`. We will detach it automatically"
-                    " but this behaviour will change in v1.6. Please detach it manually:"
-                    " `return {'loss': ..., 'something': something.detach()}`"
-                )
-                return v.detach()
-            return v
-
-        # update instead of replace to keep the extra dict reference. TODO: remove with v1.6 deprecation removal
-        extra.update(apply_to_collection(extra, torch.Tensor, check_fn))
-        self["_extra"] = extra
 
     def log(
         self,
@@ -518,9 +480,7 @@ class ResultCollection(dict):
 
     def valid_items(self) -> Generator:
         """This function is used to iterate over current valid metrics."""
-        return (
-            (k, v) for k, v in self.items() if not k == "_extra" and not (isinstance(v, ResultMetric) and v.has_reset)
-        )
+        return ((k, v) for k, v in self.items() if not (isinstance(v, ResultMetric) and v.has_reset))
 
     def _forked_name(self, result_metric: ResultMetric, on_step: bool) -> Tuple[str, str]:
         name = result_metric.meta.name
@@ -600,8 +560,6 @@ class ResultCollection(dict):
         """Move all data to the given device."""
         self.update(apply_to_collection(dict(self), (torch.Tensor, Metric), move_data_to_device, *args, **kwargs))
 
-        if self.minimize is not None:
-            self.minimize = self.minimize.to(*args, **kwargs)
         self._batch_size = self._batch_size.to(*args, **kwargs)
         if "device" in kwargs:
             self.device = kwargs["device"]
@@ -622,31 +580,16 @@ class ResultCollection(dict):
                 result_metric.unsync()
 
     def __str__(self) -> str:
-        # sample output: `ResultCollection(minimize=1.23, {})`
-        minimize = f"minimize={self.minimize}, " if self.minimize is not None else ""
         # remove empty values
-        self_str = str({k: v for k, v in self.items() if v})
-        return f"{self.__class__.__name__}({minimize}{self_str})"
+        return f"{self.__class__.__name__}({dict(self)})"
 
     def __repr__(self) -> str:
-        # sample output: `{True, cpu, minimize=tensor(1.23 grad_fn=<SumBackward0>), {'_extra': {}}}`
-        minimize = f"minimize={repr(self.minimize)}, " if self.minimize is not None else ""
-        return f"{{{self.training}, {repr(self.device)}, " + minimize + f"{super().__repr__()}}}"
+        return f"{{{self.training}, {repr(self.device)}, {super().__repr__()}}}"
 
     def __getstate__(self, drop_value: bool = True) -> dict:
         d = self.__dict__.copy()
-
-        # can't deepcopy tensors with grad_fn
-        minimize = d["_minimize"]
-        if minimize is not None:
-            d["_minimize"] = minimize.detach()
-
-        extra = self.get("_extra")
-        if extra is not None:
-            d["_extra"] = extra
-
         # all the items should be either `ResultMetric`s or `ResultMetricCollection`s
-        items = {k: v.__getstate__(drop_value=drop_value) for k, v in self.items() if k != "_extra"}
+        items = {k: v.__getstate__(drop_value=drop_value) for k, v in self.items()}
         return {**d, "items": items}
 
     def __setstate__(
