@@ -108,3 +108,4 @@ def test_grad_tracking_interval(tmpdir, log_every_n_steps):
         assert all(grad_norm_dicts[0].keys() == g.keys() for g in grad_norm_dicts[:-1])
         epoch_end_keys = [k.replace("step", "epoch") for k in grad_norm_dicts[0]]
         assert epoch_end_keys == list(grad_norm_dicts[-1])
+        # FIXME
