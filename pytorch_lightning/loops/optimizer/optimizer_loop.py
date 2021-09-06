@@ -206,15 +206,18 @@ class OptimizerLoop(Loop):
         Returns ``None`` in the case backward needs to be skipped.
         """
 
+        if self._skip_backward:
+            return None
+
+        is_first_batch_to_accumulate = batch_idx % self.trainer.accumulate_grad_batches == 0
+        if not is_first_batch_to_accumulate:
+            return None
+
         def zero_grad_fn():
             self._on_before_zero_grad(optimizer)
             self._optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
-        is_first_batch_to_accumulate = batch_idx % self.trainer.accumulate_grad_batches == 0
-        if not self._skip_backward and is_first_batch_to_accumulate:
-            return zero_grad_fn
-
-        return None
+        return zero_grad_fn
 
     def _make_backward_fn(
         self,
@@ -225,6 +228,8 @@ class OptimizerLoop(Loop):
         Build a `backward` function that handles back-propagation through the output produced by the `training_step`
         function. Returns ``None`` in the case backward needs to be skipped.
         """
+        if self._skip_backward:
+            return None
 
         def backward_fn(loss: Tensor):
             self.backward(loss, optimizer, opt_idx)
@@ -235,10 +240,7 @@ class OptimizerLoop(Loop):
 
             return loss
 
-        if not self._skip_backward:
-            return backward_fn
-
-        return None
+        return backward_fn
 
     def _run_optimization_start(self, opt_idx: int, optimizer: torch.optim.Optimizer) -> None:
         """Toggles the optimizer to ensure the correct one is used and prevend dangling grads.
