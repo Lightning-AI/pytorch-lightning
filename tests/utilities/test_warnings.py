@@ -25,6 +25,7 @@ running_special = os.getenv("PL_RUNNING_SPECIAL_TESTS", "0") == "1"
 if running_special:
 
     stderr = StringIO()
+    # recording
     with redirect_stderr(stderr):
         _warn("test1")
         _warn("test2", DeprecationWarning)
