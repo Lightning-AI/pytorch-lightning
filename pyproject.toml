@@ -65,6 +65,7 @@ module = [
     "pytorch_lightning.loops.closure",
     "pytorch_lightning.trainer.evaluation_loop",
     "pytorch_lightning.trainer.connectors.logger_connector.*",
+    "pytorch_lightning.trainer.progress",
     "pytorch_lightning.tuner.auto_gpu_select",
     "pytorch_lightning.utilities.apply_func",
     "pytorch_lightning.utilities.argparse",
