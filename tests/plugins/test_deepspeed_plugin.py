@@ -793,6 +793,7 @@ def test_deepspeed_multigpu_no_schedulers(tmpdir):
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
+@RunIf(min_gpus=2, deepspeed=True)
 def test_deepspeed_skip_backward_raises(tmpdir):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
