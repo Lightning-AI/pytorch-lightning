@@ -119,7 +119,7 @@ class ScheduleWrapper:
 
     def reset(self):
         # handle properly `fast_dev_run`. PyTorch Profiler will fail otherwise.
-        self._num_optimizer_step_and_closure = -1
+        self._num_optimizer_step_and_closure = 0
         self._num_validation_step = 0
         self._num_test_step = 0
         self._num_predict_step = 0
