@@ -64,8 +64,8 @@ def test_ddp_cpu():
 
 @RunIf(min_gpus=2)
 def test_ddp_spawn_extra_parameters(tmpdir):
-    """Tests if device is set correctly when training for DDPSpawnPlugin
-    and tests add_to_queue/get_from_queue with Lightning Module (deprecated way)."""
+    """Tests if device is set correctly when training for DDPSpawnPlugin and tests add_to_queue/get_from_queue with
+    Lightning Module (deprecated way)."""
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, accelerator="ddp_spawn")
 
     assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)

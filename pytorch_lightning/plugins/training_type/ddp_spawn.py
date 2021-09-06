@@ -375,9 +375,8 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.model.require_backward_grad_sync = True
 
     def add_to_queue(self, trainer: "pl.Trainer", queue: torch.multiprocessing.SimpleQueue) -> None:
-        """
-        Appends the :attr:`trainer.callback_metrics` dictionary to the given queue.
-        To avoid issues with memory sharing, we cast the data to numpy.
+        """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory
+        sharing, we cast the data to numpy.
 
         Args:
             queue: the instance of the queue to append the data.
@@ -388,9 +387,8 @@ class DDPSpawnPlugin(ParallelPlugin):
         queue.put(callback_metrics)
 
     def get_from_queue(self, trainer: "pl.Trainer", queue: torch.multiprocessing.SimpleQueue) -> None:
-        """
-        Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue.
-        To preserve consistency, we cast back the data to ``torch.Tensor``.
+        """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
+        we cast back the data to ``torch.Tensor``.
 
         Args:
             queue: the instance of the queue from where to get the data.
