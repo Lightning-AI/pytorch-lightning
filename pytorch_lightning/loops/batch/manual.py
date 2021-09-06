@@ -24,8 +24,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import ResultC
 
 
 class ManualOptimization(Loop):
-    """
-    A special loop implementing what is known in Lightning as Manual Optimization where the optimization happens
+    """A special loop implementing what is known in Lightning as Manual Optimization where the optimization happens
     entirely in the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` and therefore the user
     is responsible for back-propagating gradients and making calls to the optimizers.
 
