@@ -26,9 +26,9 @@ from tests.helpers.runif import RunIf
 def test_checkpoint_callback_disabled(tmpdir):
     # no callback
     trainer = Trainer(max_epochs=3, checkpoint_callback=False)
-    assert not any(isinstance(c, ModelCheckpoint) for c in trainer.callbacks)
+    assert not trainer.checkpoint_callbacks
     trainer.fit(BoringModel())
-    assert not any(isinstance(c, ModelCheckpoint) for c in trainer.callbacks)
+    assert not trainer.checkpoint_callbacks
 
 
 @mock.patch("torch.save")
