@@ -308,7 +308,7 @@ def test_pytorch_profiler_trainer_fit(boring_model_cls, tmpdir):
     """Ensure that the profiler can be given to the trainer and test step are properly recorded."""
     pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", schedule=None)
     model = boring_model_cls()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=5, profiler=pytorch_profiler)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=1, profiler=pytorch_profiler)
     trainer.fit(model)
 
     assert sum(e.name == "training_step" for e in pytorch_profiler.function_events)
