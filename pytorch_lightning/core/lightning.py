@@ -35,7 +35,7 @@ from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
-from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
+from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import _TORCH_SHARDED_TENSOR_AVAILABLE, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -405,7 +405,7 @@ class LightningModule(
             raise MisconfigurationException(
                 "You are trying to `self.log()` but it is not managed by the `Trainer` control flow"
             )
-        FxValidator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
+        _FxValidator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
 
         # make sure user doesn't introduce logic for multi-dataloaders
         if "/dataloader_idx_" in name:
@@ -550,7 +550,7 @@ class LightningModule(
     def __to_tensor(self, value: numbers.Number) -> torch.Tensor:
         return torch.tensor(value, device=self.device)
 
-    def log_grad_norm(self, grad_norm_dict: Dict[str, torch.Tensor]) -> None:
+    def log_grad_norm(self, grad_norm_dict: Dict[str, float]) -> None:
         """Override this method to change the default behaviour of ``log_grad_norm``.
 
         Args:
@@ -1236,18 +1236,18 @@ class LightningModule(
             - **Single optimizer**.
             - **List or Tuple** of optimizers.
             - **Two lists** - The first list has multiple optimizers, and the second has multiple LR schedulers
-              (or multiple ``lr_dict``).
+              (or multiple ``lr_scheduler_config``).
             - **Dictionary**, with an ``"optimizer"`` key, and (optionally) a ``"lr_scheduler"``
-              key whose value is a single LR scheduler or ``lr_dict``.
+              key whose value is a single LR scheduler or ``lr_scheduler_config``.
             - **Tuple of dictionaries** as described above, with an optional ``"frequency"`` key.
             - **None** - Fit will run without any optimizer.
 
-        The ``lr_dict`` is a dictionary which contains the scheduler and its associated configuration.
+        The ``lr_scheduler_config`` is a dictionary which contains the scheduler and its associated configuration.
         The default configuration is shown below.
 
         .. code-block:: python
 
-            lr_dict = {
+            lr_scheduler_config = {
                 # REQUIRED: The scheduler instance
                 "scheduler": lr_scheduler,
                 # The unit of the scheduler's step size, could also be 'step'.
@@ -1271,8 +1271,9 @@ class LightningModule(
             }
 
         When there are schedulers in which the ``.step()`` method is conditioned on a value, such as the
-        :class:`torch.optim.lr_scheduler.ReduceLROnPlateau` scheduler, Lightning requires that the ``lr_dict``
-        contains the keyword ``"monitor"`` set to the metric name that the scheduler should be conditioned on.
+        :class:`torch.optim.lr_scheduler.ReduceLROnPlateau` scheduler, Lightning requires that the
+        ``lr_scheduler_config`` contains the keyword ``"monitor"`` set to the metric name that the scheduler
+        should be conditioned on.
 
         .. testcode::
 
@@ -1318,7 +1319,7 @@ class LightningModule(
                 - In the former case, all optimizers will operate on the given batch in each optimization step.
                 - In the latter, only one optimizer will operate on the given batch at every step.
 
-            This is different from the ``frequency`` value specified in the ``lr_dict`` mentioned above.
+            This is different from the ``frequency`` value specified in the ``lr_scheduler_config`` mentioned above.
 
             .. code-block:: python
 

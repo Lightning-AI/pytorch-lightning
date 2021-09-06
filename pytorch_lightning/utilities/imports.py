@@ -87,10 +87,10 @@ _OMEGACONF_AVAILABLE = _module_available("omegaconf")
 _POPTORCH_AVAILABLE = _module_available("poptorch")
 _RICH_AVAILABLE = _module_available("rich")
 _TORCH_CPU_AMP_AVAILABLE = _compare_version(
-    "torch", operator.ge, "1.10.0dev20210501"
+    "torch", operator.ge, "1.10.dev20210902"
 )  # todo: swap to 1.10.0 once released
 _TORCH_BFLOAT_AVAILABLE = _compare_version(
-    "torch", operator.ge, "1.10.0.dev20210820"
+    "torch", operator.ge, "1.10.0.dev20210902"
 )  # todo: swap to 1.10.0 once released
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
 _TORCH_SHARDED_TENSOR_AVAILABLE = _compare_version(

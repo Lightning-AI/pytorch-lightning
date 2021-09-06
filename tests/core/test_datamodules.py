@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pickle
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass
 from typing import Any, Dict
 from unittest import mock
@@ -20,6 +20,7 @@ from unittest.mock import call, PropertyMock
 
 import pytest
 import torch
+from omegaconf import OmegaConf
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -528,15 +529,32 @@ def test_dm_init_from_datasets_dataloaders(iterable):
         )
 
 
-class DataModuleWithHparams(LightningDataModule):
+# all args
+class DataModuleWithHparams_0(LightningDataModule):
     def __init__(self, arg0, arg1, kwarg0=None):
         super().__init__()
         self.save_hyperparameters()
 
 
-def test_simple_hyperparameters_saving():
-    data = DataModuleWithHparams(10, "foo", kwarg0="bar")
+# single arg
+class DataModuleWithHparams_1(LightningDataModule):
+    def __init__(self, arg0, *args, **kwargs):
+        super().__init__()
+        self.save_hyperparameters(arg0)
+
+
+def test_hyperparameters_saving():
+    data = DataModuleWithHparams_0(10, "foo", kwarg0="bar")
     assert data.hparams == AttributeDict({"arg0": 10, "arg1": "foo", "kwarg0": "bar"})
+
+    data = DataModuleWithHparams_1(Namespace(**{"hello": "world"}), "foo", kwarg0="bar")
+    assert data.hparams == AttributeDict({"hello": "world"})
+
+    data = DataModuleWithHparams_1({"hello": "world"}, "foo", kwarg0="bar")
+    assert data.hparams == AttributeDict({"hello": "world"})
+
+    data = DataModuleWithHparams_1(OmegaConf.create({"hello": "world"}), "foo", kwarg0="bar")
+    assert data.hparams == OmegaConf.create({"hello": "world"})
 
 
 def test_define_as_dataclass():

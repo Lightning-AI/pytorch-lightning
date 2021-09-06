@@ -53,29 +53,26 @@ def test_loops_state_dict_structure():
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
             },
             "epoch_loop.scheduler_progress": {
-                "total": {"ready": 0, "started": None, "processed": None, "completed": 0},
-                "current": {"ready": 0, "started": None, "processed": None, "completed": 0},
+                "total": {"ready": 0, "completed": 0},
+                "current": {"ready": 0, "completed": 0},
             },
             "epoch_loop.batch_loop.state_dict": {},
             "epoch_loop.batch_loop.manual_loop.state_dict": {},
             "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
             "epoch_loop.batch_loop.optimizer_loop.optim_progress": {
                 "optimizer": {
-                    "step": {
-                        "total": {"ready": 0, "started": None, "processed": None, "completed": 0},
-                        "current": {"ready": 0, "started": None, "processed": None, "completed": 0},
-                    },
+                    "step": {"total": {"ready": 0, "completed": 0}, "current": {"ready": 0, "completed": 0}},
                     "zero_grad": {
-                        "total": {"ready": 0, "started": 0, "processed": None, "completed": 0},
-                        "current": {"ready": 0, "started": 0, "processed": None, "completed": 0},
+                        "total": {"ready": 0, "started": 0, "completed": 0},
+                        "current": {"ready": 0, "started": 0, "completed": 0},
                     },
                 },
                 "optimizer_idx": 0,
             },
             "epoch_loop.val_loop.state_dict": {},
             "epoch_loop.val_loop.dataloader_progress": {
-                "total": {"ready": 0, "started": None, "processed": None, "completed": 0},
-                "current": {"ready": 0, "started": None, "processed": None, "completed": 0},
+                "total": {"ready": 0, "completed": 0},
+                "current": {"ready": 0, "completed": 0},
             },
             "epoch_loop.val_loop.epoch_loop.state_dict": {},
             "epoch_loop.val_loop.epoch_loop.batch_progress": {
@@ -103,10 +100,7 @@ def test_loops_state_dict_structure():
         },
         "validate_loop": {
             "state_dict": {},
-            "dataloader_progress": {
-                "total": {"ready": 0, "started": None, "processed": None, "completed": 0},
-                "current": {"ready": 0, "started": None, "processed": None, "completed": 0},
-            },
+            "dataloader_progress": {"total": {"ready": 0, "completed": 0}, "current": {"ready": 0, "completed": 0}},
             "epoch_loop.state_dict": {},
             "epoch_loop.batch_progress": {
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
@@ -122,10 +116,7 @@ def test_loops_state_dict_structure():
         },
         "test_loop": {
             "state_dict": {},
-            "dataloader_progress": {
-                "total": {"ready": 0, "started": None, "processed": None, "completed": 0},
-                "current": {"ready": 0, "started": None, "processed": None, "completed": 0},
-            },
+            "dataloader_progress": {"total": {"ready": 0, "completed": 0}, "current": {"ready": 0, "completed": 0}},
             "epoch_loop.state_dict": {},
             "epoch_loop.batch_progress": {
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
@@ -141,10 +132,7 @@ def test_loops_state_dict_structure():
         },
         "predict_loop": {
             "state_dict": {},
-            "dataloader_progress": {
-                "total": {"ready": 0, "started": None, "processed": None, "completed": 0},
-                "current": {"ready": 0, "started": None, "processed": None, "completed": 0},
-            },
+            "dataloader_progress": {"total": {"ready": 0, "completed": 0}, "current": {"ready": 0, "completed": 0}},
             "epoch_loop.state_dict": {},
             "epoch_loop.batch_progress": {
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},

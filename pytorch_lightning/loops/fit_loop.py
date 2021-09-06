@@ -20,6 +20,7 @@ from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 log = logging.getLogger(__name__)
 
@@ -35,6 +36,12 @@ class FitLoop(Loop):
 
     def __init__(self, min_epochs: Optional[int] = None, max_epochs: Optional[int] = None):
         super().__init__()
+        # Allow max_epochs or max_steps to be zero, since this will be handled by fit_loop.done
+        if max_epochs and max_epochs < -1:
+            raise MisconfigurationException(
+                f"`max_epochs` must be a positive integer or -1. You passed in {max_epochs}."
+            )
+
         self.max_epochs = max_epochs
         self.min_epochs = min_epochs
         self.epoch_loop: Optional[TrainingEpochLoop] = None
@@ -98,6 +105,8 @@ class FitLoop(Loop):
     def max_steps(self, value: int) -> None:
         """Sets the maximum number of steps (forwards to epoch_loop)"""
         # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
+        if value and value < -1:
+            raise MisconfigurationException(f"`max_steps` must be a positive integer or -1. You passed in {value}.")
         self.epoch_loop.max_steps = value
 
     @property
@@ -108,11 +117,15 @@ class FitLoop(Loop):
     @property
     def _skip_backward(self) -> bool:
         """Determines whether the loop will skip backward during automatic optimization."""
+        assert self.epoch_loop.batch_loop is not None
+        assert self.epoch_loop.batch_loop.optimizer_loop is not None
         return self.epoch_loop.batch_loop.optimizer_loop._skip_backward
 
     @_skip_backward.setter
     def _skip_backward(self, value: bool) -> None:
         """Determines whether the loop will skip backward during automatic optimization."""
+        assert self.epoch_loop.batch_loop is not None
+        assert self.epoch_loop.batch_loop.optimizer_loop is not None
         self.epoch_loop.batch_loop.optimizer_loop._skip_backward = value
 
     @property
@@ -123,6 +136,19 @@ class FitLoop(Loop):
             return self.epoch_loop.val_loop._results
         raise RuntimeError("`FitLoop._results` property isn't defined. Accessed outside of scope")
 
+    @staticmethod
+    def _is_max_limit_enabled(max_value: Optional[int]) -> bool:
+        """Checks whether the max_value is enabled. This can
+        be used for checking whether max_epochs or max_steps is enabled.
+
+        Args:
+            max_value: the value to check
+
+        Returns:
+            whether the limit for this value should be enabled
+        """
+        return max_value not in (None, -1)
+
     @property
     def done(self) -> bool:
         """Evaluates when to leave the loop.
@@ -131,8 +157,8 @@ class FitLoop(Loop):
         or if the maximum number of steps or epochs is reached.
         """
         # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
-        stop_steps = self.max_steps is not None and self.global_step >= self.max_steps
-        stop_epochs = self.max_epochs is not None and self.current_epoch >= self.max_epochs
+        stop_steps = FitLoop._is_max_limit_enabled(self.max_steps) and self.global_step >= self.max_steps
+        stop_epochs = FitLoop._is_max_limit_enabled(self.max_epochs) and self.current_epoch >= self.max_epochs
 
         should_stop = False
         if self.trainer.should_stop:
@@ -200,11 +226,7 @@ class FitLoop(Loop):
         data_fetcher = self.trainer.data_connector.get_profiled_dataloader(dataloader)
 
         with self.trainer.profiler.profile("run_training_epoch"):
-            # run train epoch
-            epoch_output = self.epoch_loop.run(data_fetcher)
-
-            if epoch_output is None:
-                return
+            self.epoch_loop.run(data_fetcher)
 
             # the global step is manually decreased here due to backwards compatibility with existing loggers
             # as they expect that the same step is used when logging epoch end metrics even when the batch loop has

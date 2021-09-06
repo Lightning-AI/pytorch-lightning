@@ -27,7 +27,7 @@ from torchmetrics import Metric, MetricCollection
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.trainer.connectors.logger_connector.result import MetricSource, ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _TORCH_GREATER_EQUAL_1_7
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -81,10 +81,10 @@ def _ddp_test_fn(rank, worldsize):
             result.log("h", "b", metric_b, on_step=False, on_epoch=True)
             result.log("h", "c", metric_c, on_step=True, on_epoch=False)
 
-            batch_log = result.metrics(True)[MetricSource.LOG]
+            batch_log = result.metrics(True)["log"]
             assert batch_log == {"a_step": i, "c": i}
 
-        epoch_log = result.metrics(False)[MetricSource.LOG]
+        epoch_log = result.metrics(False)["log"]
         result.reset()
 
         # assert metric state reset to default values
@@ -124,10 +124,10 @@ def test_result_metric_integration():
             result.log("h", "b", metric_b, on_step=False, on_epoch=True)
             result.log("h", "c", metric_c, on_step=True, on_epoch=False)
 
-            batch_log = result.metrics(True)[MetricSource.LOG]
+            batch_log = result.metrics(True)["log"]
             assert batch_log == {"a_step": i, "c": i}
 
-        epoch_log = result.metrics(False)[MetricSource.LOG]
+        epoch_log = result.metrics(False)["log"]
         result.reset()
 
         # assert metric state reset to default values
@@ -248,7 +248,7 @@ def test_result_collection_restoration(tmpdir):
             lightning_log("training_step", "b_1", b, on_step=False, on_epoch=True)
             lightning_log("training_step", "c_1", {"1": c, "2": c}, on_step=True, on_epoch=False)
 
-            batch_log = result.metrics(on_step=True)[MetricSource.LOG]
+            batch_log = result.metrics(on_step=True)["log"]
             assert set(batch_log) == {"a_step", "c", "a_1_step", "c_1"}
             assert set(batch_log["c_1"]) == {"1", "2"}
 
@@ -269,12 +269,12 @@ def test_result_collection_restoration(tmpdir):
             # the sync fn has been kept
             assert result_copy["training_step.a"].meta.sync.fn == new_result["training_step.a"].meta.sync.fn
 
-        epoch_log = result.metrics(on_step=False)[MetricSource.LOG]
-        epoch_log_copy = result_copy.metrics(on_step=False)[MetricSource.LOG]
+        epoch_log = result.metrics(on_step=False)["log"]
+        epoch_log_copy = result_copy.metrics(on_step=False)["log"]
         assert epoch_log == epoch_log_copy
 
         lightning_log("train_epoch_end", "a", metric_a, on_step=False, on_epoch=True)
-        epoch_log = result.metrics(on_step=False)[MetricSource.LOG]
+        epoch_log = result.metrics(on_step=False)["log"]
         assert epoch_log == {
             "a_1_epoch": 1,
             "a_epoch": cumulative_sum,
@@ -451,9 +451,9 @@ def result_collection_reload(**kwargs):
                 total = sum(range(5)) * num_processes
                 metrics = self.results.metrics(on_step=False)
                 assert self.results["training_step.tracking"].value == total
-                assert metrics[MetricSource.CALLBACK]["tracking"] == self.dummy_metric.compute() == 2
+                assert metrics["callback"]["tracking"] == self.dummy_metric.compute() == 2
                 assert self.results["training_step.tracking_2"].value == total
-                assert metrics[MetricSource.CALLBACK]["tracking_2"] == self.dummy_metric.compute() == 2
+                assert metrics["callback"]["tracking_2"] == self.dummy_metric.compute() == 2
                 self.has_validated_sum = True
 
     model = ExtendedBoringModel()

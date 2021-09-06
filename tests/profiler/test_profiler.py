@@ -29,7 +29,7 @@ from pytorch_lightning.profiler.pytorch import RegisterRecordFunction
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
-from tests.helpers import BoringModel
+from tests.helpers import BoringModel, ManualOptimBoringModel
 from tests.helpers.runif import RunIf
 
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
@@ -303,49 +303,47 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         assert any(f"{local_rank}-validation_step" in f for f in files)
 
 
-def test_pytorch_profiler_trainer_test(tmpdir):
+@pytest.mark.parametrize("fast_dev_run", [1, 2, 3, 4, 5])
+@pytest.mark.parametrize("boring_model_cls", [ManualOptimBoringModel, BoringModel])
+def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
     """Ensure that the profiler can be given to the trainer and test step are properly recorded."""
-    pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", schedule=None)
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_test_batches=2, profiler=pytorch_profiler)
-    trainer.test(model)
+    pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile")
+    model = boring_model_cls()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=fast_dev_run, profiler=pytorch_profiler)
+    trainer.fit(model)
 
-    assert sum(e.name == "test_step" for e in pytorch_profiler.function_events)
+    assert sum(e.name == "validation_step" for e in pytorch_profiler.function_events)
 
-    path = pytorch_profiler.dirpath / f"test-{pytorch_profiler.filename}.txt"
+    path = pytorch_profiler.dirpath / f"fit-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
 
     if _KINETO_AVAILABLE:
         files = sorted(file for file in os.listdir(tmpdir) if file.endswith(".json"))
-        assert any(f"test-{pytorch_profiler.filename}" in f for f in files)
-        path = pytorch_profiler.dirpath / f"test-{pytorch_profiler.filename}.txt"
+        assert any(f"fit-{pytorch_profiler.filename}" in f for f in files)
+        path = pytorch_profiler.dirpath / f"fit-{pytorch_profiler.filename}.txt"
         assert path.read_text("utf-8")
 
 
-def test_pytorch_profiler_trainer_predict(tmpdir):
-    """Ensure that the profiler can be given to the trainer and predict function are properly recorded."""
+@pytest.mark.parametrize("fn, step_name", [("test", "test"), ("validate", "validation"), ("predict", "predict")])
+@pytest.mark.parametrize("boring_model_cls", [BoringModel, ManualOptimBoringModel])
+def test_pytorch_profiler_trainer(fn, step_name, boring_model_cls, tmpdir):
+    """Ensure that the profiler can be given to the trainer and test step are properly recorded."""
     pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", schedule=None)
-    model = BoringModel()
+    model = boring_model_cls()
     model.predict_dataloader = model.train_dataloader
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_predict_batches=2, profiler=pytorch_profiler)
-    trainer.predict(model)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_test_batches=2, profiler=pytorch_profiler)
+    getattr(trainer, fn)(model)
 
-    assert sum(e.name == "predict_step" for e in pytorch_profiler.function_events)
-    path = pytorch_profiler.dirpath / f"predict-{pytorch_profiler.filename}.txt"
+    assert sum(e.name == f"{step_name}_step" for e in pytorch_profiler.function_events)
+
+    path = pytorch_profiler.dirpath / f"{fn}-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
 
-
-def test_pytorch_profiler_trainer_validate(tmpdir):
-    """Ensure that the profiler can be given to the trainer and validate function are properly recorded."""
-    pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", schedule=None)
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=2, profiler=pytorch_profiler)
-    trainer.validate(model)
-
-    assert sum(e.name == "validation_step" for e in pytorch_profiler.function_events)
-
-    path = pytorch_profiler.dirpath / f"validate-{pytorch_profiler.filename}.txt"
-    assert path.read_text("utf-8")
+    if _KINETO_AVAILABLE:
+        files = sorted(file for file in os.listdir(tmpdir) if file.endswith(".json"))
+        assert any(f"{fn}-{pytorch_profiler.filename}" in f for f in files)
+        path = pytorch_profiler.dirpath / f"{fn}-{pytorch_profiler.filename}.txt"
+        assert path.read_text("utf-8")
 
 
 def test_pytorch_profiler_nested(tmpdir):
@@ -461,7 +459,7 @@ def test_profiler_teardown(tmpdir, cls):
 
     profiler = cls(dirpath=tmpdir, filename="profiler")
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, profiler=profiler, callbacks=[TestCallback()])
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1, profiler=profiler, callbacks=[TestCallback()])
     trainer.fit(model)
 
     assert profiler._output_file is None

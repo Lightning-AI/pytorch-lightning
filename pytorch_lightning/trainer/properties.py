@@ -39,7 +39,13 @@ from pytorch_lightning.trainer.connectors.checkpoint_connector import Checkpoint
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
-from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities import (
+    DeviceType,
+    DistributedType,
+    GradClipAlgorithmType,
+    rank_zero_deprecation,
+    rank_zero_warn,
+)
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
     from_argparse_args,
@@ -62,13 +68,18 @@ class TrainerProperties(ABC):
     _weights_save_path: str
 
     accelerator_connector: AcceleratorConnector
+    accumulate_grad_batches: int
     callbacks: List[Callback]
     checkpoint_connector: CheckpointConnector
-    reload_dataloaders_every_n_epochs: int
+    gradient_clip_algorithm: GradClipAlgorithmType
+    gradient_clip_val: float
     limit_val_batches: int
     logger: Optional[LightningLoggerBase]
     logger_connector: LoggerConnector
+    reload_dataloaders_every_n_epochs: int
     state: TrainerState
+    terminate_on_nan: bool
+    track_grad_norm: Union[int, float, str]
 
     # .validate() and .test() set this when they load a checkpoint
     validated_ckpt_path: Optional[str] = None

@@ -53,7 +53,9 @@ class NestedLoop(Loop):
 def test_connect_loops_direct(loop_name):
     """Test Trainer referenes in loops on assignment."""
     loop = NestedLoop()
-    assert loop.trainer is None
+
+    with pytest.raises(RuntimeError, match="The loop is not attached to a Trainer"):
+        _ = loop.trainer
 
     trainer = Trainer()
 
@@ -68,8 +70,12 @@ def test_connect_loops_recursive():
     child0 = NestedLoop()
     child1 = NestedLoop()
     main_loop.connect(child0, child1)
-    assert main_loop.trainer is None
-    assert main_loop.child_loop0.trainer is None
+
+    with pytest.raises(RuntimeError, match="The loop is not attached to a Trainer"):
+        _ = main_loop.trainer
+
+    with pytest.raises(RuntimeError, match="The loop is not attached to a Trainer"):
+        _ = main_loop.child_loop0.trainer
 
     trainer = Trainer()
     trainer.fit_loop = main_loop
@@ -86,7 +92,9 @@ def test_connect_subloops(tmpdir):
     new_batch_loop = TrainingBatchLoop()
     epoch_loop.connect(batch_loop=new_batch_loop)
     assert epoch_loop.batch_loop is new_batch_loop
-    assert new_batch_loop.trainer is None
+
+    with pytest.raises(RuntimeError, match="The loop is not attached to a Trainer"):
+        _ = new_batch_loop.trainer
 
     trainer.fit(model)
     assert new_batch_loop.trainer is trainer
@@ -285,8 +293,8 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
 
     total_dataloader = stop_epoch * n_dataloaders + stop_dataloader
     expected = {
-        "total": {"ready": total_dataloader + 1, "started": None, "processed": None, "completed": total_dataloader},
-        "current": {"ready": stop_dataloader + 1, "started": None, "processed": None, "completed": stop_dataloader},
+        "total": {"ready": total_dataloader + 1, "completed": total_dataloader},
+        "current": {"ready": stop_dataloader + 1, "completed": stop_dataloader},
     }
     assert checkpoint["epoch_loop.val_loop.dataloader_progress"] == expected
 
@@ -452,13 +460,8 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
             },
         },
         "epoch_loop.scheduler_progress": {
-            "total": {
-                "ready": nbe_sch_steps + be_sch_steps,
-                "started": None,
-                "processed": None,
-                "completed": nbe_sch_steps + be_sch_steps,
-            },
-            "current": {"ready": be_sch_steps, "started": None, "processed": None, "completed": be_sch_steps},
+            "total": {"ready": nbe_sch_steps + be_sch_steps, "completed": nbe_sch_steps + be_sch_steps},
+            "current": {"ready": be_sch_steps, "completed": be_sch_steps},
         },
         "epoch_loop.batch_loop.state_dict": ANY,
         "epoch_loop.batch_loop.manual_loop.state_dict": ANY,
@@ -469,28 +472,19 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
                 "step": {
                     "total": {
                         "ready": nbe_total_opt_steps + be_total_opt_steps + has_opt_stepped_in_be,
-                        "started": None,
-                        "processed": None,
                         "completed": nbe_total_opt_steps + be_total_opt_steps,
                     },
-                    "current": {
-                        "ready": be_total_opt_steps + has_opt_stepped_in_be,
-                        "started": None,
-                        "processed": None,
-                        "completed": be_total_opt_steps,
-                    },
+                    "current": {"ready": be_total_opt_steps + has_opt_stepped_in_be, "completed": be_total_opt_steps},
                 },
                 "zero_grad": {
                     "total": {
                         "ready": nbe_total_zero_grad + be_total_zero_grad,
                         "started": nbe_total_zero_grad + be_total_zero_grad,
-                        "processed": None,
                         "completed": nbe_total_zero_grad + be_total_zero_grad,
                     },
                     "current": {
                         "ready": be_total_zero_grad,
                         "started": be_total_zero_grad,
-                        "processed": None,
                         "completed": be_total_zero_grad,
                     },
                 },
