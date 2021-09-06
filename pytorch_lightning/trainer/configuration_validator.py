@@ -43,6 +43,8 @@ class ConfigValidator:
         elif self.trainer.state.fn == TrainerFn.PREDICTING:
             self.__verify_predict_loop_configuration(model)
         self.__verify_dp_batch_transfer_support(model)
+        # TODO: Delete _check_on_keyboard_interrupt in v1.7
+        self._check_on_keyboard_interrupt()
 
     def __verify_train_loop_configuration(self, model: "pl.LightningModule") -> None:
         # -----------------------------------
@@ -200,4 +202,13 @@ class ConfigValidator:
                 raise MisconfigurationException(
                     "The model taking a `dataloader_iter` argument in your `training_step` "
                     "is incompatible with `truncated_bptt_steps > 0`."
+                )
+
+    def _check_on_keyboard_interrupt(self) -> None:
+        """Checks if on_keyboard_interrupt is overriden and sends a deprecation warning."""
+        for callback in self.trainer.callbacks:
+            if is_overridden(method_name="on_keyboard_interrupt", instance=callback):
+                rank_zero_deprecation(
+                    "The `on_keyboard_interrupt` callback hook was deprecated in v1.5 and will be removed in v1.7."
+                    " Please use the `on_exception` callback hook instead."
                 )

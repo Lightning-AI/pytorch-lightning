@@ -1236,18 +1236,18 @@ class LightningModule(
             - **Single optimizer**.
             - **List or Tuple** of optimizers.
             - **Two lists** - The first list has multiple optimizers, and the second has multiple LR schedulers
-              (or multiple ``lr_dict``).
+              (or multiple ``lr_scheduler_config``).
             - **Dictionary**, with an ``"optimizer"`` key, and (optionally) a ``"lr_scheduler"``
-              key whose value is a single LR scheduler or ``lr_dict``.
+              key whose value is a single LR scheduler or ``lr_scheduler_config``.
             - **Tuple of dictionaries** as described above, with an optional ``"frequency"`` key.
             - **None** - Fit will run without any optimizer.
 
-        The ``lr_dict`` is a dictionary which contains the scheduler and its associated configuration.
+        The ``lr_scheduler_config`` is a dictionary which contains the scheduler and its associated configuration.
         The default configuration is shown below.
 
         .. code-block:: python
 
-            lr_dict = {
+            lr_scheduler_config = {
                 # REQUIRED: The scheduler instance
                 "scheduler": lr_scheduler,
                 # The unit of the scheduler's step size, could also be 'step'.
@@ -1271,8 +1271,9 @@ class LightningModule(
             }
 
         When there are schedulers in which the ``.step()`` method is conditioned on a value, such as the
-        :class:`torch.optim.lr_scheduler.ReduceLROnPlateau` scheduler, Lightning requires that the ``lr_dict``
-        contains the keyword ``"monitor"`` set to the metric name that the scheduler should be conditioned on.
+        :class:`torch.optim.lr_scheduler.ReduceLROnPlateau` scheduler, Lightning requires that the
+        ``lr_scheduler_config`` contains the keyword ``"monitor"`` set to the metric name that the scheduler
+        should be conditioned on.
 
         .. testcode::
 
@@ -1318,7 +1319,7 @@ class LightningModule(
                 - In the former case, all optimizers will operate on the given batch in each optimization step.
                 - In the latter, only one optimizer will operate on the given batch at every step.
 
-            This is different from the ``frequency`` value specified in the ``lr_dict`` mentioned above.
+            This is different from the ``frequency`` value specified in the ``lr_scheduler_config`` mentioned above.
 
             .. code-block:: python
 

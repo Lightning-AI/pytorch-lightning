@@ -206,10 +206,6 @@ class EarlyStopping(Callback):
             return
 
         current = logs.get(self.monitor)
-
-        # when in dev debugging
-        trainer.dev_debugger.track_early_stopping_history(self, current)
-
         should_stop, reason = self._evaluate_stopping_criteria(current)
 
         # stop every ddp process if any world process decides to stop

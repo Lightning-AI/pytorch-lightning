@@ -558,3 +558,33 @@ def _test_progress_bar_max_val_check_interval(
     total_val_batches = total_val_batches * val_checks_per_epoch
     if trainer.is_global_zero:
         assert trainer.progress_bar_callback.main_progress_bar.total == total_train_batches + total_val_batches
+
+
+def test_progress_bar_main_bar_resume():
+    """Test that the progress bar can resume its counters based on the Trainer state."""
+    bar = ProgressBar()
+    trainer = Mock()
+    model = Mock()
+
+    trainer.sanity_checking = False
+    trainer.check_val_every_n_epoch = 1
+    trainer.current_epoch = 1
+    trainer.num_training_batches = 5
+    trainer.val_check_batch = 5
+    trainer.num_val_batches = [3]
+    trainer.fit_loop.epoch_loop.batch_progress.current.completed = 3
+
+    bar.on_init_end(trainer)
+    bar.on_train_start(trainer, model)
+    bar.on_train_epoch_start(trainer, model)
+
+    assert bar.main_progress_bar.n == 3
+    assert bar.main_progress_bar.total == 8
+
+    # bar.on_train_epoch_end(trainer, model)
+    bar.on_validation_start(trainer, model)
+    bar.on_validation_epoch_start(trainer, model)
+
+    # restarting mid validation epoch is not currently supported
+    assert bar.val_progress_bar.n == 0
+    assert bar.val_progress_bar.total == 3
