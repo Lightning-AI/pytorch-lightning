@@ -91,7 +91,7 @@ def test_v1_7_0_trainer_prepare_data_per_node(tmpdir):
         _ = Trainer(prepare_data_per_node=False)
 
 
-def test_v1_7_0_deprecated_on_train_dataloader(tmpdir):
+def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
 
     model = BoringModel()
     with pytest.deprecated_call(
