@@ -189,7 +189,7 @@ class TrainingEpochLoop(loops.Loop):
         # progress global step according to grads progress
         self._increment_accumulated_grad_global_step()
 
-    def on_run_end(self) -> List[List[STEP_OUTPUT]]:
+    def on_run_end(self) -> None:
         """Calls the on_epoch_end hook.
 
         Returns:
@@ -198,32 +198,29 @@ class TrainingEpochLoop(loops.Loop):
         Raises:
             MisconfigurationException: ``train_epoch_end`` does not return ``None``
         """
-        if self.batch_progress.current.ready == 0:
-            # dataloader/iterator did not produce a batch
-            return
-
         # inform logger the batch loop has finished
         self.trainer.logger_connector.epoch_end_reached()
 
-        # prepare epoch output
-        processed_outputs = self._prepare_outputs(self._epoch_output, batch_mode=False)
-
         # get the model and call model.training_epoch_end
         model = self.trainer.lightning_module
+        if is_overridden("training_epoch_end", model) and self._epoch_output:
+            processed_outputs = self._prepare_outputs(self._epoch_output, batch_mode=False)
+            # check that the dataloader/iterator produced a batch
+            if processed_outputs:
+                # run training_epoch_end
+                # refresh the result for custom logging at the epoch level
+                model._current_fx_name = "training_epoch_end"
 
-        if is_overridden("training_epoch_end", model):
-            # run training_epoch_end
-            # refresh the result for custom logging at the epoch level
-            model._current_fx_name = "training_epoch_end"
+                # lightningmodule hook
+                training_epoch_end_output = model.training_epoch_end(processed_outputs)
 
-            # lightningmodule hook
-            training_epoch_end_output = model.training_epoch_end(processed_outputs)
-
-            if training_epoch_end_output is not None:
-                raise MisconfigurationException(
-                    "training_epoch_end expects a return of None. "
-                    "HINT: remove the return statement in training_epoch_end"
-                )
+                if training_epoch_end_output is not None:
+                    raise MisconfigurationException(
+                        "training_epoch_end expects a return of None. "
+                        "HINT: remove the return statement in training_epoch_end"
+                    )
+        # free memory
+        self._epoch_output = None
 
         self.trainer.fit_loop.epoch_progress.increment_processed()
 
@@ -234,11 +231,6 @@ class TrainingEpochLoop(loops.Loop):
 
         if self._num_training_batches_reached(self.is_last_batch):
             self.update_lr_schedulers("epoch", update_plateau_schedulers=True)
-
-        epoch_output = self._epoch_output
-        # free memory
-        self._epoch_output = None
-        return epoch_output
 
     def teardown(self) -> None:
         self._results.cpu()
