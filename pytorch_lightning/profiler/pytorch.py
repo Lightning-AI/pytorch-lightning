@@ -384,6 +384,12 @@ class PyTorchProfiler(BaseProfiler):
             if self._register is not None:
                 self._register.__enter__()
 
+        if self._lightning_module is not None:
+            # when the model is used in automatic optimization,
+            # we use `optimizer_step_and_closure` to step the model.
+            if self._lightning_module.automatic_optimization and "training_step" in self.STEP_FUNCTIONS:
+                self.STEP_FUNCTIONS.remove("training_step")
+
         if (
             self.profiler is not None
             and (action_name in self._record_functions or action_name.startswith(self.RECORD_FUNCTION_PREFIX))

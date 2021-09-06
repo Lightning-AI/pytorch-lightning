@@ -304,7 +304,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
 
 
 @pytest.mark.parametrize("fast_dev_run", [1, 2, 3, 4, 5])
-@pytest.mark.parametrize("boring_model_cls", [BoringModel, ManualOptimBoringModel])
+@pytest.mark.parametrize("boring_model_cls", [ManualOptimBoringModel, BoringModel])
 def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
     """Ensure that the profiler can be given to the trainer and test step are properly recorded."""
     pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile")
