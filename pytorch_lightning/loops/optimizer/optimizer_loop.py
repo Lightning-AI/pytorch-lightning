@@ -49,8 +49,8 @@ class OptimizerLoop(Loop):
         self.optim_progress: OptimizationProgress = OptimizationProgress()
 
         self._skip_backward: bool = False
-        self._batch_idx: Optional[int] = None
-        self._optimizers: Optional[List[Optimizer]] = None
+        self._batch_idx: int = 0
+        self._optimizers: List[Optimizer] = []
         self._hiddens: Optional[Any] = None
 
     @property
@@ -66,17 +66,19 @@ class OptimizerLoop(Loop):
             self.optim_progress.optimizer_idx = 0
         self.outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
-    def on_run_start(self, batch: Any, hiddens: Any, optimizers: List[Optimizer], batch_idx: int) -> None:
+    def on_run_start(  # type: ignore[override]
+        self, batch: Any, hiddens: Any, optimizers: List[Optimizer], batch_idx: int
+    ) -> None:
         self._batch_idx = batch_idx
         self._optimizers = optimizers
 
-    def advance(self, batch: Any, hiddens: Any, *args, **kwargs) -> None:
+    def advance(self, batch: Any, hiddens: Any, *args, **kwargs) -> None:  # type: ignore[override]
         self._hiddens = hiddens
         result = self._run_optimization(
-            self._batch_idx,
             batch,
-            self.optim_progress.optimizer_idx,
+            self._batch_idx,
             self._optimizers[self.optim_progress.optimizer_idx],
+            self.optim_progress.optimizer_idx,
         )
         if result:
             self.outputs[self.optim_progress.optimizer_idx].append(deepcopy(result.result_collection))
@@ -94,8 +96,8 @@ class OptimizerLoop(Loop):
     def backward(
         self,
         loss: Tensor,
-        optimizer: Optional[torch.optim.Optimizer],
-        opt_idx: Optional[int] = None,
+        optimizer: torch.optim.Optimizer,
+        opt_idx: int,
         *args: Any,
         **kwargs: Any,
     ) -> Tensor:
@@ -103,8 +105,8 @@ class OptimizerLoop(Loop):
 
         Args:
             loss: The loss value to back-propagate on
-            optimizer: Current optimizer being used. ``None`` if using manual optimization.
-            opt_idx: Index of the current optimizer being used. ``None`` if using manual optimization.
+            optimizer: Current optimizer being used
+            opt_idx: Index of the current optimizer being used
         """
         self.trainer.accelerator.backward(loss, optimizer, opt_idx, *args, **kwargs)
 
@@ -118,18 +120,18 @@ class OptimizerLoop(Loop):
 
     def _run_optimization(
         self,
-        batch_idx: int,
         split_batch: Any,
-        opt_idx: Optional[int] = None,
-        optimizer: Optional[torch.optim.Optimizer] = None,
+        batch_idx: int,
+        optimizer: torch.optim.Optimizer,
+        opt_idx: int,
     ) -> Optional[ClosureResult]:
         """Runs closure (train step + backward) together with optimization if necessary.
 
         Args:
-            batch_idx: the index of the current batch
             split_batch: the current tbptt split of the whole batch
-            opt_idx: the index of the current optimizer or `None` in case of manual optimization
-            optimizer: the current optimizer or `None` in case of manual optimization
+            batch_idx: the index of the current batch
+            optimizer: the current optimizer
+            opt_idx: the index of the current optimizer
         """
         # toggle model params
         self._run_optimization_start(opt_idx, optimizer)
@@ -159,6 +161,10 @@ class OptimizerLoop(Loop):
             # if no result, user decided to skip optimization
             # otherwise update running loss + reset accumulated loss
             # TODO: find proper way to handle updating running loss
+            assert self.trainer.fit_loop is not None
+            assert self.trainer.fit_loop.epoch_loop is not None
+            assert self.trainer.fit_loop.epoch_loop.batch_loop is not None
+            assert result.loss is not None
             self.trainer.fit_loop.epoch_loop.batch_loop._update_running_loss(result.loss)
 
         # untoggle model params
@@ -188,23 +194,30 @@ class OptimizerLoop(Loop):
             profiler=self.trainer.profiler,
         )
 
-    def _make_step_fn(self, split_batch: Any, batch_idx: int, opt_idx: int, hiddens: Any) -> Callable[[], dict]:
+    def _make_step_fn(
+        self, split_batch: Any, batch_idx: int, opt_idx: int, hiddens: Any
+    ) -> Callable[[], Optional[AttributeDict]]:
         """Build the step function that runs the `training_step` and processes its output."""
         return partial(self._training_step, split_batch, batch_idx, opt_idx, hiddens)
 
     def _make_zero_grad_fn(self, batch_idx: int, opt_idx: int, optimizer: Optimizer) -> Optional[Callable[[], None]]:
         """
         Build a `zero_grad` function that zeroes the gradients before back-propagation.
-        Returns ``None`` in the case backward needs to be skipped, e.g., when manual optimization is on.
+        Returns ``None`` in the case backward needs to be skipped.
         """
+
+        if self._skip_backward:
+            return None
+
+        is_first_batch_to_accumulate = batch_idx % self.trainer.accumulate_grad_batches == 0
+        if not is_first_batch_to_accumulate:
+            return None
 
         def zero_grad_fn():
             self._on_before_zero_grad(optimizer)
             self._optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
-        is_first_batch_to_accumulate = batch_idx % self.trainer.accumulate_grad_batches == 0
-        if not self._skip_backward and is_first_batch_to_accumulate:
-            return zero_grad_fn
+        return zero_grad_fn
 
     def _make_backward_fn(
         self,
@@ -213,8 +226,10 @@ class OptimizerLoop(Loop):
     ) -> Optional[Callable[[Tensor], Tensor]]:
         """
         Build a `backward` function that handles back-propagation through the output produced by the `training_step`
-        function. Returns ``None`` in the case backward needs to be skipped, e.g., when manual optimization is on.
+        function. Returns ``None`` in the case backward needs to be skipped.
         """
+        if self._skip_backward:
+            return None
 
         def backward_fn(loss: Tensor):
             self.backward(loss, optimizer, opt_idx)
@@ -225,8 +240,7 @@ class OptimizerLoop(Loop):
 
             return loss
 
-        if not self._skip_backward:
-            return backward_fn
+        return backward_fn
 
     def _run_optimization_start(self, opt_idx: int, optimizer: torch.optim.Optimizer) -> None:
         """Toggles the optimizer to ensure the correct one is used and prevend dangling grads.
@@ -262,7 +276,7 @@ class OptimizerLoop(Loop):
         model_ref = self.trainer.lightning_module
 
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-        using_native_amp = self.trainer.amp_backend == AMPType.NATIVE
+        using_native_amp = self.trainer.amp_backend is not None and self.trainer.amp_backend == AMPType.NATIVE
 
         # native amp + lbfgs is a no go right now
         if using_native_amp and is_lbfgs:
@@ -348,7 +362,10 @@ class OptimizerLoop(Loop):
 
             result_collection, self._hiddens = _process_training_step_output(self.trainer, training_step_output)
             if result_collection is None:
-                return
+                return None
+
+        # output validation already done, here loss can't be None
+        assert result_collection.minimize is not None
 
         # accumulate loss. if accumulate_grad_batches==1, no effect
         closure_loss = result_collection.minimize / self.trainer.accumulate_grad_batches

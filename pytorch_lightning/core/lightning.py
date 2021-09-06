@@ -550,7 +550,7 @@ class LightningModule(
     def __to_tensor(self, value: numbers.Number) -> torch.Tensor:
         return torch.tensor(value, device=self.device)
 
-    def log_grad_norm(self, grad_norm_dict: Dict[str, torch.Tensor]) -> None:
+    def log_grad_norm(self, grad_norm_dict: Dict[str, float]) -> None:
         """Override this method to change the default behaviour of ``log_grad_norm``.
 
         Args:

@@ -90,6 +90,8 @@ class TrainingEpochLoop(loops.Loop):
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""
+        assert self.batch_loop is not None
+        assert self.batch_loop.optimizer_loop is not None
         self.is_last_batch = False
 
         # track epoch output
