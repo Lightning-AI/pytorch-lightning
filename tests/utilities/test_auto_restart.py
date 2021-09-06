@@ -118,10 +118,8 @@ def test_fast_forward_getattr():
 
 
 def test_fast_forward_on_batch_sampler():
-    """
-    This test ensures ``FastForwardSampler`` applied to ``BatchSampler`` correctly retrived
-    the right next batch on restart.
-    """
+    """This test ensures ``FastForwardSampler`` applied to ``BatchSampler`` correctly retrived the right next batch
+    on restart."""
     dataset = range(15)
     sampler = SequentialSampler(dataset)
     batch_sampler = BatchSampler(sampler, 3, False)
@@ -144,10 +142,8 @@ def test_fast_forward_on_batch_sampler():
 
 
 def test_fast_forward_on_sequential_sampler():
-    """
-    This test ensures ``FastForwardSampler`` applied to ``SequentialSampler`` correctly retrived
-    the right next batch on restart.
-    """
+    """This test ensures ``FastForwardSampler`` applied to ``SequentialSampler`` correctly retrived the right next
+    batch on restart."""
     dataset = range(15)
     sequential_sampler = SequentialSampler(dataset)
     sampler = FastForwardSampler(sequential_sampler)
@@ -170,10 +166,8 @@ def test_fast_forward_on_sequential_sampler():
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="todo (tchaton) Need more investigation")
 def test_fast_forward_on_random_sampler():
-    """
-    This test ensures ``FastForwardSampler`` applied to ``RandomSampler`` correctly retrived
-    the right next batch on restart.
-    """
+    """This test ensures ``FastForwardSampler`` applied to ``RandomSampler`` correctly retrived the right next
+    batch on restart."""
     seed = 42
     seed_everything(42)
 
@@ -250,10 +244,8 @@ class RangeIterableDataset(IterableDataset):
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 30 sec and should be skipped in Azure CI")
 @pytest.mark.parametrize("num_workers", [0, 1, 2])
 def test_fast_forward_sampler_over_iterable_dataset(num_workers):
-    """
-    This test ensures ``FastForwardSampler`` and ``CaptureIterableDataset`` are properly being
-    used to capture workers states.
-    """
+    """This test ensures ``FastForwardSampler`` and ``CaptureIterableDataset`` are properly being used to capture
+    workers states."""
     batch_size = 3
     initial_seed = seed_everything(42)
     generator = torch.Generator()
@@ -364,7 +356,7 @@ def _test_fast_forward_sampler_with_distributed_sampler(rank, worldsize):
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 25 sec and should be skipped in Azure CI")
 @RunIf(skip_windows=True)
 def test_fast_forward_sampler_with_distributed_sampler():
-    """Make sure result logging works with DDP"""
+    """Make sure result logging works with DDP."""
     tutils.set_random_master_port()
     worldsize = 2
     mp.spawn(_test_fast_forward_sampler_with_distributed_sampler, args=(worldsize,), nprocs=worldsize)
@@ -638,7 +630,7 @@ def test_fast_forward_sampler_iterative_dataset():
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 55 sec and should be skipped in Azure CI")
 @RunIf(skip_windows=True)
 def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
-    """Make sure result logging works with DDP"""
+    """Make sure result logging works with DDP."""
     tutils.set_random_master_port()
     worldsize = 2
     mp.spawn(
@@ -700,9 +692,7 @@ def test_dataloader_to_state_dict_and_reload():
 @RunIf(min_torch="1.7.0")
 @pytest.mark.parametrize("use_fault_tolerant", ["0", "1"])
 def test_data_loading_wraps_dataset_and_samplers(use_fault_tolerant, tmpdir):
-    """
-    This test ensures the dataset and sampler are properly wrapped when fault tolerant is enabled.
-    """
+    """This test ensures the dataset and sampler are properly wrapped when fault tolerant is enabled."""
 
     class CustomBatchSampler(BatchSampler):
         pass
@@ -807,8 +797,7 @@ class RandomGetItemDataset(Dataset):
 @pytest.mark.parametrize("batch_size", [1, 2, 3])
 def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     """Test that the sequence of batches coming from a random number generator continues with the correct sequence
-    after reloading the state.
-    """
+    after reloading the state."""
 
     def create_dataset_sampler():
         dset = CaptureMapDataset(dataset_class(16, 8))

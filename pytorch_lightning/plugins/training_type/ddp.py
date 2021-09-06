@@ -77,12 +77,10 @@ log = logging.getLogger(__name__)
 
 
 class DDPPlugin(ParallelPlugin):
-    """
-    Plugin for multi-process single-device training on one or multiple nodes.
+    """Plugin for multi-process single-device training on one or multiple nodes.
 
-    The master process in each node spawns N-1 child processes via :func:`subprocess.Popen`,
-    where N is the number of devices (e.g. GPU) per node.
-    It is very similar to how :mod:`torch.distributed.launch` launches processes.
+    The master process in each node spawns N-1 child processes via :func:`subprocess.Popen`, where N is the number of
+    devices (e.g. GPU) per node. It is very similar to how :mod:`torch.distributed.launch` launches processes.
     """
 
     distributed_backend = "ddp"
@@ -405,7 +403,7 @@ class DDPPlugin(ParallelPlugin):
         return self.dist.broadcast(obj)
 
     def pre_backward(self, closure_loss: torch.Tensor) -> None:
-        """Run before precision plugin executes backward"""
+        """Run before precision plugin executes backward."""
         if not self.lightning_module.automatic_optimization:
             prepare_for_backward(self.model, closure_loss)
 
@@ -413,8 +411,7 @@ class DDPPlugin(ParallelPlugin):
         self.model.to(self.root_device)
 
     def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> torch.Tensor:
-        """
-        Reduces a tensor from several distributed processes to one aggregated tensor.
+        """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
             tensor: the tensor to sync and reduce
@@ -476,9 +473,7 @@ class DDPPlugin(ParallelPlugin):
         self._sync_dir = sync_dirs[self.node_rank]
 
     def _share_pids(self):
-        """
-        Make all DDP processes aware of all processes pids.
-        """
+        """Make all DDP processes aware of all processes pids."""
         self.barrier()
         pids = self.all_gather(torch.tensor(os.getpid(), device=self.root_device))
         pids = pids.cpu().numpy().tolist()

@@ -58,10 +58,8 @@ log = logging.getLogger(__name__)
 
 
 class DDPSpawnPlugin(ParallelPlugin):
-    """
-    Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after
-    training finishes.
-    """
+    """Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training
+    finishes."""
 
     distributed_backend = "ddp_spawn"
 
@@ -335,13 +333,12 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.model.to(self.root_device)
 
     def pre_backward(self, closure_loss: torch.Tensor) -> None:
-        """Run before precision plugin executes backward"""
+        """Run before precision plugin executes backward."""
         if not self.lightning_module.automatic_optimization:
             prepare_for_backward(self.model, closure_loss)
 
     def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> torch.Tensor:
-        """
-        Reduces a tensor from several distributed processes to one aggregated tensor.
+        """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
             tensor: the tensor to sync and reduce

@@ -53,15 +53,14 @@ def pl_multi_process(func: Callable) -> Callable:
 
 
 class XLADeviceUtils:
-    """Used to detect the type of XLA device"""
+    """Used to detect the type of XLA device."""
 
     _TPU_AVAILABLE = False
 
     @staticmethod
     @pl_multi_process
     def _is_device_tpu() -> bool:
-        """
-        Check if TPU devices are available
+        """Check if TPU devices are available.
 
         Return:
             A boolean value indicating if TPU devices are available
@@ -77,8 +76,7 @@ class XLADeviceUtils:
 
     @staticmethod
     def xla_available() -> bool:
-        """
-        Check if XLA library is installed
+        """Check if XLA library is installed.
 
         Return:
             A boolean value indicating if a XLA is installed
@@ -87,8 +85,7 @@ class XLADeviceUtils:
 
     @staticmethod
     def tpu_device_exists() -> bool:
-        """
-        Runs XLA device check within a separate process
+        """Runs XLA device check within a separate process.
 
         Return:
             A boolean value indicating if a TPU device exists on the system

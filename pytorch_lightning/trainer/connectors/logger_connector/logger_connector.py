@@ -79,9 +79,8 @@ class LoggerConnector:
             self.trainer.logger = logger
 
     def log_metrics(self, metrics: _OUT_DICT, step: Optional[int] = None) -> None:
-        """Logs the metric dict passed in.
-        If `step` parameter is None and `step` key is presented is metrics,
-        uses metrics["step"] as a step
+        """Logs the metric dict passed in. If `step` parameter is None and `step` key is presented is metrics, uses
+        metrics["step"] as a step.
 
         Args:
             metrics: Metric values
@@ -201,14 +200,17 @@ class LoggerConnector:
     """
 
     def on_train_split_start(self, batch_idx: int, split_idx: int, split_batch: Any) -> None:
+        assert self.trainer._results is not None
         # when the user requests `dataloader_iter`, we can't track the batch_size
         # and this is left to user responsibility.
         if isinstance(split_batch, pl.utilities.fetching.DataLoaderIterDataFetcher):
-            assert self.trainer._results is not None
             self.trainer._results.extract_batch_size(split_batch)
 
         self._batch_idx = batch_idx
         self._split_idx = split_idx
+
+        # clear reference to this step's training loss so that it can be garbage collected before the next training step
+        self.trainer._results.minimize = None
 
     def update_train_step_metrics(self) -> None:
         if self.trainer.fit_loop.should_accumulate() and self.trainer.lightning_module.automatic_optimization:

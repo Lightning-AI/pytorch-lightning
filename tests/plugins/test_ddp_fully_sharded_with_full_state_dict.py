@@ -18,9 +18,7 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
 
 
 def test_invalid_on_cpu(tmpdir):
-    """
-    Test to ensure that to raise Misconfiguration for FSDP on CPU.
-    """
+    """Test to ensure that to raise Misconfiguration for FSDP on CPU."""
     with pytest.raises(
         MisconfigurationException, match="You selected accelerator to be `ddp_fully_sharded`, but GPU is not available."
     ):
@@ -34,9 +32,7 @@ def test_invalid_on_cpu(tmpdir):
 @mock.patch("torch.cuda.is_available", return_value=True)
 @RunIf(amp_apex=True, fairscale_fully_sharded=True)
 def test_invalid_apex_sharded(device_count_mock, mock_cuda_available, tmpdir):
-    """
-    Test to ensure that we raise an error when we try to use apex and fully sharded
-    """
+    """Test to ensure that we raise an error when we try to use apex and fully sharded."""
     with pytest.raises(MisconfigurationException, match="Sharded Plugin is not supported with Apex AMP"):
         Trainer(default_root_dir=tmpdir, fast_dev_run=True, plugins="fsdp", gpus=1, precision=16, amp_backend="apex")
 
@@ -46,9 +42,7 @@ def test_invalid_apex_sharded(device_count_mock, mock_cuda_available, tmpdir):
 @mock.patch("torch.cuda.is_available", return_value=True)
 @RunIf(amp_native=True, fairscale_fully_sharded=True)
 def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
-    """
-    Test to ensure that plugin native amp plugin is correctly chosen when using sharded
-    """
+    """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, plugins="fsdp", gpus=1, precision=16)
     assert isinstance(trainer.accelerator.training_type_plugin, DDPFullyShardedPlugin)
     assert isinstance(trainer.accelerator.precision_plugin, FullyShardedNativeMixedPrecisionPlugin)
@@ -105,9 +99,7 @@ class TestFSDPModel(BoringModel):
 
 @RunIf(min_gpus=1, skip_windows=True, fairscale_fully_sharded=True, amp_native=True, special=True)
 def test_fully_sharded_plugin_checkpoint(tmpdir):
-    """
-    Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run.
-    """
+    """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
 
     model = TestFSDPModel()
     trainer = Trainer(default_root_dir=tmpdir, gpus=1, plugins="fsdp", precision=16, max_epochs=1)
@@ -116,9 +108,7 @@ def test_fully_sharded_plugin_checkpoint(tmpdir):
 
 @RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True, amp_native=True, special=True)
 def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
-    """
-    Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run.
-    """
+    """Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run."""
 
     model = TestFSDPModel()
     ck = ModelCheckpoint(save_last=True)

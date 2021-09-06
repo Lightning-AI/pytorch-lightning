@@ -24,9 +24,7 @@ class TestModel(BoringModel):
 
 
 def test_no_depre_without_epoch_end(tmpdir):
-    """
-    Tests that only training_step can be used
-    """
+    """Tests that only training_step can be used."""
 
     model = TestModel()
     model.validation_epoch_end = None
