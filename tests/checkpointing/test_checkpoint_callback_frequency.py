@@ -18,7 +18,6 @@ import pytest
 import torch
 
 from pytorch_lightning import callbacks, Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
