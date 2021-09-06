@@ -1950,8 +1950,7 @@ class LightningModule(
             queue: the instance of the queue to append the data.
 
         .. deprecated:: v1.5
-            This method was deprecated in v1.5 in favor of
-            `DDPSpawnPlugin.add_to_queue`
+            This method was deprecated in v1.5 in favor of `DDPSpawnPlugin.add_to_queue`
             and will be removed in v1.7.
         """
         if self.trainer and isinstance(self.trainer.training_type_plugin, pl.plugins.training_type.DDPSpawnPlugin):
@@ -1966,8 +1965,7 @@ class LightningModule(
             queue: the instance of the queue from where to get the data.
 
         .. deprecated:: v1.5
-            This method was deprecated in v1.5 in favor of
-            `DDPSpawnPlugin.get_from_queue`
+            This method was deprecated in v1.5 in favor of `DDPSpawnPlugin.get_from_queue`
             and will be removed in v1.7.
         """
         if self.trainer and isinstance(self.trainer.training_type_plugin, pl.plugins.training_type.DDPSpawnPlugin):
