@@ -431,10 +431,8 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
 
 
 def test_dm_reload_dataloaders_every_n_epochs(tmpdir):
-    """
-    Test datamodule, where trainer argument
-    reload_dataloaders_every_n_epochs is set to a non negative integer
-    """
+    """Test datamodule, where trainer argument reload_dataloaders_every_n_epochs is set to a non negative
+    integer."""
 
     class CustomBoringDataModule(BoringDataModule):
         def __init__(self):

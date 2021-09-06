@@ -194,10 +194,7 @@ class EarlyStopping(Callback):
         self._run_early_stopping_check(trainer)
 
     def _run_early_stopping_check(self, trainer: "pl.Trainer") -> None:
-        """
-        Checks whether the early stopping condition is met
-        and if so tells the trainer to stop the training.
-        """
+        """Checks whether the early stopping condition is met and if so tells the trainer to stop the training."""
         logs = trainer.callback_metrics
 
         if trainer.fast_dev_run or not self._validate_condition_metric(  # disable early_stopping with fast_dev_run

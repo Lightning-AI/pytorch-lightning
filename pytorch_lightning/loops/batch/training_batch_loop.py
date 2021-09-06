@@ -53,12 +53,12 @@ class TrainingBatchLoop(Loop):
 
     @property
     def done(self) -> bool:
-        """Returns if all batch splits have been processed already"""
+        """Returns if all batch splits have been processed already."""
         return len(self._remaining_splits) == 0
 
     @property
     def optimizer_freq_cumsum(self) -> int:
-        """Returns the cumulated sum of optimizer frequencies"""
+        """Returns the cumulated sum of optimizer frequencies."""
         if self._optimizer_freq_cumsum is None:
             self._optimizer_freq_cumsum = np.cumsum(self.trainer.optimizer_frequencies)
         return self._optimizer_freq_cumsum
@@ -67,7 +67,7 @@ class TrainingBatchLoop(Loop):
         self.optimizer_loop = optimizer_loop
 
     def run(self, batch: Any, batch_idx: int) -> AttributeDict:
-        """Runs all the data splits and the ``on_batch_start`` and ``on_train_batch_start`` hooks
+        """Runs all the data splits and the ``on_batch_start`` and ``on_train_batch_start`` hooks.
 
         Args:
             batch: the current batch to run the train step on
@@ -96,12 +96,12 @@ class TrainingBatchLoop(Loop):
         return output
 
     def reset(self) -> None:
-        """Resets the loop state"""
+        """Resets the loop state."""
         self._hiddens = None
         self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
     def on_run_start(self, batch: Any, batch_idx: int):
-        """Splits the data into tbptt splits
+        """Splits the data into tbptt splits.
 
         Args:
             batch: the current batch to run the trainstep on
@@ -111,7 +111,7 @@ class TrainingBatchLoop(Loop):
         self._remaining_splits = list(enumerate(self._tbptt_split_batch(batch)))
 
     def advance(self, batch, batch_idx):
-        """Runs the train step together with optimization (if necessary) on the current batch split
+        """Runs the train step together with optimization (if necessary) on the current batch split.
 
         Args:
             batch: the current batch to run the training on (this is not the split!)
@@ -142,7 +142,7 @@ class TrainingBatchLoop(Loop):
         self._remaining_splits = None
 
     def num_active_optimizers(self, batch_idx: Optional[int] = None) -> int:
-        """Gets the number of active optimizers based on their frequency"""
+        """Gets the number of active optimizers based on their frequency."""
         return len(self.get_active_optimizers(batch_idx))
 
     def _run_optimization(
@@ -174,10 +174,8 @@ class TrainingBatchLoop(Loop):
         batch_idx: int,
         hiddens: Any,
     ) -> Closure:
-        """
-        Build a closure object that captures the given arguments and runs the `training_step` function and optionally
-        other functions such as `backward` and `zero_grad`.
-        """
+        """Build a closure object that captures the given arguments and runs the `training_step` function and
+        optionally other functions such as `backward` and `zero_grad`."""
         step_fn = self._make_step_fn(split_batch, batch_idx, hiddens)
         backward_fn = None
         zero_grad_fn = None
@@ -246,7 +244,7 @@ class TrainingBatchLoop(Loop):
         return splits
 
     def _update_running_loss(self, current_loss: Tensor) -> None:
-        """Updates the running loss value with the current value"""
+        """Updates the running loss value with the current value."""
         if self.trainer.lightning_module.automatic_optimization:
             # track total loss for logging (avoid mem leaks)
             self.accumulated_loss.append(current_loss)
@@ -261,8 +259,7 @@ class TrainingBatchLoop(Loop):
         self.accumulated_loss.reset()
 
     def get_active_optimizers(self, batch_idx: Optional[int] = None) -> List[Tuple[int, Optimizer]]:
-        """
-        Returns the currently active optimizers. When multiple optimizers are used with different frequencies,
+        """Returns the currently active optimizers. When multiple optimizers are used with different frequencies,
         only one of the optimizers is active at a time.
 
         Returns:

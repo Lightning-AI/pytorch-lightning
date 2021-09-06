@@ -24,7 +24,7 @@ from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBar, ProgressBarBase
-from pytorch_lightning.callbacks.progress import tqdm
+from pytorch_lightning.callbacks.progress.tqdm_progress import Tqdm
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -228,9 +228,7 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
 
 @pytest.mark.parametrize("limit_val_batches", (0, 5))
 def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches: int):
-    """
-    Test val_progress_bar total with 'num_sanity_val_steps' Trainer argument.
-    """
+    """Test val_progress_bar total with 'num_sanity_val_steps' Trainer argument."""
 
     class CurrentProgressBar(ProgressBar):
         val_pbar_total = 0
@@ -321,9 +319,10 @@ class MockedUpdateProgressBars(ProgressBar):
 def test_main_progress_bar_update_amount(
     tmpdir, train_batches: int, val_batches: int, refresh_rate: int, train_deltas: list, val_deltas: list
 ):
-    """
-    Test that the main progress updates with the correct amount together with the val progress. At the end of
-    the epoch, the progress must not overshoot if the number of steps is not divisible by the refresh rate.
+    """Test that the main progress updates with the correct amount together with the val progress.
+
+    At the end of the epoch, the progress must not overshoot if the number of steps is not divisible by the refresh
+    rate.
     """
     model = BoringModel()
     progress_bar = MockedUpdateProgressBars(refresh_rate=refresh_rate)
@@ -345,9 +344,7 @@ def test_main_progress_bar_update_amount(
 
 @pytest.mark.parametrize("test_batches,refresh_rate,test_deltas", [[1, 3, [1]], [3, 1, [1, 1, 1]], [5, 3, [3, 2]]])
 def test_test_progress_bar_update_amount(tmpdir, test_batches: int, refresh_rate: int, test_deltas: list):
-    """
-    Test that test progress updates with the correct amount.
-    """
+    """Test that test progress updates with the correct amount."""
     model = BoringModel()
     progress_bar = MockedUpdateProgressBars(refresh_rate=refresh_rate)
     trainer = Trainer(
@@ -363,7 +360,7 @@ def test_test_progress_bar_update_amount(tmpdir, test_batches: int, refresh_rate
 
 
 def test_tensor_to_float_conversion(tmpdir):
-    """Check tensor gets converted to float"""
+    """Check tensor gets converted to float."""
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -399,8 +396,8 @@ def test_tensor_to_float_conversion(tmpdir):
     ],
 )
 def test_tqdm_format_num(input_num: Union[str, int, float], expected: str):
-    """Check that the specialized tqdm.format_num appends 0 to floats and strings"""
-    assert tqdm.format_num(input_num) == expected
+    """Check that the specialized tqdm.format_num appends 0 to floats and strings."""
+    assert Tqdm.format_num(input_num) == expected
 
 
 class PrintModel(BoringModel):
@@ -421,7 +418,7 @@ class PrintModel(BoringModel):
         return super().predict_step(*args, **kwargs)
 
 
-@mock.patch("pytorch_lightning.callbacks.progress.tqdm.write")
+@mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm.write")
 def test_progress_bar_print(tqdm_write, tmpdir):
     """Test that printing in the LightningModule redirects arguments to the progress bar."""
     model = PrintModel()
@@ -448,7 +445,7 @@ def test_progress_bar_print(tqdm_write, tmpdir):
     ]
 
 
-@mock.patch("pytorch_lightning.callbacks.progress.tqdm.write")
+@mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm.write")
 def test_progress_bar_print_no_train(tqdm_write, tmpdir):
     """Test that printing in the LightningModule redirects arguments to the progress bar without training."""
     model = PrintModel()
@@ -475,7 +472,7 @@ def test_progress_bar_print_no_train(tqdm_write, tmpdir):
 
 
 @mock.patch("builtins.print")
-@mock.patch("pytorch_lightning.callbacks.progress.tqdm.write")
+@mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm.write")
 def test_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
     """Test that printing in LightningModule goes through built-in print function when progress bar is disabled."""
     model = PrintModel()

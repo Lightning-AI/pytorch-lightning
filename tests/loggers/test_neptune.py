@@ -103,7 +103,7 @@ def test_neptune_additional_methods(neptune):
 
 @patch("pytorch_lightning.loggers.neptune.neptune")
 def test_neptune_leave_open_experiment_after_fit(neptune, tmpdir):
-    """Verify that neptune experiment was closed after training"""
+    """Verify that neptune experiment was closed after training."""
     model = BoringModel()
 
     def _run_training(logger):

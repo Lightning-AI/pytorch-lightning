@@ -32,7 +32,7 @@ from tests.helpers.simple_models import RegressionModel
 @pytest.mark.parametrize("convert", [True, False])
 @RunIf(quantization=True)
 def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
-    """Parity test for quant model"""
+    """Parity test for quant model."""
     seed_everything(42)
     dm = RegressDataModule()
     trainer_args = dict(default_root_dir=tmpdir, max_epochs=7, gpus=int(torch.cuda.is_available()))
@@ -76,7 +76,7 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
 
 @RunIf(quantization=True)
 def test_quantize_torchscript(tmpdir):
-    """Test converting to torchscipt"""
+    """Test converting to torchscipt."""
     dm = RegressDataModule()
     qmodel = RegressionModel()
     qcb = QuantizationAwareTraining(input_compatible=False)
@@ -92,7 +92,7 @@ def test_quantize_torchscript(tmpdir):
 
 @RunIf(quantization=True)
 def test_quantization_exceptions(tmpdir):
-    """Test wrong fuse layers"""
+    """Test wrong fuse layers."""
     with pytest.raises(MisconfigurationException, match="Unsupported qconfig"):
         QuantizationAwareTraining(qconfig=["abc"])
 
@@ -130,7 +130,7 @@ def custom_trigger_last(trainer):
 )
 @RunIf(quantization=True)
 def test_quantization_triggers(tmpdir, trigger_fn: Union[None, int, Callable], expected_count: int):
-    """Test  how many times the quant is called"""
+    """Test  how many times the quant is called."""
     dm = RegressDataModule()
     qmodel = RegressionModel()
     qcb = QuantizationAwareTraining(collect_quantization=trigger_fn)

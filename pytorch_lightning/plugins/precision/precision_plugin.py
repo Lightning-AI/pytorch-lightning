@@ -26,18 +26,17 @@ from pytorch_lightning.utilities.types import _PARAMETERS
 
 
 class PrecisionPlugin(CheckpointHooks):
-    """
-    Base class for all plugins handling the precision-specific parts of the training.
-    The class attribute precision must be overwritten in child classes.
-    The default value reflects fp32 training.
+    """Base class for all plugins handling the precision-specific parts of the training.
+
+    The class attribute precision must be overwritten in child classes. The default value reflects fp32 training.
     """
 
     precision: Union[str, int] = 32
 
     def master_params(self, optimizer: Optimizer) -> _PARAMETERS:
-        """
-        The master params of the model. Returns the plain model params here.
-        Maybe different in other precision plugins.
+        """The master params of the model.
+
+        Returns the plain model params here. Maybe different in other precision plugins.
         """
         for group in optimizer.param_groups:
             yield from group["params"]
@@ -45,11 +44,11 @@ class PrecisionPlugin(CheckpointHooks):
     def connect(
         self, model: Module, optimizers: List[Optimizer], lr_schedulers: List[Any]
     ) -> Tuple[Module, List[Optimizer], List[Any]]:
-        """Connects this plugin to the accelerator and the training process"""
+        """Connects this plugin to the accelerator and the training process."""
         return model, optimizers, lr_schedulers
 
     def pre_backward(self, model: "pl.LightningModule", closure_loss: Tensor) -> Tensor:
-        """Run before precision plugin executes backward
+        """Run before precision plugin executes backward.
 
         Args:
             model: the model to be optimized
@@ -66,7 +65,7 @@ class PrecisionPlugin(CheckpointHooks):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Performs the actual backpropagation
+        """Performs the actual backpropagation.
 
         Args:
             model: the model to be optimized
@@ -80,7 +79,7 @@ class PrecisionPlugin(CheckpointHooks):
             closure_loss.backward(*args, **kwargs)
 
     def post_backward(self, model: "pl.LightningModule", closure_loss: Tensor) -> Tensor:
-        """Run after precision plugin executes backward
+        """Run after precision plugin executes backward.
 
         Args:
             model: the model to be optimized
@@ -113,7 +112,7 @@ class PrecisionPlugin(CheckpointHooks):
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
         model: Optional[Module] = None,
     ) -> None:
-        """Clips the gradients"""
+        """Clips the gradients."""
         if clip_val is None:
             return
 
@@ -128,12 +127,12 @@ class PrecisionPlugin(CheckpointHooks):
             self.clip_grad_by_norm(optimizer, clip_val)
 
     def clip_grad_by_value(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
-        """Clip gradients by value"""
+        """Clip gradients by value."""
         parameters = self.master_params(optimizer)
         torch.nn.utils.clip_grad_value_(parameters, clip_value=clip_val)
 
     def clip_grad_by_norm(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
-        """Clip gradients by norm"""
+        """Clip gradients by norm."""
         parameters = self.master_params(optimizer)
         torch.nn.utils.clip_grad_norm_(parameters, clip_val)
 
@@ -148,20 +147,20 @@ class PrecisionPlugin(CheckpointHooks):
 
     @contextlib.contextmanager
     def train_step_context(self) -> Generator:
-        """A contextmanager for the training step"""
+        """A contextmanager for the training step."""
         yield
 
     @contextlib.contextmanager
     def val_step_context(self) -> Generator:
-        """A contextmanager for the validation step"""
+        """A contextmanager for the validation step."""
         yield
 
     @contextlib.contextmanager
     def test_step_context(self) -> Generator:
-        """A contextmanager for the test step"""
+        """A contextmanager for the test step."""
         yield
 
     @contextlib.contextmanager
     def predict_step_context(self) -> Generator:
-        """A contextmanager for the predict step"""
+        """A contextmanager for the predict step."""
         yield

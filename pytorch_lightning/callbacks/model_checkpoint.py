@@ -330,8 +330,7 @@ class ModelCheckpoint(Callback):
         self.save_checkpoint(trainer)
 
     def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """
-        Save a checkpoint when training stops.
+        """Save a checkpoint when training stops.
 
         This will only save a checkpoint if `save_last` is also enabled as the monitor metrics logged during
         training/validation steps or end of epochs are not guaranteed to be available at this stage.
@@ -364,10 +363,10 @@ class ModelCheckpoint(Callback):
         self.best_model_path = callback_state["best_model_path"]
 
     def save_checkpoint(self, trainer: "pl.Trainer") -> None:
-        """
-        Performs the main logic around saving a checkpoint. This method runs on all ranks.
-        It is the responsibility of `trainer.save_checkpoint` to correctly handle the behaviour in distributed training,
-        i.e., saving only on rank 0 for data parallel use cases.
+        """Performs the main logic around saving a checkpoint.
+
+        This method runs on all ranks. It is the responsibility of `trainer.save_checkpoint` to correctly handle the
+        behaviour in distributed training, i.e., saving only on rank 0 for data parallel use cases.
         """
         epoch = trainer.current_epoch
         global_step = trainer.global_step
@@ -586,7 +585,6 @@ class ModelCheckpoint(Callback):
             >>> ckpt = ModelCheckpoint(filename='{step}')
             >>> os.path.basename(ckpt.format_checkpoint_name(dict(step=0)))
             'step=0.ckpt'
-
         """
         filename = self._format_checkpoint_name(
             self.filename, metrics, auto_insert_metric_name=self.auto_insert_metric_name
@@ -599,10 +597,8 @@ class ModelCheckpoint(Callback):
         return os.path.join(self.dirpath, ckpt_name) if self.dirpath else ckpt_name
 
     def __resolve_ckpt_dir(self, trainer: "pl.Trainer") -> None:
-        """
-        Determines model checkpoint save directory at runtime. References attributes from the
-        trainer's logger to determine where to save checkpoints.
-        The base path for saving weights is set in this priority:
+        """Determines model checkpoint save directory at runtime. References attributes from the trainer's logger
+        to determine where to save checkpoints. The base path for saving weights is set in this priority:
 
         1.  Checkpoint callback's path (if passed in)
         2.  The default_root_dir from trainer if trainer has no logger
@@ -761,10 +757,8 @@ class ModelCheckpoint(Callback):
             self._del_model(trainer, del_filepath)
 
     def to_yaml(self, filepath: Optional[Union[str, Path]] = None) -> None:
-        """
-        Saves the `best_k_models` dict containing the checkpoint
-        paths with the corresponding scores to a YAML file.
-        """
+        """Saves the `best_k_models` dict containing the checkpoint paths with the corresponding scores to a YAML
+        file."""
         best_k = {k: v.item() for k, v in self.best_k_models.items()}
         if filepath is None:
             filepath = os.path.join(self.dirpath, "best_k_models.yaml")
@@ -772,9 +766,7 @@ class ModelCheckpoint(Callback):
             yaml.dump(best_k, fp)
 
     def file_exists(self, filepath: Union[str, Path], trainer: "pl.Trainer") -> bool:
-        """
-        Checks if a file exists on rank 0 and broadcasts the result to all other ranks, preventing
-        the internal state to diverge between ranks.
-        """
+        """Checks if a file exists on rank 0 and broadcasts the result to all other ranks, preventing the internal
+        state to diverge between ranks."""
         exists = self._fs.exists(filepath)
         return trainer.training_type_plugin.broadcast(exists)

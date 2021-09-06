@@ -26,8 +26,7 @@ log = logging.getLogger(__name__)
 
 
 class FitLoop(Loop):
-    """
-    This Loop iterates over the epochs to run the training.
+    """This Loop iterates over the epochs to run the training.
 
     Args:
         min_epochs: The minimum number of epochs
@@ -51,17 +50,17 @@ class FitLoop(Loop):
 
     @property
     def current_epoch(self) -> int:
-        """Return the current epoch"""
+        """Return the current epoch."""
         return self.epoch_progress.current.completed
 
     @current_epoch.setter
     def current_epoch(self, value: int) -> None:
-        """Setter for the current epoch"""
+        """Setter for the current epoch."""
         self.epoch_progress.current.completed = value
 
     @property
     def global_step(self) -> int:
-        """Returns the global step"""
+        """Returns the global step."""
         return self.epoch_loop.global_step
 
     @global_step.setter
@@ -81,13 +80,13 @@ class FitLoop(Loop):
 
     @property
     def split_idx(self) -> int:
-        """Returns the index of the current batch split (within the current batch) for bptt"""
+        """Returns the index of the current batch split (within the current batch) for bptt."""
         return self.epoch_loop.batch_loop.split_idx
 
     @property
     def min_steps(self) -> int:
         # TODO(@justusschock): Why aren't we using the attribute in this class?
-        """Returns the minimum numnber of steps to run"""
+        """Returns the minimum numnber of steps to run."""
         return self.epoch_loop.min_steps
 
     @min_steps.setter
@@ -98,7 +97,7 @@ class FitLoop(Loop):
 
     @property
     def max_steps(self) -> int:
-        """Returns the maximum number of steps to run"""
+        """Returns the maximum number of steps to run."""
         return self.epoch_loop.max_steps
 
     @max_steps.setter
@@ -111,7 +110,7 @@ class FitLoop(Loop):
 
     @property
     def running_loss(self) -> TensorRunningAccum:
-        """Returns the running loss"""
+        """Returns the running loss."""
         return self.epoch_loop.batch_loop.running_loss
 
     @property
@@ -138,8 +137,8 @@ class FitLoop(Loop):
 
     @staticmethod
     def _is_max_limit_enabled(max_value: Optional[int]) -> bool:
-        """Checks whether the max_value is enabled. This can
-        be used for checking whether max_epochs or max_steps is enabled.
+        """Checks whether the max_value is enabled. This can be used for checking whether max_epochs or max_steps
+        is enabled.
 
         Args:
             max_value: the value to check
@@ -153,8 +152,8 @@ class FitLoop(Loop):
     def done(self) -> bool:
         """Evaluates when to leave the loop.
 
-        Returns True if trainer.should_stop was set (e.g. by early stopping)
-        or if the maximum number of steps or epochs is reached.
+        Returns True if trainer.should_stop was set (e.g. by early stopping) or if the maximum number of steps or epochs
+        is reached.
         """
         # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
         stop_steps = FitLoop._is_max_limit_enabled(self.max_steps) and self.global_step >= self.max_steps
@@ -187,7 +186,7 @@ class FitLoop(Loop):
         self.epoch_loop = epoch_loop
 
     def reset(self) -> None:
-        """Resets the internal state of this loop"""
+        """Resets the internal state of this loop."""
 
     def on_run_start(self) -> None:
         """Calls the ``on_train_start`` hook."""
@@ -195,7 +194,8 @@ class FitLoop(Loop):
         self.trainer.call_hook("on_train_start")
 
     def on_advance_start(self) -> None:
-        """Prepares the dataloader for training and calls the hooks ``on_epoch_start`` and ``on_train_epoch_start``"""
+        """Prepares the dataloader for training and calls the hooks ``on_epoch_start`` and
+        ``on_train_epoch_start``"""
         model = self.trainer.lightning_module
 
         # reset train dataloader
@@ -241,7 +241,7 @@ class FitLoop(Loop):
         self.epoch_progress.increment_completed()
 
     def on_run_end(self) -> None:
-        """Calls the ``on_train_end`` hook"""
+        """Calls the ``on_train_end`` hook."""
         # NOTE: the current_epoch is already incremented
         # Lightning today does not increment the current epoch at the last epoch run in Trainer.fit
         # To simulate that current behavior, we decrement here.
@@ -255,7 +255,7 @@ class FitLoop(Loop):
         self.trainer.accelerator.on_train_end()
 
     def should_accumulate(self) -> bool:
-        """Whether the gradients should be accumulated"""
+        """Whether the gradients should be accumulated."""
         return self.epoch_loop._should_accumulate()
 
     def teardown(self) -> None:

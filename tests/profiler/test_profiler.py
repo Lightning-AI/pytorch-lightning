@@ -40,10 +40,8 @@ def _get_python_cprofile_total_duration(profile):
 
 
 def _sleep_generator(durations):
-    """
-    the profile_iterable method needs an iterable in which we can ensure that we're
-    properly timing how long it takes to call __next__
-    """
+    """the profile_iterable method needs an iterable in which we can ensure that we're properly timing how long it
+    takes to call __next__"""
     for duration in durations:
         time.sleep(duration)
         yield duration
@@ -115,7 +113,7 @@ def test_simple_profiler_deepcopy(tmpdir):
 
 
 def test_simple_profiler_log_dir(tmpdir):
-    """Ensure the profiler dirpath defaults to `trainer.log_dir` when not present"""
+    """Ensure the profiler dirpath defaults to `trainer.log_dir` when not present."""
     profiler = SimpleProfiler(filename="profiler")
     assert profiler._log_dir is None
 
@@ -131,7 +129,7 @@ def test_simple_profiler_log_dir(tmpdir):
 
 @RunIf(skip_windows=True)
 def test_simple_profiler_distributed_files(tmpdir):
-    """Ensure the proper files are saved in distributed"""
+    """Ensure the proper files are saved in distributed."""
     profiler = SimpleProfiler(dirpath=tmpdir, filename="profiler")
     model = BoringModel()
     trainer = Trainer(
@@ -150,7 +148,7 @@ def test_simple_profiler_distributed_files(tmpdir):
 
 
 def test_simple_profiler_logs(tmpdir, caplog, simple_profiler):
-    """Ensure that the number of printed logs is correct"""
+    """Ensure that the number of printed logs is correct."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2, profiler=simple_profiler, logger=False)
     with caplog.at_level(logging.INFO, logger="pytorch_lightning.profiler.profilers"):
@@ -197,9 +195,7 @@ def test_advanced_profiler_iterable_durations(advanced_profiler, action: str, ex
 
 
 def test_advanced_profiler_overhead(advanced_profiler, n_iter=5):
-    """
-    ensure that the profiler doesn't introduce too much overhead during training
-    """
+    """ensure that the profiler doesn't introduce too much overhead during training."""
     for _ in range(n_iter):
         with advanced_profiler.profile("no-op"):
             pass
@@ -211,9 +207,7 @@ def test_advanced_profiler_overhead(advanced_profiler, n_iter=5):
 
 
 def test_advanced_profiler_describe(tmpdir, advanced_profiler):
-    """
-    ensure the profiler won't fail when reporting the summary
-    """
+    """ensure the profiler won't fail when reporting the summary."""
     # record at least one event
     with advanced_profiler.profile("test"):
         pass
@@ -259,7 +253,7 @@ def test_pytorch_profiler_describe(pytorch_profiler):
 
 
 def test_advanced_profiler_cprofile_deepcopy(tmpdir):
-    """Checks for pickle issue reported in #6522"""
+    """Checks for pickle issue reported in #6522."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, profiler="advanced", stochastic_weight_avg=True)
     trainer.fit(model)
@@ -347,7 +341,7 @@ def test_pytorch_profiler_trainer(fn, step_name, boring_model_cls, tmpdir):
 
 
 def test_pytorch_profiler_nested(tmpdir):
-    """Ensure that the profiler handles nested context"""
+    """Ensure that the profiler handles nested context."""
 
     pytorch_profiler = PyTorchProfiler(
         record_functions={"a", "b", "c"}, use_cuda=False, dirpath=tmpdir, filename="profiler", schedule=None
@@ -374,13 +368,14 @@ def test_pytorch_profiler_nested(tmpdir):
 
 
 def test_pytorch_profiler_logger_collection(tmpdir):
-    """
-    Tests whether the PyTorch profiler is able to write its trace locally when
-    the Trainer's logger is an instance of LoggerCollection. See issue #8157.
+    """Tests whether the PyTorch profiler is able to write its trace locally when the Trainer's logger is an
+    instance of LoggerCollection.
+
+    See issue #8157.
     """
 
     def look_for_trace(trace_dir):
-        """Determines if a directory contains a PyTorch trace"""
+        """Determines if a directory contains a PyTorch trace."""
         return any("trace.json" in filename for filename in os.listdir(trace_dir))
 
     # Sanity check
@@ -399,9 +394,7 @@ def test_pytorch_profiler_logger_collection(tmpdir):
 
 @RunIf(min_gpus=1, special=True)
 def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
-    """
-    This test check emit_nvtx is correctly supported
-    """
+    """This test check emit_nvtx is correctly supported."""
     profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
 
     model = BoringModel()
@@ -448,9 +441,7 @@ def test_register_record_function(tmpdir):
 
 @pytest.mark.parametrize("cls", (SimpleProfiler, AdvancedProfiler, PyTorchProfiler))
 def test_profiler_teardown(tmpdir, cls):
-    """
-    This test checks if profiler teardown method is called when trainer is exiting.
-    """
+    """This test checks if profiler teardown method is called when trainer is exiting."""
 
     class TestCallback(Callback):
         def on_fit_end(self, trainer, *args, **kwargs) -> None:
