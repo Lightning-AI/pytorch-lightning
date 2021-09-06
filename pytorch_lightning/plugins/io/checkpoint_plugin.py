@@ -18,8 +18,7 @@ from pytorch_lightning.utilities.types import _PATH
 
 
 class CheckpointIO(ABC):
-    """
-    Interface to save/load checkpoints as they are saved through the ``TrainingTypePlugin``.
+    """Interface to save/load checkpoints as they are saved through the ``TrainingTypePlugin``.
 
     Typically most plugins either use the Torch based IO Plugin; ``TorchCheckpointIO`` but may
     require particular handling depending on the plugin.
@@ -31,7 +30,6 @@ class CheckpointIO(ABC):
 
         For some plugins, it is not possible to use a custom checkpoint plugin as checkpointing logic is not
         modifiable.
-
     """
 
     @abstractmethod
@@ -46,8 +44,7 @@ class CheckpointIO(ABC):
 
     @abstractmethod
     def load_checkpoint(self, path: _PATH, storage_options: Optional[Any] = None) -> Dict[str, Any]:
-        """
-        Load checkpoint from a path when resuming or loading ckpt for test/validate/predict stages.
+        """Load checkpoint from a path when resuming or loading ckpt for test/validate/predict stages.
 
         Args:
             path: Path to checkpoint

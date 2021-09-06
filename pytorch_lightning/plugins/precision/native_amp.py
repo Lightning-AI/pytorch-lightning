@@ -29,8 +29,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
-    """
-    Plugin for native mixed precision training with :mod:`torch.cuda.amp`.
+    """Plugin for native mixed precision training with :mod:`torch.cuda.amp`.
 
     Args:
         precision: Whether to use torch.float16 (16) or torch.bfloat16 (bf16).
@@ -52,7 +51,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             )
 
         self.use_cpu = use_cpu
-        self._fast_dtype = self._select_precision_dtype(precision)
+        self._dtype = self._select_precision_dtype(precision)
         self.backend = AMPType.NATIVE
         if not self.is_bfloat16:
             self.scaler = torch.cuda.amp.GradScaler()
@@ -72,7 +71,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     @property
     def is_bfloat16(self) -> bool:
-        return self._fast_dtype == torch.bfloat16
+        return self._dtype == torch.bfloat16
 
     def pre_backward(self, model: "pl.LightningModule", closure_loss: torch.Tensor) -> torch.Tensor:
         if self.is_bfloat16:
@@ -109,32 +108,32 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def autocast_context_manager(self) -> torch.cuda.amp.autocast:
         if self.use_cpu:
-            return torch.cpu.amp.autocast(fast_dtype=self._fast_dtype)
+            return torch.cpu.amp.autocast(dtype=self._dtype)  # Only reached in pytorch==1.10 where this is ok. skipcq
         if self.is_bfloat16:
-            return torch.cuda.amp.autocast(fast_dtype=self._fast_dtype)
+            return torch.cuda.amp.autocast(dtype=self._dtype)  # Only reached in pytorch==1.10 where this is ok. skipcq
         return torch.cuda.amp.autocast()
 
     @contextmanager
     def train_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context"""
+        """Enable autocast context."""
         with self.autocast_context_manager():
             yield
 
     @contextmanager
     def val_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context"""
+        """Enable autocast context."""
         with self.autocast_context_manager():
             yield
 
     @contextmanager
     def test_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context"""
+        """Enable autocast context."""
         with self.autocast_context_manager():
             yield
 
     @contextmanager
     def predict_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context"""
+        """Enable autocast context."""
         with self.autocast_context_manager():
             yield
 

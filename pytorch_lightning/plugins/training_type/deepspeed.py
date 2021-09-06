@@ -125,10 +125,9 @@ class DeepSpeedPlugin(DDPPlugin):
         synchronize_checkpoint_boundary: bool = False,
         load_full_weights: bool = False,
     ) -> None:
-        """
-        Provides capabilities to run training using the DeepSpeed library,
-        with training optimizations for large billion parameter models.
-        `For more information: https://pytorch-lightning.readthedocs.io/en/latest/advanced/multi_gpu.html#deepspeed`.
+        """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
+        billion parameter models. `For more information: https://pytorch-
+        lightning.readthedocs.io/en/latest/advanced/multi_gpu.html#deepspeed`.
 
         .. warning:: ``DeepSpeedPlugin`` is in beta and subject to change.
 
@@ -519,11 +518,10 @@ class DeepSpeedPlugin(DDPPlugin):
         self.model.step(**kwargs)
 
     def _handle_gradient_accumulation_steps(self):
-        """
-        This functions overrides the trainer.accumulation_scheduler to generate
-        ``accumulate_grad_batches=1``.
-        Therefore, ``optimizer_step`` will be called on every batches seen
-        so DeepSpeed Engine handles the gradient accumulation logic internally.
+        """This functions overrides the trainer.accumulation_scheduler to generate ``accumulate_grad_batches=1``.
+
+        Therefore, ``optimizer_step`` will be called on every batches seen so DeepSpeed Engine handles the gradient
+        accumulation logic internally.
         """
         if self.config.get("gradient_accumulation_steps") > 1:
             self._original_accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
@@ -721,11 +719,9 @@ class DeepSpeedPlugin(DDPPlugin):
             self._restore_zero_state(checkpoint)
 
     def _restore_zero_state(self, ckpt: Mapping[str, Any]) -> None:
-        """
-        Overrides the normal load_state_dict behaviour in PyTorch to ensure
-        we gather parameters that may be sharded across processes before loading
-        the state dictionary when using ZeRO stage 3.
-        This is then automatically synced across processes.
+        """Overrides the normal load_state_dict behaviour in PyTorch to ensure we gather parameters that may be
+        sharded across processes before loading the state dictionary when using ZeRO stage 3. This is then
+        automatically synced across processes.
 
         Args:
             ckpt: The ckpt file.

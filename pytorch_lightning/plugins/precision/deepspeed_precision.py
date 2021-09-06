@@ -66,7 +66,5 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
         model: Optional[Module] = None,
     ) -> None:
-        """
-        DeepSpeed handles clipping gradients internally via the training type plugin.
-        """
+        """DeepSpeed handles clipping gradients internally via the training type plugin."""
         pass

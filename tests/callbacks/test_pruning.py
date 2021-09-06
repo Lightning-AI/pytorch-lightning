@@ -294,11 +294,8 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool
 def test_permanent_when_model_is_saved_multiple_times(
     tmpdir, caplog, prune_on_train_epoch_end, save_on_train_epoch_end
 ):
-    """
-    When a model is saved multiple times and make_permanent=True, we need to
-    make sure a copy is pruned and not the trained model if we want to continue
-    with the same pruning buffers.
-    """
+    """When a model is saved multiple times and make_permanent=True, we need to make sure a copy is pruned and not
+    the trained model if we want to continue with the same pruning buffers."""
     if prune_on_train_epoch_end and save_on_train_epoch_end:
         pytest.xfail(
             "Pruning sets the `grad_fn` of the parameters so we can't save"

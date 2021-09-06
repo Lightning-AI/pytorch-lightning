@@ -20,9 +20,8 @@ from pytorch_lightning.utilities import rank_zero_warn
 
 
 def parameter_validation(fn: Callable) -> Callable:
-    """
-    Validates that the module parameter lengths match after moving to the device. It is useful
-    when tying weights on TPU's.
+    """Validates that the module parameter lengths match after moving to the device. It is useful when tying
+    weights on TPU's.
 
     Args:
         fn: ``model_to_device`` method
