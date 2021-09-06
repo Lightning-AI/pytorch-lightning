@@ -153,10 +153,7 @@ def extract_help_text(parser):
     ],
 )
 def test_add_argparse_args(cls, name):
-    """
-    Tests that ``add_argparse_args`` handles argument groups correctly, and
-    can be parsed.
-    """
+    """Tests that ``add_argparse_args`` handles argument groups correctly, and can be parsed."""
     parser = ArgumentParser()
     parser_main = parser.add_argument_group("main")
     parser_main.add_argument("--main_arg", type=str, default="")
@@ -186,10 +183,8 @@ def test_negative_add_argparse_args():
 
 
 def test_add_argparse_args_no_argument_group():
-    """
-    Tests that ``add_argparse_args(..., use_argument_group=False)`` (old
-    workflow) handles argument groups correctly, and can be parsed.
-    """
+    """Tests that ``add_argparse_args(..., use_argument_group=False)`` (old workflow) handles argument groups
+    correctly, and can be parsed."""
     parser = ArgumentParser()
     parser.add_argument("--main_arg", type=str, default="")
     parser_old = parser  # For testing.
@@ -220,9 +215,7 @@ def test_int_or_float_type():
 
 @pytest.mark.parametrize(["arg", "expected"], [["--precision=16", 16], ["--precision=bf16", "bf16"]])
 def test_precision_parsed_correctly(arg, expected):
-    """
-    Test to ensure that the precision flag is passed correctly when adding argparse args.
-    """
+    """Test to ensure that the precision flag is passed correctly when adding argparse args."""
     parser = ArgumentParser()
     parser = Trainer.add_argparse_args(parser)
     fake_argv = [arg]

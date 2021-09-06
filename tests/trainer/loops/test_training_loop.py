@@ -104,7 +104,7 @@ def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_):
 
 
 def test_should_stop_mid_epoch(tmpdir):
-    """Test that training correctly stops mid epoch and that validation is still called at the right time"""
+    """Test that training correctly stops mid epoch and that validation is still called at the right time."""
 
     class TestModel(BoringModel):
         def __init__(self):
@@ -166,10 +166,8 @@ def test_warning_valid_train_step_end(tmpdir):
 
 
 def test_prepare_outputs(tmpdir):
-    """
-    Test that the `extra` field of the saved `ResultCollection` objects for
-    `training_epoch_end` doesn't get accidentally modified by reference.
-    """
+    """Test that the `extra` field of the saved `ResultCollection` objects for `training_epoch_end` doesn't get
+    accidentally modified by reference."""
 
     class TestModel(BoringModel):
         on_train_batch_end_called = 0
@@ -190,3 +188,16 @@ def test_prepare_outputs(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
     trainer.fit(model)
     assert model.on_train_batch_end_called == 2
+
+
+def test_batch_loop_releases_loss(tmpdir):
+    """Test that loss/graph is released so that it can be garbage collected before the next training step"""
+
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            assert self.trainer._results.minimize is None
+            return super().training_step(batch, batch_idx)
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
+    trainer.fit(model)

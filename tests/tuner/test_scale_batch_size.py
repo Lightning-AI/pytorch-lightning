@@ -202,8 +202,8 @@ def test_call_to_trainer_method(tmpdir, scale_method):
 
 
 def test_error_on_dataloader_passed_to_fit(tmpdir):
-    """Verify that when the auto scale batch size feature raises an error
-    if a train dataloader is passed to fit"""
+    """Verify that when the auto scale batch size feature raises an error if a train dataloader is passed to
+    fit."""
 
     # only train passed to fit
     model = EvalModelTemplate()
@@ -233,7 +233,7 @@ def test_auto_scale_batch_size_with_amp(tmpdir):
 
 
 def test_scale_batch_size_no_trials(tmpdir):
-    """Check the result is correct even when no trials are run"""
+    """Check the result is correct even when no trials are run."""
     trainer = Trainer(
         default_root_dir=tmpdir, max_epochs=1, limit_val_batches=1, limit_train_batches=1, auto_scale_batch_size="power"
     )

@@ -72,10 +72,8 @@ class LogInTwoMethods(BoringModel):
 def test_model_checkpoint_score_and_ckpt(
     tmpdir, validation_step_none: bool, val_dataloaders_none: bool, monitor: str, reduce_lr_on_plateau: bool
 ):
-    """
-    Test that when a model checkpoint is saved, it saves with
-    the correct score appended to ckpt_path and checkpoint data
-    """
+    """Test that when a model checkpoint is saved, it saves with the correct score appended to ckpt_path and
+    checkpoint data."""
     max_epochs = 3
     limit_train_batches = 5
     limit_val_batches = 7
@@ -184,10 +182,8 @@ def test_model_checkpoint_score_and_ckpt(
 def test_model_checkpoint_score_and_ckpt_val_check_interval(
     tmpdir, val_check_interval, reduce_lr_on_plateau, epoch_aligned
 ):
-    """
-    Test that when a model checkpoint is saved, it saves with the correct
-    score appended to ckpt_path and checkpoint data with val_check_interval
-    """
+    """Test that when a model checkpoint is saved, it saves with the correct score appended to ckpt_path and
+    checkpoint data with val_check_interval."""
     max_epochs = 3
     limit_train_batches = 12
     limit_val_batches = 7
@@ -297,7 +293,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
 
 @pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
 def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k: int):
-    """Test that dirpath=None in checkpoint callback is valid and that ckpt_path is set correctly"""
+    """Test that dirpath=None in checkpoint callback is valid and that ckpt_path is set correctly."""
     tutils.reset_seed()
     model = LogInTwoMethods()
 
@@ -316,7 +312,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k: int):
 
 @pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
 def test_model_checkpoint_to_yaml(tmpdir, save_top_k: int):
-    """Test that None in checkpoint callback is valid and that chkp_path is set correctly"""
+    """Test that None in checkpoint callback is valid and that chkp_path is set correctly."""
     tutils.reset_seed()
     model = LogInTwoMethods()
 
@@ -334,7 +330,7 @@ def test_model_checkpoint_to_yaml(tmpdir, save_top_k: int):
 
 @pytest.mark.parametrize("logger_version,expected", [(None, "version_0"), (1, "version_1"), ("awesome", "awesome")])
 def test_model_checkpoint_path(tmpdir, logger_version: Union[None, int, str], expected: str):
-    """Test that "version_" prefix is only added when logger's version is an integer"""
+    """Test that "version_" prefix is only added when logger's version is an integer."""
     tutils.reset_seed()
     model = LogInTwoMethods()
     logger = TensorBoardLogger(str(tmpdir), version=logger_version)
@@ -458,9 +454,7 @@ class ModelCheckpointExtensionTest(ModelCheckpoint):
 
 
 def test_model_checkpoint_file_extension(tmpdir):
-    """
-    Test ModelCheckpoint with different file extension.
-    """
+    """Test ModelCheckpoint with different file extension."""
 
     model = LogInTwoMethods()
     model_checkpoint = ModelCheckpointExtensionTest(
@@ -549,10 +543,8 @@ def test_invalid_every_n_train_steps(tmpdir):
 
 
 def test_invalid_trigger_combination(tmpdir):
-    """
-    Test that a MisconfigurationException is raised if more than one of
-    every_n_epochs, every_n_train_steps, and train_time_interval are enabled together.
-    """
+    """Test that a MisconfigurationException is raised if more than one of every_n_epochs, every_n_train_steps, and
+    train_time_interval are enabled together."""
     with pytest.raises(MisconfigurationException, match=r".*Combination of parameters every_n_train_steps"):
         ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=1, every_n_epochs=2)
     with pytest.raises(MisconfigurationException, match=r".*Combination of parameters every_n_train_steps"):
@@ -788,7 +780,7 @@ def test_default_checkpoint_behavior(tmpdir):
 def test_model_checkpoint_save_last_warning(
     tmpdir, caplog, max_epochs: int, should_validate: bool, save_last: bool, verbose: bool
 ):
-    """Tests 'Saving latest checkpoint...' log"""
+    """Tests 'Saving latest checkpoint...' log."""
     model = LogInTwoMethods()
     if not should_validate:
         model.validation_step = None
@@ -868,9 +860,7 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode: int):
 
 
 def test_checkpoint_repeated_strategy(tmpdir):
-    """
-    This test validates that the checkpoint can be called when provided to callbacks list
-    """
+    """This test validates that the checkpoint can be called when provided to callbacks list."""
     checkpoint_callback = ModelCheckpoint(monitor="val_loss", dirpath=tmpdir, filename="{epoch:02d}")
 
     class ExtendedBoringModel(BoringModel):
@@ -913,10 +903,8 @@ def test_checkpoint_repeated_strategy(tmpdir):
 
 
 def test_checkpoint_repeated_strategy_extended(tmpdir):
-    """
-    This test validates checkpoint can be called several times without
-    increasing internally its global step if nothing run.
-    """
+    """This test validates checkpoint can be called several times without increasing internally its global step if
+    nothing run."""
 
     class ExtendedBoringModel(BoringModel):
         def validation_step(self, batch, batch_idx):
@@ -1050,7 +1038,7 @@ def test_val_check_interval_checkpoint_files(tmpdir):
 
 
 def test_current_score(tmpdir):
-    """Check that the current_score value is correct and was saved"""
+    """Check that the current_score value is correct and was saved."""
 
     class TestModel(BoringModel):
         def training_step(self, *args):
@@ -1083,7 +1071,7 @@ def test_current_score(tmpdir):
 
 @pytest.mark.parametrize("mode", ["min", "max"])
 def test_current_score_when_nan(tmpdir, mode: str):
-    """Check that ModelCheckpoint handles NaN values correctly"""
+    """Check that ModelCheckpoint handles NaN values correctly."""
 
     class TestModel(BoringModel):
         def training_step(self, *args):
@@ -1138,10 +1126,8 @@ def test_hparams_type(tmpdir, hparams_type):
 
 
 def test_ckpt_version_after_rerun_new_trainer(tmpdir):
-    """
-    Check that previous checkpoints are renamed to have the correct
-    version suffix when new trainer instances are used
-    """
+    """Check that previous checkpoints are renamed to have the correct version suffix when new trainer instances
+    are used."""
     epochs = 2
     for i in range(epochs):
         mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="{epoch}")
@@ -1167,10 +1153,8 @@ def test_ckpt_version_after_rerun_new_trainer(tmpdir):
 
 
 def test_ckpt_version_after_rerun_same_trainer(tmpdir):
-    """
-    Check that previous checkpoints are renamed to have the correct
-    version suffix when the same trainer instance is used
-    """
+    """Check that previous checkpoints are renamed to have the correct version suffix when the same trainer
+    instance is used."""
     mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="test")
     mc.STARTING_VERSION = 9
     trainer = Trainer(

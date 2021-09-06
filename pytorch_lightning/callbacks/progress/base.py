@@ -56,51 +56,51 @@ class ProgressBarBase(Callback):
 
     @property
     def train_batch_idx(self) -> int:
-        """
-        The current batch index being processed during training.
+        """The current batch index being processed during training.
+
         Use this to update your progress bar.
         """
         return self._train_batch_idx
 
     @property
     def val_batch_idx(self) -> int:
-        """
-        The current batch index being processed during validation.
+        """The current batch index being processed during validation.
+
         Use this to update your progress bar.
         """
         return self._val_batch_idx
 
     @property
     def test_batch_idx(self) -> int:
-        """
-        The current batch index being processed during testing.
+        """The current batch index being processed during testing.
+
         Use this to update your progress bar.
         """
         return self._test_batch_idx
 
     @property
     def predict_batch_idx(self) -> int:
-        """
-        The current batch index being processed during predicting.
+        """The current batch index being processed during predicting.
+
         Use this to update your progress bar.
         """
         return self._predict_batch_idx
 
     @property
     def total_train_batches(self) -> int:
-        """
-        The total number of training batches during training, which may change from epoch to epoch.
-        Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the
-        training dataloader is of infinite size.
+        """The total number of training batches during training, which may change from epoch to epoch.
+
+        Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the training
+        dataloader is of infinite size.
         """
         return self.trainer.num_training_batches
 
     @property
     def total_val_batches(self) -> int:
-        """
-        The total number of validation batches during validation, which may change from epoch to epoch.
-        Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the
-        validation dataloader is of infinite size.
+        """The total number of validation batches during validation, which may change from epoch to epoch.
+
+        Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the validation
+        dataloader is of infinite size.
         """
         total_val_batches = 0
         if self.trainer.enable_validation:
@@ -111,33 +111,33 @@ class ProgressBarBase(Callback):
 
     @property
     def total_test_batches(self) -> int:
-        """
-        The total number of testing batches during testing, which may change from epoch to epoch.
-        Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the
-        test dataloader is of infinite size.
+        """The total number of testing batches during testing, which may change from epoch to epoch.
+
+        Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the test dataloader is
+        of infinite size.
         """
         return sum(self.trainer.num_test_batches)
 
     @property
     def total_predict_batches(self) -> int:
-        """
-        The total number of predicting batches during testing, which may change from epoch to epoch.
-        Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the
-        predict dataloader is of infinite size.
+        """The total number of predicting batches during testing, which may change from epoch to epoch.
+
+        Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the predict dataloader
+        is of infinite size.
         """
         return sum(self.trainer.num_predict_batches)
 
     def disable(self):
-        """
-        You should provide a way to disable the progress bar.
+        """You should provide a way to disable the progress bar.
+
         The :class:`~pytorch_lightning.trainer.trainer.Trainer` will call this to disable the
         output on processes that have a rank different from 0, e.g., in multi-node training.
         """
         raise NotImplementedError
 
     def enable(self):
-        """
-        You should provide a way to enable the progress bar.
+        """You should provide a way to enable the progress bar.
+
         The :class:`~pytorch_lightning.trainer.trainer.Trainer` will call this in e.g. pre-training
         routines like the :ref:`learning rate finder <advanced/lr_finder:Learning Rate Finder>`
         to temporarily enable and disable the main progress bar.
@@ -145,9 +145,7 @@ class ProgressBarBase(Callback):
         raise NotImplementedError
 
     def print(self, *args, **kwargs):
-        """
-        You should provide a way to print without breaking the progress bar.
-        """
+        """You should provide a way to print without breaking the progress bar."""
         print(*args, **kwargs)
 
     def on_init_end(self, trainer):

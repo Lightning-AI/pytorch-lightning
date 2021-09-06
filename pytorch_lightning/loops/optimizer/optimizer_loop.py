@@ -40,7 +40,10 @@ _OUTPUTS_TYPE = List[List[Optional[ResultCollection]]]
 
 
 class OptimizerLoop(Loop):
-    """Runs over a sequence of optimizers. This loop implements what is known in Lightning as Automatic Optimization."""
+    """Runs over a sequence of optimizers.
+
+    This loop implements what is known in Lightning as Automatic Optimization.
+    """
 
     def __init__(self):
         super().__init__()
@@ -179,10 +182,8 @@ class OptimizerLoop(Loop):
         optimizer: Optimizer,
         hiddens: Any,
     ) -> Closure:
-        """
-        Build a closure object that captures the given arguments and runs the `training_step` function and optionally
-        other functions such as `backward` and `zero_grad`.
-        """
+        """Build a closure object that captures the given arguments and runs the `training_step` function and
+        optionally other functions such as `backward` and `zero_grad`."""
         step_fn = self._make_step_fn(split_batch, batch_idx, opt_idx, hiddens)
         backward_fn = self._make_backward_fn(optimizer, opt_idx)
         zero_grad_fn = self._make_zero_grad_fn(batch_idx, opt_idx, optimizer)
@@ -201,8 +202,8 @@ class OptimizerLoop(Loop):
         return partial(self._training_step, split_batch, batch_idx, opt_idx, hiddens)
 
     def _make_zero_grad_fn(self, batch_idx: int, opt_idx: int, optimizer: Optimizer) -> Optional[Callable[[], None]]:
-        """
-        Build a `zero_grad` function that zeroes the gradients before back-propagation.
+        """Build a `zero_grad` function that zeroes the gradients before back-propagation.
+
         Returns ``None`` in the case backward needs to be skipped.
         """
 
@@ -224,9 +225,10 @@ class OptimizerLoop(Loop):
         optimizer: Optimizer,
         opt_idx: int,
     ) -> Optional[Callable[[Tensor], Tensor]]:
-        """
-        Build a `backward` function that handles back-propagation through the output produced by the `training_step`
-        function. Returns ``None`` in the case backward needs to be skipped.
+        """Build a `backward` function that handles back-propagation through the output produced by the
+        `training_step` function.
+
+        Returns ``None`` in the case backward needs to be skipped.
         """
         if self._skip_backward:
             return None
@@ -248,7 +250,6 @@ class OptimizerLoop(Loop):
         Args:
             opt_idx: the index of the optimizer to use
             optimizer: the optimizer to use
-
         """
         # make sure only the gradients of the current optimizer's parameters are calculated
         # in the training step to prevent dangling gradients in multiple-optimizer setup.

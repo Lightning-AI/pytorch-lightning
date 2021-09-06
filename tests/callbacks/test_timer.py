@@ -104,7 +104,7 @@ def test_timer_time_remaining(time_mock):
 
 
 def test_timer_stops_training(tmpdir, caplog):
-    """Test that the timer stops training before reaching max_epochs"""
+    """Test that the timer stops training before reaching max_epochs."""
     model = BoringModel()
     duration = timedelta(milliseconds=100)
     timer = Timer(duration=duration)

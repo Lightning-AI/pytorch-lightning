@@ -40,7 +40,7 @@ class TestBackboneFinetuningCallback(BackboneFinetuning):
 
 
 def test_finetuning_callback(tmpdir):
-    """Test finetuning callbacks works as expected"""
+    """Test finetuning callbacks works as expected."""
 
     seed_everything(42)
 
@@ -89,7 +89,7 @@ class TestBackboneFinetuningWarningCallback(BackboneFinetuning):
 
 
 def test_finetuning_callback_warning(tmpdir):
-    """Test finetuning callbacks works as expected"""
+    """Test finetuning callbacks works as expected."""
 
     seed_everything(42)
 
@@ -133,7 +133,7 @@ def test_finetuning_callback_warning(tmpdir):
 
 
 def test_freeze_unfreeze_function(tmpdir):
-    """Test freeze properly sets requires_grad on the modules"""
+    """Test freeze properly sets requires_grad on the modules."""
 
     seed_everything(42)
 
@@ -167,7 +167,7 @@ def test_freeze_unfreeze_function(tmpdir):
 
 
 def test_unfreeze_and_add_param_group_function(tmpdir):
-    """Test unfreeze_and_add_param_group properly unfreeze parameters and add to the correct param_group"""
+    """Test unfreeze_and_add_param_group properly unfreeze parameters and add to the correct param_group."""
 
     seed_everything(42)
 
@@ -220,7 +220,8 @@ class OnEpochLayerFinetuning(BaseFinetuning):
 
 
 def test_base_finetuning_internal_optimizer_metadata(tmpdir):
-    """Test the param_groups updates are properly saved within the internal state of the BaseFinetuning Callbacks"""
+    """Test the param_groups updates are properly saved within the internal state of the BaseFinetuning
+    Callbacks."""
 
     seed_everything(42)
 
@@ -263,10 +264,8 @@ def test_base_finetuning_internal_optimizer_metadata(tmpdir):
 
 
 def test_on_before_accelerator_backend_setup(tmpdir):
-    """
-    `on_before_accelerator_backend_setup` hook is used by finetuning callbacks to freeze the model before
-    before configure_optimizers function call.
-    """
+    """`on_before_accelerator_backend_setup` hook is used by finetuning callbacks to freeze the model before before
+    configure_optimizers function call."""
 
     class TestCallback(Callback):
         def on_before_accelerator_backend_setup(self, trainer, pl_module):
@@ -289,10 +288,8 @@ def test_on_before_accelerator_backend_setup(tmpdir):
 
 
 def test_complex_nested_model():
-    """
-    Test flattening, freezing, and thawing of models which contain parent (non-leaf) modules with parameters
-    directly themselves rather than exclusively their submodules containing parameters.
-    """
+    """Test flattening, freezing, and thawing of models which contain parent (non-leaf) modules with parameters
+    directly themselves rather than exclusively their submodules containing parameters."""
 
     class ConvBlock(nn.Module):
         def __init__(self, in_channels, out_channels):
@@ -362,10 +359,8 @@ class FinetuningBoringModel(BoringModel):
 
 
 def test_callbacks_restore(tmpdir):
-    """
-    Test callbacks restore is called after optimizers have been re-created
-    but before optimizer states reload
-    """
+    """Test callbacks restore is called after optimizers have been re-created but before optimizer states
+    reload."""
     chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
 
     model = FinetuningBoringModel()
@@ -412,10 +407,8 @@ def test_callbacks_restore(tmpdir):
 
 
 def test_callbacks_restore_backbone(tmpdir):
-    """
-    Test callbacks restore is called after optimizers have been re-created
-    but before optimizer states reload
-    """
+    """Test callbacks restore is called after optimizers have been re-created but before optimizer states
+    reload."""
 
     class BackboneBoringModel(BoringModel):
         def __init__(self):

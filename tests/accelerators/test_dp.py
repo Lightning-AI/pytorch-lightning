@@ -55,7 +55,10 @@ class CustomClassificationModelDP(ClassificationModel):
 
 @RunIf(min_gpus=2)
 def test_multi_gpu_early_stop_dp(tmpdir):
-    """Make sure DDP works. with early stopping"""
+    """Make sure DDP works.
+
+    with early stopping
+    """
     tutils.set_random_master_port()
 
     dm = ClassifDataModule()
@@ -136,9 +139,7 @@ class ReductionTestModel(BoringModel):
 
 
 def test_dp_raise_exception_with_batch_transfer_hooks(tmpdir, monkeypatch):
-    """
-    Test that an exception is raised when overriding batch_transfer_hooks in DP model.
-    """
+    """Test that an exception is raised when overriding batch_transfer_hooks in DP model."""
     monkeypatch.setattr("torch.cuda.device_count", lambda: 2)
 
     class CustomModel(BoringModel):
@@ -179,7 +180,7 @@ def test_dp_raise_exception_with_batch_transfer_hooks(tmpdir, monkeypatch):
 
 @RunIf(min_gpus=2)
 def test_dp_training_step_dict(tmpdir):
-    """This test verifies that dp properly reduces dictionaries"""
+    """This test verifies that dp properly reduces dictionaries."""
     model = ReductionTestModel()
     model.training_step_end = None
     model.validation_step_end = None

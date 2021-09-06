@@ -25,9 +25,7 @@ from tests.helpers.boring_model import BoringModel
 
 
 def test_lightning_optimizer(tmpdir):
-    """
-    Test that optimizer are correctly wrapped by our LightningOptimizer
-    """
+    """Test that optimizer are correctly wrapped by our LightningOptimizer."""
 
     class TestModel(BoringModel):
         def configure_optimizers(self):
@@ -47,8 +45,9 @@ def test_lightning_optimizer(tmpdir):
 
 
 def test_lightning_optimizer_from_user(tmpdir):
-    """
-    Test that the user can use our LightningOptimizer. Not recommended.
+    """Test that the user can use our LightningOptimizer.
+
+    Not recommended.
     """
 
     class TestModel(BoringModel):
@@ -70,8 +69,9 @@ def test_lightning_optimizer_from_user(tmpdir):
 
 
 def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(tmpdir):
-    """
-    Test that the user can use our LightningOptimizer. Not recommended.
+    """Test that the user can use our LightningOptimizer.
+
+    Not recommended.
     """
 
     class TestModel(BoringModel):
@@ -174,9 +174,7 @@ def test_state(tmpdir):
 
 
 def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
-    """
-    Test overriding zero_grad works in automatic_optimization
-    """
+    """Test overriding zero_grad works in automatic_optimization."""
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx=None):
@@ -210,9 +208,7 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
 
 
 def test_lightning_optimizer_automatic_optimization_optimizer_step(tmpdir):
-    """
-    Test overriding step works in automatic_optimization
-    """
+    """Test overriding step works in automatic_optimization."""
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx=None):
@@ -257,10 +253,8 @@ def test_lightning_optimizer_automatic_optimization_optimizer_step(tmpdir):
 
 
 def test_lightning_optimizer_automatic_optimization_lbfgs_zero_grad(tmpdir):
-    """
-    Test zero_grad is called the same number of times as LBFGS requires
-    for reevaluation of the loss in automatic_optimization.
-    """
+    """Test zero_grad is called the same number of times as LBFGS requires for reevaluation of the loss in
+    automatic_optimization."""
 
     class TestModel(BoringModel):
         def configure_optimizers(self):
@@ -306,15 +300,13 @@ class OptimizerWithHooks(Optimizer):
         super().__init__(self.params, {"lr": 0.01})
 
     def _save_input(self, mod, i):
-        """Saves input of layer"""
+        """Saves input of layer."""
         if mod.training:
             self.state[mod]["x"] = i[0]
 
     def _save_grad_output(self, mod, _, grad_output):
-        """
-        Saves grad on output of layer to
-        grad is scaled with batch_size since gradient is spread over samples in mini batch
-        """
+        """Saves grad on output of layer to grad is scaled with batch_size since gradient is spread over samples in
+        mini batch."""
         batch_size = grad_output[0].shape[0]
         if mod.training:
             self.state[mod]["grad"] = grad_output[0] * batch_size

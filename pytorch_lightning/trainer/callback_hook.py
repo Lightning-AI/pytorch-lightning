@@ -288,22 +288,16 @@ class TrainerCallbackHookMixin(ABC):
             callback.on_before_backward(self, self.lightning_module, loss)
 
     def on_after_backward(self):
-        """
-        Called after loss.backward() and before optimizers do anything.
-        """
+        """Called after loss.backward() and before optimizers do anything."""
         for callback in self.callbacks:
             callback.on_after_backward(self, self.lightning_module)
 
     def on_before_optimizer_step(self, optimizer, optimizer_idx):
-        """
-        Called after on_after_backward() once the gradient is accumulated and before optimizer.step().
-        """
+        """Called after on_after_backward() once the gradient is accumulated and before optimizer.step()."""
         for callback in self.callbacks:
             callback.on_before_optimizer_step(self, self.lightning_module, optimizer, optimizer_idx)
 
     def on_before_zero_grad(self, optimizer):
-        """
-        Called after optimizer.step() and before optimizer.zero_grad().
-        """
+        """Called after optimizer.step() and before optimizer.zero_grad()."""
         for callback in self.callbacks:
             callback.on_before_zero_grad(self, self.lightning_module, optimizer)

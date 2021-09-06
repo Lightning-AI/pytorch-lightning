@@ -43,8 +43,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
     ):
-        """
-        Plugin for Fully Sharded Data Parallel provided by FairScale.
+        """Plugin for Fully Sharded Data Parallel provided by FairScale.
 
         Full Sharded Training shards the entire model across all available GPUs, allowing you to scale model
         size, whilst using efficient communication to reduce overhead. In practice, this means we can remain

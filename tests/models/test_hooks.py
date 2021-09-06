@@ -169,9 +169,7 @@ def test_apply_batch_transfer_handler(model_getter_mock):
 
 @RunIf(min_gpus=2, special=True)
 def test_transfer_batch_hook_ddp(tmpdir):
-    """
-    Test custom data are properly moved to the right device using ddp
-    """
+    """Test custom data are properly moved to the right device using ddp."""
 
     class CustomBatch:
         def __init__(self, data):
@@ -767,9 +765,7 @@ def test_trainer_model_hook_system_predict(tmpdir):
 
 
 def test_hooks_with_different_argument_names(tmpdir):
-    """
-    Test that argument names can be anything in the hooks
-    """
+    """Test that argument names can be anything in the hooks."""
 
     class CustomBoringModel(BoringModel):
         def assert_args(self, x, batch_nb):

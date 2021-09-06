@@ -185,7 +185,7 @@ def test_dataloaders_with_missing_keyword_arguments():
 
 
 def test_replace_sampler_with_multiprocessing_context():
-    """This test verifies that replace_sampler conserves multiprocessing context"""
+    """This test verifies that replace_sampler conserves multiprocessing context."""
     train = RandomDataset(32, 64)
     context = "spawn"
     train = DataLoader(train, batch_size=32, num_workers=2, multiprocessing_context=context, shuffle=True)
@@ -257,7 +257,7 @@ def test_dataloader_reinit_for_subclass():
 
 
 def test_loader_detaching():
-    """Checks that the loader has been resetted after the entrypoint"""
+    """Checks that the loader has been resetted after the entrypoint."""
 
     class LoaderTestModel(BoringModel):
         def training_step(self, batch, batch_idx):
