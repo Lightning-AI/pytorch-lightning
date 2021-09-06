@@ -522,7 +522,7 @@ class Trainer(
             # reset bookkeeping
             self.state.stage = None
             self.on_exception(exception)
-            raise exception
+            raise
 
     def fit(
         self,
