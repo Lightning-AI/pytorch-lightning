@@ -321,6 +321,7 @@ class HookedModel(BoringModel):
     @staticmethod
     def _manual_train_batch(trainer, model, batches, device=torch.device("cpu"), **kwargs):
         using_deepspeed = kwargs.get("plugins") == "deepspeed"
+        using_plugin = kwargs.get("amp_backend") or kwargs.get("plugins")
         out = []
         for i in range(batches):
             out.extend(
@@ -341,8 +342,11 @@ class HookedModel(BoringModel):
                     dict(name="on_after_backward"),
                     # `manual_backward` calls the previous 3
                     dict(name="manual_backward", args=(ANY,)),
+                    *([dict(name="closure")] if using_plugin else []),
                     dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY, 0)),
                     dict(name="on_before_optimizer_step", args=(ANY, 0)),
+                    # without a precision plugin, we execute the closure inside the `optimizer.step`
+                    *([] if using_plugin else [dict(name="closure")]),
                     dict(name="training_step", args=(ANY, i)),
                     dict(name="training_step_end", args=(dict(loss=ANY),)),
                     dict(name="Callback.on_train_batch_end", args=(trainer, model, dict(loss=ANY), ANY, i, 0)),
@@ -438,7 +442,7 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
             opt = self.optimizers()
             opt.zero_grad()
             self.manual_backward(loss)
-            opt.step()
+            opt.step(lambda: called.append({"name": "closure"}))
             return {"loss": loss}
 
     model = TestModel(called)
