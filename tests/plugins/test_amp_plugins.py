@@ -217,7 +217,7 @@ def test_cpu_amp_precision_context_manager(tmpdir):
     assert not hasattr(plugin, "scaler")
     context_manager = plugin.autocast_context_manager()
     assert isinstance(context_manager, torch.cpu.amp.autocast)
-    assert context_manager.fast_dtype == torch.bfloat16
+    assert context_manager.dtype == torch.bfloat16
 
 
 @pytest.mark.skipif(not _TORCH_CPU_AMP_AVAILABLE, reason="Torch CPU AMP is not available.")

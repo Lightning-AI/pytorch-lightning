@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from dataclasses import asdict, dataclass, field
-from typing import Optional
+from typing import Type
 
 
 @dataclass
 class BaseProgress:
     """
-    Mixin that implements state-loading utiltiies for dataclasses.
+    Mixin that implements state-loading utilities for dataclasses.
     """
 
     def state_dict(self) -> dict:
@@ -35,7 +35,61 @@ class BaseProgress:
 
 
 @dataclass
-class Tracker(BaseProgress):
+class ReadyCompletedTracker(BaseProgress):
+    """
+    Track an event's progress.
+
+    Args:
+        ready: Intended to track the number of events ready to start.
+        completed: Intended to be incremented after the event completes (e.g. after ``on_*_end`` runs).
+
+    These attributes should be increased in order, that is, :attr:`ready` first and :attr:`completed` last.
+    """
+
+    ready: int = 0
+    completed: int = 0
+
+    def reset(self) -> None:
+        """Reset the state."""
+        self.ready = 0
+        self.completed = 0
+
+    def reset_on_restart(self) -> None:
+        """
+        Reset the progress on restart.
+
+        If there is a failure before all attributes are increased,
+        restore the attributes to the last fully completed value.
+        """
+        self.ready = self.completed
+
+
+@dataclass
+class StartedTracker(ReadyCompletedTracker):
+    """
+    Track an event's progress.
+
+    Args:
+        ready: Intended to track the number of events ready to start.
+        started: Intended to be incremented after the event is started (e.g. after ``on_*_start`` runs).
+        completed: Intended to be incremented after the event completes (e.g. after ``on_*_end`` runs).
+
+    These attributes should be increased in order, that is, :attr:`ready` first and :attr:`completed` last.
+    """
+
+    started: int = 0
+
+    def reset(self) -> None:
+        super().reset()
+        self.started = 0
+
+    def reset_on_restart(self) -> None:
+        super().reset_on_restart()
+        self.started = self.completed
+
+
+@dataclass
+class ProcessedTracker(StartedTracker):
     """
     Track an event's progress.
 
@@ -46,52 +100,18 @@ class Tracker(BaseProgress):
         completed: Intended to be incremented after the event completes (e.g. after ``on_*_end`` runs).
 
     These attributes should be increased in order, that is, :attr:`ready` first and :attr:`completed` last.
-    Attributes set to ``None`` are treated as unused and are restricted.
     """
 
-    ready: Optional[int] = 0
-    started: Optional[int] = 0
-    processed: Optional[int] = 0
-    completed: Optional[int] = 0
+    processed: int = 0
 
     def reset(self) -> None:
-        if self.ready is not None:
-            self.ready = 0
-        if self.started is not None:
-            self.started = 0
-        if self.processed is not None:
-            self.processed = 0
-        if self.completed is not None:
-            self.completed = 0
-
-    def __setattr__(self, key: str, value: int) -> None:
-        """Restrict writing to attributes set to ``None``."""
-        if getattr(self, key, 0) is None:
-            raise AttributeError(f"The '{key}' attribute is meant to be unused")
-        return super().__setattr__(key, value)
-
-    def __repr__(self) -> str:
-        """Custom implementation to hide ``None`` fields."""
-        args = [f"{k}={v}" for k, v in self.__dict__.items() if v is not None]
-        return f"{self.__class__.__name__}({', '.join(args)})"
+        super().reset()
+        self.processed = 0
 
     def reset_on_restart(self) -> None:
-        """
-        Reset the progress on restart.
-        If there is a failure before all attributes are increased,
-        we restore the attributes to the last fully completed value.
-        """
-        # choose in case `processed` is unused
-        value = self.completed if self.processed is None else self.processed
-
-        if self.ready is not None:
-            self.ready = value
-        if self.started is not None:
-            self.started = value
-        if self.processed is not None:
-            self.processed = value
-        if self.completed is not None:
-            self.completed = value
+        # use `processed` in this case as the reset value
+        self.completed = self.processed
+        super().reset_on_restart()
 
 
 @dataclass
@@ -104,18 +124,26 @@ class Progress(BaseProgress):
         current: Intended to track the current progress of an event.
     """
 
-    total: Tracker = field(default_factory=Tracker)
-    current: Tracker = field(default_factory=Tracker)
+    total: ReadyCompletedTracker = field(default_factory=ProcessedTracker)
+    current: ReadyCompletedTracker = field(default_factory=ProcessedTracker)
+
+    def __post_init__(self) -> None:
+        if type(self.total) is not type(self.current):  # noqa: E721
+            raise ValueError("The `total` and `current` instances should be of the same class")
 
     def increment_ready(self) -> None:
         self.total.ready += 1
         self.current.ready += 1
 
     def increment_started(self) -> None:
+        if not isinstance(self.total, StartedTracker):
+            raise TypeError(f"`{self.total.__class__.__name__}` doesn't have a `started` attribute")
         self.total.started += 1
         self.current.started += 1
 
     def increment_processed(self) -> None:
+        if not isinstance(self.total, ProcessedTracker):
+            raise TypeError(f"`{self.total.__class__.__name__}` doesn't have a `processed` attribute")
         self.total.processed += 1
         self.current.processed += 1
 
@@ -124,9 +152,9 @@ class Progress(BaseProgress):
         self.current.completed += 1
 
     @classmethod
-    def from_defaults(cls, **kwargs: Optional[int]) -> "Progress":
+    def from_defaults(cls, tracker_cls: Type[ReadyCompletedTracker], **kwargs: int) -> "Progress":
         """Utility function to easily create an instance from keyword arguments to both ``Tracker``s."""
-        return cls(total=Tracker(**kwargs), current=Tracker(**kwargs))
+        return cls(total=tracker_cls(**kwargs), current=tracker_cls(**kwargs))
 
     def load_state_dict(self, state_dict: dict) -> None:
         self.total.load_state_dict(state_dict["total"])
@@ -144,8 +172,8 @@ class DataLoaderProgress(Progress):
         current: Tracks the current dataloader progress.
     """
 
-    total: Tracker = field(default_factory=lambda: Tracker(started=None, processed=None))
-    current: Tracker = field(default_factory=lambda: Tracker(started=None, processed=None))
+    total: ReadyCompletedTracker = field(default_factory=ReadyCompletedTracker)
+    current: ReadyCompletedTracker = field(default_factory=ReadyCompletedTracker)
 
 
 @dataclass
@@ -159,8 +187,8 @@ class SchedulerProgress(Progress):
         current: Tracks the current scheduler progress.
     """
 
-    total: Tracker = field(default_factory=lambda: Tracker(started=None, processed=None))
-    current: Tracker = field(default_factory=lambda: Tracker(started=None, processed=None))
+    total: ReadyCompletedTracker = field(default_factory=ReadyCompletedTracker)
+    current: ReadyCompletedTracker = field(default_factory=ReadyCompletedTracker)
 
 
 @dataclass
@@ -173,8 +201,8 @@ class OptimizerProgress(BaseProgress):
         zero_grad: Tracks ``optimizer.zero_grad`` calls.
     """
 
-    step: Progress = field(default_factory=lambda: Progress.from_defaults(started=None, processed=None))
-    zero_grad: Progress = field(default_factory=lambda: Progress.from_defaults(processed=None))
+    step: Progress = field(default_factory=lambda: Progress.from_defaults(ReadyCompletedTracker))
+    zero_grad: Progress = field(default_factory=lambda: Progress.from_defaults(StartedTracker))
 
     def reset_on_epoch(self) -> None:
         self.step.current.reset()

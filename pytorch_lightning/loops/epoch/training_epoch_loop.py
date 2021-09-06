@@ -37,6 +37,9 @@ class TrainingEpochLoop(loops.Loop):
     def __init__(self, min_steps: int, max_steps: int):
         super().__init__()
         self.min_steps: int = min_steps
+
+        if max_steps and max_steps < -1:
+            raise MisconfigurationException(f"`max_steps` must be a positive integer or -1. You passed in {max_steps}.")
         self.max_steps: int = max_steps
 
         self.global_step: int = 0

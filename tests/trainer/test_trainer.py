@@ -33,7 +33,7 @@ from torch.utils.data import DataLoader
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, Timer
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -491,6 +491,57 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.global_step == num_train_samples * trainer.max_epochs
     assert trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
+
+    # if max_steps is positive and max_epochs is negative, use max_steps
+    trainer_kwargs["max_epochs"] = -1
+    trainer_kwargs["max_steps"] = 3
+    trainer = Trainer(**trainer_kwargs)
+    trainer.fit(model)
+
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
+    assert trainer.global_step == 3
+
+
+@pytest.mark.parametrize(
+    "max_epochs,max_steps,incorrect_variable,incorrect_value",
+    [
+        (-100, None, "max_epochs", -100),
+        (1, -2, "max_steps", -2),
+    ],
+)
+def test_trainer_max_steps_and_epochs_validation(max_epochs, max_steps, incorrect_variable, incorrect_value):
+    """Don't allow max_epochs or max_steps to be less than -1 or a float"""
+    with pytest.raises(
+        MisconfigurationException,
+        match=f"`{incorrect_variable}` must be a positive integer or -1. You passed in {incorrect_value}",
+    ):
+        Trainer(max_epochs=max_epochs, max_steps=max_steps)
+
+
+@pytest.mark.parametrize(
+    "max_epochs,max_steps,is_done,correct_trainer_epochs",
+    [
+        (None, None, False, 1000),
+        (-1, None, False, -1),
+        (None, -1, False, None),
+        (5, -1, False, 5),
+        (-1, 10, False, -1),
+        (None, 0, True, None),
+        (0, None, True, 0),
+        (-1, 0, True, -1),
+        (0, -1, True, 0),
+    ],
+)
+def test_trainer_max_steps_and_epochs_fit_loop_done(max_epochs, max_steps, is_done, correct_trainer_epochs):
+    trainer = Trainer(max_epochs=max_epochs, max_steps=max_steps)
+
+    assert trainer.max_epochs == correct_trainer_epochs
+    assert trainer.max_steps == max_steps
+    assert trainer.fit_loop.done is is_done
+
+    # Make sure there is no timer
+    timer_callbacks = [c for c in trainer.callbacks if isinstance(c, Timer)]
+    assert len(timer_callbacks) == 0
 
 
 def test_trainer_min_steps_and_epochs(tmpdir):
@@ -1902,30 +1953,3 @@ def test_error_handling_all_stages(tmpdir, accelerator, num_processes):
     ) as exception_hook:
         trainer.predict(model, model.val_dataloader(), return_predictions=False)
     exception_hook.assert_called()
-
-
-def test_overridden_on_dataloaders(tmpdir):
-    model = BoringModel()
-    with pytest.deprecated_call(
-        match="Method `on_train_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
-    ):
-        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-        trainer.fit(model)
-
-    with pytest.deprecated_call(
-        match="Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
-    ):
-        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-        trainer.validate(model)
-
-    with pytest.deprecated_call(
-        match="Method `on_test_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
-    ):
-        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-        trainer.test(model)
-
-    with pytest.deprecated_call(
-        match="Method `on_predict_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
-    ):
-        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-        trainer.predict(model)

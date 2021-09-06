@@ -23,7 +23,7 @@ from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from pytorch_lightning.trainer.connectors.logger_connector.result import MetricSource, ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -560,19 +560,19 @@ def test_result_collection_on_tensor_with_mean_reduction():
 
     batch_metrics = result_collection.metrics(True)
     max_ = max(values)
-    assert batch_metrics[MetricSource.PBAR] == {
+    assert batch_metrics["pbar"] == {
         "loss_on_step_on_epoch_prog_bar_step": max_,
         "loss_on_step_on_epoch_prog_bar_logger_step": max_,
         "loss_on_step_prog_bar": max_,
         "loss_on_step_prog_bar_logger": max_,
     }
-    assert batch_metrics[MetricSource.LOG] == {
+    assert batch_metrics["log"] == {
         "loss_on_step_on_epoch_logger_step": max_,
         "loss_on_step_logger": max_,
         "loss_on_step_on_epoch_prog_bar_logger_step": max_,
         "loss_on_step_prog_bar_logger": max_,
     }
-    assert batch_metrics[MetricSource.CALLBACK] == {
+    assert batch_metrics["callback"] == {
         "loss_on_step": max_,
         "loss_on_step_logger": max_,
         "loss_on_step_on_epoch": max_,
@@ -589,19 +589,19 @@ def test_result_collection_on_tensor_with_mean_reduction():
 
     epoch_metrics = result_collection.metrics(False)
     mean = total_value / total_batches
-    assert epoch_metrics[MetricSource.PBAR] == {
+    assert epoch_metrics["pbar"] == {
         "loss_on_epoch_prog_bar": mean,
         "loss_on_epoch_prog_bar_logger": mean,
         "loss_on_step_on_epoch_prog_bar_epoch": mean,
         "loss_on_step_on_epoch_prog_bar_logger_epoch": mean,
     }
-    assert epoch_metrics[MetricSource.LOG] == {
+    assert epoch_metrics["log"] == {
         "loss_on_epoch_logger": mean,
         "loss_on_epoch_prog_bar_logger": mean,
         "loss_on_step_on_epoch_logger_epoch": mean,
         "loss_on_step_on_epoch_prog_bar_logger_epoch": mean,
     }
-    assert epoch_metrics[MetricSource.CALLBACK] == {
+    assert epoch_metrics["callback"] == {
         "loss_on_epoch": mean,
         "loss_on_epoch_logger": mean,
         "loss_on_epoch_prog_bar": mean,
