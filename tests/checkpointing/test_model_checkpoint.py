@@ -773,8 +773,6 @@ def test_default_checkpoint_behavior(tmpdir):
         results = trainer.test()
 
     assert len(results) == 1
-    assert save_mock.call_count == 3
-
     save_dir = tmpdir / "lightning_logs" / "version_0" / "checkpoints"
     save_mock.assert_has_calls(
         [
@@ -783,9 +781,7 @@ def test_default_checkpoint_behavior(tmpdir):
             call(trainer, save_dir / "epoch=2-step=14.ckpt"),
         ]
     )
-
-    # make sure the checkpoint we saved has the metric in the name
-    ckpts = os.listdir(os.path.join(tmpdir, "lightning_logs", "version_0", "checkpoints"))
+    ckpts = os.listdir(save_dir)
     assert len(ckpts) == 1
     assert ckpts[0] == "epoch=2-step=14.ckpt"
 
