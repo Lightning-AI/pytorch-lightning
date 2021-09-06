@@ -24,6 +24,7 @@ from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
+from tests.helpers.utils import no_warning_call
 
 
 def test_trainer_flag(caplog):
@@ -106,7 +107,9 @@ def test_timer_stops_training(tmpdir, caplog):
     timer = Timer(duration=duration)
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1000, callbacks=[timer])
-    with caplog.at_level(logging.INFO):
+    with caplog.at_level(logging.INFO), no_warning_call(
+        DeprecationWarning, match="The signature of `Callback.on_train_epoch_end` has changed in v1.3"
+    ):
         trainer.fit(model)
     assert trainer.global_step > 1
     assert trainer.current_epoch < 999
