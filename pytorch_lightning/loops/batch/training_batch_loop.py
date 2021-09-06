@@ -58,9 +58,13 @@ class TrainingBatchLoop(Loop):
             self._optimizer_freq_cumsum = np.cumsum(self.trainer.optimizer_frequencies)
         return self._optimizer_freq_cumsum
 
-    def connect(self, optimizer_loop: "Loop", manual_loop: ManualOptimization) -> None:
-        self.optimizer_loop = optimizer_loop
-        self.manual_loop = manual_loop
+    def connect(
+        self, optimizer_loop: Optional["Loop"] = None, manual_loop: Optional[ManualOptimization] = None
+    ) -> None:
+        if optimizer_loop is not None:
+            self.optimizer_loop = optimizer_loop
+        if manual_loop is not None:
+            self.manual_loop = manual_loop
 
     def run(self, batch: Any, batch_idx: int) -> AttributeDict:
         """Runs all the data splits and the ``on_batch_start`` and ``on_train_batch_start`` hooks.
