@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from copy import deepcopy
 from functools import partial
 from typing import Any, Callable, List, Optional, Tuple
 
@@ -133,7 +134,7 @@ class TrainingBatchLoop(Loop):
         else:
             # in manual optimization, there is no looping over optimizers
             result = self._run_optimization(batch_idx, split_batch)
-            self.batch_outputs[0].append(result)
+            self.batch_outputs[0].append(deepcopy(result))
 
     def teardown(self) -> None:
         # release memory

@@ -13,25 +13,29 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Callable, Dict, Optional
 
 from torch import Tensor
 
 from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import WarningCache
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation, WarningCache
 
 
 @dataclass
 class ClosureResult:
     """A container to hold the result of a :class:`AbstractClosure` call.
 
+    It is created from the output of :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`.
+
     Attributes:
         closure_loss: The loss with a graph attached.
+        hiddens: The hidden tensors if available.
         loss: A detached copy of the closure loss.
-        FIXME
+        extra: Any keys other than the loss returned.
     """
 
     closure_loss: Optional[Tensor]
@@ -39,7 +43,7 @@ class ClosureResult:
     loss: Optional[Tensor] = None
     extra: Dict[str, Tensor] = field(default_factory=dict)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self._set_loss()
 
     def _set_loss(self) -> None:
@@ -59,13 +63,13 @@ class ClosureResult:
             hiddens = training_step_output.get("hiddens")
             # detach hiddens to avoid `RuntimeError: Trying to backward through the graph a second time`
             hiddens = recursive_detach(hiddens)
-            # use the setter instead of `dict.update` because it calls `detach` on the tensor items
-            # FIXME detach?
             extra = {k: v for k, v in training_step_output.items() if k not in ("loss", "hiddens")}
+            # TODO: remove with the deprecation removal in v1.6
+            ClosureResult._check_extra_detach_deprecation(extra)
+            extra = recursive_detach(extra)
         elif isinstance(training_step_output, Tensor):
             loss = training_step_output
 
-        # map to results under the hood
         return cls(loss, hiddens, extra=extra)
 
     def apply_accumulation(self, value: int) -> None:
@@ -76,6 +80,23 @@ class ClosureResult:
         if self.closure_loss is not None:
             self.closure_loss /= value
             self._set_loss()
+
+    @staticmethod
+    def _check_extra_detach_deprecation(extra: Dict[str, Any]) -> None:
+        def check_fn(v: Tensor) -> Tensor:
+            if v.grad_fn is not None:
+                rank_zero_deprecation(
+                    f"One of the returned values {set(extra.keys())} has a `grad_fn`. We will detach it automatically"
+                    " but this behaviour will change in v1.6. Please detach it manually:"
+                    " `return {'loss': ..., 'something': something.detach()}`"
+                )
+            return v
+
+        apply_to_collection(extra, Tensor, check_fn)
+
+    def __getstate__(self) -> "ClosureResult":
+        # return a copy without the closure loss which could have a `grad_fn`
+        return replace(self, closure_loss=None)
 
 
 class AbstractClosure(ABC):
