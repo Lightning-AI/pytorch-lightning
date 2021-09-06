@@ -216,7 +216,7 @@ class StochasticWeightAveraging(Callback):
 
             trainer.accumulate_grad_batches = trainer.num_training_batches
 
-    def on_train_epoch_end(self, trainer: "pl.Trainer", *args):
+    def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", unused: Optional = None):
         trainer.fit_loop._skip_backward = False
 
     def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
