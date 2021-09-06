@@ -324,6 +324,10 @@ class DDPPlugin(ParallelPlugin):
                 and isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState)
                 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
             ):
+                # Since the global process group is not initalized in DDPPlugin ctor,
+                # the initialization of intra-node subgroup derived from the global process group needs to be delayed.
+                subgroup, _ = torch.distributed.new_subgroups()
+                self._ddp_comm_state.subgroup = subgroup
                 self._reinit_optimizers_with_post_localSGD(self._ddp_comm_state.start_localSGD_iter)
 
     def _reinit_optimizers_with_post_localSGD(self, warmup_steps: int):
@@ -351,7 +355,7 @@ class DDPPlugin(ParallelPlugin):
 
             optim_class = type(optimizer)
             post_localSGD_optimizer = PostLocalSGDOptimizer(
-                params=optimizer.param_groups,
+                params=iter(optimizer.param_groups[0]["params"]),
                 optimizer_class=optim_class,
                 averager=averager,
                 **optimizer.defaults,
