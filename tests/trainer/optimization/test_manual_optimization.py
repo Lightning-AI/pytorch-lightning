@@ -64,7 +64,14 @@ class ManualOptModel(BoringModel):
         return optimizer, optimizer_2
 
 
-def test_multiple_optimizers_manual_no_return(tmpdir):
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {},
+        pytest.param({"gpus": 1, "precision": 16, "amp_backend": "native"}, marks=RunIf(amp_native=True, min_gpus=1)),
+    ],
+)
+def test_multiple_optimizers_manual_no_return(tmpdir, kwargs):
     class TestModel(ManualOptModel):
         def training_step(self, batch, batch_idx):
             # avoid returning a value
@@ -86,11 +93,22 @@ def test_multiple_optimizers_manual_no_return(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         weights_summary=None,
+        **kwargs,
     )
+
+    if kwargs:
+        step_mock_patch = mock.patch.object(
+            trainer.precision_plugin.scaler, "step", wraps=trainer.precision_plugin.scaler.step
+        )
+        step_mock = step_mock_patch.start()
 
     with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward) as bwd_mock:
         trainer.fit(model)
     assert bwd_mock.call_count == limit_train_batches * 3
+
+    if kwargs:
+        step_mock_patch.stop()
+        assert step_mock.call_count == len(model.optimizers()) * limit_train_batches
 
 
 def test_multiple_optimizers_manual_return(tmpdir):
