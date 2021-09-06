@@ -285,8 +285,8 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
 
     total_dataloader = stop_epoch * n_dataloaders + stop_dataloader
     expected = {
-        "total": {"ready": total_dataloader + 1, "started": None, "processed": None, "completed": total_dataloader},
-        "current": {"ready": stop_dataloader + 1, "started": None, "processed": None, "completed": stop_dataloader},
+        "total": {"ready": total_dataloader + 1, "completed": total_dataloader},
+        "current": {"ready": stop_dataloader + 1, "completed": stop_dataloader},
     }
     assert checkpoint["epoch_loop.val_loop.dataloader_progress"] == expected
 
@@ -452,13 +452,8 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
             },
         },
         "epoch_loop.scheduler_progress": {
-            "total": {
-                "ready": nbe_sch_steps + be_sch_steps,
-                "started": None,
-                "processed": None,
-                "completed": nbe_sch_steps + be_sch_steps,
-            },
-            "current": {"ready": be_sch_steps, "started": None, "processed": None, "completed": be_sch_steps},
+            "total": {"ready": nbe_sch_steps + be_sch_steps, "completed": nbe_sch_steps + be_sch_steps},
+            "current": {"ready": be_sch_steps, "completed": be_sch_steps},
         },
         "epoch_loop.batch_loop.state_dict": ANY,
         "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
@@ -468,28 +463,19 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
                 "step": {
                     "total": {
                         "ready": nbe_total_opt_steps + be_total_opt_steps + has_opt_stepped_in_be,
-                        "started": None,
-                        "processed": None,
                         "completed": nbe_total_opt_steps + be_total_opt_steps,
                     },
-                    "current": {
-                        "ready": be_total_opt_steps + has_opt_stepped_in_be,
-                        "started": None,
-                        "processed": None,
-                        "completed": be_total_opt_steps,
-                    },
+                    "current": {"ready": be_total_opt_steps + has_opt_stepped_in_be, "completed": be_total_opt_steps},
                 },
                 "zero_grad": {
                     "total": {
                         "ready": nbe_total_zero_grad + be_total_zero_grad,
                         "started": nbe_total_zero_grad + be_total_zero_grad,
-                        "processed": None,
                         "completed": nbe_total_zero_grad + be_total_zero_grad,
                     },
                     "current": {
                         "ready": be_total_zero_grad,
                         "started": be_total_zero_grad,
-                        "processed": None,
                         "completed": be_total_zero_grad,
                     },
                 },

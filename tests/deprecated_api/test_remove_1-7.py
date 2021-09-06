@@ -16,7 +16,7 @@ from unittest import mock
 
 import pytest
 
-from pytorch_lightning import LightningDataModule, Trainer
+from pytorch_lightning import Callback, LightningDataModule, Trainer
 from pytorch_lightning.loggers import TestTubeLogger
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
@@ -91,31 +91,79 @@ def test_v1_7_0_trainer_prepare_data_per_node(tmpdir):
         _ = Trainer(prepare_data_per_node=False)
 
 
-def test_v1_7_0_deprecated_on_train_dataloader(tmpdir):
+def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
+    class CustomBoringModel(BoringModel):
+        def on_train_dataloader(self):
+            print("on_train_dataloader")
 
-    model = BoringModel()
+        def on_val_dataloader(self):
+            print("on_val_dataloader")
+
+        def on_test_dataloader(self):
+            print("on_test_dataloader")
+
+        def on_predict_dataloader(self):
+            print("on_predict_dataloader")
+
+    def _run(model, task="fit"):
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
+        getattr(trainer, task)(model)
+
+    model = CustomBoringModel()
+
     with pytest.deprecated_call(
         match="Method `on_train_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
     ):
-        model.on_train_dataloader()
+        _run(model, "fit")
+
     with pytest.deprecated_call(
         match="Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
     ):
-        model.on_val_dataloader()
+        _run(model, "fit")
+
+    with pytest.deprecated_call(
+        match="Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+    ):
+        _run(model, "validate")
+
     with pytest.deprecated_call(
         match="Method `on_test_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
     ):
-        model.on_test_dataloader()
+        _run(model, "test")
+
     with pytest.deprecated_call(
         match="Method `on_predict_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
     ):
-        model.on_predict_dataloader()
+        _run(model, "predict")
 
 
 @mock.patch("pytorch_lightning.loggers.test_tube.Experiment")
 def test_v1_7_0_test_tube_logger(_, tmpdir):
     with pytest.deprecated_call(match="The TestTubeLogger is deprecated since v1.5 and will be removed in v1.7"):
         _ = TestTubeLogger(tmpdir)
+
+
+def test_v1_7_0_on_interrupt(tmpdir):
+    class HandleInterruptCallback(Callback):
+        def on_keyboard_interrupt(self, trainer, pl_module):
+            print("keyboard interrupt")
+
+    model = BoringModel()
+    handle_interrupt_callback = HandleInterruptCallback()
+
+    trainer = Trainer(
+        callbacks=[handle_interrupt_callback],
+        max_epochs=1,
+        limit_val_batches=0.1,
+        limit_train_batches=0.2,
+        progress_bar_refresh_rate=0,
+        logger=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `on_keyboard_interrupt` callback hook was deprecated in v1.5 and will be removed in v1.7"
+    ):
+        trainer.fit(model)
 
 
 def test_v1_7_0_process_position_trainer_constructor(tmpdir):
