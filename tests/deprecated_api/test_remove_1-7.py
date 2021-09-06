@@ -111,17 +111,14 @@ def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
 
     model = CustomBoringModel()
 
-    model = BoringModel()
     with pytest.deprecated_call(
         match="Method `on_train_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
     ):
-        model.on_train_dataloader()
         _run(model, "fit")
 
     with pytest.deprecated_call(
         match="Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
     ):
-        model.on_val_dataloader()
         _run(model, "fit")
 
     with pytest.deprecated_call(
@@ -132,13 +129,11 @@ def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
     with pytest.deprecated_call(
         match="Method `on_test_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
     ):
-        model.on_test_dataloader()
         _run(model, "test")
 
     with pytest.deprecated_call(
         match="Method `on_predict_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
     ):
-        model.on_predict_dataloader()
         _run(model, "predict")
 
 
