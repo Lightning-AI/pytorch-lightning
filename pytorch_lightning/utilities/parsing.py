@@ -241,7 +241,7 @@ def save_hyperparameters(
         if ignore is not None:
             if isinstance(ignore, str):
                 ignore = [ignore]
-            if isinstance(ignore, (list, tuple)):
+            if isinstance(ignore, (list, tuple, set)):
                 ignore = [arg for arg in ignore if isinstance(arg, str)]
             init_args = {k: v for k, v in init_args.items() if k not in ignore}
 
