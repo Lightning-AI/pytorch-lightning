@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed an issues with export to ONNX format when a model has multiple inputs ([#8800](https://github.com/PyTorchLightning/pytorch-lightning/pull/8800))
 
+- Removed deprecation warnings being called for `on_{task}_dataloader` ([#9279](https://github.com/PyTorchLightning/pytorch-lightning/pull/9279))
+
 - Fixed save/load/resume from checkpoint for DeepSpeed Plugin (
     [#8397](https://github.com/PyTorchLightning/pytorch-lightning/pull/8397),
     [#8644](https://github.com/PyTorchLightning/pytorch-lightning/pull/8644),

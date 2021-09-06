@@ -669,14 +669,34 @@ class DataHooks:
     def on_train_dataloader(self) -> None:
         """Called before requesting the train dataloader."""
 
+        .. deprecated:: v1.5
+            :meth:`on_train_dataloader` is deprecated and will be removed in v1.7.0.
+            Please use :meth:`train_dataloader()` directly.
+        """
+
     def on_val_dataloader(self) -> None:
         """Called before requesting the val dataloader."""
+
+        .. deprecated:: v1.5
+            :meth:`on_val_dataloader` is deprecated and will be removed in v1.7.0.
+            Please use :meth:`val_dataloader()` directly.
+        """
 
     def on_test_dataloader(self) -> None:
         """Called before requesting the test dataloader."""
 
+        .. deprecated:: v1.5
+            :meth:`on_test_dataloader` is deprecated and will be removed in v1.7.0.
+            Please use :meth:`test_dataloader()` directly.
+        """
+
     def on_predict_dataloader(self) -> None:
         """Called before requesting the predict dataloader."""
+
+        .. deprecated:: v1.5
+            :meth:`on_predict_dataloader` is deprecated and will be removed in v1.7.0.
+            Please use :meth:`predict_dataloader()` directly.
+        """
 
     def transfer_batch_to_device(self, batch: Any, device: torch.device, dataloader_idx: int) -> Any:
         """
