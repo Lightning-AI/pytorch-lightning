@@ -15,7 +15,7 @@
 import inspect
 import logging
 import os
-from functools import partial
+from functools import lru_cache, partial
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Type, TYPE_CHECKING, Union
 
@@ -27,6 +27,7 @@ from pytorch_lightning.profiler.base import BaseProfiler
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
+from pytorch_lightning.utilities.warnings import WarningCache
 
 if TYPE_CHECKING:
     from torch.autograd.profiler import EventList
@@ -38,6 +39,7 @@ if _KINETO_AVAILABLE:
     from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
 
 log = logging.getLogger(__name__)
+warning_cache = WarningCache()
 
 _PROFILER = Union[torch.autograd.profiler.profile, torch.cuda.profiler.profile, torch.autograd.profiler.emit_nvtx]
 
@@ -323,6 +325,7 @@ class PyTorchProfiler(BaseProfiler):
                 raise MisconfigurationException(
                     f"Schedule should return a `torch.profiler.ProfilerAction`. Found: {action}"
                 )
+        self._default_schedule()
         schedule = schedule if has_schedule else self._default_schedule()
         self._schedule = ScheduleWrapper(schedule) if schedule is not None else schedule
         self._profiler_kwargs["schedule"] = self._schedule
@@ -334,7 +337,13 @@ class PyTorchProfiler(BaseProfiler):
         with_stack = profiler_kwargs.get("with_stack", False) or self._export_to_flame_graph
         self._profiler_kwargs["with_stack"] = with_stack
 
+    def _should_override_schedule(self) -> bool:
+        return (self._lightning_module is not None and self._lightning_module.trainer.limit_train_batches < 5) and (
+            self._schedule is not None and self._schedule._schedule == self._default_schedule()
+        )
+
     @staticmethod
+    @lru_cache(1)
     def _default_schedule() -> Optional[callable]:
         if _KINETO_AVAILABLE:
             # Those schedule defaults allow the profiling overhead to be negligible over training time.
@@ -380,6 +389,7 @@ class PyTorchProfiler(BaseProfiler):
             and (action_name in self._record_functions or action_name.startswith(self.RECORD_FUNCTION_PREFIX))
             and action_name not in self._recording_map
         ):
+
             recording = record_function(action_name)
             recording.__enter__()
             self._recording_map[action_name] = recording
@@ -395,6 +405,17 @@ class PyTorchProfiler(BaseProfiler):
         if self.profiler is not None and (
             action_name in self.STEP_FUNCTIONS or action_name.startswith(self.STEP_FUNCTION_PREFIX)
         ):
+
+            # the default schedule requires a minimum of 5 steps to properly work: `wait=1, warmup=1, active=3`.
+            # otherwise, this will raise a `segmentation fault`.
+            if self._should_override_schedule():
+                warning_cache.warn(
+                    "The PyTorch Profiler default schedule will be overridden as there is not enough "
+                    "steps to properly record traces."
+                )
+                self._schedule = None
+                self.profiler.schedule = torch.profiler.profiler._default_schedule_fn
+
             if self._schedule is not None:
                 self._schedule.pre_step(action_name)
 

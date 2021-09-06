@@ -303,15 +303,15 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         assert any(f"{local_rank}-validation_step" in f for f in files)
 
 
+@pytest.mark.parametrize("fast_dev_run", [1, 2, 3, 4, 5])
 @pytest.mark.parametrize("boring_model_cls", [BoringModel, ManualOptimBoringModel])
-def test_pytorch_profiler_trainer_fit(boring_model_cls, tmpdir):
+def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
     """Ensure that the profiler can be given to the trainer and test step are properly recorded."""
-    pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", schedule=None)
+    pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile")
     model = boring_model_cls()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=1, profiler=pytorch_profiler)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=fast_dev_run, profiler=pytorch_profiler)
     trainer.fit(model)
 
-    assert sum(e.name == "training_step" for e in pytorch_profiler.function_events)
     assert sum(e.name == "validation_step" for e in pytorch_profiler.function_events)
 
     path = pytorch_profiler.dirpath / f"fit-{pytorch_profiler.filename}.txt"
