@@ -91,13 +91,12 @@ class TestDDPSpawnPlugin(DDPSpawnPlugin):
         return super().get_from_queue(trainer, queue)
 
 
-@RunIf(min_gpus=2)
 def test_ddp_spawn_add_get_queue(tmpdir):
     """Tests add_to_queue/get_from_queue with DDPSpawnPlugin."""
 
     ddp_spawn_plugin = TestDDPSpawnPlugin()
     trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=True, gpus=2, accelerator="ddp_spawn", plugins=[ddp_spawn_plugin]
+        default_root_dir=tmpdir, fast_dev_run=True, num_processes=2, accelerator="ddp_cpu", plugins=[ddp_spawn_plugin]
     )
 
     assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)

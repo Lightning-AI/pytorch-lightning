@@ -203,7 +203,7 @@ class ConfigValidator:
                     "is incompatible with `truncated_bptt_steps > 0`."
                 )
 
-    def _check_add_get_queue(self, model: "pl.LightningModule"):
+    def _check_add_get_queue(self, model: "pl.LightningModule") -> None:
         r"""
         Checks if add_to_queue or get_from_queue is overriden and sends a deprecation warning.
 
