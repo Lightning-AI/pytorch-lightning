@@ -15,7 +15,7 @@ import os
 from datetime import timedelta
 from typing import Dict, List, Optional, Union
 
-from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ModelSummary, ProgressBar, ProgressBarBase
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -34,6 +34,7 @@ class CallbackConnector:
         process_position: int,
         default_root_dir: Optional[str],
         weights_save_path: Optional[str],
+        weights_summary: Optional[str],
         stochastic_weight_avg: bool,
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
     ):
@@ -57,6 +58,8 @@ class CallbackConnector:
         # configure the timer callback.
         # responsible to stop the training when max_time is reached.
         self._configure_timer_callback(max_time)
+
+        self._configure_model_summary_callback(weights_summary)
 
         # init progress bar
         if process_position != 0:
@@ -88,6 +91,12 @@ class CallbackConnector:
 
         if not self._trainer_has_checkpoint_callbacks() and checkpoint_callback is True:
             self.trainer.callbacks.append(ModelCheckpoint())
+
+    def _configure_model_summary_callback(self, weights_summary: Optional[str] = None) -> None:
+        if any(isinstance(cb, ModelSummary) for cb in self.trainer.callbacks):
+            return
+        model_summary = ModelSummary(mode=weights_summary)
+        self.trainer.callbacks.append(model_summary)
 
     def _configure_swa_callbacks(self):
         if not self.trainer._stochastic_weight_avg:
