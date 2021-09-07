@@ -601,8 +601,7 @@ class NeptuneLogger(LightningLoggerBase):
 
         if not raise_exception:
             warnings.warn(
-                "The function you've used is deprecated in v1.5.0 and will be removed in v1.7.0. "
-                + msg_suffix
+                "The function you've used is deprecated in v1.5.0 and will be removed in v1.7.0. " + msg_suffix
             )
         else:
             raise ValueError("The function you've used is deprecated.\n" + msg_suffix)
