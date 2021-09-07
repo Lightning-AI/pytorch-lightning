@@ -15,12 +15,10 @@ from abc import ABC
 
 
 class TrainingStepVariations(ABC):
-    """
-    Houses all variations of training steps
-    """
+    """Houses all variations of training steps."""
 
     def training_step(self, batch, batch_idx, optimizer_idx=None):
-        """Lightning calls this inside the training loop"""
+        """Lightning calls this inside the training loop."""
         self.training_step_called = True
 
         # forward pass
@@ -33,7 +31,7 @@ class TrainingStepVariations(ABC):
         return {"loss": loss_train}
 
     def training_step__multiple_dataloaders(self, batch, batch_idx, optimizer_idx=None):
-        """Training step for multiple train loaders"""
+        """Training step for multiple train loaders."""
 
         assert isinstance(batch, dict)
         assert len(batch) == 2

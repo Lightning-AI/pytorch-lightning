@@ -259,10 +259,8 @@ def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_coun
 @mock.patch("torch.cuda.device_count", return_value=1)
 @pytest.mark.parametrize("gpus", [[0, 1, 2], 2, "0"])
 def test_torchelastic_gpu_parsing(mocked_device_count, gpus):
-    """
-    Ensure when using torchelastic and nproc_per_node is set to the default of 1 per GPU device
-    That we omit sanitizing the gpus as only one of the GPUs is visible.
-    """
+    """Ensure when using torchelastic and nproc_per_node is set to the default of 1 per GPU device That we omit
+    sanitizing the gpus as only one of the GPUs is visible."""
     trainer = Trainer(gpus=gpus)
     assert isinstance(trainer.accelerator_connector.cluster_environment, TorchElasticEnvironment)
     assert trainer.accelerator_connector.parallel_device_ids == device_parser.parse_gpu_ids(gpus)

@@ -23,7 +23,7 @@ from pytorch_lightning.loggers.csv_logs import ExperimentWriter
 
 
 def test_file_logger_automatic_versioning(tmpdir):
-    """Verify that automatic versioning works"""
+    """Verify that automatic versioning works."""
 
     root_dir = tmpdir.mkdir("exp")
     root_dir.mkdir("version_0")
@@ -35,7 +35,7 @@ def test_file_logger_automatic_versioning(tmpdir):
 
 
 def test_file_logger_manual_versioning(tmpdir):
-    """Verify that manual versioning works"""
+    """Verify that manual versioning works."""
 
     root_dir = tmpdir.mkdir("exp")
     root_dir.mkdir("version_0")
@@ -48,7 +48,7 @@ def test_file_logger_manual_versioning(tmpdir):
 
 
 def test_file_logger_named_version(tmpdir):
-    """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402'"""
+    """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402'."""
 
     exp_name = "exp"
     tmpdir.mkdir(exp_name)
@@ -64,7 +64,7 @@ def test_file_logger_named_version(tmpdir):
 
 @pytest.mark.parametrize("name", ["", None])
 def test_file_logger_no_name(tmpdir, name):
-    """Verify that None or empty name works"""
+    """Verify that None or empty name works."""
     logger = CSVLogger(save_dir=tmpdir, name=name)
     logger.save()
     assert logger.root_dir == tmpdir

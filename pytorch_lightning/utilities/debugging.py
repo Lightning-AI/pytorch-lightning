@@ -14,7 +14,6 @@
 
 import os
 import time
-from collections import Counter
 from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Union
 
@@ -44,10 +43,6 @@ class InternalDebugger:
     def __init__(self, trainer: "pl.Trainer") -> None:
         self.enabled = os.environ.get("PL_DEV_DEBUG", "0") == "1"
         self.trainer = trainer
-        self.saved_train_losses: List[Dict[str, Any]] = []
-        self.saved_val_losses: List[Dict[str, Any]] = []
-        self.saved_test_losses: List[Dict[str, Any]] = []
-        self.early_stopping_history: List[Dict[str, Any]] = []
         self.checkpoint_callback_history: List[Dict[str, Any]] = []
         self.events: List[Dict[str, Any]] = []
         self.saved_lr_scheduler_updates: List[Dict[str, Union[int, float, str, torch.Tensor, None]]] = []
@@ -108,11 +103,6 @@ class InternalDebugger:
             self.test_dataloader_calls.append(values)
 
     @enabled_only
-    def track_train_loss_history(self, batch_idx: int, loss: torch.Tensor) -> None:
-        loss_dict = {"batch_idx": batch_idx, "epoch": self.trainer.current_epoch, "loss": loss.detach().clone()}
-        self.saved_train_losses.append(loss_dict)
-
-    @enabled_only
     def track_lr_schedulers_update(
         self,
         batch_idx: int,
@@ -136,35 +126,6 @@ class InternalDebugger:
         self.saved_lr_scheduler_updates.append(loss_dict)
 
     @enabled_only
-    def track_eval_loss_history(self, batch_idx: int, dataloader_idx: int, output: torch.Tensor) -> None:
-        loss_dict = {
-            "sanity_check": self.trainer.sanity_checking,
-            "dataloader_idx": dataloader_idx,
-            "batch_idx": batch_idx,
-            "epoch": self.trainer.current_epoch,
-            "output": output,
-        }
-
-        if self.trainer.testing:
-            self.saved_test_losses.append(loss_dict)
-        else:
-            self.saved_val_losses.append(loss_dict)
-
-    @enabled_only
-    def track_early_stopping_history(
-        self, callback: "pl.callbacks.early_stopping.EarlyStopping", current: torch.Tensor
-    ) -> None:
-        debug_dict = {
-            "epoch": self.trainer.current_epoch,
-            "global_step": self.trainer.global_step,
-            "rank": self.trainer.global_rank,
-            "current": current,
-            "best": callback.best_score,
-            "patience": callback.wait_count,
-        }
-        self.early_stopping_history.append(debug_dict)
-
-    @enabled_only
     def track_checkpointing_history(self, filepath: str) -> None:
         cb = self.trainer.checkpoint_callback
         debug_dict = {
@@ -175,24 +136,3 @@ class InternalDebugger:
             "filepath": filepath,
         }
         self.checkpoint_callback_history.append(debug_dict)
-
-    @property
-    def num_seen_sanity_check_batches(self) -> int:
-        count = sum(1 for x in self.saved_val_losses if x["sanity_check"])
-        return count
-
-    @property
-    def num_seen_val_check_batches(self) -> Counter:
-        counts: Counter = Counter()
-        for x in self.saved_val_losses:
-            if not x["sanity_check"]:
-                counts.update({x["dataloader_idx"]: 1})
-        return counts
-
-    @property
-    def num_seen_test_check_batches(self) -> Counter:
-        counts: Counter = Counter()
-        for x in self.saved_test_losses:
-            if not x["sanity_check"]:
-                counts.update({x["dataloader_idx"]: 1})
-        return counts

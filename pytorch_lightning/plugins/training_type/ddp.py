@@ -56,6 +56,7 @@ from pytorch_lightning.utilities.distributed import (
 )
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _TORCH_GREATER_EQUAL_1_10:
     from torch.distributed.optim import DistributedOptimizer, PostLocalSGDOptimizer, ZeroRedundancyOptimizer
@@ -75,12 +76,10 @@ log = logging.getLogger(__name__)
 
 
 class DDPPlugin(ParallelPlugin):
-    """
-    Plugin for multi-process single-device training on one or multiple nodes.
+    """Plugin for multi-process single-device training on one or multiple nodes.
 
-    The master process in each node spawns N-1 child processes via :func:`subprocess.Popen`,
-    where N is the number of devices (e.g. GPU) per node.
-    It is very similar to how :mod:`torch.distributed.launch` launches processes.
+    The master process in each node spawns N-1 child processes via :func:`subprocess.Popen`, where N is the number of
+    devices (e.g. GPU) per node. It is very similar to how :mod:`torch.distributed.launch` launches processes.
     """
 
     distributed_backend = "ddp"
@@ -316,8 +315,6 @@ class DDPPlugin(ParallelPlugin):
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
 
-            # Post-localSDG is only available after 1.9,
-            # and `torch.distributed.optim` package currently is not available on Windows.
             if (
                 _TORCH_GREATER_EQUAL_1_10
                 and isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState)
@@ -361,7 +358,7 @@ class DDPPlugin(ParallelPlugin):
         trainer.optimizers = optimizers
         trainer.convert_to_lightning_optimizers()
 
-    def configure_ddp(self):
+    def configure_ddp(self) -> None:
         self.pre_configure_ddp()
         self._model = DistributedDataParallel(
             LightningDistributedModule(self.model), device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
@@ -374,16 +371,19 @@ class DDPPlugin(ParallelPlugin):
         return [self.root_device.index]
 
     def pre_dispatch(self):
+        # share ddp pids to all processes
+        self._share_information_to_prevent_deadlock()
+
         # move the model to the correct device
         self.model_to_device()
 
         if self.sync_batchnorm:
             self.model = self.configure_sync_batchnorm(self.model)
 
-        self.configure_ddp()
-
-        # share ddp pids to all processes
-        self._share_information_to_prevent_deadlock()
+        # skip wrapping the model if we are not fitting as no gradients need to be exchanged
+        trainer_fn = self.lightning_module.trainer.state.fn
+        if trainer_fn == TrainerFn.FITTING:
+            self.configure_ddp()
 
     def post_dispatch(self) -> None:
         self.cluster_environment.teardown()
@@ -400,7 +400,7 @@ class DDPPlugin(ParallelPlugin):
         return self.dist.broadcast(obj)
 
     def pre_backward(self, closure_loss: torch.Tensor) -> None:
-        """Run before precision plugin executes backward"""
+        """Run before precision plugin executes backward."""
         if not self.lightning_module.automatic_optimization:
             prepare_for_backward(self.model, closure_loss)
 
@@ -408,8 +408,7 @@ class DDPPlugin(ParallelPlugin):
         self.model.to(self.root_device)
 
     def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> torch.Tensor:
-        """
-        Reduces a tensor from several distributed processes to one aggregated tensor.
+        """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
             tensor: the tensor to sync and reduce
@@ -424,17 +423,22 @@ class DDPPlugin(ParallelPlugin):
             tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
-    def training_step(self, *args, **kwargs):
+    def training_step(self, *args, **kwargs) -> Optional[Any]:
         return self.model(*args, **kwargs)
 
-    def validation_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        if isinstance(self.model, DistributedDataParallel):
+            # used when calling `trainer.fit`
+            return self.model(*args, **kwargs)
+        else:
+            # used when calling `trainer.validate`
+            return self.lightning_module.validation_step(*args, **kwargs)
 
-    def test_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        return self.lightning_module.test_step(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def predict_step(self, *args, **kwargs) -> Any:
+        return self.lightning_module.predict_step(*args, **kwargs)
 
     def post_training_step(self):
         if not self.lightning_module.automatic_optimization:
@@ -466,9 +470,7 @@ class DDPPlugin(ParallelPlugin):
         self._sync_dir = sync_dirs[self.node_rank]
 
     def _share_pids(self):
-        """
-        Make all DDP processes aware of all processes pids.
-        """
+        """Make all DDP processes aware of all processes pids."""
         self.barrier()
         pids = self.all_gather(torch.tensor(os.getpid(), device=self.root_device))
         pids = pids.cpu().numpy().tolist()
@@ -479,6 +481,10 @@ class DDPPlugin(ParallelPlugin):
             return
 
         sync_dir = self._sync_dir
+
+        if not sync_dir:
+            rank_zero_warn("Error handling mechanism for deadlock detection is uninitialized. Skipping check.")
+            return
 
         # The cluster may be configured to periodically purge the `/tmp`
         # directory, in which case `sync_dir` may not exist anymore at this

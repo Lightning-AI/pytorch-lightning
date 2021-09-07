@@ -19,6 +19,7 @@ from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, 
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
 class CallbackConnector:
@@ -58,6 +59,12 @@ class CallbackConnector:
         self._configure_timer_callback(max_time)
 
         # init progress bar
+        if process_position != 0:
+            rank_zero_deprecation(
+                f"Setting `Trainer(process_position={process_position})` is deprecated in v1.5 and will be removed"
+                " in v1.7. Please pass `pytorch_lightning.callbacks.progress.ProgressBar` with"
+                " `process_position` directly to the Trainer's `callbacks` argument instead."
+            )
         self.trainer._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
 
         # push all checkpoint callbacks to the end
@@ -132,8 +139,8 @@ class CallbackConnector:
             callback.log_dict = model.log_dict
 
     def _attach_model_callbacks(self) -> None:
-        """
-        Attaches the callbacks defined in the model.
+        """Attaches the callbacks defined in the model.
+
         If a callback returned by the model's configure_callback method has the same type as one or several
         callbacks already present in the trainer callbacks list, it will replace them.
         In addition, all :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks
@@ -160,8 +167,7 @@ class CallbackConnector:
 
     @staticmethod
     def _reorder_callbacks(callbacks: List[Callback]) -> List[Callback]:
-        """
-        Moves all ModelCheckpoint callbacks to the end of the list. The sequential order within the group of
+        """Moves all ModelCheckpoint callbacks to the end of the list. The sequential order within the group of
         checkpoint callbacks is preserved, as well as the order of all other callbacks.
 
         Args:

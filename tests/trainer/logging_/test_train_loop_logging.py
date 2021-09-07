@@ -11,9 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Test logging in the training loop
-"""
+"""Test logging in the training loop."""
 
 import collections
 import itertools
@@ -33,9 +31,7 @@ from tests.helpers.runif import RunIf
 
 
 def test__training_step__log(tmpdir):
-    """
-    Tests that only training_step can be used
-    """
+    """Tests that only training_step can be used."""
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -97,9 +93,7 @@ def test__training_step__log(tmpdir):
 
 
 def test__training_step__epoch_end__log(tmpdir):
-    """
-    Tests that training_epoch_end can log
-    """
+    """Tests that training_epoch_end can log."""
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -137,9 +131,7 @@ def test__training_step__epoch_end__log(tmpdir):
 
 @pytest.mark.parametrize(["batches", "log_interval", "max_epochs"], [(1, 1, 1), (64, 32, 2)])
 def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval, max_epochs):
-    """
-    Tests that training_step_end and training_epoch_end can log
-    """
+    """Tests that training_step_end and training_epoch_end can log."""
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -182,9 +174,7 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     ["batches", "fx", "result"], [(3, min, 0), (3, torch.max, 2), (11, max, 10), (5, "avg", 2), (5, "SUM", 10)]
 )
 def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
-    """
-    Tests that log works correctly with different tensor types
-    """
+    """Tests that log works correctly with different tensor types."""
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -251,9 +241,7 @@ def test_different_batch_types_for_sizing(tmpdir):
 
 
 def test_log_works_in_train_callback(tmpdir):
-    """
-    Tests that log can be called within callback
-    """
+    """Tests that log can be called within callback."""
 
     class TestCallback(callbacks.Callback):
 
@@ -395,9 +383,7 @@ class LoggingSyncDistModel(BoringModel):
     "gpus", [None, pytest.param(1, marks=RunIf(min_gpus=1)), pytest.param(2, marks=RunIf(min_gpus=2))]
 )
 def test_logging_sync_dist_true(tmpdir, gpus):
-    """
-    Tests to ensure that the sync_dist flag works (should just return the original value)
-    """
+    """Tests to ensure that the sync_dist flag works (should just return the original value)"""
     fake_result = 1
     model = LoggingSyncDistModel(fake_result)
     trainer = Trainer(
@@ -432,9 +418,7 @@ def test_logging_sync_dist_true(tmpdir, gpus):
 
 @RunIf(min_gpus=2, special=True)
 def test_logging_sync_dist_true_ddp(tmpdir):
-    """
-    Tests to ensure that the sync_dist flag works with ddp
-    """
+    """Tests to ensure that the sync_dist flag works with ddp."""
 
     class TestLoggingSyncDistModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -509,9 +493,7 @@ def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmpdir: str):
 
 
 def test_logging_in_callbacks_with_log_function(tmpdir):
-    """
-    Tests ensure self.log can be used directly in callbacks.
-    """
+    """Tests ensure self.log can be used directly in callbacks."""
 
     class LoggingCallback(callbacks.Callback):
         def on_train_start(self, trainer, pl_module):
@@ -711,3 +693,20 @@ def test_log_gpu_memory_without_logging_on_step(tmpdir, log_gpu_memory):
         assert "max_gpu_mem" in trainer.logged_metrics
     else:
         assert "gpu_id: 1/memory.used (MB)" in trainer.logged_metrics
+
+
+@RunIf(min_gpus=1)
+def test_move_metrics_to_cpu(tmpdir):
+    class TestModel(BoringModel):
+        def on_before_backward(self, loss: torch.Tensor) -> None:
+            assert loss.device.type == "cuda"
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        amp_backend="native",
+        precision=16,
+        move_metrics_to_cpu=True,
+        gpus=1,
+    )
+    trainer.fit(TestModel())

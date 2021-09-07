@@ -45,6 +45,8 @@ class ConfigValidator:
         self.__verify_dp_batch_transfer_support(model)
         # TODO(@daniellepintz): Delete _check_progress_bar in v1.7
         self._check_progress_bar(model)
+        # TODO: Delete _check_on_keyboard_interrupt in v1.7
+        self._check_on_keyboard_interrupt()
 
     def __verify_train_loop_configuration(self, model: "pl.LightningModule") -> None:
         # -----------------------------------
@@ -171,7 +173,7 @@ class ConfigValidator:
             )
 
     def __verify_dp_batch_transfer_support(self, model: "pl.LightningModule") -> None:
-        """Raise Misconfiguration exception since these hooks are not supported in DP mode"""
+        """Raise Misconfiguration exception since these hooks are not supported in DP mode."""
         # TODO: Remove this blocker once batch transfer to device is integrated in Lightning for DP mode.
         batch_transfer_hooks = ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
         for hook in batch_transfer_hooks:
@@ -215,4 +217,13 @@ class ConfigValidator:
                 raise MisconfigurationException(
                     "The model taking a `dataloader_iter` argument in your `training_step` "
                     "is incompatible with `truncated_bptt_steps > 0`."
+                )
+
+    def _check_on_keyboard_interrupt(self) -> None:
+        """Checks if on_keyboard_interrupt is overriden and sends a deprecation warning."""
+        for callback in self.trainer.callbacks:
+            if is_overridden(method_name="on_keyboard_interrupt", instance=callback):
+                rank_zero_deprecation(
+                    "The `on_keyboard_interrupt` callback hook was deprecated in v1.5 and will be removed in v1.7."
+                    " Please use the `on_exception` callback hook instead."
                 )

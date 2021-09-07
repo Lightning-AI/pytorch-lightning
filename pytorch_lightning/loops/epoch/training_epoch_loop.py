@@ -26,8 +26,7 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 class TrainingEpochLoop(loops.Loop):
-    """
-    Runs over all batches in a dataloader (one epoch).
+    """Runs over all batches in a dataloader (one epoch).
 
     Args:
         min_steps: The minimum number of steps (batches) to process
@@ -37,6 +36,9 @@ class TrainingEpochLoop(loops.Loop):
     def __init__(self, min_steps: int, max_steps: int):
         super().__init__()
         self.min_steps: int = min_steps
+
+        if max_steps and max_steps < -1:
+            raise MisconfigurationException(f"`max_steps` must be a positive integer or -1. You passed in {max_steps}.")
         self.max_steps: int = max_steps
 
         self.global_step: int = 0
@@ -68,8 +70,9 @@ class TrainingEpochLoop(loops.Loop):
     @property
     def done(self) -> bool:
         """Returns whether the training should be stopped.
-        The criteria are that the number of steps reached the max steps,
-        the last batch is reached or the trainer signals to stop (e.g. by early stopping).
+
+        The criteria are that the number of steps reached the max steps, the last batch is reached or the trainer
+        signals to stop (e.g. by early stopping).
         """
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
         return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
@@ -86,7 +89,9 @@ class TrainingEpochLoop(loops.Loop):
             self.val_loop = val_loop
 
     def reset(self) -> None:
-        """Resets the internal state of the loop for a new run"""
+        """Resets the internal state of the loop for a new run."""
+        assert self.batch_loop is not None
+        assert self.batch_loop.optimizer_loop is not None
         self.is_last_batch = False
 
         # track epoch output
@@ -95,7 +100,7 @@ class TrainingEpochLoop(loops.Loop):
         if not self.restarting:
             self.batch_progress.current.reset()
             self.scheduler_progress.current.reset()
-            self.batch_loop.optim_progress.reset_on_epoch()
+            self.batch_loop.optimizer_loop.optim_progress.reset_on_epoch()
 
     def on_run_start(self, dataloader_iter: Iterator, **kwargs: Any) -> None:
         # hook
@@ -184,7 +189,7 @@ class TrainingEpochLoop(loops.Loop):
         # progress global step according to grads progress
         self._increment_accumulated_grad_global_step()
 
-    def on_run_end(self) -> List[List[STEP_OUTPUT]]:
+    def on_run_end(self) -> None:
         """Calls the on_epoch_end hook.
 
         Returns:
@@ -193,32 +198,29 @@ class TrainingEpochLoop(loops.Loop):
         Raises:
             MisconfigurationException: ``train_epoch_end`` does not return ``None``
         """
-        if self.batch_progress.current.ready == 0:
-            # dataloader/iterator did not produce a batch
-            return
-
         # inform logger the batch loop has finished
         self.trainer.logger_connector.epoch_end_reached()
 
-        # prepare epoch output
-        processed_outputs = self._prepare_outputs(self._epoch_output, batch_mode=False)
-
         # get the model and call model.training_epoch_end
         model = self.trainer.lightning_module
+        if is_overridden("training_epoch_end", model) and self._epoch_output:
+            processed_outputs = self._prepare_outputs(self._epoch_output, batch_mode=False)
+            # check that the dataloader/iterator produced a batch
+            if processed_outputs:
+                # run training_epoch_end
+                # refresh the result for custom logging at the epoch level
+                model._current_fx_name = "training_epoch_end"
 
-        if is_overridden("training_epoch_end", model):
-            # run training_epoch_end
-            # refresh the result for custom logging at the epoch level
-            model._current_fx_name = "training_epoch_end"
+                # lightningmodule hook
+                training_epoch_end_output = model.training_epoch_end(processed_outputs)
 
-            # lightningmodule hook
-            training_epoch_end_output = model.training_epoch_end(processed_outputs)
-
-            if training_epoch_end_output is not None:
-                raise MisconfigurationException(
-                    "training_epoch_end expects a return of None. "
-                    "HINT: remove the return statement in training_epoch_end"
-                )
+                if training_epoch_end_output is not None:
+                    raise MisconfigurationException(
+                        "training_epoch_end expects a return of None. "
+                        "HINT: remove the return statement in training_epoch_end"
+                    )
+        # free memory
+        self._epoch_output = None
 
         self.trainer.fit_loop.epoch_progress.increment_processed()
 
@@ -229,11 +231,6 @@ class TrainingEpochLoop(loops.Loop):
 
         if self._num_training_batches_reached(self.is_last_batch):
             self.update_lr_schedulers("epoch", update_plateau_schedulers=True)
-
-        epoch_output = self._epoch_output
-        # free memory
-        self._epoch_output = None
-        return epoch_output
 
     def teardown(self) -> None:
         self._results.cpu()
@@ -260,7 +257,8 @@ class TrainingEpochLoop(loops.Loop):
         return self.batch_progress.current.ready == self.trainer.num_training_batches or is_last_batch
 
     def _should_accumulate(self) -> bool:
-        """Checks if the optimizer step should be performed or gradients should be accumulated for the current step."""
+        """Checks if the optimizer step should be performed or gradients should be accumulated for the current
+        step."""
         accumulation_done = self._accumulated_batches_reached()
         is_final_batch = self._num_training_batches_reached()
         return not (accumulation_done or is_final_batch)
@@ -268,7 +266,7 @@ class TrainingEpochLoop(loops.Loop):
     def _track_epoch_end_reduce_metrics(
         self, epoch_output: List[List[STEP_OUTPUT]], batch_end_outputs: STEP_OUTPUT
     ) -> None:
-        """Adds the batch outputs to the epoch outputs and prepares reduction"""
+        """Adds the batch outputs to the epoch outputs and prepares reduction."""
         hook_overridden = is_overridden("training_epoch_end", self.trainer.lightning_module)
         if not hook_overridden:
             return
@@ -285,8 +283,7 @@ class TrainingEpochLoop(loops.Loop):
     def _prepare_outputs(
         outputs: List[List[List["ResultCollection"]]], batch_mode: bool
     ) -> Union[List[List[List[Dict]]], List[List[Dict]], List[Dict], Dict]:
-        """
-        Extract required information from batch or epoch end results.
+        """Extract required information from batch or epoch end results.
 
         Args:
             outputs: A 3-dimensional list of ``ResultCollection`` objects with dimensions:
@@ -338,7 +335,7 @@ class TrainingEpochLoop(loops.Loop):
         return processed_outputs
 
     def update_lr_schedulers(self, interval: str, update_plateau_schedulers: bool) -> None:
-        """updates the lr schedulers based on the given interval"""
+        """updates the lr schedulers based on the given interval."""
         if interval == "step" and self._should_accumulate():
             return
         self.trainer.optimizer_connector.update_learning_rates(
@@ -348,7 +345,7 @@ class TrainingEpochLoop(loops.Loop):
         )
 
     def _increment_accumulated_grad_global_step(self) -> None:
-        """Increments global step according to grads progress"""
+        """Increments global step according to grads progress."""
         if not self._should_accumulate():
             self.global_step = self.trainer.accelerator.update_global_step(
                 self.batch_progress.current.ready, self.trainer.global_step
@@ -380,7 +377,7 @@ class TrainingEpochLoop(loops.Loop):
         return is_val_check_batch
 
     def _save_loggers_on_train_batch_end(self) -> None:
-        """Flushes loggers to disk"""
+        """Flushes loggers to disk."""
         # when loggers should save to disk
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
