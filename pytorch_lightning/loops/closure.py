@@ -127,7 +127,10 @@ class AbstractClosure(ABC):
         as necessary.
         """
         if self._result is None:
-            raise ValueError("The closure hasn't been executed yet")
+            raise MisconfigurationException(
+                "The closure hasn't been executed."
+                " HINT: did you call `optimizer_closure()` in your `optimizer_step` hook?"
+            )
         result = self._result
         self._result = None  # free memory
         return result

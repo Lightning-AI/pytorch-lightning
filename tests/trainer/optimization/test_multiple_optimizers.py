@@ -177,6 +177,8 @@ def test_custom_optimizer_step_with_multiple_optimizers(tmpdir):
                 if batch_idx % 2 == 0:
                     self.optimizer_step_called[optimizer_idx] += 1
                     optimizer.step(closure=optimizer_closure)
+                else:
+                    optimizer_closure()
 
     model = TestModel()
     model.val_dataloader = None
@@ -185,5 +187,5 @@ def test_custom_optimizer_step_with_multiple_optimizers(tmpdir):
         default_root_dir=tmpdir, limit_train_batches=4, max_epochs=1, log_every_n_steps=1, weights_summary=None
     )
     trainer.fit(model)
-    assert model.training_step_called == [4, 2]
+    assert model.training_step_called == [4, 4]
     assert model.optimizer_step_called == [4, 2]
