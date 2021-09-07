@@ -628,8 +628,8 @@ class NeptuneLogger(LightningLoggerBase):
         self._signal_deprecated_api_usage("log_image", f"logger.run['{key}'].log(File('path_to_image'))")
         if isinstance(image, str):
             # if `img` is path to file, convert it to file object
-            img = NeptuneFile(image)
-        self.run[key].log(img, step=step)
+            image = NeptuneFile(image)
+        self.run[key].log(image, step=step)
 
     @rank_zero_only
     def log_artifact(self, artifact: str, destination: Optional[str] = None) -> None:

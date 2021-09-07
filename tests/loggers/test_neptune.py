@@ -360,13 +360,13 @@ class TestNeptuneLoggerDeprecatedUsages(unittest.TestCase):
         attr_mock.assert_has_calls(
             [
                 call("training/metric"),
-                call().log(42),
+                call().log(42, step=None),
                 call("training/text"),
-                call().log("some string"),
+                call().log("some string", step=None),
                 call("training/image_obj"),
-                call().log(fake_image),
+                call().log(fake_image, step=None),
                 call("training/image_str"),
-                call().log(neptune_file_mock()),
+                call().log(neptune_file_mock(), step=None),
                 call("training/artifacts/artifact"),
                 call().log("some/path"),
             ]
