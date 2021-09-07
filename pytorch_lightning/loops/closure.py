@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field, replace
+from dataclasses import asdict, dataclass, field, replace
 from typing import Any, Callable, Dict, Optional
 
 from torch import Tensor
@@ -45,6 +45,13 @@ class ClosureResult:
     extra: Dict[str, Tensor] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        # detach hiddens to avoid `RuntimeError: Trying to backward through the graph a second time`
+        self.hiddens = recursive_detach(self.hiddens)
+
+        # TODO: remove with the deprecation removal in v1.6
+        ClosureResult._check_extra_detach_deprecation(self.extra)
+        self.extra = recursive_detach(self.extra)
+
         self._set_loss()
         if self.hiddens is not None and self.loss is None:
             raise MisconfigurationException("If `hiddens` are returned from `training_step`, the loss cannot be `None`")
@@ -64,12 +71,7 @@ class ClosureResult:
             # this should not modify the `training_step_output`, as the user could be using it after `training_step_end`
             closure_loss = training_step_output.get("loss")
             hiddens = training_step_output.get("hiddens")
-            # detach hiddens to avoid `RuntimeError: Trying to backward through the graph a second time`
-            hiddens = recursive_detach(hiddens)
             extra = {k: v for k, v in training_step_output.items() if k not in ("loss", "hiddens")}
-            # TODO: remove with the deprecation removal in v1.6
-            ClosureResult._check_extra_detach_deprecation(extra)
-            extra = recursive_detach(extra)
         elif isinstance(training_step_output, Tensor):
             closure_loss = training_step_output
 
@@ -97,10 +99,10 @@ class ClosureResult:
 
         apply_to_collection(extra, Tensor, check_fn)
 
-    def __deepcopy__(self, *_: Any) -> "ClosureResult":
+    def __getstate__(self) -> Dict[str, Any]:
         # return a copy without the closure loss which could have a `grad_fn`
         # and without `hiddens` which are not necessary
-        return replace(self, closure_loss=None, hiddens=None)
+        return asdict(replace(self, closure_loss=None, hiddens=None))
 
 
 class AbstractClosure(ABC):
