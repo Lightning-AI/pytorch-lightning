@@ -834,9 +834,7 @@ def test_deepspeed_multigpu_no_schedulers(tmpdir):
 
 @RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_deepspeed_warn_train_dataloader_called(tmpdir):
-    """
-    Test DeepSpeed warns when it calls ``train_dataloader`` internally for logging batch size.
-    """
+    """Test DeepSpeed warns when it calls ``lightning_module.train_dataloader`` internally for logging batch size."""
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
