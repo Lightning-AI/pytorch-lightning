@@ -21,13 +21,15 @@ from tests.helpers import BoringModel
 
 
 class BpttLinearModel(BoringModel):
+    """Linear model for testing with automatic optimization."""
+
     def __init__(self, truncated_bptt_steps=2, n_hidden_states=1, sequence_size=30, batch_size=30):
         super().__init__()
         self.truncated_bptt_steps = truncated_bptt_steps
         self.n_hidden_states = n_hidden_states
         self.sequence_size = sequence_size
         self.batch_size = batch_size
-        self.automatic_optimization = False
+        self.automatic_optimization = True
 
         self.example_input_array = torch.randn(5, truncated_bptt_steps)
         self.layer = torch.nn.Linear(in_features=truncated_bptt_steps, out_features=truncated_bptt_steps)
@@ -57,9 +59,26 @@ class BpttLinearModel(BoringModel):
         self.log("train_loss", loss)
 
 
-@pytest.mark.parametrize("manual_optimization", [True, False])
+class ManualBpttLinearModel(BpttLinearModel):
+    """Linear model for testing with manual optimization."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.automatic_optimization = False
+
+    def training_step(self, batch, batch_idx, hiddens):
+        out = super().training_step(batch, batch_idx, hiddens)
+        loss, hiddens = out["loss"], out["hiddens"]
+        opt = self.optimizers()
+        opt.zero_grad()
+        self.manual_backward(loss)
+        opt.step()
+        return {"loss": loss, "hiddens": hiddens}
+
+
+@pytest.mark.parametrize("model_class", (BpttLinearModel, ManualBpttLinearModel))
 @pytest.mark.parametrize("n_hidden_states", (1, 2))
-def test_tbptt_cpu_model_manual(tmpdir, n_hidden_states, manual_optimization):
+def test_tbptt_cpu_model_manual(tmpdir, n_hidden_states, model_class):
     """Test truncated back propagation through time works with automatic and manual optimization."""
 
     sequence_size = 30
@@ -76,7 +95,7 @@ def test_tbptt_cpu_model_manual(tmpdir, n_hidden_states, manual_optimization):
             return 1
 
     train_dataloader = DataLoader(dataset=MockSeq2SeqDataset(), batch_size=batch_size, shuffle=False)
-    model = BpttLinearModel(n_hidden_states=n_hidden_states, sequence_size=sequence_size, batch_size=batch_size)
+    model = model_class(n_hidden_states=n_hidden_states, sequence_size=sequence_size, batch_size=batch_size)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
