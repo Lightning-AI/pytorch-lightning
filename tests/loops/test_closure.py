@@ -10,6 +10,7 @@ def test_optimizer_step_no_closure_raises(tmpdir):
         def optimizer_step(
             self, epoch=None, batch_idx=None, optimizer=None, optimizer_idx=None, optimizer_closure=None, **_
         ):
+            # does not call `optimizer_closure()`
             pass
 
     model = TestModel()
