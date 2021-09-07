@@ -416,3 +416,39 @@ def test_multiple_early_stopping_callbacks(
         num_processes=num_processes,
     )
     trainer.fit(model)
+
+
+@pytest.mark.parametrize(
+    "case",
+    {
+        "val_check_interval": {"val_check_interval": 0.3, "limit_train_batches": 10, "max_epochs": 10},
+        "check_val_every_n_epoch": {"check_val_every_n_epoch": 2, "max_epochs": 5},
+    }.items(),
+)
+def test_check_on_train_epoch_end_smart_handling(tmpdir, case):
+    class TestModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            self.log("foo", 1)
+            return super().validation_step(batch, batch_idx)
+
+    case, kwargs = case
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_val_batches=1,
+        callbacks=EarlyStopping(monitor="foo"),
+        progress_bar_refresh_rate=0,
+        **kwargs,
+    )
+
+    side_effect = [(False, "A"), (True, "B")]
+    with mock.patch(
+        "pytorch_lightning.callbacks.EarlyStopping._evaluate_stopping_criteria", side_effect=side_effect
+    ) as es_mock:
+        trainer.fit(model)
+
+    assert es_mock.call_count == len(side_effect)
+    if case == "val_check_interval":
+        assert trainer.global_step == len(side_effect) * int(trainer.limit_train_batches * trainer.val_check_interval)
+    else:
+        assert trainer.current_epoch == len(side_effect) * trainer.check_val_every_n_epoch - 1
