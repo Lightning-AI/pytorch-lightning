@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from copy import deepcopy
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional
 
@@ -80,7 +79,7 @@ class OptimizerLoop(Loop):
         )
         if result.loss is not None:
             self._hiddens = result.hiddens
-            self.outputs[self.optim_progress.optimizer_idx].append(deepcopy(result))
+            self.outputs[self.optim_progress.optimizer_idx].append(result)
 
         self.optim_progress.optimizer_idx += 1
 
