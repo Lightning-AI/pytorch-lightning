@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from unittest import mock
 
 import pytest
@@ -11,7 +11,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
-from pytorch_lightning import LightningModule, seed_everything, Trainer
+from pytorch_lightning import LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.plugins import DeepSpeedPlugin, DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.deepspeed import LightningDeepSpeedModule
@@ -402,15 +402,20 @@ def test_deepspeed_fp32_works(tmpdir):
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
 def test_deepspeed_stage_3_save_warning(tmpdir):
-    """Test to ensure that DeepSpeed Stage 3 gives a warning when saving."""
+    """Test to ensure that DeepSpeed Stage 3 gives a warning when saving on rank zero."""
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir, plugins=[DeepSpeedPlugin(stage=3)], gpus=2, fast_dev_run=True, precision=16
     )
     trainer.fit(model)
     checkpoint_path = os.path.join(tmpdir, "model.pt")
-    with pytest.warns(UserWarning, match="each worker will save a shard of the checkpoint within a directory."):
+    with pytest.warns(UserWarning) as record:
+        # both ranks need to call save checkpoint
         trainer.save_checkpoint(checkpoint_path)
+    if trainer.is_global_zero:
+        assert len(record) == 1
+        match = "each worker will save a shard of the checkpoint within a directory."
+        assert match in str(record[0].message)
 
 
 @RunIf(min_gpus=1, deepspeed=True, special=True)
@@ -793,7 +798,7 @@ def test_deepspeed_multigpu_no_schedulers(tmpdir):
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
-@RunIf(min_gpus=2, deepspeed=True)
+@RunIf(min_gpus=1, deepspeed=True)
 def test_deepspeed_skip_backward_raises(tmpdir):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -803,3 +808,53 @@ def test_deepspeed_skip_backward_raises(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, plugins=[DeepSpeedPlugin()], gpus=1, fast_dev_run=True, precision=16)
     with pytest.raises(MisconfigurationException, match="returning `None` .* is not supported"):
         trainer.fit(model)
+
+
+@RunIf(min_gpus=1, deepspeed=True, special=True)
+def test_deepspeed_warn_train_dataloader_called(tmpdir):
+    """Test DeepSpeed warns when it calls ``lightning_module.train_dataloader`` internally for logging batch
+    size."""
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        plugins=[DeepSpeedPlugin()],
+        gpus=1,
+        fast_dev_run=True,
+    )
+    with pytest.warns(UserWarning, match="Inferring the batch size for internal deepspeed logging"):
+        trainer.fit(model)
+
+
+@RunIf(min_gpus=1, deepspeed=True, special=True)
+def test_deepspeed_setup_train_dataloader(tmpdir):
+    """Test DeepSpeed works when setup is required to call, and the user passes the batch size manually."""
+
+    class TestSetupIsCalledDataModule(LightningDataModule):
+        def __init__(self):
+            super().__init__()
+            self._setup = False
+
+        def setup(self, stage: Optional[str] = None) -> None:
+            self._setup = True
+
+        def train_dataloader(self):
+            assert self._setup
+            return DataLoader(RandomDataset(32, 64), batch_size=2)
+
+        def val_dataloader(self):
+            assert self._setup
+            return DataLoader(RandomDataset(32, 64), batch_size=2)
+
+        def test_dataloader(self):
+            assert self._setup
+            return DataLoader(RandomDataset(32, 64), batch_size=2)
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        plugins=[DeepSpeedPlugin(logging_batch_size_per_gpu=32)],
+        gpus=1,
+        fast_dev_run=True,
+    )
+    trainer.fit(model, datamodule=TestSetupIsCalledDataModule())
+    trainer.test(model)
