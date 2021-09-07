@@ -22,7 +22,7 @@ from tests.helpers import BoringModel
 @pytest.mark.parametrize("manual_optimization", [True, False])
 @pytest.mark.parametrize("n_hidden_states", (1, 2))
 def test_tbptt_cpu_model_manual(tmpdir, n_hidden_states, manual_optimization):
-    """Test truncated back propagation through time works."""
+    """Test truncated back propagation through time works with automatic and manual optimization."""
     truncated_bptt_steps = 2
     sequence_size = 30
     batch_size = 30
