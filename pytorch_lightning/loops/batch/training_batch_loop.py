@@ -134,7 +134,8 @@ class TrainingBatchLoop(Loop):
         else:
             # in manual optimization, there is no looping over optimizers
             result = self._run_optimization(batch_idx, split_batch)
-            self.batch_outputs[0].append(deepcopy(result))
+            if result.loss is not None:
+                self.batch_outputs[0].append(deepcopy(result))
 
     def teardown(self) -> None:
         # release memory

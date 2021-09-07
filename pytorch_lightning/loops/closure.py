@@ -20,6 +20,7 @@ from torch import Tensor
 
 from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation, WarningCache
@@ -44,6 +45,10 @@ class ClosureResult:
     extra: Dict[str, Tensor] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        if self.hiddens is not None and self.closure_loss is None:
+            raise MisconfigurationException(
+                "If `hiddens` are returned from `training_step`, the loss cannot be `None`."
+            )
         self._set_loss()
 
     def _set_loss(self) -> None:
@@ -53,13 +58,13 @@ class ClosureResult:
 
     @classmethod
     def from_training_step_output(cls, training_step_output: Optional[STEP_OUTPUT]) -> "ClosureResult":
-        loss = None
+        closure_loss = None
         hiddens = None
         extra = {}
 
         if isinstance(training_step_output, dict):
             # this should not modify the `training_step_output`, as the user could be using it after `training_step_end`
-            loss = training_step_output.get("loss")
+            closure_loss = training_step_output.get("loss")
             hiddens = training_step_output.get("hiddens")
             # detach hiddens to avoid `RuntimeError: Trying to backward through the graph a second time`
             hiddens = recursive_detach(hiddens)
@@ -68,9 +73,9 @@ class ClosureResult:
             ClosureResult._check_extra_detach_deprecation(extra)
             extra = recursive_detach(extra)
         elif isinstance(training_step_output, Tensor):
-            loss = training_step_output
+            closure_loss = training_step_output
 
-        return cls(loss, hiddens, extra=extra)
+        return cls(closure_loss, hiddens, extra=extra)
 
     def apply_accumulation(self, value: int) -> None:
         """Accumulate loss.
@@ -94,7 +99,7 @@ class ClosureResult:
 
         apply_to_collection(extra, Tensor, check_fn)
 
-    def __getstate__(self) -> "ClosureResult":
+    def __deepcopy__(self, *_: Any) -> "ClosureResult":
         # return a copy without the closure loss which could have a `grad_fn`
         return replace(self, closure_loss=None)
 

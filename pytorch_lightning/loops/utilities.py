@@ -38,8 +38,7 @@ def check_finite_loss(loss: Optional[torch.Tensor]) -> None:
 
 
 def _check_training_step_output(model: "pl.LightningModule", training_step_output: STEP_OUTPUT) -> None:
-    """Sanity checks that training produced a valid output and optimizer step has already been called in manual
-    optimization.
+    """Sanity checks that training produced a valid output.
 
     Args:
         model: a reference to the trainer
@@ -50,18 +49,17 @@ def _check_training_step_output(model: "pl.LightningModule", training_step_outpu
         and not model.automatic_optimization
         and training_step_output.grad_fn is None
     ):
-        # FIXME: do we consider it as an extra?
+        # TODO: in manual optimization, anything returned should be considered an `extra`
         raise MisconfigurationException("In manual optimization, `training_step` should not return a Tensor")
-    if model.automatic_optimization:
-        if not (
-            isinstance(training_step_output, torch.Tensor)
-            or (isinstance(training_step_output, Mapping) and "loss" in training_step_output)
-            or training_step_output is None
-        ):
-            raise MisconfigurationException(
-                "In automatic optimization, `training_step` must either return a Tensor, "
-                "a dict with key 'loss' or None (where the step will be skipped)."
-            )
+    if model.automatic_optimization and not (
+        isinstance(training_step_output, torch.Tensor)
+        or (isinstance(training_step_output, Mapping) and "loss" in training_step_output)
+        or training_step_output is None
+    ):
+        raise MisconfigurationException(
+            "In automatic optimization, `training_step` must either return a Tensor, "
+            "a dict with key 'loss' or None (where the step will be skipped)."
+        )
 
 
 def _build_training_step_kwargs(
