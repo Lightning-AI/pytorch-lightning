@@ -20,8 +20,8 @@ from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
 
 
-class BpttLinearModel(BoringModel):
-    """Linear model for testing with automatic optimization."""
+class LinearModel(BoringModel):
+    """Linear model for testing TBPTT with automatic optimization."""
 
     def __init__(self, truncated_bptt_steps=2, n_hidden_states=1, sequence_size=30, batch_size=30):
         super().__init__()
@@ -60,8 +60,8 @@ class BpttLinearModel(BoringModel):
         self.log("train_loss", loss)
 
 
-class ManualBpttLinearModel(BpttLinearModel):
-    """Linear model for testing with manual optimization."""
+class ManualLinearModel(LinearModel):
+    """Linear model for testing TBPTT with manual optimization."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -78,7 +78,7 @@ class ManualBpttLinearModel(BpttLinearModel):
         return {"loss": loss, "hiddens": hiddens}
 
 
-@pytest.mark.parametrize("model_class", (BpttLinearModel, ManualBpttLinearModel))
+@pytest.mark.parametrize("model_class", (LinearModel, ManualLinearModel))
 @pytest.mark.parametrize("n_hidden_states", (1, 2))
 def test_tbptt_cpu_model_manual(tmpdir, n_hidden_states, model_class):
     """Test truncated back propagation through time works with automatic and manual optimization."""
