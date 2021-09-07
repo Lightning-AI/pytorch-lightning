@@ -19,8 +19,9 @@ from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
 
 
+@pytest.mark.parametrize("manual_optimization", [True, False])
 @pytest.mark.parametrize("n_hidden_states", (1, 2))
-def test_tbptt_cpu_model(tmpdir, n_hidden_states):
+def test_tbptt_cpu_model_manual(tmpdir, n_hidden_states, manual_optimization):
     """Test truncated back propagation through time works."""
     truncated_bptt_steps = 2
     sequence_size = 30
@@ -44,6 +45,7 @@ def test_tbptt_cpu_model(tmpdir, n_hidden_states):
             self.layer = torch.nn.Linear(in_features, out_features)
             self.n_hidden_states = n_hidden_states
             self.truncated_bptt_steps = truncated_bptt_steps
+            self.automatic_optimization = manual_optimization
 
         def training_step(self, batch, batch_idx, hiddens):
             assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
@@ -89,7 +91,6 @@ def test_tbptt_cpu_model(tmpdir, n_hidden_states):
         weights_summary=None,
     )
     trainer.fit(model)
-    assert trainer.state.finished, f"Training model with `{n_hidden_states}` hidden state failed with {trainer.state}"
 
 
 def test_tbptt_log(tmpdir):
