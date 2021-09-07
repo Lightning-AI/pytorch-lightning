@@ -600,37 +600,44 @@ class NeptuneLogger(LightningLoggerBase):
         )
 
         if raise_exception:
-            raise ValueError(f"The function you've used is deprecated.\n" + msg_suffix)
+            raise ValueError("The function you've used is deprecated.\n" + msg_suffix)
         else:
             warnings.warn(
-                f"The function you've used is deprecated and will be shut down in pytorch-lightning 1.7.0.\n"
+                "The function you've used is deprecated and will be shut down in pytorch-lightning 1.7.0.\n"
                 + msg_suffix
             )
 
     @rank_zero_only
-    def log_metric(self, key: str, metric):
-        self._signal_deprecated_api_usage("log_metric", f"logger.run['{self._prefix}/key'].log(42)")
-        self.run[f"{self._prefix}/{key}"].log(metric)
+    def log_metric(self, metric_name: str, metric_value: Union[torch.Tensor, float, str], step: Optional[int] = None):
+        key = f"{self._prefix}/{metric_name}"
+        self._signal_deprecated_api_usage("log_metric", f"logger.run['{key}'].log(42)")
+        if torch.is_tensor(metric_value):
+            metric_value = metric_value.cpu().detach()
+
+        self.run[key].log(metric_value, step=step)
 
     @rank_zero_only
-    def log_text(self, key: str, value):
-        self._signal_deprecated_api_usage("log_text", f"logger.run['{self._prefix}/key'].log('text')")
-        self.run[f"{self._prefix}/{key}"].log(str(value))
+    def log_text(self, log_name: str, text: str, step: Optional[int] = None) -> None:
+        key = f"{self._prefix}/{log_name}"
+        self._signal_deprecated_api_usage("log_text", f"logger.run['{key}].log('text')")
+        self.run[key].log(str(text), step=step)
 
     @rank_zero_only
-    def log_image(self, key: str, img):
-        self._signal_deprecated_api_usage("log_image", f"logger.run['{self._prefix}/key'].log(File('path_to_image'))")
-        if isinstance(img, str):
+    def log_image(self, log_name: str, image: Union[str, Any], step: Optional[int] = None) -> None:
+        key = f"{self._prefix}/{log_name}"
+        self._signal_deprecated_api_usage("log_image", f"logger.run['{key}'].log(File('path_to_image'))")
+        if isinstance(image, str):
             # if `img` is path to file, convert it to file object
-            img = NeptuneFile(img)
-        self.run[f"{self._prefix}/{key}"].log(img)
+            img = NeptuneFile(image)
+        self.run[key].log(img, step=step)
 
     @rank_zero_only
-    def log_artifact(self, key: str, artifact: str):
+    def log_artifact(self, artifact: str, destination: Optional[str] = None) -> None:
+        key = f"{self._prefix}/{self.ARTIFACTS_KEY}/{artifact}"
         self._signal_deprecated_api_usage(
-            "log_artifact", f"logger.run['{self._prefix}/{self.ARTIFACTS_KEY}/key'].log('path_to_file')"
+            "log_artifact", f"logger.run['{key}].log('path_to_file')"
         )
-        self.run[f"{self._prefix}/{self.ARTIFACTS_KEY}/{key}"].log(artifact)
+        self.run[key].log(destination)
 
     @rank_zero_only
     def set_property(self, *args, **kwargs):
