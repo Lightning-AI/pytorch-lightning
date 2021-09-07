@@ -37,9 +37,8 @@ from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 class AbstractDataFetcher(ABC):
 
-    """
-    This base class should be used to implement a fault tolerant ``DataFetcher``.
-    It is required to override the ``fetching_function`` with fetching logic.
+    """This base class should be used to implement a fault tolerant ``DataFetcher``. It is required to override the
+    ``fetching_function`` with fetching logic.
 
     Example::
 
@@ -215,9 +214,8 @@ class AbstractDataFetcher(ABC):
 
 class DataFetcher(AbstractDataFetcher):
 
-    """
-    This class is used to control batch fetching flow.
-    By default, the ``fetching_function`` will pre-fetch a batch in advance to detect the end of the iteration.
+    """This class is used to control batch fetching flow. By default, the ``fetching_function`` will pre-fetch a
+    batch in advance to detect the end of the iteration.
 
     Args:
         prefetch_batches: Number of batches to be pre-fetched. Lightning will pre-fetch
@@ -235,14 +233,14 @@ class DataFetcher(AbstractDataFetcher):
 
     @contextmanager
     def fetching_context(self):
-        """Hook to override to add context logic around batch fetching"""
+        """Hook to override to add context logic around batch fetching."""
         yield
 
     def on_fetch_start(self) -> None:
-        """Hook to override to handle the logic before fetching a batch"""
+        """Hook to override to handle the logic before fetching a batch."""
 
     def on_fetch_end(self, batch, on_fetch_start_output: Optional[Any] = None) -> None:
-        """Hook to extend which handles the logic after fetching a batch"""
+        """Hook to extend which handles the logic after fetching a batch."""
         if self.store_on_device:
             batch = self.move_data_to_device(batch)
         self.append_batch(batch)
@@ -321,9 +319,8 @@ class DataFetcher(AbstractDataFetcher):
 
 class InterBatchParallelDataFetcher(DataFetcher):
 
-    """
-    This class implements inter-batch parallelism, which aims at hiding the latency of host-to-device copy
-    of input batches behind computationally intensive operations.
+    """This class implements inter-batch parallelism, which aims at hiding the latency of host-to-device copy of
+    input batches behind computationally intensive operations.
 
     code-block::
 
@@ -351,7 +348,7 @@ class InterBatchParallelDataFetcher(DataFetcher):
 
     @contextmanager
     def fetching_context(self):
-        """Wrap the batch fetching logic under a cuda stream"""
+        """Wrap the batch fetching logic under a cuda stream."""
         with torch.cuda.stream(self.cuda_stream):
             yield
 
@@ -375,10 +372,8 @@ class InterBatchParallelDataFetcher(DataFetcher):
 
 class StepFuncDataLoaderIter:
 
-    """
-    This class is a wrapper to keep track of dataloader iterator fetching event
-    while left entirely to user control.
-    """
+    """This class is a wrapper to keep track of dataloader iterator fetching event while left entirely to user
+    control."""
 
     def __init__(self, iterator: Iterator, data_fetcher: "AbstractDataFetcher"):
         self.iterator = iterator
@@ -399,10 +394,8 @@ class StepFuncDataLoaderIter:
 
 class DataLoaderIterDataFetcher(AbstractDataFetcher):
 
-    """
-    This class is used to return directly the `dataloader_iter` to the ``LightningModule`` training_step
-    for users to implement their own pre-fetching logic.
-    This feature can be activated as follows:
+    """This class is used to return directly the `dataloader_iter` to the ``LightningModule`` training_step for
+    users to implement their own pre-fetching logic. This feature can be activated as follows:
 
     Example::
 

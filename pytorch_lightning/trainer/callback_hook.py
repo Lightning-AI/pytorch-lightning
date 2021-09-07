@@ -232,9 +232,19 @@ class TrainerCallbackHookMixin(ABC):
             callback.on_predict_end(self, self.lightning_module)
 
     def on_keyboard_interrupt(self):
-        """Called when the training is interrupted by KeyboardInterrupt."""
+        r"""
+        .. deprecated:: v1.5
+            This callback hook was deprecated in v1.5 in favor of `on_exception` and will be removed in v1.7.
+
+        Called when any trainer execution is interrupted by KeyboardInterrupt.
+        """
         for callback in self.callbacks:
             callback.on_keyboard_interrupt(self, self.lightning_module)
+
+    def on_exception(self, exception: BaseException) -> None:
+        """Called when any trainer execution is interrupted by an exception."""
+        for callback in self.callbacks:
+            callback.on_exception(self, self.lightning_module, exception)
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[str, dict]:
         """Called when saving a model checkpoint."""
@@ -278,22 +288,16 @@ class TrainerCallbackHookMixin(ABC):
             callback.on_before_backward(self, self.lightning_module, loss)
 
     def on_after_backward(self):
-        """
-        Called after loss.backward() and before optimizers do anything.
-        """
+        """Called after loss.backward() and before optimizers do anything."""
         for callback in self.callbacks:
             callback.on_after_backward(self, self.lightning_module)
 
     def on_before_optimizer_step(self, optimizer, optimizer_idx):
-        """
-        Called after on_after_backward() once the gradient is accumulated and before optimizer.step().
-        """
+        """Called after on_after_backward() once the gradient is accumulated and before optimizer.step()."""
         for callback in self.callbacks:
             callback.on_before_optimizer_step(self, self.lightning_module, optimizer, optimizer_idx)
 
     def on_before_zero_grad(self, optimizer):
-        """
-        Called after optimizer.step() and before optimizer.zero_grad().
-        """
+        """Called after optimizer.step() and before optimizer.zero_grad()."""
         for callback in self.callbacks:
             callback.on_before_zero_grad(self, self.lightning_module, optimizer)

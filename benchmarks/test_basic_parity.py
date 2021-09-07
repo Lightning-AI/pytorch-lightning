@@ -59,9 +59,7 @@ def assert_parity_absolute(pl_values, pt_values, norm_by: float = 1, max_diff: f
 def test_pytorch_parity(
     tmpdir, cls_model: LightningModule, max_diff_speed: float, max_diff_memory: float, num_epochs: int, num_runs: int
 ):
-    """
-    Verify that the same  pytorch and lightning models achieve the same results
-    """
+    """Verify that the same  pytorch and lightning models achieve the same results."""
     lightning = measure_loops(cls_model, kind="PT Lightning", num_epochs=num_epochs, num_runs=num_runs)
     vanilla = measure_loops(cls_model, kind="Vanilla PT", num_epochs=num_epochs, num_runs=num_runs)
 
@@ -88,9 +86,7 @@ def _hook_memory():
 
 
 def measure_loops(cls_model, kind, num_runs=10, num_epochs=10):
-    """
-    Returns an array with the last loss from each epoch for each run
-    """
+    """Returns an array with the last loss from each epoch for each run."""
     hist_losses = []
     hist_durations = []
     hist_memory = []
