@@ -188,3 +188,16 @@ def test_prepare_outputs(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
     trainer.fit(model)
     assert model.on_train_batch_end_called == 2
+
+
+def test_batch_loop_releases_loss(tmpdir):
+    """Test that loss/graph is released so that it can be garbage collected before the next training step"""
+
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            assert self.trainer._results.minimize is None
+            return super().training_step(batch, batch_idx)
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
+    trainer.fit(model)
