@@ -193,7 +193,7 @@ def test_prepare_outputs(tmpdir):
 
 
 def test_batch_loop_releases_loss(tmpdir):
-    """Test that loss/graph is released so that it can be garbage collected before the next training step"""
+    """Test that loss/graph is released so that it can be garbage collected before the next training step."""
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):

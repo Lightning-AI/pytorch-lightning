@@ -419,6 +419,55 @@ def test_deepspeed_fp32_works(tmpdir):
     trainer.fit(model)
 
 
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+def test_deepspeed_stage_3_save_warning(tmpdir):
+    """Test to ensure that DeepSpeed Stage 3 gives a warning when saving on rank zero."""
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir, plugins=[DeepSpeedPlugin(stage=3)], gpus=2, fast_dev_run=True, precision=16
+    )
+    trainer.fit(model)
+    checkpoint_path = os.path.join(tmpdir, "model.pt")
+    with pytest.warns(UserWarning) as record:
+        # both ranks need to call save checkpoint
+        trainer.save_checkpoint(checkpoint_path)
+    if trainer.is_global_zero:
+        assert len(record) == 1
+        match = "each worker will save a shard of the checkpoint within a directory."
+        assert match in str(record[0].message)
+
+
+@RunIf(min_gpus=1, deepspeed=True, special=True)
+def test_deepspeed_multigpu_single_file(tmpdir):
+    """Test to ensure that DeepSpeed loads from a single file checkpoint."""
+    model = BoringModel()
+    checkpoint_path = os.path.join(tmpdir, "model.pt")
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer.fit(model)
+    trainer.save_checkpoint(checkpoint_path)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir, plugins=[DeepSpeedPlugin(stage=3)], gpus=1, fast_dev_run=True, precision=16
+    )
+    plugin = trainer.training_type_plugin
+    assert isinstance(plugin, DeepSpeedPlugin)
+    assert not plugin.load_full_weights
+    with pytest.raises(MisconfigurationException, match="DeepSpeed was unable to load the checkpoint."):
+        trainer.test(model, ckpt_path=checkpoint_path)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        plugins=[DeepSpeedPlugin(stage=3, load_full_weights=True)],
+        gpus=1,
+        fast_dev_run=True,
+        precision=16,
+    )
+    plugin = trainer.training_type_plugin
+    assert isinstance(plugin, DeepSpeedPlugin)
+    assert plugin.load_full_weights
+    trainer.test(model, ckpt_path=checkpoint_path)
+
+
 class ModelParallelClassificationModel(LightningModule):
     def __init__(self, lr: float = 0.01, num_blocks: int = 5):
         super().__init__()
