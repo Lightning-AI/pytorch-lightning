@@ -134,7 +134,7 @@ class TrainingBatchLoop(Loop):
         else:
             # in manual optimization, there is no looping over optimizers
             result = self._run_optimization(batch_idx, split_batch)
-            if result:
+            if result.result_collection is not None:
                 self.batch_outputs[0].append(deepcopy(result.result_collection))
 
     def teardown(self) -> None:
@@ -149,7 +149,7 @@ class TrainingBatchLoop(Loop):
         self,
         batch_idx: int,
         split_batch: Any,
-    ) -> Optional[ClosureResult]:
+    ) -> ClosureResult:
         """Runs closure (train step + backward) together with optimization if necessary.
 
         Args:
@@ -161,7 +161,7 @@ class TrainingBatchLoop(Loop):
         closure()
         result = closure.get_result()
 
-        if result:
+        if result.loss:
             # if no result, user decided to skip optimization
             # otherwise update running loss + reset accumulated loss
             self._update_running_loss(result.loss)

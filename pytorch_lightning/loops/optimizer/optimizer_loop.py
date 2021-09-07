@@ -83,7 +83,7 @@ class OptimizerLoop(Loop):
             self._optimizers[self.optim_progress.optimizer_idx],
             self.optim_progress.optimizer_idx,
         )
-        if result:
+        if result.result_collection is not None:
             self.outputs[self.optim_progress.optimizer_idx].append(deepcopy(result.result_collection))
 
         self.optim_progress.optimizer_idx += 1
@@ -127,7 +127,7 @@ class OptimizerLoop(Loop):
         batch_idx: int,
         optimizer: torch.optim.Optimizer,
         opt_idx: int,
-    ) -> Optional[ClosureResult]:
+    ) -> ClosureResult:
         """Runs closure (train step + backward) together with optimization if necessary.
 
         Args:
@@ -160,14 +160,13 @@ class OptimizerLoop(Loop):
 
         result = closure.get_result()
 
-        if result:
+        if result.loss:
             # if no result, user decided to skip optimization
             # otherwise update running loss + reset accumulated loss
             # TODO: find proper way to handle updating running loss
             assert self.trainer.fit_loop is not None
             assert self.trainer.fit_loop.epoch_loop is not None
             assert self.trainer.fit_loop.epoch_loop.batch_loop is not None
-            assert result.loss is not None
             self.trainer.fit_loop.epoch_loop.batch_loop._update_running_loss(result.loss)
 
         # untoggle model params

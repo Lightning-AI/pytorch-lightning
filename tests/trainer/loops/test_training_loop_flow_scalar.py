@@ -264,7 +264,7 @@ def test_train_step_no_return(tmpdir):
 
     Closure.warning_cache.clear()
 
-    with pytest.warns(UserWarning, match=r"training_step returned None.*"):
+    with pytest.warns(UserWarning, match=r"training_step` returned `None"):
         trainer.fit(model)
 
     assert model.training_step_called
@@ -276,7 +276,7 @@ def test_train_step_no_return(tmpdir):
 
     Closure.warning_cache.clear()
 
-    with no_warning_call(UserWarning, match=r"training_step returned None.*"):
+    with no_warning_call(UserWarning, match=r"training_step` returned `None"):
         trainer.fit(model)
 
 
@@ -303,7 +303,7 @@ def test_training_step_no_return_when_even(tmpdir):
 
     Closure.warning_cache.clear()
 
-    with pytest.warns(UserWarning, match=r".*training_step returned None.*"):
+    with pytest.warns(UserWarning, match=r".*training_step` returned `None.*"):
         trainer.fit(model)
 
     trainer.state.stage = RunningStage.TRAINING
