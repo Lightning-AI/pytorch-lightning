@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 from argparse import Namespace
+from unittest.mock import MagicMock
 
 import pytest
 import torch
@@ -20,7 +21,6 @@ import torch
 from pytorch_lightning.core.saving import load_hparams_from_yaml
 from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.loggers.csv_logs import ExperimentWriter
-from unittest.mock import MagicMock
 
 
 def test_file_logger_automatic_versioning(tmpdir):
