@@ -401,7 +401,6 @@ on_exception
 .. automethod:: pytorch_lightning.callbacks.Callback.on_exception
     :noindex:
 
-
 on_save_checkpoint
 ^^^^^^^^^^^^^^^^^^
 
