@@ -24,8 +24,8 @@ from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBar, ProgressBarBase
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.callbacks.progress.tqdm_progress import Tqdm
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf

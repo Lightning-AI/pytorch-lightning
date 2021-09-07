@@ -39,12 +39,7 @@ from pytorch_lightning.trainer.connectors.checkpoint_connector import Checkpoint
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
-from pytorch_lightning.utilities import (
-    DeviceType,
-    DistributedType,
-    GradClipAlgorithmType,
-    rank_zero_deprecation,
-)
+from pytorch_lightning.utilities import DeviceType, DistributedType, GradClipAlgorithmType, rank_zero_deprecation
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
     from_argparse_args,
