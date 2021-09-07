@@ -161,7 +161,7 @@ class TrainingBatchLoop(Loop):
         closure()
         result = closure.result
 
-        if result.loss:
+        if result.loss is not None:
             # if no result, user decided to skip optimization
             # otherwise update running loss + reset accumulated loss
             self._update_running_loss(result.loss)

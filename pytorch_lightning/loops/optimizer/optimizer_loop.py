@@ -160,7 +160,7 @@ class OptimizerLoop(Loop):
 
         result = closure.result
 
-        if result.loss:
+        if result.loss is not None:
             # if no result, user decided to skip optimization
             # otherwise update running loss + reset accumulated loss
             # TODO: find proper way to handle updating running loss
