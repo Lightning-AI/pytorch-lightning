@@ -40,16 +40,16 @@ class ClosureResult:
     """
 
     closure_loss: Optional[Tensor]
-    hiddens: Optional[Tensor]
+    hiddens: Optional[Any]
     loss: Optional[Tensor] = None
     extra: Dict[str, Tensor] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        if self.hiddens is not None and self.closure_loss is None:
+        self._set_loss()
+        if self.hiddens is not None and self.loss is None:
             raise MisconfigurationException(
                 "If `hiddens` are returned from `training_step`, the loss cannot be `None`."
             )
-        self._set_loss()
 
     def _set_loss(self) -> None:
         if self.closure_loss is not None:
@@ -126,7 +126,7 @@ class AbstractClosure(ABC):
         as necessary.
         """
         if self._result is None:
-            raise ValueError("Called `get_result` but the closure hasn't been executed yet")
+            raise ValueError("The closure hasn't been executed yet")
         result = self._result
         self._result = None  # free memory
         return result

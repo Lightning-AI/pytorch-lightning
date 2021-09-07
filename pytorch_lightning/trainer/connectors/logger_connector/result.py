@@ -581,7 +581,8 @@ class ResultCollection(dict):
 
     def __str__(self) -> str:
         # remove empty values
-        return f"{self.__class__.__name__}({dict(self)})"
+        self_str = str({k: v for k, v in self.items() if v})
+        return f"{self.__class__.__name__}({self_str})"
 
     def __repr__(self) -> str:
         return f"{{{self.training}, {repr(self.device)}, {super().__repr__()}}}"

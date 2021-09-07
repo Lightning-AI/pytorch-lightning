@@ -28,14 +28,13 @@ from pytorch_lightning.loops.utilities import (
     _check_training_step_output,
     check_finite_loss,
 )
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities import AMPType, DeviceType, grad_norm
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
 
-_OUTPUTS_TYPE = List[List[Optional[ResultCollection]]]
+_OUTPUTS_TYPE = List[List[ClosureResult]]
 
 
 class OptimizerLoop(Loop):
