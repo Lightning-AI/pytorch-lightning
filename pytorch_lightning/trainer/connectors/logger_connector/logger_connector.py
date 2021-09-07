@@ -55,6 +55,7 @@ class LoggerConnector:
                 f"Setting `Trainer(flush_logs_every_n_steps={flush_logs_every_n_steps}) is deprecated in v1.5 and will be removed in "
                 "v1.7. Please pass `flush_logs_every_n_steps` to the logger instead."
             )
+        flush_logs_every_n_steps = 100  # original default parameter
         self.trainer.flush_logs_every_n_steps = flush_logs_every_n_steps
         self.trainer.log_every_n_steps = log_every_n_steps
         self.trainer.move_metrics_to_cpu = move_metrics_to_cpu
