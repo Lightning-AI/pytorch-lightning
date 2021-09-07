@@ -64,6 +64,8 @@ class WandbLogger(LightningLoggerBase):
             as W&B artifacts.
 
             * if ``log_model == 'all'``, checkpoints are logged during training.
+            * if ``log_model == 'best_and_last'``, checkpoints are logged during training and only the best and the
+              last checkpoints (according to ModelCheckpoint) are kept as wandb artifacts. Previous versions are automatically deleted.
             * if ``log_model == True``, checkpoints are logged at the end of training, except when
               :paramref:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint.save_top_k` ``== -1``
               which also logs every checkpoint during training.
@@ -248,7 +250,8 @@ class WandbLogger(LightningLoggerBase):
 
     def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
         # log checkpoints as artifacts
-        if self._log_model == "all" or self._log_model is True and checkpoint_callback.save_top_k == -1:
+        if self._log_model == "all" or (self._log_model is True and checkpoint_callback.save_top_k == -1) \
+                or self._log_model == 'best_and_last':
             self._scan_and_log_checkpoints(checkpoint_callback)
         elif self._log_model is True:
             self._checkpoint_callback = checkpoint_callback
@@ -301,3 +304,13 @@ class WandbLogger(LightningLoggerBase):
             self.experiment.log_artifact(artifact, aliases=aliases)
             # remember logged models - timestamp needed in case filename didn't change (lastkckpt or custom name)
             self._logged_model_time[p] = t
+
+        if self._log_model == 'best_and_last':
+            # Clean up previous artifacts.
+            # Adapted from https://gitbook-docs.wandb.ai/guides/artifacts/api#cleaning-up-unused-versions
+            api = wandb.Api(overrides={'project': self.experiment.project})
+
+            for version in api.artifact_versions(f"model-{self.experiment.id}", "model"):
+                # Clean up all versions that don't have an alias such as 'latest'.
+                if len(version.aliases) == 0:
+                    version.delete()

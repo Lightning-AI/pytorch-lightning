@@ -176,6 +176,16 @@ def test_wandb_log_model(wandb, tmpdir):
     trainer.fit(model)
     assert wandb.init().log_artifact.call_count == 2
 
+    # test log_model='best_and_last'
+    wandb.init().log_artifact.reset_mock()
+    wandb.init.reset_mock()
+    logger = WandbLogger(log_model="best_and_last")
+    logger.experiment.id = "1"
+    logger.experiment.project_name.return_value = "project"
+    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer.fit(model)
+    assert wandb.init().log_artifact.call_count == 2
+
     # test log_model=False
     wandb.init().log_artifact.reset_mock()
     wandb.init.reset_mock()
