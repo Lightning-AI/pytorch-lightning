@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from typing import Any, List, Optional, Sequence, Union
 
 from deprecate.utils import void
@@ -30,7 +29,7 @@ class EvaluationLoop(DataLoaderLoop):
 
     def __init__(self):
         super().__init__()
-        self.outputs = []
+        self.outputs: List[EPOCH_OUTPUT] = []
         self.epoch_loop = EvaluationEpochLoop()
 
         self._results = ResultCollection(training=False)
@@ -112,8 +111,7 @@ class EvaluationLoop(DataLoaderLoop):
         )
 
         # store batch level output per dataloader
-        if self.should_track_batch_outputs_for_epoch_end:
-            self.outputs.append(dl_outputs)
+        self.outputs.append(dl_outputs)
 
         if not self.trainer.sanity_checking:
             # indicate the loop has run
@@ -174,8 +172,6 @@ class EvaluationLoop(DataLoaderLoop):
 
     def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_{validation/test}_start`` hooks"""
-        self.should_track_batch_outputs_for_epoch_end: bool = self._should_track_batch_outputs_for_epoch_end()
-
         assert self._results is not None
         self._results.to(device=self.trainer.lightning_module.device)
 
@@ -223,13 +219,6 @@ class EvaluationLoop(DataLoaderLoop):
             self.trainer.call_hook("on_test_epoch_start", *args, **kwargs)
         else:
             self.trainer.call_hook("on_validation_epoch_start", *args, **kwargs)
-
-    def _should_track_batch_outputs_for_epoch_end(self) -> bool:
-        """Whether the batch outputs should be stored for later usage"""
-        model = self.trainer.lightning_module
-        if self.trainer.testing:
-            return is_overridden("test_epoch_end", model)
-        return is_overridden("validation_epoch_end", model)
 
     def evaluation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         """Runs ``{validation/test}_epoch_end``"""
