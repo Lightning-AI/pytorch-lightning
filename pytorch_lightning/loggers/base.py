@@ -380,6 +380,9 @@ class LoggerCollection(LightningLoggerBase):
 
     @property
     def experiment(self) -> List[Any]:
+        """
+        Returns a list of experiment objects for all the loggers in the logger collection.
+        """
         return [logger.experiment for logger in self._logger_iterable]
 
     def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
@@ -412,16 +415,25 @@ class LoggerCollection(LightningLoggerBase):
 
     @property
     def save_dir(self) -> Optional[str]:
+        """
+        Returns ``None`` as checkpoints should be saved to default / chosen location when using multiple loggers.
+        """
         # Checkpoints should be saved to default / chosen location when using multiple loggers
         return None
 
     @property
     def name(self) -> str:
-        return "_".join([str(logger.name) for logger in self._logger_iterable])
+        """
+        Returns the experiment names for all the loggers in the logger collection joined by an underscore.
+        """
+        return "_".join(str(logger.name) for logger in self._logger_iterable)
 
     @property
     def version(self) -> str:
-        return "_".join([str(logger.version) for logger in self._logger_iterable])
+        """
+        Returns the experiment versions for all the loggers in the logger collection joined by an underscore.
+        """
+        return "_".join(str(logger.version) for logger in self._logger_iterable)
 
 
 class DummyExperiment:
@@ -450,6 +462,7 @@ class DummyLogger(LightningLoggerBase):
 
     @property
     def experiment(self) -> DummyExperiment:
+        """Return the experiment object associated with this logger."""
         return self._experiment
 
     def log_metrics(self, *args, **kwargs) -> None:
@@ -460,10 +473,12 @@ class DummyLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
+        """Return the experiment name."""
         return ""
 
     @property
     def version(self) -> str:
+        """Return the experiment version."""
         return ""
 
     def __getitem__(self, idx) -> "DummyLogger":
