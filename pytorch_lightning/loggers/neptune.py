@@ -313,8 +313,7 @@ class NeptuneLogger(LightningLoggerBase):
         return run_instance
 
     def _construct_path_with_prefix(self, *keys) -> str:
-        """Return sequence of keys joined by `LOGGER_JOIN_CHAR`, started with
-        `_prefix` if defined."""
+        """Return sequence of keys joined by `LOGGER_JOIN_CHAR`, started with `_prefix` if defined."""
         if self._prefix:
             return self.LOGGER_JOIN_CHAR.join([self._prefix, *keys])
         return self.LOGGER_JOIN_CHAR.join(keys)
@@ -494,8 +493,8 @@ class NeptuneLogger(LightningLoggerBase):
 
     @property
     def save_dir(self) -> Optional[str]:
-        """Gets the save directory of the experiment which in this case is
-        ``None`` because Neptune does not save locally.
+        """Gets the save directory of the experiment which in this case is ``None`` because Neptune does not save
+        locally.
 
         Returns:
             the root directory where experiment logs get saved
@@ -509,8 +508,7 @@ class NeptuneLogger(LightningLoggerBase):
         )
 
     def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
-        """Automatically log checkpointed model. Called after model checkpoint
-        callback saves a new checkpoint.
+        """Automatically log checkpointed model. Called after model checkpoint callback saves a new checkpoint.
 
         Args:
             checkpoint_callback: the model checkpoint callback instance
@@ -553,8 +551,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     @staticmethod
     def _get_full_model_name(model_path: str, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> str:
-        """Returns model name which is string `modle_path` appended to
-        `checkpoint_callback.dirpath`."""
+        """Returns model name which is string `modle_path` appended to `checkpoint_callback.dirpath`."""
         expected_model_path = f"{checkpoint_callback.dirpath}/"
         if not model_path.startswith(expected_model_path):
             raise ValueError(f"{model_path} was expected to start with {expected_model_path}.")
@@ -562,8 +559,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     @classmethod
     def _get_full_model_names_from_exp_structure(cls, exp_structure: dict, namespace: str) -> Set[str]:
-        """Returns all paths to properties which were already logged in
-        `namespace`"""
+        """Returns all paths to properties which were already logged in `namespace`"""
         structure_keys = namespace.split(cls.LOGGER_JOIN_CHAR)
         uploaded_models_dict = reduce(lambda d, k: d[k], [exp_structure, *structure_keys])
         return set(cls._dict_paths(uploaded_models_dict))
@@ -579,8 +575,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        """Return the experiment name or 'offline-name' when exp is run in
-        offline mode."""
+        """Return the experiment name or 'offline-name' when exp is run in offline mode."""
         return self._run_name
 
     @property
@@ -639,9 +634,7 @@ class NeptuneLogger(LightningLoggerBase):
     @rank_zero_only
     def log_artifact(self, artifact: str, destination: Optional[str] = None) -> None:
         key = f"{self._prefix}/{self.ARTIFACTS_KEY}/{artifact}"
-        self._signal_deprecated_api_usage(
-            "log_artifact", f"logger.run['{key}].log('path_to_file')"
-        )
+        self._signal_deprecated_api_usage("log_artifact", f"logger.run['{key}].log('path_to_file')")
         self.run[key].log(destination)
 
     @rank_zero_only
