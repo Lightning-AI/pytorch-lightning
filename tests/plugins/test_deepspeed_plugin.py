@@ -796,3 +796,15 @@ def test_deepspeed_multigpu_no_schedulers(tmpdir):
     trainer.fit(model)
 
     _assert_save_model_is_equal(model, tmpdir, trainer)
+
+
+@RunIf(min_gpus=1, deepspeed=True)
+def test_deepspeed_skip_backward_raises(tmpdir):
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            return None
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, plugins=[DeepSpeedPlugin()], gpus=1, fast_dev_run=True, precision=16)
+    with pytest.raises(MisconfigurationException, match="returning `None` .* is not supported"):
+        trainer.fit(model)
