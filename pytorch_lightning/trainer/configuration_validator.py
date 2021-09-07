@@ -123,7 +123,7 @@ class ConfigValidator:
         if is_overridden("get_progress_bar_dict", model):
             rank_zero_deprecation(
                 "The `LightningModule.get_progress_bar_dict` method was deprecated in v1.5 and will be removed in v1.7."
-                "Please use the `ProgressBarBase.get_metrics` instead."
+                " Please use the `ProgressBarBase.get_metrics` instead."
             )
 
     def __verify_eval_loop_configuration(self, model: "pl.LightningModule", stage: str) -> None:

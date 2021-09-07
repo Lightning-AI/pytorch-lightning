@@ -484,7 +484,6 @@ def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmpdir: str):
         checkpoint_callback=False,
         logger=False,
         weights_summary=None,
-        progress_bar_refresh_rate=1,
     )
     model = TestModel()
     trainer.fit(model)

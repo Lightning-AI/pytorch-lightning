@@ -191,11 +191,11 @@ class ProgressBarBase(Callback):
 
         .. code-block:: python
 
-        def get_metrics(self, trainer, model):
-            # don't show the version number
-            items = super().get_metrics(trainer, model)
-            items.pop("v_num", None)
-            return items
+            def get_metrics(self, trainer, model):
+                # don't show the version number
+                items = super().get_metrics(trainer, model)
+                items.pop("v_num", None)
+                return items
 
         Return:
             Dictionary with the items to be displayed in the progress bar.
