@@ -31,12 +31,12 @@ class UnorderedModel(LightningModule):
     def __init__(self):
         super().__init__()
         # note: the definition order is intentionally scrambled for this test
-        self.layer2 = nn.Linear(10, 2)
-        self.combine = nn.Linear(7, 9)
-        self.layer1 = nn.Linear(3, 5)
-        self.relu = nn.ReLU()
+        self.layer2 = torch.nn.Linear(10, 2)
+        self.combine = torch.nn.Linear(7, 9)
+        self.layer1 = torch.nn.Linear(3, 5)
+        self.relu = torch.nn.ReLU()
         # this layer is unused, therefore input-/output shapes are unknown
-        self.unused = nn.Conv2d(1, 1, 1)
+        self.unused = torch.nn.Conv2d(1, 1, 1)
 
         self.example_input_array = (torch.rand(2, 3), torch.rand(2, 10))
 
