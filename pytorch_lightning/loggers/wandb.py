@@ -250,8 +250,11 @@ class WandbLogger(LightningLoggerBase):
 
     def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
         # log checkpoints as artifacts
-        if self._log_model == "all" or (self._log_model is True and checkpoint_callback.save_top_k == -1) \
-                or self._log_model == 'best_and_last':
+        if (
+            self._log_model == "all"
+            or (self._log_model is True and checkpoint_callback.save_top_k == -1)
+            or self._log_model == "best_and_last"
+        ):
             self._scan_and_log_checkpoints(checkpoint_callback)
         elif self._log_model is True:
             self._checkpoint_callback = checkpoint_callback
@@ -305,10 +308,10 @@ class WandbLogger(LightningLoggerBase):
             # remember logged models - timestamp needed in case filename didn't change (lastkckpt or custom name)
             self._logged_model_time[p] = t
 
-        if self._log_model == 'best_and_last':
+        if self._log_model == "best_and_last":
             # Clean up previous artifacts.
             # Adapted from https://gitbook-docs.wandb.ai/guides/artifacts/api#cleaning-up-unused-versions
-            api = wandb.Api(overrides={'project': self.experiment.project})
+            api = wandb.Api(overrides={"project": self.experiment.project})
 
             for version in api.artifact_versions(f"model-{self.experiment.id}", "model"):
                 # Clean up all versions that don't have an alias such as 'latest'.
