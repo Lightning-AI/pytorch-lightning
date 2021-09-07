@@ -249,7 +249,6 @@ def test_train_step_no_return(tmpdir):
             self.log("a", loss, on_step=True, on_epoch=True)
 
         def training_epoch_end(self, outputs) -> None:
-            print(outputs)
             assert len(outputs) == 0
 
         def validation_step(self, batch, batch_idx):
