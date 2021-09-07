@@ -47,7 +47,6 @@ class TrainingBatchLoop(Loop):
         self.optimizer_loop = OptimizerLoop()
 
         self._warning_cache: WarningCache = WarningCache()
-        self._hiddens: Optional[Tensor] = None
         self._optimizer_freq_cumsum: Optional[int] = None
         self._remaining_splits: Optional[List[Any]] = None
 
@@ -97,7 +96,6 @@ class TrainingBatchLoop(Loop):
 
     def reset(self) -> None:
         """Resets the loop state."""
-        self._hiddens = None
         self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
     def on_run_start(self, batch: Any, batch_idx: int):
@@ -127,7 +125,7 @@ class TrainingBatchLoop(Loop):
         if self.trainer.lightning_module.automatic_optimization:
             # in automatic optimization, hand over execution to the OptimizerLoop
             optimizers = [optimizer for _, optimizer in self.get_active_optimizers(batch_idx)]
-            batch_outputs, self._hiddens = self.optimizer_loop.run(split_batch, self._hiddens, optimizers, batch_idx)
+            batch_outputs = self.optimizer_loop.run(split_batch, optimizers, batch_idx)
             # combine outputs from each optimizer
             for k in range(len(batch_outputs)):
                 self.batch_outputs[k].extend(batch_outputs[k])
@@ -136,6 +134,9 @@ class TrainingBatchLoop(Loop):
             result = self._run_optimization(batch_idx, split_batch)
             if result.loss is not None:
                 self.batch_outputs[0].append(deepcopy(result))
+
+    def on_run_end(self) -> Any:
+        self.optimizer_loop._hiddens = None
 
     def teardown(self) -> None:
         # release memory
@@ -156,8 +157,7 @@ class TrainingBatchLoop(Loop):
             batch_idx: the index of the current batch
             split_batch: the current tbptt split of the whole batch
         """
-        # TODO: replace call through closure by direct call (manual optimization)
-        closure = self._make_closure(split_batch, batch_idx, self._hiddens)
+        closure = self._make_closure(split_batch, batch_idx, None)
         closure()
         result = closure.get_result()
 

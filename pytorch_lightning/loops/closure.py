@@ -47,9 +47,7 @@ class ClosureResult:
     def __post_init__(self) -> None:
         self._set_loss()
         if self.hiddens is not None and self.loss is None:
-            raise MisconfigurationException(
-                "If `hiddens` are returned from `training_step`, the loss cannot be `None`."
-            )
+            raise MisconfigurationException("If `hiddens` are returned from `training_step`, the loss cannot be `None`")
 
     def _set_loss(self) -> None:
         if self.closure_loss is not None:
@@ -101,7 +99,8 @@ class ClosureResult:
 
     def __deepcopy__(self, *_: Any) -> "ClosureResult":
         # return a copy without the closure loss which could have a `grad_fn`
-        return replace(self, closure_loss=None)
+        # and without `hiddens` which are not necessary
+        return replace(self, closure_loss=None, hiddens=None)
 
 
 class AbstractClosure(ABC):
