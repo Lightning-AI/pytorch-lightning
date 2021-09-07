@@ -52,9 +52,6 @@ class ManualOptimization(Loop):
             batch: the current tbptt split of the current batch
             batch_idx: the index of the current batch
             hiddens: the model's hidden state of the previous iteration
-
-        Returns:
-            post-processed outputs from the training step, or ``None`` if training step returned nothing
         """
         assert self.trainer is not None
         ligtning_module = self.trainer.lightning_module
@@ -83,10 +80,11 @@ class ManualOptimization(Loop):
         self._hiddens = hiddens
         self._output = result_collection
 
-    def on_run_end(self) -> Optional[Tuple[ResultCollection, Optional[Any]]]:
-        hiddens = self._hiddens
+    def on_run_end(self) -> Tuple[ResultCollection, Optional[Any]]:
+        """Returns the result of this loop, i.e., the post-processed outputs from the training step, and the
+        hidden state.
+        """
         output = self._output
-        self._hiddens, self._output = None, None  # free memory
-        if output is None:
-            return None
+        hiddens = self._hiddens
+        self._output, self._hiddens = None, None  # free memory
         return output, hiddens
