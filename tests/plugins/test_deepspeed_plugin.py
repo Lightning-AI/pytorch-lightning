@@ -402,15 +402,20 @@ def test_deepspeed_fp32_works(tmpdir):
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
 def test_deepspeed_stage_3_save_warning(tmpdir):
-    """Test to ensure that DeepSpeed Stage 3 gives a warning when saving."""
+    """Test to ensure that DeepSpeed Stage 3 gives a warning when saving on rank zero."""
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir, plugins=[DeepSpeedPlugin(stage=3)], gpus=2, fast_dev_run=True, precision=16
     )
     trainer.fit(model)
     checkpoint_path = os.path.join(tmpdir, "model.pt")
-    with pytest.warns(UserWarning, match="each worker will save a shard of the checkpoint within a directory."):
+    with pytest.warns(UserWarning) as record:
+        # both ranks need to call save checkpoint
         trainer.save_checkpoint(checkpoint_path)
+    if trainer.is_global_zero:
+        assert len(record) == 1
+        match = "each worker will save a shard of the checkpoint within a directory."
+        assert match in str(record[0].message)
 
 
 @RunIf(min_gpus=1, deepspeed=True, special=True)
