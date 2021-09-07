@@ -854,7 +854,7 @@ def test_deepspeed_setup_train_dataloader(tmpdir):
     Test DeepSpeed works when setup is required to call, and the user passes the batch size manually.
     """
 
-    class PlDataModule(LightningDataModule):
+    class TestSetupIsCalledDataModule(LightningDataModule):
         def __init__(self):
             super().__init__()
             self._setup = False
@@ -881,4 +881,5 @@ def test_deepspeed_setup_train_dataloader(tmpdir):
         gpus=1,
         fast_dev_run=True,
     )
-    trainer.fit(model, datamodule=PlDataModule())
+    trainer.fit(model, datamodule=TestSetupIsCalledDataModule())
+    trainer.test(model)
