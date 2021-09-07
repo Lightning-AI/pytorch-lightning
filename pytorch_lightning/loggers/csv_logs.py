@@ -118,6 +118,7 @@ class CSVLogger(LightningLoggerBase):
         version: Experiment version. If version is not specified the logger inspects the save
             directory for existing versions, then automatically assigns the next available version.
         prefix: A string to put at the beginning of metric keys.
+        flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
     """
 
     LOGGER_JOIN_CHAR = "-"
@@ -128,6 +129,7 @@ class CSVLogger(LightningLoggerBase):
         name: Optional[str] = "default",
         version: Optional[Union[int, str]] = None,
         prefix: str = "",
+        flush_logs_every_n_steps: int = 100,
     ):
         super().__init__()
         self._save_dir = save_dir
@@ -135,6 +137,7 @@ class CSVLogger(LightningLoggerBase):
         self._version = version
         self._prefix = prefix
         self._experiment = None
+        self._flush_logs_every_n_steps = flush_logs_every_n_steps
 
     @property
     def root_dir(self) -> str:
@@ -197,6 +200,8 @@ class CSVLogger(LightningLoggerBase):
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         metrics = self._add_prefix(metrics)
         self.experiment.log_metrics(metrics, step)
+        if step is not None and (step + 1) % self._flush_logs_every_n_steps == 0:
+            self.save()
 
     @rank_zero_only
     def save(self) -> None:

@@ -1579,6 +1579,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Deprecated passing `ModelCheckpoint` instance to `checkpoint_callback` Trainer argument ([#4336](https://github.com/PyTorchLightning/pytorch-lightning/pull/4336))
 
+- Deprecated passing `flush_logs_every_n_steps` as a Trainer argument, instead pass it to the logger init ([#todo](todo))
+
 ### Fixed
 
 - Disable saving checkpoints if not trained ([#4372](https://github.com/PyTorchLightning/pytorch-lightning/pull/4372))
