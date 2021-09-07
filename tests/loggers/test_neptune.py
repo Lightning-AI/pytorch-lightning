@@ -347,7 +347,7 @@ class TestNeptuneLoggerDeprecatedUsages(unittest.TestCase):
         # test deprecated functions which will be shut down in pytorch-lightning 1.7.0
         attr_mock = logger._run_instance.__getitem__
         attr_mock.reset_mock()
-        fake_image = dict()
+        fake_image = {}
 
         logger.log_metric("metric", 42)
         logger.log_text("text", "some string")

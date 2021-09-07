@@ -494,8 +494,8 @@ class NeptuneLogger(LightningLoggerBase):
 
     @property
     def save_dir(self) -> Optional[str]:
-        """Gets the save directory of the experiment which in this case is ``None`` because Neptune does not save
-        locally.
+        """Gets the save directory of the experiment which in this case is
+        ``None`` because Neptune does not save locally.
 
         Returns:
             the root directory where experiment logs get saved
@@ -509,9 +509,8 @@ class NeptuneLogger(LightningLoggerBase):
         )
 
     def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
-        """
-        Automatically log checkpointed model.
-        Called after model checkpoint callback saves a new checkpoint.
+        """Automatically log checkpointed model. Called after model checkpoint
+        callback saves a new checkpoint.
 
         Args:
             checkpoint_callback: the model checkpoint callback instance
@@ -554,7 +553,8 @@ class NeptuneLogger(LightningLoggerBase):
 
     @staticmethod
     def _get_full_model_name(model_path: str, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> str:
-        """Returns model name which is string `modle_path` appended to `checkpoint_callback.dirpath`."""
+        """Returns model name which is string `modle_path` appended to
+        `checkpoint_callback.dirpath`."""
         expected_model_path = f"{checkpoint_callback.dirpath}/"
         if not model_path.startswith(expected_model_path):
             raise ValueError(f"{model_path} was expected to start with {expected_model_path}.")
@@ -562,7 +562,8 @@ class NeptuneLogger(LightningLoggerBase):
 
     @classmethod
     def _get_full_model_names_from_exp_structure(cls, exp_structure: dict, namespace: str) -> Set[str]:
-        """Returns all paths to properties which were already logged in `namespace`"""
+        """Returns all paths to properties which were already logged in
+        `namespace`"""
         structure_keys = namespace.split(cls.LOGGER_JOIN_CHAR)
         uploaded_models_dict = reduce(lambda d, k: d[k], [exp_structure, *structure_keys])
         return set(cls._dict_paths(uploaded_models_dict))
@@ -578,12 +579,16 @@ class NeptuneLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        """Return the experiment name or 'offline-name' when exp is run in offline mode."""
+        """Return the experiment name or 'offline-name' when exp is run in
+        offline mode."""
         return self._run_name
 
     @property
     def version(self) -> str:
-        """Return the experiment version. It's Neptune Run's short_id"""
+        """Return the experiment version.
+
+        It's Neptune Run's short_id
+        """
         return self._run_short_id
 
     @staticmethod
@@ -599,13 +604,13 @@ class NeptuneLogger(LightningLoggerBase):
             f"\t{sample_code}"
         )
 
-        if raise_exception:
-            raise ValueError("The function you've used is deprecated.\n" + msg_suffix)
-        else:
+        if not raise_exception:
             warnings.warn(
                 "The function you've used is deprecated and will be shut down in pytorch-lightning 1.7.0.\n"
                 + msg_suffix
             )
+        else:
+            raise ValueError("The function you've used is deprecated.\n" + msg_suffix)
 
     @rank_zero_only
     def log_metric(self, metric_name: str, metric_value: Union[torch.Tensor, float, str], step: Optional[int] = None):
