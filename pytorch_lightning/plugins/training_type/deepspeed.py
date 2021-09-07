@@ -667,7 +667,6 @@ class DeepSpeedPlugin(DDPPlugin):
             filepath: write-target file's path
         """
         if self.zero_stage_3 and self._multi_device and self.is_global_zero:
-            # todo (sean): Add link to docs once docs are merged.
             warning_cache.warn(
                 "When saving the DeepSpeed Stage 3 checkpoint, "
                 "each worker will save a shard of the checkpoint within a directory. "
