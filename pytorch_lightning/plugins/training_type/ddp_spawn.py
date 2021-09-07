@@ -265,7 +265,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             LightningDistributedModule(self.model), device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
         )
         self._register_ddp_hooks()
-        
+
     @property
     def should_rank_save_checkpoint(self) -> bool:
         """Returns whether the checkpoint should be saved (rank based)"""
