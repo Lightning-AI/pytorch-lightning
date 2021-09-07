@@ -13,11 +13,14 @@
 # limitations under the License.
 
 import gc
+from typing import Any
 
 import torch
 
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 
-def recursive_detach(in_dict: dict, to_cpu: bool = False) -> dict:
+
+def recursive_detach(in_dict: Any, to_cpu: bool = False) -> Any:
     """Detach all tensors in `in_dict`.
 
     May operate recursively if some of the values in `in_dict` are dictionaries
@@ -31,19 +34,17 @@ def recursive_detach(in_dict: dict, to_cpu: bool = False) -> dict:
     Return:
         out_dict: Dictionary with detached tensors
     """
-    out_dict = {}
-    for k, v in in_dict.items():
-        if isinstance(v, dict):
-            v = recursive_detach(v, to_cpu=to_cpu)
-        elif callable(getattr(v, "detach", None)):
-            v = v.detach()
-            if to_cpu:
-                v = v.cpu()
-        out_dict[k] = v
-    return out_dict
+
+    def detach_and_move(t: torch.Tensor, to_cpu: bool) -> torch.Tensor:
+        t = t.detach()
+        if to_cpu:
+            t = t.cpu()
+        return t
+
+    return apply_to_collection(in_dict, torch.Tensor, detach_and_move, to_cpu=to_cpu)
 
 
-def is_oom_error(exception):
+def is_oom_error(exception: BaseException) -> bool:
     return is_cuda_out_of_memory(exception) or is_cudnn_snafu(exception) or is_out_of_cpu_memory(exception)
 
 

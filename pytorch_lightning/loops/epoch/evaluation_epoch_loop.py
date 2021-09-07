@@ -13,17 +13,18 @@
 # limitations under the License.
 
 from collections import OrderedDict
-from typing import Any, Dict, Iterator, List, Optional, Union
+from functools import lru_cache
+from typing import Any, Dict, Iterator, Optional, Union
 
 from deprecate import void
-from torch import Tensor
 
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.memory import recursive_detach
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 
 
 class EvaluationEpochLoop(Loop):
@@ -38,7 +39,7 @@ class EvaluationEpochLoop(Loop):
         self.dataloader: Optional[Iterator] = None
         self._dl_max_batches: Optional[int] = None
         self._num_dataloaders: Optional[int] = None
-        self.outputs: List[STEP_OUTPUT] = []
+        self.outputs: EPOCH_OUTPUT = []
         self.batch_progress = Progress()
 
     @property
@@ -121,9 +122,12 @@ class EvaluationEpochLoop(Loop):
         self.trainer.logger_connector.update_eval_step_metrics()
 
         # track epoch level outputs
-        self.outputs = self._track_output_for_epoch_end(self.outputs, output)
+        if self._should_track_batch_outputs_for_epoch_end():
+            output = recursive_detach(output, to_cpu=self.trainer.move_metrics_to_cpu)
+            if output is not None:
+                self.outputs.append(output)
 
-    def on_run_end(self) -> List[STEP_OUTPUT]:
+    def on_run_end(self) -> EPOCH_OUTPUT:
         """Returns the outputs of the whole run"""
         outputs = self.outputs
         # free memory
@@ -239,19 +243,14 @@ class EvaluationEpochLoop(Loop):
 
         return step_kwargs
 
-    def _track_output_for_epoch_end(
-        self,
-        outputs: List[Union[ResultCollection, Dict, Tensor]],
-        output: Optional[Union[ResultCollection, Dict, Tensor]],
-    ) -> List[Union[ResultCollection, Dict, Tensor]]:
-        if output is not None:
-            if isinstance(output, ResultCollection):
-                output = output.detach()
-                if self.trainer.move_metrics_to_cpu:
-                    output = output.cpu()
-            elif isinstance(output, dict):
-                output = recursive_detach(output, to_cpu=self.trainer.move_metrics_to_cpu)
-            elif isinstance(output, Tensor) and output.is_cuda and self.trainer.move_metrics_to_cpu:
-                output = output.cpu()
-            outputs.append(output)
-        return outputs
+    @lru_cache(1)
+    def _should_track_batch_outputs_for_epoch_end(self) -> bool:
+        """Whether the batch outputs should be stored for later usage"""
+        model = self.trainer.lightning_module
+        if self.trainer.testing:
+            return is_overridden("test_epoch_end", model)
+        return is_overridden("validation_epoch_end", model)
+
+    def teardown(self) -> None:
+        # in case the model changes
+        self._should_track_batch_outputs_for_epoch_end.cache_clear()

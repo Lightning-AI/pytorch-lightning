@@ -16,7 +16,8 @@ from unittest import mock
 import torch
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.loops import EvaluationEpochLoop
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -101,3 +102,30 @@ def test_memory_consumption_validation(tmpdir):
     torch.cuda.empty_cache()
     trainer = Trainer(gpus=1, default_root_dir=tmpdir, fast_dev_run=2, move_metrics_to_cpu=True, weights_summary=None)
     trainer.fit(BoringLargeBatchModel())
+
+
+def test_evaluation_loop_doesnt_store_outputs_if_epoch_end_not_overridden(tmpdir):
+    did_assert = False
+
+    class TestModel(BoringModel):
+        def on_test_batch_end(self, outputs, *_):
+            # check `test_step` returns something
+            assert outputs is not None
+
+    class TestLoop(EvaluationEpochLoop):
+        def on_advance_end(self):
+            # should be empty
+            assert not self.outputs
+            # sanity check
+            nonlocal did_assert
+            did_assert = True
+            super().on_advance_end()
+
+    model = TestModel()
+    # make sure this hook is not overridden
+    model.test_epoch_end = LightningModule.test_epoch_end
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=3)
+    trainer.test_loop.connect(TestLoop())
+    trainer.test(model)
+    assert did_assert
