@@ -80,7 +80,7 @@ class ManualOptimization(Loop):
         self._hiddens = hiddens
         self._output = result_collection
 
-    def on_run_end(self) -> Tuple[ResultCollection, Optional[Any]]:
+    def on_run_end(self) -> Tuple[Optional[ResultCollection], Optional[Any]]:
         """Returns the result of this loop, i.e., the post-processed outputs from the training step, and the
         hidden state.
         """
