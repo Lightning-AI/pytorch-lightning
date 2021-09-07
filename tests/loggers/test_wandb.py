@@ -213,7 +213,7 @@ def test_wandb_log_model(wandb, tmpdir):
         type="model",
         metadata={
             "score": None,
-            "original_filename": "epoch=1-step=5-v3.ckpt",
+            "original_filename": "epoch=1-step=5-v4.ckpt",
             "ModelCheckpoint": {
                 "monitor": None,
                 "mode": "min",
