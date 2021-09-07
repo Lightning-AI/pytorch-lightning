@@ -64,7 +64,8 @@ class AbstractClosure(ABC):
         if self._result is None:
             raise MisconfigurationException(
                 "The closure hasn't been executed."
-                " HINT: did you call `optimizer_closure()` in your `optimizer_step` hook?"
+                " HINT: did you call `optimizer_closure()` in your `optimizer_step` hook? It could also happen because"
+                " the `optimizer.step(optimizer_closure)` call did not execute it internally"
             )
         result, self._result = self._result, None  # free memory
         return result
