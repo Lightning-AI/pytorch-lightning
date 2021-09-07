@@ -549,7 +549,7 @@ class DeepSpeedPlugin(DDPPlugin):
             rank_zero_warn(
                 "Inferring the batch size for internal deepspeed logging from the `train_dataloader()`. "
                 "If you require skipping this, please pass "
-                "`Trainer(plugins=DeepSpeedPlugin(logging_batch_size_per_gpu=batch_size)`"
+                "`Trainer(plugins=DeepSpeedPlugin(logging_batch_size_per_gpu=batch_size))`"
             )
             batch_size = self._auto_select_batch_size()
             self.config["train_micro_batch_size_per_gpu"] = batch_size
