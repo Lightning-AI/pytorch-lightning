@@ -14,7 +14,7 @@
 
 import pytest
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, TensorDataset
 
 from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
@@ -80,23 +80,18 @@ class ManualLinearModel(LinearModel):
 
 @pytest.mark.parametrize("model_class", (LinearModel, ManualLinearModel))
 @pytest.mark.parametrize("n_hidden_states", (1, 2))
-def test_tbptt_cpu_model_manual(tmpdir, n_hidden_states, model_class):
+def test_tbptt_cpu_model(tmpdir, n_hidden_states, model_class):
     """Test truncated back propagation through time works with automatic and manual optimization."""
 
     sequence_size = 30
     batch_size = 30
 
-    x_seq = torch.rand(batch_size, sequence_size, 1)
-    y_seq_list = torch.rand(batch_size, sequence_size, 1).tolist()
+    seq2seq_dataset = TensorDataset(
+        torch.rand(batch_size, sequence_size, 1),
+        torch.rand(batch_size, sequence_size, 1),
+    )
 
-    class MockSeq2SeqDataset(Dataset):
-        def __getitem__(self, i):
-            return x_seq, y_seq_list
-
-        def __len__(self):
-            return 1
-
-    train_dataloader = DataLoader(dataset=MockSeq2SeqDataset(), batch_size=batch_size, shuffle=False)
+    train_dataloader = DataLoader(dataset=seq2seq_dataset, batch_size=batch_size, shuffle=False)
     model = model_class(n_hidden_states=n_hidden_states, sequence_size=sequence_size, batch_size=batch_size)
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -104,7 +99,7 @@ def test_tbptt_cpu_model_manual(tmpdir, n_hidden_states, model_class):
         limit_val_batches=0,
         weights_summary=None,
     )
-    trainer.fit(model, train_dataloader)
+    trainer.fit(model, train_dataloaders=train_dataloader)
 
 
 def test_tbptt_log(tmpdir):
@@ -113,16 +108,8 @@ def test_tbptt_log(tmpdir):
     batch_size = 10
     assert T % truncated_bptt_steps != 0, "Should test leftover time steps"
 
-    class MockSeq2SeqDataset(Dataset):
-        def __init__(self):
-            self.x_seq = torch.randn(N, T, F)
-            self.y_seq = torch.randn(N, T, F)
-
-        def __getitem__(self, index):
-            return self.x_seq[index], self.y_seq[index]
-
-        def __len__(self):
-            return N
+    seq2seq_dataset = TensorDataset(torch.rand(N, T, F), torch.rand(N, T, F))
+    train_dataloader = DataLoader(dataset=seq2seq_dataset, batch_size=batch_size)
 
     class TestModel(BoringModel):
         def __init__(self):
@@ -157,9 +144,6 @@ def test_tbptt_log(tmpdir):
         def on_train_batch_start(self, *args, **kwargs) -> None:
             self.test_hidden = None
 
-        def train_dataloader(self):
-            return DataLoader(dataset=MockSeq2SeqDataset(), batch_size=batch_size)
-
     model = TestModel()
     model.training_epoch_end = None
 
@@ -170,7 +154,7 @@ def test_tbptt_log(tmpdir):
         log_every_n_steps=2,
         weights_summary=None,
     )
-    trainer.fit(model)
+    trainer.fit(model, train_dataloaders=train_dataloader)
 
     assert trainer.fit_loop.batch_idx == N // batch_size
     assert trainer.fit_loop.split_idx == T // truncated_bptt_steps
