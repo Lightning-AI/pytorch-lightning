@@ -14,6 +14,7 @@
 
 import pytest
 import torch
+from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
@@ -30,7 +31,7 @@ def test_tbptt_cpu_model_manual(tmpdir, n_hidden_states, manual_optimization):
     x_seq = torch.rand(batch_size, sequence_size, 1)
     y_seq_list = torch.rand(batch_size, sequence_size, 1).tolist()
 
-    class MockSeq2SeqDataset(torch.utils.data.Dataset):
+    class MockSeq2SeqDataset(Dataset):
         def __getitem__(self, i):
             return x_seq, y_seq_list
 
@@ -38,14 +39,14 @@ def test_tbptt_cpu_model_manual(tmpdir, n_hidden_states, manual_optimization):
             return 1
 
     class BpttTestModel(BoringModel):
-        def __init__(self, batch_size, in_features, out_features, n_hidden_states, *args, **kwargs):
-            super().__init__(*args, **kwargs)
+        def __init__(self, in_features, out_features, n_hidden_states):
+            super().__init__()
             self.test_hidden = None
-            self.batch_size = batch_size
             self.layer = torch.nn.Linear(in_features, out_features)
             self.n_hidden_states = n_hidden_states
             self.truncated_bptt_steps = truncated_bptt_steps
             self.automatic_optimization = manual_optimization
+            self.example_input_array = torch.randn(5, truncated_bptt_steps)
 
         def training_step(self, batch, batch_idx, hiddens):
             assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
@@ -71,17 +72,13 @@ def test_tbptt_cpu_model_manual(tmpdir, n_hidden_states, manual_optimization):
             self.log("train_loss", loss)
 
         def train_dataloader(self):
-            return torch.utils.data.DataLoader(
-                dataset=MockSeq2SeqDataset(), batch_size=batch_size, shuffle=False, sampler=None
-            )
+            return DataLoader(dataset=MockSeq2SeqDataset(), batch_size=batch_size, shuffle=False, sampler=None)
 
     model = BpttTestModel(
-        batch_size=batch_size,
         in_features=truncated_bptt_steps,
         out_features=truncated_bptt_steps,
         n_hidden_states=n_hidden_states,
     )
-    model.example_input_array = torch.randn(5, truncated_bptt_steps)
 
     # fit model
     trainer = Trainer(
@@ -99,7 +96,7 @@ def test_tbptt_log(tmpdir):
     batch_size = 10
     assert T % truncated_bptt_steps != 0, "Should test leftover time steps"
 
-    class MockSeq2SeqDataset(torch.utils.data.Dataset):
+    class MockSeq2SeqDataset(Dataset):
         def __init__(self):
             self.x_seq = torch.randn(N, T, F)
             self.y_seq = torch.randn(N, T, F)
@@ -144,7 +141,7 @@ def test_tbptt_log(tmpdir):
             self.test_hidden = None
 
         def train_dataloader(self):
-            return torch.utils.data.DataLoader(dataset=MockSeq2SeqDataset(), batch_size=batch_size)
+            return DataLoader(dataset=MockSeq2SeqDataset(), batch_size=batch_size)
 
     model = TestModel()
     model.training_epoch_end = None
