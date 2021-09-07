@@ -267,7 +267,7 @@ The matching pseudocode is:
 
 Training with DataParallel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-When training using a `accelerator` that splits data from each batch across GPUs, sometimes you might
+When training using an `accelerator` that splits data from each batch across GPUs, sometimes you might
 need to aggregate them on the master GPU for processing (dp, or ddp2).
 
 In this case, implement the `training_step_end` method
@@ -379,7 +379,7 @@ If you need to do something with all the outputs of each `validation_step`, over
 
 Validating with DataParallel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-When training using a `accelerator` that splits data from each batch across GPUs, sometimes you might
+When training using an `accelerator` that splits data from each batch across GPUs, sometimes you might
 need to aggregate them on the master GPU for processing (dp, or ddp2).
 
 In this case, implement the `validation_step_end` method
