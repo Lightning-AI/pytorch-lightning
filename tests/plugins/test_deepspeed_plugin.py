@@ -409,9 +409,13 @@ def test_deepspeed_stage_3_save_warning(tmpdir):
     )
     trainer.fit(model)
     checkpoint_path = os.path.join(tmpdir, "model.pt")
+    with pytest.warns(UserWarning) as record:
+        # both ranks need to call save checkpoint
+        trainer.save_checkpoint(checkpoint_path)
     if trainer.is_global_zero:
-        with pytest.warns(UserWarning, match="each worker will save a shard of the checkpoint within a directory."):
-            trainer.save_checkpoint(checkpoint_path)
+        assert len(record) == 1
+        match = "each worker will save a shard of the checkpoint within a directory."
+        assert match in str(record[0].message)
 
 
 @RunIf(min_gpus=1, deepspeed=True, special=True)
