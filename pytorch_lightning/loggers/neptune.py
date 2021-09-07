@@ -601,7 +601,7 @@ class NeptuneLogger(LightningLoggerBase):
 
         if not raise_exception:
             warnings.warn(
-                "The function you've used is deprecated and will be shut down in pytorch-lightning 1.7.0.\n"
+                "The function you've used is deprecated in v1.5.0 and will be removed in v1.7.0. "
                 + msg_suffix
             )
         else:
