@@ -102,8 +102,8 @@ class TestNeptuneLogger(unittest.TestCase):
 
     @patch("pytorch_lightning.loggers.neptune.Run", Run)
     def test_online_with_wrong_kwargs(self, neptune):
-        """Tests combinations of kwargs together with `run` kwarg
-        which makes some of other parameters unavailable in init"""
+        """Tests combinations of kwargs together with `run` kwarg which makes some of other parameters unavailable
+        in init."""
         with self.assertRaises(ValueError):
             NeptuneLogger(run="some string")
 
@@ -151,7 +151,7 @@ class TestNeptuneLogger(unittest.TestCase):
 
     @pytest.mark.usefixtures("tmpdir_unittest_fixture")
     def test_neptune_leave_open_experiment_after_fit(self, neptune):
-        """Verify that neptune experiment was NOT closed after training"""
+        """Verify that neptune experiment was NOT closed after training."""
         # given
         logger, run_instance_mock, _ = self._get_logger_with_mocks(api_key="test", project="project")
 
@@ -166,7 +166,7 @@ class TestNeptuneLogger(unittest.TestCase):
 
     @pytest.mark.usefixtures("tmpdir_unittest_fixture")
     def test_neptune_log_metrics_on_trained_model(self, neptune):
-        """Verify that trained models do log data"""
+        """Verify that trained models do log data."""
         # given
         class LoggingModel(BoringModel):
             def validation_epoch_end(self, outputs):
