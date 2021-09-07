@@ -56,6 +56,7 @@ class BpttLinearModel(BoringModel):
         training_step_outputs = training_step_outputs[0]
         assert len(training_step_outputs) == (self.sequence_size / self.truncated_bptt_steps)
         loss = torch.stack([x["loss"] for x in training_step_outputs]).mean()
+        assert loss.grad_fn is None
         self.log("train_loss", loss)
 
 
@@ -73,6 +74,7 @@ class ManualBpttLinearModel(BpttLinearModel):
         opt.zero_grad()
         self.manual_backward(loss)
         opt.step()
+        assert loss.grad_fn is not None
         return {"loss": loss, "hiddens": hiddens}
 
 
