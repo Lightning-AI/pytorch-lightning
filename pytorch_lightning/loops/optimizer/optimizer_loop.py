@@ -158,7 +158,7 @@ class OptimizerLoop(Loop):
         else:
             self._optimizer_step(optimizer, opt_idx, batch_idx, closure)
 
-        result = closure.result
+        result = closure.consume_result()
 
         if result.loss is not None:
             # if no result, user decided to skip optimization

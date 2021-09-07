@@ -159,7 +159,7 @@ class TrainingBatchLoop(Loop):
         # TODO: replace call through closure by direct call (manual optimization)
         closure = self._make_closure(split_batch, batch_idx, self._hiddens)
         closure()
-        result = closure.result
+        result = closure.consume_result()
 
         if result.loss is not None:
             # if no result, user decided to skip optimization

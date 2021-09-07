@@ -54,8 +54,7 @@ class AbstractClosure(ABC):
         super().__init__()
         self._result: Optional[ClosureResult] = None
 
-    @property
-    def result(self) -> ClosureResult:
+    def consume_result(self) -> ClosureResult:
         """The cached result from the last time the closure was called.
 
         Once accessed, the internal reference gets reset and the consumer will have to hold on to the reference as long
