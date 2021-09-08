@@ -268,10 +268,10 @@ class FitLoop(Loop):
         ready_batches = self.epoch_loop.batch_progress.current.ready
         completed_batches = self.epoch_loop.batch_progress.current.completed
         failed = ready_batches != completed_batches
-        if failed:
-            state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(
-                has_completed=False  # self.epoch_loop.done
-            )
+        state_dict["dataloader_state_dict"] = (
+            self.trainer.train_dataloader.state_dict(has_completed=False) if failed else {}
+        )
+
         return state_dict
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
