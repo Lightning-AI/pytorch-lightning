@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import os
 from typing import Any, Callable, Dict, Optional
 
 import pytorch_lightning as pl
@@ -29,6 +30,8 @@ class TorchCheckpointIO(CheckpointIO):
     respectively, common for most use cases."""
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
+        fs = get_filesystem(path)
+        fs.makedirs(os.path.dirname(path), exist_ok=True)
         try:
             # write the checkpoint dictionary on the file
             atomic_save(checkpoint, path)
