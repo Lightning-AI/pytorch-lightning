@@ -27,8 +27,10 @@ from tests.helpers import BoringModel
 
 def create_neptune_mock():
     """Mock with provides nice `logger.name` and `logger.version` values.
-    Mostly due to fact, that windows tests were failing with MagicMock based strings,
-    which were used to create local directories in FS."""
+
+    Mostly due to fact, that windows tests were failing with MagicMock based strings, which were used to create local
+    directories in FS.
+    """
     return MagicMock(
         init=MagicMock(
             return_value=MagicMock(
