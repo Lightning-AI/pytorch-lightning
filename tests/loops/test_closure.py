@@ -79,7 +79,5 @@ def test_closure_result_raises():
 
 def test_closure_result_apply_accumulation():
     closure_loss = torch.tensor(25.0)
-    result = ClosureResult(closure_loss, None)
-    assert result.loss == 25
-    result.apply_accumulation(5)
+    result = ClosureResult.from_training_step_output(closure_loss, 5)
     assert result.loss == 5

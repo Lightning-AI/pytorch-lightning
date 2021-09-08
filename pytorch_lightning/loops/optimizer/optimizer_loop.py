@@ -351,7 +351,9 @@ class OptimizerLoop(Loop):
 
             _check_training_step_output(self.trainer.lightning_module, training_step_output)
 
-            closure_result = ClosureResult.from_training_step_output(training_step_output)
+            closure_result = ClosureResult.from_training_step_output(
+                training_step_output, self.trainer.accumulate_grad_batches
+            )
 
             if self.trainer.terminate_on_nan:
                 check_finite_loss(closure_result.closure_loss)
@@ -359,7 +361,6 @@ class OptimizerLoop(Loop):
             if self.trainer.move_metrics_to_cpu:
                 self.trainer._results.cpu()
 
-        closure_result.apply_accumulation(self.trainer.accumulate_grad_batches)
         return closure_result
 
     def _track_and_norm_grad(self, optimizer: torch.optim.Optimizer) -> Dict[str, float]:

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, field, replace
 from typing import Any, Callable, Dict, Optional
@@ -62,7 +61,9 @@ class ClosureResult:
             self.loss = self.closure_loss.detach().clone()
 
     @classmethod
-    def from_training_step_output(cls, training_step_output: Optional[STEP_OUTPUT]) -> "ClosureResult":
+    def from_training_step_output(
+        cls, training_step_output: Optional[STEP_OUTPUT], normalize: int = 1
+    ) -> "ClosureResult":
         closure_loss = None
         hiddens = None
         extra = {}
@@ -75,16 +76,10 @@ class ClosureResult:
         elif isinstance(training_step_output, Tensor):
             closure_loss = training_step_output
 
+        # accumulate the loss. If ``accumulate_grad_batches == 1``, no effect
+        closure_loss /= normalize
+
         return cls(closure_loss, hiddens, extra=extra)
-
-    def apply_accumulation(self, value: int) -> None:
-        """Accumulate loss.
-
-        If ``accumulate_grad_batches == 1``, no effect.
-        """
-        if self.closure_loss is not None:
-            self.closure_loss /= value
-            self._clone_loss()
 
     @staticmethod
     def _check_extra_detach_deprecation(extra: Dict[str, Any]) -> None:
