@@ -229,7 +229,6 @@ class PyTorchProfiler(BaseProfiler):
         sort_by_key: Optional[str] = None,
         record_functions: Set[str] = None,
         record_module_names: bool = True,
-        output_filename: Optional[str] = None,
         **profiler_kwargs: Any,
     ) -> None:
         """This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of.
