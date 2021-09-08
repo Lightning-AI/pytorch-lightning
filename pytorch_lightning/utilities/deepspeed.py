@@ -13,8 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Modified script from https://github.com/microsoft/DeepSpeed/blob/master/deepspeed/utils/zero_to_fp32.py
+"""Modified script from https://github.com/microsoft/DeepSpeed/blob/master/deepspeed/utils/zero_to_fp32.py.
 
 This script extracts fp32 consolidated weights from a zero 2 and 3 DeepSpeed checkpoints. It gets
 copied into the top level checkpoint dir, so the user can easily do the conversion at any point in

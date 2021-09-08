@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Helper functions to detect NaN/Inf values. """
+"""Helper functions to detect NaN/Inf values."""
 
 import logging
 
@@ -29,8 +29,7 @@ def print_nan_gradients(model: nn.Module) -> None:
 
 
 def detect_nan_parameters(model: nn.Module) -> None:
-    """
-    Iterates over model parameters and prints gradients if any parameter is not finite.
+    """Iterates over model parameters and prints gradients if any parameter is not finite.
 
     Raises:
         ValueError:

@@ -52,6 +52,12 @@ repos:
         args: [--py36-plus]
         name: Upgrade code
 
+  - repo: https://github.com/myint/docformatter
+    rev: v1.4
+    hooks:
+      - id: docformatter
+        args: [--in-place, --wrap-summaries=115, --wrap-descriptions=120]
+
   - repo: https://github.com/asottile/yesqa
     rev: v1.2.3
     hooks:

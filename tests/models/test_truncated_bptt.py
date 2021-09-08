@@ -14,82 +14,97 @@
 
 import pytest
 import torch
+from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
 
 
+class LinearModel(BoringModel):
+    """Linear model for testing TBPTT with automatic optimization."""
+
+    def __init__(self, truncated_bptt_steps=2, n_hidden_states=1, sequence_size=30, batch_size=30):
+        super().__init__()
+        self.truncated_bptt_steps = truncated_bptt_steps
+        self.n_hidden_states = n_hidden_states
+        self.sequence_size = sequence_size
+        self.batch_size = batch_size
+        self.automatic_optimization = True
+
+        self.example_input_array = torch.randn(5, truncated_bptt_steps)
+        self.layer = torch.nn.Linear(in_features=truncated_bptt_steps, out_features=truncated_bptt_steps)
+        self.test_hidden = None
+
+    def training_step(self, batch, batch_idx, hiddens):
+        assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
+        if self.n_hidden_states == 1:
+            self.test_hidden = torch.rand(1)
+        else:
+            self.test_hidden = tuple([torch.rand(1)] * self.n_hidden_states)
+
+        x_tensor, y_list = batch
+        assert x_tensor.shape[1] == self.truncated_bptt_steps, "tbptt split Tensor failed"
+
+        y_tensor = torch.tensor(y_list, dtype=x_tensor.dtype)
+        assert y_tensor.shape[1] == self.truncated_bptt_steps, "tbptt split list failed"
+
+        pred = self(x_tensor.view(self.batch_size, self.truncated_bptt_steps))
+        loss_val = torch.nn.functional.mse_loss(pred, y_tensor.view(self.batch_size, self.truncated_bptt_steps))
+        return {"loss": loss_val, "hiddens": self.test_hidden}
+
+    def training_epoch_end(self, training_step_outputs):
+        training_step_outputs = training_step_outputs[0]
+        assert len(training_step_outputs) == (self.sequence_size / self.truncated_bptt_steps)
+        loss = torch.stack([x["loss"] for x in training_step_outputs]).mean()
+        assert loss.grad_fn is None
+        self.log("train_loss", loss)
+
+
+class ManualLinearModel(LinearModel):
+    """Linear model for testing TBPTT with manual optimization."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.automatic_optimization = False
+
+    def training_step(self, batch, batch_idx, hiddens):
+        out = super().training_step(batch, batch_idx, hiddens)
+        loss, hiddens = out["loss"], out["hiddens"]
+        opt = self.optimizers()
+        opt.zero_grad()
+        self.manual_backward(loss)
+        opt.step()
+        assert loss.grad_fn is not None
+        return {"loss": loss, "hiddens": hiddens}
+
+
+@pytest.mark.parametrize("model_class", (LinearModel, ManualLinearModel))
 @pytest.mark.parametrize("n_hidden_states", (1, 2))
-def test_tbptt_cpu_model(tmpdir, n_hidden_states):
-    """Test truncated back propagation through time works."""
-    truncated_bptt_steps = 2
+def test_tbptt_cpu_model_manual(tmpdir, n_hidden_states, model_class):
+    """Test truncated back propagation through time works with automatic and manual optimization."""
+
     sequence_size = 30
     batch_size = 30
 
     x_seq = torch.rand(batch_size, sequence_size, 1)
     y_seq_list = torch.rand(batch_size, sequence_size, 1).tolist()
 
-    class MockSeq2SeqDataset(torch.utils.data.Dataset):
+    class MockSeq2SeqDataset(Dataset):
         def __getitem__(self, i):
             return x_seq, y_seq_list
 
         def __len__(self):
             return 1
 
-    class BpttTestModel(BoringModel):
-        def __init__(self, batch_size, in_features, out_features, n_hidden_states, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.test_hidden = None
-            self.batch_size = batch_size
-            self.layer = torch.nn.Linear(in_features, out_features)
-            self.n_hidden_states = n_hidden_states
-            self.truncated_bptt_steps = truncated_bptt_steps
-
-        def training_step(self, batch, batch_idx, hiddens):
-            assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
-            if self.n_hidden_states == 1:
-                self.test_hidden = torch.rand(1)
-            else:
-                self.test_hidden = tuple([torch.rand(1)] * self.n_hidden_states)
-
-            x_tensor, y_list = batch
-            assert x_tensor.shape[1] == truncated_bptt_steps, "tbptt split Tensor failed"
-
-            y_tensor = torch.tensor(y_list, dtype=x_tensor.dtype)
-            assert y_tensor.shape[1] == truncated_bptt_steps, "tbptt split list failed"
-
-            pred = self(x_tensor.view(batch_size, truncated_bptt_steps))
-            loss_val = torch.nn.functional.mse_loss(pred, y_tensor.view(batch_size, truncated_bptt_steps))
-            return {"loss": loss_val, "hiddens": self.test_hidden}
-
-        def training_epoch_end(self, training_step_outputs):
-            training_step_outputs = training_step_outputs[0]
-            assert len(training_step_outputs) == (sequence_size / truncated_bptt_steps)
-            loss = torch.stack([x["loss"] for x in training_step_outputs]).mean()
-            self.log("train_loss", loss)
-
-        def train_dataloader(self):
-            return torch.utils.data.DataLoader(
-                dataset=MockSeq2SeqDataset(), batch_size=batch_size, shuffle=False, sampler=None
-            )
-
-    model = BpttTestModel(
-        batch_size=batch_size,
-        in_features=truncated_bptt_steps,
-        out_features=truncated_bptt_steps,
-        n_hidden_states=n_hidden_states,
-    )
-    model.example_input_array = torch.randn(5, truncated_bptt_steps)
-
-    # fit model
+    train_dataloader = DataLoader(dataset=MockSeq2SeqDataset(), batch_size=batch_size, shuffle=False)
+    model = model_class(n_hidden_states=n_hidden_states, sequence_size=sequence_size, batch_size=batch_size)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_val_batches=0,
         weights_summary=None,
     )
-    trainer.fit(model)
-    assert trainer.state.finished, f"Training model with `{n_hidden_states}` hidden state failed with {trainer.state}"
+    trainer.fit(model, train_dataloader)
 
 
 def test_tbptt_log(tmpdir):
@@ -98,7 +113,7 @@ def test_tbptt_log(tmpdir):
     batch_size = 10
     assert T % truncated_bptt_steps != 0, "Should test leftover time steps"
 
-    class MockSeq2SeqDataset(torch.utils.data.Dataset):
+    class MockSeq2SeqDataset(Dataset):
         def __init__(self):
             self.x_seq = torch.randn(N, T, F)
             self.y_seq = torch.randn(N, T, F)
@@ -143,7 +158,7 @@ def test_tbptt_log(tmpdir):
             self.test_hidden = None
 
         def train_dataloader(self):
-            return torch.utils.data.DataLoader(dataset=MockSeq2SeqDataset(), batch_size=batch_size)
+            return DataLoader(dataset=MockSeq2SeqDataset(), batch_size=batch_size)
 
     model = TestModel()
     model.training_epoch_end = None

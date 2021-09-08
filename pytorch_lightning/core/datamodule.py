@@ -26,9 +26,8 @@ from pytorch_lightning.utilities.argparse import add_argparse_args, from_argpars
 
 
 class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
-    """
-    A DataModule standardizes the training, val, test splits, data preparation and transforms.
-    The main advantage is consistent data splits, data preparation and transforms across models.
+    """A DataModule standardizes the training, val, test splits, data preparation and transforms. The main
+    advantage is consistent data splits, data preparation and transforms across models.
 
     Example::
 
@@ -107,11 +106,9 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
     @property
     def train_transforms(self):
-        """
-        Optional transforms (or collection of transforms) you can apply to train dataset
+        """Optional transforms (or collection of transforms) you can apply to train dataset.
 
-        .. deprecated:: v1.5
-            Will be removed in v1.7.0.
+        .. deprecated:: v1.5     Will be removed in v1.7.0.
         """
 
         rank_zero_deprecation(
@@ -128,11 +125,9 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
     @property
     def val_transforms(self):
-        """
-        Optional transforms (or collection of transforms) you can apply to validation dataset
+        """Optional transforms (or collection of transforms) you can apply to validation dataset.
 
-        .. deprecated:: v1.5
-            Will be removed in v1.7.0.
+        .. deprecated:: v1.5     Will be removed in v1.7.0.
         """
 
         rank_zero_deprecation(
@@ -149,11 +144,9 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
     @property
     def test_transforms(self):
-        """
-        Optional transforms (or collection of transforms) you can apply to test dataset
+        """Optional transforms (or collection of transforms) you can apply to test dataset.
 
-        .. deprecated:: v1.5
-            Will be removed in v1.7.0.
+        .. deprecated:: v1.5     Will be removed in v1.7.0.
         """
 
         rank_zero_deprecation(
@@ -170,11 +163,9 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
     @property
     def dims(self):
-        """
-        A tuple describing the shape of your data. Extra functionality exposed in ``size``.
+        """A tuple describing the shape of your data. Extra functionality exposed in ``size``.
 
-        .. deprecated:: v1.5
-            Will be removed in v1.7.0.
+        .. deprecated:: v1.5     Will be removed in v1.7.0.
         """
         rank_zero_deprecation("DataModule property `dims` was deprecated in v1.5 and will be removed in v1.7.")
         return self._dims
@@ -185,12 +176,10 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         self._dims = d
 
     def size(self, dim=None) -> Union[Tuple, List[Tuple]]:
-        """
-        Return the dimension of each input either as a tuple or list of tuples. You can index this
-        just as you would with a torch tensor.
+        """Return the dimension of each input either as a tuple or list of tuples. You can index this just as you
+        would with a torch tensor.
 
-        .. deprecated:: v1.5
-            Will be removed in v1.7.0.
+        .. deprecated:: v1.5     Will be removed in v1.7.0.
         """
         rank_zero_deprecation("DataModule property `size` was deprecated in v1.5 and will be removed in v1.7.")
 
@@ -423,6 +412,10 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         obj.prepare_data = cls._track_data_hook_calls(obj, obj.prepare_data)
         obj.setup = cls._track_data_hook_calls(obj, obj.setup)
         obj.teardown = cls._track_data_hook_calls(obj, obj.teardown)
+
+        # calling this to ensure the `LightningDataModule` is initialized for all cases of inheritance,
+        # even if `super().__init__` hasn't been explicitly called in the class
+        LightningDataModule.__init__(obj)
         return obj
 
     @staticmethod

@@ -269,12 +269,15 @@ class Trainer(
                 Can be used on CPU, GPU or TPUs.
 
             max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
-                If both max_epochs and max_steps are not specified, defaults to ``max_epochs`` = 1000.
+                If both max_epochs and max_steps are not specified, defaults to ``max_epochs = 1000``.
+                To enable infinite training, set ``max_epochs = -1``.
 
             min_epochs: Force training for at least these many epochs. Disabled by default (None).
-                If both min_epochs and min_steps are not specified, defaults to ``min_epochs`` = 1.
+                If both min_epochs and min_steps are not specified, defaults to ``min_epochs = 1``.
 
-            max_steps: Stop training after this number of steps. Disabled by default (None).
+            max_steps: Stop training after this number of steps. Disabled by default (None). If ``max_steps = None``
+                and ``max_epochs = None``, will default to ``max_epochs = 1000``. To disable this default, set
+                ``max_steps`` to ``-1``.
 
             min_steps: Force training for at least these number of steps. Disabled by default (None).
 
@@ -387,6 +390,7 @@ class Trainer(
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
 
+        # max_epochs won't default to 1000 if max_steps/max_time are specified (including being set to -1).
         fit_loop = FitLoop(
             min_epochs=(1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs),
             max_epochs=(1000 if (max_epochs is None and max_steps is None and max_time is None) else max_epochs),
@@ -513,6 +517,7 @@ class Trainer(
         """
         try:
             return trainer_fn(*args, **kwargs)
+        # TODO: treat KeyboardInterrupt as BaseException (delete the code below) in v1.7
         except KeyboardInterrupt as exception:
             rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
             # user could press Ctrl+c many times... only shutdown once

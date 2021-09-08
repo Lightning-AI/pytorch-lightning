@@ -80,8 +80,7 @@ STYLES: Dict[str, str] = {
 
 
 class RichProgressBar(ProgressBarBase):
-    """
-    Create a progress bar with `rich text formatting <https://github.com/willmcgugan/rich>`_.
+    """Create a progress bar with `rich text formatting <https://github.com/willmcgugan/rich>`_.
 
     Install it with pip:
 

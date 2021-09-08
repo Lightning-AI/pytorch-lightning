@@ -25,21 +25,18 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import ResultC
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
-from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
-def check_finite_loss(model: "pl.LightningModule", loss: torch.Tensor) -> None:
-    """Checks for finite parameters and loss values.
+def check_finite_loss(loss: Optional[torch.Tensor]) -> None:
+    """Checks for finite loss value.
 
     Args:
-        model: a reference to the ``LightningModule``
         loss: the loss value to check to be finite
     """
-    if not torch.isfinite(loss).all():
+    if loss is not None and not torch.isfinite(loss).all():
         raise ValueError(f"The loss returned in `training_step` is {loss}.")
-    detect_nan_parameters(model)
 
 
 def _check_training_step_output(model: "pl.LightningModule", training_step_output: STEP_OUTPUT) -> None:
@@ -71,7 +68,7 @@ def _check_training_step_output(model: "pl.LightningModule", training_step_outpu
 def _process_training_step_output(
     trainer: "pl.Trainer", training_step_output: STEP_OUTPUT
 ) -> Tuple[Optional[ResultCollection], Optional[Any]]:
-    """Adds the :param:`training_step_output` to the trainer's results
+    """Adds the :param:`training_step_output` to the trainer's results.
 
     Args:
         trainer: a reference to the trainer
@@ -102,11 +99,16 @@ def _process_training_step_output(
     elif isinstance(training_step_output, torch.Tensor):
         loss = training_step_output
 
+    if trainer.terminate_on_nan:
+        check_finite_loss(loss)
+
+    # the loss shouldn't be moved to cpu.
+    if trainer.move_metrics_to_cpu:
+        results.cpu()
+
     # map to results under the hood
     results.minimize = loss
 
-    if trainer.move_metrics_to_cpu:
-        results.cpu()
     return results, hiddens
 
 
@@ -118,7 +120,7 @@ def _build_training_step_kwargs(
     opt_idx: Optional[int],
     hiddens: Optional[Tensor],
 ) -> Dict[str, Any]:
-    """Builds the keyword arguments for training_step
+    """Builds the keyword arguments for training_step.
 
     Args:
         lightning_module: the LightningModule with a `training_step` hook implementation
@@ -163,7 +165,7 @@ def _build_training_step_kwargs(
 
 
 def _prepare_dataloader_iter(data_fetcher: AbstractDataFetcher, batch_idx: int) -> Iterator:
-    """Attach the dataloader"""
+    """Attach the dataloader."""
     if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
         # restore iteration
         dataloader_iter = enumerate(data_fetcher, batch_idx)
@@ -174,9 +176,8 @@ def _prepare_dataloader_iter(data_fetcher: AbstractDataFetcher, batch_idx: int) 
 
 @contextmanager
 def _block_parallel_sync_behavior(trainer: "pl.Trainer", block: bool = True) -> Generator[None, None, None]:
-    """
-    Blocks synchronization in :class:`~pytorch_lightning.plugins.training_type.parallel.ParallelPlugin`.
-    This is useful for example when when accumulating gradients to reduce communication when it is not needed.
+    """Blocks synchronization in :class:`~pytorch_lightning.plugins.training_type.parallel.ParallelPlugin`. This is
+    useful for example when when accumulating gradients to reduce communication when it is not needed.
 
     Args:
         trainer: the trainer instance with a reference to a training type plugin
