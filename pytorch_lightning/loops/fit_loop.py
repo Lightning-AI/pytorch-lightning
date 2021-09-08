@@ -269,10 +269,9 @@ class FitLoop(Loop):
         completed_batches = self.epoch_loop.batch_progress.current.completed
         failed = ready_batches != completed_batches
         if failed:
-            print("not done!", self.current_epoch, self.global_step)
-            # FIXME(@tchaton) Should pass has_completed=True when iterator is exhausted ?
-            state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(has_completed=False)
-
+            state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(
+                has_completed=False  # self.epoch_loop.done
+            )
         return state_dict
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
