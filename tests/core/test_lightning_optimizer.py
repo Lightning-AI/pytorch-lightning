@@ -219,14 +219,13 @@ def test_lightning_optimizer_automatic_optimization_optimizer_step(tmpdir):
 
         def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, **_):
             assert isinstance(optimizer_closure, Closure)
-            # not passing the closure to the optimizer because step is mocked
             # zero_grad is called inside the closure
+            optimizer_closure()
+            # not passing the closure to the optimizer because step is mocked
             if isinstance(optimizer, SGD) and batch_idx % 2 == 0:
-                optimizer_closure()
                 optimizer.step()
             if isinstance(optimizer, Adam) and batch_idx % 4 == 0:
-                optimizer_closure()
-                optimizer.step()  # not passing the closure here because it's a mock
+                optimizer.step()
 
         def configure_optimizers(self):
             optimizer_1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -236,8 +235,13 @@ def test_lightning_optimizer_automatic_optimization_optimizer_step(tmpdir):
 
     model = TestModel()
 
+    limit_train_batches = 8
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=8, limit_val_batches=1, max_epochs=1, weights_summary=None
+        default_root_dir=tmpdir,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=1,
+        max_epochs=1,
+        weights_summary=None,
     )
 
     with patch.multiple(torch.optim.SGD, zero_grad=DEFAULT, step=DEFAULT) as sgd, patch.multiple(
@@ -245,11 +249,11 @@ def test_lightning_optimizer_automatic_optimization_optimizer_step(tmpdir):
     ) as adam:
         trainer.fit(model)
 
-    assert sgd["step"].call_count == 4
-    assert adam["step"].call_count == 2
+    assert sgd["step"].call_count == limit_train_batches // 2
+    assert adam["step"].call_count == limit_train_batches // 4
 
-    assert sgd["zero_grad"].call_count == 4
-    assert adam["zero_grad"].call_count == 2
+    assert sgd["zero_grad"].call_count == limit_train_batches
+    assert adam["zero_grad"].call_count == limit_train_batches
 
 
 def test_lightning_optimizer_automatic_optimization_lbfgs_zero_grad(tmpdir):

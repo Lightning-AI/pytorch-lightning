@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from typing import Any, Optional, Tuple
+from typing import Any, Optional
 
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.utilities import (
@@ -45,13 +44,12 @@ class ManualOptimization(Loop):
     def reset(self) -> None:
         self._done = False
 
-    def advance(self, batch: Any, batch_idx: int, hiddens: Optional[Any] = None) -> None:  # type: ignore[override]
+    def advance(self, batch: Any, batch_idx: int) -> None:  # type: ignore[override]
         """Performs the training step for manual optimization.
 
         Args:
             batch: the current tbptt split of the current batch
             batch_idx: the index of the current batch
-            hiddens: the model's hidden state of the previous iteration
         """
         assert self.trainer is not None
         ligtning_module = self.trainer.lightning_module
@@ -59,7 +57,7 @@ class ManualOptimization(Loop):
         with self.trainer.profiler.profile("model_forward"):
 
             step_kwargs = _build_training_step_kwargs(
-                ligtning_module, self.trainer.optimizers, batch, batch_idx, opt_idx=None, hiddens=hiddens
+                ligtning_module, self.trainer.optimizers, batch, batch_idx, opt_idx=None, hiddens=self._hiddens
             )
 
             # manually capture logged metrics
@@ -74,16 +72,12 @@ class ManualOptimization(Loop):
 
             _check_training_step_output(ligtning_module, training_step_output)
 
-            result_collection, hiddens = _process_training_step_output(self.trainer, training_step_output)
+            result_collection, self._hiddens = _process_training_step_output(self.trainer, training_step_output)
 
         self._done = True
-        self._hiddens = hiddens
         self._output = result_collection
 
-    def on_run_end(self) -> Tuple[Optional[ResultCollection], Optional[Any]]:
-        """Returns the result of this loop, i.e., the post-processed outputs from the training step, and the hidden
-        state."""
-        output = self._output
-        hiddens = self._hiddens
-        self._output, self._hiddens = None, None  # free memory
-        return output, hiddens
+    def on_run_end(self) -> Optional[ResultCollection]:
+        """Returns the result of this loop, i.e., the post-processed outputs from the training step."""
+        output, self._output = self._output, None  # free memory
+        return output
