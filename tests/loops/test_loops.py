@@ -580,7 +580,9 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
                 "ready": n_epochs,
                 "started": n_epochs,
                 "processed": n_epochs,
-                "completed": n_epochs - 1,  # TODO: why this???
+                # TODO: the following "-1" offset will be fixed by
+                #   https://github.com/PyTorchLightning/pytorch-lightning/pull/8578
+                "completed": n_epochs - 1,
             },
         },
         "epoch_loop.state_dict": ANY,
