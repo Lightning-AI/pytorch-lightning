@@ -73,13 +73,23 @@ def test_persistent_hidden_state_transfer(tmpdir, model_class):
             self.test_hidden = None
 
         def training_step(self, batch, batch_idx, hiddens):
-            assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
-            if hiddens is not None:
-                assert hiddens.grad_fn is None
             split_idx = self.trainer.fit_loop.split_idx
-            self.test_hidden = torch.tensor(split_idx, requires_grad=True, dtype=torch.float).pow(2)
+            # the hidden state may only be None for the first split_idx
+            assert split_idx == 0 and hiddens is None or split_idx != 0 and hiddens is not None
+            # test_hiddens is None when hiddens is None
+            assert not ((hiddens is None) ^ (self.test_hidden is None))
+            # the states are equal (persistent)
+            assert hiddens is None or all(torch.equal(h, th) for h, th in zip(hiddens, self.test_hidden))
+            # the incoming hidden state never has a grad_fn (gets automatically detached
+            assert hiddens is None or all(h.grad_fn is None for h in hiddens)
             out = super().training_step(batch, batch_idx, hiddens)
-            return {"loss": out["loss"], "hiddens": self.test_hidden}
+
+            # store hiddens, assert persistence in next training_step
+            self.test_hidden = out["hiddens"]
+
+            # hiddens may have grad_fn when returning, gets automatically detached
+            assert all(h.grad_fn is not None for h in self.test_hidden)
+            return out
 
         def on_train_batch_start(self, *_, **__) -> None:
             self.test_hidden = None
