@@ -37,7 +37,7 @@ class LSTMModel(LightningModule):
 
     def training_step(self, batch, batch_idx, hiddens):
         x, y = batch
-        pred, _ = self.lstm(x)
+        pred, hiddens = self.lstm(x, hiddens)
         loss = F.mse_loss(pred, y)
         return {"loss": loss, "hiddens": hiddens}
 
