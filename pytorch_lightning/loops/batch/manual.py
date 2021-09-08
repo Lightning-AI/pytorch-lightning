@@ -84,6 +84,7 @@ class ManualOptimization(Loop):
             if self.trainer.move_metrics_to_cpu:
                 # hiddens and the training step output are not moved as they are not considered "metrics"
                 # the user might need them on the correct device for an operation in `training_epoch_end`
+                assert self.trainer._results is not None
                 self.trainer._results.cpu()
 
         self._done = True
