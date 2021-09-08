@@ -243,7 +243,7 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
 The :class:`~pytorch_lightning.loggers.WandbLogger` is available anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
-.. testcode::
+.. code-block:: python
 
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):

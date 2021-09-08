@@ -36,6 +36,7 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 from tests.loggers.test_comet import _patch_comet_atexit
 from tests.loggers.test_mlflow import mock_mlflow_run_creation
+from tests.loggers.test_neptune import create_neptune_mock
 
 
 def _get_logger_args(logger_class, save_dir):
@@ -72,7 +73,8 @@ def test_loggers_fit_test_all(tmpdir, monkeypatch):
     ):
         _test_loggers_fit_test(tmpdir, MLFlowLogger)
 
-    with mock.patch("pytorch_lightning.loggers.neptune.neptune"):
+    with mock.patch("pytorch_lightning.loggers.neptune.neptune",
+                    new_callable=create_neptune_mock):
         _test_loggers_fit_test(tmpdir, NeptuneLogger)
 
     with mock.patch("pytorch_lightning.loggers.test_tube.Experiment"):

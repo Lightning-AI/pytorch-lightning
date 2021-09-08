@@ -15,14 +15,34 @@ import os
 import pickle
 import unittest
 from collections import namedtuple
-from unittest.mock import call, MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 import torch
 
-from pytorch_lightning import __version__, Trainer
+from pytorch_lightning import Trainer, __version__
 from pytorch_lightning.loggers import NeptuneLogger
 from tests.helpers import BoringModel
+
+
+def create_neptune_mock():
+    """Mock with provides nice `logger.name` and `logger.version` values.
+    Mostly due to fact, that windows tests were failing with MagicMock based strings,
+    which were used to create local directories in FS."""
+    return MagicMock(
+        init=MagicMock(
+            return_value=MagicMock(
+                __getitem__=MagicMock(
+                    return_value=MagicMock(
+                        fetch=MagicMock(
+                            return_value="Run test name"
+                        )
+                    )
+                ),
+                _short_id="TEST-1",
+            )
+        )
+    )
 
 
 class Run:
@@ -57,19 +77,16 @@ def tmpdir_unittest_fixture(request, tmpdir):
     request.cls.tmpdir = tmpdir
 
 
-@patch("pytorch_lightning.loggers.neptune.neptune")
+@patch("pytorch_lightning.loggers.neptune.neptune",
+       new_callable=create_neptune_mock)
 class TestNeptuneLogger(unittest.TestCase):
     def test_neptune_online(self, neptune):
-        created_run_mock = MagicMock(
-            __getitem__=MagicMock(return_value=MagicMock(fetch=MagicMock(return_value="TEST-1")))
-        )
-
-        neptune.init.return_value = created_run_mock
         logger = NeptuneLogger(api_key="test", project="project")
+        created_run_mock = logger._run_instance
 
         self.assertEqual(logger._run_instance, created_run_mock)
-        self.assertEqual(logger.name, "TEST-1")
-        self.assertEqual(logger.version, created_run_mock._short_id)
+        self.assertEqual(logger.name, "Run test name")
+        self.assertEqual(logger.version, "TEST-1")
         self.assertEqual(neptune.init.call_count, 1)
         self.assertEqual(created_run_mock.__getitem__.call_count, 1)
         self.assertEqual(created_run_mock.__setitem__.call_count, 1)
