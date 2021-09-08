@@ -158,7 +158,7 @@ def test_tbptt_log(tmpdir):
             self.test_hidden = None
 
         def train_dataloader(self):
-            return DataLoader(dataset=MockSeq2SeqDataset(), batch_size=batch_size)
+            return DataLoader(dataset=MockSeq2SeqDataset(), batch_size=batch_size, drop_last=True)
 
     model = TestModel()
     model.training_epoch_end = None
@@ -172,6 +172,6 @@ def test_tbptt_log(tmpdir):
     )
     trainer.fit(model)
 
-    assert trainer.fit_loop.batch_idx == N // batch_size
+    assert trainer.fit_loop.epoch_loop.batch_progress.total.completed == 2 * (N // batch_size)
     assert trainer.fit_loop.split_idx == T // truncated_bptt_steps
     assert set(trainer.logged_metrics) == {"a_step", "a_epoch", "epoch"}
