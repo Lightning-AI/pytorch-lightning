@@ -73,8 +73,7 @@ def test_loggers_fit_test_all(tmpdir, monkeypatch):
     ):
         _test_loggers_fit_test(tmpdir, MLFlowLogger)
 
-    with mock.patch("pytorch_lightning.loggers.neptune.neptune",
-                    new_callable=create_neptune_mock):
+    with mock.patch("pytorch_lightning.loggers.neptune.neptune", new_callable=create_neptune_mock):
         _test_loggers_fit_test(tmpdir, NeptuneLogger)
 
     with mock.patch("pytorch_lightning.loggers.test_tube.Experiment"):

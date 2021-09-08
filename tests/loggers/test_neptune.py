@@ -15,12 +15,12 @@ import os
 import pickle
 import unittest
 from collections import namedtuple
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import call, MagicMock, patch
 
 import pytest
 import torch
 
-from pytorch_lightning import Trainer, __version__
+from pytorch_lightning import __version__, Trainer
 from pytorch_lightning.loggers import NeptuneLogger
 from tests.helpers import BoringModel
 
@@ -32,13 +32,7 @@ def create_neptune_mock():
     return MagicMock(
         init=MagicMock(
             return_value=MagicMock(
-                __getitem__=MagicMock(
-                    return_value=MagicMock(
-                        fetch=MagicMock(
-                            return_value="Run test name"
-                        )
-                    )
-                ),
+                __getitem__=MagicMock(return_value=MagicMock(fetch=MagicMock(return_value="Run test name"))),
                 _short_id="TEST-1",
             )
         )
@@ -77,8 +71,7 @@ def tmpdir_unittest_fixture(request, tmpdir):
     request.cls.tmpdir = tmpdir
 
 
-@patch("pytorch_lightning.loggers.neptune.neptune",
-       new_callable=create_neptune_mock)
+@patch("pytorch_lightning.loggers.neptune.neptune", new_callable=create_neptune_mock)
 class TestNeptuneLogger(unittest.TestCase):
     def test_neptune_online(self, neptune):
         logger = NeptuneLogger(api_key="test", project="project")
