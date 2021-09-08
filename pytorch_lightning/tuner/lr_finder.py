@@ -15,8 +15,9 @@ import importlib
 import logging
 import os
 from functools import wraps
-from typing import Callable, Optional, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
+import matplotlib.figure.Figure as Figure
 import numpy as np
 import torch
 from torch.optim import Optimizer
@@ -29,6 +30,7 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
@@ -86,7 +88,7 @@ class _LRFinder:
         lr = lr_finder.suggestion()
     """
 
-    def __init__(self, mode: str, lr_min: float, lr_max: float, num_training: int):
+    def __init__(self, mode: str, lr_min: float, lr_max: float, num_training: int) -> None:
         assert mode in ("linear", "exponential"), "mode should be either `linear` or `exponential`"
 
         self.mode = mode
@@ -97,12 +99,12 @@ class _LRFinder:
         self.results = {}
         self._total_batch_idx = 0  # for debug purpose
 
-    def _exchange_scheduler(self, configure_optimizers: Callable):
+    def _exchange_scheduler(self, configure_optimizers: Callable) -> Callable:
         """Decorate configure_optimizers methods such that it returns the users originally specified optimizer
         together with a new scheduler that that takes care of the learning rate search."""
 
         @wraps(configure_optimizers)
-        def func():
+        def func() -> Tuple[List[Optimizer], List[Dict[str, Union[_LRScheduler, str]]]]:
             # Decide the structure of the output from configure_optimizers
             # Same logic as method `init_optimizers` in trainer/optimizers.py
             optim_conf = configure_optimizers()
@@ -137,7 +139,7 @@ class _LRFinder:
 
         return func
 
-    def plot(self, suggest: bool = False, show: bool = False):
+    def plot(self, suggest: bool = False, show: bool = False) -> Figure:
         """Plot results from lr_find run
         Args:
             suggest: if True, will mark suggested lr to use with a red point
@@ -168,14 +170,16 @@ class _LRFinder:
 
         return fig
 
-    def suggestion(self, skip_begin: int = 10, skip_end: int = 1):
+    def suggestion(self, skip_begin: int = 10, skip_end: int = 1) -> Optional[float]:
         """This will propose a suggestion for choice of initial learning rate as the point with the steepest
         negative gradient.
 
-        Returns:
-            lr: suggested initial learning rate to use
+        Args:
             skip_begin: how many samples to skip in the beginning. Prevent too naive estimates
             skip_end: how many samples to skip in the end. Prevent too optimistic estimates
+
+        Returns:
+            lr: suggested initial learning rate to use
         """
         try:
             loss = np.array(self.results["loss"][skip_begin:-skip_end])
@@ -275,7 +279,7 @@ def lr_find(
     return lr_finder
 
 
-def __lr_finder_dump_params(trainer, model):
+def __lr_finder_dump_params(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
     # Prevent going into infinite loop
     trainer.__dumped_params = {
         "auto_lr_find": trainer.auto_lr_find,
@@ -288,7 +292,7 @@ def __lr_finder_dump_params(trainer, model):
     }
 
 
-def __lr_finder_restore_params(trainer, model):
+def __lr_finder_restore_params(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
     trainer.auto_lr_find = trainer.__dumped_params["auto_lr_find"]
     trainer.logger = trainer.__dumped_params["logger"]
     trainer.callbacks = trainer.__dumped_params["callbacks"]
@@ -320,7 +324,7 @@ class _LRCallback(Callback):
         early_stop_threshold: float = 4.0,
         progress_bar_refresh_rate: int = 0,
         beta: float = 0.98,
-    ):
+    ) -> None:
         self.num_training = num_training
         self.early_stop_threshold = early_stop_threshold
         self.beta = beta
@@ -331,7 +335,7 @@ class _LRCallback(Callback):
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.progress_bar = None
 
-    def on_batch_start(self, trainer, pl_module):
+    def on_batch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called before each training batch, logs the lr that will be used."""
         if (trainer.fit_loop.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return
@@ -341,7 +345,15 @@ class _LRCallback(Callback):
 
         self.lrs.append(trainer.lr_schedulers[0]["scheduler"].lr[0])
 
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_train_batch_end(
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        outputs: STEP_OUTPUT,
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int,
+    ) -> None:
         """Called when the training batch ends, logs the calculated loss."""
         if (trainer.fit_loop.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return
@@ -387,12 +399,12 @@ class _LinearLR(_LRScheduler):
     last_epoch: int
     base_lrs: Sequence
 
-    def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
+    def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1) -> None:
         self.end_lr = end_lr
         self.num_iter = num_iter
         super().__init__(optimizer, last_epoch)
 
-    def get_lr(self):
+    def get_lr(self) -> float:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
@@ -404,7 +416,7 @@ class _LinearLR(_LRScheduler):
         return val
 
     @property
-    def lr(self):
+    def lr(self) -> float:
         return self._lr
 
 
@@ -425,12 +437,12 @@ class _ExponentialLR(_LRScheduler):
     last_epoch: int
     base_lrs: Sequence
 
-    def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
+    def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1) -> None:
         self.end_lr = end_lr
         self.num_iter = num_iter
         super().__init__(optimizer, last_epoch)
 
-    def get_lr(self):
+    def get_lr(self) -> float:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
@@ -442,5 +454,5 @@ class _ExponentialLR(_LRScheduler):
         return val
 
     @property
-    def lr(self):
+    def lr(self) -> float:
         return self._lr

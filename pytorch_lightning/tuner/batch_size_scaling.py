@@ -23,6 +23,7 @@ from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import garbage_collection_cuda, is_oom_error
 from pytorch_lightning.utilities.parsing import lightning_getattr, lightning_hasattr, lightning_setattr
+from torch.utils.data import DataLoader
 
 log = logging.getLogger(__name__)
 
@@ -260,5 +261,5 @@ def _adjust_batch_size(
     return new_size, changed
 
 
-def _is_valid_batch_size(current_size, dataloader):
+def _is_valid_batch_size(current_size: int, dataloader: DataLoader) -> bool:
     return not has_len(dataloader) or current_size <= len(dataloader)
