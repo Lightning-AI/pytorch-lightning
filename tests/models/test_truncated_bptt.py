@@ -28,7 +28,7 @@ class LSTMModel(LightningModule):
         super().__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
-        self.layer = torch.nn.LSTM(input_size=input_size, hidden_size=hidden_size, batch_first=True)
+        self.lstm = torch.nn.LSTM(input_size=input_size, hidden_size=hidden_size, batch_first=True)
         self.truncated_bptt_steps = truncated_bptt_steps
         self.automatic_optimization = True
 
@@ -37,7 +37,7 @@ class LSTMModel(LightningModule):
 
     def training_step(self, batch, batch_idx, hiddens):
         x, y = batch
-        pred, _ = self.layer(x)
+        pred, _ = self.lstm(x)
         loss = F.mse_loss(pred, y)
         return {"loss": loss, "hiddens": hiddens}
 
