@@ -14,7 +14,7 @@
 
 from copy import deepcopy
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional
 
 import torch
 from torch import Tensor
@@ -69,14 +69,11 @@ class OptimizerLoop(Loop):
             self.optim_progress.optimizer_idx = 0
         self.outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
-    def on_run_start(  # type: ignore[override]
-        self, batch: Any, hiddens: Any, optimizers: List[Optimizer], batch_idx: int
-    ) -> None:
+    def on_run_start(self, batch: Any, optimizers: List[Optimizer], batch_idx: int) -> None:  # type: ignore[override]
         self._batch_idx = batch_idx
         self._optimizers = optimizers
 
-    def advance(self, batch: Any, hiddens: Any, *args, **kwargs) -> None:  # type: ignore[override]
-        self._hiddens = hiddens
+    def advance(self, batch: Any, *args, **kwargs) -> None:  # type: ignore[override]
         result = self._run_optimization(
             batch,
             self._batch_idx,
@@ -88,13 +85,9 @@ class OptimizerLoop(Loop):
 
         self.optim_progress.optimizer_idx += 1
 
-    def on_run_end(self) -> Tuple[_OUTPUTS_TYPE, Optional[Any]]:
-        outputs = self.outputs
-        hiddens = self._hiddens
-        # free memory
-        self.outputs = []
-        self._hiddens = None
-        return outputs, hiddens
+    def on_run_end(self) -> _OUTPUTS_TYPE:
+        outputs, self.outputs = self.outputs, []  # free memory
+        return outputs
 
     def backward(
         self,
