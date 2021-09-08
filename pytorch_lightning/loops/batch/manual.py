@@ -19,6 +19,7 @@ from pytorch_lightning.loops.utilities import (
     _build_training_step_kwargs,
     _check_training_step_output,
     check_finite_loss,
+    _extract_hiddens,
 )
 
 
@@ -72,9 +73,12 @@ class ManualOptimization(Loop):
 
             _check_training_step_output(ligtning_module, training_step_output)
 
-            # TODO: do not use `ClosureResult`
-            result = ClosureResult.from_training_step_output(training_step_output)
-            self._hiddens = result.hiddens
+            self._hiddens = _extract_hiddens(training_step_output)
+
+            # TODO: do not use `ClosureResult
+            result = ClosureResult.from_training_step_output(
+                training_step_output, self.trainer.accumulate_grad_batches
+            )
 
             if self.trainer.terminate_on_nan:
                 check_finite_loss(result.closure_loss)

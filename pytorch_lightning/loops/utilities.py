@@ -22,6 +22,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
+from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -59,6 +60,13 @@ def _check_training_step_output(model: "pl.LightningModule", training_step_outpu
             "In automatic optimization, `training_step` must either return a Tensor, "
             "a dict with key 'loss' or None (where the step will be skipped)."
         )
+
+
+def _extract_hiddens(training_step_output: STEP_OUTPUT) -> Optional[Any]:
+    hiddens = training_step_output.get("hiddens")
+    # detach hiddens to avoid `RuntimeError: Trying to backward through the graph a second time`
+    hiddens = recursive_detach(hiddens)
+    return hiddens
 
 
 def _build_training_step_kwargs(

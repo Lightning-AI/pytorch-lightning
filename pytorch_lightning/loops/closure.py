@@ -33,27 +33,20 @@ class ClosureResult:
 
     Attributes:
         closure_loss: The loss with a graph attached.
-        hiddens: The hidden tensors if available.
         loss: A detached copy of the closure loss.
         extra: Any keys other than the loss returned.
     """
 
     closure_loss: Optional[Tensor]
-    hiddens: Optional[Any]
     loss: Optional[Tensor] = field(init=False, default=None)
     extra: Dict[str, Tensor] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        # detach hiddens to avoid `RuntimeError: Trying to backward through the graph a second time`
-        self.hiddens = recursive_detach(self.hiddens)
-
         # TODO: remove with the deprecation removal in v1.6
         ClosureResult._check_extra_detach_deprecation(self.extra)
         self.extra = recursive_detach(self.extra)
 
         self._clone_loss()
-        if self.hiddens is not None and self.loss is None:
-            raise MisconfigurationException("If `hiddens` are returned from `training_step`, the loss cannot be `None`")
 
     def _clone_loss(self) -> None:
         if self.closure_loss is not None:
@@ -64,14 +57,11 @@ class ClosureResult:
     def from_training_step_output(
         cls, training_step_output: Optional[STEP_OUTPUT], normalize: int = 1
     ) -> "ClosureResult":
-        closure_loss = None
-        hiddens = None
-        extra = {}
+        closure_loss, extra = None, {}
 
         if isinstance(training_step_output, dict):
             # this should not modify the `training_step_output`, as the user could be using it after `training_step_end`
             closure_loss = training_step_output.get("loss")
-            hiddens = training_step_output.get("hiddens")
             extra = {k: v for k, v in training_step_output.items() if k not in ("loss", "hiddens")}
         elif isinstance(training_step_output, Tensor):
             closure_loss = training_step_output
@@ -80,7 +70,7 @@ class ClosureResult:
             # accumulate the loss. If ``accumulate_grad_batches == 1``, no effect
             closure_loss /= normalize
 
-        return cls(closure_loss, hiddens, extra=extra)
+        return cls(closure_loss, extra=extra)
 
     @staticmethod
     def _check_extra_detach_deprecation(extra: Dict[str, Any]) -> None:
