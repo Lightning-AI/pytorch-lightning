@@ -90,12 +90,7 @@ class OptimizerLoop(Loop):
         return outputs
 
     def backward(
-        self,
-        loss: Tensor,
-        optimizer: torch.optim.Optimizer,
-        opt_idx: int,
-        *args: Any,
-        **kwargs: Any,
+        self, loss: Tensor, optimizer: torch.optim.Optimizer, opt_idx: int, *args: Any, **kwargs: Any
     ) -> Tensor:
         """Performs the backward step.
 
@@ -115,11 +110,7 @@ class OptimizerLoop(Loop):
         return loss
 
     def _run_optimization(
-        self,
-        split_batch: Any,
-        batch_idx: int,
-        optimizer: torch.optim.Optimizer,
-        opt_idx: int,
+        self, split_batch: Any, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int
     ) -> Optional[ClosureResult]:
         """Runs closure (train step + backward) together with optimization if necessary.
 
@@ -175,10 +166,7 @@ class OptimizerLoop(Loop):
         zero_grad_fn = self._make_zero_grad_fn(batch_idx, opt_idx, optimizer)
 
         return Closure(
-            step_fn=step_fn,
-            backward_fn=backward_fn,
-            zero_grad_fn=zero_grad_fn,
-            profiler=self.trainer.profiler,
+            step_fn=step_fn, backward_fn=backward_fn, zero_grad_fn=zero_grad_fn, profiler=self.trainer.profiler
         )
 
     def _make_step_fn(self, split_batch: Any, batch_idx: int, opt_idx: int) -> Callable[[], Optional[AttributeDict]]:
@@ -204,11 +192,7 @@ class OptimizerLoop(Loop):
 
         return zero_grad_fn
 
-    def _make_backward_fn(
-        self,
-        optimizer: Optimizer,
-        opt_idx: int,
-    ) -> Optional[Callable[[Tensor], Tensor]]:
+    def _make_backward_fn(self, optimizer: Optimizer, opt_idx: int) -> Optional[Callable[[Tensor], Tensor]]:
         """Build a `backward` function that handles back-propagation through the output produced by the
         `training_step` function.
 
