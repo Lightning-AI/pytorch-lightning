@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import math
 
 import pytest
 import torch
@@ -38,7 +39,6 @@ class LSTMModel(LightningModule):
         x, y = batch
         pred, _ = self.layer(x)
         loss = F.mse_loss(pred, y)
-        self.log("a", loss, on_epoch=True)
         return {"loss": loss, "hiddens": hiddens}
 
     def train_dataloader(self):
@@ -97,31 +97,34 @@ def test_persistent_hidden_state_transfer(tmpdir, model_class):
 
 @pytest.mark.parametrize("model_class", (LSTMModel, ManualLSTMModel))
 def test_tbptt_split_shapes(tmpdir, model_class):
-    """Test truncated back propagation through time works with automatic and manual optimization."""
+    """Test that the sequence data gets split correctly and that the outputs are correctly passed from hook to hook"""
+    batch_size = 10
+    truncated_bptt_steps = 2
+    n, t, f = 32, 15, 1  # (num samples, sequence size, input size)
+    assert t % truncated_bptt_steps != 0, "test must run with sequence length not divisible by tbptt steps"
 
-    sequence_size = 30
-    batch_size = 30
-
-    seq2seq_dataset = TensorDataset(
-        torch.rand(batch_size, sequence_size, 1),
-        torch.rand(batch_size, sequence_size, 1),
-    )
+    seq2seq_dataset = TensorDataset(torch.rand(n, t, f), torch.rand(n, t, f))
+    train_dataloader = DataLoader(dataset=seq2seq_dataset, batch_size=batch_size)
 
     class TBPTTModel(model_class):
         def training_step(self, batch, batch_idx, hiddens):
             x, y = batch
-            assert x.shape[1] == self.truncated_bptt_steps
-            assert y.shape[1] == self.truncated_bptt_steps
+            if self.trainer.fit_loop.epoch_loop.batch_loop.done:
+                # last split idx, not aligned
+                assert x.shape[1] == t % truncated_bptt_steps
+                assert y.shape[1] == t % truncated_bptt_steps
+            else:
+                assert x.shape[1] == truncated_bptt_steps
+                assert y.shape[1] == truncated_bptt_steps
             return super().training_step(batch, batch_idx, hiddens)
 
         def training_epoch_end(self, training_step_outputs):
             training_step_outputs = training_step_outputs[0]
-            assert len(training_step_outputs) == (sequence_size / self.truncated_bptt_steps)
+            assert len(training_step_outputs) == math.ceil(t / self.truncated_bptt_steps)
             assert all(out["loss"].grad_fn is None for out in training_step_outputs)
             assert all("hiddens" not in out for out in training_step_outputs)
 
-    train_dataloader = DataLoader(dataset=seq2seq_dataset, batch_size=batch_size, shuffle=False)
-    model = TBPTTModel(truncated_bptt_steps=2, input_size=1, hidden_size=8)
+    model = TBPTTModel(truncated_bptt_steps=truncated_bptt_steps, input_size=f, hidden_size=8)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -131,39 +134,27 @@ def test_tbptt_split_shapes(tmpdir, model_class):
     )
     trainer.fit(model, train_dataloaders=train_dataloader)
 
+    assert trainer.fit_loop.batch_idx == n // batch_size
+    assert trainer.fit_loop.split_idx == t // truncated_bptt_steps
 
-def test_tbptt_log(tmpdir):
-    truncated_bptt_steps = 2
-    N, T, F = 32, 15, 1  # batches x timesteps (sequence size) x features
-    batch_size = 10
-    assert T % truncated_bptt_steps != 0, "Should test leftover time steps"
 
-    seq2seq_dataset = TensorDataset(torch.rand(N, T, F), torch.rand(N, T, F))
-    train_dataloader = DataLoader(dataset=seq2seq_dataset, batch_size=batch_size)
+@pytest.mark.parametrize("model_class", (LSTMModel, ManualLSTMModel))
+def test_tbptt_logging(tmpdir, model_class):
+    """Test step-level and epoch-level logging works with TBPTT."""
 
-    class TestModel(LSTMModel):
-        def training_step(self, batch, batch_idx, hiddens):
-            x, y = batch
-            if self.trainer.fit_loop.epoch_loop.batch_loop.done:
-                # last split idx, not aligned
-                assert x.shape[1] == T % truncated_bptt_steps
-                assert y.shape[1] == T % truncated_bptt_steps
-            else:
-                assert x.shape[1] == truncated_bptt_steps
-                assert y.shape[1] == truncated_bptt_steps
+    class TBPTTModel(model_class):
+        def training_step(self, *args, **kwargs):
+            out = super().training_step(*args, **kwargs)
+            self.log("loss", out["loss"], on_step=True, on_epoch=True)
+            return out
 
-            return super().training_step(batch, batch_idx, hiddens)
-
-    model = TestModel(truncated_bptt_steps=2, input_size=F, hidden_size=T)
-
+    model = TBPTTModel(truncated_bptt_steps=2)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
         log_every_n_steps=2,
         weights_summary=None,
+        checkpoint_callback=False,
     )
-    trainer.fit(model, train_dataloaders=train_dataloader)
-
-    assert trainer.fit_loop.batch_idx == N // batch_size
-    assert trainer.fit_loop.split_idx == T // truncated_bptt_steps
-    assert set(trainer.logged_metrics) == {"a_step", "a_epoch", "epoch"}
+    trainer.fit(model)
+    assert set(trainer.logged_metrics) == {"loss_step", "loss_epoch", "epoch"}
