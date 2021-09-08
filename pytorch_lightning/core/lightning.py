@@ -620,9 +620,9 @@ class LightningModule(
         Args:
             batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
                 The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-            batch_idx (int): Integer displaying index of this batch
-            optimizer_idx (int): When using multiple optimizers, this argument will also be present.
-            hiddens(:class:`~torch.Tensor`): Passed in if
+            batch_idx (``int``): Integer displaying index of this batch
+            optimizer_idx (``int``): When using multiple optimizers, this argument will also be present.
+            hiddens (``Any``): Passed in if
                 :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
 
         Return:
@@ -667,8 +667,7 @@ class LightningModule(
             # Truncated back-propagation through time
             def training_step(self, batch, batch_idx, hiddens):
                 # hiddens are the hidden states from the previous truncated backprop step
-                ...
-                out, hiddens = self.lstm(data, hiddens)
+                loss, hiddens = self.lstm(data, hiddens)
                 ...
                 return {"loss": loss, "hiddens": hiddens}
 
