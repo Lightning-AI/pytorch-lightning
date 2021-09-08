@@ -64,6 +64,8 @@ def _check_training_step_output(model: "pl.LightningModule", training_step_outpu
 
 
 def _extract_hiddens(training_step_output: STEP_OUTPUT) -> Optional[Any]:
+    if not isinstance(training_step_output, dict):
+        return
     hiddens = training_step_output.get("hiddens")
     # detach hiddens to avoid `RuntimeError: Trying to backward through the graph a second time`
     hiddens = recursive_detach(hiddens)
