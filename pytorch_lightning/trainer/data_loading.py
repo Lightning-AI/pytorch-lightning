@@ -177,6 +177,11 @@ class TrainerDataLoadingMixin(ABC):
 
         # get the dataloader instance `__init__` parameters
         params = dict(inspect.signature(dataloader.__init__).parameters)
+        has_variadic_kwargs = any(p.kind is p.VAR_KEYWORD for p in params.values())
+        if has_variadic_kwargs:
+            # if the signature takes **kwargs, assume they will be passed down with `super().__init__(**kwargs)`
+            params.update(inspect.signature(DataLoader.__init__).parameters)
+            del params["self"]
 
         # keep only the params whose default is different to the current attr value
         non_defaults = {name for name, p in params.items() if name in attrs and p.default != attrs[name]}
@@ -207,7 +212,6 @@ class TrainerDataLoadingMixin(ABC):
                 f"`{dataloader_cls_name}(dataset, sampler=DistributedSampler(dataset))`."
             )
 
-        has_variadic_kwargs = any(p.kind is p.VAR_KEYWORD for p in params.values())
         if not has_variadic_kwargs:
             # the dataloader signature does not allow keyword arguments that need to be passed
             missing_kwargs = dl_kwargs.keys() - params.keys()
