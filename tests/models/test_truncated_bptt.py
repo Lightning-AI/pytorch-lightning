@@ -18,7 +18,7 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
 
-from pytorch_lightning import Trainer, LightningModule
+from pytorch_lightning import LightningModule, Trainer
 
 
 class LSTMModel(LightningModule):
@@ -66,8 +66,7 @@ class ManualLSTMModel(LSTMModel):
 @pytest.mark.parametrize("model_class", (LSTMModel, ManualLSTMModel))
 def test_persistent_hidden_state_transfer(tmpdir, model_class):
     """Test that the hidden state reference gets passed through from one training_step to the next and remains
-    unmodified apart from detached grad_fn.
-    """
+    unmodified apart from detached grad_fn."""
 
     class TBPTTModel(model_class):
         def __init__(self, *args, **kwargs):
@@ -109,7 +108,8 @@ def test_persistent_hidden_state_transfer(tmpdir, model_class):
 
 @pytest.mark.parametrize("model_class", (LSTMModel, ManualLSTMModel))
 def test_tbptt_split_shapes(tmpdir, model_class):
-    """Test that the sequence data gets split correctly and that the outputs are correctly passed from hook to hook"""
+    """Test that the sequence data gets split correctly and that the outputs are correctly passed from hook to
+    hook."""
     batch_size = 10
     truncated_bptt_steps = 2
     n, t, f = 32, 15, 1  # (num samples, sequence size, input size)
