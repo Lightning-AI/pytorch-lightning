@@ -134,7 +134,7 @@ class TrainingBatchLoop(Loop):
             if result.loss is not None:
                 self.batch_outputs[0].append(result)
 
-    def on_run_end(self) -> Any:
+    def on_run_end(self) -> None:
         self.optimizer_loop._hiddens = None
         # this is not necessary as the manual loop runs for only 1 iteration, but just in case
         self.manual_loop._hiddens = None
