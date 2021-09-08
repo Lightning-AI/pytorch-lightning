@@ -205,6 +205,8 @@ class FitLoop(Loop):
         if self._dataloader_state_dict:
             self.trainer.train_dataloader.load_state_dict(self._dataloader_state_dict)
             self._dataloader_state_dict = {}
+        else:
+            self.epoch_loop.batch_progress.current.reset()
 
         if callable(getattr(self.trainer.train_dataloader.sampler, "set_epoch", None)):
             # set seed for distributed sampler (enables shuffling for each epoch)
@@ -263,8 +265,14 @@ class FitLoop(Loop):
 
     def on_save_checkpoint(self) -> Dict:
         state_dict = super().on_save_checkpoint()
-        # FIXME(@tchaton) Should pass has_completed=True when iterator is exhausted ?
-        state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(has_completed=False)
+        ready_batches = self.epoch_loop.batch_progress.current.ready
+        completed_batches = self.epoch_loop.batch_progress.current.completed
+        failed = ready_batches != completed_batches
+        if failed:
+            print("not done!", self.current_epoch, self.global_step)
+            # FIXME(@tchaton) Should pass has_completed=True when iterator is exhausted ?
+            state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(has_completed=False)
+
         return state_dict
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
