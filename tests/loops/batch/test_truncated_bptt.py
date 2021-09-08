@@ -81,7 +81,7 @@ def test_persistent_hidden_state_transfer(tmpdir, model_class):
             assert not ((hiddens is None) ^ (self.test_hidden is None))
             # the states are equal (persistent)
             assert hiddens is None or all(torch.equal(h, th) for h, th in zip(hiddens, self.test_hidden))
-            # the incoming hidden state never has a grad_fn (gets automatically detached
+            # the incoming hidden state never has a grad_fn (gets automatically detached)
             assert hiddens is None or all(h.grad_fn is None for h in hiddens)
             out = super().training_step(batch, batch_idx, hiddens)
 
