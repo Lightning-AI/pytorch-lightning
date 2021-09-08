@@ -25,8 +25,8 @@ from pytorch_lightning.loops.utilities import (
     _block_parallel_sync_behavior,
     _build_training_step_kwargs,
     _check_training_step_output,
-    check_finite_loss,
     _extract_hiddens,
+    check_finite_loss,
 )
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities import AMPType, DeviceType, grad_norm
@@ -78,9 +78,8 @@ class OptimizerLoop(Loop):
             self._optimizers[self.optim_progress.optimizer_idx],
             self.optim_progress.optimizer_idx,
         )
-        self._hiddens = result.hiddens
         if result.loss is not None:
-            self.outputs[self.optim_progress.optimizer_idx].append(result)
+            self.outputs[self.optim_progress.optimizer_idx].append(result.without_closure())
 
         self.optim_progress.optimizer_idx += 1
 
@@ -326,14 +325,13 @@ class OptimizerLoop(Loop):
 
             self._hiddens = _extract_hiddens(training_step_output)
 
-            result = ClosureResult.from_training_step_output(
-                training_step_output, self.trainer.accumulate_grad_batches
-            )
+            result = ClosureResult.from_training_step_output(training_step_output, self.trainer.accumulate_grad_batches)
 
             if self.trainer.terminate_on_nan:
                 check_finite_loss(result.closure_loss)
 
             if self.trainer.move_metrics_to_cpu:
+                # hiddens and the training step output are not moved as they are not considered "metrics"
                 self.trainer._results.cpu()
 
         return result

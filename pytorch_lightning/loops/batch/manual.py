@@ -18,8 +18,8 @@ from pytorch_lightning.loops.closure import ClosureResult
 from pytorch_lightning.loops.utilities import (
     _build_training_step_kwargs,
     _check_training_step_output,
-    check_finite_loss,
     _extract_hiddens,
+    check_finite_loss,
 )
 
 
@@ -76,17 +76,15 @@ class ManualOptimization(Loop):
             self._hiddens = _extract_hiddens(training_step_output)
 
             # TODO: do not use `ClosureResult
-            result = ClosureResult.from_training_step_output(
-                training_step_output, self.trainer.accumulate_grad_batches
-            )
+            result = ClosureResult.from_training_step_output(training_step_output, self.trainer.accumulate_grad_batches)
 
             if self.trainer.terminate_on_nan:
                 check_finite_loss(result.closure_loss)
 
             if self.trainer.move_metrics_to_cpu:
-                assert self.trainer._results is not None
+                # hiddens and the training step output are not moved as they are not considered "metrics"
+                # the user might need them on the correct device for an operation in `training_epoch_end`
                 self.trainer._results.cpu()
-                result.cpu()
 
         self._done = True
         self._output = result

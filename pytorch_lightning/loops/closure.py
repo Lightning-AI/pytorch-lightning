@@ -90,7 +90,6 @@ class ClosureResult:
         if self.closure_loss is not None:
             self.closure_loss = self.closure_loss.to(*args, **kwargs)
             self.loss = self.loss.to(*args, **kwargs)
-        self.hiddens = apply_to_collection(self.hiddens, Tensor, move_data_to_device, *args, **kwargs)
         self.extra = apply_to_collection(self.extra, Tensor, move_data_to_device, *args, **kwargs)
         return self
 
@@ -98,10 +97,10 @@ class ClosureResult:
         """Move all data to CPU."""
         return self.to(device="cpu")
 
-    def __getstate__(self) -> Dict[str, Any]:
-        # return a copy without the closure loss which could have a `grad_fn`
-        # and without `hiddens` which are not necessary
-        return {"loss": self.loss, "extra": self.extra, "closure_loss": None, "hiddens": None}
+    def without_closure(self) -> "ClosureResult":
+        """Return itself without the closure loss which could have a `grad_fn`"""
+        self.closure_loss = None
+        return self
 
 
 class AbstractClosure(ABC):

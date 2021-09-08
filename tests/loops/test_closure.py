@@ -11,9 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pickle
-from copy import deepcopy
-
 import pytest
 import torch
 
@@ -53,31 +50,19 @@ def test_optimizer_step_no_closure_raises(tmpdir):
 
 def test_closure_result_deepcopy():
     closure_loss = torch.tensor(123.45)
-    hiddens = torch.tensor(321.12, requires_grad=True)
-    result = ClosureResult(closure_loss, hiddens)
-    assert not result.hiddens.requires_grad
+    result = ClosureResult(closure_loss)
 
     assert closure_loss.data_ptr() == result.closure_loss.data_ptr()
     # the `loss` is cloned so the storage is different
     assert closure_loss.data_ptr() != result.loss.data_ptr()
 
-    # make sure `__getstate__` is not missing any keys
-    assert vars(result).keys() == result.__getstate__().keys()
-
-    copy = deepcopy(result)
+    copy = result.without_closure()
     assert result.loss == copy.loss
     assert copy.closure_loss is None
-    assert copy.hiddens is None
 
-    assert id(result.loss) != id(copy.loss)
-    assert result.loss.data_ptr() != copy.loss.data_ptr()
-
-    assert copy == pickle.loads(pickle.dumps(result))
-
-
-def test_closure_result_raises():
-    with pytest.raises(MisconfigurationException, match="If `hiddens` are returned .* the loss cannot be `None`"):
-        ClosureResult(None, "something")
+    # no copy
+    assert id(result.loss) == id(copy.loss)
+    assert result.loss.data_ptr() == copy.loss.data_ptr()
 
 
 def test_closure_result_apply_accumulation():
@@ -87,8 +72,7 @@ def test_closure_result_apply_accumulation():
 
 
 def test_closure_to():
-    result = ClosureResult(torch.tensor(1.0), (torch.tensor(2.0), torch.tensor(3.0)), extra={"foo": torch.tensor(4.0)})
+    result = ClosureResult(torch.tensor(1.0), extra={"foo": torch.tensor(4.0)})
     result.to(torch.half)
     assert result.loss.dtype == torch.half
-    assert all(t.dtype == torch.half for t in result.hiddens)
     assert result.extra["foo"].dtype == torch.half
