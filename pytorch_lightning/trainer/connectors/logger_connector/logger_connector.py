@@ -49,10 +49,8 @@ class LoggerConnector:
         log_every_n_steps: int,
         move_metrics_to_cpu: bool,
     ) -> None:
-        print("asdfasdf", flush_logs_every_n_steps)
         self.configure_logger(logger)
         if flush_logs_every_n_steps is not None:
-            print("is not none")
             rank_zero_deprecation(
                 f"Setting `Trainer(flush_logs_every_n_steps={flush_logs_every_n_steps})` is deprecated in v1.5 "
                 "and will be removed in v1.7. Please pass `flush_logs_every_n_steps` to the logger instead."
