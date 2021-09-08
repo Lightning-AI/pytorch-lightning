@@ -492,9 +492,6 @@ class ModelCheckpoint(Callback):
             log.debug(f"Removed checkpoint: {filepath}")
 
     def _save_model(self, trainer: "pl.Trainer", filepath: str) -> None:
-        # in debugging, track when we save checkpoints
-        trainer.dev_debugger.track_checkpointing_history(filepath)
-
         # make paths
         if trainer.should_rank_save_checkpoint:
             self._fs.makedirs(os.path.dirname(filepath), exist_ok=True)

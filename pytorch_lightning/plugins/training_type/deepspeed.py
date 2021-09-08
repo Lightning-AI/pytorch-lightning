@@ -546,6 +546,11 @@ class DeepSpeedPlugin(DDPPlugin):
                 " as this will be set via accumulate_grad_batches=x argument passed via the Lightning Trainer."
             )
         if "train_micro_batch_size_per_gpu" not in self.config:
+            rank_zero_warn(
+                "Inferring the batch size for internal deepspeed logging from the `train_dataloader()`. "
+                "If you require skipping this, please pass "
+                "`Trainer(plugins=DeepSpeedPlugin(logging_batch_size_per_gpu=batch_size))`"
+            )
             batch_size = self._auto_select_batch_size()
             self.config["train_micro_batch_size_per_gpu"] = batch_size
         self.config["gradient_accumulation_steps"] = self.lightning_module.trainer.accumulate_grad_batches
@@ -667,7 +672,6 @@ class DeepSpeedPlugin(DDPPlugin):
             filepath: write-target file's path
         """
         if self.zero_stage_3 and self._multi_device and self.is_global_zero:
-            # todo (sean): Add link to docs once docs are merged.
             warning_cache.warn(
                 "When saving the DeepSpeed Stage 3 checkpoint, "
                 "each worker will save a shard of the checkpoint within a directory. "
