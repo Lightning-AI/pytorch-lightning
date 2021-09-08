@@ -205,7 +205,7 @@ class TrainerDataLoadingMixin(ABC):
         if has_variadic_kwargs:
             # if the signature takes **kwargs, assume they will be passed down with `super().__init__(**kwargs)`
             params.update(inspect.signature(DataLoader.__init__).parameters)
-            params.pop("self")
+            del params["self"]
 
         # keep only the params whose default is different to the current attr value
         non_defaults = {name for name, p in params.items() if name in attrs and p.default != attrs[name]}
