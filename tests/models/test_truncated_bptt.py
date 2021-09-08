@@ -65,7 +65,9 @@ class ManualLSTMModel(LSTMModel):
 
 @pytest.mark.parametrize("model_class", (LSTMModel, ManualLSTMModel))
 def test_persistent_hidden_state_transfer(tmpdir, model_class):
-    """Tests that the hidden state reference gets passed through from one training_step to the next unmodified."""
+    """Test that the hidden state reference gets passed through from one training_step to the next and remains
+    unmodified apart from detached grad_fn.
+    """
 
     class TBPTTModel(model_class):
         def __init__(self, *args, **kwargs):
