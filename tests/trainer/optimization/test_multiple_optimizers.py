@@ -183,9 +183,15 @@ def test_custom_optimizer_step_with_multiple_optimizers(tmpdir):
     model = TestModel()
     model.val_dataloader = None
 
+    limit_train_batches = 4
     trainer = pl.Trainer(
-        default_root_dir=tmpdir, limit_train_batches=4, max_epochs=1, log_every_n_steps=1, weights_summary=None
+        default_root_dir=tmpdir,
+        limit_train_batches=limit_train_batches,
+        max_epochs=1,
+        log_every_n_steps=1,
+        weights_summary=None,
     )
     trainer.fit(model)
-    assert model.training_step_called == [4, 4]
-    assert model.optimizer_step_called == [4, 2]
+    assert len(model.training_step_called) == len(model.optimizer_step_called) == len(model.optimizers())
+    assert model.training_step_called == [limit_train_batches, limit_train_batches]
+    assert model.optimizer_step_called == [limit_train_batches, limit_train_batches // 2]

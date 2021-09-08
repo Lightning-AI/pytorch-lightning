@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from functools import partial
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 import numpy as np
 from deprecate import void
@@ -20,13 +19,8 @@ from torch import Tensor
 from torch.optim import Optimizer
 
 from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.loops.closure import Closure, ClosureResult
+from pytorch_lightning.loops.batch.manual import ManualOptimization
 from pytorch_lightning.loops.optimizer.optimizer_loop import OptimizerLoop
-from pytorch_lightning.loops.utilities import (
-    _build_training_step_kwargs,
-    _check_training_step_output,
-    check_finite_loss,
-)
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -44,6 +38,7 @@ class TrainingBatchLoop(Loop):
         # the current split index when the batch gets split into chunks in truncated backprop through time
         self.split_idx: Optional[int] = None
         self.optimizer_loop = OptimizerLoop()
+        self.manual_loop = ManualOptimization()
 
         self._warning_cache: WarningCache = WarningCache()
         self._optimizer_freq_cumsum: Optional[int] = None
@@ -61,8 +56,13 @@ class TrainingBatchLoop(Loop):
             self._optimizer_freq_cumsum = np.cumsum(self.trainer.optimizer_frequencies)
         return self._optimizer_freq_cumsum
 
-    def connect(self, optimizer_loop: "Loop") -> None:
-        self.optimizer_loop = optimizer_loop
+    def connect(
+        self, optimizer_loop: Optional["Loop"] = None, manual_loop: Optional[ManualOptimization] = None
+    ) -> None:
+        if optimizer_loop is not None:
+            self.optimizer_loop = optimizer_loop
+        if manual_loop is not None:
+            self.manual_loop = manual_loop
 
     def run(self, batch: Any, batch_idx: int) -> AttributeDict:
         """Runs all the data splits and the ``on_batch_start`` and ``on_train_batch_start`` hooks.
@@ -129,13 +129,15 @@ class TrainingBatchLoop(Loop):
             for k in range(len(batch_outputs)):
                 self.batch_outputs[k].extend(batch_outputs[k])
         else:
-            # in manual optimization, there is no looping over optimizers
-            result = self._run_optimization(batch_idx, split_batch)
+            # in manual optimization, hand over execution to the ManualOptimization loop
+            result = self.manual_loop.run(split_batch, batch_idx)
             if result.loss is not None:
                 self.batch_outputs[0].append(result)
 
     def on_run_end(self) -> Any:
         self.optimizer_loop._hiddens = None
+        # this is not necessary as the manual loop runs for only 1 iteration, but just in case
+        self.manual_loop._hiddens = None
 
     def teardown(self) -> None:
         # release memory
@@ -144,83 +146,6 @@ class TrainingBatchLoop(Loop):
     def num_active_optimizers(self, batch_idx: Optional[int] = None) -> int:
         """Gets the number of active optimizers based on their frequency."""
         return len(self.get_active_optimizers(batch_idx))
-
-    def _run_optimization(
-        self,
-        batch_idx: int,
-        split_batch: Any,
-    ) -> ClosureResult:
-        """Runs closure (train step + backward) together with optimization if necessary.
-
-        Args:
-            batch_idx: the index of the current batch
-            split_batch: the current tbptt split of the whole batch
-        """
-        closure = self._make_closure(split_batch, batch_idx, None)
-        closure()
-        result = closure.get_result()
-
-        if result.loss:
-            # if no result, user decided to skip optimization
-            # otherwise update running loss + reset accumulated loss
-            self._update_running_loss(result.loss)
-
-        return result
-
-    def _make_closure(
-        self,
-        split_batch: Any,
-        batch_idx: int,
-        hiddens: Any,
-    ) -> Closure:
-        """Build a closure object that captures the given arguments and runs the `training_step` function."""
-        step_fn = self._make_step_fn(split_batch, batch_idx, hiddens)
-        return Closure(step_fn=step_fn, profiler=self.trainer.profiler)
-
-    def _make_step_fn(self, split_batch: Any, batch_idx: int, hiddens: Any) -> Callable[[], ClosureResult]:
-        """Build the step function that runs the `training_step` and processes its output."""
-        return partial(self._training_step, split_batch, batch_idx, hiddens)
-
-    def _training_step(self, split_batch: Any, batch_idx: int, hiddens: Tensor) -> ClosureResult:
-        """Performs the training step for manual optimization.
-
-        Args:
-            split_batch: the current tbptt split of the current batch
-            batch_idx: the index of the current batch
-            hiddens: the model's hidden state of the previous iteration
-
-        Returns:
-            A ``ClosureResult`` containing the training step output.
-        """
-        # give the PL module a result for logging
-        model_ref = self.trainer.lightning_module
-
-        with self.trainer.profiler.profile("model_forward"):
-            step_kwargs = _build_training_step_kwargs(
-                model_ref, self.trainer.optimizers, split_batch, batch_idx, opt_idx=None, hiddens=hiddens
-            )
-
-            # manually capture logged metrics
-            model_ref._current_fx_name = "training_step"
-            with self.trainer.profiler.profile("training_step"):
-                training_step_output = self.trainer.accelerator.training_step(step_kwargs)
-                self.trainer.accelerator.post_training_step()
-
-            del step_kwargs
-
-            training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
-
-            _check_training_step_output(self.trainer.lightning_module, training_step_output)
-
-            result = ClosureResult.from_training_step_output(training_step_output)
-
-            if self.trainer.terminate_on_nan:
-                check_finite_loss(result.closure_loss)
-
-            if self.trainer.move_metrics_to_cpu:
-                self.trainer._results.cpu()
-
-        return result
 
     def _tbptt_split_batch(self, batch: Any) -> List[Any]:
         """Splits a single batch into a list of sequence steps for tbptt.

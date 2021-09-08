@@ -77,8 +77,8 @@ class OptimizerLoop(Loop):
             self._optimizers[self.optim_progress.optimizer_idx],
             self.optim_progress.optimizer_idx,
         )
+        self._hiddens = result.hiddens
         if result.loss is not None:
-            self._hiddens = result.hiddens
             self.outputs[self.optim_progress.optimizer_idx].append(result)
 
         self.optim_progress.optimizer_idx += 1
@@ -151,7 +151,7 @@ class OptimizerLoop(Loop):
         else:
             self._optimizer_step(optimizer, opt_idx, batch_idx, closure)
 
-        result = closure.get_result()
+        result = closure.consume_result()
 
         if result.loss is not None:
             # if no result, user decided to skip optimization

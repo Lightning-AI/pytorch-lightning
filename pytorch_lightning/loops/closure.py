@@ -120,7 +120,7 @@ class AbstractClosure(ABC):
         super().__init__()
         self._result: Optional[ClosureResult] = None
 
-    def get_result(self) -> ClosureResult:
+    def consume_result(self) -> ClosureResult:
         """The cached result from the last time the closure was called.
 
         Once accessed, the internal reference gets reset and the consumer will have to hold on to the reference as long
@@ -129,10 +129,10 @@ class AbstractClosure(ABC):
         if self._result is None:
             raise MisconfigurationException(
                 "The closure hasn't been executed."
-                " HINT: did you call `optimizer_closure()` in your `optimizer_step` hook?"
+                " HINT: did you call `optimizer_closure()` in your `optimizer_step` hook? It could also happen because"
+                " the `optimizer.step(optimizer_closure)` call did not execute it internally."
             )
-        result = self._result
-        self._result = None  # free memory
+        result, self._result = self._result, None  # free memory
         return result
 
     @abstractmethod
