@@ -180,13 +180,16 @@ class GPUStatsMonitor(Callback):
 
     @staticmethod
     def _get_gpu_ids(device_ids: List[int]) -> List[str]:
-        """Get the unmasked real GPU IDs"""
+        """Get the unmasked real GPU IDs."""
         # All devices if `CUDA_VISIBLE_DEVICES` unset
         default = ",".join(str(i) for i in range(torch.cuda.device_count()))
         cuda_visible_devices: List[str] = os.getenv("CUDA_VISIBLE_DEVICES", default=default).split(",")
         return [cuda_visible_devices[device_id].strip() for device_id in device_ids]
 
     def _get_gpu_stats(self, queries: List[str]) -> List[List[float]]:
+        if not queries:
+            return []
+
         """Run nvidia-smi to get the gpu stats"""
         gpu_query = ",".join(queries)
         format = "csv,nounits,noheader"
@@ -213,7 +216,7 @@ class GPUStatsMonitor(Callback):
     def _parse_gpu_stats(
         device_ids: List[int], stats: List[List[float]], keys: List[Tuple[str, str]]
     ) -> Dict[str, float]:
-        """Parse the gpu stats into a loggable dict"""
+        """Parse the gpu stats into a loggable dict."""
         logs = {}
         for i, device_id in enumerate(device_ids):
             for j, (x, unit) in enumerate(keys):
@@ -221,7 +224,7 @@ class GPUStatsMonitor(Callback):
         return logs
 
     def _get_gpu_stat_keys(self) -> List[Tuple[str, str]]:
-        """Get the GPU stats keys"""
+        """Get the GPU stats keys."""
         stat_keys = []
 
         if self._log_stats.gpu_utilization:
@@ -233,7 +236,7 @@ class GPUStatsMonitor(Callback):
         return stat_keys
 
     def _get_gpu_device_stat_keys(self) -> List[Tuple[str, str]]:
-        """Get the device stats keys"""
+        """Get the device stats keys."""
         stat_keys = []
 
         if self._log_stats.fan_speed:

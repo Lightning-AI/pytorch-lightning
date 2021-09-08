@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Enumerated utilities"""
+"""Enumerated utilities."""
 from enum import Enum
 from typing import List, Optional, Union
 
@@ -49,6 +49,29 @@ class AMPType(LightningEnum):
     NATIVE = "native"
 
 
+class PrecisionType(LightningEnum):
+    """Type of precision used.
+
+    >>> PrecisionType.HALF == 16
+    True
+    >>> PrecisionType.HALF in (16, "16")
+    True
+    """
+
+    HALF = "16"
+    FLOAT = "32"
+    FULL = "64"
+    BFLOAT = "bf16"
+
+    @staticmethod
+    def supported_type(precision: Union[str, int]) -> bool:
+        return any(x == precision for x in PrecisionType)
+
+    @staticmethod
+    def supported_types() -> List[str]:
+        return [x.value for x in PrecisionType]
+
+
 class DistributedType(LightningEnum):
     """Define type of ditributed computing.
 
@@ -62,7 +85,7 @@ class DistributedType(LightningEnum):
 
     @staticmethod
     def interactive_compatible_types() -> List["DistributedType"]:
-        """Returns a list containing interactive compatible DistributeTypes"""
+        """Returns a list containing interactive compatible DistributeTypes."""
         return [
             DistributedType.DP,
             DistributedType.DDP_SPAWN,
@@ -71,7 +94,7 @@ class DistributedType(LightningEnum):
         ]
 
     def is_interactive_compatible(self) -> bool:
-        """Returns whether self is interactive compatible"""
+        """Returns whether self is interactive compatible."""
         return self in DistributedType.interactive_compatible_types()
 
     DP = "dp"

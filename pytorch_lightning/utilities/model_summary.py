@@ -36,9 +36,8 @@ UNKNOWN_SIZE = "?"
 
 
 class LayerSummary:
-    """
-    Summary class for a single layer in a :class:`~pytorch_lightning.core.lightning.LightningModule`.
-    It collects the following information:
+    """Summary class for a single layer in a :class:`~pytorch_lightning.core.lightning.LightningModule`. It
+    collects the following information:
 
     - Type of the layer (e.g. Linear, BatchNorm1d, ...)
     - Input shape
@@ -64,7 +63,6 @@ class LayerSummary:
 
     Args:
         module: A module to summarize
-
     """
 
     def __init__(self, module: nn.Module):
@@ -78,11 +76,10 @@ class LayerSummary:
         self.detach_hook()
 
     def _register_hook(self) -> Optional[RemovableHandle]:
-        """
-        Registers a hook on the module that computes the input- and output size(s) on the first forward pass.
-        If the hook is called, it will remove itself from the from the module, meaning that
-        recursive models will only record their input- and output shapes once.
-        Registering hooks on :class:`~torch.jit.ScriptModule` is not supported.
+        """Registers a hook on the module that computes the input- and output size(s) on the first forward pass. If
+        the hook is called, it will remove itself from the from the module, meaning that recursive models will only
+        record their input- and output shapes once. Registering hooks on :class:`~torch.jit.ScriptModule` is not
+        supported.
 
         Return:
             A handle for the installed hook, or ``None`` if registering the hook is not possible.
@@ -101,8 +98,8 @@ class LayerSummary:
         return handle
 
     def detach_hook(self):
-        """
-        Removes the forward hook if it was not already removed in the forward pass.
+        """Removes the forward hook if it was not already removed in the forward pass.
+
         Will be called after the summary is created.
         """
         if self._hook_handle is not None:
@@ -128,8 +125,7 @@ class LayerSummary:
 
 
 class ModelSummary:
-    """
-    Generates a summary of all layers in a :class:`~pytorch_lightning.core.lightning.LightningModule`.
+    """Generates a summary of all layers in a :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
     Args:
         model: The model to summarize (also referred to as the root module).
@@ -300,8 +296,7 @@ class ModelSummary:
         model.train(mode)  # restore mode of module
 
     def __str__(self):
-        """
-        Makes a summary listing with:
+        """Makes a summary listing with:
 
         Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes, Model Size
         """
@@ -314,6 +309,7 @@ class ModelSummary:
         if self._model.example_input_array is not None:
             arrays.append(["In sizes", self.in_sizes])
             arrays.append(["Out sizes", self.out_sizes])
+
         total_parameters = self.total_parameters
         trainable_parameters = self.trainable_parameters
         model_size = self.model_size
@@ -336,11 +332,8 @@ def parse_batch_shape(batch: Any) -> Union[str, List]:
 
 
 def _format_summary_table(total_parameters: int, trainable_parameters: int, model_size: float, *cols) -> str:
-    """
-    Takes in a number of arrays, each specifying a column in
-    the summary table, and combines them all into one big
-    string defining the summary table that are nicely formatted.
-    """
+    """Takes in a number of arrays, each specifying a column in the summary table, and combines them all into one
+    big string defining the summary table that are nicely formatted."""
     n_rows = len(cols[0][1])
     n_cols = 1 + len(cols)
 
@@ -382,9 +375,7 @@ def get_formatted_model_size(total_model_size: float) -> float:
 
 
 def get_human_readable_count(number: int) -> str:
-    """
-    Abbreviates an integer number with K, M, B, T for thousands, millions,
-    billions and trillions, respectively.
+    """Abbreviates an integer number with K, M, B, T for thousands, millions, billions and trillions, respectively.
 
     Examples:
         >>> get_human_readable_count(123)
@@ -405,7 +396,6 @@ def get_human_readable_count(number: int) -> str:
 
     Return:
         A string formatted according to the pattern described above.
-
     """
     assert number >= 0
     labels = PARAMETER_NUM_UNITS
@@ -437,8 +427,7 @@ def _is_lazy_weight_tensor(p: Tensor) -> bool:
 def summarize(
     lightning_module: "pl.LightningModule", mode: Optional[str] = "top", max_depth: Optional[int] = None
 ) -> Optional[ModelSummary]:
-    """
-    Summarize the LightningModule specified by `lightning_module`.
+    """Summarize the LightningModule specified by `lightning_module`.
 
     Args:
         lightning_module: `LightningModule` to summarize.

@@ -14,12 +14,15 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
+from contextlib import contextmanager
 from copy import deepcopy
 from functools import partial
-from typing import Any, Generator, List, Optional, Tuple
+from typing import Any, Callable, Generator, List, Optional, Tuple
 
+import torch
 from torch.utils.data.dataloader import DataLoader
 
+import pytorch_lightning as pl
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.auto_restart import (
@@ -34,25 +37,44 @@ from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 class AbstractDataFetcher(ABC):
 
-    """
-    This class is used to control batch fetching flow.
+    """This base class should be used to implement a fault tolerant ``DataFetcher``. It is required to override the
+    ``fetching_function`` with fetching logic.
+
+    Example::
+
+        class SimpleDataFetcher(AbstractDataFetcher):
+            def fetching_function(self):
+                while True:
+                    try:
+                        return next(self.dataloader_iter), False
+                    except StopIteration:
+                        return None, True
     """
 
     @abstractmethod
-    def fetching_function(self) -> Generator:
-        pass
+    def fetching_function(self) -> Any:
+        """Override with your own fetching logic."""
+
+    @abstractmethod
+    def prefetching(self, prefetch_batches: int) -> None:
+        """Override with your own pre-fetching logic."""
 
     def __init__(
         self,
         prefetch_batches: int = 0,
     ) -> None:
-        if not isinstance(prefetch_batches, int) or (isinstance(prefetch_batches, int) and prefetch_batches < 0):
+        if prefetch_batches < 0:
             raise MisconfigurationException("`prefetch_batches` should at least be 0.")
 
+        self.store_on_device = False
         self.prefetch_batches = prefetch_batches + 1
 
         self.dataloader: Optional[Iterable] = None
         self.dataloader_iter: Optional[Iterator] = None
+
+        self.stage: Optional[str]
+        self.batch_to_device: Optional[Callable]
+        self.profiler: "Optional[pl.profiler.base.BaseProfiler]"
 
         self.batches: List
         self.fetched: int
@@ -60,9 +82,22 @@ class AbstractDataFetcher(ABC):
 
         self.reset()
 
-    def setup(self, dataloader: DataLoader, **kwargs) -> None:
+    def setup(
+        self,
+        dataloader: Iterable,
+        stage: Optional[str] = None,
+        batch_to_device: Optional[Callable] = None,
+        profiler: "Optional[pl.profiler.base.BaseProfiler]" = None,
+    ) -> None:
         self._add_capture_metadata_collate(dataloader)
+
         self.dataloader = dataloader
+        self.stage = stage
+        self.batch_to_device = batch_to_device
+        self.profiler = profiler
+
+        if self.profiler is not None and stage is None:
+            raise MisconfigurationException("When providing a profiler, the stage should be provided too.")
 
     @staticmethod
     def _add_capture_metadata_collate(dataloader: Iterable) -> None:
@@ -78,10 +113,10 @@ class AbstractDataFetcher(ABC):
 
         apply_to_collection(dataloader, DataLoader, add_capture_metadata_collate)
 
-    def add_batch(self, batch) -> None:
+    def append_batch(self, batch) -> None:
         self.batches.append(batch)
 
-    def fetch_batch(self) -> Any:
+    def pop_batch(self) -> Any:
         return self.batches.pop(0)
 
     def _apply_patch(self):
@@ -161,6 +196,10 @@ class AbstractDataFetcher(ABC):
         self.reset()
         self.dataloader_iter = iter(self.dataloader)
         self._apply_patch()
+        self.prefetching(self.prefetch_batches)
+        return self
+
+    def __next__(self):
         return self.fetching_function()
 
     def reset(self) -> None:
@@ -169,40 +208,218 @@ class AbstractDataFetcher(ABC):
         self.fetched: int = 0
         self.done: bool = False
 
+    def teardown(self) -> None:
+        self.reset()
+
 
 class DataFetcher(AbstractDataFetcher):
 
-    """
-    This class is used to control batch fetching flow.
+    """This class is used to control batch fetching flow. By default, the ``fetching_function`` will pre-fetch a
+    batch in advance to detect the end of the iteration.
+
+    Args:
+        prefetch_batches: Number of batches to be pre-fetched. Lightning will pre-fetch
+            at least 1 batch for tracking the latest batch.
+        store_on_device: Whether to store the pre-fetched batches on device.
     """
 
-    def fetching_function(self) -> Generator:
-        self.done = False
-        while not self.done:
-            self._prefetching(self.prefetch_batches)
+    def __init__(
+        self,
+        prefetch_batches: int = 0,
+        store_on_device: bool = False,
+    ) -> None:
+        super().__init__(prefetch_batches=prefetch_batches)
+        self.store_on_device = store_on_device
 
-            for batch in self.dataloader_iter:
-                yield_batch = self.fetch_batch()
-                self.add_batch(batch)
-                self.fetched += 1
+    @contextmanager
+    def fetching_context(self):
+        """Hook to override to add context logic around batch fetching."""
+        yield
+
+    def on_fetch_start(self) -> None:
+        """Hook to override to handle the logic before fetching a batch."""
+
+    def on_fetch_end(self, batch, on_fetch_start_output: Optional[Any] = None) -> None:
+        """Hook to extend which handles the logic after fetching a batch."""
+        if self.store_on_device:
+            batch = self.move_data_to_device(batch)
+        self.append_batch(batch)
+
+    def wait(self) -> None:
+        """Hook to override to indicate the `DataFetcher` to wait for an event."""
+
+    def prefetching(self, prefetch_batches: int) -> None:
+        for _ in range(prefetch_batches):
+            try:
+                self._fetch_next_batch()
+            except StopIteration:
+                break
+
+    def fetching_function(self) -> Optional[Tuple[Any, bool]]:
+        if self.done:
+            while self.batches:
+                return self._get_queued_batch()
+            raise StopIteration
+        else:
+            try:
+                yield_batch = self.pop_batch()
+                self._fetch_next_batch()
+
+                # wait for batch to be available.
+                self.wait()
+
                 # yield last and has next
-                yield yield_batch, False
+                return yield_batch, False
+                # FIXME: Why does this count as a python `referrers` ?
+                # return (self.move_data_to_device(yield_batch) if not self.store_on_device else yield_batch, False)
+            except StopIteration:
+                self.batches.insert(0, yield_batch)
+                self.done = True
+                return self._get_queued_batch()
 
-            yield from self._consume_prefetched_batches()
+            except IndexError:
+                raise StopIteration
+
+    @contextmanager
+    def apply_profiler(self, name: str) -> Generator:
+        if self.profiler:
+            with self.profiler.profile(name):
+                yield
+        else:
+            yield
+
+    def _fetch_next_batch(self):
+        with self.apply_profiler(f"get_{self.stage}_batch"):
+            with self.fetching_context():
+                data = self.on_fetch_start()
+                with self.apply_profiler(f"fetch_next_{self.stage}_batch"):
+                    batch = next(self.dataloader_iter)
+                self.fetched += 1
+                self.on_fetch_end(batch, data)
 
     def _consume_prefetched_batches(self) -> Generator:
         self.done = True
         while self.batches:
-            if len(self.batches) == 1:
-                yield self.batches.pop(0), True
-            else:
-                yield self.batches.pop(0), False
+            yield from self._yield_batch()
 
-    def _prefetching(self, prefetch_batches: int) -> None:
-        for _ in range(prefetch_batches):
-            try:
-                batch = next(self.dataloader_iter)
-                self.fetched += 1
-                self.add_batch(batch)
-            except StopIteration:
-                break
+    def _get_queued_batch(self) -> Tuple[Any, bool]:
+        self.wait()
+        batch = self.batches.pop(0)
+        if not self.store_on_device:
+            batch = self.move_data_to_device(batch)
+        is_last = len(self.batches) == 0
+        return batch, is_last
+
+    def move_data_to_device(self, batch: Any) -> Any:
+        if self.batch_to_device:
+            with self.apply_profiler(f"move_{self.stage}_batch_to_device"):
+                batch = self.batch_to_device(batch)
+        return batch
+
+
+class InterBatchParallelDataFetcher(DataFetcher):
+
+    """This class implements inter-batch parallelism, which aims at hiding the latency of host-to-device copy of
+    input batches behind computationally intensive operations.
+
+    code-block::
+
+        Without parallelization:
+
+        batch 0: [HtoD][forward][backward]
+        batch 1:                          [HtoD][forward][backward]
+        batch 2:                                                   [HtoD][forward][backward]
+
+        With parallelization, the latency of HtoD copy can be hidden:
+
+        batch 0: [HtoD][forward][backward]
+        batch 1:       [HtoD]             [forward][backward]
+        batch 2:             [HtoD]                          [forward][backward]
+    """
+
+    def __init__(
+        self,
+        prefetch_batches: int = 0,
+    ) -> None:
+        super().__init__(prefetch_batches=prefetch_batches, store_on_device=True)
+
+        self.cuda_stream = torch.cuda.Stream()
+        self.events: List[torch.cuda.Event] = []
+
+    @contextmanager
+    def fetching_context(self):
+        """Wrap the batch fetching logic under a cuda stream."""
+        with torch.cuda.stream(self.cuda_stream):
+            yield
+
+    def on_fetch_start(self) -> "torch.cuda.Event":
+        # create a cuda event used to record the async stream of data to device.
+        return torch.cuda.Event()
+
+    def on_fetch_end(self, batch, event: torch.cuda.Event) -> None:
+        # move the batch to device and store it
+        super().on_fetch_end(batch)
+
+        # record event and store the event
+        event.record()
+        self.events.append(event)
+
+    def wait(self) -> None:
+        # pop first event from the queue and wait for the batch to be available on device.
+        event = self.events.pop(0)
+        event.wait()
+
+
+class StepFuncDataLoaderIter:
+
+    """This class is a wrapper to keep track of dataloader iterator fetching event while left entirely to user
+    control."""
+
+    def __init__(self, iterator: Iterator, data_fetcher: "AbstractDataFetcher"):
+        self.iterator = iterator
+        self.data_fetcher = data_fetcher
+
+    def __iter__(self) -> "StepFuncDataLoaderIter":
+        return self
+
+    def __next__(self) -> Any:
+        try:
+            data = next(self.iterator)
+            self.data_fetcher.fetched += 1
+            return data
+        except StopIteration:
+            self.data_fetcher.done = True
+            raise StopIteration
+
+
+class DataLoaderIterDataFetcher(AbstractDataFetcher):
+
+    """This class is used to return directly the `dataloader_iter` to the ``LightningModule`` training_step for
+    users to implement their own pre-fetching logic. This feature can be activated as follows:
+
+    Example::
+
+        Class MyModel(LightningModule):
+
+            def __init__(self):
+                self.automatic_optimization = False
+
+            def training_step(self, dataloader_iter: Iterator, batch_idx: int) -> None:
+                # it is the user responsability to fetch and move the batch to the right device.
+                batch = next(dataloader_iter)
+                batch = batch.to(self.device)
+                ...
+    """
+
+    def __init__(self):
+        super().__init__()
+        # prevent calling ``move_batch_to_device```
+        self.store_on_device = True
+
+    def prefetching(self, prefetch_batches: int) -> None:
+        self.iterator = iter(StepFuncDataLoaderIter(self.dataloader_iter, self))
+
+    def fetching_function(self):
+        while not self.done:
+            return self.fetched, (self.iterator, self.done)
+        raise StopIteration

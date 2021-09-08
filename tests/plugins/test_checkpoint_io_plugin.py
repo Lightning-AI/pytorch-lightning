@@ -27,22 +27,15 @@ from tests.helpers.runif import RunIf
 
 
 class CustomCheckpointIO(CheckpointIO):
-    save_checkpoint_called: bool = False
-    load_checkpoint_file_called: bool = False
-
     def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
-        self.save_checkpoint_called = True
         torch.save(checkpoint, path)
 
     def load_checkpoint(self, path: _PATH, storage_options: Optional[Any] = None) -> Dict[str, Any]:
-        self.load_checkpoint_file_called = True
         return torch.load(path)
 
 
 def test_checkpoint_plugin_called(tmpdir):
-    """
-    Ensure that the custom checkpoint IO plugin and torch checkpoint IO plugin is called when saving/loading.
-    """
+    """Ensure that the custom checkpoint IO plugin and torch checkpoint IO plugin is called when saving/loading."""
     checkpoint_plugin = CustomCheckpointIO()
     checkpoint_plugin = MagicMock(wraps=checkpoint_plugin, spec=CustomCheckpointIO)
 

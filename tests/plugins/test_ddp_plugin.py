@@ -11,13 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from unittest import mock
 
+import pytest
 import torch
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.plugins import DDPPlugin
+from pytorch_lightning.plugins.environments import LightningEnvironment
+from pytorch_lightning.trainer.states import TrainerFn
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -69,3 +73,59 @@ def test_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, gpus=gpus, accelerator="ddp")
     trainer.fit(model)
     barrier_mock.assert_any_call(device_ids=[gpus[trainer.local_rank]])
+
+
+@mock.patch.dict(os.environ, {"LOCAL_RANK": "1"})
+def test_incorrect_ddp_script_spawning(tmpdir):
+    """Test an error message when user accidentally instructs Lightning to spawn children processes on rank > 0."""
+
+    class WronglyImplementedEnvironment(LightningEnvironment):
+        def creates_children(self):
+            # returning false no matter what means Lightning would spawn also on ranks > 0 new processes
+            return False
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator="ddp",
+        num_processes=2,
+        plugins=[DDPPlugin(), WronglyImplementedEnvironment()],
+    )
+    with pytest.raises(
+        RuntimeError, match="Lightning attempted to launch new distributed processes with `local_rank > 0`."
+    ):
+        trainer.fit(model)
+
+
+@RunIf(skip_windows=True)
+def test_ddp_configure_ddp():
+    """Tests with ddp plugin."""
+    model = BoringModel()
+    ddp_plugin = DDPPlugin()
+    trainer = Trainer(
+        max_epochs=1,
+        plugins=[ddp_plugin],
+    )
+    # test wrap the model if fitting
+    trainer.state.fn = TrainerFn.FITTING
+    trainer.accelerator.connect(model)
+    trainer.accelerator.setup_environment()
+    trainer.accelerator.setup(trainer)
+    trainer.lightning_module.trainer = trainer
+    assert isinstance(trainer.model, LightningModule)
+    trainer._pre_dispatch()
+    # in DDPPlugin configure_ddp(), model wrapped by DistributedDataParallel
+    assert isinstance(trainer.model, DistributedDataParallel)
+
+    trainer = Trainer(
+        max_epochs=1,
+        plugins=[ddp_plugin],
+    )
+    # test do not wrap the model if trainerFN is not fitting
+    trainer.accelerator.connect(model)
+    trainer.accelerator.setup_environment()
+    trainer.accelerator.setup(trainer)
+    trainer.lightning_module.trainer = trainer
+    trainer._pre_dispatch()
+    # in DDPPlugin configure_ddp(), model are still LightningModule
+    assert isinstance(trainer.model, LightningModule)

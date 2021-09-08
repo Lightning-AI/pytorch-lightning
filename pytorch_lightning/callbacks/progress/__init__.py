@@ -11,14 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Test deprecated functionality which will be removed in v1.4.0"""
+"""
+Progress Bars
+=============
 
-import pytest
+Use or override one of the progress bar callbacks.
 
-from tests.deprecated_api import _soft_unimport_module
-
-
-def test_v1_4_0_deprecated_imports():
-    _soft_unimport_module("pytorch_lightning.utilities.argparse_utils")
-    with pytest.deprecated_call(match="will be removed in v1.4"):
-        from pytorch_lightning.utilities.argparse_utils import _gpus_arg_default  # noqa: F401
+"""
+from pytorch_lightning.callbacks.progress.base import ProgressBarBase  # noqa: F401
+from pytorch_lightning.callbacks.progress.rich_progress import RichProgressBar  # noqa: F401
+from pytorch_lightning.callbacks.progress.tqdm_progress import ProgressBar  # noqa: F401

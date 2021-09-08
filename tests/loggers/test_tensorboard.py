@@ -17,6 +17,7 @@ import os
 from argparse import Namespace
 from unittest import mock
 
+import numpy as np
 import pytest
 import torch
 import yaml
@@ -70,7 +71,7 @@ def test_tensorboard_hparams_reload(tmpdir):
 
 
 def test_tensorboard_automatic_versioning(tmpdir):
-    """Verify that automatic versioning works"""
+    """Verify that automatic versioning works."""
 
     root_dir = tmpdir / "tb_versioning"
     root_dir.mkdir()
@@ -82,7 +83,7 @@ def test_tensorboard_automatic_versioning(tmpdir):
 
 
 def test_tensorboard_manual_versioning(tmpdir):
-    """Verify that manual versioning works"""
+    """Verify that manual versioning works."""
 
     root_dir = tmpdir / "tb_versioning"
     root_dir.mkdir()
@@ -96,7 +97,7 @@ def test_tensorboard_manual_versioning(tmpdir):
 
 
 def test_tensorboard_named_version(tmpdir):
-    """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402'"""
+    """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402'."""
 
     name = "tb_versioning"
     (tmpdir / name).mkdir()
@@ -112,7 +113,7 @@ def test_tensorboard_named_version(tmpdir):
 
 @pytest.mark.parametrize("name", ["", None])
 def test_tensorboard_no_name(tmpdir, name):
-    """Verify that None or empty name works"""
+    """Verify that None or empty name works."""
     logger = TensorBoardLogger(save_dir=tmpdir, name=name)
     logger.log_hyperparams({"a": 1, "b": 2, 123: 3, 3.5: 4, 5j: 5})  # Force data to be written
     assert logger.root_dir == tmpdir
@@ -178,6 +179,8 @@ def test_tensorboard_log_hyperparams(tmpdir):
         "list": [1, 2, 3],
         "namespace": Namespace(foo=Namespace(bar="buzz")),
         "layer": torch.nn.BatchNorm1d,
+        "tensor": torch.empty(2, 2, 2),
+        "array": np.empty([2, 2, 2]),
     }
     logger.log_hyperparams(hparams)
 
@@ -193,6 +196,8 @@ def test_tensorboard_log_hparams_and_metrics(tmpdir):
         "list": [1, 2, 3],
         "namespace": Namespace(foo=Namespace(bar="buzz")),
         "layer": torch.nn.BatchNorm1d,
+        "tensor": torch.empty(2, 2, 2),
+        "array": np.empty([2, 2, 2]),
     }
     metrics = {"abc": torch.tensor([0.54])}
     logger.log_hyperparams(hparams, metrics)
@@ -218,9 +223,7 @@ def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
 
 @pytest.mark.parametrize("example_input_array", [None, torch.rand(2, 32)])
 def test_tensorboard_log_graph(tmpdir, example_input_array):
-    """test that log graph works with both model.example_input_array and
-    if array is passed externaly
-    """
+    """test that log graph works with both model.example_input_array and if array is passed externaly."""
     model = BoringModel()
     if example_input_array is not None:
         model.example_input_array = None
@@ -230,7 +233,7 @@ def test_tensorboard_log_graph(tmpdir, example_input_array):
 
 
 def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
-    """test that log graph throws warning if model.example_input_array is None"""
+    """test that log graph throws warning if model.example_input_array is None."""
     model = BoringModel()
     model.example_input_array = None
     logger = TensorBoardLogger(tmpdir, log_graph=True)
@@ -244,7 +247,7 @@ def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
 
 @mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
 def test_tensorboard_with_accummulated_gradients(mock_log_metrics, tmpdir):
-    """Tests to ensure that tensorboard log properly when accumulated_gradients > 1"""
+    """Tests to ensure that tensorboard log properly when accumulated_gradients > 1."""
 
     class TestModel(BoringModel):
         def __init__(self):
@@ -303,10 +306,8 @@ def test_tensorboard_save_hparams_to_yaml_once(tmpdir):
 
 @mock.patch("pytorch_lightning.loggers.tensorboard.log")
 def test_tensorboard_with_symlink(log, tmpdir):
-    """
-    Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``, and
-    relative paths.
-    """
+    """Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``,
+    and relative paths."""
     os.chdir(tmpdir)  # need to use relative paths
     source = os.path.join(".", "lightning_logs")
     dest = os.path.join(".", "sym_lightning_logs")
@@ -321,7 +322,7 @@ def test_tensorboard_with_symlink(log, tmpdir):
 
 
 def test_tensorboard_missing_folder_warning(tmpdir, caplog):
-    """Verify that the logger throws a warning for invalid directory"""
+    """Verify that the logger throws a warning for invalid directory."""
 
     name = "fake_dir"
     logger = TensorBoardLogger(save_dir=tmpdir, name=name)

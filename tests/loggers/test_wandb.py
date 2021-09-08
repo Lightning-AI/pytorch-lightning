@@ -18,7 +18,6 @@ from unittest import mock
 
 import pytest
 
-import pytorch_lightning
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -28,7 +27,9 @@ from tests.helpers import BoringModel
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
 def test_wandb_logger_init(wandb):
     """Verify that basic functionality of wandb logger works.
-    Wandb doesn't work well with pytest so we have to mock it out here."""
+
+    Wandb doesn't work well with pytest so we have to mock it out here.
+    """
 
     # test wandb.init called when there is no W&B run
     wandb.run = None
@@ -56,8 +57,8 @@ def test_wandb_logger_init(wandb):
     # verify default resume value
     assert logger._wandb_init["resume"] == "allow"
 
-    _ = logger.experiment
-    assert any("There is a wandb run already in progress" in w for w in pytorch_lightning.loggers.wandb.warning_cache)
+    with pytest.warns(UserWarning, match="There is a wandb run already in progress"):
+        _ = logger.experiment
 
     logger.log_metrics({"acc": 1.0}, step=3)
     wandb.init.assert_called_once()
@@ -84,8 +85,8 @@ def test_wandb_logger_init(wandb):
 
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
 def test_wandb_pickle(wandb, tmpdir):
-    """
-    Verify that pickling trainer with wandb logger works.
+    """Verify that pickling trainer with wandb logger works.
+
     Wandb doesn't work well with pytest so we have to mock it out here.
     """
 
@@ -216,9 +217,9 @@ def test_wandb_log_model(wandb, tmpdir):
 
 
 def test_wandb_sanitize_callable_params(tmpdir):
-    """
-    Callback function are not serializiable. Therefore, we get them a chance to return
-    something and if the returned type is not accepted, return None.
+    """Callback function are not serializiable.
+
+    Therefore, we get them a chance to return something and if the returned type is not accepted, return None.
     """
     opt = "--max_epochs 1".split(" ")
     parser = ArgumentParser()
@@ -247,6 +248,6 @@ def test_wandb_sanitize_callable_params(tmpdir):
 
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
 def test_wandb_logger_offline_log_model(wandb, tmpdir):
-    """Test that log_model=True raises an error in offline mode"""
+    """Test that log_model=True raises an error in offline mode."""
     with pytest.raises(MisconfigurationException, match="checkpoints cannot be uploaded in offline mode"):
         _ = WandbLogger(save_dir=str(tmpdir), offline=True, log_model=True)

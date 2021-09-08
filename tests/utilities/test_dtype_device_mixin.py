@@ -52,10 +52,8 @@ class DeviceAssertCallback(Callback):
 @pytest.mark.parametrize(["dst_device"], [pytest.param(torch.device("cpu")), pytest.param(torch.device("cuda", 0))])
 @RunIf(min_gpus=1)
 def test_submodules_device_and_dtype(dst_device, dst_dtype):
-    """
-    Test that the device and dtype property updates propagate through mixed nesting of regular
-    nn.Modules and the special modules of type DeviceDtypeModuleMixin (e.g. Metric or LightningModule).
-    """
+    """Test that the device and dtype property updates propagate through mixed nesting of regular nn.Modules and
+    the special modules of type DeviceDtypeModuleMixin (e.g. Metric or LightningModule)."""
 
     model = TopModule()
     assert model.device == torch.device("cpu")

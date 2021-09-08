@@ -18,6 +18,7 @@ from torch.utils.data._utils.collate import default_collate
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.loops.closure import Closure
 from pytorch_lightning.trainer.states import RunningStage
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.deterministic_model import DeterministicModel
@@ -156,10 +157,11 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     assert train_step_out.minimize.item() == 171
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.fit_loop.epoch_loop.batch_loop.training_step_and_backward(
+    opt_closure = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._make_closure(
         batch, batch_idx, 0, trainer.optimizers[0], hiddens=None
     )
-    assert opt_closure_result["loss"].item() == 171
+    opt_closure_result = opt_closure()
+    assert opt_closure_result.item() == 171
 
 
 def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
@@ -229,14 +231,16 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     assert train_step_out.minimize.item() == 171
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.fit_loop.epoch_loop.batch_loop.training_step_and_backward(
+    opt_closure = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._make_closure(
         batch, batch_idx, 0, trainer.optimizers[0], hiddens=None
     )
-    assert opt_closure_result["loss"].item() == 171
+    opt_closure_result = opt_closure()
+    assert opt_closure_result.item() == 171
 
 
 def test_train_step_no_return(tmpdir):
-    """Tests that only training_step raises a warning when nothing is returned in case of automatic_optimization."""
+    """Tests that only training_step raises a warning when nothing is returned in case of
+    automatic_optimization."""
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -258,6 +262,8 @@ def test_train_step_no_return(tmpdir):
 
     trainer = Trainer(**trainer_args)
 
+    Closure.warning_cache.clear()
+
     with pytest.warns(UserWarning, match=r"training_step returned None.*"):
         trainer.fit(model)
 
@@ -267,6 +273,8 @@ def test_train_step_no_return(tmpdir):
     model = TestModel()
     model.automatic_optimization = False
     trainer = Trainer(**trainer_args)
+
+    Closure.warning_cache.clear()
 
     with no_warning_call(UserWarning, match=r"training_step returned None.*"):
         trainer.fit(model)
@@ -292,6 +300,8 @@ def test_training_step_no_return_when_even(tmpdir):
         logger=False,
         checkpoint_callback=False,
     )
+
+    Closure.warning_cache.clear()
 
     with pytest.warns(UserWarning, match=r".*training_step returned None.*"):
         trainer.fit(model)

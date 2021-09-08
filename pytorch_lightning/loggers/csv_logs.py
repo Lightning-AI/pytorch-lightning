@@ -63,11 +63,11 @@ class ExperimentWriter:
         self.metrics_file_path = os.path.join(self.log_dir, self.NAME_METRICS_FILE)
 
     def log_hparams(self, params: Dict[str, Any]) -> None:
-        """Record hparams"""
+        """Record hparams."""
         self.hparams.update(params)
 
     def log_metrics(self, metrics_dict: Dict[str, float], step: Optional[int] = None) -> None:
-        """Record metrics"""
+        """Record metrics."""
 
         def _handle_value(value):
             if isinstance(value, torch.Tensor):
@@ -82,7 +82,7 @@ class ExperimentWriter:
         self.metrics.append(metrics)
 
     def save(self) -> None:
-        """Save recorded hparams and metrics into files"""
+        """Save recorded hparams and metrics into files."""
         hparams_file = os.path.join(self.log_dir, self.NAME_HPARAMS_FILE)
         save_hparams_to_yaml(hparams_file, self.hparams)
 
@@ -138,10 +138,10 @@ class CSVLogger(LightningLoggerBase):
 
     @property
     def root_dir(self) -> str:
-        """
-        Parent directory for all checkpoint subdirectories.
-        If the experiment name parameter is ``None`` or the empty string, no experiment subdirectory is used
-        and the checkpoint will be saved in "save_dir/version_dir"
+        """Parent directory for all checkpoint subdirectories.
+
+        If the experiment name parameter is ``None`` or the empty string, no experiment subdirectory is used and the
+        checkpoint will be saved in "save_dir/version_dir"
         """
         if not self.name:
             return self.save_dir
@@ -149,10 +149,10 @@ class CSVLogger(LightningLoggerBase):
 
     @property
     def log_dir(self) -> str:
-        """
-        The log directory for this run. By default, it is named
-        ``'version_${self.version}'`` but it can be overridden by passing a string value
-        for the constructor's version parameter instead of ``None`` or an int.
+        """The log directory for this run.
+
+        By default, it is named ``'version_${self.version}'`` but it can be overridden by passing a string value for the
+        constructor's version parameter instead of ``None`` or an int.
         """
         # create a pseudo standard path ala test-tube
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
@@ -161,6 +161,11 @@ class CSVLogger(LightningLoggerBase):
 
     @property
     def save_dir(self) -> Optional[str]:
+        """The current directory where logs are saved.
+
+        Returns:
+            The path to current directory where logs are saved.
+        """
         return self._save_dir
 
     @property
@@ -204,10 +209,20 @@ class CSVLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
+        """Gets the name of the experiment.
+
+        Returns:
+            The name of the experiment.
+        """
         return self._name
 
     @property
     def version(self) -> int:
+        """Gets the version of the experiment.
+
+        Returns:
+            The version of the experiment if it is specified, else the next version.
+        """
         if self._version is None:
             self._version = self._get_next_version()
         return self._version

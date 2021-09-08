@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Test deprecated functionality which will be removed in v1.6.0 """
+"""Test deprecated functionality which will be removed in v1.6.0."""
 import pytest
 
 from pytorch_lightning import Trainer

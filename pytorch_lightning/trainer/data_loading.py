@@ -282,8 +282,8 @@ class TrainerDataLoadingMixin(ABC):
         return sampler
 
     def reset_train_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
-        """Resets the train dataloader and initialises required variables
-        (number of batches, when to validate, etc.).
+        """Resets the train dataloader and initialises required variables (number of batches, when to validate,
+        etc.).
 
         Args:
             model: The `LightningModule` if calling this outside of the trainer scope.
@@ -501,8 +501,7 @@ class TrainerDataLoadingMixin(ABC):
             )
 
     def reset_train_val_dataloaders(self, model: Optional["pl.LightningModule"] = None) -> None:
-        """
-        Resets train and val dataloaders if none are attached to the trainer.
+        """Resets train and val dataloaders if none are attached to the trainer.
 
         The val dataloader must be initialized before training loop starts, as the training loop
         inspects the val dataloader to determine whether to run the evaluation loop.
@@ -523,8 +522,9 @@ class TrainerDataLoadingMixin(ABC):
         Returns:
             The dataloader
         """
-        self.call_hook(f"on_{stage.dataloader_prefix}_dataloader")
-        dataloader = getattr(model, f"{stage.dataloader_prefix}_dataloader")()
+        hook = f"{stage.dataloader_prefix}_dataloader"
+        self.call_hook("on_" + hook, pl_module=model)
+        dataloader = self.call_hook(hook, pl_module=model)
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
         self.accelerator.barrier("get_dataloaders")
@@ -532,9 +532,8 @@ class TrainerDataLoadingMixin(ABC):
 
     @staticmethod
     def _add_sampler_metadata_collate(dataloader: DataLoader) -> None:
-        """
-        Wrap default collate function to retrive ``FastForwardSampler`` state dict when fault tolerant is enabled.
-        """
+        """Wrap default collate function to retrive ``FastForwardSampler`` state dict when fault tolerant is
+        enabled."""
         dataloader.collate_fn = partial(
             _capture_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
         )
