@@ -18,7 +18,7 @@ from typing import Any, Callable, Dict, Optional
 from torch import Tensor
 
 from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler
-from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -84,18 +84,6 @@ class ClosureResult:
             return v
 
         apply_to_collection(extra, Tensor, check_fn)
-
-    def to(self, *args: Any, **kwargs: Any) -> "ClosureResult":
-        """Move all data to the given device."""
-        if self.closure_loss is not None:
-            self.closure_loss = self.closure_loss.to(*args, **kwargs)
-            self.loss = self.loss.to(*args, **kwargs)
-        self.extra = apply_to_collection(self.extra, Tensor, move_data_to_device, *args, **kwargs)
-        return self
-
-    def cpu(self) -> "ClosureResult":
-        """Move all data to CPU."""
-        return self.to(device="cpu")
 
     def without_closure(self) -> "ClosureResult":
         """Return itself without the closure loss which could have a `grad_fn`"""

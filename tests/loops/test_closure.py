@@ -69,10 +69,3 @@ def test_closure_result_apply_accumulation():
     closure_loss = torch.tensor(25.0)
     result = ClosureResult.from_training_step_output(closure_loss, 5)
     assert result.loss == 5
-
-
-def test_closure_to():
-    result = ClosureResult(torch.tensor(1.0), extra={"foo": torch.tensor(4.0)})
-    result.to(torch.half)
-    assert result.loss.dtype == torch.half
-    assert result.extra["foo"].dtype == torch.half
