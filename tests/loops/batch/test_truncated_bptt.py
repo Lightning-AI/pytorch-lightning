@@ -76,7 +76,7 @@ def test_persistent_hidden_state_transfer(tmpdir, model_class):
         def training_step(self, batch, batch_idx, hiddens):
             split_idx = self.trainer.fit_loop.split_idx
             # the hidden state may only be None for the first split_idx
-            assert split_idx == 0 and hiddens is None or split_idx != 0 and hiddens is not None
+            assert not ((split_idx == 0) ^ (hiddens is None))
             # test_hiddens is None when hiddens is None
             assert not ((hiddens is None) ^ (self.test_hidden is None))
             # the states are equal (persistent)
