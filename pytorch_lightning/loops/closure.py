@@ -52,11 +52,11 @@ class ClosureResult:
         ClosureResult._check_extra_detach_deprecation(self.extra)
         self.extra = recursive_detach(self.extra)
 
-        self._set_loss()
+        self._clone_loss()
         if self.hiddens is not None and self.loss is None:
             raise MisconfigurationException("If `hiddens` are returned from `training_step`, the loss cannot be `None`")
 
-    def _set_loss(self) -> None:
+    def _clone_loss(self) -> None:
         if self.closure_loss is not None:
             # the loss will get scaled for amp. avoid any modifications to it
             self.loss = self.closure_loss.detach().clone()
@@ -84,7 +84,7 @@ class ClosureResult:
         """
         if self.closure_loss is not None:
             self.closure_loss /= value
-            self._set_loss()
+            self._clone_loss()
 
     @staticmethod
     def _check_extra_detach_deprecation(extra: Dict[str, Any]) -> None:
