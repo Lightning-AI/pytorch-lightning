@@ -115,7 +115,7 @@ or with conda:
 
 Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
-.. testcode::
+.. code-block:: python
 
     from pytorch_lightning.loggers import NeptuneLogger
 
@@ -129,7 +129,7 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
 The :class:`~pytorch_lightning.loggers.NeptuneLogger` is available anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
-.. testcode::
+.. code-block:: python
 
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
