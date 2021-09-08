@@ -25,6 +25,7 @@
 /pytorch_lightning/core                 @tchaton @SeanNaren @borda @carmocca @justusschock @kaushikb11
 /pytorch_lightning/distributed          @williamfalcon @tchaton @awaelchli @kaushikb11
 /pytorch_lightning/loggers              @tchaton @awaelchli @borda
+/pytorch_lightning/loggers/wandb.py     @borisdayma
 /pytorch_lightning/loops                @tchaton @awaelchli @justusschock @carmocca
 /pytorch_lightning/overrides            @tchaton @SeanNaren @borda
 /pytorch_lightning/plugins              @tchaton @SeanNaren @awaelchli @justusschock
