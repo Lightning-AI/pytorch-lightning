@@ -132,7 +132,7 @@ class TrainingBatchLoop(Loop):
         else:
             # in manual optimization, hand over execution to the ManualOptimization loop
             output = self.manual_loop.run(split_batch, batch_idx)
-            if output:
+            if output is not None:
                 self.batch_outputs[0].append(deepcopy(output))
 
     def on_run_end(self) -> None:
