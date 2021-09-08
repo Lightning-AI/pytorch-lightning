@@ -75,7 +75,7 @@ class ManualOptimization(Loop):
 
             self._hiddens = _extract_hiddens(training_step_output)
 
-            # TODO: do not use `ClosureResult
+            # TODO: do not use `ClosureResult`
             result = ClosureResult.from_training_step_output(training_step_output, self.trainer.accumulate_grad_batches)
 
             if self.trainer.terminate_on_nan:
