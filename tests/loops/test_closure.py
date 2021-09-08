@@ -61,6 +61,9 @@ def test_closure_result_deepcopy():
     # the `loss` is cloned so the storage is different
     assert closure_loss.data_ptr() != result.loss.data_ptr()
 
+    # make sure `__getstate__` is not missing any keys
+    assert vars(result).keys() == result.__getstate__().keys()
+
     copy = deepcopy(result)
     assert result.loss == copy.loss
     assert copy.closure_loss is None
@@ -81,3 +84,11 @@ def test_closure_result_apply_accumulation():
     closure_loss = torch.tensor(25.0)
     result = ClosureResult.from_training_step_output(closure_loss, 5)
     assert result.loss == 5
+
+
+def test_closure_to():
+    result = ClosureResult(torch.tensor(1.0), (torch.tensor(2.0), torch.tensor(3.0)), extra={"foo": torch.tensor(4.0)})
+    result.to(torch.half)
+    assert result.loss.dtype == torch.half
+    assert all(t.dtype == torch.half for t in result.hiddens)
+    assert result.extra["foo"].dtype == torch.half

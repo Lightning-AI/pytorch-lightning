@@ -83,6 +83,7 @@ class ManualOptimization(Loop):
 
             if self.trainer.move_metrics_to_cpu:
                 self.trainer._results.cpu()
+                result.cpu()
 
         self._done = True
         self._output = result

@@ -360,6 +360,7 @@ class OptimizerLoop(Loop):
 
             if self.trainer.move_metrics_to_cpu:
                 self.trainer._results.cpu()
+                closure_result.cpu()
 
         return closure_result
 

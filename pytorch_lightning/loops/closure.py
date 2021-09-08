@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
-from dataclasses import asdict, dataclass, field, replace
+from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Optional
 
 from torch import Tensor
 
 from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -40,7 +40,7 @@ class ClosureResult:
 
     closure_loss: Optional[Tensor]
     hiddens: Optional[Any]
-    loss: Optional[Tensor] = None
+    loss: Optional[Tensor] = field(init=False, default=None)
     extra: Dict[str, Tensor] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -94,10 +94,23 @@ class ClosureResult:
 
         apply_to_collection(extra, Tensor, check_fn)
 
+    def to(self, *args: Any, **kwargs: Any) -> "ClosureResult":
+        """Move all data to the given device."""
+        if self.closure_loss is not None:
+            self.closure_loss = self.closure_loss.to(*args, **kwargs)
+            self.loss = self.loss.to(*args, **kwargs)
+        self.hiddens = apply_to_collection(self.hiddens, Tensor, move_data_to_device, *args, **kwargs)
+        self.extra = apply_to_collection(self.extra, Tensor, move_data_to_device, *args, **kwargs)
+        return self
+
+    def cpu(self) -> "ClosureResult":
+        """Move all data to CPU."""
+        return self.to(device="cpu")
+
     def __getstate__(self) -> Dict[str, Any]:
         # return a copy without the closure loss which could have a `grad_fn`
         # and without `hiddens` which are not necessary
-        return asdict(replace(self, closure_loss=None, hiddens=None))
+        return {"loss": self.loss, "extra": self.extra, "closure_loss": None, "hiddens": None}
 
 
 class AbstractClosure(ABC):
