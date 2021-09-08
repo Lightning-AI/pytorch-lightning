@@ -667,8 +667,8 @@ class LightningModule(
             # Truncated back-propagation through time
             def training_step(self, batch, batch_idx, hiddens):
                 # hiddens are the hidden states from the previous truncated backprop step
-                loss, hiddens = self.lstm(data, hiddens)
-                ...
+                out, hiddens = self.lstm(data, hiddens)
+                loss = ...
                 return {"loss": loss, "hiddens": hiddens}
 
         Note:
@@ -1584,7 +1584,7 @@ class LightningModule(
         """
         optimizer.zero_grad()
 
-    def tbptt_split_batch(self, batch: Tensor, split_size: int) -> list:
+    def tbptt_split_batch(self, batch: Any, split_size: int) -> List[Any]:
         r"""
         When using truncated backpropagation through time, each batch must be split along the
         time dimension. Lightning handles this by default, but for custom behavior override
@@ -1602,29 +1602,25 @@ class LightningModule(
         Examples::
 
             def tbptt_split_batch(self, batch, split_size):
-              splits = []
-              for t in range(0, time_dims[0], split_size):
-                  batch_split = []
-                  for i, x in enumerate(batch):
-                      if isinstance(x, torch.Tensor):
-                          split_x = x[:, t:t + split_size]
-                      elif isinstance(x, collections.Sequence):
-                          split_x = [None] * len(x)
-                          for batch_idx in range(len(x)):
+                splits = []
+                for t in range(0, time_dims[0], split_size):
+                    batch_split = []
+                    for i, x in enumerate(batch):
+                        if isinstance(x, torch.Tensor):
+                            split_x = x[:, t:t + split_size]
+                        elif isinstance(x, collections.Sequence):
+                            split_x = [None] * len(x)
+                            for batch_idx in range(len(x)):
                               split_x[batch_idx] = x[batch_idx][t:t + split_size]
-
-                      batch_split.append(split_x)
-
-                  splits.append(batch_split)
-
-              return splits
+                        batch_split.append(split_x)
+                    splits.append(batch_split)
+                return splits
 
         Note:
             Called in the training loop after
             :meth:`~pytorch_lightning.callbacks.base.Callback.on_batch_start`
             if :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
             Each returned batch split is passed separately to :meth:`training_step`.
-
         """
         time_dims = [len(x[0]) for x in batch if isinstance(x, (torch.Tensor, collections.Sequence))]
         assert len(time_dims) >= 1, "Unable to determine batch time dimension"
