@@ -94,6 +94,7 @@ class OptimizerLoop(Loop):
         # free memory
         self.outputs = []
         self._hiddens = None
+        self.optim_progress.optimizer_idx = 0
         return outputs, hiddens
 
     def backward(

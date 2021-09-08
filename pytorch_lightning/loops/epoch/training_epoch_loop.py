@@ -101,7 +101,6 @@ class TrainingEpochLoop(loops.Loop):
             self.batch_progress.current.reset()
             self.scheduler_progress.current.reset()
             self.batch_loop.optimizer_loop.optim_progress.reset_on_epoch()
-            self.batch_loop.optimizer_loop.optim_progress.optimizer_idx = 0
 
     def on_run_start(self, dataloader_iter: Iterator, **kwargs: Any) -> None:
         # hook
