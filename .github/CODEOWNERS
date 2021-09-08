@@ -21,7 +21,6 @@
 # Packages
 /pytorch_lightning/accelerators         @williamfalcon @tchaton @SeanNaren @awaelchli @justusschock @kaushikb11
 /pytorch_lightning/callbacks            @williamfalcon @tchaton @carmocca @borda @kaushikb11
-/pytorch_lightning/cluster_environments @borda @tchaton @SeanNaren @carmocca @kaushikb11
 /pytorch_lightning/core                 @tchaton @SeanNaren @borda @carmocca @justusschock @kaushikb11
 /pytorch_lightning/distributed          @williamfalcon @tchaton @awaelchli @kaushikb11
 /pytorch_lightning/loggers              @tchaton @awaelchli @borda
@@ -37,11 +36,6 @@
 # Specifics
 /pytorch_lightning/trainer/connectors/logger_connector @tchaton @carmocca
 /pytorch_lightning/trainer/progress.py  @tchaton @awaelchli @carmocca
-
-# Metrics
-/pytorch_lightning/metrics/             @SkafteNicki @ananyahjha93 @justusschock
-/tests/metrics/                         @SkafteNicki @ananyahjha93 @justusschock
-/docs/source/metrics.rst                @SkafteNicki @ananyahjha93 @justusschock
 
 # API
 /pytorch_lightning/callbacks/base.py    @williamfalcon @awaelchli @ananthsub @carmocca
