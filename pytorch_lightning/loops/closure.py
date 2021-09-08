@@ -76,8 +76,9 @@ class ClosureResult:
         elif isinstance(training_step_output, Tensor):
             closure_loss = training_step_output
 
-        # accumulate the loss. If ``accumulate_grad_batches == 1``, no effect
-        closure_loss /= normalize
+        if closure_loss is not None:
+            # accumulate the loss. If ``accumulate_grad_batches == 1``, no effect
+            closure_loss /= normalize
 
         return cls(closure_loss, hiddens, extra=extra)
 

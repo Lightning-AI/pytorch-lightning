@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from typing import Any, Optional
 
 from pytorch_lightning.loops import Loop
@@ -21,7 +20,6 @@ from pytorch_lightning.loops.utilities import (
     _check_training_step_output,
     check_finite_loss,
 )
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 
 
 class ManualOptimization(Loop):
@@ -37,7 +35,7 @@ class ManualOptimization(Loop):
         super().__init__()
         self._done: bool = False
         self._hiddens: Optional[Any] = None
-        self._output: Optional[ResultCollection] = None
+        self._output: Optional[ClosureResult] = None
 
     @property
     def done(self) -> bool:
@@ -82,6 +80,7 @@ class ManualOptimization(Loop):
                 check_finite_loss(result.closure_loss)
 
             if self.trainer.move_metrics_to_cpu:
+                assert self.trainer._results is not None
                 self.trainer._results.cpu()
                 result.cpu()
 
@@ -91,4 +90,5 @@ class ManualOptimization(Loop):
     def on_run_end(self) -> ClosureResult:
         """Returns the result of this loop, i.e., the post-processed outputs from the training step."""
         output, self._output = self._output, None  # free memory
+        assert output is not None, "`advance` should have been called"
         return output
