@@ -1,0 +1,30 @@
+name: Check PR traceability
+
+on:
+  push:
+    branches: [master, "release/*"]
+  pull_request:
+    branches: [master, "release/*"]
+
+jobs:
+  check-pr-description:
+    name: Check PR description
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Check PR validity
+      env:
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+      run: |
+        PR_DESCRIPTION=$(gh pr view ${{ env.PR_NUMBER }}")
+        FIX_MATCHES=$(echo "$PR_DESCRIPTION" | grep '^Fixe\|Close')
+        FOLLOW_UPS=$(echo "$PR_DESCRIPTION" | grep '^Follow up to')
+        PARTS_OF=$(echo "$PR_DESCRIPTION" | grep '^Part of\|Parts of')
+
+        if [[ -z "$FIX_MATCHES" || -z "$FOLLOW_UPS" || -z "$PARTS_OF" ]]; then
+          echo "You should reference this PR to an issue and/or other PRs for better traceability."
+          exit 1
+        fi
+
+        exit 0
