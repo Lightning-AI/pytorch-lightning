@@ -326,38 +326,30 @@ class NeptuneLogger(LightningLoggerBase):
         run: Optional["Run"],
         neptune_run_kwargs: dict,
     ):
+        legacy_kwargs_msg = (
+            "Following kwargs are deprecated: {legacy_kwargs}.\n"
+            "If you are looking for the Neptune logger using legacy Python API,"
+            " it's still available as part of neptune-contrib package:\n"
+            "  - https://docs-legacy.neptune.ai/integrations/pytorch_lightning.html\n"
+            "The NeptuneLogger was re-written to use the neptune.new Python API\n"
+            "  - https://neptune.ai/blog/neptune-new\n"
+            "  - https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning\n"
+            "You should use arguments accepted by either NeptuneLogger.init() or neptune.init()"
+        )
 
         # check if user used legacy kwargs expected in `NeptuneLegacyLogger`
         used_legacy_kwargs = [
             legacy_kwarg for legacy_kwarg in neptune_run_kwargs if legacy_kwarg in _LEGACY_NEPTUNE_INIT_KWARGS
         ]
         if used_legacy_kwargs:
-            raise ValueError(
-                f"Following kwargs are deprecated: {used_legacy_kwargs}.\n"
-                "If you are looking for the Neptune logger using legacy Python API,"
-                " it's still available as part of neptune-contrib package:\n"
-                "  - https://docs-legacy.neptune.ai/integrations/pytorch_lightning.html\n"
-                "The NeptuneLogger was re-written to use the neptune.new Python API\n"
-                "  - https://neptune.ai/blog/neptune-new\n"
-                "  - https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning\n"
-                "You should use arguments accepted by either NeptuneLogger.init() or neptune.init()"
-            )
+            raise ValueError(legacy_kwargs_msg.format(legacy_kwargs=used_legacy_kwargs))
 
         # check if user used legacy kwargs expected in `NeptuneLogger` from neptune-pytorch-lightning package
         used_legacy_neptune_kwargs = [
             legacy_kwarg for legacy_kwarg in neptune_run_kwargs if legacy_kwarg in _LEGACY_NEPTUNE_LOGGER_KWARGS
         ]
         if used_legacy_neptune_kwargs:
-            raise ValueError(
-                f"Following kwargs are deprecated: {used_legacy_neptune_kwargs}.\n"
-                "If you are looking for the Neptune logger using legacy Python API,"
-                " it's still available as part of neptune-contrib package:\n"
-                "  - https://docs-legacy.neptune.ai/integrations/pytorch_lightning.html\n"
-                "The NeptuneLogger was re-written to use the neptune.new Python API\n"
-                "  - https://neptune.ai/blog/neptune-new\n"
-                "  - https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning\n"
-                "You should use arguments accepted by either NeptuneLogger.init() or neptune.init()"
-            )
+            raise ValueError(legacy_kwargs_msg.format(legacy_kwargs=used_legacy_neptune_kwargs))
 
         # check if user passed new client `Run` object
         if run is not None and not isinstance(run, Run):
