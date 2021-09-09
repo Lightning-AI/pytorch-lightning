@@ -576,7 +576,9 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
                 "ready": n_epochs,
                 "started": n_epochs,
                 "processed": n_epochs,
-                "completed": n_epochs,
+                # TODO: the following "-1" offset will be fixed by
+                #   https://github.com/PyTorchLightning/pytorch-lightning/pull/8578
+                "completed": n_epochs - 1,
             },
             "current": {
                 "ready": n_epochs,
@@ -596,28 +598,28 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
                 "completed": n_epochs * n_batches,
             },
             "current": {
-                "ready": 0,
-                "started": 0,
-                "processed": 0,
-                "completed": 0,
+                "ready": n_batches,
+                "started": n_batches,
+                "processed": n_batches,
+                "completed": n_batches,
             },
         },
         "epoch_loop.scheduler_progress": {
             "total": {"ready": nbe_sch_steps, "completed": nbe_sch_steps},
-            "current": {"ready": 0, "completed": 0},
+            "current": {"ready": nbe_sch_steps, "completed": nbe_sch_steps},
         },
         "epoch_loop.batch_loop.state_dict": ANY,
         "epoch_loop.batch_loop.manual_loop.state_dict": ANY,
         "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
         "epoch_loop.batch_loop.optimizer_loop.optim_progress": {
-            "optimizer_idx": 0,
+            "optimizer_idx": n_optimizers - 1,
             "optimizer": {
                 "step": {
                     "total": {
                         "ready": nbe_total_opt_steps,
                         "completed": nbe_total_opt_steps,
                     },
-                    "current": {"ready": 0, "completed": 0},
+                    "current": {"ready": nbe_total_opt_steps, "completed": nbe_total_opt_steps},
                 },
                 "zero_grad": {
                     "total": {
@@ -626,9 +628,9 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
                         "completed": nbe_total_zero_grad,
                     },
                     "current": {
-                        "ready": 0,
-                        "started": 0,
-                        "completed": 0,
+                        "ready": nbe_total_zero_grad,
+                        "started": nbe_total_zero_grad,
+                        "completed": nbe_total_zero_grad,
                     },
                 },
             },
