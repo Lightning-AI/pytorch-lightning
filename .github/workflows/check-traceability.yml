@@ -37,9 +37,9 @@ jobs:
         if '<issue_number>' in description:
           raise Exception("Please replace <issue_number> with a reference issue to track details of what this PR does!")
 
-        github_special_words = ('close', 'closes', 'closed', 'fix', 'fixes', 'fixed', 'resolve', 'resolves', 'resolved')
+        GITHUB_SPECIAL_LINKING_WORDS = ('close', 'closes', 'closed', 'fix', 'fixes', 'fixed', 'resolve', 'resolves', 'resolved')
 
-        contains_fix = any(f"{w}#" in description for w in github_special_words)
+        contains_fix = any(f"{w}#" in description for w in GITHUB_SPECIAL_LINKING_WORDS)
         contains_parts = 'partsof' in description
         contains_follow_up = 'followupof' in description
 
