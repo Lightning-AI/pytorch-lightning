@@ -11,20 +11,28 @@ jobs:
     name: Check PR description
     runs-on: ubuntu-20.04
     steps:
+
     - uses: actions/checkout@v2
-    - name: Check PR validity
+
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.6
+
+    - name: Fetch PR Description
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-        PR_NUMBER: ${{ github.event.pull_request.number }}
-      shell: bash
+      run: echo "::set-output name=description::$(gh pr view ${{ env.PR_NUMBER }})"
+      id: pr
+
+    - name: Check PR validity
+      env:
+        PR_DESCRIPTION: ${{ steps.pr.outputs.description }}
+      shell: python
       run: |
-        PR_DESCRIPTION=$(gh pr view ${{ env.PR_NUMBER }})
+        import os
 
-        DEFAULT_DESCRIPTION=$(echo "$PR_DESCRIPTION" | grep '<issue_number>')
+        des = os.getenv("PR_DESCRIPTION")
 
-        if [ -z "$DEFAULT_DESCRIPTION" ]
-        then
-              echo "\$DEFAULT_DESCRIPTION is empty"
-        else
-              echo "\$DEFAULT_DESCRIPTION is NOT empty"
-        fi
+        if '<issue_number>' in des:
+          raise Exception
