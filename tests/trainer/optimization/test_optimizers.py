@@ -25,7 +25,7 @@ from tests.helpers.runif import RunIf
 
 
 def test_optimizer_with_scheduling(tmpdir):
-    """Verify that learning rate scheduling is working"""
+    """Verify that learning rate scheduling is working."""
 
     model = BoringModel()
     trainer = Trainer(
@@ -43,7 +43,7 @@ def test_optimizer_with_scheduling(tmpdir):
 
 
 def test_multi_optimizer_with_scheduling(tmpdir):
-    """Verify that learning rate scheduling is working"""
+    """Verify that learning rate scheduling is working."""
 
     class TestModel(BoringModel):
         init_lr = 5e-4
@@ -75,9 +75,7 @@ def test_multi_optimizer_with_scheduling(tmpdir):
 
 
 def test_reducelronplateau_with_no_monitor_raises(tmpdir):
-    """
-    Test exception when a ReduceLROnPlateau is used with no monitor
-    """
+    """Test exception when a ReduceLROnPlateau is used with no monitor."""
     model = BoringModel()
     optimizer = optim.Adam(model.parameters())
     model.configure_optimizers = lambda: ([optimizer], [optim.lr_scheduler.ReduceLROnPlateau(optimizer)])
@@ -89,9 +87,7 @@ def test_reducelronplateau_with_no_monitor_raises(tmpdir):
 
 
 def test_reducelronplateau_with_no_monitor_in_lr_scheduler_dict_raises(tmpdir):
-    """
-    Test exception when lr_scheduler dict has a ReduceLROnPlateau with no monitor
-    """
+    """Test exception when lr_scheduler dict has a ReduceLROnPlateau with no monitor."""
     model = BoringModel()
     optimizer = optim.Adam(model.parameters())
     model.configure_optimizers = lambda: {
@@ -268,10 +264,8 @@ def test_configure_optimizer_from_dict(tmpdir):
 def test_step_scheduling_for_multiple_optimizers_with_frequency(
     tmpdir, schedulers, kwargs, intervals, frequencies, expected_steps, max_epochs
 ):
-    """
-    Test that step LR schedulers for multiple optimizers follow
-    the optimizer frequencies when corresponding frequency is set.
-    """
+    """Test that step LR schedulers for multiple optimizers follow the optimizer frequencies when corresponding
+    frequency is set."""
 
     class DummyModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
@@ -284,12 +278,12 @@ def test_step_scheduling_for_multiple_optimizers_with_frequency(
             optimizer1 = optim.Adam(self.parameters(), lr=0.01)
             optimizer2 = optim.Adam(self.parameters(), lr=0.01)
 
-            lr_dict_1 = {"scheduler": schedulers[0](optimizer1, **kwargs[0]), "interval": intervals[0]}
-            lr_dict_2 = {"scheduler": schedulers[1](optimizer2, **kwargs[1]), "interval": intervals[1]}
+            lr_scheduler_config_1 = {"scheduler": schedulers[0](optimizer1, **kwargs[0]), "interval": intervals[0]}
+            lr_scheduler_config_2 = {"scheduler": schedulers[1](optimizer2, **kwargs[1]), "interval": intervals[1]}
 
             return [
-                {"optimizer": optimizer1, "frequency": frequencies[0], "lr_scheduler": lr_dict_1},
-                {"optimizer": optimizer2, "frequency": frequencies[1], "lr_scheduler": lr_dict_2},
+                {"optimizer": optimizer1, "frequency": frequencies[0], "lr_scheduler": lr_scheduler_config_1},
+                {"optimizer": optimizer2, "frequency": frequencies[1], "lr_scheduler": lr_scheduler_config_2},
             ]
 
     model = DummyModel()
@@ -307,9 +301,7 @@ def test_step_scheduling_for_multiple_optimizers_with_frequency(
 
 @pytest.mark.parametrize("fn", ("validate", "test"))
 def test_init_optimizers_during_evaluation(tmpdir, fn):
-    """
-    Test that optimizers is an empty list during evaluation
-    """
+    """Test that optimizers is an empty list during evaluation."""
 
     class TestModel(BoringModel):
         def configure_optimizers(self):
@@ -329,9 +321,7 @@ def test_init_optimizers_during_evaluation(tmpdir, fn):
 
 
 def test_multiple_optimizers_callbacks(tmpdir):
-    """
-    Tests that multiple optimizers can be used with callbacks
-    """
+    """Tests that multiple optimizers can be used with callbacks."""
 
     class CB(Callback):
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
@@ -378,9 +368,7 @@ def test_multiple_optimizers_callbacks(tmpdir):
 @pytest.mark.parametrize("complete_epoch", [True, False])
 @mock.patch("torch.optim.lr_scheduler.ReduceLROnPlateau.step")
 def test_lr_scheduler_strict(step_mock, tmpdir, complete_epoch):
-    """
-    Test "strict" support in lr_scheduler dict
-    """
+    """Test "strict" support in lr_scheduler dict."""
     model = BoringModel()
     optimizer = optim.Adam(model.parameters())
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
@@ -419,9 +407,7 @@ def test_lr_scheduler_strict(step_mock, tmpdir, complete_epoch):
 
 
 def test_unknown_configure_optimizers_raises(tmpdir):
-    """
-    Test exception with an unsupported configure_optimizers return
-    """
+    """Test exception with an unsupported configure_optimizers return."""
     model = BoringModel()
     model.configure_optimizers = lambda: 1
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
@@ -430,9 +416,7 @@ def test_unknown_configure_optimizers_raises(tmpdir):
 
 
 def test_lr_scheduler_with_unknown_interval_raises(tmpdir):
-    """
-    Test exception when lr_scheduler dict has unknown interval param value
-    """
+    """Test exception when lr_scheduler dict has unknown interval param value."""
     model = BoringModel()
     optimizer = optim.Adam(model.parameters())
     model.configure_optimizers = lambda: {
@@ -445,9 +429,7 @@ def test_lr_scheduler_with_unknown_interval_raises(tmpdir):
 
 
 def test_lr_scheduler_with_extra_keys_warns(tmpdir):
-    """
-    Test warning when lr_scheduler dict has extra keys
-    """
+    """Test warning when lr_scheduler dict has extra keys."""
     model = BoringModel()
     optimizer = optim.Adam(model.parameters())
     model.configure_optimizers = lambda: {
@@ -460,9 +442,7 @@ def test_lr_scheduler_with_extra_keys_warns(tmpdir):
 
 
 def test_lr_scheduler_with_no_actual_scheduler_raises(tmpdir):
-    """
-    Test exception when lr_scheduler dict has no scheduler
-    """
+    """Test exception when lr_scheduler dict has no scheduler."""
     model = BoringModel()
     model.configure_optimizers = lambda: {"optimizer": optim.Adam(model.parameters()), "lr_scheduler": {}}
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
@@ -471,9 +451,7 @@ def test_lr_scheduler_with_no_actual_scheduler_raises(tmpdir):
 
 
 def test_invalid_optimizer_in_scheduler(tmpdir):
-    """
-    Test exception when optimizer attatched to lr_schedulers wasn't returned
-    """
+    """Test exception when optimizer attatched to lr_schedulers wasn't returned."""
 
     class InvalidOptimizerModel(BoringModel):
         def configure_optimizers(self):
@@ -489,9 +467,7 @@ def test_invalid_optimizer_in_scheduler(tmpdir):
 
 
 def test_invalid_optimizer_dict_raises(tmpdir):
-    """
-    Test exception when lr_scheduler dict has no scheduler
-    """
+    """Test exception when lr_scheduler dict has no scheduler."""
 
     class DummyModel(BoringModel):
         def configure_optimizers(self):
@@ -504,9 +480,7 @@ def test_invalid_optimizer_dict_raises(tmpdir):
 
 
 def test_warn_invalid_scheduler_key_in_manual_optimization(tmpdir):
-    """
-    Test warning when invalid scheduler keys are provided in manual optimization.
-    """
+    """Test warning when invalid scheduler keys are provided in manual optimization."""
 
     class TestModel(BoringModel):
         def __init__(self):
@@ -580,18 +554,18 @@ def test_lr_scheduler_state_updated_before_saving(tmpdir, every_n_train_steps, e
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.parameters(), lr=lr)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=gamma)
-            lr_dict = {"scheduler": lr_scheduler}
+            lr_scheduler_config = {"scheduler": lr_scheduler}
             if not epoch_interval:
-                lr_dict["interval"] = "step"
-            return [optimizer], [lr_dict]
+                lr_scheduler_config["interval"] = "step"
+            return [optimizer], [lr_scheduler_config]
 
         def on_save_checkpoint(self, checkpoint):
-            lr_dict = checkpoint["lr_schedulers"][0]
-            # 2 batches ran. since the lr_dict interval is `step`, the step count should be 2
+            lr_scheduler_config = checkpoint["lr_schedulers"][0]
+            # 2 batches ran. since the lr_scheduler_config interval is `step`, the step count should be 2
             assert self.trainer.global_step + 1 == batches  # the global step hasn't been increased yet
             compare_to = max_epochs if epoch_interval else batches
-            assert lr_dict["_step_count"] - 1 == compare_to  # step count starts at 1
-            assert lr_dict["_last_lr"] == [lr * gamma ** compare_to]
+            assert lr_scheduler_config["_step_count"] - 1 == compare_to  # step count starts at 1
+            assert lr_scheduler_config["_last_lr"] == [lr * gamma ** compare_to]
             self.on_save_checkpoint_called = True
 
     model = TestModel()
@@ -622,19 +596,19 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir, save_on
             optimizer_2 = torch.optim.Adam(self.parameters())
 
             lr_scheduler1 = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer_1)
-            lr_dict_1 = {"scheduler": lr_scheduler1, "interval": "step", "monitor": "foo"}
+            lr_scheduler_config_1 = {"scheduler": lr_scheduler1, "interval": "step", "monitor": "foo"}
 
             lr_scheduler2 = torch.optim.lr_scheduler.StepLR(optimizer_2, step_size=1)
-            lr_dict_2 = {"scheduler": lr_scheduler2, "interval": "step"}
-            return [optimizer_1, optimizer_2], [lr_dict_1, lr_dict_2]
+            lr_scheduler_config_2 = {"scheduler": lr_scheduler2, "interval": "step"}
+            return [optimizer_1, optimizer_2], [lr_scheduler_config_1, lr_scheduler_config_2]
 
         def on_save_checkpoint(self, checkpoint):
-            lr_dict_1 = checkpoint["lr_schedulers"][0]
-            last_epoch = lr_dict_1["last_epoch"]
+            lr_scheduler_config_1 = checkpoint["lr_schedulers"][0]
+            last_epoch = lr_scheduler_config_1["last_epoch"]
             assert last_epoch == batches - (not save_on_train_epoch_end)  # last epoch starts at 0
 
-            lr_dict_2 = checkpoint["lr_schedulers"][1]
-            assert lr_dict_2["_step_count"] - 1 == batches  # step count starts at 1
+            lr_scheduler_config_2 = checkpoint["lr_schedulers"][1]
+            assert lr_scheduler_config_2["_step_count"] - 1 == batches  # step count starts at 1
 
             self.on_save_checkpoint_called = True
 

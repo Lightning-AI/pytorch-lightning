@@ -144,7 +144,10 @@ def test_multi_cpu_model_ddp(tmpdir):
 
 
 def test_lbfgs_cpu_model(tmpdir):
-    """Test each of the trainer options. Testing LBFGS optimizer"""
+    """Test each of the trainer options.
+
+    Testing LBFGS optimizer
+    """
 
     class ModelSpecifiedOptimizer(BoringModel):
         def __init__(self, optimizer_name, learning_rate):
@@ -230,8 +233,10 @@ def test_running_test_after_fitting(tmpdir):
 
 
 def test_running_test_no_val(tmpdir):
-    """Verify `test()` works on a model with no `val_dataloader`. It performs
-    train and test only"""
+    """Verify `test()` works on a model with no `val_dataloader`.
+
+    It performs train and test only
+    """
 
     class ModelTrainTest(BoringModel):
         def val_dataloader(self):

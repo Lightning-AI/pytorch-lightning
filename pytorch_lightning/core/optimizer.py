@@ -26,10 +26,8 @@ def do_nothing_closure():
 
 
 class LightningOptimizer:
-    """
-    This class is used to wrap the user optimizers and handle properly
-    the backward and optimizer_step logic across accelerators, AMP, accumulate_grad_batches
-    """
+    """This class is used to wrap the user optimizers and handle properly the backward and optimizer_step logic
+    across accelerators, AMP, accumulate_grad_batches."""
 
     def __init__(self, optimizer: Optimizer):
 
@@ -105,8 +103,7 @@ class LightningOptimizer:
 
     @contextmanager
     def toggle_model(self, sync_grad: bool = True):
-        """
-        This function is just a helper for advanced users.
+        """This function is just a helper for advanced users.
 
         Considering the current optimizer as A and all other optimizers as B.
         Toggling means all parameters from B exclusive to A will have ``requires_grad`` set to False.
@@ -124,18 +121,15 @@ class LightningOptimizer:
             yield
             self._untoggle_model()
 
-    def __optimizer_step(self, closure: Optional[Callable] = None, profiler_name: str = None, **kwargs):
+    def __optimizer_step(self, closure: Callable, profiler_name: str = None, **kwargs):
         trainer = self._trainer
-        optimizer = self._optimizer
 
         with trainer.profiler.profile(profiler_name):
-            trainer.accelerator.optimizer_step(optimizer, self._optimizer_idx, lambda_closure=closure, **kwargs)
+            trainer.accelerator.optimizer_step(self._optimizer, self._optimizer_idx, lambda_closure=closure, **kwargs)
 
-    def step(self, *args, closure: Optional[Callable] = None, **kwargs):
-        """
-        Call this directly from your training_step when doing optimizations manually.
-        By using this we can ensure that all the proper scaling when using 16-bit, accelerator etc
-        is been done properly for you.
+    def step(self, closure: Optional[Callable] = None, **kwargs):
+        """Call this directly from your training_step when doing optimizations manually. By using this we can
+        ensure that all the proper scaling when using 16-bit, accelerator etc is been done properly for you.
 
         .. note:: In Manual Optimization, the user is expected to know when to call zero_grad,
             perform accumulated_grad_batches, etc ... Lightning will only take care of precision and accelerators
@@ -143,8 +137,6 @@ class LightningOptimizer:
         Args:
 
             closure: One could provide its own optimizer_closure. Set to None by default.
-
-            args: Any parameters provided to wrapped optimizer.step()
 
             kwargs: Any parameters provided to wrapped optimizer.step()
 
@@ -199,17 +191,16 @@ class LightningOptimizer:
 
                 with opt_dis.toggle_model(sync_grad=accumulated_grad_batches):
                     opt_dis.step(closure=closure_dis)
-
         """
         if closure is None:
-            profiler_name = "closure_{self._optimizer_idx}"
+            profiler_name = f"closure_{self._optimizer_idx}"
             closure = do_nothing_closure
         else:
             if not callable(closure):
                 raise MisconfigurationException("When closure is provided, it should be a function")
             profiler_name = f"optimizer_step_and_closure_{self._optimizer_idx}"
 
-        self.__optimizer_step(*args, closure=closure, profiler_name=profiler_name, **kwargs)
+        self.__optimizer_step(closure=closure, profiler_name=profiler_name, **kwargs)
         self._total_optimizer_step_calls += 1
 
     def __repr__(self):

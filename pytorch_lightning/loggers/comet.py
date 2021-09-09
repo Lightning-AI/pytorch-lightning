@@ -268,8 +268,7 @@ class CometLogger(LightningLoggerBase):
 
     @property
     def save_dir(self) -> Optional[str]:
-        """
-        Gets the save directory.
+        """Gets the save directory.
 
         Returns:
             The path to the save directory.
@@ -278,8 +277,7 @@ class CometLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        """
-        Gets the project name.
+        """Gets the project name.
 
         Returns:
             The project name if it is specified, else "comet-default".
@@ -295,8 +293,7 @@ class CometLogger(LightningLoggerBase):
 
     @property
     def version(self) -> str:
-        """
-        Gets the version.
+        """Gets the version.
 
         Returns:
             The first one of the following that is set in the following order

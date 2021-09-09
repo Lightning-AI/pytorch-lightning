@@ -128,7 +128,7 @@ conda install pytorch-lightning -c conda-forge
 
 the actual status of 1.4 \[stable\] is following:
 
-![CI base testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20base%20testing/badge.svg?branch=release%2F1.4.x&event=push)
+![CI basic testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20basic%20testing/badge.svg?branch=release%2F1.4.x&event=push)
 ![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=release%2F1.4.x&event=push)
 ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=release%2F1.4.x&event=push)
 ![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg?branch=release%2F1.4.x&event=push)
@@ -429,24 +429,3 @@ grid train --grid_gpus 4 my_model.py --learning_rate 'uniform(1e-6, 1e-1, 20)' -
 
 The above command will launch (20 * 4) experiments each running on 4 GPUs (320 GPUs!) - by making ZERO changes to
 your code.
-
-______________________________________________________________________
-
-## Licence
-
-Please observe the Apache 2.0 license that is listed in this repository.
-In addition, the Lightning framework is Patent Pending.
-
-## BibTeX
-
-If you want to cite the framework feel free to use this (but only if you loved it 😊) or [zenodo](https://zenodo.org/record/3828935#.YC45Lc9Khqs):
-
-```bibtex
-@article{falcon2019pytorch,
-  title={PyTorch Lightning},
-  author={Falcon, WA, et al.},
-  journal={GitHub. Note: https://github.com/PyTorchLightning/pytorch-lightning},
-  volume={3},
-  year={2019}
-}
-```

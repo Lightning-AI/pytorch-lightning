@@ -125,10 +125,9 @@ class DeepSpeedPlugin(DDPPlugin):
         synchronize_checkpoint_boundary: bool = False,
         load_full_weights: bool = False,
     ) -> None:
-        """
-        Provides capabilities to run training using the DeepSpeed library,
-        with training optimizations for large billion parameter models.
-        `For more information: https://pytorch-lightning.readthedocs.io/en/latest/advanced/multi_gpu.html#deepspeed`.
+        """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
+        billion parameter models. `For more information: https://pytorch-
+        lightning.readthedocs.io/en/latest/advanced/multi_gpu.html#deepspeed`.
 
         .. warning:: ``DeepSpeedPlugin`` is in beta and subject to change.
 
@@ -519,11 +518,10 @@ class DeepSpeedPlugin(DDPPlugin):
         self.model.step(**kwargs)
 
     def _handle_gradient_accumulation_steps(self):
-        """
-        This functions overrides the trainer.accumulation_scheduler to generate
-        ``accumulate_grad_batches=1``.
-        Therefore, ``optimizer_step`` will be called on every batches seen
-        so DeepSpeed Engine handles the gradient accumulation logic internally.
+        """This functions overrides the trainer.accumulation_scheduler to generate ``accumulate_grad_batches=1``.
+
+        Therefore, ``optimizer_step`` will be called on every batches seen so DeepSpeed Engine handles the gradient
+        accumulation logic internally.
         """
         if self.config.get("gradient_accumulation_steps") > 1:
             self._original_accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
@@ -548,6 +546,11 @@ class DeepSpeedPlugin(DDPPlugin):
                 " as this will be set via accumulate_grad_batches=x argument passed via the Lightning Trainer."
             )
         if "train_micro_batch_size_per_gpu" not in self.config:
+            rank_zero_warn(
+                "Inferring the batch size for internal deepspeed logging from the `train_dataloader()`. "
+                "If you require skipping this, please pass "
+                "`Trainer(plugins=DeepSpeedPlugin(logging_batch_size_per_gpu=batch_size))`"
+            )
             batch_size = self._auto_select_batch_size()
             self.config["train_micro_batch_size_per_gpu"] = batch_size
         self.config["gradient_accumulation_steps"] = self.lightning_module.trainer.accumulate_grad_batches
@@ -669,7 +672,6 @@ class DeepSpeedPlugin(DDPPlugin):
             filepath: write-target file's path
         """
         if self.zero_stage_3 and self._multi_device and self.is_global_zero:
-            # todo (sean): Add link to docs once docs are merged.
             warning_cache.warn(
                 "When saving the DeepSpeed Stage 3 checkpoint, "
                 "each worker will save a shard of the checkpoint within a directory. "
@@ -722,11 +724,9 @@ class DeepSpeedPlugin(DDPPlugin):
             self._restore_zero_state(checkpoint)
 
     def _restore_zero_state(self, ckpt: Mapping[str, Any]) -> None:
-        """
-        Overrides the normal load_state_dict behaviour in PyTorch to ensure
-        we gather parameters that may be sharded across processes before loading
-        the state dictionary when using ZeRO stage 3.
-        This is then automatically synced across processes.
+        """Overrides the normal load_state_dict behaviour in PyTorch to ensure we gather parameters that may be
+        sharded across processes before loading the state dictionary when using ZeRO stage 3. This is then
+        automatically synced across processes.
 
         Args:
             ckpt: The ckpt file.

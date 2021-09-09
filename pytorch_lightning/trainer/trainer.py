@@ -16,9 +16,10 @@ import logging
 import os
 import traceback
 import warnings
+from contextlib import contextmanager
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
 
 import torch
@@ -76,7 +77,7 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
+from pytorch_lightning.utilities.imports import _fault_tolerant_training, _TORCH_GREATER_EQUAL_1_9
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.seed import reset_seed
@@ -268,12 +269,15 @@ class Trainer(
                 Can be used on CPU, GPU or TPUs.
 
             max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
-                If both max_epochs and max_steps are not specified, defaults to ``max_epochs`` = 1000.
+                If both max_epochs and max_steps are not specified, defaults to ``max_epochs = 1000``.
+                To enable infinite training, set ``max_epochs = -1``.
 
             min_epochs: Force training for at least these many epochs. Disabled by default (None).
-                If both min_epochs and min_steps are not specified, defaults to ``min_epochs`` = 1.
+                If both min_epochs and min_steps are not specified, defaults to ``min_epochs = 1``.
 
-            max_steps: Stop training after this number of steps. Disabled by default (None).
+            max_steps: Stop training after this number of steps. Disabled by default (None). If ``max_steps = None``
+                and ``max_epochs = None``, will default to ``max_epochs = 1000``. To disable this default, set
+                ``max_steps`` to ``-1``.
 
             min_steps: Force training for at least these number of steps. Disabled by default (None).
 
@@ -380,6 +384,7 @@ class Trainer(
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
 
+        # max_epochs won't default to 1000 if max_steps/max_time are specified (including being set to -1).
         fit_loop = FitLoop(
             min_epochs=(1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs),
             max_epochs=(1000 if (max_epochs is None and max_steps is None and max_time is None) else max_epochs),
@@ -505,6 +510,7 @@ class Trainer(
         """
         try:
             return trainer_fn(*args, **kwargs)
+        # TODO: treat KeyboardInterrupt as BaseException (delete the code below) in v1.7
         except KeyboardInterrupt as exception:
             rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
             # user could press Ctrl+c many times... only shutdown once
@@ -1141,7 +1147,7 @@ class Trainer(
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self._evaluation_loop.trainer = self
 
-        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), torch.no_grad():
+        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), self._evaluation_context():
             eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
@@ -1157,7 +1163,7 @@ class Trainer(
         self.reset_predict_dataloader(self.lightning_module)
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self.predict_loop.trainer = self
-        with torch.no_grad():
+        with self._evaluation_context():
             return self.predict_loop.run()
 
     def _run_sanity_check(self, ref_model):
@@ -1386,3 +1392,8 @@ class Trainer(
         # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
         file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")
         self.save_checkpoint(file_path)
+
+    @contextmanager
+    def _evaluation_context(self) -> Generator:
+        with torch.inference_mode() if _TORCH_GREATER_EQUAL_1_9 else torch.no_grad():
+            yield

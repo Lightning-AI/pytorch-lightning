@@ -27,7 +27,7 @@ from tests.utilities.test_model_summary import UnorderedModel
 
 
 def test_model_saves_with_input_sample(tmpdir):
-    """Test that ONNX model saves with input sample and size is greater than 3 MB"""
+    """Test that ONNX model saves with input sample and size is greater than 3 MB."""
     model = BoringModel()
     trainer = Trainer(fast_dev_run=True)
     trainer.fit(model)
@@ -41,7 +41,7 @@ def test_model_saves_with_input_sample(tmpdir):
 
 @RunIf(min_gpus=1)
 def test_model_saves_on_gpu(tmpdir):
-    """Test that model saves on gpu"""
+    """Test that model saves on gpu."""
     model = BoringModel()
     trainer = Trainer(gpus=1, fast_dev_run=True)
     trainer.fit(model)
@@ -54,7 +54,7 @@ def test_model_saves_on_gpu(tmpdir):
 
 
 def test_model_saves_with_example_output(tmpdir):
-    """Test that ONNX model saves when provided with example output"""
+    """Test that ONNX model saves when provided with example output."""
     model = BoringModel()
     trainer = Trainer(fast_dev_run=True)
     trainer.fit(model)
@@ -75,7 +75,7 @@ def test_model_saves_with_example_output(tmpdir):
     ],
 )
 def test_model_saves_with_example_input_array(tmpdir, modelclass, input_sample):
-    """Test that ONNX model saves with example_input_array and size is greater than 3 MB"""
+    """Test that ONNX model saves with example_input_array and size is greater than 3 MB."""
     model = modelclass()
     model.example_input_array = input_sample
 
@@ -87,7 +87,7 @@ def test_model_saves_with_example_input_array(tmpdir, modelclass, input_sample):
 
 @RunIf(min_gpus=2)
 def test_model_saves_on_multi_gpu(tmpdir):
-    """Test that ONNX model saves on a distributed backend"""
+    """Test that ONNX model saves on a distributed backend."""
     tutils.set_random_master_port()
 
     trainer_options = dict(
@@ -111,7 +111,7 @@ def test_model_saves_on_multi_gpu(tmpdir):
 
 
 def test_verbose_param(tmpdir, capsys):
-    """Test that output is present when verbose parameter is set"""
+    """Test that output is present when verbose parameter is set."""
     model = BoringModel()
     model.example_input_array = torch.randn(5, 32)
 
@@ -122,7 +122,7 @@ def test_verbose_param(tmpdir, capsys):
 
 
 def test_error_if_no_input(tmpdir):
-    """Test that an error is thrown when there is no input tensor"""
+    """Test that an error is thrown when there is no input tensor."""
     model = BoringModel()
     model.example_input_array = None
     file_path = os.path.join(tmpdir, "model.onnx")
@@ -135,7 +135,7 @@ def test_error_if_no_input(tmpdir):
 
 
 def test_if_inference_output_is_valid(tmpdir):
-    """Test that the output inferred from ONNX model is same as from PyTorch"""
+    """Test that the output inferred from ONNX model is same as from PyTorch."""
     model = BoringModel()
     model.example_input_array = torch.randn(5, 32)
 

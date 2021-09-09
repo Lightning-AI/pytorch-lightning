@@ -139,8 +139,8 @@ class CallbackConnector:
             callback.log_dict = model.log_dict
 
     def _attach_model_callbacks(self) -> None:
-        """
-        Attaches the callbacks defined in the model.
+        """Attaches the callbacks defined in the model.
+
         If a callback returned by the model's configure_callback method has the same type as one or several
         callbacks already present in the trainer callbacks list, it will replace them.
         In addition, all :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks
@@ -167,8 +167,7 @@ class CallbackConnector:
 
     @staticmethod
     def _reorder_callbacks(callbacks: List[Callback]) -> List[Callback]:
-        """
-        Moves all ModelCheckpoint callbacks to the end of the list. The sequential order within the group of
+        """Moves all ModelCheckpoint callbacks to the end of the list. The sequential order within the group of
         checkpoint callbacks is preserved, as well as the order of all other callbacks.
 
         Args:
