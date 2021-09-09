@@ -31,5 +31,3 @@ jobs:
         else
           echo "worked"
         fi
-
-        exit 0

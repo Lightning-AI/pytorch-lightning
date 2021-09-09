@@ -38,7 +38,6 @@ jobs:
       clean: all
 
     steps:
-
     - bash: |
         lspci | egrep 'VGA|3D'
         whereis nvidia
