@@ -30,11 +30,9 @@ jobs:
           exit 1
         fi
 
-        TOKEN=$(echo "$PR_DESCRIPTION" | grep -ioE 'Fixes')
-        # TOKEN+=$(echo "$PR_DESCRIPTION" | grep -ioE 'Follow up to')
-        # TOKEN+=$(echo "$PR_DESCRIPTION" | grep -ioE 'Parts of')
+        DEFAULT_DESCRIPTION=$(echo "$PR_DESCRIPTION" | grep -ioE 'Fixes')
 
-        if [ -z "$TOKEN" ]
+        if [ ! -z "$DEFAULT_DESCRIPTION" ]
         then
           echo "You should reference this PR to an issue and/or other PRs for better traceability."
           exit 1
