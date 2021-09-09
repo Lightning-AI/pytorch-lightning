@@ -135,7 +135,6 @@ class EvaluationEpochLoop(Loop):
         outputs = self.outputs
         # free memory
         self.outputs = []
-        self.dataloader_iter = None
         return outputs
 
     def evaluation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Optional[STEP_OUTPUT]:
