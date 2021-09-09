@@ -326,7 +326,7 @@ class DDPPlugin(ParallelPlugin):
         optimizers = self.lightning_module.trainer.optimizers
         if self._model_averaging_period is None:
             raise ValueError(
-                "Post-localSGD algorithm is used, " "but model averaging period is not provided to DDP plugin."
+                "Post-localSGD algorithm is used, but model averaging period is not provided to DDP plugin."
             )
         averager = averagers.PeriodicModelAverager(period=self._model_averaging_period, warmup_steps=warmup_steps)
         for x, optimizer in enumerate(optimizers):
