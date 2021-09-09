@@ -93,6 +93,6 @@ class ManualOptimization(Loop):
     def on_run_end(self) -> Optional[ClosureResult]:
         """Returns the result of this loop, i.e., the post-processed outputs from the training step."""
         output, self._output = self._output, None  # free memory
-        # #9052 added support for raising `StopIteration` in the `training_step` this `advance` doesn't finish
-        # and the return value is `Optional`. If #9415 happens then this can be avoided.
+        # #9052 added support for raising `StopIteration` in the `training_step`. If that happens, then `advance`
+        # doesn't finish and `self._output` stays as `None`. If #9415 happens then this would always return a result
         return output
