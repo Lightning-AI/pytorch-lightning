@@ -28,6 +28,7 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
 def rank_zero_experiment(fn: Callable) -> Callable:
@@ -309,6 +310,20 @@ class LightningLoggerBase(ABC):
         """
         self.save()
 
+    def close(self) -> None:
+        """Do any cleanup that is necessary to close an experiment.
+
+        .. deprecated:: v1.5
+            This method was deprecated in v1.5 and will be removed in v1.7
+            in favor of `LightningLoggerBase.save`
+            
+        """
+        rank_zero_deprecation(
+            "`LightningLoggerBase.close` method is deprecated in v1.5 and will be removed in v1.7"
+            "in favor of `LightningLoggerBase.save` "
+        )
+        self.save()
+
     @property
     def save_dir(self) -> Optional[str]:
         """Return the root directory where experiment logs get saved, or `None` if the logger does not save data
@@ -386,6 +401,20 @@ class LoggerCollection(LightningLoggerBase):
     def finalize(self, status: str) -> None:
         for logger in self._logger_iterable:
             logger.finalize(status)
+
+    def close(self) -> None:
+        """
+        .. deprecated:: v1.5
+            This method was deprecated in v1.5 and will be removed in v1.7
+            in favor of `LoggerCollection.save`
+            
+        """
+        rank_zero_deprecation(
+            "`LoggerCollection.close` method is deprecated in v1.5 and will be removed in v1.7"
+            "in favor of `LoggerCollection.save` "
+        )
+        for logger in self._logger_iterable:
+            logger.close()
 
     @property
     def save_dir(self) -> Optional[str]:
