@@ -73,6 +73,8 @@ class TensorBoardLogger(LightningLoggerBase):
         default_hp_metric: Enables a placeholder metric with key `hp_metric` when `log_hyperparams` is
             called without a metric (otherwise calls to log_hyperparams without a metric are ignored).
         prefix: A string to put at the beginning of metric keys.
+        sub_dir: Optional subdirectory to store logs.
+        flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
         \**kwargs: Additional arguments like `comment`, `filename_suffix`, etc. used by
             :class:`SummaryWriter` can be passed as keyword arguments in this logger.
 
@@ -89,6 +91,7 @@ class TensorBoardLogger(LightningLoggerBase):
         default_hp_metric: bool = True,
         prefix: str = "",
         sub_dir: Optional[str] = None,
+        flush_logs_every_n_steps: int = 100,
         **kwargs,
     ):
         super().__init__()
@@ -100,6 +103,7 @@ class TensorBoardLogger(LightningLoggerBase):
         self._default_hp_metric = default_hp_metric
         self._prefix = prefix
         self._fs = get_filesystem(save_dir)
+        self._flush_logs_every_n_steps = flush_logs_every_n_steps
 
         self._experiment = None
         self.hparams = {}
@@ -229,6 +233,9 @@ class TensorBoardLogger(LightningLoggerBase):
                 except Exception as ex:
                     m = f"\n you tried to log {v} which is not currently supported. Try a dict or a scalar/tensor."
                     raise ValueError(m) from ex
+
+        if step is not None and (step + 1) % self._flush_logs_every_n_steps == 0:
+            self.experiment.flush()
 
     @rank_zero_only
     def log_graph(self, model: "pl.LightningModule", input_array=None):

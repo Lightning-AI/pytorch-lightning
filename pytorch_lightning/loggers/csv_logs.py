@@ -157,7 +157,7 @@ class CSVLogger(LightningLoggerBase):
         By default, it is named ``'version_${self.version}'`` but it can be overridden by passing a string value for the
         constructor's version parameter instead of ``None`` or an int.
         """
-        # create a pseudo standard path ala test-tube
+        # create a pseudo standard path
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
         log_dir = os.path.join(self.root_dir, version)
         return log_dir
