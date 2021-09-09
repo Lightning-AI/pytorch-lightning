@@ -85,7 +85,7 @@ class ClosureResult:
 
         apply_to_collection(extra, Tensor, check_fn)
 
-    def without_closure(self) -> "ClosureResult":
+    def drop_closure_loss(self) -> "ClosureResult":
         """Return itself without the closure loss which could have a `grad_fn`"""
         self.closure_loss = None
         return self

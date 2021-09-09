@@ -79,7 +79,7 @@ class OptimizerLoop(Loop):
             self.optim_progress.optimizer_idx,
         )
         if result.loss is not None:
-            self.outputs[self.optim_progress.optimizer_idx].append(result.without_closure())
+            self.outputs[self.optim_progress.optimizer_idx].append(result.drop_closure_loss())
 
         self.optim_progress.optimizer_idx += 1
 

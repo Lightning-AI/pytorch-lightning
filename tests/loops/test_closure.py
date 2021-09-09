@@ -56,7 +56,7 @@ def test_closure_result_deepcopy():
     # the `loss` is cloned so the storage is different
     assert closure_loss.data_ptr() != result.loss.data_ptr()
 
-    copy = result.without_closure()
+    copy = result.drop_closure_loss()
     assert result.loss == copy.loss
     assert copy.closure_loss is None
 
