@@ -23,6 +23,8 @@ jobs:
 
         DEFAULT_DESCRIPTION=$(echo "$PR_DESCRIPTION" | grep -ioE '<issue_number>')
 
+        echo "$DEFAULT_DESCRIPTION"
+
         # The default template should be overridden.
         if [[ -z "$DEFAULT_DESCRIPTION"]]; then
           echo "You should reference this PR to an issue and/or other PRs for better traceability."
