@@ -965,34 +965,6 @@ class Trainer(
         self.accelerator.setup(self)
 
         # ----------------------------
-        # INSPECT THE CORE LOOPS
-        # ----------------------------
-        fr"""
-             Lightning internal flow looks like this:
-        {Trainer.fit} or {Trainer.test} or {Trainer.predict}  ||
-                                |                             ||
-                        create accelerator                    ||
-                                |                             ||
-                         {self._dispatch}                     ||
-                                |                             ||  LIGHTNING
-                  {self.accelerator.start_training}           ||
-                or {self.accelerator.start_evaluating}        ||
-                or {self.accelerator.start_predicting}        ||  FLOW
-                                |                             ||
-                         {self.run_stage}                     ||
-                                |                             ||  DIRECTION
-                        {self._run_train}                     ||
-                     or {self._run_evaluate}                  ||
-                     or {self._run_predict}                   ||
-                                |                             ||
-                             results                          \/
-        This is used to guide readers to the core loops: train, test, predict.
-        {self._run_predict} is the simplest to understand, use `Go to Definition` to read it :)
-        Search for `start_training` or `start_evaluating` or `start_predicting` in
-        `pytorch_lightning/plugins/training_type_plugin` to find accelerator dispatch functions.
-        """
-
-        # ----------------------------
         # TRAIN
         # ----------------------------
         # hook
