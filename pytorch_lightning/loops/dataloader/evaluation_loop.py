@@ -94,6 +94,11 @@ class EvaluationLoop(DataLoaderLoop):
         self._on_evaluation_start()
         self._on_evaluation_epoch_start()
 
+    def on_advance_start(self) -> None:
+        """Reset the metrics."""
+        # reset metrics
+        self.trainer.logger_connector.reset_metrics()
+
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Performs evaluation on one single dataloader."""
         void(*args, **kwargs)
