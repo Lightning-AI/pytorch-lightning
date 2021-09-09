@@ -24,11 +24,10 @@ jobs:
 
         echo $DEFAULT_DESCRIPTION
 
-        if [ ! -z "$DEFAULT_DESCRIPTION" ]
+        if [ -z "$DEFAULT_DESCRIPTION" ]
         then
-          echo "You should reference this PR to an issue and/or other PRs for better traceability."
-          exit 1
+            echo "template edited"
         else
-          echo "worked"
-          exit 0
+            echo "You should reference this PR to an issue and/or other PRs for better traceability."
+            exit 1
         fi
