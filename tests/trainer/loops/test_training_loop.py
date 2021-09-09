@@ -95,14 +95,11 @@ def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_):
     model = CurrentModel()
     trainer = Trainer(max_epochs=max_epochs, limit_train_batches=10)
     trainer.fit(model)
-    total_batch_idx_ = max_epochs * batch_idx_
     if batch_idx_ > trainer.num_training_batches - 1:
-        # epoch ended before the -1 break could occur, all epochs are complete
-        assert trainer.fit_loop.epoch_loop.batch_progress.total.completed == trainer.num_training_batches * max_epochs
+        assert trainer.fit_loop.batch_idx == trainer.num_training_batches - 1
         assert trainer.global_step == trainer.num_training_batches * max_epochs
     else:
-        # we broke out of the loop with -1 return in every epoch, every epoch is incomplete
-        assert trainer.fit_loop.epoch_loop.batch_progress.total.completed == total_batch_idx_
+        assert trainer.fit_loop.batch_idx == batch_idx_
         assert trainer.global_step == batch_idx_ * max_epochs
 
 
