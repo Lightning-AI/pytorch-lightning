@@ -33,7 +33,7 @@ jobs:
         import os
         import re
 
-        description = os.getenv("PR_DESCRIPTION")
+        description = os.getenv("PR_DESCRIPTION").lower()
 
         print(description)
 
