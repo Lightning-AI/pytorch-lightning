@@ -388,24 +388,24 @@ class StepFuncDataLoaderIter:
         self.stage = stage
         self.batch_to_device = batch_to_device
         self.profiler = profiler
-        self.training_step_data_fetcher: Optional[DataFetcher] = None
+        self.pl_module_step_data_fetcher: Optional[DataFetcher] = None
 
     def __iter__(self) -> "StepFuncDataLoaderIter":
-        training_step_data_fetcher = DataFetcher()
-        training_step_data_fetcher.setup(
+        pl_module_step_data_fetcher = DataFetcher()
+        pl_module_step_data_fetcher.setup(
             self.iterator,
         )
-        self.training_step_data_fetcher = iter(training_step_data_fetcher)
+        self.pl_module_step_data_fetcher = iter(pl_module_step_data_fetcher)
         return self
 
     def __next__(self) -> Any:
         try:
             self.parent_data_fetcher.fetched += 1
-            data = next(self.training_step_data_fetcher)
+            data = next(self.pl_module_step_data_fetcher)
             return data[0]
         except StopIteration:
             self.parent_data_fetcher.done = True
-            self.training_step_data_fetcher = None
+            self.pl_module_step_data_fetcher = None
             raise StopIteration
 
 
