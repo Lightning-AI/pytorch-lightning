@@ -17,7 +17,7 @@ import torch
 
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
-from pytorch_lightning.loops.closure import ClosureResult
+from pytorch_lightning.loops.closure import OutputResult
 from pytorch_lightning.loops.utilities import _prepare_dataloader_iter
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import Progress, SchedulerProgress
@@ -282,18 +282,18 @@ class TrainingEpochLoop(loops.Loop):
 
     @staticmethod
     def _prepare_outputs(
-        outputs: List[List[List[ClosureResult]]], batch_mode: bool
+        outputs: List[List[List[OutputResult]]], batch_mode: bool
     ) -> Union[List[List[List[Dict]]], List[List[Dict]], List[Dict], Dict]:
         """Extract required information from batch or epoch end results.
 
         Args:
-            outputs: A 3-dimensional list of ``ClosureResult`` objects with dimensions:
+            outputs: A 3-dimensional list of ``OutputResult`` objects with dimensions:
                 ``[optimizer outs][batch outs][tbptt steps]``.
 
             batch_mode: If True, ignore the batch output dimension.
 
         Returns:
-            The cleaned outputs with ``ClosureResult`` objects converted to dictionaries.
+            The cleaned outputs with ``OutputResult`` objects converted to dictionaries.
             All list dimensions of size one will be collapsed.
         """
         processed_outputs = []
@@ -308,17 +308,10 @@ class TrainingEpochLoop(loops.Loop):
                 opt_outputs = [opt_outputs]
 
             for batch_outputs in opt_outputs:
-                processed_tbptt_outputs = []
-
-                if isinstance(batch_outputs, ClosureResult):
+                if isinstance(batch_outputs, OutputResult):
                     batch_outputs = [batch_outputs]
 
-                for tbptt_output in batch_outputs:
-                    out = {}
-                    if tbptt_output.loss is not None:
-                        out["loss"] = tbptt_output.loss
-                    out.update(tbptt_output.extra)
-                    processed_tbptt_outputs.append(out)
+                processed_tbptt_outputs = [tbptt_output.extra for tbptt_output in batch_outputs]
 
                 # if there was only one tbptt step then we can collapse that dimension
                 if len(processed_tbptt_outputs) == 1:
