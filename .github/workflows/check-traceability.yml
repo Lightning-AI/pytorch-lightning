@@ -16,6 +16,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
         PR_NUMBER: ${{ github.event.pull_request.number }}
+      shell: bash
       run: |
         set -e
 
@@ -25,8 +26,8 @@ jobs:
 
         echo "$DEFAULT_DESCRIPTION"
 
-        # The default template should be overridden.
-        if [[ -z "$DEFAULT_DESCRIPTION"]]; then
+        if [[ -z "$DEFAULT_DESCRIPTION"]]
+        then
           echo "You should reference this PR to an issue and/or other PRs for better traceability."
           exit 1
         fi
