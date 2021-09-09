@@ -22,7 +22,7 @@ jobs:
     - name: Fetch PR Description
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-      run: echo "::set-output name=description::$(gh pr view ${{ env.PR_NUMBER }})"
+      run: echo "::set-output name=description::$(gh pr view ${{ github.event.pull_request.number }})"
       id: pr
 
     - name: Check PR validity
