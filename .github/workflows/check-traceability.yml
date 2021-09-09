@@ -17,7 +17,7 @@ jobs:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
         PR_NUMBER: ${{ github.event.pull_request.number }}
       run: |
-        PR_DESCRIPTION=$(gh pr view ${{ env.PR_NUMBER }}")
+        PR_DESCRIPTION=$(gh pr view ${{ env.PR_NUMBER }})
         FIX_MATCHES=$(echo "$PR_DESCRIPTION" | grep '^Fixe\|Close')
         FOLLOW_UPS=$(echo "$PR_DESCRIPTION" | grep '^Follow up to')
         PARTS_OF=$(echo "$PR_DESCRIPTION" | grep '^Part of\|Parts of')
