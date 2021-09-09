@@ -24,7 +24,6 @@ jobs:
 
         if [ -z "$DEFAULT_DESCRIPTION" ]
         then
-            echo "template edited"
             exit 0
         else
             echo "You should reference this PR to an issue and/or other PRs for better traceability."
