@@ -21,4 +21,10 @@ jobs:
 
         PR_DESCRIPTION=$(gh pr view ${{ env.PR_NUMBER }})
 
-        DEFAULT_DESCRIPTION=$(echo "$PR_DESCRIPTION" | grep -ioE 'Fixes')
+        DEFAULT_DESCRIPTION=$(echo "$PR_DESCRIPTION" | grep -ioE '<issue_number>')
+
+        # The default template should be overridden.
+        if [[ -z "$DEFAULT_DESCRIPTION"]]; then
+          echo "You should reference this PR to an issue and/or other PRs for better traceability."
+          exit 1
+        fi
