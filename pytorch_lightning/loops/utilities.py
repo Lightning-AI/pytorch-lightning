@@ -70,19 +70,19 @@ def _extract_hiddens(training_step_output: STEP_OUTPUT, truncated_bptt_steps: in
         MisconfigurationException: If :attr:`~pytorch_lightning.core.Lightning.LightningModule.truncated_bptt_steps` is
             not enabled and hiddens are returned or vice versa.
     """
+    is_dict = isinstance(training_step_output, dict)
     if not truncated_bptt_steps:
-        if "hiddens" in training_step_output:
+        if is_dict and "hiddens" in training_step_output:
             raise MisconfigurationException(
                 'You returned "hiddens" in your `training_step` but `truncated_bptt_steps` is disabled'
             )
         return
-    elif not isinstance(training_step_output, dict) or "hiddens" not in training_step_output:
+    elif not is_dict or "hiddens" not in training_step_output:
         raise MisconfigurationException(
             'You enabled `truncated_bptt_steps` but did not return "hiddens" in your `training_step`'
         )
-    hiddens = training_step_output.get("hiddens")
     # detach hiddens to avoid `RuntimeError: Trying to backward through the graph a second time`
-    hiddens = recursive_detach(hiddens)
+    hiddens = recursive_detach(training_step_output["hiddens"])
     return hiddens
 
 
