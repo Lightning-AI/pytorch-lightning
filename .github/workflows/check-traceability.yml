@@ -22,7 +22,7 @@ jobs:
     - name: Fetch PR Description
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-      run: echo "::set-output name=description::$(gh pr view ${{ github.event.pull_request.number }})"
+      run: echo "::set-output name=description::$(gh pr view ${{ github.event.pull_request.number }} | tr -d "\n\r" | tr -d ' ')"
       id: pr
 
     - name: Check PR validity
@@ -42,7 +42,7 @@ jobs:
 
         print("Template edited !")
 
-        contains_fix = 'fixes #' in description
+        contains_fix = 'fixes#' in description
         contains_parts = 'parts of' in description
 
         if not (contains_fix or contains_parts):
