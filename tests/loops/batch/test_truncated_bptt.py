@@ -116,7 +116,7 @@ def test_tbptt_split_shapes(tmpdir, model_class):
     assert t % truncated_bptt_steps != 0, "test must run with sequence length not divisible by tbptt steps"
 
     seq2seq_dataset = TensorDataset(torch.rand(n, t, f), torch.rand(n, t, f))
-    train_dataloader = DataLoader(dataset=seq2seq_dataset, batch_size=batch_size)
+    train_dataloader = DataLoader(dataset=seq2seq_dataset, batch_size=batch_size, drop_last=True)
 
     class TBPTTModel(model_class):
         def training_step(self, batch, batch_idx, hiddens):
@@ -146,7 +146,7 @@ def test_tbptt_split_shapes(tmpdir, model_class):
     )
     trainer.fit(model, train_dataloaders=train_dataloader)
 
-    assert trainer.fit_loop.batch_idx == n // batch_size
+    assert trainer.fit_loop.epoch_loop.batch_progress.total.completed == n // batch_size
     assert trainer.fit_loop.split_idx == t // truncated_bptt_steps
 
 
