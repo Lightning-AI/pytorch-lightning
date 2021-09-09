@@ -17,7 +17,9 @@ jobs:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
         PR_NUMBER: ${{ github.event.pull_request.number }}
       run: |
+        set -e
+
         PR_DESCRIPTION=$(gh pr view ${{ env.PR_NUMBER }})
 
-        DEFAULT_DESCRIPTION=$(echo "${PR_DESCRIPTION}" | grep "<issue_number>")
+        DEFAULT_DESCRIPTION=$(echo ${{PR_DESCRIPTION}} | grep "<issue_number>")
         echo $DEFAULT_DESCRIPTION
