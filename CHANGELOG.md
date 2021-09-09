@@ -197,6 +197,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated passing `process_position` to the `Trainer` constructor in favor of adding the `ProgressBar` callback with `process_position` directly to the list of callbacks ([#9222](https://github.com/PyTorchLightning/pytorch-lightning/pull/9222))
 
 
+- Deprecated `LightningLoggerBase.close`, `LoggerCollection.close` in favor of `LightningLoggerBase.save`, `LoggerCollection.save` ([#9422](https://github.com/PyTorchLightning/pytorch-lightning/pull/9422))
+
+
+
 
 ### Removed
 
