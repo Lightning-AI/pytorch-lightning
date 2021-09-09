@@ -24,7 +24,12 @@ jobs:
 
         if [ -z "$DEFAULT_DESCRIPTION" ]
         then
-            exit 0
+              echo "\$DEFAULT_DESCRIPTION is empty"
+        else
+              echo "\$DEFAULT_DESCRIPTION is NOT empty"
+        fi
+
+        if [ ! -z "$DEFAULT_DESCRIPTION" ]
         else
             echo "You should reference this PR to an issue and/or other PRs for better traceability."
             exit 1
