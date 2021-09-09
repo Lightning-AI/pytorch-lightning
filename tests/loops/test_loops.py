@@ -22,6 +22,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loops import Loop, TrainingBatchLoop
 from pytorch_lightning.trainer.progress import BaseProgress
 from tests.helpers import BoringModel
@@ -644,3 +645,90 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
         "epoch_loop._results": ANY,
     }
     assert checkpoint["loops"]["fit_loop"] == expected
+
+
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+def test_fit_loop_reset(tmpdir):
+
+    # generate checkpoints at end of epoch and mid-epoch
+    model = BoringModel()
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=tmpdir,
+        every_n_train_steps=2,
+        save_top_k=-1,
+    )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=4,
+        num_sanity_val_steps=0,
+        max_epochs=2,
+        callbacks=[checkpoint_callback],
+        logger=False,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    # reset state loaded from a checkpoint from mid-epoch
+    mid_epoch_ckpt = torch.load(str(tmpdir / "epoch=0-step=1.ckpt"))
+    fit_loop = trainer.fit_loop
+    epoch_loop = fit_loop.epoch_loop
+    assert not fit_loop.restarting
+    assert not epoch_loop.restarting
+
+    fit_loop.load_state_dict(mid_epoch_ckpt["loops"]["fit_loop"])
+
+    def mid_epoch_reset_assertions():
+        assert fit_loop.restarting
+        assert fit_loop.epoch_progress.total.ready == 1
+        assert fit_loop.epoch_progress.total.completed == 0  # the checkpoint was saved mid epoch
+        assert fit_loop.epoch_progress.current.ready == 0
+        assert fit_loop.epoch_progress.current.completed == 0
+
+        assert epoch_loop.restarting
+        assert epoch_loop.batch_progress.total.ready == 2
+        assert epoch_loop.batch_progress.total.completed == 1  # the checkpoint was saved on train_batch_end
+        assert epoch_loop.batch_progress.current.ready == 2
+        assert epoch_loop.batch_progress.current.completed == 2
+
+    # resetting from a mid-epoch checkpoint should not change progress counters
+    mid_epoch_reset_assertions()
+    fit_loop.reset()
+    epoch_loop.reset()
+    mid_epoch_reset_assertions()
+
+    # reset state loaded from a checkpoint from the end of an epoch
+    end_of_epoch_ckpt = torch.load(str(tmpdir / "epoch=0-step=3.ckpt"))
+    fit_loop = trainer.fit_loop
+    epoch_loop = fit_loop.epoch_loop
+    fit_loop.restarting = False
+    epoch_loop.restarting = False
+
+    fit_loop.load_state_dict(end_of_epoch_ckpt["loops"]["fit_loop"])
+
+    assert fit_loop.restarting
+    assert fit_loop.epoch_progress.total.ready == 1
+    assert fit_loop.epoch_progress.total.completed == 0  # the checkpoint saves before the epoch completes
+    assert fit_loop.epoch_progress.current.ready == 0
+    assert fit_loop.epoch_progress.current.completed == 0
+
+    assert epoch_loop.restarting
+    assert epoch_loop.batch_progress.total.ready == 4
+    assert epoch_loop.batch_progress.total.completed == 3  # the checkpoint was saved on train_batch_end
+    assert epoch_loop.batch_progress.current.ready == 4
+    assert epoch_loop.batch_progress.current.completed == 4
+
+    # resetting from a end-of-epoch checkpoint should reset the current counters to 0
+    fit_loop.reset()
+    epoch_loop.reset()
+
+    assert fit_loop.restarting
+    assert fit_loop.epoch_progress.total.ready == 1
+    assert fit_loop.epoch_progress.total.completed == 0  # the checkpoint saves before the epoch completes
+    assert fit_loop.epoch_progress.current.ready == 0
+    assert fit_loop.epoch_progress.current.completed == 0
+
+    assert epoch_loop.restarting
+    assert epoch_loop.batch_progress.total.ready == 4
+    assert epoch_loop.batch_progress.total.completed == 3  # the checkpoint was saved on train_batch_end
+    assert epoch_loop.batch_progress.current.ready == 0
+    assert epoch_loop.batch_progress.current.completed == 0
