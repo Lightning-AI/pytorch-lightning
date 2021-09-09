@@ -28,6 +28,8 @@ jobs:
         then
           echo "You should reference this PR to an issue and/or other PRs for better traceability."
           exit 1
+        else
+          echo "worked"
         fi
 
         exit 0
