@@ -16,7 +16,6 @@ from contextlib import contextmanager
 from typing import Any, Dict, Generator, Iterator, Mapping, Optional, Sequence, Tuple
 
 import torch
-from torch import Tensor
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -118,7 +117,7 @@ def _build_training_step_kwargs(
     batch: Any,
     batch_idx: int,
     opt_idx: Optional[int],
-    hiddens: Optional[Tensor],
+    hiddens: Optional[Any],
 ) -> Dict[str, Any]:
     """Builds the keyword arguments for training_step.
 
