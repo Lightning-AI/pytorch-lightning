@@ -21,5 +21,5 @@ jobs:
 
         PR_DESCRIPTION=$(gh pr view ${{ env.PR_NUMBER }})
 
-        DEFAULT_DESCRIPTION=$(echo "${PR_DESCRIPTION}" | grep "<issue_number>")
+        DEFAULT_DESCRIPTION=$(echo "$PR_DESCRIPTION" | grep "<issue_number>")
         echo $DEFAULT_DESCRIPTION
