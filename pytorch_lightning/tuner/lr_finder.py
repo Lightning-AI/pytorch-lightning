@@ -17,7 +17,7 @@ import os
 from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
-import matplotlib.figure.Figure as Figure
+import matplotlib.figure as figure
 import numpy as np
 import torch
 from torch.optim import Optimizer
@@ -96,7 +96,7 @@ class _LRFinder:
         self.lr_max = lr_max
         self.num_training = num_training
 
-        self.results = {}
+        self.results: Dict[str, List[float]] = {}
         self._total_batch_idx = 0  # for debug purpose
 
     def _exchange_scheduler(self, configure_optimizers: Callable) -> Callable:
@@ -139,7 +139,7 @@ class _LRFinder:
 
         return func
 
-    def plot(self, suggest: bool = False, show: bool = False) -> Figure:
+    def plot(self, suggest: bool = False, show: bool = False) -> figure.Figure:
         """Plot results from lr_find run
         Args:
             suggest: if True, will mark suggested lr to use with a red point
@@ -206,7 +206,7 @@ def lr_find(
     """See :meth:`~pytorch_lightning.tuner.tuning.Tuner.lr_find`"""
     if trainer.fast_dev_run:
         rank_zero_warn("Skipping learning rate finder since fast_dev_run is enabled.", UserWarning)
-        return
+        return None
 
     # Determine lr attr
     if update_attr:
@@ -328,8 +328,8 @@ class _LRCallback(Callback):
         self.num_training = num_training
         self.early_stop_threshold = early_stop_threshold
         self.beta = beta
-        self.losses = []
-        self.lrs = []
+        self.losses: List[float] = []
+        self.lrs: List[float] = []
         self.avg_loss = 0.0
         self.best_loss = 0.0
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
@@ -404,7 +404,7 @@ class _LinearLR(_LRScheduler):
         self.num_iter = num_iter
         super().__init__(optimizer, last_epoch)
 
-    def get_lr(self) -> float:
+    def get_lr(self) -> List[float]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
@@ -416,7 +416,7 @@ class _LinearLR(_LRScheduler):
         return val
 
     @property
-    def lr(self) -> float:
+    def lr(self) -> List[float]:
         return self._lr
 
 
@@ -442,7 +442,7 @@ class _ExponentialLR(_LRScheduler):
         self.num_iter = num_iter
         super().__init__(optimizer, last_epoch)
 
-    def get_lr(self) -> float:
+    def get_lr(self) -> List[float]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
@@ -454,5 +454,5 @@ class _ExponentialLR(_LRScheduler):
         return val
 
     @property
-    def lr(self) -> float:
+    def lr(self) -> List[float]:
         return self._lr
