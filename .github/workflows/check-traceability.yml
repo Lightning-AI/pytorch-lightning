@@ -30,9 +30,9 @@ jobs:
           exit 1
         fi
 
-        TOKEN=$(echo "$PR_DESCRIPTION" | grep -ioE '^Fixe\|Close')
-        TOKEN+=$(echo "$PR_DESCRIPTION" | grep -ioE '^Follow up to')
-        TOKEN+=$(echo "$PR_DESCRIPTION" | grep -ioE '^Part of\|Parts of')
+        TOKEN=$(echo "$PR_DESCRIPTION" | grep -ioE 'Fixes')
+        # TOKEN+=$(echo "$PR_DESCRIPTION" | grep -ioE 'Follow up to')
+        # TOKEN+=$(echo "$PR_DESCRIPTION" | grep -ioE 'Parts of')
 
         if [ -z "$TOKEN" ]
         then
