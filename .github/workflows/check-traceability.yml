@@ -20,6 +20,7 @@ jobs:
         PR_DESCRIPTION=$(gh pr view ${{ env.PR_NUMBER }})
 
         echo $PR_DESCRIPTION
+        exit 0
 
         DEFAULT_DESCRIPTION=$(echo $PR_DESCRIPTION | grep "<issue_number>")
 
