@@ -158,14 +158,15 @@ class CheckpointConnector:
         if not self._loaded_checkpoint:
             return
 
-        # restore precision plugin (scaler etc.)
-        self.trainer.precision_plugin.on_load_checkpoint(self._loaded_checkpoint)
-
-        # restore optimizers and schedulers state
-        self.restore_optimizers_and_schedulers()
-
         # restore loops and their progress
         self.restore_loops()
+
+        if self.trainer.state.fn in (TrainerFn.TUNING, TrainerFn.FITTING):
+            # restore precision plugin (scaler etc.)
+            self.trainer.precision_plugin.on_load_checkpoint(self._loaded_checkpoint)
+
+            # restore optimizers and schedulers state
+            self.restore_optimizers_and_schedulers()
 
     def restore_callbacks(self) -> None:
         """Restores all callbacks from the pre-loaded checkpoint."""
@@ -189,10 +190,39 @@ class CheckpointConnector:
         if not self._loaded_checkpoint:
             return
 
+        if self.trainer.state.fn == TrainerFn.FITTING:
+            self.trainer.fit_loop.global_step = self._loaded_checkpoint["global_step"]
+            self.trainer.fit_loop.current_epoch = self._loaded_checkpoint["epoch"]
+
+            # crash if max_epochs is lower then the current epoch from the checkpoint
+            if (
+                FitLoop._is_max_limit_enabled(self.trainer.max_epochs)
+                and self.trainer.current_epoch > self.trainer.max_epochs
+            ):
+                raise MisconfigurationException(
+                    f"You restored a checkpoint with current_epoch={self.trainer.current_epoch},"
+                    f" but you have set Trainer(max_epochs={self.trainer.max_epochs})."
+                )
+
+            # Division deals with global step stepping once per accumulated batch
+            # Inequality deals with different global step for odd vs even num_training_batches
+            self.trainer.accumulate_grad_batches = self.trainer.accumulation_scheduler.get_accumulate_grad_batches(
+                self.trainer.current_epoch
+            )
+            n_accum = 1 if self.trainer.accumulate_grad_batches is None else self.trainer.accumulate_grad_batches
+            expected_steps = self.trainer.num_training_batches / n_accum
+            if self.trainer.num_training_batches != 0 and self.trainer.global_step % expected_steps > 1:
+                rank_zero_warn(
+                    "You're resuming from a checkpoint that ended mid-epoch."
+                    " Training will start from the beginning of the next epoch."
+                    " This can cause unreliable results if further training is done,"
+                    " consider using an end of epoch checkpoint."
+                )
+
         state_dict = self._loaded_checkpoint.get("loops")
 
         if state_dict is not None:
-            if self.state.fn == TrainerFn.FITTING:
+            if self.trainer.state.fn == TrainerFn.FITTING:
                 self.trainer.fit_loop.load_state_dict(state_dict.get("fit_loop"))
 
             if self.trainer.state.fn == TrainerFn.VALIDATING:
@@ -203,37 +233,6 @@ class CheckpointConnector:
 
             if self.trainer.state.fn == TrainerFn.PREDICTING:
                 self.trainer.predict_loop.load_state_dict(state_dict.get("predict_loop"))
-
-        if not self.state.fn == TrainerFn.FITTING:
-            return
-
-        self.trainer.fit_loop.global_step = self._loaded_checkpoint["global_step"]
-        self.trainer.fit_loop.current_epoch = self._loaded_checkpoint["epoch"]
-
-        # crash if max_epochs is lower then the current epoch from the checkpoint
-        if (
-            FitLoop._is_max_limit_enabled(self.trainer.max_epochs)
-            and self.trainer.current_epoch > self.trainer.max_epochs
-        ):
-            raise MisconfigurationException(
-                f"You restored a checkpoint with current_epoch={self.trainer.current_epoch},"
-                f" but you have set Trainer(max_epochs={self.trainer.max_epochs})."
-            )
-
-        # Division deals with global step stepping once per accumulated batch
-        # Inequality deals with different global step for odd vs even num_training_batches
-        self.trainer.accumulate_grad_batches = self.trainer.accumulation_scheduler.get_accumulate_grad_batches(
-            self.trainer.current_epoch
-        )
-        n_accum = 1 if self.trainer.accumulate_grad_batches is None else self.trainer.accumulate_grad_batches
-        expected_steps = self.trainer.num_training_batches / n_accum
-        if self.trainer.num_training_batches != 0 and self.trainer.global_step % expected_steps > 1:
-            rank_zero_warn(
-                "You're resuming from a checkpoint that ended mid-epoch."
-                " Training will start from the beginning of the next epoch."
-                " This can cause unreliable results if further training is done,"
-                " consider using an end of epoch checkpoint."
-            )
 
     def restore_optimizers_and_schedulers(self) -> None:
         """Restores the optimizers and learning rate scheduler states from the pre-loaded checkpoint."""
