@@ -47,7 +47,7 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
     min_seed_value = np.iinfo(np.uint32).min
 
     try:
-        # Mypy typing is ignored below as the code simplicity is prefered to mypy correctness. Also, possible errors
+        # Mypy typing is ignored below as the code simplicity is preferred to mypy correctness. Also, possible errors
         # are handled by the exception.
         if seed is None:
             seed = os.environ.get("PL_GLOBAL_SEED")  # type: ignore
