@@ -46,8 +46,9 @@ if _RICH_AVAILABLE:
     class MetricsTextColumn(ProgressColumn):
         """A column containing text."""
 
-        def __init__(self, trainer, stage):
+        def __init__(self, trainer, pl_module, stage):
             self._trainer = trainer
+            self._pl_module = pl_module
             self._stage = stage
             self._tasks = {}
             self._current_task_id = 0
@@ -67,7 +68,7 @@ if _RICH_AVAILABLE:
             # TODO(@daniellepintz): make this code cleaner
             progress_bar_callback = getattr(self._trainer, "progress_bar_callback", None)
             if progress_bar_callback:
-                metrics = self.progress_bar_callback.get_metrics(self.trainer, self)
+                metrics = self._trainer.progress_bar_callback.get_metrics(self._trainer, self._pl_module)
             else:
                 metrics = self._trainer.progress_bar_metrics
             for k, v in metrics.items():
@@ -169,7 +170,7 @@ class RichProgressBar(ProgressBarBase):
             "[",
             CustomTimeColumn(),
             ProcessingSpeedColumn(),
-            MetricsTextColumn(trainer, stage),
+            MetricsTextColumn(trainer, pl_module, stage),
             "]",
             console=self.console,
             refresh_per_second=self.refresh_rate,
