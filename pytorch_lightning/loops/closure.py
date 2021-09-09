@@ -20,6 +20,7 @@ from torch import Tensor
 
 from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
@@ -53,25 +54,29 @@ class AbstractClosure(ABC):
         super().__init__()
         self._result: Optional[ClosureResult] = None
 
-    def get_result(self) -> Optional[ClosureResult]:
+    def consume_result(self) -> ClosureResult:
         """The cached result from the last time the closure was called.
 
         Once accessed, the internal reference gets reset and the consumer will have to hold on to the reference as long
         as necessary.
         """
-        result = self._result
-        self._result = None  # free memory
+        if self._result is None:
+            raise MisconfigurationException(
+                "The closure hasn't been executed."
+                " HINT: did you call `optimizer_closure()` in your `optimizer_step` hook? It could also happen because"
+                " the `optimizer.step(optimizer_closure)` call did not execute it internally."
+            )
+        result, self._result = self._result, None  # free memory
         return result
 
     @abstractmethod
-    def closure(self, *args: Any, **kwargs: Any) -> Optional[ClosureResult]:
+    def closure(self, *args: Any, **kwargs: Any) -> ClosureResult:
         """Implements the behavior of the closure once it is getting called."""
         pass
 
     def __call__(self, *args: Any, **kwargs: Any) -> Optional[Tensor]:
         self._result = self.closure(*args, **kwargs)
-        if self._result is not None:
-            return self._result.loss
+        return self._result.loss
 
 
 class Closure(AbstractClosure):
@@ -113,19 +118,21 @@ class Closure(AbstractClosure):
         self._zero_grad_fn = zero_grad_fn
         self._profiler = PassThroughProfiler() if profiler is None else profiler
 
-    def closure(self, *args: Any, **kwargs: Any) -> Optional[ClosureResult]:
+    def closure(self, *args: Any, **kwargs: Any) -> ClosureResult:
         with self._profiler.profile("training_step_and_backward"):
             step_output = self._step_fn()
-            step_output = ClosureResult(**step_output) if step_output else None
+            step_output = ClosureResult(**step_output) if step_output else ClosureResult(None, None, None)
 
-            if step_output is None:
-                self.warning_cache.warn("training_step returned None. If this was on purpose, ignore this warning...")
+            if step_output.closure_loss is None:
+                self.warning_cache.warn(
+                    "`training_step` returned `None`. If this was on purpose, ignore this warning..."
+                )
 
             if self._zero_grad_fn is not None:
                 with self._profiler.profile("zero_grad"):
                     self._zero_grad_fn()
 
-            if self._backward_fn is not None and step_output is not None and step_output.closure_loss is not None:
+            if self._backward_fn is not None and step_output.closure_loss is not None:
                 with self._profiler.profile("backward"):
                     step_output.closure_loss = self._backward_fn(step_output.closure_loss)
 

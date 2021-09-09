@@ -64,6 +64,7 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
             return super().test_step(batch, batch_idx)
 
     checkpoint_callback = ModelCheckpoint()
+    checkpoint_callback.save_checkpoint = Mock()
     early_stopping_callback = EarlyStopping()
     early_stopping_callback._evaluate_stopping_criteria = Mock()
     trainer_config = dict(
@@ -95,8 +96,8 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
 
         # checkpoint callback should not have been called with fast_dev_run
         assert trainer.checkpoint_callback == checkpoint_callback
+        checkpoint_callback.save_checkpoint.assert_not_called()
         assert not os.path.exists(checkpoint_callback.dirpath)
-        assert len(trainer.dev_debugger.checkpoint_callback_history) == 0
 
         # early stopping should not have been called with fast_dev_run
         assert trainer.early_stopping_callback == early_stopping_callback

@@ -1495,15 +1495,15 @@ class LightningModule(
 
         Warning:
             If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter
-            to ``optimizer.step()`` function as shown in the examples. This ensures that
-            ``training_step()``, ``optimizer.zero_grad()``, ``backward()`` are called within the training loop.
+            to ``optimizer.step()`` function as shown in the examples.
 
         Args:
             epoch: Current epoch
             batch_idx: Index of current batch
             optimizer: A PyTorch optimizer
             optimizer_idx: If you used multiple optimizers, this indexes into that list.
-            optimizer_closure: Closure for all optimizers
+            optimizer_closure: Closure for all optimizers. This closure must be executed as it includes the
+                calls to ``training_step()``, ``optimizer.zero_grad()``, and ``backward()``.
             on_tpu: ``True`` if TPU backward is required
             using_native_amp: ``True`` if using native amp
             using_lbfgs: True if the matching optimizer is :class:`torch.optim.LBFGS`
@@ -1526,6 +1526,9 @@ class LightningModule(
                 if optimizer_idx == 1:
                     if (batch_idx + 1) % 2 == 0 :
                         optimizer.step(closure=optimizer_closure)
+                    else:
+                        # call the closure by itself to run `training_step` + `backward` without an optimizer step
+                        optimizer_closure()
 
                 # ...
                 # add as many optimizers as you want
