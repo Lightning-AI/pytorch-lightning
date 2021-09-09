@@ -19,5 +19,6 @@ jobs:
       run: |
         set -e
 
-        DEFAULT_DESCRIPTION=$(echo "$(gh pr view ${{ env.PR_NUMBER }})" | grep -ioE "<issue_number>")
-        echo $DEFAULT_DESCRIPTION
+        PR_DESCRIPTION=$(gh pr view ${{ env.PR_NUMBER }})
+
+        DEFAULT_DESCRIPTION=$(echo "$PR_DESCRIPTION" | grep -ioE 'Fixes')
