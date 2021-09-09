@@ -4,8 +4,8 @@ title: "PyTorch Lightning"
 abstract: "The lightweight PyTorch wrapper for high-performance AI research. Scale your models, not the boilerplate."
 date-released: 2019-03-30
 authors:
-  - family-names: "William"
-    given-names: "Falcon"
+  - family-names: "Falcon"
+    given-names: "William"
   - name: "The PyTorch Lightning team"
 version: 1.4
 doi: 10.5281/zenodo.3828935
