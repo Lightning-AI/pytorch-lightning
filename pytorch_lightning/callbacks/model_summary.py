@@ -27,6 +27,5 @@ from pytorch_lightning.callbacks.base import Callback
 
 
 class ModelSummary(Callback):
-    def __init__(self, mode: Optional[str] = None, max_depth: Optional[int] = 1):
-        self._mode = mode
+    def __init__(self, max_depth: Optional[int] = 1):
         self._max_depth = max_depth

@@ -422,6 +422,7 @@ class Trainer(
             process_position,
             default_root_dir,
             weights_save_path,
+            weights_summary,
             stochastic_weight_avg,
             max_time,
         )

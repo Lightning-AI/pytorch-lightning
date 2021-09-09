@@ -95,7 +95,7 @@ class CallbackConnector:
     def _configure_model_summary_callback(self, weights_summary: Optional[str] = None) -> None:
         if any(isinstance(cb, ModelSummary) for cb in self.trainer.callbacks):
             return
-        model_summary = ModelSummary(mode=weights_summary)
+        model_summary = ModelSummary(max_depth=weights_summary)
         self.trainer.callbacks.append(model_summary)
 
     def _configure_swa_callbacks(self):
