@@ -675,8 +675,10 @@ def test_fit_loop_reset(tmpdir):
     mid_epoch_ckpt = torch.load(str(tmpdir / "epoch=0-step=1.ckpt"))
     fit_loop = trainer.fit_loop
     epoch_loop = fit_loop.epoch_loop
+    optimizer_loop = epoch_loop.batch_loop.optimizer_loop
     assert not fit_loop.restarting
     assert not epoch_loop.restarting
+    assert not optimizer_loop.restarting
 
     fit_loop.load_state_dict(mid_epoch_ckpt["loops"]["fit_loop"])
 
@@ -695,9 +697,12 @@ def test_fit_loop_reset(tmpdir):
 
     # resetting from a mid-epoch checkpoint should not change progress counters
     mid_epoch_reset_assertions()
+    assert optimizer_loop.optim_progress.optimizer_idx == 1
     fit_loop.reset()
     epoch_loop.reset()
+    optimizer_loop.reset()
     mid_epoch_reset_assertions()
+    assert optimizer_loop.optim_progress.optimizer_idx == 0
 
     # reset state loaded from a checkpoint from the end of an epoch
     end_of_epoch_ckpt = torch.load(str(tmpdir / "epoch=0-step=3.ckpt"))
@@ -705,6 +710,7 @@ def test_fit_loop_reset(tmpdir):
     epoch_loop = fit_loop.epoch_loop
     fit_loop.restarting = False
     epoch_loop.restarting = False
+    optimizer_loop.restarting = False
 
     fit_loop.load_state_dict(end_of_epoch_ckpt["loops"]["fit_loop"])
 
@@ -720,9 +726,12 @@ def test_fit_loop_reset(tmpdir):
     assert epoch_loop.batch_progress.current.ready == 4
     assert epoch_loop.batch_progress.current.completed == 4
 
+    assert optimizer_loop.optim_progress.optimizer_idx == 1
+
     # resetting from a end-of-epoch checkpoint should reset the current counters to 0
     fit_loop.reset()
     epoch_loop.reset()
+    optimizer_loop.reset()
 
     assert fit_loop.restarting
     assert fit_loop.epoch_progress.total.ready == 1
@@ -735,3 +744,5 @@ def test_fit_loop_reset(tmpdir):
     assert epoch_loop.batch_progress.total.completed == 3  # the checkpoint was saved on train_batch_end
     assert epoch_loop.batch_progress.current.ready == 0
     assert epoch_loop.batch_progress.current.completed == 0
+
+    assert optimizer_loop.optim_progress.optimizer_idx == 0
