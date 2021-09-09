@@ -561,13 +561,11 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
     assert os.path.exists(ckpt_path)
     checkpoint = torch.load(ckpt_path)
 
-    # number of batches that will call `optimizer.step()`
-    nbe_total_opt_steps = n_epochs * n_batches * n_optimizers
-    nbe_total_zero_grad = n_epochs * n_batches * n_optimizers
-
-    nbe_sch_steps = n_epochs
+    n_sch_steps_total = n_epochs
+    n_sch_steps_current = 1
     if n_optimizers > 1:
-        nbe_sch_steps = n_epochs + n_epochs * n_batches
+        n_sch_steps_total = n_epochs + n_epochs * n_batches
+        n_sch_steps_current = n_batches + 1
 
     expected = {
         "state_dict": ANY,
@@ -605,32 +603,35 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
             },
         },
         "epoch_loop.scheduler_progress": {
-            "total": {"ready": nbe_sch_steps, "completed": nbe_sch_steps},
-            "current": {"ready": nbe_sch_steps, "completed": nbe_sch_steps},
+            "total": {"ready": n_sch_steps_total, "completed": n_sch_steps_total},
+            "current": {"ready": n_sch_steps_current, "completed": n_sch_steps_current},
         },
         "epoch_loop.batch_loop.state_dict": ANY,
         "epoch_loop.batch_loop.manual_loop.state_dict": ANY,
         "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
         "epoch_loop.batch_loop.optimizer_loop.optim_progress": {
-            "optimizer_idx": n_optimizers - 1,
+            "optimizer_idx": n_optimizers,
             "optimizer": {
                 "step": {
                     "total": {
-                        "ready": nbe_total_opt_steps,
-                        "completed": nbe_total_opt_steps,
+                        "ready": n_epochs * n_batches * n_optimizers,
+                        "completed": n_epochs * n_batches * n_optimizers,
                     },
-                    "current": {"ready": nbe_total_opt_steps, "completed": nbe_total_opt_steps},
+                    "current": {
+                        "ready": n_batches * n_optimizers,
+                        "completed": n_batches * n_optimizers,
+                    },
                 },
                 "zero_grad": {
                     "total": {
-                        "ready": nbe_total_zero_grad,
-                        "started": nbe_total_zero_grad,
-                        "completed": nbe_total_zero_grad,
+                        "ready": n_epochs * n_batches * n_optimizers,
+                        "started": n_epochs * n_batches * n_optimizers,
+                        "completed": n_epochs * n_batches * n_optimizers,
                     },
                     "current": {
-                        "ready": nbe_total_zero_grad,
-                        "started": nbe_total_zero_grad,
-                        "completed": nbe_total_zero_grad,
+                        "ready": n_batches * n_optimizers,
+                        "started": n_batches * n_optimizers,
+                        "completed": n_batches * n_optimizers,
                     },
                 },
             },
