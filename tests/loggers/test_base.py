@@ -48,9 +48,9 @@ def test_logger_collection():
     mock1.agg_and_log_metrics.assert_called_once_with({"test": 2.0}, 4)
     mock2.agg_and_log_metrics.assert_called_once_with({"test": 2.0}, 4)
 
-    logger.close()
-    mock1.close.assert_called_once()
-    mock2.close.assert_called_once()
+    logger.save()
+    mock1.save.assert_called_once()
+    mock2.save.assert_called_once()
 
 
 class CustomLogger(LightningLoggerBase):
@@ -208,7 +208,7 @@ def test_with_accumulate_grad_batches():
         logger.agg_and_log_metrics({"loss": loss}, step=int(i / 5))
 
     assert logger.history == {0: {"loss": 0.5623850983416314}}
-    logger.close()
+    logger.save()
     assert logger.history == {0: {"loss": 0.5623850983416314}, 1: {"loss": 0.4778883735637184}}
 
 

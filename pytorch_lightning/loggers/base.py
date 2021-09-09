@@ -309,10 +309,6 @@ class LightningLoggerBase(ABC):
         """
         self.save()
 
-    def close(self) -> None:
-        """Do any cleanup that is necessary to close an experiment."""
-        self.save()
-
     @property
     def save_dir(self) -> Optional[str]:
         """Return the root directory where experiment logs get saved, or `None` if the logger does not save data
@@ -390,10 +386,6 @@ class LoggerCollection(LightningLoggerBase):
     def finalize(self, status: str) -> None:
         for logger in self._logger_iterable:
             logger.finalize(status)
-
-    def close(self) -> None:
-        for logger in self._logger_iterable:
-            logger.close()
 
     @property
     def save_dir(self) -> Optional[str]:
