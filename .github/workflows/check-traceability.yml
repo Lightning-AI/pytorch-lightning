@@ -42,9 +42,8 @@ jobs:
 
         print("Template edited !")
 
-        contains_fix = re.findall("^(fixes|closes) #", description, re.MULTILINE | re.DOTALL )
-        contains_follow_up = re.findall("^follow up to", description, re.MULTILINE | re.DOTALL )
-        contains_parts = re.findall("^parts of", description, re.MULTILINE | re.DOTALL )
+        contains_fix = 'fixes #' in description
+        contains_fix = 'parts of' in description
 
-        if not (contains_fix or contains_follow_up or contains_parts):
+        if not (contains_fix or contains_parts):
           raise Exception("The PR description should linked to an issue or be `parts of` an issue")
