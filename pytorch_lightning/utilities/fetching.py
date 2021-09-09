@@ -401,8 +401,8 @@ class StepFuncDataLoaderIter:
     def __next__(self) -> Any:
         try:
             self.parent_data_fetcher.fetched += 1
-            data = next(self.pl_module_step_data_fetcher)
-            return data[0]
+            data, _ = next(self.pl_module_step_data_fetcher)
+            return data
         except StopIteration:
             self.parent_data_fetcher.done = True
             self.pl_module_step_data_fetcher = None
