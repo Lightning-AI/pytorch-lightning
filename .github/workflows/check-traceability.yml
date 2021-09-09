@@ -1,0 +1,50 @@
+name: Check PR traceability
+
+on:
+  push:
+    branches: [master, "release/*"]
+  pull_request:
+    branches: [master, "release/*"]
+
+jobs:
+  check-pr-description:
+    name: Check PR description
+    runs-on: ubuntu-20.04
+    steps:
+
+    - uses: actions/checkout@v2
+
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.6
+
+    - name: Fetch PR Description
+      env:
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      run: echo "::set-output name=description::$(gh pr view ${{ github.event.pull_request.number }} | tr -d "\n\r" | tr -d ' ')"
+      id: pr
+
+    - name: Check PR validity
+      env:
+        PR_DESCRIPTION: ${{ steps.pr.outputs.description }}
+      shell: python
+      run: |
+        import os
+        import re
+
+        description = os.getenv("PR_DESCRIPTION").lower()
+
+        print("Description", description)
+
+        if '<issue_number>' in description:
+          raise Exception("The template should be edited and issues tracking should be added.")
+
+        print("Template edited !")
+
+        contains_fix = 'fixes#' in description
+        contains_parts = 'partsof' in description
+        contains_follow_up = 'followupof' in description
+
+        if not (contains_fix or contains_parts or contains_follow_up):
+          raise Exception("The PR description should linked to an issue or be `parts of` an issue")
