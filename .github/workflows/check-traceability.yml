@@ -29,11 +29,3 @@ jobs:
           echo "You should reference this PR to an issue and/or other PRs for better traceability."
           exit 1
         fi
-
-        DEFAULT_DESCRIPTION=$(echo "$PR_DESCRIPTION" | grep -ioE 'Fixes')
-
-        if [ ! -z "$DEFAULT_DESCRIPTION" ]
-        then
-          echo "You should reference this PR to an issue and/or other PRs for better traceability."
-          exit 1
-        fi
