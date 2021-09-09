@@ -17,7 +17,7 @@ from unittest import mock
 import pytest
 
 from pytorch_lightning import Callback, LightningDataModule, Trainer
-from pytorch_lightning.loggers import TestTubeLogger, LoggerCollection
+from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
