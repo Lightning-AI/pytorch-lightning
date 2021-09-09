@@ -97,10 +97,8 @@ class TrainingEpochLoop(loops.Loop):
         # track epoch output
         self._epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
 
-        failed = self.batch_progress.current.ready != self.batch_progress.current.completed
         ended = self._num_training_batches_reached()
-
-        if not self.restarting or (not failed and ended):
+        if not self.restarting or ended:
             self.batch_progress.current.reset()
             self.scheduler_progress.current.reset()
             self.batch_loop.optimizer_loop.optim_progress.reset_on_epoch()
