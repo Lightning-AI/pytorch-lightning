@@ -18,20 +18,21 @@ To run:
 python autoencoder.py --trainer.max_epochs=50
 """
 from typing import Optional, Tuple
+
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
 from torch.utils.data import DataLoader, random_split
-import numpy as np
+
 import pytorch_lightning as pl
 from pl_examples import _DATASETS_PATH, cli_lightning_logo
 from pl_examples.basic_examples.mnist_datamodule import MNIST
+from pytorch_lightning.utilities import DeviceType, rank_zero_only
 from pytorch_lightning.utilities.cli import LightningCLI
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
-from pytorch_lightning.utilities import DeviceType, rank_zero_only
-import matplotlib
-import matplotlib.pyplot as plt
-
 
 if _TORCHVISION_AVAILABLE:
     import torchvision
@@ -39,9 +40,7 @@ if _TORCHVISION_AVAILABLE:
     from torchvision.utils import save_image
 
 
-
 class ImageSampler(pl.callbacks.Callback):
-
     def __init__(
         self,
         num_samples: int = 3,
@@ -89,7 +88,7 @@ class ImageSampler(pl.callbacks.Callback):
             scale_each=self.scale_each,
             pad_value=self.pad_value,
         )
-    
+
     @rank_zero_only
     def on_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         if not _TORCHVISION_AVAILABLE:
@@ -105,8 +104,8 @@ class ImageSampler(pl.callbacks.Callback):
             pl_module.train()
 
         if trainer.current_epoch == 0:
-            save_image(self._to_grid(images), f'grid_ori_{trainer.current_epoch}.png')
-        save_image(self._to_grid(images_generated.reshape(images.shape)), f'grid_generated_{trainer.current_epoch}.png')
+            save_image(self._to_grid(images), f"grid_ori_{trainer.current_epoch}.png")
+        save_image(self._to_grid(images_generated.reshape(images.shape)), f"grid_generated_{trainer.current_epoch}.png")
 
 
 class LitAutoEncoder(pl.LightningModule):
@@ -152,8 +151,8 @@ class LitAutoEncoder(pl.LightningModule):
     def _common_step(self, batch, batch_idx, stage: str):
         x = self._prepare_batch(batch)
         loss = F.mse_loss(x, self(x))
-        self.log(f"{stage}_loss", loss, on_step=True)      
-        return loss  
+        self.log(f"{stage}_loss", loss, on_step=True)
+        return loss
 
 
 class MyDataModule(pl.LightningDataModule):
@@ -179,8 +178,12 @@ class MyDataModule(pl.LightningDataModule):
 
 def cli_main():
     cli = LightningCLI(
-        LitAutoEncoder, MyDataModule, seed_everything_default=1234, save_config_overwrite=True,
-        run=False, trainer_defaults={"callbacks": ImageSampler(), 'max_epochs': 10}
+        LitAutoEncoder,
+        MyDataModule,
+        seed_everything_default=1234,
+        save_config_overwrite=True,
+        run=False,
+        trainer_defaults={"callbacks": ImageSampler(), "max_epochs": 10},
     )
     cli.trainer.fit(cli.model, datamodule=cli.datamodule)
     cli.trainer.test(ckpt_path="best")
