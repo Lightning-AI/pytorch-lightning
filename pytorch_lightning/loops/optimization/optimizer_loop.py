@@ -22,7 +22,7 @@ from torch.optim import Optimizer
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops import Loop
-from pytorch_lightning.loops.closure import Closure, ClosureResult
+from pytorch_lightning.loops.optimization.closure import Closure, ClosureResult
 from pytorch_lightning.loops.utilities import (
     _block_parallel_sync_behavior,
     _build_training_step_kwargs,

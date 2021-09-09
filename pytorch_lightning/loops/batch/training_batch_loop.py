@@ -20,8 +20,8 @@ from torch import Tensor
 from torch.optim import Optimizer
 
 from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.loops.batch.manual import ManualOptimization
-from pytorch_lightning.loops.optimizer.optimizer_loop import OptimizerLoop
+from pytorch_lightning.loops.optimization.manual_loop import ManualOptimization
+from pytorch_lightning.loops.optimization.optimizer_loop import OptimizerLoop
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.types import STEP_OUTPUT
