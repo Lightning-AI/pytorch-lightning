@@ -54,13 +54,13 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
                 f"native PyTorch amp and lbfgs are not compatible (optimizer {optimizer_idx})."
                 " To request, please file a Github issue in PyTorch and tag @mcarilli"
             )
-        result = True
-        if model.automatic_optimization:
-            result = lambda_closure()
+        result = lambda_closure()  # native amp does not support closures
         self.scaler.unscale_(optimizer)
         super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
-        # lambda_closure returning None indicates that backward has been skipped
-        if result is not None:
+        skipped_backward = result is None
+        # in manual optimization, the closure does not return a value
+        if not model.automatic_optimization or not skipped_backward:
+            # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
             self.scaler.step(optimizer)
             self.scaler.update()
         return False

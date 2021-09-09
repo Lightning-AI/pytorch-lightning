@@ -64,16 +64,49 @@ class ManualOptModel(BoringModel):
         return optimizer, optimizer_2
 
 
-def test_multiple_optimizers_manual_no_return(tmpdir):
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {},
+        pytest.param({"gpus": 1, "precision": 16, "amp_backend": "native"}, marks=RunIf(amp_native=True, min_gpus=1)),
+        pytest.param(
+            {"gpus": 1, "precision": 16, "amp_backend": "apex", "amp_level": "O2"},
+            marks=RunIf(amp_apex=True, min_gpus=1),
+        ),
+    ],
+)
+def test_multiple_optimizers_manual_no_return(tmpdir, kwargs):
+    apex_optimizer_patches = []
+    apex_optimizer_steps = []
+
     class TestModel(ManualOptModel):
         def training_step(self, batch, batch_idx):
             # avoid returning a value
             super().training_step(batch, batch_idx)
 
-        def training_epoch_end(self, outputs) -> None:
+        def training_epoch_end(self, outputs):
             # outputs is empty as training_step does not return
             # and it is not automatic optimization
             assert not outputs
+
+        def on_train_start(self):
+            if kwargs.get("amp_backend") != "apex":
+                return
+            # extremely ugly. APEX patches all the native torch optimizers on `_initialize` which we call on
+            # `ApexMixedPrecisionPlugin.dispatch`. Additionally, their replacement `new_step` functions are locally
+            # defined so can't even patch those, thus we need to create the mock after APEX has been initialized
+            nonlocal apex_optimizer_patches, apex_optimizer_steps
+            for opt in self.trainer.optimizers:
+                # `amp.scale_loss` will also patch the step to avoid it when gradient overflow happens. avoid it
+                opt._amp_stash.already_patched = True
+                patch = mock.patch.object(opt, "step")
+                apex_optimizer_patches.append(patch)
+                apex_optimizer_steps.append(patch.start())
+
+        def on_train_end(self):
+            if kwargs.get("amp_backend") == "apex":
+                for p in apex_optimizer_patches:
+                    p.stop()
 
     model = TestModel()
     model.val_dataloader = None
@@ -86,11 +119,25 @@ def test_multiple_optimizers_manual_no_return(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         weights_summary=None,
+        **kwargs,
     )
+
+    if kwargs.get("amp_backend") == "native":
+        # mock the scaler instead of the optimizer step because it can be skipped with NaNs
+        scaler_step_patch = mock.patch.object(
+            trainer.precision_plugin.scaler, "step", wraps=trainer.precision_plugin.scaler.step
+        )
+        scaler_step = scaler_step_patch.start()
 
     with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward) as bwd_mock:
         trainer.fit(model)
     assert bwd_mock.call_count == limit_train_batches * 3
+
+    if kwargs.get("amp_backend") == "native":
+        scaler_step_patch.stop()
+        assert scaler_step.call_count == len(model.optimizers()) * limit_train_batches
+    if kwargs.get("amp_backend") == "apex":
+        assert [s.call_count for s in apex_optimizer_steps] == [len(model.optimizers())] * limit_train_batches
 
 
 def test_multiple_optimizers_manual_return(tmpdir):
@@ -163,40 +210,6 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
         log_every_n_steps=1,
         weights_summary=None,
         precision=16,
-        gpus=1,
-    )
-
-    with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward) as bwd_mock:
-        trainer.fit(model)
-    assert bwd_mock.call_count == limit_train_batches * 3
-
-
-@RunIf(min_gpus=1, amp_apex=True)
-def test_multiple_optimizers_manual_apex_no_return(tmpdir):
-    class TestModel(ManualOptModel):
-        def training_step(self, batch, batch_idx):
-            # avoid returning a value
-            super().training_step(batch, batch_idx)
-
-        def training_epoch_end(self, outputs) -> None:
-            # outputs is empty as training_step does not return
-            # and it is not automatic optimization
-            assert len(outputs) == 0
-
-    model = TestModel()
-    model.val_dataloader = None
-
-    limit_train_batches = 2
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
-        max_epochs=1,
-        log_every_n_steps=1,
-        weights_summary=None,
-        precision=16,
-        amp_level="O2",
-        amp_backend="apex",
         gpus=1,
     )
 

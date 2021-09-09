@@ -286,19 +286,16 @@ class PyTorchProfiler(BaseProfiler):
         """
         super().__init__(dirpath=dirpath, filename=filename, output_filename=output_filename)
 
-        record_functions = self.__deprecation_check(profiled_functions, record_functions)
-
         self._group_by_input_shapes = group_by_input_shapes and profiler_kwargs.get("record_shapes", False)
         self._emit_nvtx = emit_nvtx
         self._export_to_chrome = export_to_chrome
         self._row_limit = row_limit
         self._sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
-        self._user_record_functions = record_functions
+        self._user_record_functions = set(record_functions or set())
         self._record_functions_start = self._user_record_functions | self.START_RECORD_FUNCTIONS
         self._record_functions = self._user_record_functions | self.RECORD_FUNCTIONS
         self._record_module_names = record_module_names
         self._profiler_kwargs = profiler_kwargs
-
         self.profiler: Optional[_PROFILER] = None
         self.function_events: Optional["EventList"] = None
         self._lightning_module: Optional["LightningModule"] = None  # set by ProfilerConnector
