@@ -309,35 +309,32 @@ def test_training_step_with_dataloader_access(tmpdir) -> None:
     assert m.num_batches_processed == DATASET_LEN, f"Expect all {DATASET_LEN} batches to be processed."
 
 
-@pytest.mark.parametrize("trigger_stop_iteration", [False, True])
-def test_stop_iteration(trigger_stop_iteration, tmpdir):
+def test_stop_iteration(tmpdir):
     """Verify that StopIteration properly terminates the training when this is trigged from the current
     `dataloader_iter`"""
     EXPECT_NUM_BATCHES_PROCESSED = 2
 
     class TestModel(AsyncBoringModel):
-        def __init__(self, trigger_stop_iteration) -> None:
+        def __init__(self) -> None:
             super().__init__()
-            self.trigger_stop_iteration = trigger_stop_iteration
+            self.has_raised = False
 
         def training_step(self, dataloader_iter: Iterator, *args) -> STEP_OUTPUT:
-            output = super().training_step(dataloader_iter)
-            if self.trigger_stop_iteration and args[0] == EXPECT_NUM_BATCHES_PROCESSED:
+            try:
+                output = super().training_step(dataloader_iter)
+            except StopIteration:
+                self.has_raised = True
                 raise StopIteration
             return output
 
         def train_dataloader(self):
-            if self.trigger_stop_iteration:
-                return DataLoader(RandomDataset(BATCH_SIZE, 2 * EXPECT_NUM_BATCHES_PROCESSED))
             return DataLoader(RandomDataset(BATCH_SIZE, EXPECT_NUM_BATCHES_PROCESSED))
 
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
-    m = TestModel(trigger_stop_iteration)
+    m = TestModel()
     trainer.fit(m)
-    expected = EXPECT_NUM_BATCHES_PROCESSED
-    if trigger_stop_iteration:
-        expected *= 2
-    assert m.num_batches_processed == expected
+    assert not m.has_raised
+    assert m.num_batches_processed == EXPECT_NUM_BATCHES_PROCESSED
 
 
 def test_on_train_batch_start_overridden(tmpdir) -> None:

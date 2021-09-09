@@ -375,20 +375,37 @@ class StepFuncDataLoaderIter:
     """This class is a wrapper to keep track of dataloader iterator fetching event while left entirely to user
     control."""
 
-    def __init__(self, iterator: Iterator, data_fetcher: "AbstractDataFetcher"):
+    def __init__(
+        self,
+        iterator: Iterator,
+        parent_data_fetcher: "AbstractDataFetcher",
+        stage: Optional[str] = None,
+        batch_to_device: Optional[Callable] = None,
+        profiler: "Optional[pl.profiler.base.BaseProfiler]" = None,
+    ):
         self.iterator = iterator
-        self.data_fetcher = data_fetcher
+        self.parent_data_fetcher = parent_data_fetcher
+        self.stage = stage
+        self.batch_to_device = batch_to_device
+        self.profiler = profiler
+        self.training_step_data_fetcher: Optional[DataFetcher] = None
 
     def __iter__(self) -> "StepFuncDataLoaderIter":
+        training_step_data_fetcher = DataFetcher()
+        training_step_data_fetcher.setup(
+            self.iterator,
+        )
+        self.training_step_data_fetcher = iter(training_step_data_fetcher)
         return self
 
     def __next__(self) -> Any:
         try:
-            data = next(self.iterator)
-            self.data_fetcher.fetched += 1
-            return data
+            self.parent_data_fetcher.fetched += 1
+            data = next(self.training_step_data_fetcher)
+            return data[0]
         except StopIteration:
-            self.data_fetcher.done = True
+            self.parent_data_fetcher.done = True
+            self.training_step_data_fetcher = None
             raise StopIteration
 
 
@@ -417,9 +434,19 @@ class DataLoaderIterDataFetcher(AbstractDataFetcher):
         self.store_on_device = True
 
     def prefetching(self, prefetch_batches: int) -> None:
-        self.iterator = iter(StepFuncDataLoaderIter(self.dataloader_iter, self))
+        self.iterator = iter(
+            StepFuncDataLoaderIter(
+                parent_data_fetcher=self,
+                iterator=self.dataloader_iter,
+                stage=self.stage,
+                batch_to_device=self.batch_to_device,
+                profiler=self.profiler,
+            )
+        )
 
     def fetching_function(self):
         while not self.done:
             return self.fetched, (self.iterator, self.done)
+        # this is used to stop the loop
+        self.iterator = None
         raise StopIteration
