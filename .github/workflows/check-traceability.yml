@@ -18,10 +18,17 @@ jobs:
         PR_NUMBER: ${{ github.event.pull_request.number }}
       run: |
         PR_DESCRIPTION=$(gh pr view ${{ env.PR_NUMBER }})
+        echo $PR_DESCRIPTION
+
         DEFAULT_DESCRIPTION=$(echo "$PR_DESCRIPTION" | grep 'Fixes #<issue_number>')
         FIX_MATCHES=$(echo "$PR_DESCRIPTION" | grep '^Fixe\|Close')
         FOLLOW_UPS=$(echo "$PR_DESCRIPTION" | grep '^Follow up to')
         PARTS_OF=$(echo "$PR_DESCRIPTION" | grep '^Part of\|Parts of')
+
+        echo $DEFAULT_DESCRIPTION
+        echo $FIX_MATCHES
+        echo $FOLLOW_UPS
+        echo $PARTS_OF
 
         if [[ -z "$DEFAULT_DESCRIPTION"]]; then
           echo "You should reference this PR to an issue and/or other PRs for better traceability."
