@@ -24,6 +24,11 @@ jobs:
         FOLLOW_UPS=$(echo "$PR_DESCRIPTION" | grep "^Follow up to")
         PARTS_OF=$(echo "$PR_DESCRIPTION" | grep "^Part of\|Parts of")
 
+        echo $DEFAULT_DESCRIPTION
+        echo $FIX_MATCHES
+        echo $FOLLOW_UPS
+        echo $PARTS_OF
+
         # the default template should be overridden.
         if [[ -z "$DEFAULT_DESCRIPTION"]]; then
           echo "You should reference this PR to an issue and/or other PRs for better traceability."
