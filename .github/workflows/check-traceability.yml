@@ -24,8 +24,10 @@ jobs:
 
         DEFAULT_DESCRIPTION=$(echo "$PR_DESCRIPTION" | grep -ioE '<issue_number>')
 
+        echo $DEFAULT_DESCRIPTION
+
         if [ -z "$DEFAULT_DESCRIPTION" ]
-        then
+        else
           echo "You should reference this PR to an issue and/or other PRs for better traceability."
           exit 1
         fi
