@@ -101,11 +101,6 @@ def test_connect_subloops(tmpdir):
     assert new_batch_loop.trainer is trainer
 
 
-def test_loop_restarting(tmpdir):
-    # TODO:
-    pass
-
-
 class CustomException(Exception):
     pass
 
