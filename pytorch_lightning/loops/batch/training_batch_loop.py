@@ -131,7 +131,7 @@ class TrainingBatchLoop(Loop):
         else:
             # in manual optimization, hand over execution to the ManualOptimization loop
             result = self.manual_loop.run(split_batch, batch_idx)
-            if result.loss is not None:
+            if result is not None and result.loss is not None:
                 self.batch_outputs[0].append(result.drop_closure_loss())
 
     def on_run_end(self) -> None:
