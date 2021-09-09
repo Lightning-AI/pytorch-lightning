@@ -99,7 +99,7 @@ def _process_training_step_output(
     elif isinstance(training_step_output, torch.Tensor):
         loss = training_step_output
 
-    if trainer.terminate_on_nan or trainer.detect_anomaly:
+    if trainer.terminate_on_nan and not trainer.detect_anomaly:
         check_finite_loss(loss)
 
     # the loss shouldn't be moved to cpu.
