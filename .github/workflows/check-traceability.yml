@@ -35,12 +35,8 @@ jobs:
 
         description = os.getenv("PR_DESCRIPTION").lower()
 
-        print("Description", description)
-
         if '<issue_number>' in description:
           raise Exception("The template should be edited and issues tracking should be added.")
-
-        print("Template edited !")
 
         contains_fix = 'fixes#' in description
         contains_parts = 'partsof' in description
