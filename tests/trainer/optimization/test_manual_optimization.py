@@ -80,7 +80,6 @@ def test_multiple_optimizers_manual_no_return(tmpdir, kwargs):
     apex_optimizer_steps = []
 
     class TestModel(ManualOptModel):
-
         def training_epoch_end(self, outputs):
             # outputs is empty as training_step does not return
             # and it is not automatic optimization

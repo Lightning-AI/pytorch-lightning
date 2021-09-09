@@ -895,7 +895,6 @@ def test_on_exception_hook(tmpdir):
     model = BoringModel()
 
     class InterruptCallback(Callback):
-
         def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
             raise KeyboardInterrupt
 

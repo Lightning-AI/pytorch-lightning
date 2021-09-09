@@ -260,7 +260,6 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     n_epochs = 3
 
     class ValidationModel(BoringModel):
-
         def validation_step(self, batch, batch_idx, dataloader_idx):
             if self.current_epoch == stop_epoch and batch_idx == stop_batch and dataloader_idx == stop_dataloader:
                 raise CustomException
