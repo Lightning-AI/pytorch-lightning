@@ -20,6 +20,7 @@ from torch.optim import Optimizer
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -42,9 +43,14 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         **kwargs: Any,
     ) -> bool:
         """Hook to do something before each optimizer step."""
+        result = lambda_closure()  # DeepSpeed does not support closures
         super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
+        # in manual optimization, the closure does not return a value
+        if model.automatic_optimization and result is None:
+            raise MisconfigurationException(
+                "Skipping backward by returning `None` from your `training_step` is not supported by `DeepSpeed`"
+            )
         # the following should be in a `optimizer_step` hook but we don't have one in the precision plugin.
-        lambda_closure()  # DeepSpeed does not support closures
         deepspeed_engine = model.trainer.model
         deepspeed_engine.step()
         return False

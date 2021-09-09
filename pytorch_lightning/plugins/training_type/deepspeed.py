@@ -35,7 +35,7 @@ from pytorch_lightning.utilities.distributed import log, rank_zero_info, rank_ze
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.types import LRSchedulerTypeTuple
-from pytorch_lightning.utilities.warnings import _warn, LightningDeprecationWarning, warning_cache
+from pytorch_lightning.utilities.warnings import _warn, LightningDeprecationWarning
 
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
@@ -671,19 +671,18 @@ class DeepSpeedPlugin(DDPPlugin):
             checkpoint: The checkpoint state dictionary
             filepath: write-target file's path
         """
-        if self.zero_stage_3 and self._multi_device and self.is_global_zero:
-            warning_cache.warn(
-                "When saving the DeepSpeed Stage 3 checkpoint, "
-                "each worker will save a shard of the checkpoint within a directory. "
-                "If a single file is required after training, "
-                "see https://pytorch-lightning.readthedocs.io/en/latest/advanced/advanced_gpu.html#"
-                "deepspeed-zero-stage-3-single-file for instructions."
-            )
-            # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
-            # dump states as a checkpoint dictionary object
-            _exclude_keys = ["state_dict", "optimizer_states", "lr_schedulers"]
-            checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
-            self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint)
+        if self.world_size > 1 and self.zero_stage_3:
+            if self.save_full_weights:
+                # todo: expose this as general function in deepspeed
+                state_dict = self.deepspeed_engine._zero3_consolidated_fp16_state_dict()
+                if self.is_global_zero:
+                    # State dict keys will include reference to wrapper LightningDeepSpeedModule
+                    # Delete `module` prefix before saving.
+                    state_dict = {k.partition("module.")[2]: state_dict[k] for k in state_dict.keys()}
+                    checkpoint["state_dict"] = state_dict
+                    return super().save_checkpoint(checkpoint, filepath)
+                return
+
             # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
             # dump states as a checkpoint dictionary object
             save_dir = self._filepath_to_dir(filepath)

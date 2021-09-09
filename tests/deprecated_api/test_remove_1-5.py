@@ -156,11 +156,6 @@ def test_v1_5_0_old_callback_on_load_checkpoint(tmpdir):
         trainer.fit(model)
 
 
-def test_v1_5_0_legacy_profiler_argument():
-    with pytest.deprecated_call(match="renamed to `record_functions` in v1.3"):
-        PyTorchProfiler(profiled_functions=[])
-
-
 def test_v1_5_0_running_sanity_check():
     trainer = Trainer()
     with pytest.deprecated_call(match="has been renamed to `Trainer.sanity_checking`"):

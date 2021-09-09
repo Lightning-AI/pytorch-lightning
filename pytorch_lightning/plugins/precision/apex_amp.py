@@ -97,10 +97,13 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         **kwargs: Any,
     ) -> bool:
         """Hook to do something before each optimizer step."""
+        result = lambda_closure()  # APEX amp does not support closures
         super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
-        # the following should be in a `optimizer_step` hook but we don't have one in the precision plugin.
-        lambda_closure()  # APEX amp does not support closures
-        optimizer.step(**kwargs)
+        skipped_backward = result is None
+        # in manual optimization, the closure does not return a value
+        if not model.automatic_optimization or not skipped_backward:
+            # the following should be in a `optimizer_step` hook but we don't have one in the precision plugin.
+            optimizer.step(**kwargs)
         return False
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
