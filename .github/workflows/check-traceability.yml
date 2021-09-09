@@ -19,13 +19,13 @@ jobs:
       run: |
         PR_DESCRIPTION=$(gh pr view ${{ env.PR_NUMBER }})
 
-        DEFAULT_DESCRIPTION=$(echo ${PR_DESCRIPTION} | grep '<issue_number>')
+        echo $PR_DESCRIPTION
 
-        echo $DEFAULT_DESCRIPTION
+        DEFAULT_DESCRIPTION=$(echo $PR_DESCRIPTION | grep "<issue_number>")
 
-        FIX_MATCHES=$(echo ${PR_DESCRIPTION} | grep '^Fixe\|Close')
-        FOLLOW_UPS=$(echo ${PR_DESCRIPTION} | grep '^Follow up to')
-        PARTS_OF=$(echo ${PR_DESCRIPTION} | grep '^Part of\|Parts of')
+        FIX_MATCHES=$(echo $PR_DESCRIPTION | grep "^Fixe\|Close")
+        FOLLOW_UPS=$(echo $PR_DESCRIPTION | grep "^Follow up to")
+        PARTS_OF=$(echo $PR_DESCRIPTION | grep "^Part of\|Parts of")
 
         # the default template should be overriden.
         if [[ -z "$DEFAULT_DESCRIPTION"]]; then
