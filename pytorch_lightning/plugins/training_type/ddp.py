@@ -481,6 +481,12 @@ class DDPPlugin(ParallelPlugin):
         if self.world_size < 2:
             return
 
+        # If the cluster environment creates the process, allow the scheduler / parent process
+        # to perform the process termination
+        cluster_env = self.cluster_environment
+        if cluster_env is not None and cluster_env.creates_children():
+            return
+
         sync_dir = self._sync_dir
 
         if not sync_dir:
