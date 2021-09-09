@@ -34,5 +34,12 @@ jobs:
 
         des = os.getenv("PR_DESCRIPTION")
 
+        print(des)
+
         if '<issue_number>' in des:
+          raise Exception
+
+        print("Template edited !")
+
+        if 'fixes' not in des:
           raise Exception
