@@ -17,11 +17,11 @@ from unittest import mock
 import pytest
 
 from pytorch_lightning import Callback, LightningDataModule, Trainer
-from pytorch_lightning.loggers import TestTubeLogger
+from pytorch_lightning.loggers import TestTubeLogger, LoggerCollection
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
-from tests.loggers.test_base import CustomLogger, LoggerCollection
+from tests.loggers.test_base import CustomLogger
 
 
 def test_v1_7_0_deprecated_lightning_module_summarize(tmpdir):
