@@ -21,6 +21,7 @@ import torch
 from torchmetrics import Metric
 
 import pytorch_lightning as pl
+from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
@@ -33,7 +34,7 @@ if _OMEGACONF_AVAILABLE:
 
 
 class CheckpointConnector:
-    def __init__(self, trainer, resume_from_checkpoint: Optional[Union[str, Path]] = None):
+    def __init__(self, trainer: "pl.Trainer", resume_from_checkpoint: Optional[Union[str, Path]] = None) -> None:
         self.trainer = trainer
         self.resume_checkpoint_path = resume_from_checkpoint
         self._loaded_checkpoint = {}
@@ -268,7 +269,7 @@ class CheckpointConnector:
     # PRIVATE OPS
     # ----------------------------------
 
-    def hpc_save(self, folderpath: str, logger):
+    def hpc_save(self, folderpath: str, logger: LightningLoggerBase) -> str:
         # make sure the checkpoint folder exists
         folderpath = str(folderpath)  # because the tests pass a path object
         fs = get_filesystem(folderpath)
@@ -430,7 +431,7 @@ class CheckpointConnector:
         ckpt_number = max_suffix if max_suffix is not None else 0
         return f"{folder_path}/hpc_ckpt_{ckpt_number}.ckpt"
 
-    def save_checkpoint(self, filepath, weights_only: bool = False) -> None:
+    def save_checkpoint(self, filepath: str, weights_only: bool = False) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
