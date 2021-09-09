@@ -18,7 +18,6 @@ jobs:
         PR_NUMBER: ${{ github.event.pull_request.number }}
       run: |
         PR_DESCRIPTION=$(gh pr view ${{ env.PR_NUMBER }})
-        echo $PR_DESCRIPTION
 
         DEFAULT_DESCRIPTION=$(echo ${PR_DESCRIPTION} | grep '<issue_number>')
         FIX_MATCHES=$(echo ${PR_DESCRIPTION} | grep '^Fixe\|Close')
