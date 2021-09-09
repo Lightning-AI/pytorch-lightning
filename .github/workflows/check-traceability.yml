@@ -30,4 +30,5 @@ jobs:
           exit 1
         else
           echo "worked"
+          exit 0
         fi
