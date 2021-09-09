@@ -29,3 +29,13 @@ jobs:
           echo "You should reference this PR to an issue and/or other PRs for better traceability."
           exit 1
         fi
+
+        FIX_MATCHES=$(echo "$PR_DESCRIPTION" | grep -ioE '^Fixe\|Close')
+        FOLLOW_UPS=$(echo "$PR_DESCRIPTION" | grep -ioE '^Follow up to')
+        PARTS_OF=$(echo "$PR_DESCRIPTION" | grep -ioE '^Part of\|Parts of')
+
+        if [ -z "$DEFAULT_DESCRIPTION" || -z "$FOLLOW_UPS" || -z "$PARTS_OF"]
+        then
+          echo "You should reference this PR to an issue and/or other PRs for better traceability."
+          exit 1
+        fi
