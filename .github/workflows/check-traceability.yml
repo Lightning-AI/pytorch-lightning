@@ -28,5 +28,5 @@ jobs:
             exit 0
         else
             echo "You should reference this PR to an issue and/or other PRs for better traceability."
-            exit 0
+            exit 1
         fi
