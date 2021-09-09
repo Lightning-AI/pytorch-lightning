@@ -31,16 +31,17 @@ jobs:
       shell: python
       run: |
         import os
-        import re
 
         description = os.getenv("PR_DESCRIPTION").lower()
 
         if '<issue_number>' in description:
-          raise Exception("The template should be edited and issues tracking should be added.")
+          raise Exception("Please replace <issue_number> with a reference issue to track details of what this PR does!")
 
-        contains_fix = 'fixes#' in description
+        github_special_words = ('close', 'closes', 'closed', 'fix', 'fixes', 'fixed', 'resolve', 'resolves', 'resolved')
+
+        contains_fix = any(f"{w}#" in description for w in github_special_words)
         contains_parts = 'partsof' in description
         contains_follow_up = 'followupof' in description
 
         if not (contains_fix or contains_parts or contains_follow_up):
-          raise Exception("The PR description should linked to an issue or be `parts of` an issue")
+          raise Exception("Please link to an issue in the PR description to track details of what this PR!")
