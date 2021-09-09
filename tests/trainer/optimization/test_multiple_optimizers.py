@@ -129,8 +129,7 @@ def test_multiple_optimizers_no_opt_idx_argument(tmpdir):
     automatic_optimization."""
 
     class TestModel(MultiOptModel):
-        def training_step(self, batch, batch_idx):
-            return super().training_step(batch, batch_idx)
+        pass
 
     trainer = pl.Trainer(default_root_dir=tmpdir, fast_dev_run=2)
 

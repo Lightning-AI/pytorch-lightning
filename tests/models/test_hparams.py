@@ -536,9 +536,6 @@ class SuperClassPositionalArgs(BoringModel):
 class SubClassVarArgs(SuperClassPositionalArgs):
     """Loading this model should accept hparams and init in the super class."""
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
 
 def test_args(tmpdir):
     """Test for inheritance: super class takes positional arg, subclass takes varargs."""

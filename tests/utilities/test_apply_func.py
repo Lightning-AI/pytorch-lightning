@@ -142,8 +142,7 @@ def test_recursive_application_to_collection():
 
     # custom mappings
     class _CustomCollection(dict):
-        def __init__(self, initial_dict):
-            super().__init__(initial_dict)
+        pass
 
     to_reduce = _CustomCollection({"a": 1, "b": 2, "c": 3})
     reduced = apply_to_collection(to_reduce, int, lambda x: str(x))
