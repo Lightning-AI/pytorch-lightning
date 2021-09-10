@@ -15,12 +15,14 @@
 from unittest import mock
 
 import pytest
+import torch
 
 from pytorch_lightning import Callback, LightningDataModule, Trainer
 from pytorch_lightning.loggers import TestTubeLogger
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
+from tests.helpers.runif import RunIf
 
 
 def test_v1_7_0_deprecated_lightning_module_summarize(tmpdir):
@@ -192,3 +194,28 @@ def test_v1_7_0_on_interrupt(tmpdir):
 def test_v1_7_0_process_position_trainer_constructor(tmpdir):
     with pytest.deprecated_call(match=r"Setting `Trainer\(process_position=5\)` is deprecated in v1.5"):
         _ = Trainer(process_position=5)
+
+
+class BoringCallbackDDPSpawnModel(BoringModel):
+    def __init__(self):
+        super().__init__()
+
+    def add_to_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+        queue.put("test_val")
+        return super().add_to_queue(queue)
+
+    def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+        self.test_val = queue.get()
+        return super().get_from_queue(queue)
+
+
+@RunIf(skip_windows=True)
+def test_v1_7_0_deprecate_add_get_queue(tmpdir):
+    model = BoringCallbackDDPSpawnModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, num_processes=2, accelerator="ddp_cpu")
+
+    with pytest.deprecated_call(match=r"`LightningModule.add_to_queue` method was deprecated in v1.5"):
+        trainer.fit(model)
+
+    with pytest.deprecated_call(match=r"`LightningModule.get_from_queue` method was deprecated in v1.5"):
+        trainer.fit(model)
