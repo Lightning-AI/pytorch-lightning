@@ -79,7 +79,7 @@ class CheckpointConnector:
         # wait for all to catch up
         self.trainer.training_type_plugin.barrier("CheckpointConnector.resume_end")
 
-    def restore(self, checkpoint_path: Optional[Union[Path, str]] = None) -> None:
+    def restore(self, checkpoint_path: Optional[_PATH] = None) -> None:
         """Attempt to restore everything at once from a 'PyTorch-Lightning checkpoint' file through file-read and
         state-restore, in this priority:
 
@@ -387,7 +387,7 @@ class CheckpointConnector:
 
         return checkpoint
 
-    def hpc_load(self, checkpoint_path: str) -> None:
+    def hpc_load(self, checkpoint_path: _PATH) -> None:
         """Attempts to restore the full training and model state from a HPC checkpoint file.
 
         .. deprecated:: v1.4     Will be removed in v1.6. Use :meth:`restore` instead.
@@ -435,7 +435,7 @@ class CheckpointConnector:
         ckpt_number = max_suffix if max_suffix is not None else 0
         return f"{folder_path}/hpc_ckpt_{ckpt_number}.ckpt"
 
-    def save_checkpoint(self, filepath: str, weights_only: bool = False) -> None:
+    def save_checkpoint(self, filepath: _PATH, weights_only: bool = False) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
