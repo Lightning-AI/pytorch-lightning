@@ -29,6 +29,7 @@ import torch
 import torch.distributed
 from torch.nn.parallel.distributed import DistributedDataParallel
 
+import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
@@ -368,7 +369,7 @@ class DDPPlugin(ParallelPlugin):
         if trainer_fn == TrainerFn.FITTING:
             self.configure_ddp()
 
-    def post_dispatch(self) -> None:
+    def post_dispatch(self, trainer: "pl.Trainer") -> None:
         self.cluster_environment.teardown()
 
     def barrier(self, *args, **kwargs) -> None:

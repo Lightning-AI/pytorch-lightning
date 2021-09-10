@@ -26,7 +26,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
-from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT
+from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PATH, _PREDICT_OUTPUT
 
 TBroadcast = TypeVar("T")
 
@@ -259,7 +259,7 @@ class TrainingTypePlugin(ABC):
         model = self.lightning_module
         return model.state_dict()
 
-    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: _PATH) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
@@ -269,7 +269,7 @@ class TrainingTypePlugin(ABC):
         if self.should_rank_save_checkpoint:
             return self.checkpoint_io.save_checkpoint(checkpoint, filepath)
 
-    def remove_checkpoint(self, filepath: str) -> None:
+    def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.
 
         Args:
@@ -360,5 +360,5 @@ class TrainingTypePlugin(ABC):
     def dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something at trainer run_stage starts."""
 
-    def post_dispatch(self) -> None:
+    def post_dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something after the training/evaluation/prediction finishes."""

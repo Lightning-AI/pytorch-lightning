@@ -24,7 +24,6 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
-import numpy as np
 import torch
 from torch import ScriptModule, Tensor
 if _TORCH_GREATER_EQUAL_1_10:
@@ -33,6 +32,7 @@ from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress import base as progress_base
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
@@ -1921,11 +1921,13 @@ class LightningModule(
 
         Args:
             queue: the instance of the queue to append the data.
+
+        .. deprecated:: v1.5
+            This method was deprecated in v1.5 in favor of `DDPSpawnPlugin.add_to_queue`
+            and will be removed in v1.7.
         """
-        callback_metrics: dict = apply_to_collection(
-            self.trainer.callback_metrics, torch.Tensor, lambda x: x.cpu().numpy()
-        )  # send as numpy to avoid issues with memory sharing
-        queue.put(callback_metrics)
+        if self.trainer and isinstance(self.trainer.training_type_plugin, pl.plugins.training_type.DDPSpawnPlugin):
+            self.trainer.training_type_plugin.add_to_queue(self.trainer, queue)
 
     def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
         """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
@@ -1933,12 +1935,13 @@ class LightningModule(
 
         Args:
             queue: the instance of the queue from where to get the data.
+
+        .. deprecated:: v1.5
+            This method was deprecated in v1.5 in favor of `DDPSpawnPlugin.get_from_queue`
+            and will be removed in v1.7.
         """
-        # NOTE: `add_to_queue` needs to be called before
-        callback_metrics: dict = queue.get()
-        self.trainer.callback_metrics.update(
-            apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x))
-        )
+        if self.trainer and isinstance(self.trainer.training_type_plugin, pl.plugins.training_type.DDPSpawnPlugin):
+            self.trainer.training_type_plugin.get_from_queue(self.trainer, queue)
 
     @contextmanager
     def _prevent_trainer_and_dataloaders_deepcopy(self) -> None:
