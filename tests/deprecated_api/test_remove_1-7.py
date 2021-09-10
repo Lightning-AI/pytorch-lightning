@@ -209,6 +209,7 @@ class BoringCallbackDDPSpawnModel(BoringModel):
         return super().get_from_queue(queue)
 
 
+@RunIf(skip_windows=True)
 def test_v1_7_0_deprecate_add_get_queue(tmpdir):
     model = BoringCallbackDDPSpawnModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, num_processes=2, accelerator="ddp_cpu")

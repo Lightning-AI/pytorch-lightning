@@ -91,6 +91,7 @@ class TestDDPSpawnPlugin(DDPSpawnPlugin):
         return super().get_from_queue(trainer, queue)
 
 
+@RunIf(skip_windows=True)
 def test_ddp_spawn_add_get_queue(tmpdir):
     """Tests add_to_queue/get_from_queue with DDPSpawnPlugin."""
 
