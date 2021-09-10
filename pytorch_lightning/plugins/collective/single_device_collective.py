@@ -18,7 +18,7 @@ import torch
 from pytorch_lightning.plugins.collective import Collective
 
 
-class SingleNodeCollective(Collective):
+class SingleDeviceCollective(Collective):
     """Collective interface for single device training type plugins."""
 
     def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
