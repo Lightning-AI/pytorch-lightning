@@ -86,6 +86,29 @@ def test_v1_7_0_datamodule_dims_property(tmpdir):
         _ = LightningDataModule(dims=(1, 1, 1))
 
 
+def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):
+    class TestModel(BoringModel):
+        def get_progress_bar_dict(self):
+            items = super().get_progress_bar_dict()
+            items.pop("v_num", None)
+            return items
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=None,
+        fast_dev_run=True,
+    )
+    test_model = TestModel()
+    with pytest.deprecated_call(match=r"`LightningModule.get_progress_bar_dict` method was deprecated in v1.5"):
+        trainer.fit(test_model)
+    standard_metrics_postfix = trainer.progress_bar_callback.main_progress_bar.postfix
+    assert "loss" in standard_metrics_postfix
+    assert "v_num" not in standard_metrics_postfix
+
+    with pytest.deprecated_call(match=r"`trainer.progress_bar_dict` is deprecated in v1.5"):
+        _ = trainer.progress_bar_dict
+
+
 def test_v1_7_0_trainer_prepare_data_per_node(tmpdir):
     with pytest.deprecated_call(
         match="Setting `prepare_data_per_node` with the trainer flag is deprecated and will be removed in v1.7.0!"

@@ -245,13 +245,13 @@ Modifying the progress bar
 
 The progress bar by default already includes the training loss and version number of the experiment
 if you are using a logger. These defaults can be customized by overriding the
-:func:`~pytorch_lightning.core.lightning.LightningModule.get_progress_bar_dict` hook in your module.
+:func:`~pytorch_lightning.callbacks.base.ProgressBarBase.get_metrics` hook in your module.
 
 .. code-block:: python
 
-    def get_progress_bar_dict(self):
+    def get_metrics(self):
         # don't show the version number
-        items = super().get_progress_bar_dict()
+        items = super().get_metrics()
         items.pop("v_num", None)
         return items
 

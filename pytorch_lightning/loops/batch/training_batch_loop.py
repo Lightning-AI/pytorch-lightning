@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from copy import deepcopy
-from functools import partial
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 import numpy as np
 from deprecate import void
@@ -21,13 +20,8 @@ from torch import Tensor
 from torch.optim import Optimizer
 
 from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.loops.closure import Closure, ClosureResult
+from pytorch_lightning.loops.batch.manual import ManualOptimization
 from pytorch_lightning.loops.optimizer.optimizer_loop import OptimizerLoop
-from pytorch_lightning.loops.utilities import (
-    _build_training_step_kwargs,
-    _check_training_step_output,
-    _process_training_step_output,
-)
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -45,9 +39,9 @@ class TrainingBatchLoop(Loop):
         # the current split index when the batch gets split into chunks in truncated backprop through time
         self.split_idx: Optional[int] = None
         self.optimizer_loop = OptimizerLoop()
+        self.manual_loop = ManualOptimization()
 
         self._warning_cache: WarningCache = WarningCache()
-        self._hiddens: Optional[Tensor] = None
         self._optimizer_freq_cumsum: Optional[int] = None
         self._remaining_splits: Optional[List[Any]] = None
 
@@ -63,8 +57,13 @@ class TrainingBatchLoop(Loop):
             self._optimizer_freq_cumsum = np.cumsum(self.trainer.optimizer_frequencies)
         return self._optimizer_freq_cumsum
 
-    def connect(self, optimizer_loop: "Loop") -> None:
-        self.optimizer_loop = optimizer_loop
+    def connect(
+        self, optimizer_loop: Optional["Loop"] = None, manual_loop: Optional[ManualOptimization] = None
+    ) -> None:
+        if optimizer_loop is not None:
+            self.optimizer_loop = optimizer_loop
+        if manual_loop is not None:
+            self.manual_loop = manual_loop
 
     def run(self, batch: Any, batch_idx: int) -> AttributeDict:
         """Runs all the data splits and the ``on_batch_start`` and ``on_train_batch_start`` hooks.
@@ -97,7 +96,6 @@ class TrainingBatchLoop(Loop):
 
     def reset(self) -> None:
         """Resets the loop state."""
-        self._hiddens = None
         self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
     def on_run_start(self, batch: Any, batch_idx: int):
@@ -127,15 +125,20 @@ class TrainingBatchLoop(Loop):
         if self.trainer.lightning_module.automatic_optimization:
             # in automatic optimization, hand over execution to the OptimizerLoop
             optimizers = [optimizer for _, optimizer in self.get_active_optimizers(batch_idx)]
-            batch_outputs, self._hiddens = self.optimizer_loop.run(split_batch, self._hiddens, optimizers, batch_idx)
+            batch_outputs = self.optimizer_loop.run(split_batch, optimizers, batch_idx)
             # combine outputs from each optimizer
             for k in range(len(batch_outputs)):
                 self.batch_outputs[k].extend(batch_outputs[k])
         else:
-            # in manual optimization, there is no looping over optimizers
-            result = self._run_optimization(batch_idx, split_batch)
-            if result:
-                self.batch_outputs[0].append(deepcopy(result.result_collection))
+            # in manual optimization, hand over execution to the ManualOptimization loop
+            output = self.manual_loop.run(split_batch, batch_idx)
+            if output is not None:
+                self.batch_outputs[0].append(deepcopy(output))
+
+    def on_run_end(self) -> None:
+        self.optimizer_loop._hiddens = None
+        # this is not necessary as the manual loop runs for only 1 iteration, but just in case
+        self.manual_loop._hiddens = None
 
     def teardown(self) -> None:
         # release memory
@@ -144,89 +147,6 @@ class TrainingBatchLoop(Loop):
     def num_active_optimizers(self, batch_idx: Optional[int] = None) -> int:
         """Gets the number of active optimizers based on their frequency."""
         return len(self.get_active_optimizers(batch_idx))
-
-    def _run_optimization(
-        self,
-        batch_idx: int,
-        split_batch: Any,
-    ) -> Optional[ClosureResult]:
-        """Runs closure (train step + backward) together with optimization if necessary.
-
-        Args:
-            batch_idx: the index of the current batch
-            split_batch: the current tbptt split of the whole batch
-        """
-        # TODO: replace call through closure by direct call (manual optimization)
-        closure = self._make_closure(split_batch, batch_idx, self._hiddens)
-        closure()
-        result = closure.get_result()
-
-        if result:
-            # if no result, user decided to skip optimization
-            # otherwise update running loss + reset accumulated loss
-            self._update_running_loss(result.loss)
-
-        return result
-
-    def _make_closure(
-        self,
-        split_batch: Any,
-        batch_idx: int,
-        hiddens: Any,
-    ) -> Closure:
-        """Build a closure object that captures the given arguments and runs the `training_step` function and
-        optionally other functions such as `backward` and `zero_grad`."""
-        step_fn = self._make_step_fn(split_batch, batch_idx, hiddens)
-        backward_fn = None
-        zero_grad_fn = None
-
-        return Closure(
-            step_fn=step_fn,
-            backward_fn=backward_fn,
-            zero_grad_fn=zero_grad_fn,
-            profiler=self.trainer.profiler,
-        )
-
-    def _make_step_fn(self, split_batch: Any, batch_idx: int, hiddens: Any) -> Callable[[], dict]:
-        """Build the step function that runs the `training_step` and processes its output."""
-        return partial(self._training_step, split_batch, batch_idx, hiddens)
-
-    def _training_step(self, split_batch: Any, batch_idx: int, hiddens: Tensor) -> Optional[AttributeDict]:
-        """Performs the training step for manual optimization.
-
-        Args:
-            split_batch: the current tbptt split of the current batch
-            batch_idx: the index of the current batch
-            hiddens: the model's hidden state of the previous iteration
-
-        Returns:
-            an AttributeDict containing the training step output.
-        """
-        # give the PL module a result for logging
-        model_ref = self.trainer.lightning_module
-
-        with self.trainer.profiler.profile("model_forward"):
-            step_kwargs = _build_training_step_kwargs(
-                model_ref, self.trainer.optimizers, split_batch, batch_idx, opt_idx=None, hiddens=hiddens
-            )
-
-            # manually capture logged metrics
-            model_ref._current_fx_name = "training_step"
-            with self.trainer.profiler.profile("training_step"):
-                training_step_output = self.trainer.accelerator.training_step(step_kwargs)
-                self.trainer.accelerator.post_training_step()
-
-            del step_kwargs
-
-            training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
-
-            _check_training_step_output(self.trainer.lightning_module, training_step_output)
-
-            result_collection, self._hiddens = _process_training_step_output(self.trainer, training_step_output)
-            if result_collection is None:
-                return
-
-        return AttributeDict(closure_loss=None, loss=None, result_collection=result_collection)
 
     def _tbptt_split_batch(self, batch: Any) -> List[Any]:
         """Splits a single batch into a list of sequence steps for tbptt.

@@ -172,15 +172,7 @@ class Accelerator:
     def training_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> STEP_OUTPUT:
         """The actual training step.
 
-        Args:
-            step_kwargs: the arguments for the models training step. Can consist of the following:
-
-                - batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-                  The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-                - batch_idx (int): Integer displaying index of this batch
-                - optimizer_idx (int): When using multiple optimizers, this argument will also be present.
-                - hiddens(:class:`~torch.Tensor`): Passed in if
-                  :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
+        See :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` for more details
         """
         with self.precision_plugin.train_step_context():
             return self.training_type_plugin.training_step(*step_kwargs.values())
@@ -191,14 +183,7 @@ class Accelerator:
     def validation_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> Optional[STEP_OUTPUT]:
         """The actual validation step.
 
-        Args:
-            step_kwargs: the arguments for the models validation step. Can consist of the following:
-
-                - batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-                  The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-                - batch_idx (int): The index of this batch
-                - dataloader_idx (int): The index of the dataloader that produced this batch
-                  (only if multiple val dataloaders used)
+        See :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` for more details
         """
         with self.precision_plugin.val_step_context():
             return self.training_type_plugin.validation_step(*step_kwargs.values())
@@ -206,14 +191,7 @@ class Accelerator:
     def test_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> Optional[STEP_OUTPUT]:
         """The actual test step.
 
-        Args:
-            step_kwargs: the arguments for the models test step. Can consist of the following:
-
-                - batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-                  The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-                - batch_idx (int): The index of this batch.
-                - dataloader_idx (int): The index of the dataloader that produced this batch
-                  (only if multiple test dataloaders used).
+        See :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step` for more details
         """
         with self.precision_plugin.test_step_context():
             return self.training_type_plugin.test_step(*step_kwargs.values())
@@ -221,14 +199,7 @@ class Accelerator:
     def predict_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> STEP_OUTPUT:
         """The actual predict step.
 
-        Args:
-            step_kwargs: the arguments for the models predict step. Can consist of the following:
-
-                - batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-                  The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-                - batch_idx (int): The index of this batch.
-                - dataloader_idx (int): The index of the dataloader that produced this batch
-                  (only if multiple predict dataloaders used).
+        See :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` for more details
         """
         with self.precision_plugin.predict_step_context():
             return self.training_type_plugin.predict_step(*step_kwargs.values())
