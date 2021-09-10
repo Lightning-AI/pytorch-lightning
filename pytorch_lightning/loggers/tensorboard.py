@@ -64,19 +64,19 @@ class TensorBoardLogger(LightningLoggerBase):
             directory for existing versions, then automatically assigns the next available version.
             If it is a string then it is used as the run-specific subdirectory name,
             otherwise ``'version_${version}'`` is used.
-        sub_dir: Sub-directory to group TensorBoard logs. If a sub_dir argument is passed
-            then logs are saved in ``/save_dir/version/sub_dir/``. Defaults to ``None`` in which
-            logs are saved in ``/save_dir/version/``.
         log_graph: Adds the computational graph to tensorboard. This requires that
             the user has defined the `self.example_input_array` attribute in their
             model.
         default_hp_metric: Enables a placeholder metric with key `hp_metric` when `log_hyperparams` is
             called without a metric (otherwise calls to log_hyperparams without a metric are ignored).
         prefix: A string to put at the beginning of metric keys.
-        sub_dir: Optional subdirectory to store logs.
-        flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
-        \**kwargs: Additional arguments like `comment`, `filename_suffix`, etc. used by
-            :class:`SummaryWriter` can be passed as keyword arguments in this logger.
+        sub_dir: Sub-directory to group TensorBoard logs. If a sub_dir argument is passed
+            then logs are saved in ``/save_dir/version/sub_dir/``. Defaults to ``None`` in which
+            logs are saved in ``/save_dir/version/``.
+        \**kwargs: Additional arguments used by :class:`SummaryWriter` can be passed as keyword
+            arguments in this logger. To automatically flush to disk, `max_queue` sets the size
+            of the queue for pending logs before flushing. `flush_secs` determines how many seconds
+            elapses before flushing.
 
     """
     NAME_HPARAMS_FILE = "hparams.yaml"
@@ -91,7 +91,6 @@ class TensorBoardLogger(LightningLoggerBase):
         default_hp_metric: bool = True,
         prefix: str = "",
         sub_dir: Optional[str] = None,
-        flush_logs_every_n_steps: int = 100,
         **kwargs,
     ):
         super().__init__()
@@ -103,7 +102,6 @@ class TensorBoardLogger(LightningLoggerBase):
         self._default_hp_metric = default_hp_metric
         self._prefix = prefix
         self._fs = get_filesystem(save_dir)
-        self._flush_logs_every_n_steps = flush_logs_every_n_steps
 
         self._experiment = None
         self.hparams = {}
@@ -233,9 +231,6 @@ class TensorBoardLogger(LightningLoggerBase):
                 except Exception as ex:
                     m = f"\n you tried to log {v} which is not currently supported. Try a dict or a scalar/tensor."
                     raise ValueError(m) from ex
-
-        if step is not None and (step + 1) % self._flush_logs_every_n_steps == 0:
-            self.experiment.flush()
 
     @rank_zero_only
     def log_graph(self, model: "pl.LightningModule", input_array=None):

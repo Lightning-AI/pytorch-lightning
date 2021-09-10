@@ -215,7 +215,7 @@ class Trainer(
 
                 .. deprecated:: v1.5
                     ``flush_logs_every_n_steps`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please pass ``flush_logs_every_n_steps`` directly to the Logger instead.
+                    Please configure flushing directly in the logger instead.
 
             gpus: Number of GPUs to train on (int) or which GPUs to train on (list or str) applied per node
 
