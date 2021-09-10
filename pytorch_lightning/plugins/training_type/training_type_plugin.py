@@ -13,7 +13,6 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, TypeVar, Union
 
 import torch
