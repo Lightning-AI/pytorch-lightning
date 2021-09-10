@@ -122,7 +122,8 @@ class DDPPlugin(ParallelPlugin):
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
-        self._model_averaging_period = model_averaging_period
+        if _TORCH_GREATER_EQUAL_1_10:
+            self._model_averaging_period = model_averaging_period
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
         self.set_world_ranks()
@@ -320,44 +321,26 @@ class DDPPlugin(ParallelPlugin):
                 and isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState)
                 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
             ):
-                self._reinit_optimizers_with_post_localSGD(self._ddp_comm_state.start_localSGD_iter)
+                self._enable_model_averaging()
 
-    def _reinit_optimizers_with_post_localSGD(self, warmup_steps: int):
-        optimizers = self.lightning_module.trainer.optimizers
+    def _enable_model_averaging(self):
         if self._model_averaging_period is None:
             raise ValueError(
                 "Post-localSGD algorithm is used, but model averaging period is not provided to DDP plugin."
             )
-        averager = averagers.PeriodicModelAverager(period=self._model_averaging_period, warmup_steps=warmup_steps)
-        for x, optimizer in enumerate(optimizers):
-            if isinstance(optimizer, LightningOptimizer):
-                optimizer = optimizer._optimizer
-
+        for optimizer in self.lightning_module.trainer.optimizers:
             if (
                 isinstance(optimizer, DistributedOptimizer)
+                or isinstance(optimizer, PostLocalSGDOptimizer)
                 or isinstance(optimizer, ZeroRedundancyOptimizer)
                 or (_FAIRSCALE_AVAILABLE and isinstance(optimizer, OSS))
             ):
                 raise ValueError(
-                    f"Cannot wrap a distributed optimizer of type {optimizer.__name__} by PostLocalSGDOptimizer."
+                    f"Currently model averaging cannot work with a distributed optimizer of type {optimizer.__name__}."
                 )
-
-            if isinstance(optimizer, PostLocalSGDOptimizer):
-                continue
-
-            optim_class = type(optimizer)
-            post_localSGD_optimizer = PostLocalSGDOptimizer(
-                params=optimizer.param_groups,
-                optimizer_class=optim_class,
-                averager=averager,
-                **optimizer.defaults,
-            )
-            optimizers[x] = post_localSGD_optimizer
-            del optimizer
-        trainer = self.lightning_module.trainer
-        trainer.optimizers = optimizers
-        trainer.convert_to_lightning_optimizers()
-
+    
+        self.lightning_module.averager = averagers.PeriodicModelAverager(period=self._model_averaging_period, warmup_steps=self._ddp_comm_state.start_localSGD_iter)
+     
     def configure_ddp(self) -> None:
         self.pre_configure_ddp()
         self._model = DistributedDataParallel(

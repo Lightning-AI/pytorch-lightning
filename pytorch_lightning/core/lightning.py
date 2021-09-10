@@ -27,6 +27,8 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 import numpy as np
 import torch
 from torch import ScriptModule, Tensor
+if _TORCH_GREATER_EQUAL_1_10:
+    from torch.distributed.algorithms.model_averaging.averagers import ModelAverager
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
@@ -37,7 +39,7 @@ from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, Hyperparameter
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from pytorch_lightning.utilities import _TORCH_SHARDED_TENSOR_AVAILABLE, rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, _TORCH_SHARDED_TENSOR_AVAILABLE, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
@@ -78,6 +80,7 @@ class LightningModule(
             "automatic_optimization",
             "truncated_bptt_steps",
             "loaded_optimizer_states_dict",
+            "model_averager",
         ]
         + DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
@@ -111,6 +114,8 @@ class LightningModule(
         self._param_requires_grad_state = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
         self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
+        if _TORCH_GREATER_EQUAL_1_10:
+            self._model_averager: Optional[ModelAverager] = None
 
         self._register_sharded_tensor_state_dict_hooks_if_available()
 
@@ -254,6 +259,14 @@ class LightningModule(
     @truncated_bptt_steps.setter
     def truncated_bptt_steps(self, truncated_bptt_steps: int) -> None:
         self._truncated_bptt_steps = truncated_bptt_steps
+
+    @property
+    def model_averager(self) -> ModelAverager:
+        return self._model_averager
+
+    @model_averager.setter
+    def model_averager(self, model_averager: ModelAverager) -> None:
+        self._model_averager = model_averager
 
     @property
     def logger(self):
@@ -1561,6 +1574,9 @@ class LightningModule(
 
         """
         optimizer.step(closure=optimizer_closure)
+
+        if _TORCH_GREATER_EQUAL_1_10 and self.model_averager is not None:
+            self.model_averager.average_parameters(self.model.parameters())
 
     def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int):
         """Override this method to change the default behaviour of ``optimizer.zero_grad()``.
