@@ -436,6 +436,6 @@ structure.
 ----------------
 
 Hyperparameters in DataModules
------------------------------
+------------------------------
 Like LightningModules, DataModules support hyperparameters with the same API (`DataModules.save_hyperparameters()`).
 Refer to `save_hyperparameters` in :doc:`lightning module <../common/lightning_module>` for more details.
