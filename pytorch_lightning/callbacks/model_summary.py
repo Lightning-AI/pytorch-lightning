@@ -23,9 +23,15 @@ the name, type and number of parameters for each layer.
 """
 from typing import Optional
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.utilities.model_summary import summarize
 
 
 class ModelSummary(Callback):
     def __init__(self, max_depth: Optional[int] = 1):
         self._max_depth = max_depth
+
+    def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        if trainer.is_global_zero and self._max_depth is not None and not trainer.testing:
+            summarize(pl_module, max_depth=self._max_depth)

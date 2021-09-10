@@ -78,7 +78,6 @@ from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT, EVAL_DATALOADERS, TRAIN_DATALOADERS
 
@@ -405,13 +404,6 @@ class Trainer(
 
         # default .predict() loop
         self.predict_loop = PredictionLoop()
-
-        # training state
-        if weights_summary is not None and weights_summary not in ModelSummary.MODES:
-            raise MisconfigurationException(
-                f"`weights_summary` can be None, {', '.join(ModelSummary.MODES)}, but got {weights_summary}"
-            )
-        self.weights_summary = weights_summary
 
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init
@@ -1106,11 +1098,6 @@ class Trainer(
         # Pre-train
         # --------------------------
         self.call_hook("on_pretrain_routine_start")
-
-        # print model summary
-        if self.is_global_zero and self.weights_summary is not None and not self.testing:
-            max_depth = ModelSummary.MODES[self.weights_summary]
-            summarize(self.lightning_module, max_depth=max_depth)
 
         self.call_hook("on_pretrain_routine_end")
 
