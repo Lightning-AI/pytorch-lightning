@@ -269,6 +269,15 @@ class TrainingTypePlugin(ABC):
         if self.should_rank_save_checkpoint:
             return self.checkpoint_io.save_checkpoint(checkpoint, filepath)
 
+    def remove_checkpoint(self, filepath: str) -> None:
+        """Remove checkpoint filepath from the filesystem.
+
+        Args:
+            filepath: Path to checkpoint
+        """
+        if self.should_rank_save_checkpoint:
+            return self.checkpoint_io.remove_checkpoint(filepath)
+
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
         """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to

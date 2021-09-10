@@ -25,6 +25,7 @@ from torch.utils.data.dataloader import DataLoader
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBar, ProgressBarBase
 from pytorch_lightning.callbacks.progress.tqdm_progress import Tqdm
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -555,6 +556,28 @@ def _test_progress_bar_max_val_check_interval(
     total_val_batches = total_val_batches * val_checks_per_epoch
     if trainer.is_global_zero:
         assert trainer.progress_bar_callback.main_progress_bar.total == total_train_batches + total_val_batches
+
+
+def test_get_progress_bar_metrics(tmpdir: str):
+    class TestProgressBar(ProgressBar):
+        def get_metrics(self, trainer: Trainer, model: LightningModule):
+            items = super().get_metrics(trainer, model)
+            items.pop("v_num", None)
+            return items
+
+    progress_bar = TestProgressBar()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[progress_bar],
+        fast_dev_run=True,
+    )
+    model = BoringModel()
+    trainer.fit(model)
+    model.truncated_bptt_steps = 2
+    standard_metrics = progress_bar.get_metrics(trainer, model)
+    assert "loss" in standard_metrics.keys()
+    assert "split_idx" in standard_metrics.keys()
+    assert "v_num" not in standard_metrics.keys()
 
 
 def test_progress_bar_main_bar_resume():

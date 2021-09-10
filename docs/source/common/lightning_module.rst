@@ -1242,12 +1242,6 @@ backward
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.backward
     :noindex:
 
-get_progress_bar_dict
-~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.get_progress_bar_dict
-    :noindex:
-
 on_before_backward
 ~~~~~~~~~~~~~~~~~~
 
