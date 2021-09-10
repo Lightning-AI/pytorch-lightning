@@ -655,7 +655,7 @@ class ModelCheckpoint(Callback):
         if not self.save_last:
             return
 
-        filepath = self._format_checkpoint_name(self.CHECKPOINT_NAME_LAST, monitor_candidates)
+        filepath = self._format_checkpoint_name(self.CHECKPOINT_NAME_LAST, monitor_candidates, auto_insert_metric_name=self.auto_insert_metric_name)
         filepath = os.path.join(self.dirpath, f"{filepath}{self.FILE_EXTENSION}")
 
         trainer.save_checkpoint(filepath, self.save_weights_only)
