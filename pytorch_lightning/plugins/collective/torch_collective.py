@@ -16,22 +16,20 @@ from typing import Any, Optional, Union
 import torch
 import torch.distributed
 
+from pytorch_lightning.overrides.torch_distributed import broadcast_object_list
 from pytorch_lightning.plugins.collective import Collective
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.distributed import (
-    all_gather_ddp_if_available,
-    distributed_available,
-    ReduceOp,
-    sync_ddp_if_available,
-)
+from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, distributed_available
+from pytorch_lightning.utilities.distributed import group as _group
+from pytorch_lightning.utilities.distributed import ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION
 
 
 class TorchCollective(Collective):
     """Collective interface for DDP, DDPSpawn, DP and DDP2."""
 
-    def __init__(self, local_reduce=False):
+    def __init__(self, local_reduce: bool = False, rank=None, device=None):
         """.. note::
 
         DDP and DDPSpawn sync accross multiple nodes/devices, local_reduce = False
@@ -40,9 +38,11 @@ class TorchCollective(Collective):
 
         local_reduce set in Plugins.setup() functions
         """
-        self.local_reduce = local_reduce
+        self._local_reduce = local_reduce
+        self._rank = rank
+        self._device = device
 
-    def barrier(self, *args, **kwargs) -> None:
+    def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
         if not distributed_available():
             return
         if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
@@ -53,15 +53,23 @@ class TorchCollective(Collective):
     def broadcast(self, obj: object, src: int = 0) -> object:
         if not distributed_available():
             return obj
-        return self.dist.broadcast(obj)
+        else:
+            obj = [obj]
+            if self.rank != 0:
+                obj = [None] * len(obj)
+            broadcast_object_list(obj, 0, group=_group.WORLD)
+            return obj[0]
 
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
         """Perform a all_gather on all processes."""
         return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
     def reduce(
-        self, tensor: _METRIC_COLLECTION, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean"
-    ) -> torch.Tensor:
+        self,
+        tensor: Union[torch.Tensor, _METRIC_COLLECTION],
+        group: Optional[Any] = None,
+        reduce_op: Optional[Union[ReduceOp, str]] = "mean",
+    ) -> Union[torch.Tensor, _METRIC_COLLECTION]:
         """Reduces the given tensor (e.g. across GPUs/processes)
 
         If local_reduce = True (dp and ddp2), reduces tensor from all local processes.

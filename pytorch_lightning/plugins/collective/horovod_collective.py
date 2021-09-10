@@ -11,21 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import io
-from typing import Any, Optional, Union
+from typing import Any, List, Optional, Union
 
 import torch
 
 from pytorch_lightning.plugins.collective import Collective
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
+from pytorch_lightning.utilities.distributed import distributed_available
+from pytorch_lightning.utilities.distributed import group as dist_group
 from pytorch_lightning.utilities.distributed import ReduceOp
-from pytorch_lightning.utilities.types import _TPU_AVAILABLE
-
-if _TPU_AVAILABLE:
-    import torch_xla.core.xla_model as xm
-    from torch_xla.core.xla_model import rendezvous
-else:
-    xm, rendezvous = [None] * 4
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
@@ -42,48 +36,47 @@ class HorovodCollective(Collective):
         self._on_gpu = on_gpu
         self._local_rank = local_rank
 
-    def join(self):
+    def join(self) -> None:
         """Horovod function that indicates that the rank finished processing data.
 
         All ranks that did not call join() continue to process allreduce operations. This function blocks Python thread
         until all ranks join.
         """
-        if self.on_gpu:
-            hvd.join(self.local_rank)
+        if self._on_gpu:
+            hvd.join(self._local_rank)
         else:
             hvd.join()
 
-    def barrier(self, name: Optional[str] = None) -> None:
-        if self.is_distributed:
-            rendezvous(name)
+    def barrier(self, *args: Any, **kwargs: Any) -> None:
+        if distributed_available():
+            self.join()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
-        if not self.is_distributed:
-            return obj
-        buffer = io.BytesIO()
-        torch.save(obj, buffer)
-        data = bytearray(buffer.getbuffer())
-        data_tensor = torch.tensor(data, device=self.root_device, dtype=torch.float)
-        data = xm.all_gather(data_tensor)
-        buffer = io.BytesIO(data.cpu().byte().numpy())
-        obj = torch.load(buffer)
+        obj = hvd.broadcast_object(obj, src)
         return obj
 
-    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
-        """
-        Function to gather a tensor from several distributed processes
-        Args:
-            tensor: tensor of shape (batch, ...)
-            group: not available with TPUs
-            sync_grads: not available with TPUs
-        Return:
-            A tensor of shape (world_size, batch, ...)
-        """
-        if isinstance(tensor, torch.Tensor) and tensor.dim() == 0:
-            tensor = tensor.unsqueeze(0)
-        return self._xm.all_gather(tensor)
+    def all_gather(
+        self, result: Union[torch.Tensor], group: Optional[Any] = dist_group.WORLD, sync_grads: bool = False
+    ) -> List[torch.Tensor]:
+        if group is not None and group != dist_group.WORLD:
+            raise ValueError("Horovod does not support allgather using a subcommunicator at this time. Unset `group`.")
 
-    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"):
+        if len(result.shape) == 0:
+            # Convert scalars to single dimension tensors
+            result = result.reshape(1)
+
+        # sync and gather all
+        self.join()
+        gathered = hvd.allgather(result)
+        gathered_result = list(gathered.split(1, dim=0))
+        return gathered_result
+
+    def reduce(
+        self,
+        tensor: Union[torch.Tensor, Any],
+        group: Optional[Any] = None,
+        reduce_op: Optional[Union[ReduceOp, str]] = "mean",
+    ) -> Union[torch.Tensor, Any]:
         """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
@@ -108,3 +101,7 @@ class HorovodCollective(Collective):
         # sync all processes before reduction
         self.join()
         return hvd.allreduce(tensor, op=reduce_op)
+
+    def reduce_boolean_decision(self, decision: bool) -> bool:
+        """Reduce the early stopping decision across all processes."""
+        return decision

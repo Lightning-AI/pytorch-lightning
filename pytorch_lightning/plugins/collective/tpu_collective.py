@@ -17,9 +17,9 @@ from typing import Any, Optional, Union
 import torch
 
 from pytorch_lightning.plugins.collective import Collective
+from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.types import _TPU_AVAILABLE
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -61,7 +61,7 @@ class TPUCollective(Collective):
             tensor = tensor.unsqueeze(0)
         return self._xm.all_gather(tensor)
 
-    def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
+    def reduce(self, output: Any, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None) -> Any:
         if not isinstance(output, torch.Tensor):
             output = torch.tensor(output, device=self.lightning_module.device)
 
@@ -78,3 +78,7 @@ class TPUCollective(Collective):
             output = output / self.world_size
 
         return output
+
+    def reduce_boolean_decision(self, decision: bool) -> bool:
+        """Reduce the early stopping decision across all processes."""
+        return decision

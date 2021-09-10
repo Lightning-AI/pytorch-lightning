@@ -12,16 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Union
+from typing import Any, List, Optional, Union
 
 import torch
+
+from pytorch_lightning.utilities.distributed import ReduceOp
 
 
 class Collective(ABC):
     """Base class for collective functions for training type plugins."""
 
     @abstractmethod
-    def barrier(self, name: Optional[str] = None, *args, **kwargs) -> None:
+    def barrier(self, name: Optional[str] = None) -> None:
         """Forces all possibly joined processes to wait for each other."""
 
     @abstractmethod
@@ -29,11 +31,18 @@ class Collective(ABC):
         """Broadcasts an object to all processes."""
 
     @abstractmethod
-    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
+    def all_gather(
+        self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False
+    ) -> Union[List[torch.Tensor], torch.Tensor]:
         """Perform a all_gather on all processes."""
 
     @abstractmethod
-    def reduce(self, tensor: Union[torch.Tensor, Any], *args: Any, **kwargs: Any) -> Union[torch.Tensor, Any]:
+    def reduce(
+        self,
+        tensor: Union[torch.Tensor, Any],
+        group: Optional[Any] = None,
+        reduce_op: Optional[Union[ReduceOp, str]] = "mean",
+    ) -> Union[torch.Tensor, Any]:
         """Reduces the given tensor (e.g. across GPUs/processes).
 
         Args:
@@ -42,6 +51,6 @@ class Collective(ABC):
             **kwargs: plugin-specific keyword arguments
         """
 
+    @abstractmethod
     def reduce_boolean_decision(self, decision: bool) -> bool:
         """Reduce the early stopping decision across all processes."""
-        return decision
