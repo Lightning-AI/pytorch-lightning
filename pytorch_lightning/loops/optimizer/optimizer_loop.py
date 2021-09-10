@@ -62,9 +62,6 @@ class ClosureResult(OutputResult):
 
         self._clone_loss()
 
-        if self.loss is not None:
-            self.extra["loss"] = self.loss
-
     def _clone_loss(self) -> None:
         if self.closure_loss is not None:
             # the loss will get scaled for amp. avoid any modifications to it
