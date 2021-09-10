@@ -23,6 +23,7 @@ from pytorch_lightning.utilities.enums import (  # noqa: F401
     DistributedType,
     GradClipAlgorithmType,
     LightningEnum,
+    ModelSummaryMode,
 )
 from pytorch_lightning.utilities.grads import grad_norm  # noqa: F401
 from pytorch_lightning.utilities.imports import (  # noqa: F401
