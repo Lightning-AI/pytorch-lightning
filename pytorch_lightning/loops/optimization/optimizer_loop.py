@@ -107,7 +107,7 @@ class ClosureResult(OutputResult):
         return self
 
 
-class Closure(AbstractClosure):
+class Closure(AbstractClosure[ClosureResult]):
     """An implementation of a :class:`AbstractClosure` for automatic optimization in Lightning that combines three
     elementary closures into one: ``training_step``, ``backward`` and ``zero_grad``.
 
@@ -165,7 +165,7 @@ class Closure(AbstractClosure):
 
         return step_output
 
-    def __call__(self, *args, **kwargs) -> Optional[Tensor]:
+    def __call__(self, *args: Any, **kwargs: Any) -> Optional[Tensor]:
         self._result = self.closure(*args, **kwargs)
         return self._result.loss
 

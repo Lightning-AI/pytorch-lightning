@@ -13,9 +13,11 @@
 # limitations under the License.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Generic, Optional, TypeVar
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+T = TypeVar("T")
 
 
 @dataclass
@@ -23,7 +25,7 @@ class OutputResult:
     ...
 
 
-class AbstractClosure(ABC):
+class AbstractClosure(ABC, Generic[T]):
     """Abstract base class for optimizer closures in Lightning.
 
     Formally, a closure is binding variables from an external scope to a function that does a computation on these
@@ -36,9 +38,9 @@ class AbstractClosure(ABC):
 
     def __init__(self) -> None:
         super().__init__()
-        self._result: Optional[OutputResult] = None
+        self._result: Optional[T] = None
 
-    def consume_result(self) -> OutputResult:
+    def consume_result(self) -> T:
         """The cached result from the last time the closure was called.
 
         Once accessed, the internal reference gets reset and the consumer will have to hold on to the reference as long
@@ -54,7 +56,7 @@ class AbstractClosure(ABC):
         return result
 
     @abstractmethod
-    def closure(self, *args: Any, **kwargs: Any) -> OutputResult:
+    def closure(self, *args: Any, **kwargs: Any) -> T:
         """Implements the behavior of the closure once it is getting called."""
         pass
 
