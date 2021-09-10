@@ -20,20 +20,22 @@ from torch.optim import Optimizer
 
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.optimization.manual_loop import ManualOptimization
+from pytorch_lightning.loops.optimization.optimizer_loop import _OUTPUTS_TYPE as _OPTIMIZER_LOOP_OUTPUTS_TYPE
 from pytorch_lightning.loops.optimization.optimizer_loop import OptimizerLoop
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AttributeDict
-from pytorch_lightning.utilities.types import STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
+_OUTPUTS_TYPE = List[_OPTIMIZER_LOOP_OUTPUTS_TYPE]
 
-class TrainingBatchLoop(Loop):
+
+class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
     """Runs over a single batch of data."""
 
     def __init__(self) -> None:
         super().__init__()
         self.accumulated_loss: Optional[Tensor] = None
-        self.batch_outputs: Optional[List[List[STEP_OUTPUT]]] = None
+        self.outputs: _OUTPUTS_TYPE = []
         self.running_loss: TensorRunningAccum = TensorRunningAccum(window_length=20)
         # the current split index when the batch gets split into chunks in truncated backprop through time
         self.split_idx: Optional[int] = None
@@ -73,7 +75,7 @@ class TrainingBatchLoop(Loop):
         """
         if batch is None:
             self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
-            return AttributeDict(signal=0, training_step_output=[[]])
+            return AttributeDict(signal=0, outputs=[])
 
         # hook
         self.trainer.logger_connector.on_batch_start()
@@ -89,13 +91,13 @@ class TrainingBatchLoop(Loop):
         self.trainer.fit_loop.epoch_loop.batch_progress.increment_started()
 
         super().run(batch, batch_idx)
-        output = AttributeDict(signal=0, training_step_output=self.batch_outputs)
-        self.batch_outputs = None  # free memory
+
+        output, self.outputs = AttributeDict(signal=0, outputs=self.outputs), None  # free memory
         return output
 
     def reset(self) -> None:
         """Resets the loop state."""
-        self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
+        self.outputs = []
 
     def on_run_start(self, batch: Any, batch_idx: int):
         """Splits the data into tbptt splits.
@@ -124,15 +126,15 @@ class TrainingBatchLoop(Loop):
         if self.trainer.lightning_module.automatic_optimization:
             # in automatic optimization, hand over execution to the OptimizerLoop
             optimizers = [optimizer for _, optimizer in self.get_active_optimizers(batch_idx)]
-            batch_outputs = self.optimizer_loop.run(split_batch, optimizers, batch_idx)
-            # combine outputs from each optimizer
-            for k in range(len(batch_outputs)):
-                self.batch_outputs[k].extend(batch_outputs[k])
+            outputs = self.optimizer_loop.run(split_batch, optimizers, batch_idx)
+            if outputs:
+                # can be empty if all optimizers skip their batches
+                self.outputs.append(outputs)
         else:
             # in manual optimization, hand over execution to the ManualOptimization loop
-            result = self.manual_loop.run(split_batch, batch_idx)
-            if result is not None and result.loss is not None:
-                self.batch_outputs[0].append(result.drop_closure_loss())
+            output = self.manual_loop.run(split_batch, batch_idx)
+            if output is not None:
+                self.outputs.append(output)
 
     def on_run_end(self) -> None:
         self.optimizer_loop._hiddens = None
@@ -191,6 +193,6 @@ class TrainingBatchLoop(Loop):
         optimizers_loop_length = self.optimizer_freq_cumsum[-1]
         current_place_in_loop = batch_idx % optimizers_loop_length
 
-        # find optimzier index by looking for the first {item > current_place} in the cumsum list
+        # find optimizer index by looking for the first {item > current_place} in the cumsum list
         opt_idx = int(np.argmax(self.optimizer_freq_cumsum > current_place_in_loop))
         return [(opt_idx, self.trainer.optimizers[opt_idx])]

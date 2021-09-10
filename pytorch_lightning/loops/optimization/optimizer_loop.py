@@ -34,10 +34,10 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
 
-_OUTPUTS_TYPE = List[List[ClosureResult]]
+_OUTPUTS_TYPE = Dict[int, Dict[str, Any]]
 
 
-class OptimizerLoop(Loop):
+class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
     """Runs over a sequence of optimizers.
 
     This loop implements what is known in Lightning as Automatic Optimization.
@@ -45,8 +45,9 @@ class OptimizerLoop(Loop):
 
     def __init__(self) -> None:
         super().__init__()
-        # TODO: use default dict here to simplify logic in loop
-        self.outputs: _OUTPUTS_TYPE = []
+        # FIXME: defaultdict None?
+        # FIXME: protect all
+        self.outputs: _OUTPUTS_TYPE = {}
         self.optim_progress: OptimizationProgress = OptimizationProgress()
 
         self._skip_backward: bool = False
@@ -64,8 +65,10 @@ class OptimizerLoop(Loop):
 
     def reset(self) -> None:
         if not self.restarting or self.done:
+            # FIXME: the first might not be 0
+            # use the get active optimizers to determine the initial index
             self.optim_progress.optimizer_idx = 0
-        self.outputs = [[] for _ in range(len(self.trainer.optimizers))]
+        self.outputs = {}
 
     def on_run_start(self, batch: Any, optimizers: List[Optimizer], batch_idx: int) -> None:  # type: ignore[override]
         self._batch_idx = batch_idx
@@ -79,12 +82,18 @@ class OptimizerLoop(Loop):
             self.optim_progress.optimizer_idx,
         )
         if result.loss is not None:
-            self.outputs[self.optim_progress.optimizer_idx].append(result.drop_closure_loss())
+            # FIXME: move to `ClosureResult` utility
+            # automatic optimization assumes a loss needs to be returned for extras to be considered as the batch
+            # would be skipped otherwise
+            out = {"loss": result.loss, **result.extra}
+            self.outputs[self.optim_progress.optimizer_idx] = out
 
+        # FIXME: broken with frequencies
+        # potentially get the optimizer list in this loop from the trainer
         self.optim_progress.optimizer_idx += 1
 
     def on_run_end(self) -> _OUTPUTS_TYPE:
-        outputs, self.outputs = self.outputs, []  # free memory
+        outputs, self.outputs = self.outputs, {}  # free memory
         return outputs
 
     def backward(

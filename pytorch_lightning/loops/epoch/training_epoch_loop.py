@@ -11,22 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Iterator, List, Optional, Union
+from typing import Any, Iterator, List, Optional
 
 import torch
 
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
-from pytorch_lightning.loops.optimization.closure import ClosureResult
+from pytorch_lightning.loops.batch.training_batch_loop import _OUTPUTS_TYPE as _BATCH_OUTPUTS_TYPE
 from pytorch_lightning.loops.utilities import _prepare_dataloader_iter
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import Progress, SchedulerProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+
+_OUTPUTS_TYPE = List[_BATCH_OUTPUTS_TYPE]
 
 
-class TrainingEpochLoop(loops.Loop):
+class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     """Runs over all batches in a dataloader (one epoch).
 
     Args:
@@ -52,7 +53,7 @@ class TrainingEpochLoop(loops.Loop):
         self.val_loop: Optional["loops.EvaluationLoop"] = None
 
         self._results = ResultCollection(training=True)
-        self._epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
+        self._epoch_output: _OUTPUTS_TYPE = []
 
     @property
     def total_batch_idx(self) -> int:
@@ -91,16 +92,14 @@ class TrainingEpochLoop(loops.Loop):
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run."""
-        assert self.batch_loop is not None
-        assert self.batch_loop.optimizer_loop is not None
         self.is_last_batch = False
-
-        # track epoch output
-        self._epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
+        self._epoch_output = []
 
         if not self.restarting or self._num_training_batches_reached():
             self.batch_progress.current.reset()
             self.scheduler_progress.current.reset()
+            assert self.batch_loop is not None
+            assert self.batch_loop.optimizer_loop is not None
             self.batch_loop.optimizer_loop.optim_progress.reset_on_epoch()
 
     def on_run_start(self, dataloader_iter: Iterator, **kwargs: Any) -> None:
@@ -146,18 +145,16 @@ class TrainingEpochLoop(loops.Loop):
         if self._num_training_batches_reached(is_last):
             self.update_lr_schedulers("epoch", update_plateau_schedulers=False)
 
-        batch_end_outputs = [opt_idx_out for opt_idx_out in batch_output.training_step_output if len(opt_idx_out)]
-        processed_batch_end_outputs = self._prepare_outputs(batch_end_outputs, batch_mode=True)
-
-        # hook
-        self.trainer.call_hook("on_train_batch_end", processed_batch_end_outputs, batch, self.batch_idx, 0)
+        if is_overridden("on_train_batch_end", self.trainer.lightning_module):
+            processed_batch_end_outputs = self._prepare_outputs_training_batch_end(batch_output.outputs)
+            self.trainer.call_hook("on_train_batch_end", processed_batch_end_outputs, batch, self.batch_idx, 0)
         self.trainer.call_hook("on_batch_end")
         self.trainer.logger_connector.on_batch_end()
 
         self.batch_progress.increment_completed()
 
-        # figure out what to track for epoch end
-        self._track_epoch_end_reduce_metrics(self._epoch_output, batch_end_outputs)
+        if is_overridden("training_epoch_end", self.trainer.lightning_module):
+            self._epoch_output.append(batch_output.outputs)
 
         # -----------------------------------------
         # SAVE METRICS TO LOGGERS AND PROGRESS_BAR
@@ -205,8 +202,9 @@ class TrainingEpochLoop(loops.Loop):
         # get the model and call model.training_epoch_end
         model = self.trainer.lightning_module
         if is_overridden("training_epoch_end", model) and self._epoch_output:
-            processed_outputs = self._prepare_outputs(self._epoch_output, batch_mode=False)
+            processed_outputs = self._prepare_outputs_training_epoch_end(self._epoch_output)
             # check that the dataloader/iterator produced a batch
+            # FIXME: still necessary?
             if processed_outputs:
                 # run training_epoch_end
                 # refresh the result for custom logging at the epoch level
@@ -221,7 +219,7 @@ class TrainingEpochLoop(loops.Loop):
                         "HINT: remove the return statement in training_epoch_end"
                     )
         # free memory
-        self._epoch_output = None
+        self._epoch_output = []
 
         self.trainer.fit_loop.epoch_progress.increment_processed()
 
@@ -266,76 +264,59 @@ class TrainingEpochLoop(loops.Loop):
         is_final_batch = self._num_training_batches_reached()
         return not (accumulation_done or is_final_batch)
 
-    def _track_epoch_end_reduce_metrics(
-        self, epoch_output: List[List[STEP_OUTPUT]], batch_end_outputs: STEP_OUTPUT
-    ) -> None:
-        """Adds the batch outputs to the epoch outputs and prepares reduction."""
-        hook_overridden = is_overridden("training_epoch_end", self.trainer.lightning_module)
-        if not hook_overridden:
-            return
-
-        # track the outputs to reduce at the end of the epoch
-        for opt_idx, opt_outputs in enumerate(batch_end_outputs):
-            # with 1 step (no tbptt) don't use a sequence at epoch end
-            if isinstance(opt_outputs, list) and len(opt_outputs) == 1:
-                opt_outputs = opt_outputs[0]
-
-            epoch_output[opt_idx].append(opt_outputs)
+    @staticmethod
+    def _swap_optimizers_and_tbptt(tbptt_outputs, n_opt: int):
+        ret = [[] for _ in range(n_opt)]
+        for optimizers in tbptt_outputs:
+            for opt_idx, values in optimizers.items():
+                ret[opt_idx].append(values)
+        return ret
 
     @staticmethod
-    def _prepare_outputs(
-        outputs: List[List[List[ClosureResult]]], batch_mode: bool
-    ) -> Union[List[List[List[Dict]]], List[List[Dict]], List[Dict], Dict]:
-        """Extract required information from batch or epoch end results.
-
-        Args:
-            outputs: A 3-dimensional list of ``ClosureResult`` objects with dimensions:
-                ``[optimizer outs][batch outs][tbptt steps]``.
-
-            batch_mode: If True, ignore the batch output dimension.
-
-        Returns:
-            The cleaned outputs with ``ClosureResult`` objects converted to dictionaries.
-            All list dimensions of size one will be collapsed.
-        """
-        processed_outputs = []
-        for opt_outputs in outputs:
-            # handle an edge case where an optimizer output is the empty list
-            if len(opt_outputs) == 0:
-                continue
-
-            processed_batch_outputs = []
-
-            if batch_mode:
-                opt_outputs = [opt_outputs]
-
-            for batch_outputs in opt_outputs:
-                processed_tbptt_outputs = []
-
-                if isinstance(batch_outputs, ClosureResult):
-                    batch_outputs = [batch_outputs]
-
-                for tbptt_output in batch_outputs:
-                    out = {}
-                    if tbptt_output.loss is not None:
-                        out["loss"] = tbptt_output.loss
-                    out.update(tbptt_output.extra)
-                    processed_tbptt_outputs.append(out)
-
-                # if there was only one tbptt step then we can collapse that dimension
-                if len(processed_tbptt_outputs) == 1:
-                    processed_tbptt_outputs = processed_tbptt_outputs[0]
-                processed_batch_outputs.append(processed_tbptt_outputs)
-
-            # batch_outputs should be just one dict (or a list of dicts if using tbptt) per optimizer
-            if batch_mode:
-                processed_batch_outputs = processed_batch_outputs[0]
-            processed_outputs.append(processed_batch_outputs)
+    def _prepare_outputs_training_batch_end(batch_output):
+        # in: (tbptt_steps, n_opt)
+        n_opt = max(max(tbptt.keys()) for tbptt in batch_output) + 1
+        ret = TrainingEpochLoop._swap_optimizers_and_tbptt(batch_output, n_opt)
 
         # if there is only one optimiser then we collapse that dimension
-        if len(processed_outputs) == 1:
-            processed_outputs = processed_outputs[0]
-        return processed_outputs
+        if len(ret) == 1:
+            ret = ret[0]
+
+        return ret
+        # out: (n_opt, tbptt_steps)
+
+    @staticmethod
+    def _prepare_outputs_training_epoch_end(batch_outputs):
+        if not batch_outputs:
+            return {}
+
+        # in: (n_batches, tbptt_steps, n_opt)
+        n_opt = max(
+            # get the number of optimizers if it's not empty
+            max(optimizers) + 1 if optimizers else 0
+            for tbptt in batch_outputs
+            for optimizers in tbptt
+        )
+
+        ret2 = [[] for _ in range(n_opt)]
+        for tbptt in batch_outputs:
+            swapped = TrainingEpochLoop._swap_optimizers_and_tbptt(tbptt)
+            for opt_idx, tbptt in enumerate(swapped):
+                # collapse tbptt
+                collapsed = tbptt[0] if len(tbptt) == 1 else tbptt
+                ret2[opt_idx].append(collapsed)
+
+        # collapse batches
+        for i, batch in enumerate(ret2):
+            if len(batch) == 1:
+                ret2[i] = batch[0]
+
+        # collapse optimizers
+        if len(ret2) == 1:
+            ret2 = ret2[0]
+
+        return ret2
+        # out: (n_opt, n_batches, tbptt_steps)
 
     def update_lr_schedulers(self, interval: str, update_plateau_schedulers: bool) -> None:
         """updates the lr schedulers based on the given interval."""

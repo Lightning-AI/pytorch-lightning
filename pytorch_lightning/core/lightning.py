@@ -752,6 +752,7 @@ class LightningModule(
                 train_outs.append(out)
             training_epoch_end(train_outs)
 
+        # FIXME: is the dataloader stuff wrong???
         Args:
             outputs: List of outputs you defined in :meth:`training_step`, or if there are
                 multiple dataloaders, a list containing a list of outputs for each dataloader.

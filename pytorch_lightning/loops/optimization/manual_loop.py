@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.optimization.closure import ClosureResult
@@ -22,8 +22,10 @@ from pytorch_lightning.loops.utilities import (
     check_finite_loss,
 )
 
+_OUTPUTS_TYPE = Dict[str, Any]
 
-class ManualOptimization(Loop):
+
+class ManualOptimization(Loop[_OUTPUTS_TYPE]):
     """A special loop implementing what is known in Lightning as Manual Optimization where the optimization happens
     entirely in the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` and therefore the user
     is responsible for back-propagating gradients and making calls to the optimizers.
@@ -36,7 +38,7 @@ class ManualOptimization(Loop):
         super().__init__()
         self._done: bool = False
         self._hiddens: Optional[Any] = None
-        self._output: Optional[ClosureResult] = None
+        self._output: Optional[_OUTPUTS_TYPE] = None
 
     @property
     def done(self) -> bool:
@@ -87,10 +89,14 @@ class ManualOptimization(Loop):
                 assert self.trainer._results is not None
                 self.trainer._results.cpu()
 
-        self._done = True
-        self._output = result
+        # FIXME: move to `ManualResult` utility
+        # FIXME: result.loss could be None if the user returns an empty dict
+        out = {"loss": result.loss, **result.extra}
 
-    def on_run_end(self) -> Optional[ClosureResult]:
+        self._done = True
+        self._output = out
+
+    def on_run_end(self) -> Optional[_OUTPUTS_TYPE]:
         """Returns the result of this loop, i.e., the post-processed outputs from the training step."""
         output, self._output = self._output, None  # free memory
         # #9052 added support for raising `StopIteration` in the `training_step`. If that happens, then `advance`

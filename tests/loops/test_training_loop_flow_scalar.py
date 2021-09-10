@@ -150,7 +150,7 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx)
     assert out.signal == 0
 
-    train_step_out = out.training_step_output
+    train_step_out = out.outputs
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
     assert isinstance(train_step_out.loss, torch.Tensor)
@@ -224,7 +224,7 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx)
     assert out.signal == 0
 
-    train_step_out = out.training_step_output
+    train_step_out = out.outputs
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
     assert isinstance(train_step_out.loss, torch.Tensor)
@@ -312,7 +312,7 @@ def test_training_step_no_return_when_even(tmpdir):
     for batch_idx, batch in enumerate(model.train_dataloader()):
         out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx)
         if not batch_idx % 2:
-            assert out.training_step_output == [[]]
+            assert out.outputs == [[]]
         assert out.signal == 0
 
 
@@ -356,5 +356,5 @@ def test_training_step_none_batches(tmpdir):
     for batch_idx, batch in enumerate(model.train_dataloader()):
         out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx)
         if not batch_idx % 2:
-            assert out.training_step_output == [[]]
+            assert out.outputs == []
         assert out.signal == 0
