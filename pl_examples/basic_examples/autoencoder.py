@@ -19,9 +19,6 @@ python autoencoder.py --trainer.max_epochs=50
 """
 from typing import Optional, Tuple
 
-import matplotlib
-import matplotlib.pyplot as plt
-import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
@@ -30,7 +27,7 @@ from torch.utils.data import DataLoader, random_split
 import pytorch_lightning as pl
 from pl_examples import _DATASETS_PATH, cli_lightning_logo
 from pl_examples.basic_examples.mnist_datamodule import MNIST
-from pytorch_lightning.utilities import DeviceType, rank_zero_only
+from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.cli import LightningCLI
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
@@ -182,7 +179,7 @@ def cli_main():
         MyDataModule,
         seed_everything_default=1234,
         save_config_overwrite=True,
-        run=False,
+        run=False,  # used to de-activate automatic fitting.
         trainer_defaults={"callbacks": ImageSampler(), "max_epochs": 10},
     )
     cli.trainer.fit(cli.model, datamodule=cli.datamodule)
