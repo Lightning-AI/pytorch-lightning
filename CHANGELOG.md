@@ -114,9 +114,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added a warning to deepspeed when inferring batch size ([#9221](https://github.com/PyTorchLightning/pytorch-lightning/pull/9221))
 
 
-- Added `inference_mode` for evaluation and prediction ([#8813](https://github.com/PyTorchLightning/pytorch-lightning/pull/8813))
-
-
 - Added `remove_checkpoint` to `CheckpointIO` plugin by moving the responsibility from `ModelCheckpoint` Callback ([#9373](https://github.com/PyTorchLightning/pytorch-lightning/pull/9373))
 
 
