@@ -53,16 +53,16 @@ class ManualOptimization(Loop):
             batch_idx: the index of the current batch
         """
         assert self.trainer is not None
-        model_ref = self.trainer.lightning_module
+        lightning_module = self.trainer.lightning_module
 
         with self.trainer.profiler.profile("model_forward"):
 
             step_kwargs = _build_training_step_kwargs(
-                model_ref, self.trainer.optimizers, batch, batch_idx, opt_idx=None, hiddens=self._hiddens
+                lightning_module, self.trainer.optimizers, batch, batch_idx, opt_idx=None, hiddens=self._hiddens
             )
 
             # manually capture logged metrics
-            model_ref._current_fx_name = "training_step"
+            lightning_module._current_fx_name = "training_step"
             with self.trainer.profiler.profile("training_step"):
                 training_step_output = self.trainer.accelerator.training_step(step_kwargs)
                 self.trainer.accelerator.post_training_step()
@@ -71,9 +71,9 @@ class ManualOptimization(Loop):
 
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
 
-            _check_training_step_output(model_ref, training_step_output)
+            _check_training_step_output(lightning_module, training_step_output)
 
-            self._hiddens = _extract_hiddens(training_step_output, model_ref.truncated_bptt_steps)
+            self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
 
             # TODO: do not use `ClosureResult`
             result = ClosureResult.from_training_step_output(training_step_output, self.trainer.accumulate_grad_batches)
