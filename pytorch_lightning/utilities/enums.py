@@ -147,3 +147,21 @@ class AutoRestartBatchKeys(LightningEnum):
     """Defines special dictionary keys used to track captured dataset state with multiple workers."""
 
     PL_RESTART_META = "__pl_restart_meta"
+
+
+class ModelSummaryMode(LightningEnum):
+
+    TOP = "top"
+    FULL = "full"
+
+    @staticmethod
+    def get_max_depth(mode: str) -> int:
+        if mode == ModelSummaryMode.TOP:
+            return 1
+        if mode == ModelSummaryMode.FULL:
+            return -1
+        raise ValueError(f"`mode` can be {', '.join(list(ModelSummaryMode))}, got {mode}.")
+
+    @staticmethod
+    def supported_types() -> List[str]:
+        return [x.value for x in ModelSummaryMode]
