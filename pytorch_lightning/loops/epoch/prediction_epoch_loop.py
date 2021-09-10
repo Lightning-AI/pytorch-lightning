@@ -10,6 +10,8 @@ from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.warnings import WarningCache
 
+warning_cache = WarningCache()
+
 
 class PredictionEpochLoop(Loop):
     """Loop performing prediction on arbitrary sequentially used dataloaders."""
@@ -160,8 +162,11 @@ class PredictionEpochLoop(Loop):
 
     def _store_batch_indices(self, dataloader_idx: int) -> None:
         """Stores the batch indices if the predictions should be stored."""
-        batch_sampler = self.trainer.predict_dataloaders[dataloader_idx].batch_sampler
+        current_dataloader = self.trainer.predict_dataloaders[dataloader_idx]
+        batch_sampler = getattr(current_dataloader, "batch_sampler", None)
         if isinstance(batch_sampler, IndexBatchSamplerWrapper):
             self.current_batch_indices = batch_sampler.batch_indices
             if self.should_store_predictions:
                 self._all_batch_indices.append(batch_sampler.batch_indices)
+        else:
+            warning_cache.warn("Lightning couldn't infer the indices fetched for your dataloader.")

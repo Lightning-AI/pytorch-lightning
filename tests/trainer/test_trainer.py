@@ -29,7 +29,7 @@ import torch
 from omegaconf import OmegaConf
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, IterableDataset
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
@@ -46,6 +46,7 @@ from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, Mi
 from pytorch_lightning.utilities.seed import seed_everything
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.boring_model import RandomIterableDataset, RandomIterableDatasetWithLen
 from tests.helpers.runif import RunIf
 
 
@@ -1287,21 +1288,15 @@ class CustomPredictionWriter(BasePredictionWriter):
 
     def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *args, **kwargs):
         assert prediction.shape == torch.Size([1, 2])
-        if trainer.accelerator_connector.is_distributed:
-            assert len(batch_indices) == 1
-        else:
-            assert batch_indices is None
+        assert len(batch_indices) == 1
         self.write_on_batch_end_called = True
 
     def write_on_epoch_end(self, trainer, pl_module, predictions, batch_indices):
         expected = 1 if trainer.accelerator_connector.is_distributed else 2
         assert len(predictions) == 2
         assert len(predictions[0]) == expected
-        if trainer.accelerator_connector.is_distributed:
-            assert len(batch_indices) == 2
-            assert len(batch_indices[0]) == expected
-        else:
-            assert batch_indices is None
+        assert len(batch_indices) == 2
+        assert len(batch_indices[0]) == expected
         self.write_on_epoch_end_called = True
 
     def on_predict_epoch_end(self, trainer, pl_module, outputs):
@@ -1414,6 +1409,35 @@ def test_trainer_predict_1_gpu(tmpdir):
 @RunIf(skip_windows=True)
 def test_trainer_predict_ddp_cpu(tmpdir):
     predict(tmpdir, "ddp_cpu", 0, 2)
+
+
+@pytest.mark.parametrize("dataset_cls", [RandomDataset, RandomIterableDatasetWithLen, RandomIterableDataset])
+def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmpdir):
+
+    ds = dataset_cls(32, 8)
+    loader = DataLoader(ds)
+    is_iterable_dataset = isinstance(ds, IterableDataset)
+
+    class CustomPredictionWriter(BasePredictionWriter):
+        def __init__(self, output_dir: str, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.output_dir = output_dir
+
+        def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *args, **kwargs):
+            assert not batch_indices if is_iterable_dataset else batch_indices
+
+    cb = CustomPredictionWriter(tmpdir)
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=cb)
+    if is_iterable_dataset:
+        from pytorch_lightning.loops.epoch.prediction_epoch_loop import warning_cache
+
+        msg = "Lightning couldn't infer the indices fetched for your dataloader."
+        with pytest.warns(UserWarning, match=msg):
+            predictions = trainer.predict(BoringModel(), dataloaders=loader)
+        warning_cache.remove(msg)
+    else:
+        predictions = trainer.predict(BoringModel(), dataloaders=loader)
+    assert len(predictions) == 8
 
 
 @patch("torch.cuda.device_count", return_value=2)
