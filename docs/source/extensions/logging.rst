@@ -16,7 +16,7 @@ Logging
 
 Lightning supports the most popular logging frameworks (TensorBoard, Comet, etc...).
 
-By default Lightning uses `TensorBoard <https://www.tensorflow.org/tensorboard>`__ logging, storing logs to a directory (by default in ``lightning_logs/``).
+By default, Lightning uses `PyTorch TensorBoard <https://pytorch.org/docs/stable/tensorboard.html>`__ logging  under the hood, and stores the logs to a directory (by default in ``lightning_logs/``).
 
 .. testcode::
 
