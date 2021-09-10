@@ -63,7 +63,7 @@ class OptimizerLoop(Loop):
         raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
 
     def reset(self) -> None:
-        if not self.restarting:
+        if not self.restarting or self.done:
             self.optim_progress.optimizer_idx = 0
         self.outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
