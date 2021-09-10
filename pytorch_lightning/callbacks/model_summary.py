@@ -34,4 +34,8 @@ class ModelSummary(Callback):
 
     def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if trainer.is_global_zero and self._max_depth is not None and not trainer.testing:
-            summarize(pl_module, max_depth=self._max_depth)
+            self.summarize(pl_module, self._max_depth)
+
+    @staticmethod
+    def summarize(pl_module: "pl.LightningModule", max_depth: Optional[int] = None):
+        summarize(pl_module, max_depth=max_depth)
