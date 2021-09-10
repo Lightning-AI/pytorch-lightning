@@ -25,11 +25,21 @@ if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
     from torch_xla.core.xla_model import rendezvous
 else:
-    xm, rendezvous = [None] * 4
+    xm, rendezvous = [None] * 2
 
 
 class TPUCollective(Collective):
     """Collective interface for TPU and TPUSpawning training type plugins."""
+
+    def __init__(
+        self,
+        device: Union[str, torch.device] = torch.device("xla"),
+        root_device: torch.device = xm.xla_device(),
+        world_size: int = xm.xrt_world_size(),
+    ):
+        self.device = device
+        self.root_device = root_device
+        self.world_size = world_size
 
     def barrier(self, name: Optional[str] = None) -> None:
         if self.is_distributed:
@@ -59,11 +69,11 @@ class TPUCollective(Collective):
         """
         if isinstance(tensor, torch.Tensor) and tensor.dim() == 0:
             tensor = tensor.unsqueeze(0)
-        return self._xm.all_gather(tensor)
+        return xm.all_gather(tensor)
 
     def reduce(self, output: Any, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None) -> Any:
         if not isinstance(output, torch.Tensor):
-            output = torch.tensor(output, device=self.lightning_module.device)
+            output = torch.tensor(output, device=self.device)
 
         _invalid_reduce_op = isinstance(reduce_op, ReduceOp) and reduce_op != ReduceOp.SUM
         _invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")

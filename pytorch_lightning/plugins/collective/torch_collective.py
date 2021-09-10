@@ -29,7 +29,14 @@ from pytorch_lightning.utilities.types import _METRIC_COLLECTION
 class TorchCollective(Collective):
     """Collective interface for DDP, DDPSpawn, DP and DDP2."""
 
-    def __init__(self, local_reduce: bool = False, rank=None, device=None):
+    def __init__(
+        self,
+        local_reduce: bool = False,
+        rank: Optional[int] = None,
+        device: Optional[Union[str, torch.device]] = torch.device("cpu"),
+        device_id: Optional[int] = None,
+        world_size: int = 1,
+    ):
         """.. note::
 
         DDP and DDPSpawn sync accross multiple nodes/devices, local_reduce = False
@@ -38,19 +45,21 @@ class TorchCollective(Collective):
 
         local_reduce set in Plugins.setup() functions
         """
-        self._local_reduce = local_reduce
-        self._rank = rank
-        self._device = device
+        self.local_reduce = local_reduce
+        self.rank = rank
+        self.device = device
+        self.device_id = device_id
+        self.world_size = world_size
 
     def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
         if not distributed_available():
             return
         if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
-            torch.distributed.barrier(device_ids=self.determine_ddp_device_ids())
+            torch.distributed.barrier(device_ids=self.device_id)
         else:
             torch.distributed.barrier()
 
-    def broadcast(self, obj: object, src: int = 0) -> object:
+    def broadcast(self, obj: Any, src: int = 0) -> Any:
         if not distributed_available():
             return obj
         else:
@@ -97,7 +106,7 @@ class TorchCollective(Collective):
         return tensor
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
-        decision = torch.tensor(int(decision), device=self.lightning_module.device)
+        decision = torch.tensor(int(decision), device=self.device)
         decision = self.reduce(decision, reduce_op=ReduceOp.SUM)
         decision = bool(decision == self.world_size)
         return decision
