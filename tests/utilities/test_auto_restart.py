@@ -15,6 +15,7 @@ import math
 import os
 import random
 import random as python_random
+from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import suppress
 from copy import deepcopy
@@ -965,3 +966,69 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir, dataset_classes, mult
     all_batches_resumed = torch.stack(complete_batches + resumed_batches)
     assert len(all_batches_resumed) == 9
     assert torch.equal(all_batches, all_batches_resumed)
+
+
+class ValidationLoopTestModel(LightningModule):
+    def __init__(self):
+        super().__init__()
+        self.layer = torch.nn.Linear(1, 2)
+        self.training_seen_batches = []
+        self.validation_seen_batches = defaultdict(list)
+
+    def training_step(self, batch, batch_idx):
+        batch = batch["data"] if isinstance(batch, dict) else batch
+        self.training_seen_batches.append(torch.stack(batch) if isinstance(batch, list) else batch)
+        loss = sum(self.layer(b).sum() for b in batch)
+        return loss
+
+    def validation_step(self, batch, batch_idx, dataloader_int: int = 0):
+        print()
+        print(batch_idx, dataloader_int)
+        self.validation_seen_batches[dataloader_int].append(batch)
+        loss = sum(self.layer(b).sum() for b in batch)
+        return loss
+
+    def configure_optimizers(self):
+        return torch.optim.SGD(self.layer.parameters(), lr=0.1)
+
+
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+@RunIf(min_torch="1.7.0")
+@pytest.mark.parametrize(
+    "dataset_classes",
+    [
+        # single training dataset
+        # [[RandomGetItemDataset], [RandomGetItemDataset]],
+        [[RandomGetItemDataset], [RandomGetItemDataset, RandomGetItemDataset]],
+        # [SequentialIterableDataset],
+        # [SequentialDictIterableDataset],
+        # [SequentialGetItemDataset, SequentialIterableDataset],
+        # [SequentialIterableDataset, SequentialIterableDataset],
+    ],
+)
+@pytest.mark.parametrize("val_check_interval", [1.0])
+def test_auto_restart_within_validation_loop(dataset_classes, val_check_interval, tmpdir):
+
+    seed_everything(42)
+    num_samples = 4
+    train_dataset_classes, validation_dataset_classes = dataset_classes
+    train_dataloader = [
+        DataLoader(dataset_class(num_samples, 1), batch_size=1, num_workers=0)
+        for dataset_class in train_dataset_classes
+    ]
+    val_dataloaders = [
+        DataLoader(dataset_class(num_samples, 1), batch_size=1, num_workers=0)
+        for dataset_class in validation_dataset_classes
+    ]
+
+    model = ValidationLoopTestModel()
+    trainer = Trainer(max_epochs=1, val_check_interval=val_check_interval)
+    trainer.fit(model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders)
+
+    verification_train_batches = model.training_seen_batches
+    verification_validation_batches = model.validation_seen_batches
+
+    assert len(verification_train_batches) == num_samples
+    assert len(verification_validation_batches) == len(validation_dataset_classes)
+    for batch in verification_validation_batches.values():
+        assert len(batch) == (1 / val_check_interval) * (num_samples + 2)
