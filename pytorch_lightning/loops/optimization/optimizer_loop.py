@@ -20,7 +20,7 @@ from torch.optim import Optimizer
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops import Loop
-from pytorch_lightning.loops.closure import Closure, ClosureResult
+from pytorch_lightning.loops.optimization.closure import Closure, ClosureResult
 from pytorch_lightning.loops.utilities import (
     _block_parallel_sync_behavior,
     _build_training_step_kwargs,
@@ -43,7 +43,7 @@ class OptimizerLoop(Loop):
     This loop implements what is known in Lightning as Automatic Optimization.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         # TODO: use default dict here to simplify logic in loop
         self.outputs: _OUTPUTS_TYPE = []
@@ -71,7 +71,7 @@ class OptimizerLoop(Loop):
         self._batch_idx = batch_idx
         self._optimizers = optimizers
 
-    def advance(self, batch: Any, *args, **kwargs) -> None:  # type: ignore[override]
+    def advance(self, batch: Any, *args: Any, **kwargs: Any) -> None:  # type: ignore[override]
         result = self._run_optimization(
             batch,
             self._batch_idx,
@@ -183,7 +183,7 @@ class OptimizerLoop(Loop):
         if not is_first_batch_to_accumulate:
             return None
 
-        def zero_grad_fn():
+        def zero_grad_fn() -> None:
             self._on_before_zero_grad(optimizer)
             self._optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
@@ -198,7 +198,7 @@ class OptimizerLoop(Loop):
         if self._skip_backward:
             return None
 
-        def backward_fn(loss: Tensor):
+        def backward_fn(loss: Tensor) -> Tensor:
             self.backward(loss, optimizer, opt_idx)
 
             # check if model weights are nan
@@ -332,6 +332,7 @@ class OptimizerLoop(Loop):
 
             if self.trainer.move_metrics_to_cpu:
                 # hiddens and the training step output are not moved as they are not considered "metrics"
+                assert self.trainer._results is not None
                 self.trainer._results.cpu()
 
         return result
