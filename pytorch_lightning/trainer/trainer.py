@@ -406,6 +406,8 @@ class Trainer(
         # default .predict() loop
         self.predict_loop = PredictionLoop()
 
+        self.weights_summary = weights_summary
+
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init
         self.callback_connector.on_trainer_init(
@@ -415,7 +417,7 @@ class Trainer(
             process_position,
             default_root_dir,
             weights_save_path,
-            weights_summary,
+            self.weights_summary,
             stochastic_weight_avg,
             max_time,
         )
