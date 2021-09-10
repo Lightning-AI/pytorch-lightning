@@ -231,8 +231,7 @@ class CaptureMapDataset(Dataset):
             self._cached_state_dict = None
 
         data = self.dataset[item]
-        state_dict = self._state_dict()
-        return data, state_dict
+        return data
 
     def __len__(self) -> int:
         return len(self.dataset)
@@ -250,7 +249,7 @@ class CaptureMapDataset(Dataset):
             }
         self._cached_state_dict = state_dict
 
-    def _state_dict(self) -> Dict[int, Dict[str, Any]]:
+    def state_dict(self) -> Dict[int, Dict[str, Any]]:
         return {self.worker_id: {"rng_states": collect_rng_states()}}
 
 
@@ -464,17 +463,11 @@ def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: 
             "__pl_restart_meta": {"sampler_name0": state_dict0, "sampler_name1": state_dict1},
         }
     """
-    if isinstance(dataset, CaptureIterableDataset):
-        data = default_collate(samples)
-        metadata = dataset.state_dict()
-
-    elif isinstance(dataset, CaptureMapDataset):
-        samples, states = zip(*samples)
-        data = default_collate(samples)
-        metadata = states[-1]
-    else:
+    if not isinstance(dataset, (CaptureIterableDataset, CaptureMapDataset)):
         return default_collate(samples)
 
+    data = default_collate(samples)
+    metadata = dataset.state_dict()
     return {"data": data, AutoRestartBatchKeys.PL_RESTART_META: metadata}
 
 
