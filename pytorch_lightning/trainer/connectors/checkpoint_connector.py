@@ -264,7 +264,7 @@ class CheckpointConnector:
 
         # restore the lr schedulers
         lr_schedulers = self._loaded_checkpoint["lr_schedulers"]
-        if(self.trainer.lr_schedulers is not None):
+        if self.trainer.lr_schedulers is not None:
             for scheduler, lrs_state in zip(self.trainer.lr_schedulers, lr_schedulers):
                 scheduler["scheduler"].load_state_dict(lrs_state)
 
