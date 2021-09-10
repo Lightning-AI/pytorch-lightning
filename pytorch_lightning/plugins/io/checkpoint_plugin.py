@@ -55,7 +55,7 @@ class CheckpointIO(ABC):
 
     @abstractmethod
     def remove_checkpoint(self, path: _PATH) -> None:
-        """Remove checkpoint filepath from the filesystem.
+        """Remove checkpoint file from the filesystem.
 
         Args:
             path: Path to checkpoint
