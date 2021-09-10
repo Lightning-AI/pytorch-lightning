@@ -296,8 +296,8 @@ class ModelSummary:
         model.train(mode)  # restore mode of module
 
     def _get_summary_data(self):
-        """
-        Makes a summary listing with:
+        """Makes a summary listing with:
+
         Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes, Model Size
         """
         arrays = [
