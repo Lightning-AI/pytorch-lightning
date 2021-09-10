@@ -27,7 +27,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
 
 if _NATIVE_AMP_AVAILABLE:
     from torch.cuda.amp import GradScaler
@@ -392,7 +392,7 @@ class Accelerator:
         with self.training_type_plugin.model_sharded_context():
             yield
 
-    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: _PATH) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
