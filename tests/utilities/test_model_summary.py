@@ -25,7 +25,7 @@ from tests.helpers.runif import RunIf
 
 
 class EmptyModule(LightningModule):
-    """A module that has no layers"""
+    """A module that has no layers."""
 
     def __init__(self):
         super().__init__()
@@ -54,7 +54,7 @@ class PreCalculatedModel(BoringModel):
 
 
 class UnorderedModel(LightningModule):
-    """A model in which the layers not defined in order of execution"""
+    """A model in which the layers not defined in order of execution."""
 
     def __init__(self):
         super().__init__()
@@ -326,7 +326,7 @@ def test_lazy_model_summary():
 
 
 def test_max_depth_equals_mode_interface():
-    """Test summarize(model, full/top) interface mapping matches max_depth"""
+    """Test summarize(model, full/top) interface mapping matches max_depth."""
     model = DeepNestedModel()
 
     summary_top = summarize(model, mode="top")
@@ -340,7 +340,7 @@ def test_max_depth_equals_mode_interface():
 
 @pytest.mark.parametrize("max_depth", [-1, 0, 1, 3, 999])
 def test_max_depth_param(max_depth):
-    """Test that only the modules up to the desired depth are shown"""
+    """Test that only the modules up to the desired depth are shown."""
     model = DeepNestedModel()
     summary = ModelSummary(model, max_depth=max_depth)
     for lname in summary.layer_names:

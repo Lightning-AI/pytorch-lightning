@@ -46,8 +46,9 @@ if _RICH_AVAILABLE:
     class MetricsTextColumn(ProgressColumn):
         """A column containing text."""
 
-        def __init__(self, trainer, stage):
+        def __init__(self, trainer, pl_module, stage):
             self._trainer = trainer
+            self._pl_module = pl_module
             self._stage = stage
             self._tasks = {}
             self._current_task_id = 0
@@ -64,7 +65,13 @@ if _RICH_AVAILABLE:
             if self._trainer.training and task.id != self._current_task_id:
                 return self._tasks[task.id]
             _text = ""
-            for k, v in self._trainer.progress_bar_dict.items():
+            # TODO(@daniellepintz): make this code cleaner
+            progress_bar_callback = getattr(self._trainer, "progress_bar_callback", None)
+            if progress_bar_callback:
+                metrics = self._trainer.progress_bar_callback.get_metrics(self._trainer, self._pl_module)
+            else:
+                metrics = self._trainer.progress_bar_metrics
+            for k, v in metrics.items():
                 _text += f"{k}: {round(v, 3) if isinstance(v, float) else v} "
             text = Text.from_markup(_text, style=None, justify="left")
             return text
@@ -80,8 +87,7 @@ STYLES: Dict[str, str] = {
 
 
 class RichProgressBar(ProgressBarBase):
-    """
-    Create a progress bar with `rich text formatting <https://github.com/willmcgugan/rich>`_.
+    """Create a progress bar with `rich text formatting <https://github.com/willmcgugan/rich>`_.
 
     Install it with pip:
 
@@ -164,7 +170,7 @@ class RichProgressBar(ProgressBarBase):
             "[",
             CustomTimeColumn(),
             ProcessingSpeedColumn(),
-            MetricsTextColumn(trainer, stage),
+            MetricsTextColumn(trainer, pl_module, stage),
             "]",
             console=self.console,
             refresh_per_second=self.refresh_rate,

@@ -240,7 +240,10 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
     ],
 )
 def test_loggers_pickle_all(tmpdir, monkeypatch, logger_class):
-    """Test that the logger objects can be pickled. This test only makes sense if the packages are installed."""
+    """Test that the logger objects can be pickled.
+
+    This test only makes sense if the packages are installed.
+    """
     _patch_comet_atexit(monkeypatch)
     try:
         _test_loggers_pickle(tmpdir, monkeypatch, logger_class)
@@ -281,7 +284,7 @@ def _test_loggers_pickle(tmpdir, monkeypatch, logger_class):
     ],
 )
 def test_logger_reset_correctly(tmpdir, extra_params):
-    """Test that the tuners do not alter the logger reference"""
+    """Test that the tuners do not alter the logger reference."""
 
     class CustomModel(BoringModel):
         def __init__(self, lr=0.1, batch_size=1):
@@ -318,7 +321,7 @@ class RankZeroLoggerCheck(Callback):
 )
 @RunIf(skip_windows=True)
 def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
-    """Test that loggers get replaced by dummy loggers on global rank > 0"""
+    """Test that loggers get replaced by dummy loggers on global rank > 0."""
     _patch_comet_atexit(monkeypatch)
     try:
         _test_logger_created_on_rank_zero_only(tmpdir, logger_class)
@@ -344,9 +347,7 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
 
 
 def test_logger_with_prefix_all(tmpdir, monkeypatch):
-    """
-    Test that prefix is added at the beginning of the metric keys.
-    """
+    """Test that prefix is added at the beginning of the metric keys."""
     prefix = "tmp"
 
     # Comet

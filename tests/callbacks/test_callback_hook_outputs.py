@@ -19,9 +19,7 @@ from tests.helpers.boring_model import BoringModel
 
 @pytest.mark.parametrize("single_cb", [False, True])
 def test_train_step_no_return(tmpdir, single_cb: bool):
-    """
-    Tests that only training_step can be used
-    """
+    """Tests that only training_step can be used."""
 
     class CB(Callback):
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):

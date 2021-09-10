@@ -18,13 +18,11 @@ import torch
 
 
 class ValidationStepVariations(ABC):
-    """
-    Houses all variations of validation steps
-    """
+    """Houses all variations of validation steps."""
 
     def validation_step(self, batch, batch_idx, *args, **kwargs):
-        """
-        Lightning calls this inside the validation loop
+        """Lightning calls this inside the validation loop.
+
         :param batch:
         :return:
         """
@@ -62,8 +60,8 @@ class ValidationStepVariations(ABC):
         return loss_val
 
     def validation_step__multiple_dataloaders(self, batch, batch_idx, dataloader_idx, **kwargs):
-        """
-        Lightning calls this inside the validation loop
+        """Lightning calls this inside the validation loop.
+
         :param batch:
         :return:
         """

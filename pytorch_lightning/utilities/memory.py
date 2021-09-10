@@ -124,8 +124,7 @@ def get_memory_profile(mode: str) -> Dict[str, float]:
 
 
 def get_gpu_memory_map() -> Dict[str, float]:
-    """
-    Get the current gpu usage.
+    """Get the current gpu usage.
 
     Return:
         A dictionary in which the keys are device ids as integers and
@@ -154,8 +153,7 @@ def get_gpu_memory_map() -> Dict[str, float]:
 
 
 def get_model_size_mb(model: Module) -> float:
-    """
-    Calculates the size of a Module in megabytes by saving the model to a temporary file and reading its size.
+    """Calculates the size of a Module in megabytes by saving the model to a temporary file and reading its size.
 
     The computation includes everything in the :meth:`~torch.nn.Module.state_dict`,
     i.e., by default the parameteters and buffers.
