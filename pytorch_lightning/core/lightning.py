@@ -26,8 +26,10 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
+
 if _TORCH_GREATER_EQUAL_1_10:
     from torch.distributed.algorithms.model_averaging.averagers import ModelAverager
+
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
@@ -39,7 +41,12 @@ from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, Hyperparameter
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, _TORCH_SHARDED_TENSOR_AVAILABLE, rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities import (
+    _TORCH_GREATER_EQUAL_1_10,
+    _TORCH_SHARDED_TENSOR_AVAILABLE,
+    rank_zero_deprecation,
+    rank_zero_warn,
+)
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp

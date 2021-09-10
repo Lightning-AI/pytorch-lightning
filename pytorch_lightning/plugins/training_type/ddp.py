@@ -339,9 +339,11 @@ class DDPPlugin(ParallelPlugin):
                 raise ValueError(
                     f"Currently model averaging cannot work with a distributed optimizer of type {optimizer.__name__}."
                 )
-    
-        self.lightning_module.averager = averagers.PeriodicModelAverager(period=self._model_averaging_period, warmup_steps=self._ddp_comm_state.start_localSGD_iter)
-     
+
+        self.lightning_module.averager = averagers.PeriodicModelAverager(
+            period=self._model_averaging_period, warmup_steps=self._ddp_comm_state.start_localSGD_iter
+        )
+
     def configure_ddp(self) -> None:
         self.pre_configure_ddp()
         self._model = DistributedDataParallel(
