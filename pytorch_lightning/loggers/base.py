@@ -311,15 +311,15 @@ class LightningLoggerBase(ABC):
         self.save()
 
     def close(self) -> None:
-        """
-        .. deprecated:: v1.5
-          This method was deprecated in v1.5 and will be removed in v1.7
-          in favor of `LightningLoggerBase.save`
+        """Do any cleanup that is necessary to close an experiment.
 
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.7.
+            Please use `LightningLoggerBase.finalize` instead.
         """
         rank_zero_deprecation(
-            "`LightningLoggerBase.close` method is deprecated in v1.5 and will be removed in v1.7"
-            "in favor of `LightningLoggerBase.save` "
+            "`LightningLoggerBase.close` method is deprecated in v1.5 and will be removed in v1.7."
+            " Please use `LightningLoggerBase.finalize` instead."
         )
         self.save()
 
@@ -404,12 +404,12 @@ class LoggerCollection(LightningLoggerBase):
     def close(self) -> None:
         """
         .. deprecated:: v1.5
-            This method was deprecated in v1.5 and will be removed in v1.7
-            in favor of `LoggerCollection.save`
+            This method is deprecated in v1.5 and will be removed in v1.7.
+            Please use `LoggerCollection.finalize` instead.
         """
         rank_zero_deprecation(
-            "`LoggerCollection.close` method is deprecated in v1.5 and will be removed in v1.7"
-            "in favor of `LoggerCollection.save` "
+            "`LoggerCollection.close` method is deprecated in v1.5 and will be removed in v1.7."
+            " Please use `LoggerCollection.finalize` instead."
         )
         for logger in self._logger_iterable:
             logger.close()
