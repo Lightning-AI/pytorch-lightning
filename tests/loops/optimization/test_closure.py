@@ -15,7 +15,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.loops.closure import ClosureResult
+from pytorch_lightning.loops.optimization.closure import ClosureResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 
