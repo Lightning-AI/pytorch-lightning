@@ -315,7 +315,7 @@ class LightningLoggerBase(ABC):
         .. deprecated:: v1.5
           This method was deprecated in v1.5 and will be removed in v1.7
           in favor of `LightningLoggerBase.save`
-        
+
         """
         rank_zero_deprecation(
             "`LightningLoggerBase.close` method is deprecated in v1.5 and will be removed in v1.7"
