@@ -299,10 +299,9 @@ class ModelSummary:
                 model(input_)
         model.train(mode)  # restore mode of module
 
-    def __str__(self):
+    def _get_summary_data(self):
         """
         Makes a summary listing with:
-
         Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes, Model Size
         """
         arrays = [
@@ -314,6 +313,11 @@ class ModelSummary:
         if self._model.example_input_array is not None:
             arrays.append(["In sizes", self.in_sizes])
             arrays.append(["Out sizes", self.out_sizes])
+
+        return arrays
+
+    def __str__(self):
+        arrays = self._get_summary_data()
 
         total_parameters = self.total_parameters
         trainable_parameters = self.trainable_parameters
@@ -470,5 +474,4 @@ def summarize(
             )
     else:
         model_summary = ModelSummary(lightning_module, max_depth=max_depth)
-    log.info("\n" + str(model_summary))
     return model_summary
