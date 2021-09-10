@@ -441,9 +441,12 @@ Like LightningModules, DataModules support hyperparameters with the same API.
 
 .. code-block:: python
 
+    import pytorch_lightning as pl
+
+
     class CustomDataModule(pl.LightningDataModule):
-    def __init__(self, *args, **kwargs):
-        super().__init__()
-        self.save_hyperparameters()
+        def __init__(self, *args, **kwargs):
+            super().__init__()
+            self.save_hyperparameters()
 
 Refer to `save_hyperparameters` in :doc:`lightning module <../common/lightning_module>` for more details.
