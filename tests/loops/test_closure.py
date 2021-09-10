@@ -15,6 +15,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.loops.closure import ClosureResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 
@@ -45,3 +46,26 @@ def test_optimizer_step_no_closure_raises(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
     with pytest.raises(MisconfigurationException, match="The closure hasn't been executed"):
         trainer.fit(model)
+
+
+def test_closure_result_deepcopy():
+    closure_loss = torch.tensor(123.45)
+    result = ClosureResult(closure_loss)
+
+    assert closure_loss.data_ptr() == result.closure_loss.data_ptr()
+    # the `loss` is cloned so the storage is different
+    assert closure_loss.data_ptr() != result.loss.data_ptr()
+
+    copy = result.drop_closure_loss()
+    assert result.loss == copy.loss
+    assert copy.closure_loss is None
+
+    # no copy
+    assert id(result.loss) == id(copy.loss)
+    assert result.loss.data_ptr() == copy.loss.data_ptr()
+
+
+def test_closure_result_apply_accumulation():
+    closure_loss = torch.tensor(25.0)
+    result = ClosureResult.from_training_step_output(closure_loss, 5)
+    assert result.loss == 5

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from copy import deepcopy
 from typing import Any, List, Optional, Tuple
 
 import numpy as np
@@ -131,9 +130,9 @@ class TrainingBatchLoop(Loop):
                 self.batch_outputs[k].extend(batch_outputs[k])
         else:
             # in manual optimization, hand over execution to the ManualOptimization loop
-            output = self.manual_loop.run(split_batch, batch_idx)
-            if output is not None:
-                self.batch_outputs[0].append(deepcopy(output))
+            result = self.manual_loop.run(split_batch, batch_idx)
+            if result is not None and result.loss is not None:
+                self.batch_outputs[0].append(result.drop_closure_loss())
 
     def on_run_end(self) -> None:
         self.optimizer_loop._hiddens = None
