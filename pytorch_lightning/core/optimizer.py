@@ -26,10 +26,8 @@ def do_nothing_closure():
 
 
 class LightningOptimizer:
-    """
-    This class is used to wrap the user optimizers and handle properly
-    the backward and optimizer_step logic across accelerators, AMP, accumulate_grad_batches
-    """
+    """This class is used to wrap the user optimizers and handle properly the backward and optimizer_step logic
+    across accelerators, AMP, accumulate_grad_batches."""
 
     def __init__(self, optimizer: Optimizer):
 
@@ -105,8 +103,7 @@ class LightningOptimizer:
 
     @contextmanager
     def toggle_model(self, sync_grad: bool = True):
-        """
-        This function is just a helper for advanced users.
+        """This function is just a helper for advanced users.
 
         Considering the current optimizer as A and all other optimizers as B.
         Toggling means all parameters from B exclusive to A will have ``requires_grad`` set to False.
@@ -131,10 +128,8 @@ class LightningOptimizer:
             trainer.accelerator.optimizer_step(self._optimizer, self._optimizer_idx, lambda_closure=closure, **kwargs)
 
     def step(self, closure: Optional[Callable] = None, **kwargs):
-        """
-        Call this directly from your training_step when doing optimizations manually.
-        By using this we can ensure that all the proper scaling when using 16-bit, accelerator etc
-        is been done properly for you.
+        """Call this directly from your training_step when doing optimizations manually. By using this we can
+        ensure that all the proper scaling when using 16-bit, accelerator etc is been done properly for you.
 
         .. note:: In Manual Optimization, the user is expected to know when to call zero_grad,
             perform accumulated_grad_batches, etc ... Lightning will only take care of precision and accelerators
@@ -196,7 +191,6 @@ class LightningOptimizer:
 
                 with opt_dis.toggle_model(sync_grad=accumulated_grad_batches):
                     opt_dis.step(closure=closure_dis)
-
         """
         if closure is None:
             profiler_name = f"closure_{self._optimizer_idx}"

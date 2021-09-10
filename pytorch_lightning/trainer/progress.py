@@ -17,9 +17,7 @@ from typing import Type
 
 @dataclass
 class BaseProgress:
-    """
-    Mixin that implements state-loading utilities for dataclasses.
-    """
+    """Mixin that implements state-loading utilities for dataclasses."""
 
     def state_dict(self) -> dict:
         return asdict(self)
@@ -36,8 +34,7 @@ class BaseProgress:
 
 @dataclass
 class ReadyCompletedTracker(BaseProgress):
-    """
-    Track an event's progress.
+    """Track an event's progress.
 
     Args:
         ready: Intended to track the number of events ready to start.
@@ -55,19 +52,17 @@ class ReadyCompletedTracker(BaseProgress):
         self.completed = 0
 
     def reset_on_restart(self) -> None:
-        """
-        Reset the progress on restart.
+        """Reset the progress on restart.
 
-        If there is a failure before all attributes are increased,
-        restore the attributes to the last fully completed value.
+        If there is a failure before all attributes are increased, restore the attributes to the last fully completed
+        value.
         """
         self.ready = self.completed
 
 
 @dataclass
 class StartedTracker(ReadyCompletedTracker):
-    """
-    Track an event's progress.
+    """Track an event's progress.
 
     Args:
         ready: Intended to track the number of events ready to start.
@@ -90,8 +85,7 @@ class StartedTracker(ReadyCompletedTracker):
 
 @dataclass
 class ProcessedTracker(StartedTracker):
-    """
-    Track an event's progress.
+    """Track an event's progress.
 
     Args:
         ready: Intended to track the number of events ready to start.
@@ -116,8 +110,7 @@ class ProcessedTracker(StartedTracker):
 
 @dataclass
 class Progress(BaseProgress):
-    """
-    Track aggregated and current progress.
+    """Track aggregated and current progress.
 
     Args:
         total: Intended to track the total progress of an event.
@@ -163,9 +156,8 @@ class Progress(BaseProgress):
 
 @dataclass
 class DataLoaderProgress(Progress):
-    """
-    Tracks the dataloader progress
-    These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
+    """Tracks the dataloader progress These counters are local to a trainer rank. By default, they are not globally
+    synced across all ranks.
 
     Args:
         total: Tracks the total dataloader progress.
@@ -178,9 +170,8 @@ class DataLoaderProgress(Progress):
 
 @dataclass
 class SchedulerProgress(Progress):
-    """
-    Tracks the scheduler progress.
-    These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
+    """Tracks the scheduler progress. These counters are local to a trainer rank. By default, they are not globally
+    synced across all ranks.
 
     Args:
         total: Tracks the total scheduler progress.
@@ -193,8 +184,7 @@ class SchedulerProgress(Progress):
 
 @dataclass
 class OptimizerProgress(BaseProgress):
-    """
-    Track optimizer progress.
+    """Track optimizer progress.
 
     Args:
         step: Tracks ``optimizer.step`` calls.
@@ -215,8 +205,7 @@ class OptimizerProgress(BaseProgress):
 
 @dataclass
 class OptimizationProgress(BaseProgress):
-    """
-    Track optimization progress.
+    """Track optimization progress.
 
     Args:
         optimizer: Tracks optimizer progress.

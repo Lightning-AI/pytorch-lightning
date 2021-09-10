@@ -14,12 +14,13 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Dict, Optional
 
 from torch import Tensor
 
 from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
@@ -39,8 +40,7 @@ class ClosureResult:
 
 
 class AbstractClosure(ABC):
-    """
-    Abstract base class for optimizer closures in Lightning.
+    """Abstract base class for optimizer closures in Lightning.
 
     Formally, a closure is binding variables from an external scope to a function that does a computation on these
     variables without taking them explicitly as input. This has the benefit that a closure can be passed to an
@@ -54,27 +54,33 @@ class AbstractClosure(ABC):
         super().__init__()
         self._result: Optional[ClosureResult] = None
 
-    def get_result(self) -> Optional[ClosureResult]:
-        """The cached result from the last time the closure was called. Once accessed, the internal reference
-        gets reset and the consumer will have to hold on to the reference as long as necessary."""
-        result = self._result
-        self._result = None  # free memory
+    def consume_result(self) -> ClosureResult:
+        """The cached result from the last time the closure was called.
+
+        Once accessed, the internal reference gets reset and the consumer will have to hold on to the reference as long
+        as necessary.
+        """
+        if self._result is None:
+            raise MisconfigurationException(
+                "The closure hasn't been executed."
+                " HINT: did you call `optimizer_closure()` in your `optimizer_step` hook? It could also happen because"
+                " the `optimizer.step(optimizer_closure)` call did not execute it internally."
+            )
+        result, self._result = self._result, None  # free memory
         return result
 
     @abstractmethod
-    def closure(self, *args: Any, **kwargs: Any) -> Optional[ClosureResult]:
+    def closure(self, *args: Any, **kwargs: Any) -> ClosureResult:
         """Implements the behavior of the closure once it is getting called."""
         pass
 
     def __call__(self, *args: Any, **kwargs: Any) -> Optional[Tensor]:
         self._result = self.closure(*args, **kwargs)
-        if self._result is not None:
-            return self._result.loss
+        return self._result.loss
 
 
 class Closure(AbstractClosure):
-    """
-    An implementation of a :class:`AbstractClosure` for optimization in Lightning that combines three elementary
+    """An implementation of a :class:`AbstractClosure` for optimization in Lightning that combines three elementary
     closures into one: ``training_step``, ``backward`` and ``zero_grad``.
 
     The Closure gets created by the training loop(s) and is then passed to the
@@ -101,7 +107,7 @@ class Closure(AbstractClosure):
 
     def __init__(
         self,
-        step_fn: Callable[[], dict],
+        step_fn: Callable[[], Optional[Dict]],
         backward_fn: Optional[Callable[[Tensor], Tensor]] = None,
         zero_grad_fn: Optional[Callable[[], None]] = None,
         profiler: Optional[BaseProfiler] = None,
@@ -112,19 +118,21 @@ class Closure(AbstractClosure):
         self._zero_grad_fn = zero_grad_fn
         self._profiler = PassThroughProfiler() if profiler is None else profiler
 
-    def closure(self, *args: Any, **kwargs: Any) -> Optional[ClosureResult]:
+    def closure(self, *args: Any, **kwargs: Any) -> ClosureResult:
         with self._profiler.profile("training_step_and_backward"):
             step_output = self._step_fn()
-            step_output = ClosureResult(**step_output) if step_output else None
+            step_output = ClosureResult(**step_output) if step_output else ClosureResult(None, None, None)
 
-            if step_output is None:
-                self.warning_cache.warn("training_step returned None. If this was on purpose, ignore this warning...")
+            if step_output.closure_loss is None:
+                self.warning_cache.warn(
+                    "`training_step` returned `None`. If this was on purpose, ignore this warning..."
+                )
 
             if self._zero_grad_fn is not None:
                 with self._profiler.profile("zero_grad"):
                     self._zero_grad_fn()
 
-            if self._backward_fn is not None and step_output is not None and step_output.closure_loss is not None:
+            if self._backward_fn is not None and step_output.closure_loss is not None:
                 with self._profiler.profile("backward"):
                     step_output.closure_loss = self._backward_fn(step_output.closure_loss)
 

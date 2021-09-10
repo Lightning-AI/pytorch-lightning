@@ -43,9 +43,8 @@ class SingleDevicePlugin(TrainingTypePlugin):
         return self.root_device.type == "cuda" and torch.cuda.is_available()
 
     def reduce(self, tensor: Union[Any, torch.Tensor], *args: Any, **kwargs: Any) -> Union[Any, torch.Tensor]:
-        """
-        Reduces a tensor from several distributed processes to one aggregated tensor.
-        As this plugin only operates with a single device, the reduction is simply the identity.
+        """Reduces a tensor from several distributed processes to one aggregated tensor. As this plugin only
+        operates with a single device, the reduction is simply the identity.
 
         Args:
             tensor: the tensor to sync and reduce
@@ -58,7 +57,7 @@ class SingleDevicePlugin(TrainingTypePlugin):
         return tensor
 
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
-        """Perform a all_gather on all processes"""
+        """Perform a all_gather on all processes."""
         return tensor
 
     @property

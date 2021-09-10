@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Enumerated utilities"""
+"""Enumerated utilities."""
 from enum import Enum
 from typing import List, Optional, Union
 
@@ -85,7 +85,7 @@ class DistributedType(LightningEnum):
 
     @staticmethod
     def interactive_compatible_types() -> List["DistributedType"]:
-        """Returns a list containing interactive compatible DistributeTypes"""
+        """Returns a list containing interactive compatible DistributeTypes."""
         return [
             DistributedType.DP,
             DistributedType.DDP_SPAWN,
@@ -94,7 +94,7 @@ class DistributedType(LightningEnum):
         ]
 
     def is_interactive_compatible(self) -> bool:
-        """Returns whether self is interactive compatible"""
+        """Returns whether self is interactive compatible."""
         return self in DistributedType.interactive_compatible_types()
 
     DP = "dp"

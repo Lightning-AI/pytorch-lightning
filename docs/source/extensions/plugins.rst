@@ -4,6 +4,8 @@
 Plugins
 #######
 
+.. include:: ../links.rst
+
 Plugins allow custom integrations to the internals of the Trainer such as a custom precision or
 distributed implementation.
 

@@ -18,16 +18,16 @@ from torch import optim
 
 class ConfigureOptimizersPool(ABC):
     def configure_optimizers(self):
-        """
-        return whatever optimizers we want here.
+        """return whatever optimizers we want here.
+
         :return: list of optimizers
         """
         optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
         return optimizer
 
     def configure_optimizers__lbfgs(self):
-        """
-        return whatever optimizers we want here.
+        """return whatever optimizers we want here.
+
         :return: list of optimizers
         """
         optimizer = optim.LBFGS(self.parameters(), lr=self.learning_rate)

@@ -194,10 +194,7 @@ class EarlyStopping(Callback):
         self._run_early_stopping_check(trainer)
 
     def _run_early_stopping_check(self, trainer: "pl.Trainer") -> None:
-        """
-        Checks whether the early stopping condition is met
-        and if so tells the trainer to stop the training.
-        """
+        """Checks whether the early stopping condition is met and if so tells the trainer to stop the training."""
         logs = trainer.callback_metrics
 
         if trainer.fast_dev_run or not self._validate_condition_metric(  # disable early_stopping with fast_dev_run
@@ -206,10 +203,6 @@ class EarlyStopping(Callback):
             return
 
         current = logs.get(self.monitor)
-
-        # when in dev debugging
-        trainer.dev_debugger.track_early_stopping_history(self, current)
-
         should_stop, reason = self._evaluate_stopping_criteria(current)
 
         # stop every ddp process if any world process decides to stop

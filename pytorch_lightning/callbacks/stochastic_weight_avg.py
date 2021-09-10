@@ -241,9 +241,7 @@ class StochasticWeightAveraging(Callback):
             dst_param.detach().copy_(src_param.to(dst_param.device))
 
     def reset_batch_norm_and_save_state(self, pl_module: "pl.LightningModule"):
-        """
-        Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L140-L154
-        """
+        """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L140-L154."""
         self.momenta = {}
         for module in pl_module.modules():
             if not isinstance(module, nn.modules.batchnorm._BatchNorm):
@@ -259,9 +257,7 @@ class StochasticWeightAveraging(Callback):
             module.num_batches_tracked *= 0
 
     def reset_momenta(self):
-        """
-        Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L164-L165
-        """
+        """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L164-L165."""
         for bn_module in self.momenta:
             bn_module.momentum = self.momenta[bn_module]
 
@@ -269,9 +265,7 @@ class StochasticWeightAveraging(Callback):
     def update_parameters(
         average_model: "pl.LightningModule", model: "pl.LightningModule", n_averaged: torch.LongTensor, avg_fn: _AVG_FN
     ):
-        """
-        Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L104-L112
-        """
+        """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L104-L112."""
         for p_swa, p_model in zip(average_model.parameters(), model.parameters()):
             device = p_swa.device
             p_swa_ = p_swa.detach()
@@ -284,7 +278,5 @@ class StochasticWeightAveraging(Callback):
     def avg_fn(
         averaged_model_parameter: torch.Tensor, model_parameter: torch.Tensor, num_averaged: torch.LongTensor
     ) -> torch.FloatTensor:
-        """
-        Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L95-L97
-        """
+        """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L95-L97."""
         return averaged_model_parameter + (model_parameter - averaged_model_parameter) / (num_averaged + 1)

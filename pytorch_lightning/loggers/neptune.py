@@ -244,8 +244,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, Union[torch.Tensor, float]], step: Optional[int] = None) -> None:
-        """
-        Log metrics (numeric values) in Neptune experiments.
+        """Log metrics (numeric values) in Neptune experiments.
 
         Args:
             metrics: Dictionary with metric names as keys and measured quantities as values
@@ -267,8 +266,8 @@ class NeptuneLogger(LightningLoggerBase):
 
     @property
     def save_dir(self) -> Optional[str]:
-        """
-        Gets the save directory of the experiment which in this case is ``None`` because Neptune does not save locally.
+        """Gets the save directory of the experiment which in this case is ``None`` because Neptune does not save
+        locally.
 
         Returns:
             None
@@ -278,8 +277,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        """
-        Gets the name of the experiment.
+        """Gets the name of the experiment.
 
         Returns:
             The name of the experiment if not in offline mode else "offline-name".
@@ -290,8 +288,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     @property
     def version(self) -> str:
-        """
-        Gets the id of the experiment.
+        """Gets the id of the experiment.
 
         Returns:
             The id of the experiment if not in offline mode else "offline-id-1234".
@@ -304,8 +301,7 @@ class NeptuneLogger(LightningLoggerBase):
     def log_metric(
         self, metric_name: str, metric_value: Union[torch.Tensor, float, str], step: Optional[int] = None
     ) -> None:
-        """
-        Log metrics (numeric values) in Neptune experiments.
+        """Log metrics (numeric values) in Neptune experiments.
 
         Args:
             metric_name: The name of log, i.e. mse, loss, accuracy.
@@ -322,8 +318,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_text(self, log_name: str, text: str, step: Optional[int] = None) -> None:
-        """
-        Log text data in Neptune experiments.
+        """Log text data in Neptune experiments.
 
         Args:
             log_name: The name of log, i.e. mse, my_text_data, timing_info.
@@ -337,8 +332,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_image(self, log_name: str, image: Union[str, Any], step: Optional[int] = None) -> None:
-        """
-        Log image data in Neptune experiment
+        """Log image data in Neptune experiment.
 
         Args:
             log_name: The name of log, i.e. bboxes, visualisations, sample_images.
@@ -365,8 +359,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     @rank_zero_only
     def set_property(self, key: str, value: Any) -> None:
-        """
-        Set key-value pair as Neptune experiment property.
+        """Set key-value pair as Neptune experiment property.
 
         Args:
             key: Property key.
@@ -376,8 +369,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     @rank_zero_only
     def append_tags(self, tags: Union[str, Iterable[str]]) -> None:
-        """
-        Appends tags to the neptune experiment.
+        """Appends tags to the neptune experiment.
 
         Args:
             tags: Tags to add to the current experiment. If str is passed, a single tag is added.
