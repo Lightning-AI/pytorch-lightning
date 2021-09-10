@@ -27,6 +27,7 @@ from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecat
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
+from pytorch_lightning.utilities.types import _PATH
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
 if _OMEGACONF_AVAILABLE:
@@ -34,10 +35,10 @@ if _OMEGACONF_AVAILABLE:
 
 
 class CheckpointConnector:
-    def __init__(self, trainer: "pl.Trainer", resume_from_checkpoint: Optional[Union[str, Path]] = None) -> None:
+    def __init__(self, trainer: "pl.Trainer", resume_from_checkpoint: Optional[_PATH] = None) -> None:
         self.trainer = trainer
         self.resume_checkpoint_path = resume_from_checkpoint
-        self._loaded_checkpoint = {}
+        self._loaded_checkpoint: Dict[str, Any] = {}
 
     @property
     def hpc_resume_path(self) -> Optional[str]:
@@ -141,7 +142,7 @@ class CheckpointConnector:
                 if isinstance(module, Metric):
                     module.reset()
 
-    def restore_model_weights(self, checkpoint_path: Optional[Union[str, Path]]) -> None:
+    def restore_model_weights(self, checkpoint_path: Optional[_PATH]) -> None:
         """Restore only the model weights."""
         checkpoint = self._loaded_checkpoint
         if checkpoint_path is not None:
@@ -193,6 +194,7 @@ class CheckpointConnector:
         # crash if max_epochs is lower then the current epoch from the checkpoint
         if (
             FitLoop._is_max_limit_enabled(self.trainer.max_epochs)
+            and self.trainer.max_epochs is not None
             and self.trainer.current_epoch > self.trainer.max_epochs
         ):
             raise MisconfigurationException(
@@ -262,8 +264,9 @@ class CheckpointConnector:
 
         # restore the lr schedulers
         lr_schedulers = self._loaded_checkpoint["lr_schedulers"]
-        for scheduler, lrs_state in zip(self.trainer.lr_schedulers, lr_schedulers):
-            scheduler["scheduler"].load_state_dict(lrs_state)
+        if(self.trainer.lr_schedulers is not None):
+            for scheduler, lrs_state in zip(self.trainer.lr_schedulers, lr_schedulers):
+                scheduler["scheduler"].load_state_dict(lrs_state)
 
     # ----------------------------------
     # PRIVATE OPS
@@ -359,8 +362,9 @@ class CheckpointConnector:
 
             # dump lr schedulers
             lr_schedulers = []
-            for scheduler in self.trainer.lr_schedulers:
-                lr_schedulers.append(scheduler["scheduler"].state_dict())
+            if self.trainer.lr_schedulers is not None:
+                for scheduler in self.trainer.lr_schedulers:
+                    lr_schedulers.append(scheduler["scheduler"].state_dict())
             checkpoint["lr_schedulers"] = lr_schedulers
 
             self.trainer.precision_plugin.on_save_checkpoint(checkpoint)
@@ -394,7 +398,7 @@ class CheckpointConnector:
         )
         self.restore(checkpoint_path)
 
-    def max_ckpt_version_in_folder(self, dir_path: Union[str, Path], name_key: str = "ckpt_") -> Optional[int]:
+    def max_ckpt_version_in_folder(self, dir_path: _PATH, name_key: str = "ckpt_") -> Optional[int]:
         """List up files in `dir_path` with `name_key`, then yield maximum suffix number.
 
         Args:
@@ -424,7 +428,7 @@ class CheckpointConnector:
 
         return max(ckpt_vs)
 
-    def get_max_ckpt_path_from_folder(self, folder_path: Union[str, Path]) -> str:
+    def get_max_ckpt_path_from_folder(self, folder_path: _PATH) -> str:
         """Get path of maximum-epoch checkpoint in the folder."""
 
         max_suffix = self.max_ckpt_version_in_folder(folder_path)
