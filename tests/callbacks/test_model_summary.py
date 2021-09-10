@@ -11,12 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import List, Union
+
 import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelSummary
 from pytorch_lightning.utilities import ModelSummaryMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.helpers.boring_model import BoringModel
 
 
 def test_model_summary_callback_present_trainer():
@@ -56,3 +59,28 @@ def test_model_summary_callback_override_weights_summary_flag():
 
     trainer = Trainer(callbacks=ModelSummary(), weights_summary=None)
     assert any(isinstance(cb, ModelSummary) for cb in trainer.callbacks)
+
+
+def test_custom_model_summary_callback_summarize(tmpdir):
+    class CustomModelSummary(ModelSummary):
+        @staticmethod
+        def summarize(
+            summary_data: List[List[Union[str, List[str]]]],
+            total_parameters: int,
+            trainable_parameters: int,
+            model_size: float,
+        ) -> None:
+            assert summary_data[1][0] == "Name"
+            assert summary_data[1][1][0] == "layer"
+
+            assert summary_data[2][0] == "Type"
+            assert summary_data[2][1][0] == "Linear"
+
+            assert summary_data[3][0] == "Params"
+            assert total_parameters == 66
+            assert trainable_parameters == 66
+
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=CustomModelSummary(), max_steps=1)
+
+    trainer.fit(model)

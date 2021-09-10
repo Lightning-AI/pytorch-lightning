@@ -22,7 +22,7 @@ the name, type and number of parameters for each layer.
 
 """
 import logging
-from typing import Optional
+from typing import List, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
@@ -48,24 +48,25 @@ class ModelSummary(Callback):
 
     def __init__(self, max_depth: Optional[int] = 1):
         self._max_depth: int = max_depth
-        self._summary_data: list
-        self._total_parameters: int
-        self._trainable_paramaters: int
-        self._model_size: float
 
     def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if trainer.is_global_zero and self._max_depth is not None and not trainer.testing:
             model_summary = summarize(pl_module, max_depth=self._max_depth)
 
-            self._summary_data = model_summary._get_summary_data()
-            self._total_parameters = model_summary.total_parameters
-            self._trainable_parameters = model_summary.trainable_parameters
-            self._model_size = model_summary.model_size
+            summary_data = model_summary._get_summary_data()
+            total_parameters = model_summary.total_parameters
+            trainable_parameters = model_summary.trainable_parameters
+            model_size = model_summary.model_size
 
-            self.summarize()
+            self.summarize(summary_data, total_parameters, trainable_parameters, model_size)
 
-    def summarize(self) -> None:
-        summary_table = _format_summary_table(
-            self._total_parameters, self._trainable_parameters, self._model_size, *self._summary_data
-        )
+    @staticmethod
+    def summarize(
+        summary_data: List[List[Union[str, List[str]]]],
+        total_parameters: int,
+        trainable_parameters: int,
+        model_size: float,
+    ) -> None:
+        summary_table = _format_summary_table(total_parameters, trainable_parameters, model_size, *summary_data)
+
         log.info("\n" + summary_table)
