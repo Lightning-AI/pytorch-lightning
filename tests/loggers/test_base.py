@@ -48,7 +48,7 @@ def test_logger_collection():
     mock1.agg_and_log_metrics.assert_called_once_with({"test": 2.0}, 4)
     mock2.agg_and_log_metrics.assert_called_once_with({"test": 2.0}, 4)
 
-    logger.finalize()
+    logger.finalize("success")
     mock1.finalize.assert_called_once()
     mock2.finalize.assert_called_once()
 
