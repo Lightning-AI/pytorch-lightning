@@ -23,7 +23,7 @@ from torch import Tensor
 from torch.utils.hooks import RemovableHandle
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities import AMPType, DeviceType, rank_zero_deprecation
+from pytorch_lightning.utilities import AMPType, DeviceType, ModelSummaryMode, rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -185,21 +185,21 @@ class ModelSummary:
         0.530     Total estimated model params size (MB)
     """
 
-    MODES = dict(top=1, full=-1)  # TODO: remove in v1.6
-
     def __init__(self, model, mode: Optional[str] = None, max_depth: Optional[int] = 1):
         self._model = model
 
         #  temporary mapping from mode to max_depth
         if max_depth is None or mode is not None:
-            if mode in ModelSummary.MODES:
-                max_depth = ModelSummary.MODES[mode]
+            if mode in ModelSummaryMode.supported_types():
+                max_depth = ModelSummaryMode.get_max_depth(mode)
                 rank_zero_deprecation(
                     "Argument `mode` in `ModelSummary` is deprecated in v1.4"
                     f" and will be removed in v1.6. Use `max_depth={max_depth}` to replicate `mode={mode}` behaviour."
                 )
             else:
-                raise MisconfigurationException(f"`mode` can be {', '.join(ModelSummary.MODES)}, got {mode}.")
+                raise MisconfigurationException(
+                    f"`mode` can be {', '.join(ModelSummaryMode.supported_types())}, got {mode}."
+                )
 
         if not isinstance(max_depth, int) or max_depth < -1:
             raise ValueError(f"`max_depth` can be -1, 0 or > 0, got {max_depth}.")
@@ -295,7 +295,7 @@ class ModelSummary:
                 model(input_)
         model.train(mode)  # restore mode of module
 
-    def __str__(self):
+    def _get_summary_data(self):
         """Makes a summary listing with:
 
         Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes, Model Size
@@ -309,6 +309,11 @@ class ModelSummary:
         if self._model.example_input_array is not None:
             arrays.append(["In sizes", self.in_sizes])
             arrays.append(["Out sizes", self.out_sizes])
+
+        return arrays
+
+    def __str__(self):
+        arrays = self._get_summary_data()
 
         total_parameters = self.total_parameters
         trainable_parameters = self.trainable_parameters
@@ -445,16 +450,17 @@ def summarize(
 
     # temporary mapping from mode to max_depth
     if max_depth is None:
-        if mode in ModelSummary.MODES:
-            max_depth = ModelSummary.MODES[mode]
+        if mode in ModelSummaryMode.supported_types():
+            max_depth = ModelSummaryMode.get_max_depth(mode)
             rank_zero_deprecation(
                 "Argument `mode` in `LightningModule.summarize` is deprecated in v1.4"
                 f" and will be removed in v1.6. Use `max_depth={max_depth}` to replicate `mode={mode}` behavior."
             )
             model_summary = ModelSummary(lightning_module, max_depth=max_depth)
         elif mode is not None:
-            raise MisconfigurationException(f"`mode` can be None, {', '.join(ModelSummary.MODES)}, got {mode}")
+            raise MisconfigurationException(
+                f"`mode` can be None, {', '.join(ModelSummaryMode.supported_types())}, got {mode}"
+            )
     else:
         model_summary = ModelSummary(lightning_module, max_depth=max_depth)
-    log.info("\n" + str(model_summary))
     return model_summary

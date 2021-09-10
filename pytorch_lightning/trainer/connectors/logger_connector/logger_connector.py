@@ -209,9 +209,6 @@ class LoggerConnector:
         self._batch_idx = batch_idx
         self._split_idx = split_idx
 
-        # clear reference to this step's training loss so that it can be garbage collected before the next training step
-        self.trainer._results.minimize = None
-
     def update_train_step_metrics(self) -> None:
         if self.trainer.fit_loop.should_accumulate() and self.trainer.lightning_module.automatic_optimization:
             return

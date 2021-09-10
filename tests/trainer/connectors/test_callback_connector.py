@@ -21,6 +21,7 @@ from pytorch_lightning.callbacks import (
     GradientAccumulationScheduler,
     LearningRateMonitor,
     ModelCheckpoint,
+    ModelSummary,
     ProgressBar,
 )
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
@@ -31,31 +32,32 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     """Test that checkpoint callbacks always get moved to the end of the list, with preserved order."""
     checkpoint1 = ModelCheckpoint(tmpdir)
     checkpoint2 = ModelCheckpoint(tmpdir)
+    model_summary = ModelSummary()
     early_stopping = EarlyStopping()
     lr_monitor = LearningRateMonitor()
     progress_bar = ProgressBar()
 
     # no model reference
-    trainer = Trainer(callbacks=[checkpoint1, progress_bar, lr_monitor, checkpoint2])
+    trainer = Trainer(callbacks=[checkpoint1, progress_bar, lr_monitor, model_summary, checkpoint2])
     cb_connector = CallbackConnector(trainer)
     cb_connector._attach_model_callbacks()
-    assert trainer.callbacks == [progress_bar, lr_monitor, checkpoint1, checkpoint2]
+    assert trainer.callbacks == [progress_bar, lr_monitor, model_summary, checkpoint1, checkpoint2]
 
     # no model callbacks
     model = LightningModule()
     model.configure_callbacks = lambda: []
     trainer.model = model
     cb_connector._attach_model_callbacks()
-    assert trainer.callbacks == [progress_bar, lr_monitor, checkpoint1, checkpoint2]
+    assert trainer.callbacks == [progress_bar, lr_monitor, model_summary, checkpoint1, checkpoint2]
 
     # with model-specific callbacks that substitute ones in Trainer
     model = LightningModule()
-    model.configure_callbacks = lambda: [checkpoint1, early_stopping, checkpoint2]
+    model.configure_callbacks = lambda: [checkpoint1, early_stopping, model_summary, checkpoint2]
     trainer = Trainer(callbacks=[progress_bar, lr_monitor, ModelCheckpoint(tmpdir)])
     trainer.model = model
     cb_connector = CallbackConnector(trainer)
     cb_connector._attach_model_callbacks()
-    assert trainer.callbacks == [progress_bar, lr_monitor, early_stopping, checkpoint1, checkpoint2]
+    assert trainer.callbacks == [progress_bar, lr_monitor, early_stopping, model_summary, checkpoint1, checkpoint2]
 
 
 class StatefulCallback0(Callback):
@@ -119,7 +121,9 @@ def test_attach_model_callbacks():
     def assert_composition(trainer_callbacks, model_callbacks, expected):
         model = LightningModule()
         model.configure_callbacks = lambda: model_callbacks
-        trainer = Trainer(checkpoint_callback=False, progress_bar_refresh_rate=0, callbacks=trainer_callbacks)
+        trainer = Trainer(
+            checkpoint_callback=False, progress_bar_refresh_rate=0, weights_summary=None, callbacks=trainer_callbacks
+        )
         trainer.model = model
         cb_connector = CallbackConnector(trainer)
         cb_connector._attach_model_callbacks()

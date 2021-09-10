@@ -11,7 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Dict, Union
+
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 class ProgressBarBase(Callback):
@@ -177,3 +181,70 @@ class ProgressBarBase(Callback):
 
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         self._predict_batch_idx += 1
+
+    def get_metrics(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> Dict[str, Union[int, str]]:
+        r"""
+        Combines progress bar metrics collected from the trainer with standard metrics from get_standard_metrics.
+        Implement this to override the items displayed in the progress bar.
+
+        Here is an example of how to override the defaults:
+
+        .. code-block:: python
+
+            def get_metrics(self, trainer, model):
+                # don't show the version number
+                items = super().get_metrics(trainer, model)
+                items.pop("v_num", None)
+                return items
+
+        Return:
+            Dictionary with the items to be displayed in the progress bar.
+        """
+        standard_metrics = pl_module.get_progress_bar_dict()
+        pbar_metrics = trainer.progress_bar_metrics
+        duplicates = list(standard_metrics.keys() & pbar_metrics.keys())
+        if duplicates:
+            rank_zero_warn(
+                f"The progress bar already tracks a metric with the name(s) '{', '.join(duplicates)}' and"
+                f" `self.log('{duplicates[0]}', ..., prog_bar=True)` will overwrite this value. "
+                " If this is undesired, change the name or override `get_metrics()` in the progress bar callback.",
+                UserWarning,
+            )
+
+        return {**standard_metrics, **pbar_metrics}
+
+
+def get_standard_metrics(trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> Dict[str, Union[int, str]]:
+    r"""
+    Returns several standard metrics displayed in the progress bar, including the average loss value,
+    split index of BPTT (if used) and the version of the experiment when using a logger.
+
+    .. code-block::
+
+        Epoch 1:   4%|▎         | 40/1095 [00:03<01:37, 10.84it/s, loss=4.501, v_num=10]
+
+    Return:
+        Dictionary with the standard metrics to be displayed in the progress bar.
+    """
+    # call .item() only once but store elements without graphs
+    running_train_loss = trainer.fit_loop.running_loss.mean()
+    avg_training_loss = None
+    if running_train_loss is not None:
+        avg_training_loss = running_train_loss.cpu().item()
+    elif pl_module.automatic_optimization:
+        avg_training_loss = float("NaN")
+
+    items_dict = {}
+    if avg_training_loss is not None:
+        items_dict["loss"] = f"{avg_training_loss:.3g}"
+
+    if pl_module.truncated_bptt_steps > 0:
+        items_dict["split_idx"] = trainer.fit_loop.split_idx
+
+    if trainer.logger is not None and trainer.logger.version is not None:
+        version = trainer.logger.version
+        # show last 4 places of long version strings
+        version = version[-4:] if isinstance(version, str) else version
+        items_dict["v_num"] = version
+
+    return items_dict
