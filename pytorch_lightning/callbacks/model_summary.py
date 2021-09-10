@@ -37,7 +37,7 @@ class ModelSummary(Callback):
 
     Args:
         max_depth: The maximum depth of layer nesting that the summary will include. A value of 0 turns the
-            layer summary off. Default: 1.
+            layer summary off.
 
     Example::
 
