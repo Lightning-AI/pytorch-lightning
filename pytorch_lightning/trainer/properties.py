@@ -39,13 +39,7 @@ from pytorch_lightning.trainer.connectors.checkpoint_connector import Checkpoint
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
-from pytorch_lightning.utilities import (
-    DeviceType,
-    DistributedType,
-    GradClipAlgorithmType,
-    rank_zero_deprecation,
-    rank_zero_warn,
-)
+from pytorch_lightning.utilities import DeviceType, DistributedType, GradClipAlgorithmType, rank_zero_deprecation
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
     from_argparse_args,
@@ -306,21 +300,15 @@ class TrainerProperties(ABC):
     @property
     def progress_bar_dict(self) -> dict:
         """Read-only for progress bar metrics."""
+        rank_zero_deprecation(
+            "`trainer.progress_bar_dict` is deprecated in v1.5 and will be removed in v1.7."
+            " Use `ProgressBarBase.get_metrics` instead."
+        )
         ref_model = self.lightning_module
         ref_model = cast(pl.LightningModule, ref_model)
-
-        standard_metrics = ref_model.get_progress_bar_dict()
-        pbar_metrics = self.progress_bar_metrics
-        duplicates = list(standard_metrics.keys() & pbar_metrics.keys())
-        if duplicates:
-            rank_zero_warn(
-                f"The progress bar already tracks a metric with the name(s) '{', '.join(duplicates)}' and"
-                f" `self.log('{duplicates[0]}', ..., prog_bar=True)` will overwrite this value. "
-                " If this is undesired, change the name or override `get_progress_bar_dict()`"
-                " in `LightingModule`.",
-                UserWarning,
-            )
-        return {**standard_metrics, **pbar_metrics}
+        if self.progress_bar_callback:
+            return self.progress_bar_callback.get_metrics(self, ref_model)
+        return self.progress_bar_metrics
 
     @property
     def _should_reload_dl_epoch(self) -> bool:
