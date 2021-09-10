@@ -36,7 +36,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import log, rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
-from pytorch_lightning.utilities.types import LRSchedulerTypeTuple, _PATH
+from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeTuple
 from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
 
 warning_cache = WarningCache()
