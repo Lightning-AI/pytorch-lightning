@@ -486,19 +486,6 @@ class ModelCheckpoint(Callback):
     def every_n_epochs(self) -> Optional[int]:
         return self._every_n_epochs
 
-    def _del_model(self, trainer: "pl.Trainer", filepath: str) -> None:
-        if trainer.should_rank_save_checkpoint and self._fs.exists(filepath):
-            self._fs.rm(filepath, recursive=True)
-            log.debug(f"Removed checkpoint: {filepath}")
-
-    def _save_model(self, trainer: "pl.Trainer", filepath: str) -> None:
-        # make paths
-        if trainer.should_rank_save_checkpoint:
-            self._fs.makedirs(os.path.dirname(filepath), exist_ok=True)
-
-        # delegate the saving to the trainer
-        trainer.save_checkpoint(filepath, self.save_weights_only)
-
     def check_monitor_top_k(self, trainer: "pl.Trainer", current: Optional[torch.Tensor] = None) -> bool:
         if current is None:
             return False
@@ -671,10 +658,10 @@ class ModelCheckpoint(Callback):
         filepath = self._format_checkpoint_name(self.CHECKPOINT_NAME_LAST, monitor_candidates)
         filepath = os.path.join(self.dirpath, f"{filepath}{self.FILE_EXTENSION}")
 
-        self._save_model(trainer, filepath)
+        trainer.save_checkpoint(filepath, self.save_weights_only)
 
-        if self.last_model_path and self.last_model_path != filepath and trainer.should_rank_save_checkpoint:
-            self._del_model(trainer, self.last_model_path)
+        if self.last_model_path and self.last_model_path != filepath:
+            trainer.training_type_plugin.remove_checkpoint(self.last_model_path)
 
         self.last_model_path = filepath
 
@@ -696,15 +683,10 @@ class ModelCheckpoint(Callback):
             return
 
         filepath = self._get_metric_interpolated_filepath_name(monitor_candidates, trainer)
-        self._save_model(trainer, filepath)
+        trainer.save_checkpoint(filepath, self.save_weights_only)
 
-        if (
-            self.save_top_k == 1
-            and self.best_model_path
-            and self.best_model_path != filepath
-            and trainer.should_rank_save_checkpoint
-        ):
-            self._del_model(trainer, self.best_model_path)
+        if self.save_top_k == 1 and self.best_model_path and self.best_model_path != filepath:
+            trainer.training_type_plugin.remove_checkpoint(self.best_model_path)
 
         self.best_model_path = filepath
 
@@ -748,10 +730,10 @@ class ModelCheckpoint(Callback):
                 f"Epoch {epoch:d}, global step {step:d}: {self.monitor} reached {current:0.5f}"
                 f' (best {self.best_model_score:0.5f}), saving model to "{filepath}" as top {k}'
             )
-        self._save_model(trainer, filepath)
+        trainer.save_checkpoint(filepath, self.save_weights_only)
 
         if del_filepath is not None and filepath != del_filepath:
-            self._del_model(trainer, del_filepath)
+            trainer.training_type_plugin.remove_checkpoint(del_filepath)
 
     def to_yaml(self, filepath: Optional[Union[str, Path]] = None) -> None:
         """Saves the `best_k_models` dict containing the checkpoint paths with the corresponding scores to a YAML

@@ -14,12 +14,13 @@
 from typing import Any, Optional
 
 from pytorch_lightning.loops import Loop
+from pytorch_lightning.loops.optimization.closure import ClosureResult
 from pytorch_lightning.loops.utilities import (
     _build_training_step_kwargs,
     _check_training_step_output,
-    _process_training_step_output,
+    _extract_hiddens,
+    check_finite_loss,
 )
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 
 
 class ManualOptimization(Loop):
@@ -35,7 +36,7 @@ class ManualOptimization(Loop):
         super().__init__()
         self._done: bool = False
         self._hiddens: Optional[Any] = None
-        self._output: Optional[ResultCollection] = None
+        self._output: Optional[ClosureResult] = None
 
     @property
     def done(self) -> bool:
@@ -52,16 +53,16 @@ class ManualOptimization(Loop):
             batch_idx: the index of the current batch
         """
         assert self.trainer is not None
-        ligtning_module = self.trainer.lightning_module
+        lightning_module = self.trainer.lightning_module
 
         with self.trainer.profiler.profile("model_forward"):
 
             step_kwargs = _build_training_step_kwargs(
-                ligtning_module, self.trainer.optimizers, batch, batch_idx, opt_idx=None, hiddens=self._hiddens
+                lightning_module, self.trainer.optimizers, batch, batch_idx, opt_idx=None, hiddens=self._hiddens
             )
 
             # manually capture logged metrics
-            ligtning_module._current_fx_name = "training_step"
+            lightning_module._current_fx_name = "training_step"
             with self.trainer.profiler.profile("training_step"):
                 training_step_output = self.trainer.accelerator.training_step(step_kwargs)
                 self.trainer.accelerator.post_training_step()
@@ -70,14 +71,28 @@ class ManualOptimization(Loop):
 
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
 
-            _check_training_step_output(ligtning_module, training_step_output)
+            _check_training_step_output(lightning_module, training_step_output)
 
-            result_collection, self._hiddens = _process_training_step_output(self.trainer, training_step_output)
+            self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
+
+            # TODO: do not use `ClosureResult`
+            result = ClosureResult.from_training_step_output(training_step_output, self.trainer.accumulate_grad_batches)
+
+            if self.trainer.terminate_on_nan:
+                check_finite_loss(result.closure_loss)
+
+            if self.trainer.move_metrics_to_cpu:
+                # hiddens and the training step output are not moved as they are not considered "metrics"
+                # the user might need them on the correct device for an operation in `training_epoch_end`
+                assert self.trainer._results is not None
+                self.trainer._results.cpu()
 
         self._done = True
-        self._output = result_collection
+        self._output = result
 
-    def on_run_end(self) -> Optional[ResultCollection]:
+    def on_run_end(self) -> Optional[ClosureResult]:
         """Returns the result of this loop, i.e., the post-processed outputs from the training step."""
         output, self._output = self._output, None  # free memory
+        # #9052 added support for raising `StopIteration` in the `training_step`. If that happens, then `advance`
+        # doesn't finish and `self._output` stays as `None`. If #9415 happens then this would always return a result
         return output

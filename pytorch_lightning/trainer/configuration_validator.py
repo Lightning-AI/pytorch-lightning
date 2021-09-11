@@ -43,6 +43,9 @@ class ConfigValidator:
         elif self.trainer.state.fn == TrainerFn.PREDICTING:
             self.__verify_predict_loop_configuration(model)
         self.__verify_dp_batch_transfer_support(model)
+        self._check_add_get_queue(model)
+        # TODO(@daniellepintz): Delete _check_progress_bar in v1.7
+        self._check_progress_bar(model)
         # TODO: Delete _check_on_keyboard_interrupt in v1.7
         self._check_on_keyboard_interrupt()
 
@@ -109,6 +112,19 @@ class ConfigValidator:
                 "When using `Trainer(accumulate_grad_batches != 1)` and overriding"
                 "`LightningModule.optimizer_{step,zero_grad}`, the hooks will not be called on every batch"
                 "(rather, they are called on every optimization step)."
+            )
+
+    def _check_progress_bar(self, model: "pl.LightningModule") -> None:
+        r"""
+        Checks if get_progress_bar_dict is overriden and sends a deprecation warning.
+
+        Args:
+            model: The model to check the get_progress_bar_dict method.
+        """
+        if is_overridden("get_progress_bar_dict", model):
+            rank_zero_deprecation(
+                "The `LightningModule.get_progress_bar_dict` method was deprecated in v1.5 and will be removed in v1.7."
+                " Please use the `ProgressBarBase.get_metrics` instead."
             )
 
     def __verify_eval_loop_configuration(self, model: "pl.LightningModule", stage: str) -> None:
@@ -203,6 +219,24 @@ class ConfigValidator:
                     "The model taking a `dataloader_iter` argument in your `training_step` "
                     "is incompatible with `truncated_bptt_steps > 0`."
                 )
+
+    def _check_add_get_queue(self, model: "pl.LightningModule") -> None:
+        r"""
+        Checks if add_to_queue or get_from_queue is overriden and sends a deprecation warning.
+
+        Args:
+            model: The lightning module
+        """
+        if is_overridden("add_to_queue", model):
+            rank_zero_deprecation(
+                "The `LightningModule.add_to_queue` method was deprecated in v1.5 and will be removed in v1.7 in "
+                "favor of `DDPSpawnPlugin.add_to_queue`"
+            )
+        if is_overridden("get_from_queue", model):
+            rank_zero_deprecation(
+                "The `LightningModule.get_from_queue` method was deprecated in v1.5 and will be removed in v1.7 in "
+                "favor of `DDPSpawnPlugin.get_from_queue`"
+            )
 
     def _check_on_keyboard_interrupt(self) -> None:
         """Checks if on_keyboard_interrupt is overriden and sends a deprecation warning."""
