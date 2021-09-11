@@ -168,7 +168,7 @@ class MergedIteratorState:
         # a map based dataset doesn't own a generator and therefore `generator_name` should be None.
         if generator_name is None:  # <=> if self.represent_map_dataset (which is not recognized by mypy)
             self.represent_map_dataset = True
-            state: Union[Dict[Union[int, str], Union[Dict[str, IteratorState], IteratorState]]] = self.state
+            state = self.state
         else:
             self.represent_map_dataset = False
             if generator_name not in self.state:
@@ -260,25 +260,12 @@ def collect_rng_states() -> Dict[str, Any]:
     return {"torch": torch.get_rng_state(), "numpy": np.random.get_state(), "python": python_get_rng_state()}
 
 
-def set_rng_states(rng_state_dict: Dict[str, Union[torch.Tensor, Any]]) -> None:
+def set_rng_states(rng_state_dict: Dict[str, Union[Any]]) -> None:
     """Set the global random state of :mod:`torch`, :mod:`numpy` and Python in the current process."""
-    torch_rng_state = rng_state_dict.get("torch")
-    if isinstance(torch_rng_state, torch.Tensor):
-        torch.set_rng_state(torch_rng_state)
-    else:
-        raise ValueError(
-            f"The attribute `rng_state_dict['torch']` is of a type {type(torch_rng_state)} while `torch.ByteTensor` "
-            "is expected."
-        )
-
+    torch.set_rng_state(rng_state_dict.get("torch"))
     np.random.set_state(rng_state_dict.get("numpy"))
-
-    python_rng_state = rng_state_dict.get("python")
-    if isinstance(python_get_rng_state, tuple):
-        version, state, gauss = python_rng_state
-        python_set_rng_state((version, tuple(state), gauss))
-    else:
-        pass
+    version, state, gauss = rng_state_dict.get("python")
+    python_set_rng_state((version, tuple(state), gauss))
 
 
 class CaptureIterableDataset(IterableDataset):
