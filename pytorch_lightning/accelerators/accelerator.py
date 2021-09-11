@@ -436,11 +436,6 @@ class Accelerator:
         """
         return self.training_type_plugin.restore_checkpoint_after_pre_dispatch
 
-    @property
-    def handles_accumulate_grad_batches(self) -> bool:
-        """Whether the plugin handles gradient accumulation internally."""
-        return self.training_type_plugin.handles_accumulate_grad_batches
-
     def on_train_start(self) -> None:
         """Called when train begins."""
         return self.training_type_plugin.on_train_start()
