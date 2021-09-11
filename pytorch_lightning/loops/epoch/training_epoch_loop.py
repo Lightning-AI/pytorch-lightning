@@ -263,10 +263,10 @@ class TrainingEpochLoop(loops.Loop):
         # Lightning steps on the final batch
         is_final_batch = self._num_training_batches_reached()
         # but the TTP might not
-        ttp_doesnt_step_on_final_batch = (
-            self.trainer.training_type_plugin.handles_accumulate_grad_batches ^ is_final_batch
+        ttp_accumulates_on_final_batch = (
+            self.trainer.training_type_plugin.handles_accumulate_grad_batches or not is_final_batch
         )
-        return not (accumulation_done or is_final_batch) and ttp_doesnt_step_on_final_batch
+        return not accumulation_done and ttp_accumulates_on_final_batch
 
     def _track_epoch_end_reduce_metrics(
         self, epoch_output: List[List[STEP_OUTPUT]], batch_end_outputs: STEP_OUTPUT
