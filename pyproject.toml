@@ -63,7 +63,7 @@ ignore_errors = "True"
 module = [
     "pytorch_lightning.callbacks.model_summary",
     "pytorch_lightning.callbacks.pruning",
-    "pytorch_lightning.loops.optimization",
+    "pytorch_lightning.loops.optimization.*",
     "pytorch_lightning.loops.evaluation_loop",
     "pytorch_lightning.trainer.connectors.logger_connector.*",
     "pytorch_lightning.trainer.progress",

@@ -312,7 +312,7 @@ class ModelSummary:
             arrays.append(["In sizes", self.in_sizes])
             arrays.append(["Out sizes", self.out_sizes])
 
-        return arrays
+        return arrays  # type: ignore
 
     def __str__(self) -> str:
         arrays = self._get_summary_data()
