@@ -27,9 +27,6 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 import torch
 from torch import ScriptModule, Tensor
 
-if _TORCH_GREATER_EQUAL_1_10:
-    from torch.distributed.algorithms.model_averaging.averagers import ModelAverager
-
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
@@ -57,6 +54,9 @@ from pytorch_lightning.utilities.parsing import collect_init_args
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
+
+if _TORCH_GREATER_EQUAL_1_10:
+    from torch.distributed.algorithms.model_averaging.averagers import ModelAverager
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
