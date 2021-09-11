@@ -19,6 +19,7 @@ from torch.utils.data.dataloader import DataLoader
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, ResultCollection
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
@@ -88,16 +89,15 @@ class EvaluationLoop(DataLoaderLoop):
         """Runs the ``_on_evaluation_model_eval``, ``_on_evaluation_start`` and ``_on_evaluation_epoch_start``
         hooks."""
         void(*args, **kwargs)
+
+        if self.trainer.state.fn in (TrainerFn.VALIDATING, TrainerFn.TESTING):
+            self.trainer.logger_connector.reset_metrics()
+
         # hook
         self._on_evaluation_model_eval()
         self.trainer.lightning_module.zero_grad()
         self._on_evaluation_start()
         self._on_evaluation_epoch_start()
-
-    def on_advance_start(self) -> None:
-        """Reset the metrics."""
-        # reset metrics
-        self.trainer.logger_connector.reset_metrics()
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Performs evaluation on one single dataloader."""

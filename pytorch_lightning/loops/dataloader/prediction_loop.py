@@ -81,11 +81,6 @@ class PredictionLoop(DataLoaderLoop):
         """Calls ``on_predict_start`` hook."""
         self._on_predict_start()
 
-    def on_advance_start(self) -> None:
-        """Reset the metrics."""
-        # reset metrics
-        self.trainer.logger_connector.reset_metrics()
-
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Predicts one entire dataloader."""
         void(*args, **kwargs)
