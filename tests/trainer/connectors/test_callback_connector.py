@@ -21,6 +21,7 @@ from pytorch_lightning.callbacks import (
     GradientAccumulationScheduler,
     LearningRateMonitor,
     ModelCheckpoint,
+    ModelSummary,
     ProgressBar,
 )
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
@@ -31,31 +32,32 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     """Test that checkpoint callbacks always get moved to the end of the list, with preserved order."""
     checkpoint1 = ModelCheckpoint(tmpdir)
     checkpoint2 = ModelCheckpoint(tmpdir)
+    model_summary = ModelSummary()
     early_stopping = EarlyStopping()
     lr_monitor = LearningRateMonitor()
     progress_bar = ProgressBar()
 
     # no model reference
-    trainer = Trainer(callbacks=[checkpoint1, progress_bar, lr_monitor, checkpoint2])
+    trainer = Trainer(callbacks=[checkpoint1, progress_bar, lr_monitor, model_summary, checkpoint2])
     cb_connector = CallbackConnector(trainer)
     cb_connector._attach_model_callbacks()
-    assert trainer.callbacks == [progress_bar, lr_monitor, checkpoint1, checkpoint2]
+    assert trainer.callbacks == [progress_bar, lr_monitor, model_summary, checkpoint1, checkpoint2]
 
     # no model callbacks
     model = LightningModule()
     model.configure_callbacks = lambda: []
     trainer.model = model
     cb_connector._attach_model_callbacks()
-    assert trainer.callbacks == [progress_bar, lr_monitor, checkpoint1, checkpoint2]
+    assert trainer.callbacks == [progress_bar, lr_monitor, model_summary, checkpoint1, checkpoint2]
 
     # with model-specific callbacks that substitute ones in Trainer
     model = LightningModule()
-    model.configure_callbacks = lambda: [checkpoint1, early_stopping, checkpoint2]
+    model.configure_callbacks = lambda: [checkpoint1, early_stopping, model_summary, checkpoint2]
     trainer = Trainer(callbacks=[progress_bar, lr_monitor, ModelCheckpoint(tmpdir)])
     trainer.model = model
     cb_connector = CallbackConnector(trainer)
     cb_connector._attach_model_callbacks()
-    assert trainer.callbacks == [progress_bar, lr_monitor, early_stopping, checkpoint1, checkpoint2]
+    assert trainer.callbacks == [progress_bar, lr_monitor, early_stopping, model_summary, checkpoint1, checkpoint2]
 
 
 class StatefulCallback0(Callback):
@@ -64,28 +66,53 @@ class StatefulCallback0(Callback):
 
 
 class StatefulCallback1(Callback):
+    def __init__(self, unique=None, other=None):
+        self._unique = unique
+        self._other = other
+
+    @property
+    def state_key(self):
+        return self._generate_state_key(unique=self._unique)
+
     def on_save_checkpoint(self, *args):
-        return {"content1": 1}
+        return {"content1": self._unique}
 
 
 def test_all_callback_states_saved_before_checkpoint_callback(tmpdir):
-    """Test that all callback states get saved even if the ModelCheckpoint is not given as last."""
+    """Test that all callback states get saved even if the ModelCheckpoint is not given as last and when there are
+    multiple callbacks of the same type."""
 
     callback0 = StatefulCallback0()
-    callback1 = StatefulCallback1()
+    callback1 = StatefulCallback1(unique="one")
+    callback2 = StatefulCallback1(unique="two", other=2)
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, filename="all_states")
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_steps=1, limit_val_batches=1, callbacks=[callback0, checkpoint_callback, callback1]
+        default_root_dir=tmpdir,
+        max_steps=1,
+        limit_val_batches=1,
+        callbacks=[
+            callback0,
+            # checkpoint callback does not have to be at the end
+            checkpoint_callback,
+            # callback2 and callback3 have the same type
+            callback1,
+            callback2,
+        ],
     )
     trainer.fit(model)
 
     ckpt = torch.load(str(tmpdir / "all_states.ckpt"))
     state0 = ckpt["callbacks"]["StatefulCallback0"]
-    state1 = ckpt["callbacks"]["StatefulCallback1"]
+    state1 = ckpt["callbacks"]["StatefulCallback1{'unique': 'one'}"]
+    state2 = ckpt["callbacks"]["StatefulCallback1{'unique': 'two'}"]
     assert "content0" in state0 and state0["content0"] == 0
-    assert "content1" in state1 and state1["content1"] == 1
-    assert "ModelCheckpoint" in ckpt["callbacks"]
+    assert "content1" in state1 and state1["content1"] == "one"
+    assert "content1" in state2 and state2["content1"] == "two"
+    assert (
+        "ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
+        " 'train_time_interval': None, 'save_on_train_epoch_end': True}" in ckpt["callbacks"]
+    )
 
 
 def test_attach_model_callbacks():
@@ -94,7 +121,9 @@ def test_attach_model_callbacks():
     def assert_composition(trainer_callbacks, model_callbacks, expected):
         model = LightningModule()
         model.configure_callbacks = lambda: model_callbacks
-        trainer = Trainer(checkpoint_callback=False, progress_bar_refresh_rate=0, callbacks=trainer_callbacks)
+        trainer = Trainer(
+            checkpoint_callback=False, progress_bar_refresh_rate=0, weights_summary=None, callbacks=trainer_callbacks
+        )
         trainer.model = model
         cb_connector = CallbackConnector(trainer)
         cb_connector._attach_model_callbacks()

@@ -18,13 +18,11 @@ import torch
 
 
 class TestStepVariations(ABC):
-    """
-    Houses all variations of test steps
-    """
+    """Houses all variations of test steps."""
 
     def test_step(self, batch, batch_idx, *args, **kwargs):
-        """
-        Default, baseline test_step
+        """Default, baseline test_step.
+
         :param batch:
         :return:
         """
@@ -57,8 +55,8 @@ class TestStepVariations(ABC):
             return output
 
     def test_step__multiple_dataloaders(self, batch, batch_idx, dataloader_idx, **kwargs):
-        """
-        Default, baseline test_step
+        """Default, baseline test_step.
+
         :param batch:
         :return:
         """

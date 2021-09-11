@@ -21,7 +21,7 @@ from pytorch_lightning.utilities import GradClipAlgorithmType
 
 
 class FullyShardedNativeMixedPrecisionPlugin(ShardedNativeMixedPrecisionPlugin):
-    """Mixed Precision for Full Sharded Training"""
+    """Mixed Precision for Full Sharded Training."""
 
     precision = "mixed"
 

@@ -34,7 +34,7 @@ class DDPShardedPlugin(DDPPlugin):
 
     _REDUCE_BUFFER_SIZE_DEFAULT = 2 ** 23  # 8M
 
-    def configure_ddp(self):
+    def configure_ddp(self) -> None:
         self._wrap_optimizers()
         self._model = ShardedDataParallel(
             LightningShardedDataParallel(self.model),

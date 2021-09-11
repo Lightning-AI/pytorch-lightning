@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-import os
 import pickle
 from typing import List, Optional
 from unittest import mock
+from unittest.mock import Mock
 
 import cloudpickle
 import numpy as np
@@ -31,6 +31,11 @@ from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
 
 _logger = logging.getLogger(__name__)
+
+
+def test_early_stopping_state_key():
+    early_stopping = EarlyStopping(monitor="val_loss")
+    assert early_stopping.state_key == "EarlyStopping{'monitor': 'val_loss', 'mode': 'min'}"
 
 
 class EarlyStoppingTestRestore(EarlyStopping):
@@ -51,8 +56,8 @@ class EarlyStoppingTestRestore(EarlyStopping):
 
 
 def test_resume_early_stopping_from_checkpoint(tmpdir):
-    """
-    Prevent regressions to bugs:
+    """Prevent regressions to bugs:
+
     https://github.com/PyTorchLightning/pytorch-lightning/issues/1464
     https://github.com/PyTorchLightning/pytorch-lightning/issues/1463
     """
@@ -77,7 +82,8 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     # the checkpoint saves "epoch + 1"
     early_stop_callback_state = early_stop_callback.saved_states[checkpoint["epoch"] - 1]
     assert 4 == len(early_stop_callback.saved_states)
-    assert checkpoint["callbacks"]["EarlyStoppingTestRestore"] == early_stop_callback_state
+    es_name = "EarlyStoppingTestRestore{'monitor': 'train_loss', 'mode': 'min'}"
+    assert checkpoint["callbacks"][es_name] == early_stop_callback_state
 
     # ensure state is reloaded properly (assertion in the callback)
     early_stop_callback = EarlyStoppingTestRestore(early_stop_callback_state, monitor="train_loss")
@@ -92,12 +98,12 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
         new_trainer.fit(model)
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_early_stopping_no_extraneous_invocations(tmpdir):
     """Test to ensure that callback methods aren't being invoked outside of the callback handler."""
     model = ClassificationModel()
     dm = ClassifDataModule()
     early_stop_callback = EarlyStopping(monitor="train_loss")
+    early_stop_callback._run_early_stopping_check = Mock()
     expected_count = 4
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -105,12 +111,13 @@ def test_early_stopping_no_extraneous_invocations(tmpdir):
         limit_train_batches=4,
         limit_val_batches=4,
         max_epochs=expected_count,
+        checkpoint_callback=False,
     )
     trainer.fit(model, datamodule=dm)
 
     assert trainer.early_stopping_callback == early_stop_callback
     assert trainer.early_stopping_callbacks == [early_stop_callback]
-    assert len(trainer.dev_debugger.early_stopping_history) == expected_count
+    assert early_stop_callback._run_early_stopping_check.call_count == expected_count
 
 
 @pytest.mark.parametrize(
@@ -248,9 +255,9 @@ def test_early_stopping_on_non_finite_monitor(tmpdir, stop_value):
 
 @pytest.mark.parametrize("step_freeze, min_steps, min_epochs", [(5, 1, 1), (5, 1, 3), (3, 15, 1)])
 def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze: int, min_steps: int, min_epochs: int):
-    """Excepted Behaviour:
-    IF `min_steps` was set to a higher value than the `trainer.global_step` when `early_stopping` is being triggered,
-    THEN the trainer should continue until reaching `trainer.global_step` == `min_steps`, and stop.
+    """Excepted Behaviour: IF `min_steps` was set to a higher value than the `trainer.global_step` when
+    `early_stopping` is being triggered, THEN the trainer should continue until reaching `trainer.global_step` ==
+    `min_steps`, and stop.
 
     IF `min_epochs` resulted in a higher number of steps than the `trainer.global_step`
         when `early_stopping` is being triggered,
@@ -418,22 +425,27 @@ def test_multiple_early_stopping_callbacks(
     trainer.fit(model)
 
 
-def test_check_on_train_epoch_end_with_val_check_interval(tmpdir):
+@pytest.mark.parametrize(
+    "case",
+    {
+        "val_check_interval": {"val_check_interval": 0.3, "limit_train_batches": 10, "max_epochs": 10},
+        "check_val_every_n_epoch": {"check_val_every_n_epoch": 2, "max_epochs": 5},
+    }.items(),
+)
+def test_check_on_train_epoch_end_smart_handling(tmpdir, case):
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx):
             self.log("foo", 1)
             return super().validation_step(batch, batch_idx)
 
+    case, kwargs = case
     model = TestModel()
-    val_check_interval, limit_train_batches = 0.3, 10
     trainer = Trainer(
         default_root_dir=tmpdir,
-        val_check_interval=val_check_interval,
-        max_epochs=1,
-        limit_train_batches=limit_train_batches,
         limit_val_batches=1,
         callbacks=EarlyStopping(monitor="foo"),
         progress_bar_refresh_rate=0,
+        **kwargs,
     )
 
     side_effect = [(False, "A"), (True, "B")]
@@ -443,4 +455,7 @@ def test_check_on_train_epoch_end_with_val_check_interval(tmpdir):
         trainer.fit(model)
 
     assert es_mock.call_count == len(side_effect)
-    assert trainer.global_step == len(side_effect) * int(limit_train_batches * val_check_interval)
+    if case == "val_check_interval":
+        assert trainer.global_step == len(side_effect) * int(trainer.limit_train_batches * trainer.val_check_interval)
+    else:
+        assert trainer.current_epoch == len(side_effect) * trainer.check_val_every_n_epoch - 1

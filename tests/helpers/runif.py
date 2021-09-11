@@ -28,6 +28,7 @@ from pytorch_lightning.utilities import (
     _HOROVOD_AVAILABLE,
     _IPU_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
+    _RICH_AVAILABLE,
     _TORCH_QUANTIZE_AVAILABLE,
     _TPU_AVAILABLE,
 )
@@ -43,13 +44,12 @@ finally:
 
 
 class RunIf:
-    """
-    RunIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
+    """RunIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
 
-        @RunIf(min_torch="0.0")
-        @pytest.mark.parametrize("arg1", [1, 2.0])
-        def test_wrapper(arg1):
-            assert arg1 > 0.0
+    @RunIf(min_torch="0.0")
+    @pytest.mark.parametrize("arg1", [1, 2.0])
+    def test_wrapper(arg1):
+        assert arg1 > 0.0
     """
 
     def __new__(
@@ -71,6 +71,7 @@ class RunIf:
         fairscale: bool = False,
         fairscale_fully_sharded: bool = False,
         deepspeed: bool = False,
+        rich: bool = False,
         **kwargs,
     ):
         """
@@ -92,6 +93,7 @@ class RunIf:
             fairscale: if `fairscale` module is required to run the test
             fairscale_fully_sharded: if `fairscale` fully sharded module is required to run the test
             deepspeed: if `deepspeed` module is required to run the test
+            rich: if `rich` module is required to run the test
             kwargs: native pytest.mark.skipif keyword arguments
         """
         conditions = []
@@ -165,6 +167,10 @@ class RunIf:
         if deepspeed:
             conditions.append(not _DEEPSPEED_AVAILABLE)
             reasons.append("Deepspeed")
+
+        if rich:
+            conditions.append(not _RICH_AVAILABLE)
+            reasons.append("Rich")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(

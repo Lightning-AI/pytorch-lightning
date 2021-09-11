@@ -55,9 +55,7 @@ class LightningIPUModule(_LightningModuleWrapperBase):
 
 
 class IPUPlugin(ParallelPlugin):
-    """
-    Plugin for training on IPU devices.
-    """
+    """Plugin for training on IPU devices."""
 
     def __init__(
         self,
@@ -191,9 +189,8 @@ class IPUPlugin(ParallelPlugin):
         return self._original_accumulate_grad_batches
 
     def _handle_gradient_accumulation_steps(self) -> None:
-        """
-        Override the trainer.accumulation_scheduler to act as ``accumulate_grad_batches=1`` if gradient accumulation
-        has been set.
+        """Override the trainer.accumulation_scheduler to act as ``accumulate_grad_batches=1`` if gradient
+        accumulation has been set.
 
         ``optimizer_step`` will be called on every batch, and the IPU will handle grad accumulation internally.
         """
@@ -255,16 +252,14 @@ class IPUPlugin(ParallelPlugin):
         return model._executable is not None
 
     def _detach_models(self):
-        """
-        Detaches all stage specific models from IPU devices.
-        """
+        """Detaches all stage specific models from IPU devices."""
         for k, model in self.poptorch_models.items():
             if self._compiled(model) and model.isAttachedToDevice():
                 model.detachFromDevice()
 
     def _load_model(self, stage: str):
-        """
-        Loads the stage specific accelerator model onto device if compiled and not attached to IPU devices.
+        """Loads the stage specific accelerator model onto device if compiled and not attached to IPU devices.
+
         Args:
             stage: The stage to load
         """
