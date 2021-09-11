@@ -161,7 +161,7 @@ class CheckpointConnector:
         # restore loops and their progress
         self.restore_loops()
 
-        if self.trainer.state.fn in (TrainerFn.TUNING, TrainerFn.FITTING):
+        if self.trainer.state.fn == TrainerFn.FITTING:
             # restore precision plugin (scaler etc.)
             self.trainer.precision_plugin.on_load_checkpoint(self._loaded_checkpoint)
 

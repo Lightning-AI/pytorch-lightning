@@ -49,6 +49,56 @@ from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 
+class TrainerPropertyValidator(Callback):
+    def __init__(self, state_dict):
+        self.state_dict = state_dict
+
+    def _test_on_val_test_predict_tune_start(self, trainer, pl_module):
+        assert trainer.current_epoch == 0
+        assert trainer.global_step == 0
+        assert not any(
+            trainer.optimizers[i].state_dict() == self.state_dict["optimizer_states"][i]
+            for i in range(len(trainer.optimizers))
+        )
+        assert not any(
+            trainer.lr_schedulers[i]["scheduler"].state_dict() == self.state_dict["lr_schedulers"][i]
+            for i in range(len(trainer.lr_schedulers))
+        )
+        assert not any(
+            torch.all(torch.eq(pl_module.state_dict()[k], self.state_dict["state_dict"][k]))
+            for k in pl_module.state_dict().keys()
+        )
+
+    def on_train_start(self, trainer, pl_module):
+        if trainer.state.fn == TrainerFn.TUNING:
+            self._test_on_val_test_predict_tune_start()
+        else:
+            assert trainer.current_epoch == self.state_dict["epoch"]
+            assert trainer.global_step == self.state_dict["global_step"]
+            assert all(
+                trainer.optimizers[i].state_dict() == self.state_dict["optimizer_states"][i]
+                for i in range(len(trainer.optimizers))
+            )
+            assert all(
+                trainer.lr_schedulers[i]["scheduler"].state_dict() == self.state_dict["lr_schedulers"][i]
+                for i in range(len(trainer.lr_schedulers))
+            )
+            assert all(
+                torch.all(torch.eq(pl_module.state_dict()[k], self.state_dict["state_dict"][k]))
+                for k in pl_module.state_dict().keys()
+            )
+
+    def on_validation_start(self, trainer, pl_module):
+        if trainer.state.fn == TrainerFn.VALIDATING:
+            self._test_on_val_test_predict_tune_start(trainer, pl_module)
+
+    def on_test_start(self, trainer, pl_module):
+        self._test_on_val_test_predict_tune_start(trainer, pl_module)
+
+    def on_predict_start(self, trainer, pl_module):
+        self._test_on_val_test_predict_tune_start(trainer, pl_module)
+
+
 @pytest.mark.parametrize("url_ckpt", [True, False])
 def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
@@ -458,6 +508,54 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         new_trainer.fit(next_model)
         assert state["global_step"] + next_model.num_batches_seen == trainer.num_training_batches * trainer.max_epochs
         assert next_model.num_on_load_checkpoint_called == 1
+
+
+def test_trainer_properties_resume_from_checkpoint(tmpdir):
+    """Test that required trainer properties are set correctly when resuming from checkpoint in different
+    phases."""
+
+    class CustomBoringModel(BoringModel):
+        def __init__(self, lr=1e-2):
+            super().__init__()
+            self.save_hyperparameters()
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=self.hparams.lr)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+            return [optimizer], [lr_scheduler]
+
+    model = CustomBoringModel()
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
+    trainer_args = dict(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=7,
+        limit_val_batches=7,
+        logger=False,
+        callbacks=[checkpoint_callback],  # this performs the assertions
+    )
+    trainer = Trainer(**trainer_args)
+    trainer.fit(model)
+
+    resume_ckpt = str(tmpdir / "last.ckpt")
+    state_dict = torch.load(resume_ckpt)
+
+    resume_cb_validator = TrainerPropertyValidator(state_dict=state_dict)
+
+    for fn in ("tune", "fit", "validate", "test", "predict"):
+        trainer_args.update(
+            {
+                "max_epochs": 2,
+                "callbacks": [checkpoint_callback, resume_cb_validator],
+                "auto_lr_find": True,
+                "resume_from_checkpoint": resume_ckpt,
+            }
+        )
+        if fn == "tune":
+            trainer_args.update({"limit_train_batches": 1.0, "limit_val_batches": 1.0})
+
+        trainer = Trainer(**trainer_args)
+        getattr(trainer, fn)(model)
 
 
 def test_trainer_max_steps_and_epochs(tmpdir):

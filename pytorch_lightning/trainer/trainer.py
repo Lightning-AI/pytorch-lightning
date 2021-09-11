@@ -1101,7 +1101,8 @@ class Trainer(
         # register auto-resubmit when on SLURM
         self.slurm_connector.register_slurm_signal_handlers()
 
-        self.checkpoint_connector.resume_end()
+        if self.state.fn == TrainerFn.FITTING:
+            self.checkpoint_connector.resume_end()
 
         # --------------------------
         # Pre-train
