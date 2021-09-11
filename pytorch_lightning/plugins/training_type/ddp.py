@@ -30,6 +30,7 @@ import torch.distributed
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
@@ -329,6 +330,9 @@ class DDPPlugin(ParallelPlugin):
                 "Post-localSGD algorithm is used, but model averaging period is not provided to DDP plugin."
             )
         for optimizer in self.lightning_module.trainer.optimizers:
+            if isinstance(optimizer, LightningOptimizer):
+                optimizer = optimizer._optimizer
+
             if (
                 isinstance(optimizer, DistributedOptimizer)
                 or isinstance(optimizer, PostLocalSGDOptimizer)
