@@ -1845,6 +1845,7 @@ def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
     )
 
     # simulate random failure in training_step on rank 0
+    logging.warning(f"Dumping os environ: {os.environ}")
     with pytest.raises(DeadlockDetectedException):
         trainer.fit(model)
 
