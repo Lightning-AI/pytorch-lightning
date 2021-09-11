@@ -26,8 +26,6 @@ if _TPU_AVAILABLE:
     import torch_xla.core.xla_env_vars as xenv
     import torch_xla.core.xla_model as xm
     from torch_xla.core.xla_model import rendezvous
-else:
-    raise MisconfigurationException("TPU device does not exist in ")
 
 
 class TPUCollective(Collective):
