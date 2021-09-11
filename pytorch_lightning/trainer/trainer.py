@@ -145,7 +145,7 @@ class Trainer(
         accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None,
         max_epochs: Optional[int] = None,
         min_epochs: Optional[int] = None,
-        max_steps: Optional[int] = None,
+        max_steps: int = -1,
         min_steps: Optional[int] = None,
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
         limit_train_batches: Union[int, float] = 1.0,
@@ -327,9 +327,9 @@ class Trainer(
             min_epochs: Force training for at least these many epochs. Disabled by default (None).
                 If both min_epochs and min_steps are not specified, defaults to ``min_epochs = 1``.
 
-            max_steps: Stop training after this number of steps. Disabled by default (None). If ``max_steps = None``
+            max_steps: Stop training after this number of steps. Disabled by default (-1). If ``max_steps = -1``
                 and ``max_epochs = None``, will default to ``max_epochs = 1000``. To disable this default, set
-                ``max_steps`` to ``-1``.
+                ``max_epochs`` to ``-1``.
 
             min_steps: Force training for at least these number of steps. Disabled by default (None).
 
@@ -455,10 +455,19 @@ class Trainer(
         self.signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
-        # max_epochs won't default to 1000 if max_steps/max_time are specified (including being set to -1).
+        if max_epochs is None:
+            # max_epochs won't default to 1000 if max_steps/max_time are non-default values.
+            max_epochs = 1000 if (max_steps == -1 and max_time is None) else -1
+
+        elif max_epochs < -1:
+            # Allow max_epochs to be zero, since this will be handled by fit_loop.done
+            raise MisconfigurationException(
+                f"`max_epochs` must be a positive integer or -1. You passed in {max_epochs}."
+            )
+
         fit_loop = FitLoop(
             min_epochs=(1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs),
-            max_epochs=(1000 if (max_epochs is None and max_steps is None and max_time is None) else max_epochs),
+            max_epochs=max_epochs,
         )
         training_epoch_loop = TrainingEpochLoop(min_steps, max_steps)
         training_batch_loop = TrainingBatchLoop()

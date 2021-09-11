@@ -32,14 +32,8 @@ class FitLoop(Loop):
         max_epochs: The maximum number of epochs
     """
 
-    def __init__(self, min_epochs: Optional[int] = None, max_epochs: Optional[int] = None):
+    def __init__(self, min_epochs: Optional[int] = None, max_epochs: int = None):
         super().__init__()
-        # Allow max_epochs or max_steps to be zero, since this will be handled by fit_loop.done
-        if max_epochs and max_epochs < -1:
-            raise MisconfigurationException(
-                f"`max_epochs` must be a positive integer or -1. You passed in {max_epochs}."
-            )
-
         self.max_epochs = max_epochs
         self.min_epochs = min_epochs
         self.epoch_loop: Optional[TrainingEpochLoop] = None
@@ -141,8 +135,8 @@ class FitLoop(Loop):
         is reached.
         """
         # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
-        stop_steps = FitLoop._is_max_limit_enabled(self.max_steps) and self.global_step >= self.max_steps
-        stop_epochs = FitLoop._is_max_limit_enabled(self.max_epochs) and self.current_epoch >= self.max_epochs
+        stop_steps = self.max_steps != -1 and self.global_step >= self.max_steps
+        stop_epochs = self.max_epochs != -1 and self.current_epoch >= self.max_epochs
 
         should_stop = False
         if self.trainer.should_stop:

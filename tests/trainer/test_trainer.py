@@ -500,7 +500,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
 @pytest.mark.parametrize(
     "max_epochs,max_steps,incorrect_variable,incorrect_value",
     [
-        (-100, None, "max_epochs", -100),
+        (-100, -1, "max_epochs", -100),
         (1, -2, "max_steps", -2),
     ],
 )
@@ -516,13 +516,13 @@ def test_trainer_max_steps_and_epochs_validation(max_epochs, max_steps, incorrec
 @pytest.mark.parametrize(
     "max_epochs,max_steps,is_done,correct_trainer_epochs",
     [
-        (None, None, False, 1000),
-        (-1, None, False, -1),
+        (None, -1, False, 1000),
+        (-1, -1, False, -1),
         (None, -1, False, None),
         (5, -1, False, 5),
         (-1, 10, False, -1),
         (None, 0, True, None),
-        (0, None, True, 0),
+        (0, -1, True, 0),
         (-1, 0, True, -1),
         (0, -1, True, 0),
     ],
