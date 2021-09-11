@@ -14,6 +14,8 @@
 from typing import Any, Union
 
 import torch
+import torch.nn as nn
+from pytorch_lightning.core.lightning import LightningModule
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 
@@ -101,10 +103,19 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
         pass
 
 
-def unwrap_lightning_module(wrapped_model) -> "pl.LightningModule":
+def unwrap_lightning_module(wrapped_model: nn.Module) -> "pl.LightningModule":
+    """Recursively unwraps a :class:`~pytorch_lightning.core.lightning.LightningModule` by following the
+    ``.module`` attributes on the wrapper.
+
+    Raises:
+        TypeError: If the unwrapping leads to a module that is not a LightningModule and that cannot be unwrapped
+            further.
+    """
     model = wrapped_model
     if isinstance(model, (DistributedDataParallel, DataParallel)):
         model = unwrap_lightning_module(model.module)
     if isinstance(model, (_LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase)):
         model = unwrap_lightning_module(model.module)
+    if not isinstance(model, LightningModule):
+        raise TypeError(f"Unwrapping the module did not yield a `LightningModule`, got {type(model)} instead.")
     return model

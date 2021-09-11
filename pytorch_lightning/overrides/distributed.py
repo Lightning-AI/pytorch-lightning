@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
-from typing import Any, Iterator, List, Optional
+from typing import Any, Iterator, List, Optional, Union, Sized, cast
 
 import torch
+from torch import Tensor
 from torch.nn.parallel import DistributedDataParallel
-from torch.utils.data import BatchSampler, DistributedSampler, Sampler
+from torch.utils.data import BatchSampler, DistributedSampler, Sampler, Dataset
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
@@ -42,11 +43,11 @@ class LightningDistributedModule(_LightningModuleWrapperBase):
         super().__init__(pl_module)
 
 
-def _find_tensors(obj):  # pragma: no-cover
-    r"""
-    Recursively find all tensors contained in the specified object.
-    """
-    if isinstance(obj, torch.Tensor):
+def _find_tensors(
+    obj: Union[Tensor, list, tuple, dict, Any]
+) -> Union[List[Tensor], itertools.chain]:  # pragma: no-cover
+    """Recursively find all tensors contained in the specified object."""
+    if isinstance(obj, Tensor):
         return [obj]
     if isinstance(obj, (list, tuple)):
         return itertools.chain(*map(_find_tensors, obj))
@@ -91,6 +92,9 @@ class UnrepeatedDistributedSampler(DistributedSampler):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
+        if not isinstance(self.dataset, Sized):
+            raise TypeError("The given dataset must implement the `__len__` method.")
+        cast(self.dataset, Sized)
         self.num_samples = len(range(self.rank, len(self.dataset), self.num_replicas))
         self.total_size = len(self.dataset)
         # If any process has at least one batch, every other process needs to
