@@ -22,10 +22,8 @@ from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
-
-from tests.loggers.test_base import CustomLogger
 from tests.helpers.runif import RunIf
-
+from tests.loggers.test_base import CustomLogger
 
 
 def test_v1_7_0_deprecated_lightning_module_summarize(tmpdir):
@@ -223,7 +221,7 @@ def test_v1_7_0_deprecate_add_get_queue(tmpdir):
     with pytest.deprecated_call(match=r"`LightningModule.get_from_queue` method was deprecated in v1.5"):
         trainer.fit(model)
 
-        
+
 def test_v1_7_0_lightning_logger_base_close(tmpdir):
     logger = CustomLogger()
     with pytest.deprecated_call(
