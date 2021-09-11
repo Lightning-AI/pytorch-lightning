@@ -13,7 +13,7 @@
 # limitations under the License.
 import numbers
 import warnings
-from typing import Any
+from typing import Any, Union
 
 import torch
 
@@ -23,7 +23,7 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
-def _ignore_scalar_return_in_dp():
+def _ignore_scalar_return_in_dp() -> None:
     # Users get confused by this warning so we silence it
     warnings.filterwarnings(
         "ignore",
@@ -57,12 +57,12 @@ class LightningParallelModule(_LightningModuleWrapperBase):
         super().__init__(pl_module)
         _ignore_scalar_return_in_dp()
 
-    def forward(self, *inputs, **kwargs):
+    def forward(self, *inputs: Any, **kwargs: Any) -> Any:
         self.update_replica_device_attributes(inputs)
         # forward call will redirect to training_step, validation_step, etc.
         output = super().forward(*inputs, **kwargs)
 
-        def output_transform(data: Any):
+        def output_transform(data: Any) -> Any:
             data = python_scalar_to_tensor(data, self.module.device)
             data = unsqueeze_scalar_tensor(data)
             return data
@@ -101,7 +101,7 @@ class LightningParallelModule(_LightningModuleWrapperBase):
             )
 
 
-def python_scalar_to_tensor(data: Any, device: torch.device = torch.device("cpu")) -> Any:
+def python_scalar_to_tensor(data: Any, device: Union[str, torch.device] = torch.device("cpu")) -> Any:
     """Converts a Python scalar number to a torch tensor and places it on the given device."""
     if isinstance(data, numbers.Number):
         data = torch.tensor([data], device=device)

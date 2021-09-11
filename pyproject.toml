@@ -64,6 +64,7 @@ module = [
     "pytorch_lightning.callbacks.pruning",
     "pytorch_lightning.loops.optimization.*",
     "pytorch_lightning.loops.evaluation_loop",
+    "pytorch_lightning.overrides.data_parallel",
     "pytorch_lightning.trainer.connectors.logger_connector.*",
     "pytorch_lightning.trainer.progress",
     "pytorch_lightning.tuner.auto_gpu_select",
