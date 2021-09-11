@@ -721,12 +721,13 @@ def _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimiz
         max_epochs=3,
         plugins=[DeepSpeedPlugin(stage=2, offload_optimizer=offload_optimizer)],
         gpus=2,
-        limit_train_batches=6,  # odd to test leftover batches
+        limit_train_batches=5,
         limit_val_batches=2,
         precision=16,
         accumulate_grad_batches=2,
         callbacks=[verification_callback],
     )
+    assert trainer.limit_train_batches % 2 != 0, "leftover batches should be tested"
     trainer.fit(model, datamodule=dm)
     assert verification_callback.on_train_batch_start_called
 
