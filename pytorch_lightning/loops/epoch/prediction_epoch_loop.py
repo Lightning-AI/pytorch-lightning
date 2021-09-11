@@ -97,7 +97,7 @@ class PredictionEpochLoop(Loop):
         with self.trainer.profiler.profile("predict_step"):
             self._predict_step(batch, batch_idx, dataloader_idx)
 
-    def on_run_end(self) -> Tuple[Any, Any]:
+    def on_run_end(self) -> Tuple[List[Any], List[int]]:
         """Returns the predictions and the corresponding batch indices."""
         predictions = self.predictions
         all_batch_indices = self._all_batch_indices

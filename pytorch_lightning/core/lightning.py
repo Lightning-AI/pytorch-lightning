@@ -24,13 +24,14 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
-import numpy as np
 import torch
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
 
+import pytorch_lightning as pl
+from pytorch_lightning.callbacks.progress import base as progress_base
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -1700,6 +1701,10 @@ class LightningModule(
 
     def get_progress_bar_dict(self) -> Dict[str, Union[int, str]]:
         r"""
+        .. deprecated:: v1.5
+            This method was deprecated in v1.5 in favor of
+            `pytorch_lightning.callbacks.progress.base.get_standard_metrics` and will be removed in v1.7.
+
         Implement this to override the default items displayed in the progress bar.
         By default it includes the average loss value, split index of BPTT (if used)
         and the version of the experiment when using a logger.
@@ -1721,28 +1726,7 @@ class LightningModule(
         Return:
             Dictionary with the items to be displayed in the progress bar.
         """
-        # call .item() only once but store elements without graphs
-        running_train_loss = self.trainer.fit_loop.running_loss.mean()
-        avg_training_loss = None
-        if running_train_loss is not None:
-            avg_training_loss = running_train_loss.cpu().item()
-        elif self.automatic_optimization:
-            avg_training_loss = float("NaN")
-
-        tqdm_dict = {}
-        if avg_training_loss is not None:
-            tqdm_dict["loss"] = f"{avg_training_loss:.3g}"
-
-        if self.truncated_bptt_steps > 0:
-            tqdm_dict["split_idx"] = self.trainer.fit_loop.split_idx
-
-        if self.trainer.logger is not None and self.trainer.logger.version is not None:
-            version = self.trainer.logger.version
-            # show last 4 places of long version strings
-            version = version[-4:] if isinstance(version, str) else version
-            tqdm_dict["v_num"] = version
-
-        return tqdm_dict
+        return progress_base.get_standard_metrics(self.trainer, self)
 
     def _verify_is_manual_optimization(self, fn_name):
         if self.automatic_optimization:
@@ -1921,11 +1905,13 @@ class LightningModule(
 
         Args:
             queue: the instance of the queue to append the data.
+
+        .. deprecated:: v1.5
+            This method was deprecated in v1.5 in favor of `DDPSpawnPlugin.add_to_queue`
+            and will be removed in v1.7.
         """
-        callback_metrics: dict = apply_to_collection(
-            self.trainer.callback_metrics, torch.Tensor, lambda x: x.cpu().numpy()
-        )  # send as numpy to avoid issues with memory sharing
-        queue.put(callback_metrics)
+        if self.trainer and isinstance(self.trainer.training_type_plugin, pl.plugins.training_type.DDPSpawnPlugin):
+            self.trainer.training_type_plugin.add_to_queue(self.trainer, queue)
 
     def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
         """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
@@ -1933,12 +1919,13 @@ class LightningModule(
 
         Args:
             queue: the instance of the queue from where to get the data.
+
+        .. deprecated:: v1.5
+            This method was deprecated in v1.5 in favor of `DDPSpawnPlugin.get_from_queue`
+            and will be removed in v1.7.
         """
-        # NOTE: `add_to_queue` needs to be called before
-        callback_metrics: dict = queue.get()
-        self.trainer.callback_metrics.update(
-            apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x))
-        )
+        if self.trainer and isinstance(self.trainer.training_type_plugin, pl.plugins.training_type.DDPSpawnPlugin):
+            self.trainer.training_type_plugin.get_from_queue(self.trainer, queue)
 
     @contextmanager
     def _prevent_trainer_and_dataloaders_deepcopy(self) -> None:

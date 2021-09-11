@@ -16,10 +16,9 @@ import logging
 import os
 import traceback
 import warnings
-from contextlib import contextmanager
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
 
 import torch
@@ -77,9 +76,8 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training, _TORCH_GREATER_EQUAL_1_9
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT, EVAL_DATALOADERS, TRAIN_DATALOADERS
 
@@ -407,11 +405,6 @@ class Trainer(
         # default .predict() loop
         self.predict_loop = PredictionLoop()
 
-        # training state
-        if weights_summary is not None and weights_summary not in ModelSummary.MODES:
-            raise MisconfigurationException(
-                f"`weights_summary` can be None, {', '.join(ModelSummary.MODES)}, but got {weights_summary}"
-            )
         self.weights_summary = weights_summary
 
         # init callbacks
@@ -423,6 +416,7 @@ class Trainer(
             process_position,
             default_root_dir,
             weights_save_path,
+            self.weights_summary,
             stochastic_weight_avg,
             max_time,
         )
@@ -1109,11 +1103,6 @@ class Trainer(
         # --------------------------
         self.call_hook("on_pretrain_routine_start")
 
-        # print model summary
-        if self.is_global_zero and self.weights_summary is not None and not self.testing:
-            max_depth = ModelSummary.MODES[self.weights_summary]
-            summarize(self.lightning_module, max_depth=max_depth)
-
         self.call_hook("on_pretrain_routine_end")
 
     def _run_train(self) -> None:
@@ -1148,7 +1137,7 @@ class Trainer(
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self._evaluation_loop.trainer = self
 
-        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), self._evaluation_context():
+        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), torch.no_grad():
             eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
@@ -1164,7 +1153,7 @@ class Trainer(
         self.reset_predict_dataloader(self.lightning_module)
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self.predict_loop.trainer = self
-        with self._evaluation_context():
+        with torch.no_grad():
             return self.predict_loop.run()
 
     def _run_sanity_check(self, ref_model):
@@ -1393,8 +1382,3 @@ class Trainer(
         # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
         file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")
         self.save_checkpoint(file_path)
-
-    @contextmanager
-    def _evaluation_context(self) -> Generator:
-        with torch.inference_mode() if _TORCH_GREATER_EQUAL_1_9 else torch.no_grad():
-            yield
