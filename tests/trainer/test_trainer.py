@@ -1832,7 +1832,6 @@ def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
-            logging.error(f"Dumping os environ: {os.environ}")
             if batch_idx == 1 and self.trainer.is_global_zero:
                 # rank 0: raises an exception
                 # rank 1: continues training but will hang on the next barrier in the training loop
@@ -1846,7 +1845,7 @@ def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
     )
 
     # simulate random failure in training_step on rank 0
-    with pytest.raises(DeadlockDetectedException):
+    with pytest.raises(DeadlockDetectedException, match="CustomException"):
         trainer.fit(model)
 
 
