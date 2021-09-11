@@ -198,17 +198,16 @@ class Loop(ABC, Generic[T]):
 
     def load_state_dict(
         self,
-        state_dict: Optional[Dict] = None,
+        state_dict: Dict,
         prefix: str = "",
         restart_progress: bool = True,
         metrics: Optional[Dict[str, Metric]] = None,
     ) -> None:
         """Loads the state of this loop and all its children."""
-        if state_dict is not None:
-            self._load_from_state_dict(state_dict.copy(), prefix, restart_progress, metrics)
-            for k, v in self.__dict__.items():
-                if isinstance(v, Loop):
-                    v.load_state_dict(state_dict.copy(), prefix + k + ".", restart_progress)
+        self._load_from_state_dict(state_dict.copy(), prefix, restart_progress, metrics)
+        for k, v in self.__dict__.items():
+            if isinstance(v, Loop):
+                v.load_state_dict(state_dict.copy(), prefix + k + ".", restart_progress)
 
     def _load_from_state_dict(
         self, state_dict: Dict, prefix: str, restart_progress: bool, metrics: Optional[Dict[str, Metric]] = None

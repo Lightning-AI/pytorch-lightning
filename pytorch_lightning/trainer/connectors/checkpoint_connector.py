@@ -224,16 +224,16 @@ class CheckpointConnector:
 
         if state_dict is not None:
             if self.trainer.state.fn == TrainerFn.FITTING:
-                self.trainer.fit_loop.load_state_dict(state_dict.get("fit_loop"))
+                self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
 
             if self.trainer.state.fn == TrainerFn.VALIDATING:
-                self.trainer.validate_loop.load_state_dict(state_dict.get("validate_loop"))
+                self.trainer.validate_loop.load_state_dict(state_dict["validate_loop"])
 
             if self.trainer.state.fn == TrainerFn.TESTING:
-                self.trainer.test_loop.load_state_dict(state_dict.get("test_loop"))
+                self.trainer.test_loop.load_state_dict(state_dict["test_loop"])
 
             if self.trainer.state.fn == TrainerFn.PREDICTING:
-                self.trainer.predict_loop.load_state_dict(state_dict.get("predict_loop"))
+                self.trainer.predict_loop.load_state_dict(state_dict["predict_loop"])
 
     def restore_optimizers_and_schedulers(self) -> None:
         """Restores the optimizers and learning rate scheduler states from the pre-loaded checkpoint."""
