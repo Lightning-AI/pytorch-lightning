@@ -15,7 +15,15 @@ import os
 from datetime import timedelta
 from typing import Dict, List, Optional, Union
 
-from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ModelSummary, ProgressBar, ProgressBarBase
+from pytorch_lightning.callbacks import (
+    Callback,
+    ModelCheckpoint,
+    ModelSummary,
+    ProgressBar,
+    ProgressBarBase,
+    RichModelSummary,
+    RichProgressBar,
+)
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities import ModelSummaryMode, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -59,8 +67,6 @@ class CallbackConnector:
         # responsible to stop the training when max_time is reached.
         self._configure_timer_callback(max_time)
 
-        self._configure_model_summary_callback(weights_summary)
-
         # init progress bar
         if process_position != 0:
             rank_zero_deprecation(
@@ -69,6 +75,9 @@ class CallbackConnector:
                 " `process_position` directly to the Trainer's `callbacks` argument instead."
             )
         self.trainer._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
+
+        # configure the ModelSummary callback
+        self._configure_model_summary_callback(weights_summary)
 
         # push all checkpoint callbacks to the end
         # it is important that these are the last callbacks to run
@@ -102,7 +111,12 @@ class CallbackConnector:
                     f" but got {weights_summary}",
                 )
             max_depth = ModelSummaryMode.get_max_depth(weights_summary)
-            model_summary = ModelSummary(max_depth=max_depth)
+            if self.trainer._progress_bar_callback is not None and isinstance(
+                self.trainer._progress_bar_callback, RichProgressBar
+            ):
+                model_summary = RichModelSummary(max_depth=max_depth)
+            else:
+                model_summary = ModelSummary(max_depth=max_depth)
             self.trainer.callbacks.append(model_summary)
 
     def _configure_swa_callbacks(self):
