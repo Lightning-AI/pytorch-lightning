@@ -40,7 +40,7 @@ class FastForwardSampler(Sampler):
     samples seen in the last iterations (for the current worker).
     """
 
-    def __init__(self, sampler: Union[Sampler, Generator], attr_name: Optional[str] = None) -> None:
+    def __init__(self, sampler: Union[Sampler, Generator, Iterator], attr_name: Optional[str] = None) -> None:
         super().__init__(data_source=None)
         self._sampler = sampler
         self.restarting: bool = False
@@ -148,7 +148,7 @@ class IteratorState:
     name: Optional[str] = None
 
     @classmethod
-    def from_state_dict(cls, state_dict) -> "IteratorState":
+    def from_state_dict(cls, state_dict: Dict[str, Any]) -> "IteratorState":
         return cls(**state_dict)
 
 
@@ -166,10 +166,11 @@ class MergedIteratorState:
 
     def update(self, generator_name: Optional[str], new_state: IteratorState) -> None:
         # a map based dataset doesn't own a generator and therefore `generator_name` should be None.
-        self.represent_map_dataset = generator_name is None
-        if self.represent_map_dataset:
-            state = self.state
+        if generator_name is None:  # <=> if self.represent_map_dataset (which is not recognized by mypy)
+            self.represent_map_dataset = True
+            state: Union[Dict[Union[int, str], Union[Dict[str, IteratorState], IteratorState]]] = self.state
         else:
+            self.represent_map_dataset = False
             if generator_name not in self.state:
                 self.state[generator_name] = {}
             state = self.state[generator_name]
@@ -184,12 +185,12 @@ class MergedIteratorState:
         return {0: self.state[k].sampler_state[0] for k in self.state.keys()}
 
     @property
-    def dataset_states(self) -> Dict[int, Any]:
+    def dataset_states(self) -> Dict[Union[int, str], Any]:
         """Returns the merged dataset states for all worker processes."""
         return {k: self.state[k].dataset_state[k] for k in self.state.keys()}
 
     @classmethod
-    def from_state_dict(cls, state_dict) -> "MergedIteratorState":
+    def from_state_dict(cls, state_dict: Dict[str, Any]) -> "MergedIteratorState":
         if state_dict["represent_map_dataset"]:
             state_dict["state"] = {
                 worker_id: IteratorState.from_state_dict(state) for worker_id, state in state_dict["state"].items()
@@ -217,14 +218,14 @@ class CaptureMapDataset(Dataset):
 
     def __init__(self, dataset: Dataset) -> None:
         self.dataset = dataset
-        self._cached_state_dict = None
+        self._cached_state_dict: Optional[Dict[int, Any]] = None
 
     @property
     def worker_id(self) -> int:
         worker_info = get_worker_info()
         return worker_info.id if worker_info else 0
 
-    def __getitem__(self, item) -> Tuple[Any, Dict[int, Dict]]:
+    def __getitem__(self, item: int) -> Tuple[Any, Dict[int, Dict]]:
         if self._cached_state_dict is not None:
             if self.worker_id in self._cached_state_dict:
                 set_rng_states(self._cached_state_dict[self.worker_id]["rng_states"])
@@ -259,12 +260,25 @@ def collect_rng_states() -> Dict[str, Any]:
     return {"torch": torch.get_rng_state(), "numpy": np.random.get_state(), "python": python_get_rng_state()}
 
 
-def set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
+def set_rng_states(rng_state_dict: Dict[str, Union[torch.Tensor, Any]]) -> None:
     """Set the global random state of :mod:`torch`, :mod:`numpy` and Python in the current process."""
-    torch.set_rng_state(rng_state_dict.get("torch"))
+    torch_rng_state = rng_state_dict.get("torch")
+    if isinstance(torch_rng_state, torch.Tensor):
+        torch.set_rng_state(torch_rng_state)
+    else:
+        raise ValueError(
+            f"The attribute `rng_state_dict['torch']` is of a type {type(torch_rng_state)} while `torch.ByteTensor` "
+            "is expected."
+        )
+
     np.random.set_state(rng_state_dict.get("numpy"))
-    version, state, gauss = rng_state_dict.get("python")
-    python_set_rng_state((version, tuple(state), gauss))
+
+    python_rng_state = rng_state_dict.get("python")
+    if isinstance(python_get_rng_state, tuple):
+        version, state, gauss = python_rng_state
+        python_set_rng_state((version, tuple(state), gauss))
+    else:
+        pass
 
 
 class CaptureIterableDataset(IterableDataset):
@@ -287,7 +301,7 @@ class CaptureIterableDataset(IterableDataset):
         return self.dataset.sampler
 
     def state_dict(self) -> Dict[str, Any]:
-        return {k: v.state_dict() for k, v in self.samplers.items()}
+        return {k: v.state_dict() for k, v in self.samplers.items()} if self.samplers is not None else {}
 
     def load_state_dict(self, state_dict: Dict[int, Any]) -> None:
         self._state_dict = deepcopy(state_dict)
@@ -339,7 +353,7 @@ class CaptureIterableDataset(IterableDataset):
 
         self.reset_on_epoch()
 
-    def reset_on_epoch(self):
+    def reset_on_epoch(self) -> None:
         self._state_dict = None
 
     def __iter__(self) -> Iterator:
@@ -400,7 +414,7 @@ def _cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str
                 next(iter_dataloader._worker_queue_idx_cycle)
 
         # we can finally call reset and apply prefecthing.
-        iter_dataloader._reset = iter_dataloader._original_reset
+        setattr(iter_dataloader, "_reset", iter_dataloader._original_reset)
         iter_dataloader._reset(dataloader, first_iter=True)
     # return the iterator
     return iter_dataloader
@@ -408,20 +422,23 @@ def _cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str
 
 def _dataloader_to_state_dict(
     dataloader: DataLoader, iterator: Iterator, num_batches_processed: int = None
-) -> List[Dict[str, Any]]:
+) -> Dict[Union[int, str], Union[Dict[str, int], Optional[int]]]:
     """Convert a dataloader to its associated state dict."""
-    out = {}
+    out: Dict[Union[int, str], Union[Dict[str, int], Optional[int]]] = {}
     if iterator is not None:
-        out.update(_find_current_worker(iterator))
+        for iterator_k, iterator_v in _find_current_worker(iterator).items():
+            out[iterator_k] = iterator_v
 
     if not isinstance(dataloader.dataset, CaptureIterableDataset):
         fast_forward_sampler = _find_fast_forward_samplers(dataloader)
         if fast_forward_sampler is not None:
-            out.update(fast_forward_sampler.state_dict(num_batches_processed=num_batches_processed))
+            samplers_state_dict = fast_forward_sampler.state_dict(num_batches_processed=num_batches_processed)
+            for sampler_v, sampler_k in samplers_state_dict.items():
+                out[sampler_k] = sampler_v
     return out
 
 
-def _dataloader_load_state_dict(dataloader: DataLoader, state_dict: List[Dict[str, Any]]) -> DataLoader:
+def _dataloader_load_state_dict(dataloader: DataLoader, state_dict: Dict[str, Any]) -> DataLoader:
     """Reload ``DataLoader`` fast-forward sampler state dict."""
     fast_forward_sampler = _find_fast_forward_samplers(dataloader)
 
@@ -506,9 +523,9 @@ def patch_dataloader_iterator(
 
     assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
 
-    def _next_data_wrapper(fn, it, dl, num_batches_fetched) -> Callable:
+    def _next_data_wrapper(fn: Callable, it: Iterator, dl: DataLoader, num_batches_fetched: int) -> Callable:
         @wraps(fn)
-        def wrapper():
+        def wrapper() -> Any:
             nonlocal num_batches_fetched
             nonlocal it
             nonlocal dl

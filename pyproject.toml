@@ -69,6 +69,7 @@ module = [
     "pytorch_lightning.tuner.auto_gpu_select",
     "pytorch_lightning.utilities.apply_func",
     "pytorch_lightning.utilities.argparse",
+    "pytorch_lightning.utilities.auto_restart",
     "pytorch_lightning.utilities.cli",
     "pytorch_lightning.utilities.cloud_io",
     "pytorch_lightning.utilities.debugging",
