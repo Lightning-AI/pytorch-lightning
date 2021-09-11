@@ -26,7 +26,6 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
-
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
