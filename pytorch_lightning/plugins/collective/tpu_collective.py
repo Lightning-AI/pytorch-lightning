@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import io
+import os
 from typing import Any, Optional, Union
 
 import torch
@@ -22,24 +23,30 @@ from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TPU_AVAILABLE:
+    import torch_xla.core.xla_env_vars as xenv
     import torch_xla.core.xla_model as xm
     from torch_xla.core.xla_model import rendezvous
 else:
-    xm, rendezvous = [None] * 2
+    raise MisconfigurationException("TPU device does not exist in ")
 
 
 class TPUCollective(Collective):
-    """Collective interface for TPU and TPUSpawning training type plugins."""
+    """Collective interface for TPUSpawning training type plugins."""
 
     def __init__(
         self,
         device: Union[str, torch.device] = torch.device("xla"),
-        root_device: torch.device = xm.xla_device(),
-        world_size: int = xm.xrt_world_size(),
+        root_device: torch.device = torch.device("xla"),
+        world_size: int = 1,
     ):
         self.device = device
         self.root_device = root_device
         self.world_size = world_size
+
+    @property
+    def is_distributed(self) -> bool:
+        # HOST_WORLD_SIZE is None outside the xmp.spawn process
+        return os.getenv(xenv.HOST_WORLD_SIZE, None) is not None and self.world_size != 1
 
     def barrier(self, name: Optional[str] = None) -> None:
         if self.is_distributed:
