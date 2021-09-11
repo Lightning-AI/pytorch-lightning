@@ -46,11 +46,11 @@ class ModelSummary(Callback):
         >>> trainer = Trainer(callbacks=[ModelSummary(max_depth=1)])
     """
 
-    def __init__(self, max_depth: Optional[int] = 1):
+    def __init__(self, max_depth: int = 1) -> None:
         self._max_depth: int = max_depth
 
     def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if trainer.is_global_zero and self._max_depth is not None and not trainer.testing:
+        if trainer.is_global_zero and self._max_depth and not trainer.testing:
             model_summary = summarize(pl_module, max_depth=self._max_depth)
 
             summary_data = model_summary._get_summary_data()
@@ -68,5 +68,4 @@ class ModelSummary(Callback):
         model_size: float,
     ) -> None:
         summary_table = _format_summary_table(total_parameters, trainable_parameters, model_size, *summary_data)
-
         log.info("\n" + summary_table)

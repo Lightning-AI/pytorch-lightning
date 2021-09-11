@@ -62,6 +62,7 @@ ignore_errors = "True"
 [[tool.mypy.overrides]]
 module = [
     "pytorch_lightning.callbacks.pruning",
+    "pytorch_lightning.callbacks.model_summary",
     "pytorch_lightning.loops.optimization.*",
     "pytorch_lightning.loops.evaluation_loop",
     "pytorch_lightning.trainer.connectors.logger_connector.*",
@@ -76,6 +77,7 @@ module = [
     "pytorch_lightning.utilities.device_parser",
     "pytorch_lightning.utilities.distributed",
     "pytorch_lightning.utilities.memory",
+    "pytorch_lightning.utilities.model_summary",
     "pytorch_lightning.utilities.parsing",
     "pytorch_lightning.utilities.xla_device",
 ]
