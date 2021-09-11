@@ -396,7 +396,7 @@ on_keyboard_interrupt
     :noindex:
 
 on_exception
-^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^
 
 .. automethod:: pytorch_lightning.callbacks.Callback.on_exception
     :noindex:
