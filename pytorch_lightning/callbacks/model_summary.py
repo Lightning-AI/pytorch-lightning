@@ -22,7 +22,7 @@ the name, type and number of parameters for each layer.
 
 """
 import logging
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Tuple
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
@@ -62,7 +62,7 @@ class ModelSummary(Callback):
 
     @staticmethod
     def summarize(
-        summary_data: List[List[Union[str, List[str]]]],
+        summary_data: List[Tuple[str, List[str]]],
         total_parameters: int,
         trainable_parameters: int,
         model_size: float,

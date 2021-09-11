@@ -297,22 +297,22 @@ class ModelSummary:
                 model(input_)
         model.train(mode)  # restore mode of module
 
-    def _get_summary_data(self) -> List[List[Union[str, List[str]]]]:
+    def _get_summary_data(self) -> List[Tuple[str, List[str]]]:
         """Makes a summary listing with:
 
         Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes, Model Size
         """
         arrays = [
-            [" ", list(map(str, range(len(self._layer_summary))))],
-            ["Name", self.layer_names],
-            ["Type", self.layer_types],
-            ["Params", list(map(get_human_readable_count, self.param_nums))],
+            (" ", list(map(str, range(len(self._layer_summary))))),
+            ("Name", self.layer_names),
+            ("Type", self.layer_types),
+            ("Params", list(map(get_human_readable_count, self.param_nums))),
         ]
         if self._model.example_input_array is not None:
-            arrays.append(["In sizes", self.in_sizes])
-            arrays.append(["Out sizes", self.out_sizes])
+            arrays.append(("In sizes", self.in_sizes))
+            arrays.append(("Out sizes", self.out_sizes))
 
-        return arrays  # type: ignore
+        return arrays
 
     def __str__(self) -> str:
         arrays = self._get_summary_data()
@@ -342,7 +342,7 @@ def _format_summary_table(
     total_parameters: int,
     trainable_parameters: int,
     model_size: float,
-    *cols: List[Union[str, List[str]]],
+    *cols: Tuple[str, List[str]],
 ) -> str:
     """Takes in a number of arrays, each specifying a column in the summary table, and combines them all into one
     big string defining the summary table that are nicely formatted."""
