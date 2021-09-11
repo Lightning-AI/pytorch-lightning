@@ -86,7 +86,6 @@ class LightningModule(
             "automatic_optimization",
             "truncated_bptt_steps",
             "loaded_optimizer_states_dict",
-            "model_averager",
         ]
         + DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
@@ -265,14 +264,6 @@ class LightningModule(
     @truncated_bptt_steps.setter
     def truncated_bptt_steps(self, truncated_bptt_steps: int) -> None:
         self._truncated_bptt_steps = truncated_bptt_steps
-
-    @property
-    def model_averager(self) -> ModelAverager:
-        return self._model_averager
-
-    @model_averager.setter
-    def model_averager(self, model_averager: ModelAverager) -> None:
-        self._model_averager = model_averager
 
     @property
     def logger(self):
@@ -1581,8 +1572,8 @@ class LightningModule(
         """
         optimizer.step(closure=optimizer_closure)
 
-        if _TORCH_GREATER_EQUAL_1_10 and self.model_averager is not None:
-            self.model_averager.average_parameters(self.model.parameters())
+        if _TORCH_GREATER_EQUAL_1_10 and self._model_averager is not None:
+            self._model_averager.average_parameters(self.model.parameters())
 
     def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int):
         """Override this method to change the default behaviour of ``optimizer.zero_grad()``.
