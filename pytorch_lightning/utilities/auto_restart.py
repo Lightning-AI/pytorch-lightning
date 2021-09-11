@@ -260,11 +260,11 @@ def collect_rng_states() -> Dict[str, Any]:
     return {"torch": torch.get_rng_state(), "numpy": np.random.get_state(), "python": python_get_rng_state()}
 
 
-def set_rng_states(rng_state_dict: Dict[str, Union[Any]]) -> None:
+def set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
     """Set the global random state of :mod:`torch`, :mod:`numpy` and Python in the current process."""
-    torch.set_rng_state(rng_state_dict.get("torch"))
-    np.random.set_state(rng_state_dict.get("numpy"))
-    version, state, gauss = rng_state_dict.get("python")
+    torch.set_rng_state(rng_state_dict["torch"])
+    np.random.set_state(rng_state_dict["numpy"])
+    version, state, gauss = rng_state_dict["python"]
     python_set_rng_state((version, tuple(state), gauss))
 
 
@@ -420,7 +420,7 @@ def _dataloader_to_state_dict(
         fast_forward_sampler = _find_fast_forward_samplers(dataloader)
         if fast_forward_sampler is not None:
             samplers_state_dict = fast_forward_sampler.state_dict(num_batches_processed=num_batches_processed)
-            for sampler_v, sampler_k in samplers_state_dict.items():
+            for sampler_k, sampler_v in samplers_state_dict.items():
                 out[sampler_k] = sampler_v
     return out
 
@@ -539,7 +539,7 @@ def patch_dataloader_iterator(
                 state = [
                     IteratorState(
                         num_workers=dataloader.num_workers,
-                        sampler_state=ff_sampler.state_dict(num_batches_fetched),
+                        sampler_state=ff_sampler.state_dict(num_batches_fetched) if ff_sampler is not None else {},
                         dataset_state=state,
                         worker_id=list(state.keys())[0],
                         num_batches_fetched=num_batches_fetched,
