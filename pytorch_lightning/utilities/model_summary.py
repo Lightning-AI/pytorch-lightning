@@ -208,7 +208,7 @@ class ModelSummary:
         self._max_depth = max_depth
         self._layer_summary = self.summarize()
         # 1 byte -> 8 bits
-        # TODO: how do we compute precisin_megabytes in case of mixed precision?
+        # TODO: how do we compute precision_megabytes in case of mixed precision?
         precision = self._model.precision if isinstance(self._model.precision, int) else 32
         self._precision_megabytes = (precision / 8.0) * 1e-6
 
