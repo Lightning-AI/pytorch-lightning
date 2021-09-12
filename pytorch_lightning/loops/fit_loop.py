@@ -32,7 +32,7 @@ class FitLoop(Loop):
         max_epochs: The maximum number of epochs, can be set -1 to turn this limit off
     """
 
-    def __init__(self, min_epochs: Optional[int] = None, max_epochs: int = None):
+    def __init__(self, min_epochs: int = 0, max_epochs: int = -1):
         super().__init__()
         self.max_epochs = max_epochs
         self.min_epochs = min_epochs
