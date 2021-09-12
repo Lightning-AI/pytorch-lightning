@@ -760,17 +760,18 @@ def test_default_checkpoint_behavior(tmpdir):
         default_root_dir=tmpdir, max_epochs=3, progress_bar_refresh_rate=0, limit_train_batches=5, limit_val_batches=5
     )
 
-    with patch.object(ModelCheckpoint, "_save_model", wraps=trainer.checkpoint_callback._save_model) as save_mock:
+    with patch.object(trainer, "save_checkpoint", wraps=trainer.save_checkpoint) as save_mock:
         trainer.fit(model)
         results = trainer.test()
 
     assert len(results) == 1
     save_dir = tmpdir / "lightning_logs" / "version_0" / "checkpoints"
+    save_weights_only = trainer.checkpoint_callback.save_weights_only
     save_mock.assert_has_calls(
         [
-            call(trainer, save_dir / "epoch=0-step=4.ckpt"),
-            call(trainer, save_dir / "epoch=1-step=9.ckpt"),
-            call(trainer, save_dir / "epoch=2-step=14.ckpt"),
+            call(save_dir / "epoch=0-step=4.ckpt", save_weights_only),
+            call(save_dir / "epoch=1-step=9.ckpt", save_weights_only),
+            call(save_dir / "epoch=2-step=14.ckpt", save_weights_only),
         ]
     )
     ckpts = os.listdir(save_dir)
@@ -852,7 +853,6 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
     model = CurrentModel()
 
     callback = ModelCheckpoint(monitor="abc", mode=mode, save_top_k=1, dirpath=tmpdir)
-    callback._save_model = MagicMock()
 
     trainer = Trainer(
         callbacks=[callback],
@@ -860,10 +860,12 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
         val_check_interval=1.0,
         max_epochs=len(monitor),
     )
+    trainer.save_checkpoint = MagicMock()
+
     trainer.fit(model)
 
     # check that last one is also the best one
-    assert callback._save_model.call_count == len(monitor)
+    assert trainer.save_checkpoint.call_count == len(monitor)
     assert mode == "min" and callback.best_model_score == 5 or mode == "max" and callback.best_model_score == 8
 
 
