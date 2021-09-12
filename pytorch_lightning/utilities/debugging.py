@@ -47,10 +47,10 @@ class InternalDebugger:
         self.checkpoint_callback_history: List[Dict[str, Any]] = []
         self.events: List[Dict[str, Any]] = []
         self.saved_lr_scheduler_updates: List[Dict[str, Union[int, float, str, torch.Tensor, None]]] = []
-        self.train_dataloader_calls: List[Dict[str, Any]] = []
-        self.val_dataloader_calls: List[Dict[str, Any]] = []
-        self.test_dataloader_calls: List[Dict[str, Any]] = []
-        self.dataloader_sequence_calls: List[Dict[str, Any]] = []
+        # self.train_dataloader_calls: List[Dict[str, Any]] = []
+        # self.val_dataloader_calls: List[Dict[str, Any]] = []
+        # self.test_dataloader_calls: List[Dict[str, Any]] = []
+        # self.dataloader_sequence_calls: List[Dict[str, Any]] = []
 
     @enabled_only
     def track_event(
@@ -72,36 +72,36 @@ class InternalDebugger:
             }
         )
 
-    @enabled_only
-    def track_load_dataloader_call(self, name: str, dataloaders: List[DataLoader]) -> None:
-        loader_counts = len(dataloaders)
-
-        lengths = []
-        for dl in dataloaders:
-            try:
-                length = len(dl)
-            # todo: specify the possible exception
-            except Exception:
-                length = -1
-            lengths.append(length)
-
-        values = {
-            "global_step": self.trainer.global_step,
-            "epoch": self.trainer.current_epoch,
-            "num_loaders": loader_counts,
-            "lengths": lengths,
-            "name": name,
-        }
-
-        # track the sequence in case we need to verify the sequence
-        self.dataloader_sequence_calls.append(values)
-
-        if "train" in name:
-            self.train_dataloader_calls.append(values)
-        elif "val" in name:
-            self.val_dataloader_calls.append(values)
-        elif "test" in name:
-            self.test_dataloader_calls.append(values)
+    # @enabled_only
+    # def track_load_dataloader_call(self, name: str, dataloaders: List[DataLoader]) -> None:
+    #     loader_counts = len(dataloaders)
+    #
+    #     lengths = []
+    #     for dl in dataloaders:
+    #         try:
+    #             length = len(dl)
+    #         # todo: specify the possible exception
+    #         except Exception:
+    #             length = -1
+    #         lengths.append(length)
+    #
+    #     values = {
+    #         "global_step": self.trainer.global_step,
+    #         "epoch": self.trainer.current_epoch,
+    #         "num_loaders": loader_counts,
+    #         "lengths": lengths,
+    #         "name": name,
+    #     }
+    #
+    #     # track the sequence in case we need to verify the sequence
+    #     self.dataloader_sequence_calls.append(values)
+    #
+    #     if "train" in name:
+    #         self.train_dataloader_calls.append(values)
+    #     elif "val" in name:
+    #         self.val_dataloader_calls.append(values)
+    #     elif "test" in name:
+    #         self.test_dataloader_calls.append(values)
 
     @enabled_only
     def track_lr_schedulers_update(

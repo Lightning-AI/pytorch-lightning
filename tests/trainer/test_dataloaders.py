@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from unittest import mock
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock
 
 import numpy
 import pytest
@@ -1088,31 +1088,28 @@ def test_test_dataloader_not_implemented_error_failed(tmpdir):
         trainer.test(model)
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_only_once(tmpdir):
+    model = BoringModel()
+    model.train_dataloader = Mock(wraps=model.train_dataloader)
+    model.val_dataloader = Mock(wraps=model.val_dataloader)
+    model.test_dataloader = Mock(wraps=model.test_dataloader)
 
-    model = EvalModelTemplate()
-
-    # logger file to get meta
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=0.3, limit_val_batches=0.3, max_epochs=3)
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
-    assert len(trainer.dev_debugger.val_dataloader_calls) == 1
-    assert len(trainer.dev_debugger.test_dataloader_calls) == 0
-    assert len(trainer.dev_debugger.train_dataloader_calls) == 1
+    model.train_dataloader.assert_called_once()
+    model.val_dataloader.assert_called_once()
+    model.test_dataloader.assert_not_called()
 
     # verify the sequence
-    calls = trainer.dev_debugger.dataloader_sequence_calls
-    expected_sequence = ["val_dataloader", "train_dataloader"]
-    for call, expected in zip(calls, expected_sequence):
-        assert call["name"] == expected
+    # calls = trainer.dev_debugger.dataloader_sequence_calls
+    # expected_sequence = ["val_dataloader", "train_dataloader"]
+    # for call, expected in zip(calls, expected_sequence):
+    #     assert call["name"] == expected
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_only_once_val_interval(tmpdir):
-
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     # logger file to get meta
     trainer = Trainer(
@@ -1123,17 +1120,22 @@ def test_dataloaders_load_only_once_val_interval(tmpdir):
         reload_dataloaders_every_n_epochs=True,
         max_epochs=3,
     )
+
+    call_order = []
+    trainer.reset_train_dataloader = Mock(
+        wraps=trainer.reset_train_dataloader, side_effect=(lambda *_, **__: call_order.append("train_dataloader"))
+    )
+    trainer.reset_val_dataloader = Mock(
+        wraps=trainer.reset_val_dataloader, side_effect=(lambda *_, **__: call_order.append("val_dataloader"))
+    )
+    trainer.reset_test_dataloader = Mock(
+        wraps=trainer.reset_test_dataloader, side_effect=(lambda *_, **__: call_order.append("test_dataloader"))
+    )
+
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-
-    trainer.test()
-
-    assert len(trainer.dev_debugger.val_dataloader_calls) == 10
-    assert len(trainer.dev_debugger.test_dataloader_calls) == 1
-    assert len(trainer.dev_debugger.train_dataloader_calls) == 3
+    trainer.test(model)
 
     # verify the sequence
-    calls = trainer.dev_debugger.dataloader_sequence_calls
     expected_sequence = [
         "val_dataloader",
         "train_dataloader",
@@ -1150,36 +1152,37 @@ def test_dataloaders_load_only_once_val_interval(tmpdir):
         "val_dataloader",
         "test_dataloader",
     ]
-    for call, expected in zip(calls, expected_sequence):
-        assert call["name"] == expected
+    assert call_order == expected_sequence
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_only_once_no_sanity_check(tmpdir):
-
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir, limit_train_batches=0.3, limit_val_batches=0.3, num_sanity_val_steps=0, max_epochs=3
     )
-    trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
-    assert len(trainer.dev_debugger.val_dataloader_calls) == 1
-    assert len(trainer.dev_debugger.test_dataloader_calls) == 0
-    assert len(trainer.dev_debugger.train_dataloader_calls) == 1
+    call_order = []
+    trainer.reset_train_dataloader = Mock(
+        wraps=trainer.reset_train_dataloader, side_effect=(lambda *_, **__: call_order.append("train_dataloader"))
+    )
+    trainer.reset_val_dataloader = Mock(
+        wraps=trainer.reset_val_dataloader, side_effect=(lambda *_, **__: call_order.append("val_dataloader"))
+    )
+    trainer.reset_test_dataloader = Mock(
+        wraps=trainer.reset_test_dataloader, side_effect=(lambda *_, **__: call_order.append("test_dataloader"))
+    )
+
+    trainer.fit(model)
 
     # verify the sequence
-    calls = trainer.dev_debugger.dataloader_sequence_calls
     expected_sequence = ["train_dataloader", "val_dataloader"]
-    for call, expected in zip(calls, expected_sequence):
-        assert call["name"] == expected
+    assert call_order == expected_sequence
 
 
 @pytest.mark.parametrize("n", [1, 2])
 def test_dataloaders_load_every_n_epochs(tmpdir, n):
-
     model = BoringModel()
 
     trainer = Trainer(
@@ -1189,22 +1192,32 @@ def test_dataloaders_load_every_n_epochs(tmpdir, n):
         reload_dataloaders_every_n_epochs=n,
         max_epochs=3,
     )
-    trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
-    trainer.test()
+    call_order = []
+    model.train_dataloader = MagicMock(
+        return_value=model.train_dataloader(), side_effect=(lambda *_, **__: call_order.append("train_dataloader"))
+    )
+    # trainer.reset_train_dataloader = Mock(
+    #    wraps=trainer.reset_train_dataloader, side_effect=(lambda *_, **__: call_order.append("train_dataloader"))
+    # )
+    trainer.reset_val_dataloader = Mock(
+        wraps=trainer.reset_val_dataloader, side_effect=(lambda *_, **__: call_order.append("val_dataloader"))
+    )
+    trainer.reset_test_dataloader = Mock(
+        wraps=trainer.reset_test_dataloader, side_effect=(lambda *_, **__: call_order.append("test_dataloader"))
+    )
+
+    trainer.fit(model)
+    trainer.test(model)
 
     # verify the sequence
-    calls = trainer.dev_debugger.dataloader_sequence_calls
     expected_sequence = ["val_dataloader"]
     if n == 1:
         expected_sequence += ["train_dataloader", "val_dataloader"] * 3
     elif n == 2:
         expected_sequence += ["train_dataloader", "val_dataloader"] * 2
     expected_sequence += ["test_dataloader"]
-
-    for call, expected in zip(calls, expected_sequence):
-        assert call["name"] == expected
+    assert call_order == expected_sequence
 
 
 @pytest.mark.parametrize("n", ["test", -1])
