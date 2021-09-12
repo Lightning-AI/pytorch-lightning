@@ -84,7 +84,7 @@ class TorchCollective(Collective):
         If local_reduce = True (dp and ddp2), reduces tensor from all local processes.
 
         If local_reduce = False (ddp, ddpspawning and extentions), reduces a tensor from several distributed processes
-        
+
         Args:
             tensor: the tensor to sync and reduce
             group: the process group to gather results from. Defaults to all processes (world)
