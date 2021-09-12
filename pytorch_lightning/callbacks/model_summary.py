@@ -50,14 +50,16 @@ class ModelSummary(Callback):
         self._max_depth: int = max_depth
 
     def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if trainer.is_global_zero and self._max_depth and not trainer.testing:
-            model_summary = summarize(pl_module, max_depth=self._max_depth)
+        if not self._max_depth:
+            return None
 
-            summary_data = model_summary._get_summary_data()
-            total_parameters = model_summary.total_parameters
-            trainable_parameters = model_summary.trainable_parameters
-            model_size = model_summary.model_size
+        model_summary = summarize(pl_module, max_depth=self._max_depth)
+        summary_data = model_summary._get_summary_data()
+        total_parameters = model_summary.total_parameters
+        trainable_parameters = model_summary.trainable_parameters
+        model_size = model_summary.model_size
 
+        if trainer.is_global_zero:
             self.summarize(summary_data, total_parameters, trainable_parameters, model_size)
 
     @staticmethod
