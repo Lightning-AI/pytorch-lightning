@@ -36,12 +36,12 @@ class TorchCollective(Collective):
         device: Optional[Union[str, torch.device]] = torch.device("cpu"),
         device_id: Optional[int] = None,
         world_size: int = 1,
-    ):
-        """.. note::
-
-        DDP and DDPSpawn sync accross multiple nodes/devices, local_reduce = False
-        DP run reduce in on node, local_reduce = True
-        DDP2 behaves like DP in one node, local_reduce = True
+    ) -> None:
+        """
+        Note:
+            DDP and DDPSpawn sync accross multiple nodes/devices, local_reduce = False
+            DP run reduce in on node, local_reduce = True
+            DDP2 behaves like DP in one node, local_reduce = True
 
         local_reduce set in Plugins.setup() functions
         """
@@ -84,6 +84,7 @@ class TorchCollective(Collective):
         If local_reduce = True (dp and ddp2), reduces tensor from all local processes.
 
         If local_reduce = False (ddp, ddpspawning and extentions), reduces a tensor from several distributed processes
+        
         Args:
             tensor: the tensor to sync and reduce
             group: the process group to gather results from. Defaults to all processes (world)
