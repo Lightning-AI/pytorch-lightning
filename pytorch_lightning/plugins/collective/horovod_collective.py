@@ -39,8 +39,8 @@ class HorovodCollective(Collective):
     def join(self) -> None:
         """Horovod function that indicates that the rank finished processing data.
 
-        All ranks that did not call join() continue to process allreduce operations. This function blocks the Python thread
-        until all ranks join.
+        All ranks that did not call join() continue to process allreduce operations. This function blocks the Python
+        thread until all ranks join.
         """
         if self.on_gpu:
             hvd.join(self.local_rank)
