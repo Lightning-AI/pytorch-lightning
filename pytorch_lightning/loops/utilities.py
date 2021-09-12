@@ -168,3 +168,16 @@ def _get_active_optimizers(
     # find optimizer index by looking for the first {item > current_place} in the cumsum list
     opt_idx = np.searchsorted(freq_cumsum, current_place_in_loop, side="right")
     return [(opt_idx, optimizers[opt_idx])]
+
+
+def is_max_limit_reached(current: int, maximum: int) -> bool:
+    """Check if the limit has been reached (if enabled).
+
+    Args:
+        current (int): the current value
+        maximum (int): the maximum value (or -1 to disable limit)
+
+    Returns:
+        bool: whether the limit has been reached
+    """
+    return maximum != -1 and current >= maximum

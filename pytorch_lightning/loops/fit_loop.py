@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from typing import Optional
+from pytorch_lightning.loops.utilities import is_max_limit_reached
+from typing import Any, Dict, Optional
 
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
+from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 log = logging.getLogger(__name__)
@@ -34,6 +36,12 @@ class FitLoop(Loop):
 
     def __init__(self, min_epochs: int = 0, max_epochs: int = -1):
         super().__init__()
+        if max_epochs < -1:
+            # Allow max_epochs to be zero, since this will be handled by fit_loop.done
+            raise MisconfigurationException(
+                f"`max_epochs` must be a positive integer or -1. You passed in {max_epochs}."
+            )
+
         self.max_epochs = max_epochs
         self.min_epochs = min_epochs
         self.epoch_loop: Optional[TrainingEpochLoop] = None
@@ -96,7 +104,13 @@ class FitLoop(Loop):
     def max_steps(self, value: int) -> None:
         """Sets the maximum number of steps (forwards to epoch_loop)"""
         # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
-        if value and value < -1:
+        if value is None:
+            rank_zero_deprecation(
+                "Setting `max_steps = None` is deprecated in v1.5 and will be removed in v1.7."
+                " Use `max_steps = -1` instead."
+            )
+            value = -1
+        elif value < -1:
             raise MisconfigurationException(f"`max_steps` must be a positive integer or -1. You passed in {value}.")
         self.epoch_loop.max_steps = value
 
@@ -135,8 +149,8 @@ class FitLoop(Loop):
         is reached.
         """
         # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
-        stop_steps = self.max_steps != -1 and self.global_step >= self.max_steps
-        stop_epochs = self.max_epochs != -1 and self.current_epoch >= self.max_epochs
+        stop_steps = is_max_limit_reached(self.global_step, self.max_steps)
+        stop_epochs = is_max_limit_reached(self.current_epoch, self.max_epochs)
 
         should_stop = False
         if self.trainer.should_stop:
