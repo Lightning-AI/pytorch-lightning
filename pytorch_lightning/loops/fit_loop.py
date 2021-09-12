@@ -29,7 +29,7 @@ class FitLoop(Loop):
 
     Args:
         min_epochs: The minimum number of epochs
-        max_epochs: The maximum number of epochs
+        max_epochs: The maximum number of epochs, can be set -1 to turn this limit off
     """
 
     def __init__(self, min_epochs: Optional[int] = None, max_epochs: int = None):
