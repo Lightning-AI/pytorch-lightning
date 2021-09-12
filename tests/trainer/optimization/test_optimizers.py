@@ -300,8 +300,8 @@ def test_step_scheduling_for_multiple_optimizers_with_frequency(
 
 
 @pytest.mark.parametrize("fn", ("validate", "test", "predict"))
-def test_init_optimizers_during_evaluation_and_predict(tmpdir, fn):
-    """Test that optimizers is an empty list during evaluation and predict."""
+def test_init_optimizers_during_evaluation_and_prediction(tmpdir, fn):
+    """Test that optimizers is an empty list during evaluation and prediction."""
 
     class TestModel(BoringModel):
         def configure_optimizers(self):
