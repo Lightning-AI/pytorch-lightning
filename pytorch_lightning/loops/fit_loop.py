@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from pytorch_lightning.loops.utilities import is_max_limit_reached
 from typing import Any, Dict, Optional
 
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
+from pytorch_lightning.loops.utilities import is_max_limit_reached
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
