@@ -75,7 +75,6 @@ from pytorch_lightning.utilities import (
     device_parser,
     DeviceType,
     DistributedType,
-    GradClipAlgorithmType,
     parsing,
     rank_zero_deprecation,
     rank_zero_info,
@@ -116,35 +115,6 @@ class Trainer(
     TrainerDataLoadingMixin,
     DeprecatedTrainerAttributes,
 ):
-    # Trainer class Attributes
-    _default_root_dir: str
-    _fit_loop: FitLoop
-    _lightning_optimizers = None
-    _predict_loop: PredictionLoop
-    _progress_bar_callback: ProgressBarBase
-    _test_loop: EvaluationLoop
-    _validate_loop: EvaluationLoop
-    _weights_save_path: str
-
-    accelerator_connector: AcceleratorConnector
-    accumulate_grad_batches: int
-    callbacks: List[Callback]
-    checkpoint_connector: CheckpointConnector
-    gradient_clip_algorithm: GradClipAlgorithmType
-    gradient_clip_val: float
-    limit_val_batches: int
-    logger: Optional[LightningLoggerBase]
-    logger_connector: LoggerConnector
-    reload_dataloaders_every_n_epochs: int
-    state: TrainerState
-    terminate_on_nan: bool
-    track_grad_norm: Union[int, float, str]
-
-    # .validate() and .test() set this when they load a checkpoint
-    validated_ckpt_path: Optional[str] = None
-    tested_ckpt_path: Optional[str] = None
-    predicted_ckpt_path: Optional[str] = None
-
     @_defaults_from_env_vars
     def __init__(
         self,
