@@ -116,7 +116,7 @@ class Trainer(
     TrainerDataLoadingMixin,
     DeprecatedTrainerAttributes,
 ):
-    # Trainer class atrributes
+    # Trainer class Attributes
     _default_root_dir: str
     _fit_loop: FitLoop
     _lightning_optimizers = None
