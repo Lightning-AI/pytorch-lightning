@@ -173,7 +173,7 @@ def test_prepare_outputs(tmpdir):
         on_train_batch_end_called = 0
 
         def on_train_batch_end(self, outputs, *args, **kwargs):
-            epoch_outputs = self.trainer.fit_loop.epoch_loop._epoch_output
+            epoch_outputs = self.trainer.fit_loop.epoch_loop._outputs
             epoch_outputs = epoch_outputs[0]  # 1 optimizer
             assert len(epoch_outputs) == self.on_train_batch_end_called
             # `extra` should be empty for all `ResultCollection` objects

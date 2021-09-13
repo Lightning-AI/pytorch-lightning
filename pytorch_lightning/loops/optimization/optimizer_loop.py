@@ -45,11 +45,9 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
 
     def __init__(self) -> None:
         super().__init__()
-        # FIXME: defaultdict None?
-        # FIXME: protect all
-        self.outputs: _OUTPUTS_TYPE = {}
         self.optim_progress: OptimizationProgress = OptimizationProgress()
 
+        self._outputs: _OUTPUTS_TYPE = {}
         self._skip_backward: bool = False
         self._batch_idx: int = 0
         self._optimizers: List[Optimizer] = []
@@ -68,7 +66,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             # FIXME: the first might not be 0
             # use the get active optimizers to determine the initial index
             self.optim_progress.optimizer_idx = 0
-        self.outputs = {}
+        self._outputs = {}
 
     def on_run_start(self, batch: Any, optimizers: List[Optimizer], batch_idx: int) -> None:  # type: ignore[override]
         self._batch_idx = batch_idx
@@ -86,14 +84,14 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             # automatic optimization assumes a loss needs to be returned for extras to be considered as the batch
             # would be skipped otherwise
             out = {"loss": result.loss, **result.extra}
-            self.outputs[self.optim_progress.optimizer_idx] = out
+            self._outputs[self.optim_progress.optimizer_idx] = out
 
         # FIXME: broken with frequencies
         # potentially get the optimizer list in this loop from the trainer
         self.optim_progress.optimizer_idx += 1
 
     def on_run_end(self) -> _OUTPUTS_TYPE:
-        outputs, self.outputs = self.outputs, {}  # free memory
+        outputs, self._outputs = self._outputs, {}  # free memory
         return outputs
 
     def backward(

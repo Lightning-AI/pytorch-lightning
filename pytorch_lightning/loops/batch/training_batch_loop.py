@@ -35,13 +35,13 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
     def __init__(self) -> None:
         super().__init__()
         self.accumulated_loss: Optional[Tensor] = None
-        self.outputs: _OUTPUTS_TYPE = []
         self.running_loss: TensorRunningAccum = TensorRunningAccum(window_length=20)
         # the current split index when the batch gets split into chunks in truncated backprop through time
         self.split_idx: Optional[int] = None
         self.optimizer_loop = OptimizerLoop()
         self.manual_loop = ManualOptimization()
 
+        self._outputs: _OUTPUTS_TYPE = []
         self._warning_cache: WarningCache = WarningCache()
         self._optimizer_freq_cumsum: Optional[int] = None
         self._remaining_splits: Optional[List[Any]] = None
@@ -92,12 +92,12 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
 
         super().run(batch, batch_idx)
 
-        output, self.outputs = AttributeDict(signal=0, outputs=self.outputs), None  # free memory
+        output, self._outputs = AttributeDict(signal=0, outputs=self._outputs), None  # free memory
         return output
 
     def reset(self) -> None:
         """Resets the loop state."""
-        self.outputs = []
+        self._outputs = []
 
     def on_run_start(self, batch: Any, batch_idx: int):
         """Splits the data into tbptt splits.
@@ -129,12 +129,12 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
             outputs = self.optimizer_loop.run(split_batch, optimizers, batch_idx)
             if outputs:
                 # can be empty if all optimizers skip their batches
-                self.outputs.append(outputs)
+                self._outputs.append(outputs)
         else:
             # in manual optimization, hand over execution to the ManualOptimization loop
             output = self.manual_loop.run(split_batch, batch_idx)
             if output is not None:
-                self.outputs.append(output)
+                self._outputs.append(output)
 
     def on_run_end(self) -> None:
         self.optimizer_loop._hiddens = None

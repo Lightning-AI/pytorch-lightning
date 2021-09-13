@@ -53,7 +53,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.val_loop: Optional["loops.EvaluationLoop"] = None
 
         self._results = ResultCollection(training=True)
-        self._epoch_output: _OUTPUTS_TYPE = []
+        self._outputs: _OUTPUTS_TYPE = []
 
     @property
     def total_batch_idx(self) -> int:
@@ -93,7 +93,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run."""
         self.is_last_batch = False
-        self._epoch_output = []
+        self._outputs = []
 
         if not self.restarting or self._num_training_batches_reached():
             self.batch_progress.current.reset()
@@ -154,7 +154,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.batch_progress.increment_completed()
 
         if is_overridden("training_epoch_end", self.trainer.lightning_module):
-            self._epoch_output.append(batch_output.outputs)
+            self._outputs.append(batch_output.outputs)
 
         # -----------------------------------------
         # SAVE METRICS TO LOGGERS AND PROGRESS_BAR
@@ -201,8 +201,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         # get the model and call model.training_epoch_end
         model = self.trainer.lightning_module
-        if is_overridden("training_epoch_end", model) and self._epoch_output:
-            epoch_end_outputs = self._prepare_outputs_training_epoch_end(self._epoch_output)
+        if is_overridden("training_epoch_end", model) and self._outputs:
+            epoch_end_outputs = self._prepare_outputs_training_epoch_end(self._outputs)
             # check that the dataloader/iterator produced a batch
             # FIXME: still necessary?
             if epoch_end_outputs:
@@ -218,7 +218,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                         "HINT: remove the return statement in training_epoch_end"
                     )
         # free memory
-        self._epoch_output = []
+        self._outputs = []
 
         self.trainer.fit_loop.epoch_progress.increment_processed()
 
