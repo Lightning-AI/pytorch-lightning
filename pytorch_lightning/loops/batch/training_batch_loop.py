@@ -123,18 +123,17 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
         # let logger connector extract current batch size
         self.trainer.logger_connector.on_train_split_start(batch_idx, split_idx, split_batch)
 
+        # choose which loop will run the optimization
         if self.trainer.lightning_module.automatic_optimization:
-            # in automatic optimization, hand over execution to the OptimizerLoop
             optimizers = [optimizer for _, optimizer in self.get_active_optimizers(batch_idx)]
             outputs = self.optimizer_loop.run(split_batch, optimizers, batch_idx)
-            if outputs:
-                # can be empty if all optimizers skip their batches
-                self._outputs.append(outputs)
         else:
-            # in manual optimization, hand over execution to the ManualOptimization loop
-            output = self.manual_loop.run(split_batch, batch_idx)
-            if output is not None:
-                self._outputs.append(output)
+            outputs = self.manual_loop.run(split_batch, batch_idx)
+        if outputs:
+            # automatic: can be empty if all optimizers skip their batches
+            # manual: #9052 added support for raising `StopIteration` in the `training_step`. If that happens,
+            # then `advance` doesn't finish and an empty dict is returned
+            self._outputs.append(outputs)
 
     def on_run_end(self) -> None:
         self.optimizer_loop._hiddens = None
