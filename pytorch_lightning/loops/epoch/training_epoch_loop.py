@@ -264,7 +264,7 @@ class TrainingEpochLoop(loops.Loop):
         is_final_batch = self._num_training_batches_reached()
         # but the TTP might not
         ttp_accumulates_on_final_batch = (
-            self.trainer.training_type_plugin.handles_accumulate_grad_batches or not is_final_batch
+            self.trainer.training_type_plugin.handles_gradient_accumulation or not is_final_batch
         )
         return not accumulation_done and ttp_accumulates_on_final_batch
 

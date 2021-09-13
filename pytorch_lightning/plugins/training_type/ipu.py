@@ -96,6 +96,7 @@ class IPUPlugin(ParallelPlugin):
         self.autoreport = autoreport
         self.autoreport_dir = autoreport_dir
         self.poptorch_models = {}
+        self._original_accumulate_grad_batches: Optional[int] = None
         self._training_opts = training_opts
         self._inference_opts = inference_opts
 

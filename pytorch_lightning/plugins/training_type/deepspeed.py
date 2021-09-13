@@ -522,7 +522,7 @@ class DeepSpeedPlugin(DDPPlugin):
         self.model.step(**kwargs)
 
     @property
-    def handles_accumulate_grad_batches(self) -> bool:
+    def handles_gradient_accumulation(self) -> bool:
         """Whether the plugin handles gradient accumulation internally."""
         return True
 
