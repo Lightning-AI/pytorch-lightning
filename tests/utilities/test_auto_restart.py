@@ -916,7 +916,7 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1):
     trainer = Trainer(**trainer_kwargs)
     with suppress(CustomException):
         trainer.fit(model, train_dataloader=train_dataloader)
-    return model.seen_batches
+    return model.seen_batches, model.parameters()
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
@@ -945,12 +945,12 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir, dataset_classes, mult
         multiple_trainloader_mode=multiple_trainloader_mode,
     )
 
-    all_batches = _run_training(trainer_kwargs, dataset_classes)
+    all_batches, weights0 = _run_training(trainer_kwargs, dataset_classes)
     all_batches = torch.stack(all_batches)
     assert len(all_batches) == 9
 
     # Simulate 1st failure
-    complete_batches = _run_training(trainer_kwargs, dataset_classes, fail_on_step=4)
+    complete_batches, _ = _run_training(trainer_kwargs, dataset_classes, fail_on_step=4)
     assert len(complete_batches) == 4
 
     checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
@@ -958,10 +958,15 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir, dataset_classes, mult
 
     # Resume after failure
     trainer_kwargs.update(resume_from_checkpoint=checkpoint_path)
-    resumed_batches = _run_training(trainer_kwargs, dataset_classes, fail_on_step=-1)
+    resumed_batches, weights1 = _run_training(trainer_kwargs, dataset_classes, fail_on_step=-1)
     assert len(resumed_batches) == 5
 
     # the resumed batches should match the batches of the successful training
     all_batches_resumed = torch.stack(complete_batches + resumed_batches)
     assert len(all_batches_resumed) == 9
     assert torch.equal(all_batches, all_batches_resumed)
+
+    # the final weights of a resumed training should equal the weights of an uninterrupted training
+    for w0, w1 in zip(weights0, weights1):
+        assert w0 is not w1
+        assert torch.equal(w0, w1)
