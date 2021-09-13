@@ -200,8 +200,9 @@ class LightningOptimizer:
                 raise MisconfigurationException("When closure is provided, it should be a function")
             profiler_name = f"optimizer_step_and_closure_{self._optimizer_idx}"
 
-        self.__optimizer_step(closure=closure, profiler_name=profiler_name, **kwargs)
-        self._total_optimizer_step_calls += 1
+        with self._trainer._fault_tolerant_supported(enable=True):
+            self.__optimizer_step(closure=closure, profiler_name=profiler_name, **kwargs)
+            self._total_optimizer_step_calls += 1
 
     def __repr__(self):
         groups = [

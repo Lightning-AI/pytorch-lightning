@@ -923,6 +923,52 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1):
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(min_torch="1.7.0")
+@pytest.mark.parametrize("use_faulty_optimizer", [False, True])
+def test_fault_tolerant_supported(use_faulty_optimizer, tmpdir):
+
+    """This test asserts a fault tolerant checkpoint is generated during failure on training step, but not during
+    optimizer.step execution."""
+
+    class FaultyOptimizer(torch.optim.SGD):
+        def __init__(self, *args, **kwargs) -> None:
+            super().__init__(*args, **kwargs)
+            self.counter = 0
+
+        def _closure(self, loss):
+            def fn():
+                return loss
+
+            return fn
+
+        def step(self, closure) -> Optional[float]:
+            loss = closure()
+            if self.counter == 2:
+                raise CustomException
+            self.counter += 1
+            return super().step(closure=self._closure(loss))
+
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            if not use_faulty_optimizer and batch_idx == 2:
+                raise CustomException
+            return super().training_step(batch, batch_idx)
+
+        def configure_optimizers(self):
+            if not use_faulty_optimizer:
+                return super().configure_optimizers()
+            else:
+                return FaultyOptimizer(self.parameters(), lr=0.001)
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=3, limit_val_batches=3)
+    with suppress(CustomException):
+        trainer.fit(TestModel())
+
+    checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+    assert os.path.exists(checkpoint_path) == (not use_faulty_optimizer)
+
+
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+@RunIf(min_torch="1.7.0")
 @pytest.mark.parametrize(
     "dataset_classes",
     [
@@ -976,30 +1022,42 @@ class ValidationLoopTestModel(LightningModule):
         self.training_seen_batches = []
         self.validation_seen_batches = defaultdict(list)
         self.fail_on_dataloader = fail_on_dataloader
-        self.counter = 0
         self.failing_batch_idx: Optional[int] = None
         self.failing_dataloader_int: Optional[int] = None
 
     def training_step(self, batch, batch_idx):
+        print("training_step")
         batch = batch["data"] if isinstance(batch, dict) else batch
         self.training_seen_batches.append(torch.stack(batch) if isinstance(batch, list) else batch)
         loss = sum(self.layer(b).sum() for b in batch)
         return loss
 
     def validation_step(self, batch, batch_idx, dataloader_int: int = 0):
+        print(
+            self.trainer.sanity_checking,
+            dataloader_int,
+            batch_idx,
+            self.trainer.current_epoch,
+            self.trainer.global_step,
+        )
+
         loss = sum(self.layer(b).sum() for b in batch)
 
         if self.trainer.sanity_checking:
             return loss
 
-        if self.fail_on_dataloader > 0 and self.fail_on_dataloader == dataloader_int and batch_idx == 1:
+        # failure on first batch of dataloader_idx once global_step is 1
+        if (
+            self.fail_on_dataloader >= 0
+            and self.fail_on_dataloader == dataloader_int
+            and batch_idx == 1
+            and self.trainer.global_step == 1
+        ):
             self.failing_batch_idx = batch_idx
             self.failing_dataloader_int = dataloader_int
             raise CustomException
 
         self.validation_seen_batches[dataloader_int].append(batch)
-
-        self.counter += 1
         return loss
 
     def configure_optimizers(self):
@@ -1013,8 +1071,8 @@ class ValidationLoopTestModel(LightningModule):
     [
         # single training dataset
         # [[RandomGetItemDataset], [RandomGetItemDataset]],
-        # [[RandomGetItemDataset], [RandomGetItemDataset]],
-        [[RandomGetItemDataset], [RandomGetItemDataset, RandomGetItemDataset]],
+        [[RandomGetItemDataset], [RandomGetItemDataset]],
+        # [[RandomGetItemDataset], [RandomGetItemDataset, RandomGetItemDataset]],
         # [SequentialIterableDataset],
         # [SequentialDictIterableDataset],
         # [SequentialGetItemDataset, SequentialIterableDataset],
@@ -1036,7 +1094,10 @@ def test_auto_restart_within_validation_loop(dataset_classes, val_check_interval
         for dataset_class in validation_dataset_classes
     ]
 
-    trainer_kwargs = dict(default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval)
+    # enable `num_sanity_val_steps=2`
+    trainer_kwargs = dict(
+        default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval, num_sanity_val_steps=0
+    )
 
     model = ValidationLoopTestModel()
     trainer = Trainer(**trainer_kwargs)
@@ -1053,8 +1114,9 @@ def test_auto_restart_within_validation_loop(dataset_classes, val_check_interval
         assert len(batch) == (1 / val_check_interval) * num_samples
 
     seed_everything(42)
+    fail_on_dataloader = num_validation_loaders - 1
 
-    model = ValidationLoopTestModel(fail_on_dataloader=(num_validation_loaders - 1))
+    model = ValidationLoopTestModel(fail_on_dataloader=fail_on_dataloader)
     trainer = Trainer(**trainer_kwargs)
     with suppress(CustomException):
         trainer.fit(model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders)
@@ -1065,10 +1127,14 @@ def test_auto_restart_within_validation_loop(dataset_classes, val_check_interval
     assert len(pre_failure_train_batches) == 2
     assert verification_train_batches[:2] == pre_failure_train_batches
 
-    assert len(pre_failure_validation_batches[0]) == 4
+    if num_validation_loaders == 2:
+        assert len(pre_failure_validation_batches[0]) == 4
+        assert len(pre_failure_validation_batches[1]) == 1
+    else:
+        assert len(pre_failure_validation_batches[0]) == 1
 
     assert model.failing_batch_idx == 1
-    assert model.failing_dataloader_int == (1 if num_validation_loaders == 2 else 0)
+    assert model.failing_dataloader_int == fail_on_dataloader
 
     trainer_kwargs["resume_from_checkpoint"] = checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
     assert os.path.exists(checkpoint_path)
@@ -1088,13 +1154,12 @@ def test_auto_restart_within_validation_loop(dataset_classes, val_check_interval
         "processed": 2,
     }
 
-    shift = 2 if num_validation_loaders == 2 else 0
+    shift = 1 if num_validation_loaders == 2 else 0
     assert checkpoint["epoch_loop.val_loop.dataloader_progress"]["total"] == {
-        "ready": 2 + shift,
-        "completed": 1 + shift,
+        "ready": 1 + shift,
+        "completed": shift,
     }
 
-    shift = 1 if num_validation_loaders == 2 else 0
     assert checkpoint["epoch_loop.val_loop.dataloader_progress"]["current"] == {
         "ready": 1 + shift,
         "completed": 0 + shift,
@@ -1114,7 +1179,13 @@ def test_auto_restart_within_validation_loop(dataset_classes, val_check_interval
     post_failure_train_batches = model.training_seen_batches
     post_failure_validation_batches = model.validation_seen_batches
 
+    breakpoint()
+
     assert len(verification_train_batches) == len(pre_failure_train_batches) + len(post_failure_train_batches)
     assert len(verification_validation_batches[0]) == len(pre_failure_validation_batches[0]) + len(
         post_failure_validation_batches[0]
     )
+    if num_validation_loaders == 2:
+        assert len(verification_validation_batches[1]) == len(pre_failure_validation_batches[1]) + len(
+            post_failure_validation_batches[1]
+        )

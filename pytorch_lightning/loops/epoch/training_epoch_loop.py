@@ -126,18 +126,20 @@ class TrainingEpochLoop(loops.Loop):
 
         batch_idx, (batch, is_last) = next(self.dataloader_iter)
 
-        if not self.trainer.data_connector.train_data_fetcher.store_on_device:
-            with self.trainer.profiler.profile("training_batch_to_device"):
-                batch = self.trainer.accelerator.batch_to_device(batch)
+        with self.trainer._fault_tolerant_supported(enable=True):
 
-        self.batch_progress.increment_ready()
+            if not self.trainer.data_connector.train_data_fetcher.store_on_device:
+                with self.trainer.profiler.profile("training_batch_to_device"):
+                    batch = self.trainer.accelerator.batch_to_device(batch)
 
-        with self.trainer.profiler.profile("run_training_batch"):
-            batch_output = self.batch_loop.run(batch, batch_idx)
+            self.batch_progress.increment_ready()
 
-        self.batch_progress.increment_processed()
+            with self.trainer.profiler.profile("run_training_batch"):
+                batch_output = self.batch_loop.run(batch, batch_idx)
 
-        self.is_last_batch = is_last
+            self.batch_progress.increment_processed()
+
+            self.is_last_batch = is_last
 
         # when returning -1 from train_step, we end epoch early
         if batch_output.signal == -1:
@@ -192,6 +194,9 @@ class TrainingEpochLoop(loops.Loop):
 
         # progress global step according to grads progress
         self._increment_accumulated_grad_global_step()
+
+        if self.restarting:
+            breakpoint()
 
     def on_run_end(self) -> None:
         """Calls the on_epoch_end hook.

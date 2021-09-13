@@ -17,6 +17,7 @@ from typing import Any, Callable, Dict, Optional
 
 from torch import Tensor
 
+import pytorch_lightning as pl
 from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -188,3 +189,23 @@ class Closure(AbstractClosure):
                     step_output.closure_loss = self._backward_fn(step_output.closure_loss)
 
         return step_output
+
+
+class _ClosureExecutor:
+
+    """This class is used to prevent fault tolerant to create a checkpoint while parameters are being updated."""
+
+    def __init__(self, closure: Closure, trainer: "pl.Trainer"):
+        self._closure = closure
+        self._trainer = trainer
+
+    def consume_result(self) -> ClosureResult:
+        return self._closure.consume_result()
+
+    def __call__(self):
+        # enable fault tolerant during closure execution
+        with self._trainer._fault_tolerant_supported(enable=True):
+            loss = self._closure()
+        # prevent fault tolerant during parameters update.
+        self._trainer._fault_tolerant_possible = False
+        return loss

@@ -20,7 +20,7 @@ from torch.optim import Optimizer
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops import Loop
-from pytorch_lightning.loops.closure import Closure, ClosureResult
+from pytorch_lightning.loops.closure import _ClosureExecutor, Closure, ClosureResult
 from pytorch_lightning.loops.utilities import (
     _block_parallel_sync_behavior,
     _build_training_step_kwargs,
@@ -32,7 +32,7 @@ from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities import AMPType, DeviceType, grad_norm
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
-from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
+from pytorch_lightning.utilities.imports import _fault_tolerant_training, _TPU_AVAILABLE
 
 _OUTPUTS_TYPE = List[List[ClosureResult]]
 
@@ -138,6 +138,8 @@ class OptimizerLoop(Loop):
         # ------------------------------
         # gradient update with accumulated gradients
         else:
+            if _fault_tolerant_training():
+                closure = _ClosureExecutor(closure, self.trainer)
             self._optimizer_step(optimizer, opt_idx, batch_idx, closure)
 
         result = closure.consume_result()
