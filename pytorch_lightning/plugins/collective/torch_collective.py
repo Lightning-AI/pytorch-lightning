@@ -107,7 +107,10 @@ class TorchCollective(Collective):
         return tensor
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
-        decision = torch.tensor(int(decision), device=self.device)
-        decision = self.reduce(decision, reduce_op=ReduceOp.SUM)
-        decision = bool(decision == self.world_size)
-        return decision
+        if self.local_reduce:
+            return decision
+        else:
+            decision1 = torch.tensor(int(decision), device=self.device)
+            decision2 = self.reduce(decision1, reduce_op=ReduceOp.SUM)
+            decision = bool(decision2 == self.world_size)
+            return decision

@@ -14,18 +14,18 @@
 import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from typing import Any, List, Optional
+from typing import List, Optional
 
 import torch
 from torch.nn.parallel import DistributedDataParallel
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
+from pytorch_lightning.plugins.collective.collective_plugin import Collective
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
 from pytorch_lightning.utilities import _XLA_AVAILABLE
-from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, ReduceOp
 
 
 class ParallelPlugin(TrainingTypePlugin, ABC):
@@ -36,8 +36,12 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
+        collective: Optional[Collective] = None,
     ):
-        super().__init__(checkpoint_io)
+        super().__init__(
+            checkpoint_io=checkpoint_io,
+            collective=collective,
+        )
         self.parallel_devices = parallel_devices
         self.cluster_environment = cluster_environment
 
@@ -85,16 +89,6 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
 
     def reconciliate_processes(self, trace: str):
         """Function to re-conciliate processes on failure."""
-
-    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
-        """Perform a all_gather on all processes."""
-        return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
-
-    def reduce_boolean_decision(self, decision: bool) -> bool:
-        decision = torch.tensor(int(decision), device=self.lightning_module.device)
-        decision = self.reduce(decision, reduce_op=ReduceOp.SUM)
-        decision = bool(decision == self.world_size)
-        return decision
 
     @property
     def torch_distributed_backend(self):

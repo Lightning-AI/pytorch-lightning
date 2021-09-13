@@ -25,6 +25,7 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
+from pytorch_lightning.plugins.collective.collective_plugin import Collective
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PATH, _PREDICT_OUTPUT
 
@@ -35,11 +36,12 @@ class TrainingTypePlugin(ABC):
     """Base class for all training type plugins that change the behaviour of the training, validation and test-
     loop."""
 
-    def __init__(self, checkpoint_io: Optional[CheckpointIO] = None) -> None:
+    def __init__(self, checkpoint_io: Optional[CheckpointIO] = None, collective: Optional[Collective] = None) -> None:
         self._model: Optional[Module] = None
         self._results: Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]] = None
         checkpoint_io = checkpoint_io if checkpoint_io is not None else TorchCheckpointIO()
         self._checkpoint_io = checkpoint_io
+        self.collective = collective
         self._call_configure_sharded_model_hook = True
 
     @property
@@ -90,32 +92,6 @@ class TrainingTypePlugin(ABC):
     @abstractmethod
     def is_global_zero(self) -> bool:
         """Whether the current process is the rank zero process not only on the local node, but for all nodes."""
-
-    @abstractmethod
-    def reduce(self, tensor: Union[torch.Tensor, Any], *args: Any, **kwargs: Any) -> Union[torch.Tensor, Any]:
-        """Reduces the given tensor (e.g. across GPUs/processes).
-
-        Args:
-            tensor: the tensor to sync and reduce
-            *args: plugin-specific positional arguments
-            **kwargs: plugin-specific keyword arguments
-        """
-
-    @abstractmethod
-    def barrier(self, name: Optional[str] = None) -> None:
-        """Forces all possibly joined processes to wait for each other."""
-
-    @abstractmethod
-    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        """Broadcasts an object to all processes."""
-
-    @abstractmethod
-    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
-        """Perform a all_gather on all processes."""
-
-    def reduce_boolean_decision(self, decision: bool) -> bool:
-        """Reduce the early stopping decision across all processes."""
-        return decision
 
     def pre_backward(self, closure_loss: torch.Tensor) -> None:
         """Run before precision plugin executes backward."""

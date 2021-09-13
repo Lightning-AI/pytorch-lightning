@@ -21,6 +21,8 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
+from pytorch_lightning.plugins.collective.collective_plugin import Collective
+from pytorch_lightning.plugins.collective.single_device_collective import SingleDeviceCollective
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
@@ -65,6 +67,7 @@ class IPUPlugin(ParallelPlugin):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
+        collective: Optional[Collective] = None,
         training_opts: Optional["poptorch.Options"] = None,
         inference_opts: Optional["poptorch.Options"] = None,
     ) -> None:
@@ -85,6 +88,7 @@ class IPUPlugin(ParallelPlugin):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
+            collective=collective or SingleDeviceCollective(),
         )
         if not _POPTORCH_AVAILABLE or not poptorch.ipuHardwareIsAvailable():
             raise MisconfigurationException(
@@ -318,15 +322,3 @@ class IPUPlugin(ParallelPlugin):
     @property
     def is_global_zero(self) -> bool:
         return True
-
-    def reduce(self, tensor: Union[torch.Tensor, Any], *args: Any, **kwargs: Any) -> Union[torch.Tensor, Any]:
-        return tensor
-
-    def barrier(self, name: Optional[str] = None) -> None:
-        pass
-
-    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
-        return tensor
-
-    def broadcast(self, obj: object, src: int = 0) -> object:
-        return obj

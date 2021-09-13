@@ -15,7 +15,7 @@ import logging
 import os
 import re
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import torch
@@ -24,9 +24,10 @@ import torch.multiprocessing as mp
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
+from pytorch_lightning.plugins.collective.collective_plugin import Collective
+from pytorch_lightning.plugins.collective.torch_collective import TorchCollective
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
@@ -40,13 +41,7 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.distributed import (
-    distributed_available,
-    init_ddp_connection,
-    rank_zero_only,
-    ReduceOp,
-    sync_ddp_if_available,
-)
+from pytorch_lightning.utilities.distributed import init_ddp_connection, rank_zero_only
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -69,6 +64,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         num_nodes: Optional[int] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
+        collective: Optional[Collective] = None,
         sync_batchnorm: Optional[bool] = None,
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
@@ -79,6 +75,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
+            collective=collective or TorchCollective(),
         )
         if num_nodes is not None:
             rank_zero_deprecation(
@@ -93,7 +90,6 @@ class DDPSpawnPlugin(ParallelPlugin):
             )
         self._sync_batchnorm = sync_batchnorm or False
         self._ddp_kwargs = kwargs
-        self.dist = LightningDistributed()
         self.num_processes = len(parallel_devices) if parallel_devices is not None else 0
         self.mp_queue = None
         self._ddp_comm_state = ddp_comm_state
@@ -194,8 +190,10 @@ class DDPSpawnPlugin(ParallelPlugin):
         # self.trainer.call_setup_hook(self.model)
 
         # set the ranks and devices
-        self.dist.rank = self.global_rank
-        self.dist.device = self.root_device
+        self.collective.rank = self.global_rank
+        self.collective.device = self.root_device
+        self.collective.device_id = self.determine_ddp_device_ids()
+        self.collective.world_size = self.world_size
 
         # move the model to the correct device
         self.model_to_device()
@@ -208,7 +206,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         if trainer_fn == TrainerFn.FITTING:
             self.configure_ddp()
 
-        self.barrier()
+        self.collective.barrier()
 
         results = trainer.run_stage()
 
@@ -313,19 +311,6 @@ class DDPSpawnPlugin(ParallelPlugin):
             ckpt = pl_load(last_path, map_location=lambda storage, loc: storage)
             self.lightning_module.load_state_dict(ckpt)
 
-    def barrier(self, *args, **kwargs) -> None:
-        if not distributed_available():
-            return
-        if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
-            torch.distributed.barrier(device_ids=self.determine_ddp_device_ids())
-        else:
-            torch.distributed.barrier()
-
-    def broadcast(self, obj: object, src: int = 0) -> object:
-        if not distributed_available():
-            return obj
-        return self.dist.broadcast(obj)
-
     def model_to_device(self):
         if self.root_device.type == "cuda":
             # set the device on the spawned subprocesses
@@ -336,22 +321,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         """Run before precision plugin executes backward."""
         if not self.lightning_module.automatic_optimization:
             prepare_for_backward(self.model, closure_loss)
-
-    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> torch.Tensor:
-        """Reduces a tensor from several distributed processes to one aggregated tensor.
-
-        Args:
-            tensor: the tensor to sync and reduce
-            group: the process group to gather results from. Defaults to all processes (world)
-            reduce_op: the reduction operation. Defaults to 'mean'/'avg'.
-                Can also be a string 'sum' to calculate the sum during reduction.
-
-        Return:
-            reduced value, except when the input was not a tensor the output remains is unchanged
-        """
-        if isinstance(tensor, torch.Tensor):
-            tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
-        return tensor
 
     def training_step(self, *args, **kwargs) -> Optional[Any]:
         return self.model(*args, **kwargs)

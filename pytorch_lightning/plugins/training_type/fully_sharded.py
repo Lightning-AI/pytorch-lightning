@@ -16,6 +16,8 @@ from typing import Dict, Generator, List, Optional
 
 import torch
 
+from pytorch_lightning.plugins.collective.collective_plugin import Collective
+from pytorch_lightning.plugins.collective.torch_collective import TorchCollective
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
@@ -42,6 +44,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
+        collective: Optional[Collective] = None,
     ):
         """Plugin for Fully Sharded Data Parallel provided by FairScale.
 
@@ -93,6 +96,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
+            collective=collective or TorchCollective(),
         )
         self.cpu_offload = cpu_offload
         self.move_grads_to_cpu = move_grads_to_cpu
@@ -167,7 +171,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
         if self.sync_batchnorm:
             self.model = self.configure_sync_batchnorm(self.model)
         self.configure_ddp()
-        self.barrier()
+        self.collective.barrier()
 
     def model_to_device(self) -> None:
         # ensure we update the device type in the lightning module

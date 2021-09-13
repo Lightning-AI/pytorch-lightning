@@ -294,7 +294,7 @@ class ModelCheckpoint(Callback):
             skip_time = prev_time_check is None or (now - prev_time_check) < train_time_interval.total_seconds()
             # in case we have time differences across ranks
             # broadcast the decision on whether to checkpoint from rank 0 to avoid possible hangs
-            skip_time = trainer.training_type_plugin.broadcast(skip_time)
+            skip_time = trainer.training_type_plugin.collective.broadcast(skip_time)
 
         if skip_batch and skip_time:
             return
@@ -509,7 +509,9 @@ class ModelCheckpoint(Callback):
         should_update_best_and_save = monitor_op(current, self.best_k_models[self.kth_best_model_path])
 
         # If using multiple devices, make sure all processes are unanimous on the decision.
-        should_update_best_and_save = trainer.training_type_plugin.reduce_boolean_decision(should_update_best_and_save)
+        should_update_best_and_save = trainer.training_type_plugin.collective.reduce_boolean_decision(
+            should_update_best_and_save
+        )
 
         return should_update_best_and_save
 
@@ -612,7 +614,7 @@ class ModelCheckpoint(Callback):
         else:
             ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")
 
-        ckpt_path = trainer.training_type_plugin.broadcast(ckpt_path)
+        ckpt_path = trainer.training_type_plugin.collective.broadcast(ckpt_path)
 
         self.dirpath = ckpt_path
 
@@ -748,4 +750,4 @@ class ModelCheckpoint(Callback):
         """Checks if a file exists on rank 0 and broadcasts the result to all other ranks, preventing the internal
         state to diverge between ranks."""
         exists = self._fs.exists(filepath)
-        return trainer.training_type_plugin.broadcast(exists)
+        return trainer.training_type_plugin.collective.broadcast(exists)

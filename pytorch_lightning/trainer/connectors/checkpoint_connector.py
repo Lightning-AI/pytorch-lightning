@@ -76,7 +76,7 @@ class CheckpointConnector:
         torch.cuda.empty_cache()
 
         # wait for all to catch up
-        self.trainer.training_type_plugin.barrier("CheckpointConnector.resume_end")
+        self.trainer.training_type_plugin.collective.barrier("CheckpointConnector.resume_end")
 
     def restore(self, checkpoint_path: Optional[Union[Path, str]] = None) -> None:
         """Attempt to restore everything at once from a 'PyTorch-Lightning checkpoint' file through file-read and

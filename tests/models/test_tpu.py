@@ -292,7 +292,7 @@ def test_broadcast_on_tpu():
         assert isinstance(trainer.accelerator, TPUAccelerator)
         assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
         obj = ("ver_0.5", "logger_name", rank)
-        result = trainer.training_type_plugin.broadcast(obj)
+        result = trainer.training_type_plugin.collective.broadcast(obj)
         assert result == ("ver_0.5", "logger_name", 0)
 
     xmp.spawn(test_broadcast, nprocs=8, start_method="fork")
@@ -356,9 +356,9 @@ def test_tpu_reduce():
         for reduce_op in reduce_ops:
             if reduce_op == "undefined" or reduce_op == ReduceOp.MAX:
                 with pytest.raises(MisconfigurationException, match="TPUSpawn TrainingTypePlugin only support"):
-                    result = trainer.training_type_plugin.reduce(1, reduce_op)
+                    result = trainer.training_type_plugin.collective.reduce(1, reduce_op)
             else:
-                result = trainer.training_type_plugin.reduce(1, reduce_op)
+                result = trainer.training_type_plugin.collective.reduce(1, reduce_op)
             if isinstance(reduce_op, str) and reduce_op.lower() in ("mean", "avg"):
                 assert result.item() == 1
             else:

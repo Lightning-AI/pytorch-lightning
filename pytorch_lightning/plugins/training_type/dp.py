@@ -17,11 +17,11 @@ import torch
 from torch.nn import DataParallel
 
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
+from pytorch_lightning.plugins.collective.collective_plugin import Collective
+from pytorch_lightning.plugins.collective.torch_collective import TorchCollective
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import _METRIC_COLLECTION
 
 
 class DataParallelPlugin(ParallelPlugin):
@@ -32,8 +32,15 @@ class DataParallelPlugin(ParallelPlugin):
         self,
         parallel_devices: Optional[List[torch.device]],
         checkpoint_io: Optional[CheckpointIO] = None,
+        collective: Optional[Collective] = None,
     ):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=None, checkpoint_io=checkpoint_io)
+        super().__init__(
+            parallel_devices=parallel_devices,
+            cluster_environment=None,
+            checkpoint_io=checkpoint_io,
+            collective=collective or TorchCollective(local_reduce=True),
+        )
 
     @property
     def global_rank(self) -> int:
@@ -56,39 +63,12 @@ class DataParallelPlugin(ParallelPlugin):
         self.model_to_device()
         self._model = DataParallel(LightningParallelModule(self._model), self.parallel_devices)
 
-    def reduce(self, collection: _METRIC_COLLECTION, *args, **kwargs) -> _METRIC_COLLECTION:
-        """Reduces a collection of tensors from all processes. It can be applied to just a single tensor.
-
-        Args:
-            collection: The collection of tensors to sync and reduce.
-            *args: ignored for DP
-            **kwargs: ignored for DP
-
-        Return:
-            Reduced tensor values or the same value if it was not or did not contain a tensor.
-        """
-
-        def mean(t: torch.Tensor) -> torch.Tensor:
-            original_dtype = t.dtype
-            return t.float().mean().to(original_dtype)
-
-        return apply_to_collection(collection, torch.Tensor, mean)
-
     @property
     def root_device(self):
         return self.parallel_devices[0]
 
     def model_to_device(self) -> None:
         self._model.to(self.root_device)
-
-    def barrier(self, *args, **kwargs):
-        pass
-
-    def broadcast(self, obj: object, src: int = 0) -> object:
-        return obj
-
-    def reduce_boolean_decision(self, decision: bool) -> bool:
-        return decision
 
     def training_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)

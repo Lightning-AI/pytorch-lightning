@@ -31,9 +31,10 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
+from pytorch_lightning.plugins.collective.collective_plugin import Collective
+from pytorch_lightning.plugins.collective.torch_collective import TorchCollective
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
@@ -48,13 +49,7 @@ from pytorch_lightning.utilities import (
     rank_zero_deprecation,
     rank_zero_warn,
 )
-from pytorch_lightning.utilities.distributed import (
-    distributed_available,
-    init_ddp_connection,
-    rank_zero_only,
-    ReduceOp,
-    sync_ddp_if_available,
-)
+from pytorch_lightning.utilities.distributed import init_ddp_connection, rank_zero_only
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -91,6 +86,7 @@ class DDPPlugin(ParallelPlugin):
         num_nodes: Optional[int] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
+        collective: Optional[Collective] = None,
         sync_batchnorm: Optional[bool] = None,
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
@@ -102,6 +98,7 @@ class DDPPlugin(ParallelPlugin):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
+            collective=collective or TorchCollective(),
         )
         self.interactive_ddp_procs = []
         if num_nodes is not None:
@@ -116,7 +113,6 @@ class DDPPlugin(ParallelPlugin):
                 " Notice that it will be overriden by the trainer setting."
             )
         self._sync_batchnorm = sync_batchnorm or False
-        self.dist = LightningDistributed()
         self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
         self._ddp_kwargs = kwargs
         self._task_idx = None
@@ -267,8 +263,10 @@ class DDPPlugin(ParallelPlugin):
         init_ddp_connection(self.cluster_environment, self.torch_distributed_backend)
 
         # set the ranks and devices
-        self.dist.rank = self.global_rank
-        self.dist.device = self.root_device
+        self.collective.rank = self.global_rank
+        self.collective.device = self.root_device
+        self.collective.device_id = self.determine_ddp_device_ids()
+        self.collective.world_size = self.world_size
 
     def _check_can_spawn_children(self):
         if self.local_rank != 0:
@@ -389,17 +387,6 @@ class DDPPlugin(ParallelPlugin):
     def post_dispatch(self, trainer: "pl.Trainer") -> None:
         self.cluster_environment.teardown()
 
-    def barrier(self, *args, **kwargs) -> None:
-        if not distributed_available():
-            return
-        if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
-            torch.distributed.barrier(device_ids=self.determine_ddp_device_ids())
-        else:
-            torch.distributed.barrier()
-
-    def broadcast(self, obj: object, src: int = 0) -> object:
-        return self.dist.broadcast(obj)
-
     def pre_backward(self, closure_loss: torch.Tensor) -> None:
         """Run before precision plugin executes backward."""
         if not self.lightning_module.automatic_optimization:
@@ -407,22 +394,6 @@ class DDPPlugin(ParallelPlugin):
 
     def model_to_device(self):
         self.model.to(self.root_device)
-
-    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> torch.Tensor:
-        """Reduces a tensor from several distributed processes to one aggregated tensor.
-
-        Args:
-            tensor: the tensor to sync and reduce
-            group: the process group to gather results from. Defaults to all processes (world)
-            reduce_op: the reduction operation. Defaults to 'mean'/'avg'.
-                Can also be a string 'sum' to calculate the sum during reduction.
-
-        Return:
-            reduced value, except when the input was not a tensor the output remains is unchanged
-        """
-        if isinstance(tensor, torch.Tensor):
-            tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
-        return tensor
 
     def training_step(self, *args, **kwargs) -> Optional[Any]:
         return self.model(*args, **kwargs)
@@ -465,15 +436,15 @@ class DDPPlugin(ParallelPlugin):
         sync_dirs = []
         global_node_rank_zero = 0
         for _ in range(self.num_nodes):
-            sync_dirs.append(self.broadcast(self._sync_dir, global_node_rank_zero))
+            sync_dirs.append(self.collective.broadcast(self._sync_dir, global_node_rank_zero))
             global_node_rank_zero += self.world_size // self.num_nodes
 
         self._sync_dir = sync_dirs[self.node_rank]
 
     def _share_pids(self):
         """Make all DDP processes aware of all processes pids."""
-        self.barrier()
-        pids = self.all_gather(torch.tensor(os.getpid(), device=self.root_device))
+        self.collective.barrier()
+        pids = self.collective.all_gather(torch.tensor(os.getpid(), device=self.root_device))
         pids = pids.cpu().numpy().tolist()
         self._pids = pids if isinstance(pids, list) else [pids]
 

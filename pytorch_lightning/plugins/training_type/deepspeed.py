@@ -26,6 +26,8 @@ from torch.optim import Optimizer
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
+from pytorch_lightning.plugins.collective.collective_plugin import Collective
+from pytorch_lightning.plugins.collective.torch_collective import TorchCollective
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
@@ -114,6 +116,7 @@ class DeepSpeedPlugin(DDPPlugin):
         num_nodes: Optional[int] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
+        collective: Optional[Collective] = None,
         loss_scale: float = 0,
         initial_scale_power: int = 16,
         loss_scale_window: int = 1000,
@@ -263,6 +266,7 @@ class DeepSpeedPlugin(DDPPlugin):
             parallel_devices=parallel_devices,
             num_nodes=num_nodes,
             cluster_environment=cluster_environment,
+            collective=collective or TorchCollective(),
         )
 
         self.config = self._load_config(config)
@@ -362,7 +366,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
     def pre_dispatch(self):
         self.init_deepspeed()
-        self.barrier()
+        self.collective.barrier()
 
     def init_deepspeed(self):
         self._handle_gradient_accumulation_steps()
@@ -689,7 +693,7 @@ class DeepSpeedPlugin(DDPPlugin):
         if self.load_full_weights and self.zero_stage_3:
             # Broadcast to ensure we load from the rank 0 checkpoint
             # This doesn't have to be the case when using deepspeed sharded checkpointing
-            checkpoint_path = self.broadcast(checkpoint_path)
+            checkpoint_path = self.collective.broadcast(checkpoint_path)
             return super().load_checkpoint(checkpoint_path)
 
         # Rely on deepspeed to load the checkpoint and necessary information

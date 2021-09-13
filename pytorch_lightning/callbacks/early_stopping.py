@@ -206,7 +206,7 @@ class EarlyStopping(Callback):
         should_stop, reason = self._evaluate_stopping_criteria(current)
 
         # stop every ddp process if any world process decides to stop
-        should_stop = trainer.training_type_plugin.reduce_boolean_decision(should_stop)
+        should_stop = trainer.training_type_plugin.collective.reduce_boolean_decision(should_stop)
         trainer.should_stop = trainer.should_stop or should_stop
         if should_stop:
             self.stopped_epoch = trainer.current_epoch

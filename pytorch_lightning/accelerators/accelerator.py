@@ -338,7 +338,7 @@ class Accelerator:
         return self.training_type_plugin.lightning_module_state_dict()
 
     def barrier(self, name: Optional[str] = None) -> None:
-        self.training_type_plugin.barrier(name=name)
+        self.training_type_plugin.collective.barrier(name=name)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         """Broadcasts an object to all processes, such that the src object is broadcast to all other ranks if
@@ -348,7 +348,7 @@ class Accelerator:
             obj: Object to broadcast to all process, usually a tensor or collection of tensors.
             src: The source rank of which the object will be broadcast from
         """
-        return self.training_type_plugin.broadcast(obj, src)
+        return self.training_type_plugin.collective.broadcast(obj, src)
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Function to gather a tensor from several distributed processes.
@@ -361,7 +361,7 @@ class Accelerator:
         Return:
             A tensor of shape (world_size, batch, ...)
         """
-        return self.training_type_plugin.all_gather(tensor, group=group, sync_grads=sync_grads)
+        return self.training_type_plugin.collective.all_gather(tensor, group=group, sync_grads=sync_grads)
 
     def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
         """Wraps the dataloader if necessary.

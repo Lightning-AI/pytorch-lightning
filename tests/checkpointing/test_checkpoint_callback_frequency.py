@@ -111,7 +111,7 @@ def _top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
                 self.log("my_loss_2", (1 + local_rank), on_epoch=True, rank_zero_only=True)
             data = str(self.global_rank)
             obj = [[data], (data,), set(data)]
-            out = self.trainer.training_type_plugin.broadcast(obj)
+            out = self.trainer.training_type_plugin.collective.broadcast(obj)
             assert obj == [[str(self.global_rank)], (str(self.global_rank),), set(str(self.global_rank))]
             assert out == [["0"], ("0",), set("0")]
 

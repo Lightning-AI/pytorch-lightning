@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import io
 import os
 import re
 import time
@@ -25,6 +24,8 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.core.decorators import parameter_validation
 from pytorch_lightning.overrides import LightningDistributedModule
+from pytorch_lightning.plugins.collective.collective_plugin import Collective
+from pytorch_lightning.plugins.collective.tpu_collective import TPUCollective
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
@@ -32,7 +33,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.data import has_len
-from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
+from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -53,8 +54,14 @@ if _OMEGACONF_AVAILABLE:
 class TPUSpawnPlugin(DDPSpawnPlugin):
     """Plugin for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method."""
 
-    def __init__(self, parallel_devices: Optional[List[int]] = None, debug: bool = False, **_: Any) -> None:
-        super().__init__(parallel_devices=parallel_devices)
+    def __init__(
+        self,
+        parallel_devices: Optional[List[int]] = None,
+        collective: Optional[Collective] = None,
+        debug: bool = False,
+        **_: Any
+    ) -> None:
+        super().__init__(parallel_devices=parallel_devices, collective=collective or TPUCollective())
         self.debug = debug
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
@@ -157,6 +164,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             trainer.progress_bar_callback.disable()
 
         self.model_to_device()
+        self.collective.device = self.lightning_module.device
+        self.collective.root_device = self.root_device
+        self.collective.world_size = self.world_size
+
         trainer.accelerator.setup_optimizers(trainer)
         trainer.precision_plugin.connect(self._model, None, None)
 
@@ -209,42 +220,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def save(self, state_dict: Dict, path: str) -> None:
         xm.save(state_dict, path)
-
-    def broadcast(self, obj: object, src: int = 0) -> object:
-        if not self.is_distributed:
-            return obj
-        buffer = io.BytesIO()
-        torch.save(obj, buffer)
-        data = bytearray(buffer.getbuffer())
-        data_tensor = torch.tensor(data, device=self.root_device, dtype=torch.float)
-        data = xm.all_gather(data_tensor)
-        buffer = io.BytesIO(data.cpu().byte().numpy())
-        obj = torch.load(buffer)
-        return obj
-
-    def reduce_boolean_decision(self, decision: bool) -> bool:
-        decision = torch.tensor(int(decision), device=self.lightning_module.device)
-        decision = self.reduce(decision, reduce_op="sum")
-        decision = bool(decision == self.world_size)
-        return decision
-
-    def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
-        if not isinstance(output, torch.Tensor):
-            output = torch.tensor(output, device=self.lightning_module.device)
-
-        _invalid_reduce_op = isinstance(reduce_op, ReduceOp) and reduce_op != ReduceOp.SUM
-        _invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
-        if _invalid_reduce_op or _invalid_reduce_op_str:
-            raise MisconfigurationException(
-                "Currently, TPUSpawn TrainingTypePlugin only support `sum`, `mean`, `avg` reduce operation."
-            )
-
-        output = xm.mesh_reduce("reduce", output, sum)
-
-        if isinstance(reduce_op, str) and reduce_op.lower() in ("avg", "mean"):
-            output = output / self.world_size
-
-        return output
 
     def _close_logger(self, trainer) -> None:
         if trainer.logger is not None:
@@ -314,20 +289,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if _OMEGACONF_AVAILABLE:
             checkpoint = apply_to_collection(checkpoint, (DictConfig, ListConfig), OmegaConf.to_container)
         self.save({k: v for k, v in checkpoint.items() if k != "callbacks"}, filepath)
-
-    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
-        """
-        Function to gather a tensor from several distributed processes
-        Args:
-            tensor: tensor of shape (batch, ...)
-            group: not available with TPUs
-            sync_grads: not available with TPUs
-        Return:
-            A tensor of shape (world_size, batch, ...)
-        """
-        if isinstance(tensor, torch.Tensor) and tensor.dim() == 0:
-            tensor = tensor.unsqueeze(0)
-        return xm.all_gather(tensor)
 
     def teardown(self) -> None:
         # TPU teardown
