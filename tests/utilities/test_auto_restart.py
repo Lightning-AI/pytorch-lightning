@@ -1085,7 +1085,7 @@ class ValidationLoopTestModel(LightningModule):
         # [SequentialIterableDataset, SequentialIterableDataset],
     ],
 )
-@pytest.mark.parametrize("val_check_interval", [1.0])
+@pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
 def test_auto_restart_within_validation_loop(dataset_classes, val_check_interval, tmpdir):
 
     seed_everything(42)
@@ -1174,6 +1174,8 @@ def test_auto_restart_within_validation_loop(dataset_classes, val_check_interval
 
     trainer = Trainer(**trainer_kwargs)
     model = ValidationLoopTestModel()
+    assert model.training_seen_batches == []
+    assert len(model.validation_seen_batches) == 0
     trainer.fit(model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders)
 
     dataloader_progress = trainer.fit_loop.epoch_loop.val_loop.dataloader_progress

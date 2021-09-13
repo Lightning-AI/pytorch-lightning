@@ -76,7 +76,13 @@ class TrainingEpochLoop(loops.Loop):
         signals to stop (e.g. by early stopping).
         """
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
-        return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
+        should_check_val = self.restarting and self._should_check_val_fx(self.batch_idx, self.is_last_batch)
+        return (
+            max_steps_reached
+            or self.trainer.should_stop
+            or self._num_training_batches_reached(self.is_last_batch)
+            and not should_check_val
+        )
 
     def connect(
         self,
@@ -98,7 +104,7 @@ class TrainingEpochLoop(loops.Loop):
         # track epoch output
         self._epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
 
-        if not self.restarting or self._num_training_batches_reached():
+        if not self.restarting:  # or self._num_training_batches_reached():
             self.batch_progress.current.reset()
             self.scheduler_progress.current.reset()
             self.batch_loop.optimizer_loop.optim_progress.reset_on_epoch()
