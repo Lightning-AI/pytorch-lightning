@@ -36,6 +36,7 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 from tests.loggers.test_comet import _patch_comet_atexit
 from tests.loggers.test_mlflow import mock_mlflow_run_creation
+from tests.loggers.test_neptune import create_neptune_mock
 
 
 def _get_logger_args(logger_class, save_dir):
@@ -72,7 +73,7 @@ def test_loggers_fit_test_all(tmpdir, monkeypatch):
     ):
         _test_loggers_fit_test(tmpdir, MLFlowLogger)
 
-    with mock.patch("pytorch_lightning.loggers.neptune.neptune"):
+    with mock.patch("pytorch_lightning.loggers.neptune.neptune", new_callable=create_neptune_mock):
         _test_loggers_fit_test(tmpdir, NeptuneLogger)
 
     with mock.patch("pytorch_lightning.loggers.test_tube.Experiment"):
@@ -233,10 +234,10 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
         CometLogger,
         CSVLogger,
         MLFlowLogger,
-        NeptuneLogger,
         TensorBoardLogger,
         TestTubeLogger,
         # The WandbLogger gets tested for pickling in its own test.
+        # The NeptuneLogger gets tested for pickling in its own test.
     ],
 )
 def test_loggers_pickle_all(tmpdir, monkeypatch, logger_class):
@@ -316,9 +317,7 @@ class RankZeroLoggerCheck(Callback):
             assert pl_module.logger.experiment.something(foo="bar") is None
 
 
-@pytest.mark.parametrize(
-    "logger_class", [CometLogger, CSVLogger, MLFlowLogger, NeptuneLogger, TensorBoardLogger, TestTubeLogger]
-)
+@pytest.mark.parametrize("logger_class", [CometLogger, CSVLogger, MLFlowLogger, TensorBoardLogger, TestTubeLogger])
 @RunIf(skip_windows=True)
 def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
     """Test that loggers get replaced by dummy loggers on global rank > 0."""
@@ -369,9 +368,12 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
 
     # Neptune
     with mock.patch("pytorch_lightning.loggers.neptune.neptune"):
-        logger = _instantiate_logger(NeptuneLogger, save_dir=tmpdir, prefix=prefix)
+        logger = _instantiate_logger(NeptuneLogger, api_key="test", project="project", save_dir=tmpdir, prefix=prefix)
+        assert logger.experiment.__getitem__.call_count == 1
         logger.log_metrics({"test": 1.0}, step=0)
-        logger.experiment.log_metric.assert_called_once_with("tmp-test", 1.0)
+        assert logger.experiment.__getitem__.call_count == 2
+        logger.experiment.__getitem__.assert_called_with("tmp/test")
+        logger.experiment.__getitem__().log.assert_called_once_with(1.0)
 
     # TensorBoard
     with mock.patch("pytorch_lightning.loggers.tensorboard.SummaryWriter"):

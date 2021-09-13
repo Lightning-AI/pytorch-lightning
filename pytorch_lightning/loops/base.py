@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Generic, Optional, TypeVar
 
 from deprecate import void
 from torchmetrics import Metric
@@ -24,8 +24,10 @@ from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
+T = TypeVar("T")  # the output type of `run`
 
-class Loop(ABC):
+
+class Loop(ABC, Generic[T]):
     """Basic Loops interface. All classes derived from this must implement the following properties and methods:
 
         * :attr:`done` (property): Condition to break the loop
@@ -91,7 +93,7 @@ class Loop(ABC):
             the default output value of :meth:`on_run_end`
         """
 
-    def run(self, *args: Any, **kwargs: Any) -> Optional[Any]:
+    def run(self, *args: Any, **kwargs: Any) -> T:
         """The main entry point to the loop.
 
         Will frequently check the :attr:`done` condition and calls :attr:`advance`
@@ -147,7 +149,7 @@ class Loop(ABC):
     def on_advance_end(self) -> None:
         """Hook to be called each time after :attr:`advance` is called."""
 
-    def on_run_end(self) -> Any:
+    def on_run_end(self) -> T:
         """Hook to be called at the end of the run.
 
         Its return argument is returned from :attr:`run`.
