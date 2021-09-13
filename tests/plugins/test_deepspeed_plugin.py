@@ -1,5 +1,6 @@
 import json
 import os
+from contextlib import ExitStack
 from typing import Any, Dict, Optional
 from unittest import mock
 
@@ -409,13 +410,15 @@ def test_deepspeed_stage_3_save_warning(tmpdir):
     )
     trainer.fit(model)
     checkpoint_path = os.path.join(tmpdir, "model.pt")
-    with pytest.warns(UserWarning) as record:
-        # both ranks need to call save checkpoint
+
+    # both ranks need to call save checkpoint, however only rank 0 needs to check the warning
+    context_manager = (
+        pytest.warns(UserWarning, match="each worker will save a shard of the checkpoint within a directory.")
+        if trainer.is_global_zero
+        else ExitStack()
+    )
+    with context_manager:
         trainer.save_checkpoint(checkpoint_path)
-    if trainer.is_global_zero:
-        assert len(record) == 1
-        match = "each worker will save a shard of the checkpoint within a directory."
-        assert match in str(record[0].message)
 
 
 @RunIf(min_gpus=1, deepspeed=True, special=True)
