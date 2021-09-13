@@ -22,7 +22,7 @@ the name, type and number of parameters for each layer.
 
 """
 import logging
-from typing import List, Optional, Union
+from typing import List, Tuple
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
@@ -46,7 +46,7 @@ class ModelSummary(Callback):
         >>> trainer = Trainer(callbacks=[ModelSummary(max_depth=1)])
     """
 
-    def __init__(self, max_depth: Optional[int] = 1):
+    def __init__(self, max_depth: int = 1) -> None:
         self._max_depth: int = max_depth
 
     def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
@@ -64,7 +64,7 @@ class ModelSummary(Callback):
 
     @staticmethod
     def summarize(
-        summary_data: List[List[Union[str, List[str]]]],
+        summary_data: List[Tuple[str, List[str]]],
         total_parameters: int,
         trainable_parameters: int,
         model_size: float,
