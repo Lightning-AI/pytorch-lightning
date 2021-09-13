@@ -79,7 +79,7 @@ class PredictionLoop(DataLoaderLoop):
 
     def on_run_start(self) -> None:
         """Calls ``on_predict_start`` hook."""
-        self.on_predict_start()
+        self._on_predict_start()
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Predicts one entire dataloader."""
@@ -96,8 +96,8 @@ class PredictionLoop(DataLoaderLoop):
 
     def on_run_end(self) -> _PREDICT_OUTPUT:
         """Calls ``on_predict_epoch_end`` and ``on_predict_end`` hooks and returns results from all dataloaders."""
-        results = self.on_predict_epoch_end()
-        self.on_predict_end()
+        results = self._on_predict_epoch_end()
+        self._on_predict_end()
         return results
 
     def on_predict_start(self) -> None:

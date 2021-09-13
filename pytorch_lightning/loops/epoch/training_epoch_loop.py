@@ -242,7 +242,7 @@ class TrainingEpochLoop(loops.Loop):
 
     def _run_validation(self):
         # reload dataloaders
-        self.val_loop.reload_evaluation_dataloaders()
+        self.val_loop._reload_evaluation_dataloaders()
 
         with torch.no_grad():
             self.val_loop.run()
