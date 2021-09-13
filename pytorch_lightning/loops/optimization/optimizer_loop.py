@@ -87,7 +87,7 @@ class OptimizerLoop(Loop):
         outputs, self.outputs = self.outputs, []  # free memory
         return outputs
 
-    def backward(
+    def _backward(
         self, loss: Tensor, optimizer: torch.optim.Optimizer, opt_idx: int, *args: Any, **kwargs: Any
     ) -> Tensor:
         """Performs the backward step.
@@ -199,7 +199,7 @@ class OptimizerLoop(Loop):
             return None
 
         def backward_fn(loss: Tensor) -> Tensor:
-            self.backward(loss, optimizer, opt_idx)
+            self._backward(loss, optimizer, opt_idx)
 
             # check if model weights are nan
             if self.trainer.terminate_on_nan:
