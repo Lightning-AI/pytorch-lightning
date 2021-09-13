@@ -20,7 +20,7 @@ from torch import optim
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.boring_model import BoringModel
+from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 
 
@@ -305,11 +305,9 @@ def test_step_scheduling_for_multiple_optimizers_with_frequency(
     assert trainer.lr_schedulers[1]["scheduler"]._step_count == expected_steps[1]
 
 
-@pytest.mark.parametrize("fn", ("validate", "test"))
-def test_init_optimizers_during_evaluation(tmpdir, fn):
-    """
-    Test that optimizers is an empty list during evaluation
-    """
+@pytest.mark.parametrize("fn", ("validate", "test", "predict"))
+def test_init_optimizers_during_evaluation_and_prediction(tmpdir, fn):
+    """Test that optimizers is an empty list during evaluation and prediction."""
 
     class TestModel(BoringModel):
         def configure_optimizers(self):
@@ -319,9 +317,9 @@ def test_init_optimizers_during_evaluation(tmpdir, fn):
             lr_scheduler2 = optim.lr_scheduler.StepLR(optimizer2, step_size=1)
             return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
 
-    trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=10, limit_test_batches=10)
-    validate_or_test = getattr(trainer, fn)
-    validate_or_test(TestModel(), ckpt_path=None)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
+    train_fn = getattr(trainer, fn)
+    train_fn(TestModel(), datamodule=BoringDataModule(), ckpt_path=None)
 
     assert len(trainer.lr_schedulers) == 0
     assert len(trainer.optimizers) == 0
