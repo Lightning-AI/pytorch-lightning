@@ -184,6 +184,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
 ):
     """Test that when a model checkpoint is saved, it saves with the correct score appended to ckpt_path and
     checkpoint data with val_check_interval."""
+    seed_everything(0)
     max_epochs = 3
     limit_train_batches = 12
     limit_val_batches = 7
