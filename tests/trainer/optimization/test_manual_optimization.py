@@ -585,7 +585,7 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
             opt.step(closure=optimizer_closure)
 
             weight_after = self.layer.weight.clone()
-            if not self.trainer.fit_loop.should_accumulate():
+            if not self.trainer.fit_loop._should_accumulate():
                 assert not torch.equal(weight_before, weight_after)
             else:
                 assert self.layer.weight.grad is not None
