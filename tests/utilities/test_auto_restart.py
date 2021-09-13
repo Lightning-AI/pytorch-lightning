@@ -1073,14 +1073,14 @@ class ValidationLoopTestModel(LightningModule):
         # single training dataset
         # [[RandomGetItemDataset], [RandomGetItemDataset]],
         [[RandomGetItemDataset], [RandomGetItemDataset]],
-        [[RandomGetItemDataset], [RandomGetItemDataset, RandomGetItemDataset]],
+        # [[RandomGetItemDataset], [RandomGetItemDataset, RandomGetItemDataset]],
         # [SequentialIterableDataset],
         # [SequentialDictIterableDataset],
         # [SequentialGetItemDataset, SequentialIterableDataset],
         # [SequentialIterableDataset, SequentialIterableDataset],
     ],
 )
-@pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
+@pytest.mark.parametrize("val_check_interval", [1.0])
 def test_auto_restart_within_validation_loop(dataset_classes, val_check_interval, tmpdir):
 
     seed_everything(42)
