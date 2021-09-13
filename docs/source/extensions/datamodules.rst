@@ -443,6 +443,7 @@ Like LightningModules, DataModules support hyperparameters with the same API.
 
     import pytorch_lightning as pl
 
+
     class CustomDataModule(pl.LightningDataModule):
         def __init__(self, *args, **kwargs):
             super().__init__()
