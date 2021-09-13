@@ -199,7 +199,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Pass init args to ShardedDataParallel ([#9483](https://github.com/PyTorchLightning/pytorch-lightning/pull/9483))
 
 
-- Changed logging of LightningModule and LightningDataModule hyperparameters to raise an exception only if there are colliding keys with different values ([#]())
+- Changed logging of LightningModule and LightningDataModule hyperparameters to raise an exception only if there are colliding keys with different values ([#9496](https://github.com/PyTorchLightning/pytorch-lightning/pull/9496))
 
 
 ### Deprecated
