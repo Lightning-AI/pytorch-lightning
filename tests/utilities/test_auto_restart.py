@@ -969,4 +969,4 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir, dataset_classes, mult
     # the final weights of a resumed training should equal the weights of an uninterrupted training
     for w0, w1 in zip(weights0, weights1):
         assert w0 is not w1
-        assert torch.equal(w0, w1)
+        assert torch.allclose(w0, w1)
