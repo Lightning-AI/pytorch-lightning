@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 from deprecate import void
@@ -20,13 +20,14 @@ from torch.optim import Optimizer
 
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.optimization.manual_loop import ManualOptimization
+from pytorch_lightning.loops.optimization.manual_loop import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
 from pytorch_lightning.loops.optimization.optimizer_loop import _OUTPUTS_TYPE as _OPTIMIZER_LOOP_OUTPUTS_TYPE
 from pytorch_lightning.loops.optimization.optimizer_loop import OptimizerLoop
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.warnings import WarningCache
 
-_OUTPUTS_TYPE = List[_OPTIMIZER_LOOP_OUTPUTS_TYPE]
+_OUTPUTS_TYPE = List[Union[_OPTIMIZER_LOOP_OUTPUTS_TYPE, _MANUAL_LOOP_OUTPUTS_TYPE]]
 
 
 class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
