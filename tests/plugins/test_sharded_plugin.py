@@ -249,3 +249,22 @@ def test_ddp_sharded_plugin_manual_optimization(tmpdir):
     model = ManualBoringModel()
     trainer = Trainer(default_root_dir=tmpdir, accelerator="ddp_sharded", fast_dev_run=2, gpus=2)
     trainer.fit(model)
+
+
+@RunIf(skip_windows=True, fairscale=True)
+@mock.patch("pytorch_lightning.plugins.DDPShardedPlugin._wrap_optimizers", autospec=True)
+@pytest.mark.parametrize("cls", [DDPShardedPlugin, DDPSpawnShardedPlugin])
+def test_custom_kwargs_sharded(tmpdir, cls):
+    """Tests to ensure that if custom kwargs are passed, they are set correctly."""
+    plugin = cls(reduce_fp16=True)
+
+    class_name = "sharded" if isinstance(plugin, DDPShardedPlugin) else "sharded_spawn"
+
+    with mock.patch.object(plugin, "_model", autospec=True):
+        with mock.patch(
+            f"pytorch_lightning.plugins.training_type.{class_name}.ShardedDataParallel", autospec=True
+        ) as mock_sharded:
+            plugin.configure_ddp()
+    args, kwargs = mock_sharded.call_args
+    assert "reduce_fp16" in kwargs
+    assert kwargs["reduce_fp16"]
