@@ -1050,10 +1050,16 @@ class Trainer(
 
                 colliding_keys = lightning_hparams.keys() & datamodule_hparams.keys()
                 if colliding_keys:
-                    raise MisconfigurationException(
-                        f"Error while merging hparams: the keys {colliding_keys} are present "
-                        "in both the LightningModule's and LightningDataModule's hparams."
-                    )
+                    inconsistent_keys = []
+                    for key in colliding_keys:
+                        if lightning_hparams[key] != datamodule_hparams[key]:
+                            inconsistent_keys.append(key)
+                    if len(inconsistent_keys) > 0:
+                        raise MisconfigurationException(
+                            f"Error while merging hparams: the keys {inconsistent_keys} are present "
+                            "in both the LightningModule's and LightningDataModule's hparams "
+                            "and have different values."
+                        )
                 hparams_initial = {**lightning_hparams, **datamodule_hparams}
             elif self.lightning_module._log_hyperparams:
                 hparams_initial = self.lightning_module.hparams_initial
