@@ -181,7 +181,7 @@ class TrainerProperties(ABC):
         self.accelerator.optimizers = new_optims
 
     @property
-    def lr_schedulers(self) -> Optional[list]:
+    def lr_schedulers(self) -> List:
         return self.accelerator.lr_schedulers
 
     @lr_schedulers.setter

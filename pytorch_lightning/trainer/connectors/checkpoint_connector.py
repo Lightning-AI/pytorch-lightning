@@ -263,9 +263,8 @@ class CheckpointConnector:
 
         # restore the lr schedulers
         lr_schedulers = self._loaded_checkpoint["lr_schedulers"]
-        if self.trainer.lr_schedulers is not None:
-            for scheduler, lrs_state in zip(self.trainer.lr_schedulers, lr_schedulers):
-                scheduler["scheduler"].load_state_dict(lrs_state)
+        for scheduler, lrs_state in zip(self.trainer.lr_schedulers, lr_schedulers):
+            scheduler["scheduler"].load_state_dict(lrs_state)
 
     # ----------------------------------
     # PRIVATE OPS
@@ -361,9 +360,8 @@ class CheckpointConnector:
 
             # dump lr schedulers
             lr_schedulers = []
-            if self.trainer.lr_schedulers is not None:
-                for scheduler in self.trainer.lr_schedulers:
-                    lr_schedulers.append(scheduler["scheduler"].state_dict())
+            for scheduler in self.trainer.lr_schedulers:
+                lr_schedulers.append(scheduler["scheduler"].state_dict())
             checkpoint["lr_schedulers"] = lr_schedulers
 
             self.trainer.precision_plugin.on_save_checkpoint(checkpoint)
