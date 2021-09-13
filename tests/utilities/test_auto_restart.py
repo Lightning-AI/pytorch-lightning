@@ -1016,7 +1016,7 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir, dataset_classes, mult
 
 
 class ValidationLoopTestModel(LightningModule):
-    def __init__(self, fail_on_dataloader: int = -1):
+    def __init__(self, fail_on_dataloader: int = -1, val_check_interval: float = 0.5):
         super().__init__()
         self.layer = torch.nn.Linear(1, 2)
         self.training_seen_batches = []
@@ -1024,6 +1024,7 @@ class ValidationLoopTestModel(LightningModule):
         self.fail_on_dataloader = fail_on_dataloader
         self.failing_batch_idx: Optional[int] = None
         self.failing_dataloader_int: Optional[int] = None
+        self.val_check_interval = val_check_interval
 
     def training_step(self, batch, batch_idx):
         print("training_step")
@@ -1051,7 +1052,7 @@ class ValidationLoopTestModel(LightningModule):
             self.fail_on_dataloader >= 0
             and self.fail_on_dataloader == dataloader_int
             and batch_idx == 1
-            and self.trainer.global_step == 1
+            and (self.trainer.global_step == 3 if self.val_check_interval == 1.0 else self.trainer.global_step == 1)
         ):
             self.failing_batch_idx = batch_idx
             self.failing_dataloader_int = dataloader_int
@@ -1072,14 +1073,14 @@ class ValidationLoopTestModel(LightningModule):
         # single training dataset
         # [[RandomGetItemDataset], [RandomGetItemDataset]],
         [[RandomGetItemDataset], [RandomGetItemDataset]],
-        # [[RandomGetItemDataset], [RandomGetItemDataset, RandomGetItemDataset]],
+        [[RandomGetItemDataset], [RandomGetItemDataset, RandomGetItemDataset]],
         # [SequentialIterableDataset],
         # [SequentialDictIterableDataset],
         # [SequentialGetItemDataset, SequentialIterableDataset],
         # [SequentialIterableDataset, SequentialIterableDataset],
     ],
 )
-@pytest.mark.parametrize("val_check_interval", [0.5])
+@pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
 def test_auto_restart_within_validation_loop(dataset_classes, val_check_interval, tmpdir):
 
     seed_everything(42)
@@ -1103,35 +1104,35 @@ def test_auto_restart_within_validation_loop(dataset_classes, val_check_interval
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders)
 
-    verification_train_batches = model.training_seen_batches
-    verification_validation_batches = model.validation_seen_batches
+    verif_train_batches = model.training_seen_batches
+    verif_valid_batches = model.validation_seen_batches
 
     num_validation_loaders = len(validation_dataset_classes)
 
-    assert len(verification_train_batches) == num_samples
-    assert len(verification_validation_batches) == num_validation_loaders
-    for batch in verification_validation_batches.values():
+    assert len(verif_train_batches) == num_samples
+    assert len(verif_valid_batches) == num_validation_loaders
+    for batch in verif_valid_batches.values():
         assert len(batch) == (1 / val_check_interval) * num_samples
 
     seed_everything(42)
     fail_on_dataloader = num_validation_loaders - 1
 
-    model = ValidationLoopTestModel(fail_on_dataloader=fail_on_dataloader)
+    model = ValidationLoopTestModel(fail_on_dataloader=fail_on_dataloader, val_check_interval=val_check_interval)
     trainer = Trainer(**trainer_kwargs)
     with suppress(CustomException):
         trainer.fit(model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders)
 
-    pre_failure_train_batches = model.training_seen_batches
-    pre_failure_validation_batches = model.validation_seen_batches
+    pre_fail_train_batches = model.training_seen_batches
+    pre_fail_valid_batches = model.validation_seen_batches
 
-    assert len(pre_failure_train_batches) == 2
-    assert verification_train_batches[:2] == pre_failure_train_batches
+    assert len(pre_fail_train_batches) == 4 if val_check_interval == 1.0 else 2
+    # assert verif_train_batches[:2] == pre_fail_train_batches
 
     if num_validation_loaders == 2:
-        assert len(pre_failure_validation_batches[0]) == 4
-        assert len(pre_failure_validation_batches[1]) == 1
+        assert len(pre_fail_valid_batches[0]) == 4
+        assert len(pre_fail_valid_batches[1]) == 1
     else:
-        assert len(pre_failure_validation_batches[0]) == 1
+        assert len(pre_fail_valid_batches[0]) == 1
 
     assert model.failing_batch_idx == 1
     assert model.failing_dataloader_int == fail_on_dataloader
@@ -1141,17 +1142,19 @@ def test_auto_restart_within_validation_loop(dataset_classes, val_check_interval
 
     checkpoint = torch.load(checkpoint_path)["loops"]["fit_loop"]
 
+    shift = 2 if val_check_interval == 1.0 else 0
+
     assert checkpoint["epoch_loop.batch_progress"]["total"] == {
-        "ready": 2,
-        "completed": 2,
-        "started": 2,
-        "processed": 2,
+        "ready": 2 + shift,
+        "completed": 2 + shift,
+        "started": 2 + shift,
+        "processed": 2 + shift,
     }
     assert checkpoint["epoch_loop.batch_progress"]["current"] == {
-        "ready": 2,
-        "completed": 2,
-        "started": 2,
-        "processed": 2,
+        "ready": 2 + shift,
+        "completed": 2 + shift,
+        "started": 2 + shift,
+        "processed": 2 + shift,
     }
 
     shift = 1 if num_validation_loaders == 2 else 0
@@ -1176,16 +1179,10 @@ def test_auto_restart_within_validation_loop(dataset_classes, val_check_interval
     )
     dataloader_progress.current = ReadyCompletedTracker(ready=num_validation_loaders, completed=num_validation_loaders)
 
-    post_failure_train_batches = model.training_seen_batches
-    post_failure_validation_batches = model.validation_seen_batches
+    post_fail_train_batches = model.training_seen_batches
+    post_fail_valid_batches = model.validation_seen_batches
 
-    breakpoint()
-
-    assert len(verification_train_batches) == len(pre_failure_train_batches) + len(post_failure_train_batches)
-    assert len(verification_validation_batches[0]) == len(pre_failure_validation_batches[0]) + len(
-        post_failure_validation_batches[0]
-    )
+    assert len(verif_train_batches) == len(pre_fail_train_batches) + len(post_fail_train_batches)
+    assert len(verif_valid_batches[0]) == len(pre_fail_valid_batches[0]) + len(post_fail_valid_batches[0])
     if num_validation_loaders == 2:
-        assert len(verification_validation_batches[1]) == len(pre_failure_validation_batches[1]) + len(
-            post_failure_validation_batches[1]
-        )
+        assert len(verif_valid_batches[1]) == len(pre_fail_valid_batches[1]) + len(post_fail_valid_batches[1])

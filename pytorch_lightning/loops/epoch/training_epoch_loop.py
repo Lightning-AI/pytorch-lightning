@@ -195,9 +195,6 @@ class TrainingEpochLoop(loops.Loop):
         # progress global step according to grads progress
         self._increment_accumulated_grad_global_step()
 
-        if self.restarting:
-            breakpoint()
-
     def on_run_end(self) -> None:
         """Calls the on_epoch_end hook.
 
