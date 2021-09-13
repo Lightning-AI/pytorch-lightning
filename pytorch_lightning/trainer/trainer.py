@@ -115,6 +115,9 @@ class Trainer(
     TrainerDataLoadingMixin,
     DeprecatedTrainerAttributes,
 ):
+    # Needed because of LightningOptimizer
+    _lightning_optimizers = None
+
     @_defaults_from_env_vars
     def __init__(
         self,
