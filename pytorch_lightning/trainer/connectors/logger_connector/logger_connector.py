@@ -291,13 +291,15 @@ class LoggerConnector:
         self._logged_metrics = {}
         self._callback_metrics = {}
 
-    def reset(self, metrics: Optional[bool] = None) -> None:
-        if self.trainer.sanity_checking:
+    def reset(self, metrics: Optional[bool] = None, trainer_metrics: bool = False) -> None:
+        if trainer_metrics:
             # reset metrics
             self.reset_metrics()
 
-        assert self.trainer._results is not None
-        self.trainer._results.reset(metrics=metrics)
+        if self.trainer.state.fn != TrainerFn.PREDICTING:
+            assert self.trainer._results is not None
+            self.trainer._results.reset(metrics=metrics)
+
         self._batch_idx = None
         self._split_idx = None
         self._current_fx = None
