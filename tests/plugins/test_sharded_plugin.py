@@ -282,5 +282,6 @@ def test_custom_kwargs_sharded(tmpdir, cls):
             f"pytorch_lightning.plugins.training_type.{class_name}.ShardedDataParallel", autospec=True
         ) as mock_sharded:
             plugin.configure_ddp()
-    assert "reduce_fp16" in mock_sharded.call_args.kwargs
-    assert mock_sharded.call_args.kwargs["reduce_fp16"]
+    args, kwargs = mock_sharded.call_args
+    assert "reduce_fp16" in kwargs
+    assert kwargs["reduce_fp16"]
