@@ -1032,21 +1032,12 @@ class ValidationLoopTestModel(LightningModule):
         self.val_check_interval = val_check_interval
 
     def training_step(self, batch, batch_idx):
-        print("training_step")
         batch = batch["data"] if isinstance(batch, dict) else batch
         self.training_seen_batches.append(torch.stack(batch) if isinstance(batch, list) else batch)
         loss = sum(self.layer(b).sum() for b in batch)
         return loss
 
     def validation_step(self, batch, batch_idx, dataloader_int: int = 0):
-        print(
-            self.trainer.sanity_checking,
-            dataloader_int,
-            batch_idx,
-            self.trainer.current_epoch,
-            self.trainer.global_step,
-        )
-
         loss = sum(self.layer(b).sum() for b in batch)
 
         if self.trainer.sanity_checking:
@@ -1078,7 +1069,7 @@ class ValidationLoopTestModel(LightningModule):
         # single training dataset
         # [[RandomGetItemDataset], [RandomGetItemDataset]],
         [[RandomGetItemDataset], [RandomGetItemDataset]],
-        # [[RandomGetItemDataset], [RandomGetItemDataset, RandomGetItemDataset]],
+        [[RandomGetItemDataset], [RandomGetItemDataset, RandomGetItemDataset]],
         # [SequentialIterableDataset],
         # [SequentialDictIterableDataset],
         # [SequentialGetItemDataset, SequentialIterableDataset],
@@ -1131,7 +1122,6 @@ def test_auto_restart_within_validation_loop(dataset_classes, val_check_interval
     pre_fail_valid_batches = model.validation_seen_batches
 
     assert len(pre_fail_train_batches) == 4 if val_check_interval == 1.0 else 2
-    # assert verif_train_batches[:2] == pre_fail_train_batches
 
     if num_validation_loaders == 2:
         assert len(pre_fail_valid_batches[0]) == 4

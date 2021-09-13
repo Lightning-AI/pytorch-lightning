@@ -173,7 +173,9 @@ class EvaluationLoop(DataLoaderLoop):
             self.trainer.reset_val_dataloader()
 
         if not self.trainer.sanity_checking and self._dataloader_state_dict:
-            _reload_state_dict(self.current_dataloader, self._dataloader_state_dict)
+            # ready didn't happen yet.
+            dataloader_idx = self.dataloader_progress.current.ready
+            _reload_state_dict(self.dataloaders[dataloader_idx], self._dataloader_state_dict)
             self._dataloader_state_dict = None
 
     def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
