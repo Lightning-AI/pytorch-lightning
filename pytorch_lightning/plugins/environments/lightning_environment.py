@@ -40,7 +40,7 @@ class LightningEnvironment(ClusterEnvironment):
         self._global_rank: int = 0
         self._world_size: int = 1
 
-        # If at least :code:`LOCAL_RANK` is available as environment variable, Lightning assumes the user acts as the
+        # If at least `LOCAL_RANK` is available as environment variable, Lightning assumes the user acts as the
         # process launcher/job scheduler and Lightning will not launch new processes.
         self._creates_children: bool = "LOCAL_RANK" in os.environ
 

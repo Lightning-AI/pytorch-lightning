@@ -28,6 +28,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _TORCH_GREATER_EQUAL_1_7
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -448,7 +449,7 @@ def result_collection_reload(**kwargs):
     trainer_kwargs.update(kwargs)
     trainer = Trainer(**trainer_kwargs)
 
-    with suppress(CustomException):
+    with suppress(CustomException, DeadlockDetectedException):
         trainer.fit(model)
     assert not model.has_validated_sum
 
