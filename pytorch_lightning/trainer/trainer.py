@@ -1389,9 +1389,21 @@ class Trainer(
     def _on_exception(self):
         if not _fault_tolerant_training():
             return
+
+        if not self._fault_tolerant_possible:
+            rank_zero_info("Your script raised an expection where fault tolerance training is not supported.")
+            return
+
         # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
         file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")
         self.save_checkpoint(file_path)
+
+    @contextmanager
+    def _fault_tolerant_supported(self, enable: bool = False) -> Generator:
+        fault_tolerant_possible = self._fault_tolerant_possible
+        self._fault_tolerant_possible = enable
+        yield
+        self._fault_tolerant_possible = fault_tolerant_possible
 
     @contextmanager
     def _evaluation_context(self) -> Generator:

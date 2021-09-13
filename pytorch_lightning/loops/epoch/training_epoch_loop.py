@@ -121,6 +121,9 @@ class TrainingEpochLoop(loops.Loop):
         Raises:
             StopIteration: When the epoch is canceled by the user returning -1
         """
+        if self.restarting and self._should_check_val_fx(self.batch_idx, self.is_last_batch):
+            return
+
         batch_idx, (batch, is_last) = next(self.dataloader_iter)
 
         if not self.trainer.data_connector.train_data_fetcher.store_on_device:

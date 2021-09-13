@@ -20,7 +20,7 @@ from torchmetrics import Metric
 
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import BaseProgress, Progress
+from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -215,7 +215,7 @@ class Loop(ABC):
             if isinstance(v, BaseProgress):
                 v.load_state_dict(state_dict[key])
                 if restart_progress:
-                    apply_to_collection(v, Progress, lambda p: p.current.reset_on_restart())
+                    apply_to_collection(v, BaseProgress, lambda p: p.reset_on_restart())
 
             elif (
                 isinstance(v, ResultCollection)

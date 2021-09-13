@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
@@ -19,6 +19,7 @@ from torch.utils.data.dataloader import DataLoader
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.utilities.fetching import AbstractDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
@@ -34,6 +35,8 @@ class EvaluationLoop(DataLoaderLoop):
         self._results = ResultCollection(training=False)
         self._max_batches: Optional[Union[int, Sequence[int]]] = None
         self._has_run: bool = False
+        self._data_fetcher: Optional[AbstractDataFetcher] = None
+        self._dataloader_state_dict: Dict[str, Any] = None
 
     @property
     def num_dataloaders(self) -> int:
@@ -100,7 +103,9 @@ class EvaluationLoop(DataLoaderLoop):
 
         dataloader_idx: int = self.current_dataloader_idx
         dataloader = self.trainer.accelerator.process_dataloader(self.current_dataloader)
-        dataloader = self.trainer.data_connector.get_profiled_dataloader(dataloader, dataloader_idx=dataloader_idx)
+        self._data_fetcher = self.trainer.data_connector.get_profiled_dataloader(
+            dataloader, dataloader_idx=dataloader_idx
+        )
 
         dl_max_batches = self._max_batches[dataloader_idx]
 
@@ -119,6 +124,9 @@ class EvaluationLoop(DataLoaderLoop):
 
         # free memory
         self.outputs = []
+
+        # drop reference to iterator.
+        self._data_fetcher = None
 
         # with a single dataloader don't pass a 2D list
         if len(outputs) > 0 and self.num_dataloaders == 1:
@@ -238,3 +246,14 @@ class EvaluationLoop(DataLoaderLoop):
     def teardown(self) -> None:
         self._results.cpu()
         self.epoch_loop.teardown()
+
+    def on_save_checkpoint(self) -> Dict:
+        state_dict = super().on_save_checkpoint()
+        if self._data_fetcher is not None and self._data_fetcher.dataloader_iter is not None:
+            state_dict["dataloader_state_dict"] = self._data_fetcher.dataloader_iter.state_dict()
+        return state_dict
+
+    def on_load_checkpoint(self, state_dict: Dict) -> None:
+        # cache the dataloader state dict until the dataloader objects are available
+        breakpoint()
+        self._dataloader_state_dict = state_dict.get("dataloader_state_dict", {})
