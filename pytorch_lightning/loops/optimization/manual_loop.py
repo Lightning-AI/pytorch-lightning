@@ -22,7 +22,9 @@ from pytorch_lightning.loops.utilities import (
     check_finite_loss,
 )
 
-_OUTPUTS_TYPE = Dict[str, Any]
+# #9052 added support for raising `StopIteration` in the `training_step`. If that happens, then `advance`
+# doesn't finish and `self._output` stays as `None`. If #9415 happens then this would always return a result
+_OUTPUTS_TYPE = Optional[Dict[str, Any]]
 
 
 class ManualOptimization(Loop[_OUTPUTS_TYPE]):
@@ -96,9 +98,7 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
         self._done = True
         self._output = out
 
-    def on_run_end(self) -> Optional[_OUTPUTS_TYPE]:
+    def on_run_end(self) -> _OUTPUTS_TYPE:
         """Returns the result of this loop, i.e., the post-processed outputs from the training step."""
         output, self._output = self._output, None  # free memory
-        # #9052 added support for raising `StopIteration` in the `training_step`. If that happens, then `advance`
-        # doesn't finish and `self._output` stays as `None`. If #9415 happens then this would always return a result
         return output
