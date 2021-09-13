@@ -23,14 +23,7 @@ from torch.utils.data.dataloader import _BaseDataLoaderIter, DataLoader
 from torch.utils.data.dataset import IterableDataset
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
-from pytorch_lightning.utilities.auto_restart import (
-    _find_fast_forward_samplers,
-    CaptureIterableDataset,
-    CaptureMapDataset,
-    IteratorState,
-    MergedIteratorState,
-    patch_dataloader_iterator,
-)
+from pytorch_lightning.utilities.auto_restart import _reload_state_dict, MergedIteratorState, patch_dataloader_iterator
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
@@ -400,37 +393,7 @@ class CombinedLoader:
             if isinstance(dataloader, CycleIterator):
                 dataloader = dataloader_to_iter_on.loader
 
-            dataset = dataloader.dataset
-
-            # We reload the states before creating the workers
-            # The specific type of dataset will then decide if the state should be applied before or after
-            # spawning the workers
-            if isinstance(dataset, CaptureMapDataset):
-                iterator_state = state_dict["state"][0]
-
-                if not isinstance(iterator_state, IteratorState):
-                    iterator_state = IteratorState.from_state_dict(iterator_state)
-
-                # reload sampler state
-                ff_sampler = _find_fast_forward_samplers(dataloader)
-                ff_sampler.load_state_dict(iterator_state.sampler_state)
-                # reload dataset state
-                dataset.load_state_dict(
-                    iterator_state.dataset_state,
-                    latest_worker_id=state_dict["latest_worker_id"],
-                    num_workers=iterator_state.num_workers,
-                )
-
-            elif isinstance(dataset, CaptureIterableDataset):
-                dataset_dict = {
-                    sampler_name: state[0]["sampler_state"] for sampler_name, state in state_dict["state"].items()
-                }
-                dataset.load_state_dict(dataset_dict)
-
-            else:
-                raise MisconfigurationException(
-                    "This shouldn't happen. Please, open an issue on PyTorch Lightning Github."
-                )
+            _reload_state_dict(dataloader, state_dict)
 
             # We finally spawned the workers if any.
             it = iter(dataloader_to_iter_on)

@@ -970,12 +970,12 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir, dataset_classes, mult
 
 
 class ValidationLoopTestModel(LightningModule):
-    def __init__(self, fail_on_step: int = -1):
+    def __init__(self, fail_on_dataloader: int = -1):
         super().__init__()
         self.layer = torch.nn.Linear(1, 2)
         self.training_seen_batches = []
         self.validation_seen_batches = defaultdict(list)
-        self.fail_on_step = fail_on_step
+        self.fail_on_dataloader = fail_on_dataloader
         self.counter = 0
         self.failing_batch_idx: Optional[int] = None
         self.failing_dataloader_int: Optional[int] = None
@@ -987,16 +987,17 @@ class ValidationLoopTestModel(LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx, dataloader_int: int = 0):
-        self.validation_seen_batches[dataloader_int].append(batch)
         loss = sum(self.layer(b).sum() for b in batch)
 
         if self.trainer.sanity_checking:
             return loss
 
-        if self.fail_on_step > 0 and self.fail_on_step == self.counter:
+        if self.fail_on_dataloader > 0 and self.fail_on_dataloader == dataloader_int and batch_idx == 1:
             self.failing_batch_idx = batch_idx
             self.failing_dataloader_int = dataloader_int
             raise CustomException
+
+        self.validation_seen_batches[dataloader_int].append(batch)
 
         self.counter += 1
         return loss
@@ -1049,16 +1050,22 @@ def test_auto_restart_within_validation_loop(dataset_classes, val_check_interval
     assert len(verification_train_batches) == num_samples
     assert len(verification_validation_batches) == num_validation_loaders
     for batch in verification_validation_batches.values():
-        assert len(batch) == (1 / val_check_interval) * num_samples + 2
+        assert len(batch) == (1 / val_check_interval) * num_samples
 
-    fail_on_step = num_samples + 1 if num_validation_loaders == 2 else 1
-    model = ValidationLoopTestModel(fail_on_step=fail_on_step)
+    seed_everything(42)
+
+    model = ValidationLoopTestModel(fail_on_dataloader=(num_validation_loaders - 1))
     trainer = Trainer(**trainer_kwargs)
     with suppress(CustomException):
         trainer.fit(model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders)
 
     pre_failure_train_batches = model.training_seen_batches
     pre_failure_validation_batches = model.validation_seen_batches
+
+    assert len(pre_failure_train_batches) == 2
+    assert verification_train_batches[:2] == pre_failure_train_batches
+
+    assert len(pre_failure_validation_batches[0]) == 4
 
     assert model.failing_batch_idx == 1
     assert model.failing_dataloader_int == (1 if num_validation_loaders == 2 else 0)

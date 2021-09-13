@@ -545,3 +545,31 @@ def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
     dataloader.collate_fn = partial(
         _capture_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
     )
+
+
+def _reload_state_dict(dataloader: DataLoader, state_dict: Dict[str, Any]) -> None:
+
+    dataset = dataloader.dataset
+
+    if isinstance(dataset, CaptureMapDataset):
+        iterator_state = state_dict["state"][0]
+
+        if not isinstance(iterator_state, IteratorState):
+            iterator_state = IteratorState.from_state_dict(iterator_state)
+
+        # reload sampler state
+        ff_sampler = _find_fast_forward_samplers(dataloader)
+        ff_sampler.load_state_dict(iterator_state.sampler_state)
+        # reload dataset state
+        dataset.load_state_dict(
+            iterator_state.dataset_state,
+            latest_worker_id=state_dict["latest_worker_id"],
+            num_workers=iterator_state.num_workers,
+        )
+
+    elif isinstance(dataset, CaptureIterableDataset):
+        dataset_dict = {sampler_name: state[0]["sampler_state"] for sampler_name, state in state_dict["state"].items()}
+        dataset.load_state_dict(dataset_dict)
+
+    else:
+        raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
