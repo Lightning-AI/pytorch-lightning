@@ -41,6 +41,7 @@ class DDPShardedPlugin(DDPPlugin):
             sharded_optimizer=self.lightning_module.trainer.optimizers,
             # For multi-node training, enabling bucketing will improve performance.
             reduce_buffer_size=self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0,
+            **self._ddp_kwargs
         )
         setattr(self._model, "require_backward_grad_sync", False)
 
