@@ -44,4 +44,5 @@ TRAIN_DATALOADERS = Union[
 ]
 EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
 LRSchedulerTypeTuple = (_LRScheduler, ReduceLROnPlateau)
+LRSchedulerTypeUnion = Union[_LRScheduler, ReduceLROnPlateau]
 LRSchedulerType = Union[Type[_LRScheduler], Type[ReduceLROnPlateau]]
