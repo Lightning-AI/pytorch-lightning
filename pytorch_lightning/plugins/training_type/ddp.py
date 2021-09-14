@@ -188,7 +188,7 @@ class DDPPlugin(ParallelPlugin):
         self.setup_distributed()
 
     def _call_children_scripts(self):
-        if os.getenv("PL_DDP_CREATED_CHILDREN", '0') == '1':
+        if os.getenv("PL_DDP_CREATED_CHILDREN", "0") == "1":
             return
 
         # bookkeeping of spawned processes
