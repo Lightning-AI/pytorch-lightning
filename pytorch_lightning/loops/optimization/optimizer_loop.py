@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
 from torch import Tensor
@@ -52,36 +52,46 @@ class OptimizerLoop(Loop):
         self._skip_backward: bool = False
         self._batch_idx: int = 0
         self._optimizers: List[Optimizer] = []
+        self._indices: List[int] = []
+        self._current_position = 0
         self._hiddens: Optional[Any] = None
+
+    @property
+    def optimizer_idx(self):
+        return self._indices[self._current_position]
 
     @property
     def done(self) -> bool:
         """Returns ``True`` when the last optimizer in the sequence has run."""
-        return self.optim_progress.optimizer_idx >= len(self._optimizers)
+        return self._current_position >= len(self._indices)
 
     def connect(self, **kwargs: "Loop") -> None:
         raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
 
     def reset(self) -> None:
         if not self.restarting or self.done:
-            self.optim_progress.optimizer_idx = 0
+            self._current_position = 0
+            self.optim_progress.optimizer_idx = 0  # TODO: reset?
         self.outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
-    def on_run_start(self, batch: Any, optimizers: List[Optimizer], batch_idx: int) -> None:  # type: ignore[override]
+    def on_run_start(  # type: ignore[override]
+        self, batch: Any, optimizers: List[Tuple[int, Optimizer]], batch_idx: int
+    ) -> None:
         self._batch_idx = batch_idx
-        self._optimizers = optimizers
+        self._indices, self._optimizers = zip(*optimizers)
+        self.optim_progress.optimizer_idx = self.optimizer_idx
 
     def advance(self, batch: Any, *args: Any, **kwargs: Any) -> None:  # type: ignore[override]
+        self.optim_progress.optimizer_idx = self.optimizer_idx
         result = self._run_optimization(
             batch,
             self._batch_idx,
-            self._optimizers[self.optim_progress.optimizer_idx],
-            self.optim_progress.optimizer_idx,
+            self._optimizers[self._current_position],
+            self.optimizer_idx,
         )
         if result.loss is not None:
-            self.outputs[self.optim_progress.optimizer_idx].append(result.drop_closure_loss())
-
-        self.optim_progress.optimizer_idx += 1
+            self.outputs[self.optimizer_idx].append(result.drop_closure_loss())
+        self._current_position += 1
 
     def on_run_end(self) -> _OUTPUTS_TYPE:
         outputs, self.outputs = self.outputs, []  # free memory
