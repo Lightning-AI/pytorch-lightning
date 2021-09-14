@@ -3,9 +3,15 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-PyTorch Lightning Documentation
-===============================
+PyTorch Lightning
+=================
 
+
+.. tutoriallist::
+
+.. raw:: html
+
+   <div style="display:none">
 
 .. toctree::
    :maxdepth: 1
@@ -146,6 +152,10 @@ PyTorch Lightning Documentation
    generated/BECOMING_A_CORE_CONTRIBUTOR.md
    governance
    generated/CHANGELOG.md
+
+.. raw:: html
+
+   </div>
 
 Indices and tables
 ------------------
