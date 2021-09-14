@@ -180,12 +180,17 @@ class DDPPlugin(ParallelPlugin):
         if not self.cluster_environment.creates_children():
             self._call_children_scripts()
 
+        print(self.cluster_environment)
+
         # set the task idx
         self.task_idx = self.cluster_environment.local_rank()
 
         self.setup_distributed()
 
     def _call_children_scripts(self):
+        if os.getenv("PL_DDP_CREATED_CHILDREN", '0') == '1':
+            return
+
         # bookkeeping of spawned processes
         self._check_can_spawn_children()
 
@@ -196,6 +201,8 @@ class DDPPlugin(ParallelPlugin):
         # allow the user to pass the node rank
         os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
         os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
+
+        os.environ["PL_DDP_CREATED_CHILDREN"] = '1'
 
         # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
         # See https://docs.python.org/3/reference/import.html#main-spec
