@@ -1,7 +1,7 @@
 from unittest.mock import Mock
 
 import pytest
-from torch.optim import SGD, Adam
+from torch.optim import Adam, SGD
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.optimizer import LightningOptimizer
