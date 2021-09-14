@@ -178,9 +178,11 @@ class RecommenderModel(BoringModel):
 def test_trainer_num_prefetch_batches(tmpdir):
 
     model = RecommenderModel()
+    import logging
 
     class DebugCallback(Callback):
         def on_train_epoch_start(self, trainer, lightning_module):
+            logging.error("Type of data fetcher: " + type(trainer.data_connector.train_data_fetcher))
             assert isinstance(trainer.data_connector.train_data_fetcher, InterBatchParallelDataFetcher)
 
     trainer_kwargs = dict(
