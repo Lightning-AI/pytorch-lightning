@@ -46,9 +46,7 @@ class LightningEnvironment(ClusterEnvironment):
 
     def creates_children(self) -> bool:
         """Returns whether the cluster creates the processes or not."""
-        contains_local_rank = "LOCAL_RANK" in os.environ
-        lightning_created = os.getenv("PL_DDP_CREATED_CHILDREN", '0') == '1'
-        return contains_local_rank and not lightning_created
+        return "LOCAL_RANK" in os.environ
 
     def master_address(self) -> str:
         return os.environ.get("MASTER_ADDR", "127.0.0.1")

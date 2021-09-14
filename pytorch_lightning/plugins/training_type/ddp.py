@@ -126,6 +126,7 @@ class DDPPlugin(ParallelPlugin):
         self._model_averaging_period = model_averaging_period
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
+        self._has_called_call_children_scripts: bool = False
         self.set_world_ranks()
 
     @property
@@ -179,8 +180,7 @@ class DDPPlugin(ParallelPlugin):
         # start the other scripts
         if not self.cluster_environment.creates_children():
             self._call_children_scripts()
-
-        print(self.cluster_environment)
+            self._has_called_call_children_scripts = True
 
         # set the task idx
         self.task_idx = self.cluster_environment.local_rank()
@@ -201,8 +201,6 @@ class DDPPlugin(ParallelPlugin):
         # allow the user to pass the node rank
         os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
         os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
-
-        os.environ["PL_DDP_CREATED_CHILDREN"] = '1'
 
         # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
         # See https://docs.python.org/3/reference/import.html#main-spec
@@ -258,6 +256,8 @@ class DDPPlugin(ParallelPlugin):
             # with dataloaders delay between 1-10 seconds
             delay = np.random.uniform(1, 5, 1)[0]
             sleep(delay)
+
+        self._has_called_call_children_scripts = True
 
     def setup_distributed(self):
         reset_seed()
@@ -477,6 +477,8 @@ class DDPPlugin(ParallelPlugin):
 
         self._sync_dir = sync_dirs[self.node_rank]
 
+        self._has_called_call_children_scripts = self.broadcast(self._has_called_call_children_scripts)
+
     def _share_pids(self):
         """Make all DDP processes aware of all processes pids."""
         self.barrier()
@@ -491,7 +493,7 @@ class DDPPlugin(ParallelPlugin):
         # If the cluster environment creates the process, allow the scheduler / parent process
         # to perform the process termination
         cluster_env = self.cluster_environment
-        if cluster_env is not None and cluster_env.creates_children():
+        if cluster_env is not None and (cluster_env.creates_children() and not self._has_called_call_children_scripts):
             return
 
         sync_dir = self._sync_dir
