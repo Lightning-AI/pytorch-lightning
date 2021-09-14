@@ -57,7 +57,7 @@ class OptimizerLoop(Loop):
         self._hiddens: Optional[Any] = None
 
     @property
-    def optimizer_idx(self):
+    def optimizer_idx(self) -> int:
         return self._indices[self._current_position]
 
     @property
