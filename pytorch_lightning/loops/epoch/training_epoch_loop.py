@@ -314,16 +314,11 @@ class TrainingEpochLoop(loops.Loop):
             for batch_outputs in opt_outputs:
                 processed_tbptt_outputs = []
 
-                if isinstance(batch_outputs, OutputResult):
-                    batch_outputs = [batch_outputs]
-
-                for tbptt_output in batch_outputs:
-                    # FIXME
-                    out = {}
-                    if tbptt_output.loss is not None:
-                        out["loss"] = tbptt_output.loss
-                    out.update(tbptt_output.extra)
-                    processed_tbptt_outputs.append(out)
+                if isinstance(batch_outputs, dict):
+                    processed_tbptt_outputs.append(batch_outputs)
+                else:
+                    for tbptt_output in batch_outputs:
+                        processed_tbptt_outputs.append(tbptt_output)
 
                 # if there was only one tbptt step then we can collapse that dimension
                 if len(processed_tbptt_outputs) == 1:

@@ -11,9 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+import pytest
 import torch
 
+from pytorch_lightning import Trainer
 from pytorch_lightning.loops.optimization.optimizer_loop import ClosureResult
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.helpers import BoringModel
 
 
 def test_closure_result_deepcopy():
@@ -24,16 +29,33 @@ def test_closure_result_deepcopy():
     # the `loss` is cloned so the storage is different
     assert closure_loss.data_ptr() != result.loss.data_ptr()
 
-    copy = result.drop_closure_loss()
-    assert result.loss == copy.loss
-    assert copy.closure_loss is None
+    copy = result.asdict()
+    assert result.loss == copy["loss"]
+    assert copy.keys() == {"loss"}
 
     # no copy
-    assert id(result.loss) == id(copy.loss)
-    assert result.loss.data_ptr() == copy.loss.data_ptr()
+    assert id(result.loss) == id(copy["loss"])
+    assert result.loss.data_ptr() == copy["loss"].data_ptr()
 
 
 def test_closure_result_apply_accumulation():
     closure_loss = torch.tensor(25.0)
     result = ClosureResult.from_training_step_output(closure_loss, 5)
     assert result.loss == 5
+
+
+@pytest.mark.parametrize(
+    "case", [(5.0, "must return a Tensor, a dict, or None"), ({"a": 5}, "the 'loss' key needs to be present")]
+)
+def test_warning_invalid_trainstep_output(tmpdir, case):
+    output, match = case
+
+    class InvalidTrainStepModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            return output
+
+    model = InvalidTrainStepModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+
+    with pytest.raises(MisconfigurationException, match=match):
+        trainer.fit(model)

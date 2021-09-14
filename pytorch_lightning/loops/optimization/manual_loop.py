@@ -18,7 +18,7 @@ from torch import Tensor
 
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.optimization.closure import OutputResult
-from pytorch_lightning.loops.utilities import _build_training_step_kwargs, _extract_hiddens, check_finite_loss
+from pytorch_lightning.loops.utilities import _build_training_step_kwargs, _extract_hiddens
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -33,7 +33,7 @@ class ManualResult(OutputResult):
         extra: Anything returned by the ``training_step``.
     """
 
-    extra: Dict[str, Tensor] = field(default_factory=dict)
+    extra: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         # TODO: remove with the deprecation removal in v1.6
@@ -60,6 +60,9 @@ class ManualResult(OutputResult):
             extra["loss"] = extra["loss"].detach().div(normalize)
 
         return cls(extra=extra)
+
+    def asdict(self) -> Dict[str, Any]:
+        return self.extra
 
 
 class ManualOptimization(Loop):
@@ -113,9 +116,6 @@ class ManualOptimization(Loop):
             self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
 
             result = ManualResult.from_training_step_output(training_step_output, self.trainer.accumulate_grad_batches)
-
-            if self.trainer.terminate_on_nan:
-                check_finite_loss(result.closure_loss)
 
             if self.trainer.move_metrics_to_cpu:
                 # hiddens and the training step output are not moved as they are not considered "metrics"

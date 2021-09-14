@@ -27,7 +27,7 @@ T = TypeVar("T")
 @dataclass
 class OutputResult:
     @staticmethod
-    def _check_extra_detach_deprecation(extra: Dict[str, Any]) -> None:
+    def _check_extra_detach_deprecation(extra: Dict[str, Any]) -> Dict[str, Any]:
         # TODO: remove with the deprecation removal in v1.6
         # this is only here to avoid duplication
         def check_fn(v: Tensor) -> Tensor:
@@ -40,7 +40,10 @@ class OutputResult:
                 return v.detach()
             return v
 
-        apply_to_collection(extra, Tensor, check_fn)
+        return apply_to_collection(extra, Tensor, check_fn)
+
+    def asdict(self) -> Dict[str, Any]:
+        return {}
 
 
 class AbstractClosure(ABC, Generic[T]):

@@ -52,7 +52,7 @@ class ClosureResult(OutputResult):
 
     closure_loss: Optional[Tensor]
     loss: Optional[Tensor] = field(init=False, default=None)
-    extra: Dict[str, Tensor] = field(default_factory=dict)
+    extra: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         # TODO: remove with the deprecation removal in v1.6
@@ -74,13 +74,17 @@ class ClosureResult(OutputResult):
         if isinstance(training_step_output, dict):
             # this should not modify the `training_step_output`, as the user could be using it after `training_step_end`
             closure_loss = training_step_output.get("loss")
+            if closure_loss is None:
+                raise MisconfigurationException(
+                    "In automatic_optimization, when `training_step` returns a dict, the 'loss' key needs to be present"
+                )
             extra = {k: v for k, v in training_step_output.items() if k not in ("loss", "hiddens")}
         elif isinstance(training_step_output, Tensor):
             closure_loss = training_step_output
         elif training_step_output is not None:
             raise MisconfigurationException(
-                "In automatic optimization, `training_step` must either return a Tensor, "
-                "a dict with key 'loss' or None (where the step will be skipped)."
+                "In automatic optimization, `training_step` must return a Tensor, "
+                "a dict, or None (where the step will be skipped)."
             )
 
         if closure_loss is not None:
@@ -89,10 +93,8 @@ class ClosureResult(OutputResult):
 
         return cls(closure_loss, extra=extra)
 
-    def drop_closure_loss(self) -> "ClosureResult":
-        """Return itself without the closure loss which could have a `grad_fn`"""
-        self.closure_loss = None
-        return self
+    def asdict(self) -> Dict[str, Any]:
+        return {"loss": self.loss, **self.extra}
 
 
 class Closure(AbstractClosure[ClosureResult]):
@@ -158,7 +160,7 @@ class Closure(AbstractClosure[ClosureResult]):
         return self._result.loss
 
 
-_OUTPUTS_TYPE = List[List[ClosureResult]]
+_OUTPUTS_TYPE = List[List[Dict[str, Any]]]
 
 
 class OptimizerLoop(Loop):
@@ -203,7 +205,9 @@ class OptimizerLoop(Loop):
             self.optim_progress.optimizer_idx,
         )
         if result.loss is not None:
-            self.outputs[self.optim_progress.optimizer_idx].append(result.drop_closure_loss())
+            # automatic optimization assumes a loss needs to be returned for extras to be considered as the batch
+            # would be skipped otherwise
+            self.outputs[self.optim_progress.optimizer_idx].append(result.asdict())
 
         self.optim_progress.optimizer_idx += 1
 
