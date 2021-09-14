@@ -71,7 +71,6 @@ class OptimizerLoop(Loop):
     def reset(self) -> None:
         if not self.restarting or self.done:
             self._current_position = 0
-            self.optim_progress.optimizer_idx = 0  # TODO: reset?
         self.outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
     def on_run_start(  # type: ignore[override]
