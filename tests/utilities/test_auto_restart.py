@@ -33,7 +33,6 @@ from torch.utils.data._utils.worker import get_worker_info
 from torch.utils.data.dataloader import DataLoader, default_collate
 from torch.utils.data.dataset import Dataset, IterableDataset
 
-import pytorch_lightning
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningModule, seed_everything, Trainer
 from pytorch_lightning.trainer.progress import ReadyCompletedTracker
@@ -1018,59 +1017,11 @@ class ValidationLoopTestModel(LightningModule):
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(min_torch="1.7.0")
-@pytest.mark.parametrize("optimizer_step_failure", [False, True])
-def test_no_fault_tolerant_checkpoint_in_optimizer_step(optimizer_step_failure, tmpdir):
-    class FaultySGD(torch.optim.SGD):
-
-        counter = 0
-        trainer: Optional[pytorch_lightning.Trainer] = None
-
-        def step(self, closure):
-            self.counter += 1
-            assert trainer._fault_tolerant_possible
-            closure()
-            assert not trainer._fault_tolerant_possible
-            # validate the closure exectution prevents fault tolerant checkpointing
-            if optimizer_step_failure and self.counter == 2:
-                raise CustomException
-            return super().step()
-
-    class TestModel(BoringModel):
-        def training_step(self, batch, batch_idx):
-            if not optimizer_step_failure and batch_idx == 2:
-                raise CustomException
-            return super().training_step(batch, batch_idx)
-
-        def configure_optimizers(self):
-            if optimizer_step_failure:
-                opt = FaultySGD(self.parameters(), lr=0.001)
-                opt.trainer = self.trainer
-                return opt
-            else:
-                return super().configure_optimizers()
-
-    model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=4)
-    with suppress(CustomException):
-        trainer.fit(model)
-
-    checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
-    assert os.path.exists(checkpoint_path)
-
-
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@RunIf(min_torch="1.7.0")
 @pytest.mark.parametrize(
     "dataset_classes",
     [
-        # single training dataset
-        # [[RandomGetItemDataset], [RandomGetItemDataset]],
         [[RandomGetItemDataset], [RandomGetItemDataset]],
         [[RandomGetItemDataset], [RandomGetItemDataset, RandomGetItemDataset]],
-        # [SequentialIterableDataset],
-        # [SequentialDictIterableDataset],
-        # [SequentialGetItemDataset, SequentialIterableDataset],
-        # [SequentialIterableDataset, SequentialIterableDataset],
     ],
 )
 @pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
