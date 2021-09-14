@@ -156,7 +156,7 @@ class CheckpointConnector:
         """Restore only the model weights."""
         checkpoint = self._loaded_checkpoint
         if checkpoint_path is not None:
-            checkpoint = self.trainer.training_type_plugin.load_checkpoint(checkpoint_path)
+            checkpoint = self._load_and_validate_checkpoint(checkpoint_path)
 
         self.trainer.lightning_module.on_load_checkpoint(checkpoint)
         self.trainer.training_type_plugin.load_model_state_dict(checkpoint)
