@@ -197,6 +197,11 @@ def test_v1_7_0_process_position_trainer_constructor(tmpdir):
         _ = Trainer(process_position=5)
 
 
+def test_v1_7_0_flush_logs_every_n_steps_trainer_constructor(tmpdir):
+    with pytest.deprecated_call(match=r"Setting `Trainer\(flush_logs_every_n_steps=10\)` is deprecated in v1.5"):
+        _ = Trainer(flush_logs_every_n_steps=10)
+
+
 class BoringCallbackDDPSpawnModel(BoringModel):
     def __init__(self):
         super().__init__()
