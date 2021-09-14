@@ -259,7 +259,11 @@ class OptimizerLoop(Loop):
 
         closure = self._make_closure(split_batch, batch_idx, opt_idx, optimizer)
 
-        if self.trainer.fit_loop.should_accumulate():
+        if (
+            # when the training type plugin handles accumulation, we want to always call the optimizer step
+            not self.trainer.training_type_plugin.handles_gradient_accumulation
+            and self.trainer.fit_loop.should_accumulate()
+        ):
             # For gradient accumulation
 
             # -------------------
