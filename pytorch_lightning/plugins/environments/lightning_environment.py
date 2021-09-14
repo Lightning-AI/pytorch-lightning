@@ -42,11 +42,10 @@ class LightningEnvironment(ClusterEnvironment):
 
         # If at least `LOCAL_RANK` is available as environment variable, Lightning assumes the user acts as the
         # process launcher/job scheduler and Lightning will not launch new processes.
-        self._creates_children: bool = "LOCAL_RANK" in os.environ
 
     def creates_children(self) -> bool:
         """Returns whether the cluster creates the processes or not."""
-        return self._creates_children
+        return "LOCAL_RANK" in os.environ
 
     def master_address(self) -> str:
         return os.environ.get("MASTER_ADDR", "127.0.0.1")
