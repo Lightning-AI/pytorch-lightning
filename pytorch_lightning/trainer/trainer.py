@@ -1385,8 +1385,7 @@ class Trainer(
             return
 
         if not self._fault_tolerant_possible:
-            rank_zero_info("Your script raised an expection where fault tolerance training is not supported.")
-            return
+            rank_zero_warn("Lightning won't be able to ensure full reproducibility with this checkpoint.")
 
         # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
         file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")
