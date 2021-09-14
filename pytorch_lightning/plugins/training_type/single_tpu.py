@@ -14,7 +14,7 @@
 import os
 from typing import Any, Dict
 
-from pytorch_lightning.core.decorators import parameter_validation
+from pytorch_lightning.core.decorators import auto_weight_tying
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE
@@ -49,7 +49,7 @@ class SingleTPUPlugin(SingleDevicePlugin):
     def is_distributed(self) -> bool:
         return False
 
-    @parameter_validation
+    @auto_weight_tying
     def model_to_device(self) -> None:
         self.model.to(self.root_device)
 
