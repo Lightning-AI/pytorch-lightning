@@ -24,7 +24,6 @@ import torch
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
@@ -373,7 +372,12 @@ class DeepSpeedPlugin(DDPPlugin):
         self.barrier()
 
     def init_deepspeed(self):
-        self._handle_gradient_accumulation_steps()
+        accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
+        if not isinstance(accumulate_grad_batches, int):
+            raise MisconfigurationException(
+                "DeepSpeed currently only supports `Trainer.accumulate_grad_batches` being an integer."
+                f" Received {accumulate_grad_batches}"
+            )
 
         precision = self.lightning_module.trainer.accelerator.precision
         model = LightningDeepSpeedModule(pl_module=self.model, precision=precision)
@@ -525,18 +529,10 @@ class DeepSpeedPlugin(DDPPlugin):
         # internally, the engine has a reference to the optimizer already.
         self.model.step(**kwargs)
 
-    def _handle_gradient_accumulation_steps(self):
-        """This functions overrides the trainer.accumulation_scheduler to generate ``accumulate_grad_batches=1``.
-
-        Therefore, ``optimizer_step`` will be called on every batches seen so DeepSpeed Engine handles the gradient
-        accumulation logic internally.
-        """
-        if self.config.get("gradient_accumulation_steps") > 1:
-            self._original_accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
-            # todo (tchaton) Add support for accumulate_grad_batches being a dictionary.
-            self.lightning_module.trainer.accumulation_scheduler = GradientAccumulationScheduler({0: 1})
-        else:
-            self._original_accumulate_grad_batches = None
+    @property
+    def handles_gradient_accumulation(self) -> bool:
+        """Whether the plugin handles gradient accumulation internally."""
+        return True
 
     def _format_config(self):
         if self.config is None:
@@ -550,9 +546,10 @@ class DeepSpeedPlugin(DDPPlugin):
     def _format_batch_size_and_grad_accum_config(self):
         if "gradient_accumulation_steps" in self.config:
             raise MisconfigurationException(
-                "Within the DeepSpeed config, do not set gradient_accumulation_steps"
-                " as this will be set via accumulate_grad_batches=x argument passed via the Lightning Trainer."
+                "Do not set `gradient_accumulation_steps` in the DeepSpeed config"
+                " as this will be set with the `accumulate_grad_batches` argument passed via the Lightning Trainer."
             )
+        self.config["gradient_accumulation_steps"] = self.lightning_module.trainer.accumulate_grad_batches
         if "train_micro_batch_size_per_gpu" not in self.config:
             rank_zero_warn(
                 "Inferring the batch size for internal deepspeed logging from the `train_dataloader()`. "
@@ -561,7 +558,6 @@ class DeepSpeedPlugin(DDPPlugin):
             )
             batch_size = self._auto_select_batch_size()
             self.config["train_micro_batch_size_per_gpu"] = batch_size
-        self.config["gradient_accumulation_steps"] = self.lightning_module.trainer.accumulate_grad_batches
         if "gradient_clipping" not in self.config:
             self.config["gradient_clipping"] = self.lightning_module.trainer.gradient_clip_val
 
@@ -778,13 +774,6 @@ class DeepSpeedPlugin(DDPPlugin):
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         # override to do nothing, deepspeed engine already loaded the states in `load_checkpoint()`
         pass
-
-    def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
-        if self._original_accumulate_grad_batches is None:
-            return super().update_global_step(total_batch_idx, current_global_step)
-        if total_batch_idx % self._original_accumulate_grad_batches == 0:
-            current_global_step += 1
-        return current_global_step
 
     @classmethod
     def register_plugins(cls, plugin_registry: Dict) -> None:
