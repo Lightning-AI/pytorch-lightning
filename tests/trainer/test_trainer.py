@@ -1849,6 +1849,7 @@ def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
     with pytest.raises(DeadlockDetectedException, match="CustomException"):
         trainer.fit(model)
 
+
 @RunIf(min_gpus=1)
 def test_multiple_trainer_constant_memory_allocated(tmpdir):
     """This tests ensures calling the trainer several times reset the memory back to 0."""
