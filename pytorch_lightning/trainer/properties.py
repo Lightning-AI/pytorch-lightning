@@ -48,7 +48,7 @@ from pytorch_lightning.utilities.argparse import (
 )
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import LRSchedulerTypeTuple, _PATH
+from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeTuple
 
 
 class TrainerProperties(ABC):
