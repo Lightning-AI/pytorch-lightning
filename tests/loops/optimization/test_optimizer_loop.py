@@ -8,8 +8,8 @@ from tests.helpers import BoringModel
 
 
 def test_optimizer_frequencies(tmpdir):
-    """Test that the optimizer loop runs optimization for the correct optimizer and optimizer idx when frequencies
-    when different frequencies are requested."""
+    """Test that the optimizer loop runs optimization for the correct optimizer and optimizer idx when different
+    frequencies are requested."""
     # call first optimizer 3 times, then second optimizer 1 time, then first optimizer 3 times, etc.
     freq = (3, 1)
 
