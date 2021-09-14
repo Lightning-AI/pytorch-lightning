@@ -60,10 +60,8 @@ def test_optimizer_frequencies(tmpdir, frequencies, expected):
     model.optimizer_step = Mock(wraps=model.optimizer_step)
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_steps=10,
+        fast_dev_run=10,
         progress_bar_refresh_rate=0,
-        logger=False,
-        checkpoint_callback=False,
     )
     trainer.fit(model)
 
