@@ -580,3 +580,25 @@ def _reload_state_dict(dataloader: DataLoader, state_dict: Dict[str, Any]) -> No
 
     else:
         raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
+
+
+class _FaultToleranceClosureExecutor:
+
+    """This class is used to prevent fault tolerant to create a checkpoint while parameters are being updated."""
+
+    def __init__(self, closure: "pl.loops.optimization.closure.AbstractClosure", trainer: "pl.Trainer"):
+        self._closure = closure
+        self._trainer = trainer
+        self._fault_tolerant_possible: Optional[bool] = None
+
+    def consume_result(self) -> "pl.loops.optimization.closure.OutputResult":
+        return self._closure.consume_result()
+
+    def __call__(self):
+        # enable fault tolerant during closure execution
+        with self._trainer._fault_tolerant_supported(enable=True):
+            loss = self._closure()
+        self._fault_tolerant_possible = self._trainer._fault_tolerant_possible
+        # prevent fault tolerant during parameters update.
+        self._trainer._fault_tolerant_possible = False
+        return loss
