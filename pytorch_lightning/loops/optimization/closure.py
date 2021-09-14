@@ -191,7 +191,7 @@ class Closure(AbstractClosure):
         return step_output
 
 
-class _ClosureExecutor:
+class _FaultToleranceClosureExecutor:
 
     """This class is used to prevent fault tolerant to create a checkpoint while parameters are being updated."""
 

@@ -20,7 +20,7 @@ from torch.optim import Optimizer
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops import Loop
-from pytorch_lightning.loops.optimization.closure import _ClosureExecutor, Closure, ClosureResult
+from pytorch_lightning.loops.optimization.closure import _FaultToleranceClosureExecutor, Closure, ClosureResult
 from pytorch_lightning.loops.utilities import (
     _block_parallel_sync_behavior,
     _build_training_step_kwargs,
@@ -139,7 +139,7 @@ class OptimizerLoop(Loop):
         # gradient update with accumulated gradients
         else:
             if _fault_tolerant_training():
-                closure = _ClosureExecutor(closure, self.trainer)
+                closure = _FaultToleranceClosureExecutor(closure, self.trainer)
             self._optimizer_step(optimizer, opt_idx, batch_idx, closure)
 
         result = closure.consume_result()

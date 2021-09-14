@@ -27,6 +27,7 @@ from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoad
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
 class FastForwardSampler(Sampler):
@@ -548,6 +549,10 @@ def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
 
 
 def _reload_state_dict(dataloader: DataLoader, state_dict: Dict[str, Any]) -> None:
+    """Utility to reload state_dict within dataloader for fault tolerance."""
+
+    if _fault_tolerant_training():
+        return
 
     dataset = dataloader.dataset
 
@@ -560,6 +565,7 @@ def _reload_state_dict(dataloader: DataLoader, state_dict: Dict[str, Any]) -> No
         # reload sampler state
         ff_sampler = _find_fast_forward_samplers(dataloader)
         ff_sampler.load_state_dict(iterator_state.sampler_state)
+
         # reload dataset state
         dataset.load_state_dict(
             iterator_state.dataset_state,
@@ -568,8 +574,9 @@ def _reload_state_dict(dataloader: DataLoader, state_dict: Dict[str, Any]) -> No
         )
 
     elif isinstance(dataset, CaptureIterableDataset):
-        dataset_dict = {sampler_name: state[0]["sampler_state"] for sampler_name, state in state_dict["state"].items()}
-        dataset.load_state_dict(dataset_dict)
+        dataset.load_state_dict(
+            {sampler_name: state[0]["sampler_state"] for sampler_name, state in state_dict["state"].items()}
+        )
 
     else:
         raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
