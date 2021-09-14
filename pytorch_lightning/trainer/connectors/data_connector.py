@@ -133,7 +133,7 @@ class DataConnector:
         lightning_module = self.trainer.lightning_module
         # handle datamodule prepare data:
         # check for prepare_data_per_node & datamodule lifecycle properties before calling datamodule.prepare_data
-        if datamodule is not None and not datamodule.has_prepared_data:
+        if datamodule is not None and not datamodule._has_prepared_data:
             dm_prepare_data_per_node = datamodule.prepare_data_per_node
             dm_eq_prepare_data = datamodule.prepare_data_per_node == self.trainer.prepare_data_per_node
             if self.trainer.prepare_data_per_node is not None and not dm_eq_prepare_data:

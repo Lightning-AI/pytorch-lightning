@@ -36,7 +36,9 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
     def configure_ddp(self) -> None:
         self._wrap_optimizers()
         self._model = ShardedDataParallel(
-            LightningShardedDataParallel(self.model), sharded_optimizer=self.lightning_module.trainer.optimizers
+            LightningShardedDataParallel(self.model),
+            sharded_optimizer=self.lightning_module.trainer.optimizers,
+            **self._ddp_kwargs
         )
         setattr(self._model, "require_backward_grad_sync", False)
 

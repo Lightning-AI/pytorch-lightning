@@ -13,13 +13,15 @@
 # limitations under the License.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Generic, Optional, TypeVar
 
 from torch import Tensor
 
+from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation
+
+T = TypeVar("T")
 
 
 @dataclass
@@ -40,7 +42,7 @@ class OutputResult:
         apply_to_collection(extra, Tensor, check_fn)
 
 
-class AbstractClosure(ABC):
+class AbstractClosure(ABC, Generic[T]):
     """Abstract base class for optimizer closures in Lightning.
 
     Formally, a closure is binding variables from an external scope to a function that does a computation on these
@@ -48,14 +50,14 @@ class AbstractClosure(ABC):
     object which later can call it like a function but without requiring to pass in any arguments.
 
     This class provides a simple abstraction making the instance of this class callable like a function while capturing
-    the :class:`ClosureResult` and caching it.
+    the closure result and caching it.
     """
 
     def __init__(self) -> None:
         super().__init__()
-        self._result: Optional[OutputResult] = None
+        self._result: Optional[T] = None
 
-    def consume_result(self) -> OutputResult:
+    def consume_result(self) -> T:
         """The cached result from the last time the closure was called.
 
         Once accessed, the internal reference gets reset and the consumer will have to hold on to the reference as long
@@ -71,9 +73,10 @@ class AbstractClosure(ABC):
         return result
 
     @abstractmethod
-    def closure(self, *args: Any, **kwargs: Any) -> OutputResult:
+    def closure(self, *args: Any, **kwargs: Any) -> T:
         """Implements the behavior of the closure once it is getting called."""
         pass
 
-    def __call__(self, *args: Any, **kwargs: Any) -> None:
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
         self._result = self.closure(*args, **kwargs)
+        return self

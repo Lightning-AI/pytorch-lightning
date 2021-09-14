@@ -21,7 +21,7 @@ from torch.optim import Optimizer
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops import Loop
-from pytorch_lightning.loops.closure import AbstractClosure, OutputResult
+from pytorch_lightning.loops.optimization.closure import AbstractClosure, OutputResult
 from pytorch_lightning.loops.utilities import (
     _block_parallel_sync_behavior,
     _build_training_step_kwargs,
@@ -97,7 +97,7 @@ class ClosureResult(OutputResult):
         return self
 
 
-class Closure(AbstractClosure):
+class Closure(AbstractClosure[ClosureResult]):
     """An implementation of a :class:`AbstractClosure` for automatic optimization in Lightning that combines three
     elementary closures into one: ``training_step``, ``backward`` and ``zero_grad``.
 
@@ -155,6 +155,10 @@ class Closure(AbstractClosure):
 
         return step_output
 
+    def __call__(self, *args: Any, **kwargs: Any) -> Optional[Tensor]:
+        self._result = self.closure(*args, **kwargs)
+        return self._result.loss
+
 
 _OUTPUTS_TYPE = List[List[ClosureResult]]
 
@@ -165,7 +169,7 @@ class OptimizerLoop(Loop):
     This loop implements what is known in Lightning as Automatic Optimization.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         # TODO: use default dict here to simplify logic in loop
         self.outputs: _OUTPUTS_TYPE = []
@@ -185,7 +189,7 @@ class OptimizerLoop(Loop):
         raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
 
     def reset(self) -> None:
-        if not self.restarting:
+        if not self.restarting or self.done:
             self.optim_progress.optimizer_idx = 0
         self.outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
@@ -193,7 +197,7 @@ class OptimizerLoop(Loop):
         self._batch_idx = batch_idx
         self._optimizers = optimizers
 
-    def advance(self, batch: Any, *args, **kwargs) -> None:  # type: ignore[override]
+    def advance(self, batch: Any, *args: Any, **kwargs: Any) -> None:  # type: ignore[override]
         result = self._run_optimization(
             batch,
             self._batch_idx,
@@ -245,7 +249,11 @@ class OptimizerLoop(Loop):
 
         closure = self._make_closure(split_batch, batch_idx, opt_idx, optimizer)
 
-        if self.trainer.fit_loop.should_accumulate():
+        if (
+            # when the training type plugin handles accumulation, we want to always call the optimizer step
+            not self.trainer.training_type_plugin.handles_gradient_accumulation
+            and self.trainer.fit_loop.should_accumulate()
+        ):
             # For gradient accumulation
 
             # -------------------
@@ -305,7 +313,7 @@ class OptimizerLoop(Loop):
         if not is_first_batch_to_accumulate:
             return None
 
-        def zero_grad_fn():
+        def zero_grad_fn() -> None:
             self._on_before_zero_grad(optimizer)
             self._optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
@@ -320,7 +328,7 @@ class OptimizerLoop(Loop):
         if self._skip_backward:
             return None
 
-        def backward_fn(loss: Tensor):
+        def backward_fn(loss: Tensor) -> Tensor:
             self.backward(loss, optimizer, opt_idx)
 
             # check if model weights are nan
@@ -361,7 +369,7 @@ class OptimizerLoop(Loop):
             train_step_and_backward_closure: the closure function performing the train step and computing the
                 gradients. By default called by the optimizer (if possible)
         """
-        model_ref = self.trainer.lightning_module
+        lightning_module = self.trainer.lightning_module
 
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
         using_native_amp = self.trainer.amp_backend is not None and self.trainer.amp_backend == AMPType.NATIVE
@@ -379,7 +387,7 @@ class OptimizerLoop(Loop):
         self.optim_progress.optimizer.step.increment_ready()
 
         # model hook
-        model_ref.optimizer_step(
+        lightning_module.optimizer_step(
             self.trainer.current_epoch,
             batch_idx,
             optimizer,
@@ -425,16 +433,16 @@ class OptimizerLoop(Loop):
             A ``ClosureResult`` containing the training step output.
         """
         # give the PL module a result for logging
-        model_ref = self.trainer.lightning_module
+        lightning_module = self.trainer.lightning_module
 
         with self.trainer.profiler.profile("model_forward"):
 
             step_kwargs = _build_training_step_kwargs(
-                model_ref, self.trainer.optimizers, split_batch, batch_idx, opt_idx, self._hiddens
+                lightning_module, self.trainer.optimizers, split_batch, batch_idx, opt_idx, self._hiddens
             )
 
             # manually capture logged metrics
-            model_ref._current_fx_name = "training_step"
+            lightning_module._current_fx_name = "training_step"
             with self.trainer.profiler.profile("training_step"):
                 training_step_output = self.trainer.accelerator.training_step(step_kwargs)
                 self.trainer.accelerator.post_training_step()
@@ -443,7 +451,7 @@ class OptimizerLoop(Loop):
 
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
 
-            self._hiddens = _extract_hiddens(training_step_output, model_ref.truncated_bptt_steps)
+            self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
 
             result = ClosureResult.from_training_step_output(training_step_output, self.trainer.accumulate_grad_batches)
 
@@ -452,6 +460,7 @@ class OptimizerLoop(Loop):
 
             if self.trainer.move_metrics_to_cpu:
                 # hiddens and the training step output are not moved as they are not considered "metrics"
+                assert self.trainer._results is not None
                 self.trainer._results.cpu()
 
         return result

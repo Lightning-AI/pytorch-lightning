@@ -9,7 +9,7 @@
 Loggers
 *******
 
-Lightning supports the most popular logging frameworks (TensorBoard, Comet, etc...). TensorBoard is used by default,
+Lightning supports the most popular logging frameworks (TensorBoard, Comet, Neptune, etc...). TensorBoard is used by default,
 but you can pass to the :class:`~pytorch_lightning.trainer.trainer.Trainer` any combination of the following loggers.
 
 .. note::
@@ -107,33 +107,49 @@ First, install the package:
 
     pip install neptune-client
 
+or with conda:
+
+.. code-block:: bash
+
+    conda install -c conda-forge neptune-client
+
 Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
-.. testcode::
+.. code-block:: python
 
     from pytorch_lightning.loggers import NeptuneLogger
 
     neptune_logger = NeptuneLogger(
         api_key="ANONYMOUS",  # replace with your own
-        project_name="shared/pytorch-lightning-integration",
-        experiment_name="default",  # Optional,
-        params={"max_epochs": 10},  # Optional,
-        tags=["pytorch-lightning", "mlp"],  # Optional,
+        project="common/pytorch-lightning-integration",  # format "<WORKSPACE/PROJECT>"
+        tags=["training", "resnet"],  # optional
     )
     trainer = Trainer(logger=neptune_logger)
 
 The :class:`~pytorch_lightning.loggers.NeptuneLogger` is available anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
-.. testcode::
+.. code-block:: python
 
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
-            some_img = fake_image()
-            self.logger.experiment.add_image("generated_images", some_img, 0)
+            # generic recipe for logging custom metadata (neptune specific)
+            metadata = ...
+            self.logger.experiment["your/metadata/structure"].log(metadata)
+
+Note that syntax: ``self.logger.experiment["your/metadata/structure"].log(metadata)``
+is specific to Neptune and it extends logger capabilities.
+Specifically, it allows you to log various types of metadata like scores, files,
+images, interactive visuals, CSVs, etc. Refer to the
+`Neptune docs <https://docs.neptune.ai/you-should-know/logging-metadata#essential-logging-methods>`_
+for more detailed explanations.
+
+You can always use regular logger methods: ``log_metrics()`` and ``log_hyperparams()`` as these are also supported.
 
 .. seealso::
     :class:`~pytorch_lightning.loggers.NeptuneLogger` docs.
+
+    Logger `user guide <https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning>`_.
 
 ----------------
 
@@ -227,7 +243,7 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
 The :class:`~pytorch_lightning.loggers.WandbLogger` is available anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
-.. testcode::
+.. code-block:: python
 
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):

@@ -29,6 +29,7 @@ import torch
 import torch.distributed
 from torch.nn.parallel.distributed import DistributedDataParallel
 
+import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
@@ -326,7 +327,7 @@ class DDPPlugin(ParallelPlugin):
         optimizers = self.lightning_module.trainer.optimizers
         if self._model_averaging_period is None:
             raise ValueError(
-                "Post-localSGD algorithm is used, " "but model averaging period is not provided to DDP plugin."
+                "Post-localSGD algorithm is used, but model averaging period is not provided to DDP plugin."
             )
         averager = averagers.PeriodicModelAverager(period=self._model_averaging_period, warmup_steps=warmup_steps)
         for x, optimizer in enumerate(optimizers):
@@ -385,7 +386,7 @@ class DDPPlugin(ParallelPlugin):
         if trainer_fn == TrainerFn.FITTING:
             self.configure_ddp()
 
-    def post_dispatch(self) -> None:
+    def post_dispatch(self, trainer: "pl.Trainer") -> None:
         self.cluster_environment.teardown()
 
     def barrier(self, *args, **kwargs) -> None:
