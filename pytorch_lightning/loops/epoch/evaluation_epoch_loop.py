@@ -95,33 +95,31 @@ class EvaluationEpochLoop(Loop):
 
         batch_idx, (batch, _) = next(self.dataloader_iter)
 
-        with self.trainer._fault_tolerant_supported(enable=True):
+        if batch is None:
+            raise StopIteration
 
-            if batch is None:
-                raise StopIteration
+        if not self.trainer.data_connector.evaluation_data_fetcher.store_on_device:
+            with self.trainer.profiler.profile("evaluation_batch_to_device"):
+                batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
 
-            if not self.trainer.data_connector.evaluation_data_fetcher.store_on_device:
-                with self.trainer.profiler.profile("evaluation_batch_to_device"):
-                    batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
+        self.batch_progress.increment_ready()
 
-            self.batch_progress.increment_ready()
+        # hook
+        self.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
 
-            # hook
-            self.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
+        self.batch_progress.increment_started()
 
-            self.batch_progress.increment_started()
+        # lightning module methods
+        with self.trainer.profiler.profile("evaluation_step_and_end"):
+            output = self.evaluation_step(batch, batch_idx, dataloader_idx)
+            output = self.evaluation_step_end(output)
 
-            # lightning module methods
-            with self.trainer.profiler.profile("evaluation_step_and_end"):
-                output = self.evaluation_step(batch, batch_idx, dataloader_idx)
-                output = self.evaluation_step_end(output)
+        self.batch_progress.increment_processed()
 
-            self.batch_progress.increment_processed()
+        # track loss history
+        self.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
 
-            # track loss history
-            self.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
-
-            self.batch_progress.increment_completed()
+        self.batch_progress.increment_completed()
 
         # log batch metrics
         self.trainer.logger_connector.update_eval_step_metrics()

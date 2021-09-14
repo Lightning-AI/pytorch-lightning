@@ -33,10 +33,9 @@ from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities import AMPType, DeviceType, grad_norm
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.auto_restart import _FaultToleranceClosureExecutor
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
-from pytorch_lightning.utilities.imports import _fault_tolerant_training, _TPU_AVAILABLE
+from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation, WarningCache
@@ -279,8 +278,6 @@ class OptimizerLoop(Loop):
         # ------------------------------
         # gradient update with accumulated gradients
         else:
-            if _fault_tolerant_training():
-                closure = _FaultToleranceClosureExecutor(closure, self.trainer)
             self._optimizer_step(optimizer, opt_idx, batch_idx, closure)
 
         result = closure.consume_result()

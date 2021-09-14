@@ -16,10 +16,9 @@ import logging
 import os
 import traceback
 import warnings
-from contextlib import contextmanager
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
 
 import torch
@@ -1384,16 +1383,6 @@ class Trainer(
         if not _fault_tolerant_training():
             return
 
-        if not self._fault_tolerant_possible:
-            rank_zero_warn("Lightning won't be able to ensure full reproducibility with this checkpoint.")
-
         # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
         file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")
         self.save_checkpoint(file_path)
-
-    @contextmanager
-    def _fault_tolerant_supported(self, enable: bool = False) -> Generator:
-        fault_tolerant_possible = self._fault_tolerant_possible
-        self._fault_tolerant_possible = enable
-        yield
-        self._fault_tolerant_possible = fault_tolerant_possible

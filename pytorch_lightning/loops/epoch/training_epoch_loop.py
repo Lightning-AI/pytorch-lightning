@@ -76,7 +76,7 @@ class TrainingEpochLoop(loops.Loop):
         signals to stop (e.g. by early stopping).
         """
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
-        # ßdone should be True only when `batch_loop` and `val_loop` are done.
+        # done should be True only when `batch_loop` and `val_loop` are done.
         should_check_val = self.restarting and self._should_check_val_fx(self.batch_idx, self.is_last_batch)
         return (
             max_steps_reached
@@ -105,7 +105,7 @@ class TrainingEpochLoop(loops.Loop):
         # track epoch output
         self._epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
 
-        if not self.restarting:
+        if not self.restarting or self._num_training_batches_reached():
             self.batch_progress.current.reset()
             self.scheduler_progress.current.reset()
             self.batch_loop.optimizer_loop.optim_progress.reset_on_epoch()
@@ -134,20 +134,18 @@ class TrainingEpochLoop(loops.Loop):
 
         batch_idx, (batch, is_last) = next(self.dataloader_iter)
 
-        with self.trainer._fault_tolerant_supported(enable=True):
+        if not self.trainer.data_connector.train_data_fetcher.store_on_device:
+            with self.trainer.profiler.profile("training_batch_to_device"):
+                batch = self.trainer.accelerator.batch_to_device(batch)
 
-            if not self.trainer.data_connector.train_data_fetcher.store_on_device:
-                with self.trainer.profiler.profile("training_batch_to_device"):
-                    batch = self.trainer.accelerator.batch_to_device(batch)
+        self.batch_progress.increment_ready()
 
-            self.batch_progress.increment_ready()
+        with self.trainer.profiler.profile("run_training_batch"):
+            batch_output = self.batch_loop.run(batch, batch_idx)
 
-            with self.trainer.profiler.profile("run_training_batch"):
-                batch_output = self.batch_loop.run(batch, batch_idx)
+        self.batch_progress.increment_processed()
 
-            self.batch_progress.increment_processed()
-
-            self.is_last_batch = is_last
+        self.is_last_batch = is_last
 
         # when returning -1 from train_step, we end epoch early
         if batch_output.signal == -1:

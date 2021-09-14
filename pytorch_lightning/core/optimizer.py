@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Callable, Generator, Optional
+from typing import Callable, Optional
 from weakref import proxy
 
 from torch.optim import Optimizer
@@ -121,16 +121,6 @@ class LightningOptimizer:
             yield
             self._untoggle_model()
 
-    @contextmanager
-    def __fault_tolerant_supported(self) -> Generator:
-        """The closure should prevent execution fault tolerance within the parameters update.
-
-        Restore the fault tolerant state accordingly
-        """
-        _fault_tolerant_possible = self._trainer._fault_tolerant_possible
-        yield
-        self._trainer._fault_tolerant_possible = _fault_tolerant_possible
-
     def __optimizer_step(self, closure: Callable, profiler_name: str = None, **kwargs):
         trainer = self._trainer
 
@@ -210,9 +200,8 @@ class LightningOptimizer:
                 raise MisconfigurationException("When closure is provided, it should be a function")
             profiler_name = f"optimizer_step_and_closure_{self._optimizer_idx}"
 
-        with self.__fault_tolerant_supported():
-            self.__optimizer_step(closure=closure, profiler_name=profiler_name, **kwargs)
-            self._total_optimizer_step_calls += 1
+        self.__optimizer_step(closure=closure, profiler_name=profiler_name, **kwargs)
+        self._total_optimizer_step_calls += 1
 
     def __repr__(self):
         groups = [

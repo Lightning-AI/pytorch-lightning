@@ -924,52 +924,6 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1):
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(min_torch="1.7.0")
-@pytest.mark.parametrize("use_faulty_optimizer", [False, True])
-def test_fault_tolerant_supported(use_faulty_optimizer, tmpdir):
-
-    """This test asserts a fault tolerant checkpoint is generated during failure on training step, but not during
-    optimizer.step execution."""
-
-    class FaultyOptimizer(torch.optim.SGD):
-        def __init__(self, *args, **kwargs) -> None:
-            super().__init__(*args, **kwargs)
-            self.counter = 0
-
-        def _closure(self, loss):
-            def fn():
-                return loss
-
-            return fn
-
-        def step(self, closure) -> Optional[float]:
-            loss = closure()
-            if self.counter == 2:
-                raise CustomException
-            self.counter += 1
-            return super().step(closure=self._closure(loss))
-
-    class TestModel(BoringModel):
-        def training_step(self, batch, batch_idx):
-            if not use_faulty_optimizer and batch_idx == 2:
-                raise CustomException
-            return super().training_step(batch, batch_idx)
-
-        def configure_optimizers(self):
-            if not use_faulty_optimizer:
-                return super().configure_optimizers()
-            else:
-                return FaultyOptimizer(self.parameters(), lr=0.001)
-
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=3, limit_val_batches=3)
-    with suppress(CustomException):
-        trainer.fit(TestModel())
-
-    checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
-    assert os.path.exists(checkpoint_path) == (not use_faulty_optimizer)
-
-
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@RunIf(min_torch="1.7.0")
 @pytest.mark.parametrize(
     "dataset_classes",
     [

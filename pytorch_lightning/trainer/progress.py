@@ -154,7 +154,6 @@ class Progress(BaseProgress):
         self.current.load_state_dict(state_dict["current"])
 
     def reset_on_restart(self):
-        self.total.reset_on_restart()
         self.current.reset_on_restart()
 
 
