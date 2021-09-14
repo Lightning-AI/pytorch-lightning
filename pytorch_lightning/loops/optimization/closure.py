@@ -198,6 +198,7 @@ class _ClosureExecutor:
     def __init__(self, closure: Closure, trainer: "pl.Trainer"):
         self._closure = closure
         self._trainer = trainer
+        self._fault_tolerant_possible: Optional[bool] = None
 
     def consume_result(self) -> ClosureResult:
         return self._closure.consume_result()
@@ -206,6 +207,7 @@ class _ClosureExecutor:
         # enable fault tolerant during closure execution
         with self._trainer._fault_tolerant_supported(enable=True):
             loss = self._closure()
+        self._fault_tolerant_possible = self._trainer._fault_tolerant_possible
         # prevent fault tolerant during parameters update.
         self._trainer._fault_tolerant_possible = False
         return loss

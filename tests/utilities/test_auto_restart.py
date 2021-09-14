@@ -1063,6 +1063,43 @@ class ValidationLoopTestModel(LightningModule):
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(min_torch="1.7.0")
+@pytest.mark.parametrize("optimizer_step_failure", [False, True])
+def test_no_fault_tolerant_checkpoint_in_optimizer_step(optimizer_step_failure, tmpdir):
+    class FaultySGD(torch.optim.SGD):
+
+        counter = 0
+
+        def step(self, closure):
+            self.counter += 1
+            closure()
+            # validate the closure exectution prevents fault tolerant checkpointing
+            if optimizer_step_failure and self.counter == 2:
+                raise CustomException
+            return super().step()
+
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            if not optimizer_step_failure and batch_idx == 2:
+                raise CustomException
+            return super().training_step(batch, batch_idx)
+
+        def configure_optimizers(self):
+            if optimizer_step_failure:
+                return FaultySGD(self.parameters(), lr=0.001)
+            else:
+                return super().configure_optimizers()
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=4)
+    with suppress(CustomException):
+        trainer.fit(model)
+
+    checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+    assert os.path.exists(checkpoint_path) == (not optimizer_step_failure)
+
+
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+@RunIf(min_torch="1.7.0")
 @pytest.mark.parametrize(
     "dataset_classes",
     [
