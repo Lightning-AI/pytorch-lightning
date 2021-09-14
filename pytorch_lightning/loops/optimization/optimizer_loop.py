@@ -85,7 +85,6 @@ class OptimizerLoop(Loop):
 
     def on_run_end(self) -> _OUTPUTS_TYPE:
         outputs, self.outputs = self.outputs, []  # free memory
-        self.optim_progress.reset_on_epoch()
         return outputs
 
     def backward(

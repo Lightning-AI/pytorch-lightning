@@ -1384,9 +1384,6 @@ class Trainer(
             rank_zero_info("Your script raised an expection where fault tolerance training is not supported.")
             return
 
-        if self.fit_loop.epoch_loop.batch_loop.optimizer_loop.done:
-            self.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress.optimizer_idx = 0
-
         # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
         file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")
         self.save_checkpoint(file_path)

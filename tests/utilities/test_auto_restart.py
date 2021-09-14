@@ -1182,3 +1182,14 @@ def test_auto_restart_within_validation_loop(dataset_classes, val_check_interval
     assert len(verif_valid_batches[0]) == len(pre_fail_valid_batches[0]) + len(post_fail_valid_batches[0])
     if num_validation_loaders == 2:
         assert len(verif_valid_batches[1]) == len(pre_fail_valid_batches[1]) + len(post_fail_valid_batches[1])
+
+    # this doesn't work for `val_check_interval < 1` yet,
+    # as the train_dataloader random state overrides the validation one.
+    if val_check_interval == 1.0:
+        t = torch.tensor
+        assert torch.equal(t(verif_train_batches), t(pre_fail_train_batches))
+        generated = torch.cat([t(pre_fail_valid_batches[0]), t(post_fail_valid_batches[0])])
+        assert torch.equal(t(verif_valid_batches[0]), generated)
+        if num_validation_loaders == 2:
+            generated = torch.cat([t(pre_fail_valid_batches[1]), t(post_fail_valid_batches[1])])
+            assert torch.equal(t(verif_valid_batches[1]), generated)
