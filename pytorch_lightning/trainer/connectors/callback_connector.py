@@ -15,9 +15,9 @@ import os
 from datetime import timedelta
 from typing import Dict, List, Optional, Union
 
-from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ModelSummary, ProgressBar, ProgressBarBase
 from pytorch_lightning.callbacks.timer import Timer
-from pytorch_lightning.utilities import rank_zero_info
+from pytorch_lightning.utilities import ModelSummaryMode, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
@@ -34,6 +34,7 @@ class CallbackConnector:
         process_position: int,
         default_root_dir: Optional[str],
         weights_save_path: Optional[str],
+        weights_summary: Optional[str],
         stochastic_weight_avg: bool,
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
     ):
@@ -57,6 +58,8 @@ class CallbackConnector:
         # configure the timer callback.
         # responsible to stop the training when max_time is reached.
         self._configure_timer_callback(max_time)
+
+        self._configure_model_summary_callback(weights_summary)
 
         # init progress bar
         if process_position != 0:
@@ -88,6 +91,19 @@ class CallbackConnector:
 
         if not self._trainer_has_checkpoint_callbacks() and checkpoint_callback is True:
             self.trainer.callbacks.append(ModelCheckpoint())
+
+    def _configure_model_summary_callback(self, weights_summary: Optional[str] = None) -> None:
+        if any(isinstance(cb, ModelSummary) for cb in self.trainer.callbacks):
+            return
+        if weights_summary is not None:
+            if weights_summary not in ModelSummaryMode.supported_types():
+                raise MisconfigurationException(
+                    f"`weights_summary` can be None, {', '.join(ModelSummaryMode.supported_types())}",
+                    f" but got {weights_summary}",
+                )
+            max_depth = ModelSummaryMode.get_max_depth(weights_summary)
+            model_summary = ModelSummary(max_depth=max_depth)
+            self.trainer.callbacks.append(model_summary)
 
     def _configure_swa_callbacks(self):
         if not self.trainer._stochastic_weight_avg:

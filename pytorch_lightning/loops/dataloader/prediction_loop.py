@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Sequence, Union
+from typing import Any, List, Optional, Sequence
 
 from deprecate.utils import void
 from torch.utils.data import DataLoader
@@ -94,7 +94,7 @@ class PredictionLoop(DataLoaderLoop):
         self.predictions.append(dl_predictions)
         self.epoch_batch_indices.append(dl_batch_indices)
 
-    def on_run_end(self) -> Union[List[Any], List[List[Any]]]:
+    def on_run_end(self) -> _PREDICT_OUTPUT:
         """Calls ``on_predict_epoch_end`` and ``on_predict_end`` hooks and returns results from all dataloaders."""
         results = self.on_predict_epoch_end()
         self.on_predict_end()
