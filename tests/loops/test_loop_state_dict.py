@@ -47,7 +47,7 @@ def test_loops_state_dict_structure():
     expected = {
         "fit_loop": {
             "state_dict": {"dataloader_state_dict": ANY},
-            "epoch_loop.state_dict": {},
+            "epoch_loop.state_dict": {"val_loop_done": True},
             "epoch_loop.batch_progress": {
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
