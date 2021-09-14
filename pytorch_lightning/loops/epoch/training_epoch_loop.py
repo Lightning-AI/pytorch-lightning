@@ -312,14 +312,7 @@ class TrainingEpochLoop(loops.Loop):
                 opt_outputs = [opt_outputs]
 
             for batch_outputs in opt_outputs:
-                processed_tbptt_outputs = []
-
-                if isinstance(batch_outputs, dict):
-                    processed_tbptt_outputs.append(batch_outputs)
-                else:
-                    for tbptt_output in batch_outputs:
-                        processed_tbptt_outputs.append(tbptt_output)
-
+                processed_tbptt_outputs = batch_outputs if isinstance(batch_outputs, list) else [batch_outputs]
                 # if there was only one tbptt step then we can collapse that dimension
                 if len(processed_tbptt_outputs) == 1:
                     processed_tbptt_outputs = processed_tbptt_outputs[0]
