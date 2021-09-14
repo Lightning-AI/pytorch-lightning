@@ -38,7 +38,7 @@ class EarlyStopping(Callback):
 
     Args:
         monitor: quantity to be monitored.
-        min_delta: minimum change in the monitored quantity to qualify as an improvement, i.e. a
+        min_delta: minimum change in the monitored quantity to qualify as an improvement, i.e. an absolute
             change of less than or equal to `min_delta`, will count as no improvement.
         patience: number of checks with no improvement
             after which training will be stopped. Under the default configuration, one check happens after
