@@ -1428,15 +1428,7 @@ def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmpdir):
 
     cb = CustomPredictionWriter(tmpdir)
     trainer = Trainer(default_root_dir=tmpdir, callbacks=cb)
-    if is_iterable_dataset:
-        from pytorch_lightning.loops.epoch.prediction_epoch_loop import warning_cache
-
-        msg = "Lightning couldn't infer the indices fetched for your dataloader."
-        with pytest.warns(UserWarning, match=msg):
-            predictions = trainer.predict(BoringModel(), dataloaders=loader)
-        warning_cache.remove(msg)
-    else:
-        predictions = trainer.predict(BoringModel(), dataloaders=loader)
+    predictions = trainer.predict(BoringModel(), dataloaders=loader)
     assert len(predictions) == 8
 
 
