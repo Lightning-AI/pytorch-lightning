@@ -611,7 +611,7 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
         "epoch_loop.batch_loop.manual_loop.state_dict": ANY,
         "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
         "epoch_loop.batch_loop.optimizer_loop.optim_progress": {
-            "optimizer_idx": n_optimizers,
+            "optimizer_idx": n_optimizers - 1,
             "optimizer": {
                 "step": {
                     "total": {
@@ -697,7 +697,7 @@ def test_fit_loop_reset(tmpdir):
 
     # resetting from a mid-epoch checkpoint should not change progress counters
     mid_epoch_reset_assertions()
-    assert optimizer_loop.optim_progress.optimizer_idx == 1
+    assert optimizer_loop.optim_progress.optimizer_idx == 0
     fit_loop.reset()
     epoch_loop.reset()
     optimizer_loop.reset()
@@ -726,7 +726,7 @@ def test_fit_loop_reset(tmpdir):
     assert epoch_loop.batch_progress.current.ready == 4
     assert epoch_loop.batch_progress.current.completed == 4
 
-    assert optimizer_loop.optim_progress.optimizer_idx == 1
+    assert optimizer_loop.optim_progress.optimizer_idx == 0
 
     # resetting from a end-of-epoch checkpoint should reset the current counters to 0
     fit_loop.reset()
