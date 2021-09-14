@@ -48,6 +48,7 @@ from pytorch_lightning.utilities.argparse import (
 )
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.types import LRSchedulerTypeTuple
 
 
 class TrainerProperties(ABC):
@@ -181,11 +182,11 @@ class TrainerProperties(ABC):
         self.accelerator.optimizers = new_optims
 
     @property
-    def lr_schedulers(self) -> List:
+    def lr_schedulers(self) -> List[Union[LRSchedulerTypeTuple]]:
         return self.accelerator.lr_schedulers
 
     @lr_schedulers.setter
-    def lr_schedulers(self, new_schedulers: Optional[list]) -> None:
+    def lr_schedulers(self, new_schedulers: List[Union[LRSchedulerTypeTuple]]) -> None:
         self.accelerator.lr_schedulers = new_schedulers
 
     @property
