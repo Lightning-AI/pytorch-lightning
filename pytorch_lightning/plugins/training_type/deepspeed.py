@@ -124,6 +124,7 @@ class DeepSpeedPlugin(DDPPlugin):
         contiguous_memory_optimization: bool = False,
         synchronize_checkpoint_boundary: bool = False,
         load_full_weights: bool = False,
+        partition_module: bool = False,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
         billion parameter models. `For more information: https://pytorch-
@@ -253,6 +254,12 @@ class DeepSpeedPlugin(DDPPlugin):
             load_full_weights: True when loading a single checkpoint file containing the model state dict
                 when using ZeRO Stage 3. This differs from the DeepSpeed checkpoint which contains shards
                 per worker.
+
+            partition_module: When True, partitions the ``LightningModule`` across devices when using ZeRO Stage 3.
+                This is the default behaviour to ensure that the entire module is appropriately initialized
+                for DeepSpeed. When False we do not explicitly convert the model, which is fine if NO layers
+                or ALL layers are defined in ``configure_sharded_model``. This is useful for layers such as
+                ``torch.nn.RNN`` which do internal logic when moving to device.
         """
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
@@ -305,6 +312,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
         self.remote_device = remote_device
         self.load_full_weights = load_full_weights
+        self.partition_module = partition_module
 
         # default FP16 parameters.
         self.loss_scale = loss_scale
@@ -369,6 +377,13 @@ class DeepSpeedPlugin(DDPPlugin):
 
         precision = self.lightning_module.trainer.accelerator.precision
         model = LightningDeepSpeedModule(pl_module=self.model, precision=precision)
+
+        if self.zero_stage_3 and self.partition_module:
+            # Ensure the entire model has been moved to the appropriate device
+            dtype = torch.float16 if self.precision in (16, "mixed") else torch.float32
+            deepspeed.zero.Init(
+                module=model, remote_device=self.remote_device, pin_memory=True, config=self.config, dtype=dtype
+            )
 
         if self.lightning_module.trainer and self.lightning_module.trainer.training:
             self._initialize_deepspeed_train(model)
