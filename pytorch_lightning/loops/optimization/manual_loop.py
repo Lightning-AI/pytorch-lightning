@@ -11,16 +11,89 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional
+from dataclasses import dataclass, field
+from typing import Any, Dict, Optional
+
+from torch import Tensor
 
 from pytorch_lightning.loops import Loop
-from pytorch_lightning.loops.optimization.closure import ClosureResult
+from pytorch_lightning.loops.optimization.closure import OutputResult
 from pytorch_lightning.loops.utilities import (
     _build_training_step_kwargs,
     _check_training_step_output,
     _extract_hiddens,
     check_finite_loss,
 )
+from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.memory import recursive_detach
+from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
+
+
+@dataclass
+class ManualResult(OutputResult):
+    """A container to hold the result returned by the ``ManualLoop``.
+
+    It is created from the output of :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`.
+
+    Attributes:
+        closure_loss: The loss with a graph attached.
+        loss: A detached copy of the closure loss.
+        extra: Any keys other than the loss returned.
+    """
+
+    closure_loss: Optional[Tensor]
+    loss: Optional[Tensor] = field(init=False, default=None)
+    extra: Dict[str, Tensor] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        # TODO: remove with the deprecation removal in v1.6
+        self._check_extra_detach_deprecation(self.extra)
+        self.extra = recursive_detach(self.extra)
+
+        self._clone_loss()
+
+    def _clone_loss(self) -> None:
+        if self.closure_loss is not None:
+            # the loss will get scaled for amp. avoid any modifications to it
+            self.loss = self.closure_loss.detach().clone()
+
+    @classmethod
+    def from_training_step_output(
+        cls, training_step_output: Optional[STEP_OUTPUT], normalize: int = 1
+    ) -> "ManualResult":
+        closure_loss, extra = None, {}
+
+        if isinstance(training_step_output, dict):
+            # this should not modify the `training_step_output`, as the user could be using it after `training_step_end`
+            closure_loss = training_step_output.get("loss")
+            extra = {k: v for k, v in training_step_output.items() if k not in ("loss", "hiddens")}
+        elif isinstance(training_step_output, Tensor):
+            closure_loss = training_step_output
+
+        if closure_loss is not None:
+            # accumulate the loss. If ``accumulate_grad_batches == 1``, no effect
+            closure_loss /= normalize
+
+        return cls(closure_loss, extra=extra)
+
+    @staticmethod
+    def _check_extra_detach_deprecation(extra: Dict[str, Any]) -> None:
+        def check_fn(v: Tensor) -> Tensor:
+            if v.grad_fn is not None:
+                rank_zero_deprecation(
+                    f"One of the returned values {set(extra.keys())} has a `grad_fn`. We will detach it automatically"
+                    " but this behaviour will change in v1.6. Please detach it manually:"
+                    " `return {'loss': ..., 'something': something.detach()}`"
+                )
+            return v
+
+        apply_to_collection(extra, Tensor, check_fn)
+
+    def drop_closure_loss(self) -> "ManualResult":
+        """Return itself without the closure loss which could have a `grad_fn`"""
+        self.closure_loss = None
+        return self
 
 
 class ManualOptimization(Loop):
@@ -36,7 +109,7 @@ class ManualOptimization(Loop):
         super().__init__()
         self._done: bool = False
         self._hiddens: Optional[Any] = None
-        self._output: Optional[ClosureResult] = None
+        self._output: Optional[ManualResult] = None
 
     @property
     def done(self) -> bool:
@@ -75,8 +148,7 @@ class ManualOptimization(Loop):
 
             self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
 
-            # TODO: do not use `ClosureResult`
-            result = ClosureResult.from_training_step_output(training_step_output, self.trainer.accumulate_grad_batches)
+            result = ManualResult.from_training_step_output(training_step_output, self.trainer.accumulate_grad_batches)
 
             if self.trainer.terminate_on_nan:
                 check_finite_loss(result.closure_loss)
@@ -90,7 +162,7 @@ class ManualOptimization(Loop):
         self._done = True
         self._output = result
 
-    def on_run_end(self) -> Optional[ClosureResult]:
+    def on_run_end(self) -> Optional[ManualResult]:
         """Returns the result of this loop, i.e., the post-processed outputs from the training step."""
         output, self._output = self._output, None  # free memory
         # #9052 added support for raising `StopIteration` in the `training_step`. If that happens, then `advance`

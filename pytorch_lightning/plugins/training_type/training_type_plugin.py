@@ -243,16 +243,10 @@ class TrainingTypePlugin(ABC):
         """
         return True
 
-    def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
-        """Provide a hook to count optimizer step calls.
-
-        Args:
-            total_batch_idx: Total number of batches seen for training
-            current_global_step: Current number of optimizer step calls
-
-        Returns: New optimizer step calls
-        """
-        return current_global_step + 1
+    @property
+    def handles_gradient_accumulation(self) -> bool:
+        """Whether the plugin handles gradient accumulation internally."""
+        return False
 
     def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
         """Returns model state."""
