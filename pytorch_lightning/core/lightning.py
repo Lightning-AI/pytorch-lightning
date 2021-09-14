@@ -54,7 +54,6 @@ log = logging.getLogger(__name__)
 
 
 class LightningModule(
-    ABC,
     DeviceDtypeModuleMixin,
     HyperparametersMixin,
     ModelIO,
