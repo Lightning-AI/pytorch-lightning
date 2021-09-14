@@ -131,7 +131,7 @@ class Trainer(
         limit_test_batches: Union[int, float] = 1.0,
         limit_predict_batches: Union[int, float] = 1.0,
         val_check_interval: Union[int, float] = 1.0,
-        flush_logs_every_n_steps: int = 100,
+        flush_logs_every_n_steps: Optional[int] = None,
         log_every_n_steps: int = 50,
         accelerator: Optional[Union[str, Accelerator]] = None,
         sync_batchnorm: bool = False,
@@ -213,6 +213,10 @@ class Trainer(
                 of train, val and test to find any bugs (ie: a sort of unit test).
 
             flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
+
+                .. deprecated:: v1.5
+                    ``flush_logs_every_n_steps`` has been deprecated in v1.5 and will be removed in v1.7.
+                    Please configure flushing directly in the logger instead.
 
             gpus: Number of GPUs to train on (int) or which GPUs to train on (list or str) applied per node
 
