@@ -123,6 +123,7 @@ class DeepSpeedPlugin(DDPPlugin):
         cpu_offload: bool = False,
         cpu_offload_params: bool = False,
         cpu_offload_use_pin_memory: bool = False,
+        partition_module: bool = True,
     ) -> None:
         """
         Provides capabilities to run training using the DeepSpeed library,
@@ -254,6 +255,12 @@ class DeepSpeedPlugin(DDPPlugin):
                 when using ZeRO Stage 3. This allows a single weight file to contain the entire model,
                 rather than individual sharded weight files.
                 Disable to save sharded states individually.
+
+            partition_module: When True, partitions the ``LightningModule`` across devices when using ZeRO Stage 3.
+                This is the default behaviour to ensure that the entire module is appropriately initialized
+                for DeepSpeed. When False we do not explicitly convert the model, which is fine if NO layers
+                or ALL layers are defined in ``configure_sharded_model``. This is useful for layers such as
+                ``torch.nn.RNN`` which do internal logic when moving to device.
         """
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
@@ -314,6 +321,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
         self.remote_device = remote_device
         self.save_full_weights = save_full_weights
+        self.partition_module = partition_module
 
         # default FP16 parameters.
         self.loss_scale = loss_scale
@@ -375,7 +383,7 @@ class DeepSpeedPlugin(DDPPlugin):
         precision = self.lightning_module.trainer.accelerator.precision
         model = LightningDeepSpeedModule(pl_module=self.model, precision=precision)
 
-        if self.zero_stage_3:
+        if self.zero_stage_3 and self.partition_module:
             # Ensure the entire model has been moved to the appropriate device
             dtype = torch.float16 if self.precision in (16, "mixed") else torch.float32
             deepspeed.zero.Init(
