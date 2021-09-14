@@ -1036,7 +1036,7 @@ class Trainer(
         self.accelerator.pre_dispatch(self)
         self._log_hyperparams()
 
-    def _log_hyperparams(self):
+    def _log_hyperparams(self) -> None:
         # log hyper-parameters
         hparams_initial = None
 
@@ -1058,7 +1058,7 @@ class Trainer(
                         raise MisconfigurationException(
                             f"Error while merging hparams: the keys {inconsistent_keys} are present "
                             "in both the LightningModule's and LightningDataModule's hparams "
-                            "and have different values."
+                            "but have different values."
                         )
                 hparams_initial = {**lightning_hparams, **datamodule_hparams}
             elif self.lightning_module._log_hyperparams:
