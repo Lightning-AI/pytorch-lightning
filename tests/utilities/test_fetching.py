@@ -180,7 +180,7 @@ def test_trainer_num_prefetch_batches(tmpdir):
     model = RecommenderModel()
 
     class DebugCallback(Callback):
-        def on_train_start(self, trainer, lightning_module):
+        def on_train_epoch_start(self, trainer, lightning_module):
             assert isinstance(trainer.data_connector.train_data_fetcher, InterBatchParallelDataFetcher)
 
     trainer_kwargs = dict(
