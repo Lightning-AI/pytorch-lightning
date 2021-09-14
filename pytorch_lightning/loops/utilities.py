@@ -38,7 +38,7 @@ def check_finite_loss(loss: Optional[torch.Tensor]) -> None:
 
 
 def _extract_hiddens(training_step_output: STEP_OUTPUT, truncated_bptt_steps: int) -> Optional[Any]:
-    """Get the hidden embeddings if present from the training step output.
+    """Get the hidden state if present from the training step output.
 
     Raises:
         MisconfigurationException: If :attr:`~pytorch_lightning.core.Lightning.LightningModule.truncated_bptt_steps` is
