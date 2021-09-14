@@ -231,8 +231,7 @@ class CaptureMapDataset(Dataset):
                 set_rng_states(self._cached_state_dict[self.worker_id]["rng_states"])
             self._cached_state_dict = None
 
-        data = self.dataset[item]
-        return data
+        return self.dataset[item]
 
     def __len__(self) -> int:
         return len(self.dataset)
@@ -465,9 +464,10 @@ def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: 
         }
     """
     data = default_collate(samples)
-    if isinstance(dataset, (CaptureIterableDataset, CaptureMapDataset)):
-        data = {"data": data, AutoRestartBatchKeys.PL_RESTART_META: dataset.state_dict()}
-    return data
+    if not isinstance(dataset, (CaptureIterableDataset, CaptureMapDataset)):
+        return data
+    metadata = dataset.state_dict()
+    return {"data": data, AutoRestartBatchKeys.PL_RESTART_META: metadata}
 
 
 def patch_dataloader_iterator(
