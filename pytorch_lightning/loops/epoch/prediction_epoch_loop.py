@@ -162,8 +162,7 @@ class PredictionEpochLoop(Loop):
 
     def _store_batch_indices(self, dataloader_idx: int) -> None:
         """Stores the batch indices if the predictions should be stored."""
-        current_dataloader = self.trainer.predict_dataloaders[dataloader_idx]
-        batch_sampler = getattr(current_dataloader, "batch_sampler", None)
+        batch_sampler = self.trainer.predict_dataloaders[dataloader_idx].batch_sampler
         if isinstance(batch_sampler, IndexBatchSamplerWrapper):
             self.current_batch_indices = batch_sampler.batch_indices
             if self.should_store_predictions:
