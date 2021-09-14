@@ -21,9 +21,8 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins import DataParallelPlugin
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
-from pytorch_lightning.plugins.training_type import TrainingTypePlugin
+from pytorch_lightning.plugins.training_type import DataParallelPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
@@ -116,7 +115,7 @@ class Accelerator:
 
     def post_dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something after the training/evaluation/prediction starts."""
-        self.training_type_plugin.post_dispatch()
+        self.training_type_plugin.post_dispatch(trainer)
         self.precision_plugin.post_dispatch()
 
     @property
@@ -436,9 +435,6 @@ class Accelerator:
             If true, restore checkpoint after pre_dispatch.
         """
         return self.training_type_plugin.restore_checkpoint_after_pre_dispatch
-
-    def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
-        return self.training_type_plugin.update_global_step(total_batch_idx, current_global_step)
 
     def on_train_start(self) -> None:
         """Called when train begins."""

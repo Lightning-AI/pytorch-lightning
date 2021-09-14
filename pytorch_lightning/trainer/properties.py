@@ -48,7 +48,7 @@ from pytorch_lightning.utilities.argparse import (
 )
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import LRSchedulerTypeTuple
+from pytorch_lightning.utilities.types import LRSchedulerTypeTuple, _PATH
 
 
 class TrainerProperties(ABC):
@@ -389,7 +389,7 @@ class TrainerProperties(ABC):
     def resume_from_checkpoint(self) -> Optional[Union[str, Path]]:
         return self.checkpoint_connector.resume_checkpoint_path
 
-    def save_checkpoint(self, filepath, weights_only: bool = False) -> None:
+    def save_checkpoint(self, filepath: _PATH, weights_only: bool = False) -> None:
         self.checkpoint_connector.save_checkpoint(filepath, weights_only)
 
     """

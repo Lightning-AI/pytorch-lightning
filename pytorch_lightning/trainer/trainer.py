@@ -16,10 +16,9 @@ import logging
 import os
 import traceback
 import warnings
-from contextlib import contextmanager
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
 
 import torch
@@ -77,7 +76,7 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training, _TORCH_GREATER_EQUAL_1_9
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT, EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -131,7 +130,7 @@ class Trainer(
         limit_test_batches: Union[int, float] = 1.0,
         limit_predict_batches: Union[int, float] = 1.0,
         val_check_interval: Union[int, float] = 1.0,
-        flush_logs_every_n_steps: int = 100,
+        flush_logs_every_n_steps: Optional[int] = None,
         log_every_n_steps: int = 50,
         accelerator: Optional[Union[str, Accelerator]] = None,
         sync_batchnorm: bool = False,
@@ -213,6 +212,10 @@ class Trainer(
                 of train, val and test to find any bugs (ie: a sort of unit test).
 
             flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
+
+                .. deprecated:: v1.5
+                    ``flush_logs_every_n_steps`` has been deprecated in v1.5 and will be removed in v1.7.
+                    Please configure flushing directly in the logger instead.
 
             gpus: Number of GPUs to train on (int) or which GPUs to train on (list or str) applied per node
 
@@ -1137,7 +1140,7 @@ class Trainer(
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self._evaluation_loop.trainer = self
 
-        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), self._evaluation_context():
+        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), torch.no_grad():
             eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
@@ -1153,7 +1156,7 @@ class Trainer(
         self.reset_predict_dataloader(self.lightning_module)
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self.predict_loop.trainer = self
-        with self._evaluation_context():
+        with torch.no_grad():
             return self.predict_loop.run()
 
     def _run_sanity_check(self, ref_model):
@@ -1382,8 +1385,3 @@ class Trainer(
         # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
         file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")
         self.save_checkpoint(file_path)
-
-    @contextmanager
-    def _evaluation_context(self) -> Generator:
-        with torch.inference_mode() if _TORCH_GREATER_EQUAL_1_9 else torch.no_grad():
-            yield

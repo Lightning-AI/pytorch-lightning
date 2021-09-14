@@ -242,16 +242,10 @@ class TrainingTypePlugin(ABC):
         """
         return True
 
-    def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
-        """Provide a hook to count optimizer step calls.
-
-        Args:
-            total_batch_idx: Total number of batches seen for training
-            current_global_step: Current number of optimizer step calls
-
-        Returns: New optimizer step calls
-        """
-        return current_global_step + 1
+    @property
+    def handles_gradient_accumulation(self) -> bool:
+        """Whether the plugin handles gradient accumulation internally."""
+        return False
 
     def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
         """Returns model state."""
@@ -268,7 +262,7 @@ class TrainingTypePlugin(ABC):
         if self.should_rank_save_checkpoint:
             return self.checkpoint_io.save_checkpoint(checkpoint, filepath)
 
-    def remove_checkpoint(self, filepath: str) -> None:
+    def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.
 
         Args:
@@ -359,5 +353,5 @@ class TrainingTypePlugin(ABC):
     def dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something at trainer run_stage starts."""
 
-    def post_dispatch(self) -> None:
+    def post_dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something after the training/evaluation/prediction finishes."""
