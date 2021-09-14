@@ -11,16 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torch
 from unittest.mock import Mock
 
 import pytest
+import torch
 from torch.optim import Adam, SGD
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from tests.helpers import BoringModel
 from pytorch_lightning.loops.optimization.optimizer_loop import ClosureResult
+from tests.helpers import BoringModel
 
 
 def test_closure_result_deepcopy():
