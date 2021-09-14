@@ -17,6 +17,7 @@ import torch
 
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
+from pytorch_lightning.loops.optimization.closure import ClosureResult
 from pytorch_lightning.loops.utilities import _prepare_dataloader_iter
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import Progress, SchedulerProgress
@@ -97,7 +98,7 @@ class TrainingEpochLoop(loops.Loop):
         # track epoch output
         self._epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
 
-        if not self.restarting:
+        if not self.restarting or self._num_training_batches_reached():
             self.batch_progress.current.reset()
             self.scheduler_progress.current.reset()
             self.batch_loop.optimizer_loop.optim_progress.reset_on_epoch()
@@ -283,18 +284,18 @@ class TrainingEpochLoop(loops.Loop):
 
     @staticmethod
     def _prepare_outputs(
-        outputs: List[List[List["ResultCollection"]]], batch_mode: bool
+        outputs: List[List[List[ClosureResult]]], batch_mode: bool
     ) -> Union[List[List[List[Dict]]], List[List[Dict]], List[Dict], Dict]:
         """Extract required information from batch or epoch end results.
 
         Args:
-            outputs: A 3-dimensional list of ``ResultCollection`` objects with dimensions:
+            outputs: A 3-dimensional list of ``ClosureResult`` objects with dimensions:
                 ``[optimizer outs][batch outs][tbptt steps]``.
 
             batch_mode: If True, ignore the batch output dimension.
 
         Returns:
-            The cleaned outputs with ``ResultCollection`` objects converted to dictionaries.
+            The cleaned outputs with ``ClosureResult`` objects converted to dictionaries.
             All list dimensions of size one will be collapsed.
         """
         processed_outputs = []
@@ -311,13 +312,13 @@ class TrainingEpochLoop(loops.Loop):
             for batch_outputs in opt_outputs:
                 processed_tbptt_outputs = []
 
-                if isinstance(batch_outputs, ResultCollection):
+                if isinstance(batch_outputs, ClosureResult):
                     batch_outputs = [batch_outputs]
 
                 for tbptt_output in batch_outputs:
                     out = {}
-                    if tbptt_output.minimize is not None:
-                        out["loss"] = tbptt_output.minimize.detach()
+                    if tbptt_output.loss is not None:
+                        out["loss"] = tbptt_output.loss
                     out.update(tbptt_output.extra)
                     processed_tbptt_outputs.append(out)
 
