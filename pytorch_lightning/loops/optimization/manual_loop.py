@@ -65,7 +65,10 @@ class ManualResult(OutputResult):
         return self.extra
 
 
-class ManualOptimization(Loop):
+_OUTPUTS_TYPE = Dict[str, Any]
+
+
+class ManualOptimization(Loop[_OUTPUTS_TYPE]):
     """A special loop implementing what is known in Lightning as Manual Optimization where the optimization happens
     entirely in the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` and therefore the user
     is responsible for back-propagating gradients and making calls to the optimizers.
@@ -78,7 +81,7 @@ class ManualOptimization(Loop):
         super().__init__()
         self._done: bool = False
         self._hiddens: Optional[Any] = None
-        self._output: Optional[Dict[str, Any]] = None
+        self._output: _OUTPUTS_TYPE = {}
 
     @property
     def done(self) -> bool:
@@ -126,9 +129,9 @@ class ManualOptimization(Loop):
         self._done = True
         self._output = result.asdict()
 
-    def on_run_end(self) -> Optional[Dict[str, Any]]:
+    def on_run_end(self) -> _OUTPUTS_TYPE:
         """Returns the result of this loop, i.e., the post-processed outputs from the training step."""
-        output, self._output = self._output, None  # free memory
+        output, self._output = self._output, {}  # free memory
         # #9052 added support for raising `StopIteration` in the `training_step`. If that happens, then `advance`
         # doesn't finish and `self._output` stays as `None`. If #9415 happens then this would always return a result
         return output
