@@ -64,7 +64,7 @@ class CheckpointConnector:
         rank_zero_info(f"Restoring states from the checkpoint path at {checkpoint_path}")
         self._loaded_checkpoint = self._load_and_validate_checkpoint(checkpoint_path)
 
-    def _load_and_validate_checkpoint(self, checkpoint_path: _PATH) -> Optional[Dict[str, Any]]:
+    def _load_and_validate_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         loaded_checkpoint = self.trainer.training_type_plugin.load_checkpoint(checkpoint_path)
         if any(key in loaded_checkpoint for key in DEPRECATED_CHECKPOINT_KEYS):
             raise ValueError(

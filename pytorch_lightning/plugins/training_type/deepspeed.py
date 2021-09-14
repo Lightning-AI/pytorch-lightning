@@ -689,7 +689,7 @@ class DeepSpeedPlugin(DDPPlugin):
         checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
         self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint)
 
-    def load_checkpoint(self, checkpoint_path: Union[str, Path]) -> Optional[Dict[str, Any]]:
+    def load_checkpoint(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
         if self.load_full_weights and self.zero_stage_3:
             # Broadcast to ensure we load from the rank 0 checkpoint
             # This doesn't have to be the case when using deepspeed sharded checkpointing
