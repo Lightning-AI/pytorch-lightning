@@ -732,6 +732,7 @@ def test_fit_loop_reset(tmpdir):
     assert optimizer_loop.optim_progress.optimizer_idx == 1
 
     # resetting from a end-of-epoch checkpoint should reset the current counters to 0
+    epoch_loop._val_loop_done = True
     fit_loop.reset()
     epoch_loop.reset()
     optimizer_loop.reset()

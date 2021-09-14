@@ -53,6 +53,7 @@ class TrainingEpochLoop(loops.Loop):
 
         self._results = ResultCollection(training=True)
         self._epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
+        self._val_loop_done = False
 
     @property
     def total_batch_idx(self) -> int:
@@ -105,7 +106,7 @@ class TrainingEpochLoop(loops.Loop):
         # track epoch output
         self._epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
 
-        if not self.restarting or self._num_training_batches_reached():
+        if not self.restarting or (self._num_training_batches_reached() and self._val_loop_done):
             self.batch_progress.current.reset()
             self.scheduler_progress.current.reset()
             self.batch_loop.optimizer_loop.optim_progress.reset_on_epoch()
@@ -391,3 +392,11 @@ class TrainingEpochLoop(loops.Loop):
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
+
+    def on_save_checkpoint(self) -> Dict:
+        out = super().on_save_checkpoint()
+        out["val_loop_done"] = self.val_loop.done
+        return out
+
+    def on_load_checkpoint(self, state_dict: Dict) -> None:
+        self._val_loop_done = state_dict["val_loop_done"]
