@@ -78,7 +78,7 @@ class ManualOptimization(Loop):
         super().__init__()
         self._done: bool = False
         self._hiddens: Optional[Any] = None
-        self._output: Optional[ManualResult] = None
+        self._output: Optional[Dict[str, Any]] = None
 
     @property
     def done(self) -> bool:
@@ -124,9 +124,9 @@ class ManualOptimization(Loop):
                 self.trainer._results.cpu()
 
         self._done = True
-        self._output = result
+        self._output = result.asdict()
 
-    def on_run_end(self) -> Optional[ManualResult]:
+    def on_run_end(self) -> Optional[Dict[str, Any]]:
         """Returns the result of this loop, i.e., the post-processed outputs from the training step."""
         output, self._output = self._output, None  # free memory
         # #9052 added support for raising `StopIteration` in the `training_step`. If that happens, then `advance`
