@@ -463,10 +463,9 @@ def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: 
             "__pl_restart_meta": {"sampler_name0": state_dict0, "sampler_name1": state_dict1},
         }
     """
-    if not isinstance(dataset, (CaptureIterableDataset, CaptureMapDataset)):
-        return default_collate(samples)
-
     data = default_collate(samples)
+    if not isinstance(dataset, (CaptureIterableDataset, CaptureMapDataset)):
+        return data
     metadata = dataset.state_dict()
     return {"data": data, AutoRestartBatchKeys.PL_RESTART_META: metadata}
 
