@@ -21,7 +21,7 @@ import torch
 from torch import tensor
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher, DataLoaderIterDataFetcher, InterBatchParallelDataFetcher
@@ -179,6 +179,10 @@ def test_trainer_num_prefetch_batches(tmpdir):
 
     model = RecommenderModel()
 
+    class DebugCallback(Callback):
+        def on_train_start(self, trainer, lightning_module):
+            assert isinstance(trainer.data_connector.train_data_fetcher, InterBatchParallelDataFetcher)
+
     trainer_kwargs = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -186,6 +190,7 @@ def test_trainer_num_prefetch_batches(tmpdir):
         limit_train_batches=4,
         limit_val_batches=0,
         num_sanity_val_steps=0,
+        callbacks=[DebugCallback()],
     )
 
     with mock.patch.dict(os.environ, {"PL_INTER_BATCH_PARALLELISM": "1"}):
@@ -193,7 +198,6 @@ def test_trainer_num_prefetch_batches(tmpdir):
         trainer = Trainer(**trainer_kwargs)
         trainer.fit(model)
         t1 = time()
-        assert isinstance(trainer.data_connector.train_data_fetcher, InterBatchParallelDataFetcher)
         global_step = trainer.global_step
 
     torch.cuda.synchronize()
