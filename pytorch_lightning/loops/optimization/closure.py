@@ -37,6 +37,7 @@ class OutputResult:
                     " but this behaviour will change in v1.6. Please detach it manually:"
                     " `return {'loss': ..., 'something': something.detach()}`"
                 )
+                return v.detach()
             return v
 
         apply_to_collection(extra, Tensor, check_fn)

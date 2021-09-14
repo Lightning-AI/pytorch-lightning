@@ -19,7 +19,7 @@ from torch import Tensor
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.optimization.closure import OutputResult
 from pytorch_lightning.loops.utilities import _build_training_step_kwargs, _extract_hiddens, check_finite_loss
-from pytorch_lightning.utilities.memory import recursive_detach
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
@@ -37,8 +37,7 @@ class ManualResult(OutputResult):
 
     def __post_init__(self) -> None:
         # TODO: remove with the deprecation removal in v1.6
-        self._check_extra_detach_deprecation(self.extra)
-        self.extra = recursive_detach(self.extra)
+        self.extra = self._check_extra_detach_deprecation(self.extra)
 
     @classmethod
     def from_training_step_output(
@@ -48,10 +47,16 @@ class ManualResult(OutputResult):
         if isinstance(training_step_output, dict):
             extra = {k: v for k, v in training_step_output.items() if k != "hiddens"}
         elif isinstance(training_step_output, Tensor):
-            extra["loss"] = training_step_output
+            extra = {"loss": training_step_output}
+        elif training_step_output is not None:
+            raise MisconfigurationException(
+                "In manual optimization, `training_step` must either return a Tensor, "
+                "a dict with extras to pass to `training_epoch_end` or have no return."
+            )
 
         if "loss" in extra:
-            # accumulate the loss. If ``accumulate_grad_batches == 1``, no effect
+            # accumulate the loss. If `accumulate_grad_batches == 1`, no effect.
+            # we detach manually as it's expected that it will have a `grad_fn`
             extra["loss"] = extra["loss"].detach().div(normalize)
 
         return cls(extra=extra)

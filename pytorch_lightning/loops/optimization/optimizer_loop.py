@@ -34,7 +34,6 @@ from pytorch_lightning.utilities import AMPType, DeviceType, grad_norm
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
-from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -57,8 +56,7 @@ class ClosureResult(OutputResult):
 
     def __post_init__(self) -> None:
         # TODO: remove with the deprecation removal in v1.6
-        self._check_extra_detach_deprecation(self.extra)
-        self.extra = recursive_detach(self.extra)
+        self.extra = self._check_extra_detach_deprecation(self.extra)
 
         self._clone_loss()
 
