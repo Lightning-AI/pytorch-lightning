@@ -1,5 +1,6 @@
 from unittest.mock import Mock
 
+import pytest
 from torch.optim import SGD, Adam
 
 from pytorch_lightning import Trainer
@@ -7,11 +8,44 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from tests.helpers import BoringModel
 
 
-def test_optimizer_frequencies(tmpdir):
+@pytest.mark.parametrize(
+    "frequencies,expected",
+    [
+        (
+            (3, 1),
+            [
+                (0, "SGD"),
+                (0, "SGD"),
+                (0, "SGD"),
+                (1, "Adam"),
+                (0, "SGD"),
+                (0, "SGD"),
+                (0, "SGD"),
+                (1, "Adam"),
+                (0, "SGD"),
+                (0, "SGD"),
+            ],
+        ),
+        (
+            (1, 2),
+            [
+                (0, "SGD"),
+                (1, "Adam"),
+                (1, "Adam"),
+                (0, "SGD"),
+                (1, "Adam"),
+                (1, "Adam"),
+                (0, "SGD"),
+                (1, "Adam"),
+                (1, "Adam"),
+                (0, "SGD"),
+            ],
+        ),
+    ],
+)
+def test_optimizer_frequencies(tmpdir, frequencies, expected):
     """Test that the optimizer loop runs optimization for the correct optimizer and optimizer idx when different
     frequencies are requested."""
-    # call first optimizer 3 times, then second optimizer 1 time, then first optimizer 3 times, etc.
-    freq = (3, 1)
 
     class CurrentModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
@@ -20,7 +54,7 @@ def test_optimizer_frequencies(tmpdir):
         def configure_optimizers(self):
             opt0 = SGD(self.parameters(), lr=0.1)
             opt1 = Adam(self.parameters(), lr=0.1)
-            return {"optimizer": opt0, "frequency": freq[0]}, {"optimizer": opt1, "frequency": freq[1]}
+            return {"optimizer": opt0, "frequency": frequencies[0]}, {"optimizer": opt1, "frequency": frequencies[1]}
 
     model = CurrentModel()
     model.optimizer_step = Mock(wraps=model.optimizer_step)
@@ -38,5 +72,4 @@ def test_optimizer_frequencies(tmpdir):
     opt_idx_sequence = [args[3] for args in positional_args]
     assert all(isinstance(opt, LightningOptimizer) for opt in pl_optimizer_sequence)
     optimizer_sequence = [opt._optimizer.__class__.__name__ for opt in pl_optimizer_sequence]
-    assert optimizer_sequence == ["SGD", "SGD", "SGD", "Adam", "SGD", "SGD", "SGD", "Adam", "SGD", "SGD"]
-    assert opt_idx_sequence == [0, 0, 0, 1, 0, 0, 0, 1, 0, 0]
+    assert list(zip(opt_idx_sequence, optimizer_sequence)) == expected
