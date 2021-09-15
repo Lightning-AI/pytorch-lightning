@@ -180,7 +180,6 @@ class DDPPlugin(ParallelPlugin):
         # start the other scripts
         if not self.cluster_environment.creates_children():
             self._call_children_scripts()
-            self._has_called_call_children_scripts = True
 
         # set the task idx
         self.task_idx = self.cluster_environment.local_rank()
@@ -253,6 +252,8 @@ class DDPPlugin(ParallelPlugin):
             # with dataloaders delay between 1-10 seconds
             delay = np.random.uniform(1, 5, 1)[0]
             sleep(delay)
+
+        self._has_called_call_children_scripts = True
 
     def setup_distributed(self):
         reset_seed()
