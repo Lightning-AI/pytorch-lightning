@@ -24,7 +24,8 @@ from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBar, ProgressBarBase
-from pytorch_lightning.callbacks.progress import tqdm
+from pytorch_lightning.callbacks.progress.tqdm_progress import Tqdm
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -228,9 +229,7 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
 
 @pytest.mark.parametrize("limit_val_batches", (0, 5))
 def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches: int):
-    """
-    Test val_progress_bar total with 'num_sanity_val_steps' Trainer argument.
-    """
+    """Test val_progress_bar total with 'num_sanity_val_steps' Trainer argument."""
 
     class CurrentProgressBar(ProgressBar):
         val_pbar_total = 0
@@ -321,9 +320,10 @@ class MockedUpdateProgressBars(ProgressBar):
 def test_main_progress_bar_update_amount(
     tmpdir, train_batches: int, val_batches: int, refresh_rate: int, train_deltas: list, val_deltas: list
 ):
-    """
-    Test that the main progress updates with the correct amount together with the val progress. At the end of
-    the epoch, the progress must not overshoot if the number of steps is not divisible by the refresh rate.
+    """Test that the main progress updates with the correct amount together with the val progress.
+
+    At the end of the epoch, the progress must not overshoot if the number of steps is not divisible by the refresh
+    rate.
     """
     model = BoringModel()
     progress_bar = MockedUpdateProgressBars(refresh_rate=refresh_rate)
@@ -345,9 +345,7 @@ def test_main_progress_bar_update_amount(
 
 @pytest.mark.parametrize("test_batches,refresh_rate,test_deltas", [[1, 3, [1]], [3, 1, [1, 1, 1]], [5, 3, [3, 2]]])
 def test_test_progress_bar_update_amount(tmpdir, test_batches: int, refresh_rate: int, test_deltas: list):
-    """
-    Test that test progress updates with the correct amount.
-    """
+    """Test that test progress updates with the correct amount."""
     model = BoringModel()
     progress_bar = MockedUpdateProgressBars(refresh_rate=refresh_rate)
     trainer = Trainer(
@@ -363,7 +361,7 @@ def test_test_progress_bar_update_amount(tmpdir, test_batches: int, refresh_rate
 
 
 def test_tensor_to_float_conversion(tmpdir):
-    """Check tensor gets converted to float"""
+    """Check tensor gets converted to float."""
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -399,8 +397,8 @@ def test_tensor_to_float_conversion(tmpdir):
     ],
 )
 def test_tqdm_format_num(input_num: Union[str, int, float], expected: str):
-    """Check that the specialized tqdm.format_num appends 0 to floats and strings"""
-    assert tqdm.format_num(input_num) == expected
+    """Check that the specialized tqdm.format_num appends 0 to floats and strings."""
+    assert Tqdm.format_num(input_num) == expected
 
 
 class PrintModel(BoringModel):
@@ -421,7 +419,7 @@ class PrintModel(BoringModel):
         return super().predict_step(*args, **kwargs)
 
 
-@mock.patch("pytorch_lightning.callbacks.progress.tqdm.write")
+@mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm.write")
 def test_progress_bar_print(tqdm_write, tmpdir):
     """Test that printing in the LightningModule redirects arguments to the progress bar."""
     model = PrintModel()
@@ -448,7 +446,7 @@ def test_progress_bar_print(tqdm_write, tmpdir):
     ]
 
 
-@mock.patch("pytorch_lightning.callbacks.progress.tqdm.write")
+@mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm.write")
 def test_progress_bar_print_no_train(tqdm_write, tmpdir):
     """Test that printing in the LightningModule redirects arguments to the progress bar without training."""
     model = PrintModel()
@@ -475,7 +473,7 @@ def test_progress_bar_print_no_train(tqdm_write, tmpdir):
 
 
 @mock.patch("builtins.print")
-@mock.patch("pytorch_lightning.callbacks.progress.tqdm.write")
+@mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm.write")
 def test_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
     """Test that printing in LightningModule goes through built-in print function when progress bar is disabled."""
     model = PrintModel()
@@ -558,3 +556,55 @@ def _test_progress_bar_max_val_check_interval(
     total_val_batches = total_val_batches * val_checks_per_epoch
     if trainer.is_global_zero:
         assert trainer.progress_bar_callback.main_progress_bar.total == total_train_batches + total_val_batches
+
+
+def test_get_progress_bar_metrics(tmpdir: str):
+    class TestProgressBar(ProgressBar):
+        def get_metrics(self, trainer: Trainer, model: LightningModule):
+            items = super().get_metrics(trainer, model)
+            items.pop("v_num", None)
+            return items
+
+    progress_bar = TestProgressBar()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[progress_bar],
+        fast_dev_run=True,
+    )
+    model = BoringModel()
+    trainer.fit(model)
+    model.truncated_bptt_steps = 2
+    standard_metrics = progress_bar.get_metrics(trainer, model)
+    assert "loss" in standard_metrics.keys()
+    assert "split_idx" in standard_metrics.keys()
+    assert "v_num" not in standard_metrics.keys()
+
+
+def test_progress_bar_main_bar_resume():
+    """Test that the progress bar can resume its counters based on the Trainer state."""
+    bar = ProgressBar()
+    trainer = Mock()
+    model = Mock()
+
+    trainer.sanity_checking = False
+    trainer.check_val_every_n_epoch = 1
+    trainer.current_epoch = 1
+    trainer.num_training_batches = 5
+    trainer.val_check_batch = 5
+    trainer.num_val_batches = [3]
+    trainer.fit_loop.epoch_loop.batch_progress.current.completed = 3
+
+    bar.on_init_end(trainer)
+    bar.on_train_start(trainer, model)
+    bar.on_train_epoch_start(trainer, model)
+
+    assert bar.main_progress_bar.n == 3
+    assert bar.main_progress_bar.total == 8
+
+    # bar.on_train_epoch_end(trainer, model)
+    bar.on_validation_start(trainer, model)
+    bar.on_validation_epoch_start(trainer, model)
+
+    # restarting mid validation epoch is not currently supported
+    assert bar.val_progress_bar.n == 0
+    assert bar.val_progress_bar.total == 3

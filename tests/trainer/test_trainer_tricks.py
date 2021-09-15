@@ -20,9 +20,7 @@ from tests.base import EvalModelTemplate
 
 
 def test_num_training_batches(tmpdir):
-    """
-    Tests that the correct number of batches are allocated
-    """
+    """Tests that the correct number of batches are allocated."""
     # when we have fewer batches in the dataloader we should use those instead of the limit
     model = EvalModelTemplate()
     trainer = Trainer(limit_val_batches=100, limit_train_batches=100, max_epochs=1, default_root_dir=tmpdir)

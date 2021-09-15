@@ -74,7 +74,7 @@ class AMPTestModel(BoringModel):
     "accelerator",
     [
         None,
-        pytest.param("dp", marks=pytest.mark.skip("dp + amp not supported currently")),  # TODO
+        pytest.param("dp", marks=pytest.mark.skip("dp + amp not supported on CPU currently")),  # TODO
         "ddp_spawn",
     ],
 )
@@ -106,11 +106,7 @@ def test_amp_cpus(tmpdir, accelerator, precision, num_processes):
 @RunIf(min_gpus=2)
 @pytest.mark.parametrize(
     "accelerator",
-    [
-        None,
-        pytest.param("dp", marks=pytest.mark.skip("dp + amp not supported currently")),  # TODO
-        "ddp_spawn",
-    ],
+    [None, "dp", "ddp_spawn"],
 )
 @pytest.mark.parametrize(
     "precision",
@@ -188,10 +184,13 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
 
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="test is restricted only on CPU")
-def test_cpu_model_with_amp(tmpdir):
-    """Make sure model trains on CPU."""
-    with pytest.raises(MisconfigurationException, match="AMP is only available on GPU"):
-        Trainer(precision=16)
+@RunIf(max_torch="1.9")
+@pytest.mark.parametrize("precision", [16, "bf16"])
+def test_cpu_model_with_amp(tmpdir, precision):
+    """Make sure exception is thrown on CPU when precision 16 is enabled on PyTorch 1.9 and lower."""
+
+    with pytest.raises(MisconfigurationException, match="AMP is only available on GPU for PyTorch 1.9"):
+        Trainer(precision=precision)
 
 
 @mock.patch("pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward")

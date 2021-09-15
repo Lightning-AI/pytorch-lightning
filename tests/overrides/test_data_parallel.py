@@ -19,7 +19,6 @@ import torch.nn as nn
 from torch.nn import DataParallel
 
 from pytorch_lightning import LightningModule
-from pytorch_lightning.core.decorators import auto_move_data
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.data_parallel import (
     LightningParallelModule,
@@ -151,7 +150,6 @@ def test_lightning_parallel_module_device_access(nest, unnest):
             super().__init__()
             self.layer = nn.Linear(2, 3)
 
-        @auto_move_data
         def training_step(self, batch, batch_idx):
             batch = unnest(batch)
             assert batch.shape == torch.Size([1, 1])

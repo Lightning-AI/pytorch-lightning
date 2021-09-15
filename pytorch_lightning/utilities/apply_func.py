@@ -23,7 +23,6 @@ from typing import Any, Callable, List, Optional, Tuple, Union
 import numpy as np
 import torch
 
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_AVAILABLE
 
 if _TORCHTEXT_AVAILABLE:
@@ -36,22 +35,16 @@ else:
 
 
 def to_dtype_tensor(
-    value: Union[int, float, List[Union[int, float]]],
-    dtype: Optional[torch.dtype] = None,
-    device: Union[str, torch.device] = None,
+    value: Union[int, float, List[Union[int, float]]], dtype: torch.dtype, device: Union[str, torch.device]
 ) -> torch.Tensor:
-    if device is None:
-        raise MisconfigurationException("device (torch.device) should be provided.")
     return torch.tensor(value, dtype=dtype, device=device)
 
 
-def from_numpy(value: np.ndarray, device: Union[str, torch.device] = None) -> torch.Tensor:
-    if device is None:
-        raise MisconfigurationException("device (torch.device) should be provided.")
+def from_numpy(value: np.ndarray, device: Union[str, torch.device]) -> torch.Tensor:
     return torch.from_numpy(value).to(device)
 
 
-CONVERSION_DTYPES: List[Tuple[Any, Callable[[Any], torch.Tensor]]] = [
+CONVERSION_DTYPES: List[Tuple[Any, Callable[[Any, Any], torch.Tensor]]] = [
     # bool -> uint8 as bool -> torch.bool triggers RuntimeError: Unsupported data type for NCCL process group
     (bool, partial(to_dtype_tensor, dtype=torch.uint8)),
     (int, partial(to_dtype_tensor, dtype=torch.int)),
@@ -79,8 +72,7 @@ def apply_to_collection(
     include_none: bool = True,
     **kwargs: Any,
 ) -> Any:
-    """
-    Recursively applies a function to all elements of a certain dtype.
+    """Recursively applies a function to all elements of a certain dtype.
 
     Args:
         data: the collection to apply the function to
@@ -153,8 +145,7 @@ def apply_to_collections(
     wrong_dtype: Optional[Union[type, Tuple[type]]] = None,
     **kwargs: Any,
 ) -> Any:
-    """
-    Zips two collections and applies a function to their items of a certain dtype.
+    """Zips two collections and applies a function to their items of a certain dtype.
 
     Args:
         data1: The first collection
@@ -234,9 +225,8 @@ class TransferableDataType(ABC):
 
 
 def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
-    """
-    Transfers a collection of data to the given device. Any object that defines a method
-    ``to(device)`` will be moved and all other objects in the collection will be left untouched.
+    """Transfers a collection of data to the given device. Any object that defines a method ``to(device)`` will be
+    moved and all other objects in the collection will be left untouched.
 
     Args:
         batch: A tensor or collection of tensors or anything that has a method `.to(...)`.
@@ -276,9 +266,6 @@ def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
 
 
 def convert_to_tensors(data: Any, device: Union[str, torch.device]) -> Any:
-    if device is None:
-        raise MisconfigurationException("`torch.device` should be provided.")
-
     for src_dtype, conversion_func in CONVERSION_DTYPES:
         data = apply_to_collection(data, src_dtype, conversion_func, device=device)
 

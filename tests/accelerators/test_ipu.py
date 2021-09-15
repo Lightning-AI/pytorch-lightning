@@ -265,7 +265,7 @@ def test_accumulated_batches(tmpdir):
 
 @RunIf(ipu=True)
 def test_stages_correct(tmpdir):
-    """Ensure all stages correctly are traced correctly by asserting the output for each stage"""
+    """Ensure all stages correctly are traced correctly by asserting the output for each stage."""
 
     class StageModel(IPUModel):
         def training_step(self, batch, batch_idx):
@@ -312,7 +312,7 @@ def test_accumulate_grad_batches_dict_fails(tmpdir):
     model = IPUModel()
     trainer = Trainer(default_root_dir=tmpdir, ipus=1, accumulate_grad_batches={0: 1})
     with pytest.raises(
-        MisconfigurationException, match="IPUs currently only support accumulate_grad_batches being an integer value."
+        MisconfigurationException, match="IPUs currently only support `Trainer.accumulate_grad_batches` being an int"
     ):
         trainer.fit(model)
 
@@ -363,10 +363,8 @@ def test_manual_poptorch_opts(tmpdir):
 
 @RunIf(ipu=True)
 def test_manual_poptorch_opts_custom(tmpdir):
-    """
-    Ensure if the user passes manual poptorch Options with custom parameters set,
-    we respect them in our poptorch options and the dataloaders.
-    """
+    """Ensure if the user passes manual poptorch Options with custom parameters set, we respect them in our
+    poptorch options and the dataloaders."""
 
     model = IPUModel()
     training_opts = poptorch.Options()
@@ -418,10 +416,8 @@ def test_manual_poptorch_opts_custom(tmpdir):
 
 @RunIf(ipu=True)
 def test_replication_factor(tmpdir):
-    """
-    Ensure if the user passes manual poptorch Options with custom parameters set,
-    we set them correctly in the dataloaders.
-    """
+    """Ensure if the user passes manual poptorch Options with custom parameters set, we set them correctly in the
+    dataloaders."""
 
     plugin = IPUPlugin()
     trainer = Trainer(ipus=2, default_root_dir=tmpdir, fast_dev_run=True, plugins=plugin)
@@ -430,9 +426,7 @@ def test_replication_factor(tmpdir):
 
 @RunIf(ipu=True)
 def test_default_opts(tmpdir):
-    """
-    Ensure default opts are set correctly in the IPUPlugin.
-    """
+    """Ensure default opts are set correctly in the IPUPlugin."""
 
     model = IPUModel()
 
@@ -450,9 +444,7 @@ def test_default_opts(tmpdir):
 
 @RunIf(ipu=True)
 def test_multi_optimizers_fails(tmpdir):
-    """
-    Ensure if there are multiple optimizers, we throw an exception
-    """
+    """Ensure if there are multiple optimizers, we throw an exception."""
 
     class TestModel(IPUModel):
         def configure_optimizers(self):
@@ -467,9 +459,7 @@ def test_multi_optimizers_fails(tmpdir):
 
 @RunIf(ipu=True)
 def test_precision_plugin(tmpdir):
-    """
-    Ensure precision plugin value is set correctly.
-    """
+    """Ensure precision plugin value is set correctly."""
 
     plugin = IPUPrecisionPlugin(precision=16)
     assert plugin.precision == 16

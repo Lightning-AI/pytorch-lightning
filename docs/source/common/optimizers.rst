@@ -185,7 +185,7 @@ defined in your :meth:`~pytorch_lightning.core.lightning.LightningModule.configu
 .. warning::
    * Before 1.3, Lightning automatically called ``lr_scheduler.step()`` in both automatic and manual optimization. From
      1.3, ``lr_scheduler.step()`` is now for the user to call at arbitrary intervals.
-   * Note that the ``lr_dict`` keys, such as ``"step"`` and ``"interval"``, will be ignored even if they are provided in
+   * Note that the ``lr_scheduler_config`` keys, such as ``"step"`` and ``"interval"``, will be ignored even if they are provided in
      your :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers` during manual optimization.
 
 Here is an example calling ``lr_scheduler.step()`` every step.
@@ -443,7 +443,7 @@ For example, here step optimizer A every batch and optimizer B every 2 batches.
                 # the closure (which includes the `training_step`) will be executed by `optimizer.step`
                 optimizer.step(closure=optimizer_closure)
             else:
-                # optional: call the closure by itself to run `training_step` + `backward` without an optimizer step
+                # call the closure by itself to run `training_step` + `backward` without an optimizer step
                 optimizer_closure()
 
         # ...
