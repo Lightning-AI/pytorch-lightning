@@ -353,34 +353,6 @@ class LightningArgumentParser(ArgumentParser):
             return out
         return argv
 
-    @staticmethod
-    def _sanitize_argv(optimizers_and_lr_schedulers: List[str]) -> None:
-        """This function is used to replace ``<space>`` in ``sys.argv`` with ``=``."""
-
-        def validate_arg(v: str) -> bool:
-            keys = {"--optimizer", "--lr_scheduler", "--trainer.callbacks"}
-            keys.update({f"--{key}" for key in optimizers_and_lr_schedulers})
-            return any(v.startswith(k) for k in keys)
-
-        args = [idx for idx, v in enumerate(sys.argv) if validate_arg(v)]
-        if not args:
-            return
-        start_index = args[0]
-        argv = []
-        should_add = False
-        for v in sys.argv[start_index:]:
-            if validate_arg(v):
-                argv.append(v)
-                should_add = True
-            else:
-                if should_add and not v.startswith("--"):
-                    argv[-1] += "=" + v
-                else:
-                    argv.append(v)
-                should_add = False
-
-        sys.argv = sys.argv[:start_index] + argv
-
 
 class SaveConfigCallback(Callback):
     """Saves a LightningCLI config to the log_dir when training starts.
@@ -563,10 +535,7 @@ class LightningCLI:
         self.add_default_arguments_to_parser(parser)
         self.add_core_arguments_to_parser(parser)
         self.add_arguments_to_parser(parser)
-        # add default optimizer args
-        # FIXME: this should be done before or after
-        # FIXME: this shouldn't take `optimizers_and_lr_schedulers`
-        LightningArgumentParser._sanitize_argv(list(parser._optimizers) + list(parser._lr_schedulers))
+        # add default optimizer args if necessary
         if not parser._optimizers:  # already added by the user in `add_arguments_to_parser`
             parser.add_optimizer_args(OPTIMIZER_REGISTRY.classes)
         if not parser._lr_schedulers:  # already added by the user in `add_arguments_to_parser`
