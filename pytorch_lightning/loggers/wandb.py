@@ -103,10 +103,10 @@ class WandbLogger(LightningLoggerBase):
     .. code-block:: python
 
         # add one parameter
-        trainer.logger.experiment.config['key'] = value
+        wandb_logger.experiment.config['key'] = value
 
         # add multiple parameters
-        trainer.logger.experiment.config.update({key1: val1, ...})
+        wandb_logger.experiment.config.update({key1: val1, ...})
 
         # use directly wandb module
         wandb.config['key'] = value
@@ -134,7 +134,7 @@ class WandbLogger(LightningLoggerBase):
 
     .. code-block:: python
 
-    wandb_logger.unwatch(model)
+        wandb_logger.unwatch(model)
 
     **Log model checkpoints**
 
@@ -163,7 +163,8 @@ class WandbLogger(LightningLoggerBase):
 
     .. code-block:: python
 
-        # reference can be retrieved in artifacts panel (VERSION can also be an alias: 'latest' or 'best')
+        # reference can be retrieved in artifacts panel
+        # "VERSION" can be a version (ex: "v2") or an alias ("latest or "best")
         checkpoint_reference = 'USER/PROJECT/MODEL-RUN_ID:VERSION'
 
         # download checkpoint locally (if not already cached)
@@ -191,7 +192,18 @@ class WandbLogger(LightningLoggerBase):
 
     Log images with:
 
-    To be completed
+    .. code-block:: python
+
+        # using tensors, numpy arrays or PIL images
+        wandb_logger.log_images(key='samples', images=[img1, img2])
+
+        # adding captions
+        wandb_logger.log_images(key='samples', images=[img1, img2], captions=['tree', 'person'])
+
+        # using file path
+        wandb_logger.log_images(key='samples', images=['img_1.jpg', 'img_2.jpg'])
+
+    More arguments can be passed for logging segmentation masks and bounding boxes. Refer to `Image Overlays documentation <https://docs.wandb.ai/guides/track/log/media#image-overlays>`_.
 
     See Also:
         - `Demo in Google Colab <http://wandb.me/lightning>`__ with hyperparameter search and model logging
@@ -357,14 +369,24 @@ class WandbLogger(LightningLoggerBase):
         dataframe: "pandas.Dataframe" = None,
         step: Optional[int] = None,
     ) -> None:
+        """Log text as a Table. Can be defined either with `columns` and `data` or with `dataframe`."""
 
         metrics = {key: wandb.Table(columns=columns, data=data, dataframe=dataframe)}
         self.log_metrics(metrics, step)
 
     @rank_zero_only
-    def log_image(self, key: str, **kwargs: str) -> None:
+    def log_images(self, key: str, images: List[Any], **kwargs: str) -> None:
+        """
+        Log images (tensors, numpy arrays, PIL Images or file paths).
+
+        Optional kwargs are lists passed to each image (ex: caption, masks, boxes).
+        """
+        n = len(images)
+        for k, v in kwargs.items():
+            assert len(v) == n, f"Expected {n} items but only found {len(v)} for {k}"
         step = kwargs.pop("step", None)
-        metrics = {key: wandb.Image(kwargs)}
+        kwarg_list = [{k: kwargs[k][i] for k in kwargs.keys()} for i in range(n)]
+        metrics = {key: [wandb.Image(img, **kwarg) for img, kwarg in zip(images, kwarg_list)]}
         self.log_metrics(metrics, step)
 
     @property
