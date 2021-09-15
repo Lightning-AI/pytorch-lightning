@@ -11,13 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import re
 
 import pytest
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 
 
@@ -129,25 +127,6 @@ def test_should_stop_mid_epoch(tmpdir):
     assert model.validation_called_at == (0, 4)
 
 
-@pytest.mark.parametrize(["output"], [(5.0,), ({"a": 5},)])
-def test_warning_invalid_trainstep_output(tmpdir, output):
-    class InvalidTrainStepModel(BoringModel):
-        def training_step(self, batch, batch_idx):
-            return output
-
-    model = InvalidTrainStepModel()
-
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
-    with pytest.raises(
-        MisconfigurationException,
-        match=re.escape(
-            "In automatic optimization, `training_step` must either return a Tensor, "
-            "a dict with key 'loss' or None (where the step will be skipped)."
-        ),
-    ):
-        trainer.fit(model)
-
-
 def test_warning_valid_train_step_end(tmpdir):
     class ValidTrainStepEndModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -163,28 +142,3 @@ def test_warning_valid_train_step_end(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
 
     trainer.fit(model)
-
-
-def test_prepare_outputs(tmpdir):
-    """Test that the `extra` field of the saved `ResultCollection` objects for `training_epoch_end` doesn't get
-    accidentally modified by reference."""
-
-    class TestModel(BoringModel):
-        on_train_batch_end_called = 0
-
-        def on_train_batch_end(self, outputs, *args, **kwargs):
-            epoch_outputs = self.trainer.fit_loop.epoch_loop._epoch_output
-            epoch_outputs = epoch_outputs[0]  # 1 optimizer
-            assert len(epoch_outputs) == self.on_train_batch_end_called
-            # `extra` should be empty for all `ResultCollection` objects
-            assert all(not out.extra for out in epoch_outputs)
-            self.on_train_batch_end_called += 1
-
-        def training_epoch_end(self, outputs) -> None:
-            # override so epoch outputs get stored
-            pass
-
-    model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
-    trainer.fit(model)
-    assert model.on_train_batch_end_called == 2
