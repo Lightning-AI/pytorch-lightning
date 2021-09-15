@@ -205,6 +205,7 @@ class OptimizerLoop(Loop):
 
     def reset(self) -> None:
         if not self.restarting:
+            # when reset() is called from outside (manually), we reset the loop progress
             self.optim_progress.optimizer_position = 0
         self.outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
@@ -213,6 +214,8 @@ class OptimizerLoop(Loop):
     ) -> None:
         self._batch_idx = batch_idx
         self._indices, self._optimizers = zip(*optimizers)
+        if self.done:
+            self.optim_progress.optimizer_position = 0
 
     def advance(self, batch: Any, *args: Any, **kwargs: Any) -> None:  # type: ignore[override]
         result = self._run_optimization(
@@ -226,7 +229,6 @@ class OptimizerLoop(Loop):
         self.optim_progress.optimizer_position += 1
 
     def on_run_end(self) -> _OUTPUTS_TYPE:
-        self.optim_progress.optimizer_position = 0
         outputs, self.outputs = self.outputs, []  # free memory
         return outputs
 

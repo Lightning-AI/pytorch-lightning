@@ -813,7 +813,7 @@ def test_fit_loop_reset(tmpdir):
     epoch_loop.reset()
     optimizer_loop.reset()
     mid_epoch_reset_assertions()
-    assert optimizer_loop.optim_progress.optimizer_position == 0
+    assert optimizer_loop.optim_progress.optimizer_position == 1
 
     # reset state loaded from a checkpoint from the end of an epoch
     end_of_epoch_ckpt = torch.load(str(tmpdir / "epoch=0-step=3.ckpt"))
@@ -856,4 +856,4 @@ def test_fit_loop_reset(tmpdir):
     assert epoch_loop.batch_progress.current.ready == 0
     assert epoch_loop.batch_progress.current.completed == 0
 
-    assert optimizer_loop.optim_progress.optimizer_position == 0
+    assert optimizer_loop.optim_progress.optimizer_position == 1
