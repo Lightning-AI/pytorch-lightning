@@ -395,9 +395,12 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
     model.optimizer_step = Mock(wraps=model.optimizer_step)
     trainer.fit(model)
 
-    positional_args = [c[0] for c in model.optimizer_step.call_args_list]
-    sequence = [arg[3] for arg in positional_args]
-    assert sequence == opt_idx_sequence_resumed
+    def _assert_optimizer_sequence(method_mock, expected):
+        positional_args = [c[0] for c in method_mock.call_args_list]
+        sequence = [arg[3] for arg in positional_args]
+        assert sequence == expected
+
+    _assert_optimizer_sequence(model.optimizer_step, opt_idx_sequence_resumed)
 
     # trainer.fit_loop.load_state_dict(checkpoint, restart_progress=False)
     #
