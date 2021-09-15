@@ -143,8 +143,10 @@ class LightningArgumentParser(ArgumentParser):
             "--config", action=ActionConfigFile, help="Path to a configuration file in json or yaml format."
         )
         self.callback_keys: List[str] = []
-        self.optimizers_and_lr_schedulers: Dict[str, Tuple[Union[Type, Tuple[Type, ...]], str]] = {}
-        self._argv = sys.argv.copy()
+        self._optimizers: Dict[str, Tuple[Union[Type, Tuple[Type, ...]], str]] = {}
+        self._lr_schedulers: Dict[str, Tuple[Union[Type, Tuple[Type, ...]], str]] = {}
+        # we need a mutable global argv copy in order to support `add_class_choices`
+        sys._pl_argv = sys.argv.copy()
 
     def add_lightning_class_args(
         self,
@@ -208,7 +210,7 @@ class LightningArgumentParser(ArgumentParser):
             self.add_class_choices(optimizer_class, nested_key, **kwargs)
         else:
             self.add_class_arguments(optimizer_class, nested_key, **kwargs)
-        self.optimizers_and_lr_schedulers[nested_key] = (optimizer_class, link_to)
+        self._optimizers[nested_key] = (optimizer_class, link_to)
 
     def add_lr_scheduler_args(
         self,
@@ -232,33 +234,40 @@ class LightningArgumentParser(ArgumentParser):
             self.add_class_choices(lr_scheduler_class, nested_key, **kwargs)
         else:
             self.add_class_arguments(lr_scheduler_class, nested_key, **kwargs)
-        self.optimizers_and_lr_schedulers[nested_key] = (lr_scheduler_class, link_to)
+        self._lr_schedulers[nested_key] = (lr_scheduler_class, link_to)
 
     def parse_args(self, *args, **kwargs) -> Union[Namespace, Dict[str, Any]]:
         # hack before https://github.com/omni-us/jsonargparse/issues/85
-        argv = self._prepare_class_list_from_registry(self._argv, "--trainer.callbacks", CALLBACK_REGISTRY)
+        argv = self._prepare_class_list_from_registry(sys._pl_argv, "--trainer.callbacks", CALLBACK_REGISTRY)
         with mock.patch("sys.argv", argv):
             return super().parse_args(*args, **kwargs)
 
-    def add_class_choices(self, classes: Tuple[Type, ...], nested_key: str, *args: Any, **kwargs: Any) -> None:
-        """Replacement for https://github.com/omni-us/jsonargparse/issues/84.
+    def add_class_choices(
+        self, classes: Tuple[Type, ...], nested_key: str, *args: Any, required: bool = False, **kwargs: Any
+    ) -> None:
+        """Placeholder for https://github.com/omni-us/jsonargparse/issues/84.
 
         This should be removed once implemented.
         """
-        if self._probably_defined_in_config(nested_key, self._argv):
-            # parsing config files would be too difficult, fall back to what's available
-            self.add_subclass_arguments(classes, nested_key, *args, **kwargs)
+        if not any(arg.startswith(f"--{nested_key}") for arg in sys._pl_argv):  # the key was passed
+            if any(arg.startswith("--config") for arg in sys._pl_argv):  # a config was passed
+                # parsing config files would be too difficult, fall back to what's available
+                self.add_subclass_arguments(classes, nested_key, *args, **kwargs)
+            elif required:
+                raise MisconfigurationException(f"The {nested_key} is required but wasn't passed")
         else:
-            clean_argv, config = self._convert_argv_to_config(classes, nested_key, self._argv)
+            clean_argv, config = self._convert_argv_to_config(classes, nested_key, sys._pl_argv)
             self.add_subclass_arguments(classes, nested_key, *args, **kwargs)
             self.set_defaults({nested_key: config})
-            self._argv = clean_argv
+            sys._pl_argv = clean_argv
 
     @staticmethod
-    def _probably_defined_in_config(nested_key: str, argv: List[str]) -> bool:
-        key_in_argv = any(arg.startswith(f"--{nested_key}") for arg in argv)
-        has_config = any(arg.startswith("--config") for arg in argv)
-        return not key_in_argv and has_config
+    def _try_eval(val: str) -> Any:
+        try:
+            val = ast.literal_eval(val)
+        except ValueError:
+            pass
+        return val
 
     @staticmethod
     def _convert_argv_to_config(classes: Tuple[Type, ...], nested_key: str, argv: List[str]) -> Tuple[List[str], Dict]:
@@ -285,7 +294,8 @@ class LightningArgumentParser(ArgumentParser):
         if argv_class is None:
             # the user passed a config as a str
             class_path = passed_args[f"{argv_key}.class_path"]
-            init_args = passed_args.get(f"{argv_key}.init_args", {})
+            init_args_key = f"{argv_key}.init_args"
+            init_args = {k[len(init_args_key) + 1 :]: v for k, v in passed_args.items() if k.startswith(init_args_key)}
             config = {"class_path": class_path, "init_args": init_args}
         elif argv_class.startswith("{"):
             # the user passed a config as a dict
@@ -300,6 +310,8 @@ class LightningArgumentParser(ArgumentParser):
                     break
             else:
                 raise ValueError(f"Could not generate a config for {repr(argv_class)}")
+        # need to convert from str to the appropriate type
+        config["init_args"] = {k: LightningArgumentParser._try_eval(v) for k, v in config["init_args"].items()}
         return clean_argv, config
 
     @staticmethod
@@ -368,11 +380,6 @@ class LightningArgumentParser(ArgumentParser):
                 should_add = False
 
         sys.argv = sys.argv[:start_index] + argv
-
-    @staticmethod
-    def _contains_from_registry(pattern: str, registry: _Registry) -> bool:
-        # FIXME: remove me after https://github.com/omni-us/jsonargparse/issues/83
-        return any(f"--{pattern}={name}" == v for v in sys.argv for name in registry)
 
 
 class SaveConfigCallback(Callback):
@@ -559,15 +566,11 @@ class LightningCLI:
         # add default optimizer args
         # FIXME: this should be done before or after
         # FIXME: this shouldn't take `optimizers_and_lr_schedulers`
-        LightningArgumentParser._sanitize_argv(list(parser.optimizers_and_lr_schedulers))
-        if "optimizer" not in parser.groups:  # already added by the user in `add_arguments_to_parser`
-            # FIXME: remove me after https://github.com/omni-us/jsonargparse/issues/83
-            if LightningArgumentParser._contains_from_registry("optimizer", OPTIMIZER_REGISTRY):
-                parser.add_optimizer_args(OPTIMIZER_REGISTRY.classes)
-        if "lr_scheduler" not in parser.groups:  # already added by the user in `add_arguments_to_parser`
-            # FIXME: remove me after https://github.com/omni-us/jsonargparse/issues/83
-            if LightningArgumentParser._contains_from_registry("lr_scheduler", LR_SCHEDULER_REGISTRY):
-                parser.add_lr_scheduler_args(LR_SCHEDULER_REGISTRY.classes)
+        LightningArgumentParser._sanitize_argv(list(parser._optimizers) + list(parser._lr_schedulers))
+        if not parser._optimizers:  # already added by the user in `add_arguments_to_parser`
+            parser.add_optimizer_args(OPTIMIZER_REGISTRY.classes)
+        if not parser._lr_schedulers:  # already added by the user in `add_arguments_to_parser`
+            parser.add_lr_scheduler_args(LR_SCHEDULER_REGISTRY.classes)
         self.link_optimizers_and_lr_schedulers(parser)
 
     def add_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
@@ -616,7 +619,8 @@ class LightningCLI:
     @staticmethod
     def link_optimizers_and_lr_schedulers(parser: LightningArgumentParser) -> None:
         """Creates argument links for optimizers and learning rate schedulers that specified a ``link_to``."""
-        for key, (class_type, link_to) in parser.optimizers_and_lr_schedulers.items():
+        optimizers_and_lr_schedulers = {**parser._optimizers, **parser._lr_schedulers}
+        for key, (class_type, link_to) in optimizers_and_lr_schedulers.items():
             if link_to == "AUTOMATIC":
                 continue
             if isinstance(class_type, tuple):
@@ -665,7 +669,7 @@ class LightningCLI:
             config["callbacks"].append(config_callback)
         return self.trainer_class(**config)
 
-    def _parser(self, subcommand: Optional[str]) -> ArgumentParser:
+    def _parser(self, subcommand: Optional[str]) -> LightningArgumentParser:
         if subcommand is None:
             return self.parser
         # return the subcommand parser for the subcommand passed
@@ -680,19 +684,20 @@ class LightningCLI:
         `configure_optimizers` method is automatically implemented in the model class.
         """
         parser = self._parser(subcommand)
-        optimizers_and_lr_schedulers = parser.optimizers_and_lr_schedulers
 
-        def get_automatic(class_type: Union[Type, Tuple[Type, ...]]) -> List[str]:
+        def get_automatic(
+            class_type: Union[Type, Tuple[Type, ...]], register: Dict[str, Tuple[Union[Type, Tuple[Type, ...]], str]]
+        ) -> List[str]:
             automatic = []
-            for key, (base_class, link_to) in optimizers_and_lr_schedulers.items():
+            for key, (base_class, link_to) in register.items():
                 if not isinstance(base_class, tuple):
                     base_class = (base_class,)
                 if link_to == "AUTOMATIC" and any(issubclass(c, class_type) for c in base_class):
                     automatic.append(key)
             return automatic
 
-        optimizers = get_automatic(Optimizer)
-        lr_schedulers = get_automatic(LRSchedulerTypeTuple)
+        optimizers = get_automatic(Optimizer, parser._optimizers)
+        lr_schedulers = get_automatic(LRSchedulerTypeTuple, parser._lr_schedulers)
 
         if len(optimizers) == 0:
             return
@@ -712,14 +717,17 @@ class LightningCLI:
                 f"`{self.__class__.__name__}.add_configure_optimizers_method_to_model`."
             )
 
-        optimizer_class = optimizers_and_lr_schedulers[optimizers[0]][0]
-        optimizer_init = self._get(self.config_init, optimizers[0], default={})
+        optimizer_class = parser._optimizers[optimizers[0]][0]
+        optimizer_init = self._get(self.config_init, optimizers[0])
         if not isinstance(optimizer_class, tuple):
             optimizer_init = _global_add_class_path(optimizer_class, optimizer_init)
+        if not optimizer_init:
+            # optimizers were registered automatically but not passed by the user
+            return
         lr_scheduler_init = None
         if lr_schedulers:
-            lr_scheduler_class = optimizers_and_lr_schedulers[lr_schedulers[0]][0]
-            lr_scheduler_init = self._get(self.config_init, lr_schedulers[0], default={})
+            lr_scheduler_class = parser._lr_schedulers[lr_schedulers[0]][0]
+            lr_scheduler_init = self._get(self.config_init, lr_schedulers[0])
             if not isinstance(lr_scheduler_class, tuple):
                 lr_scheduler_init = _global_add_class_path(lr_scheduler_class, lr_scheduler_init)
 

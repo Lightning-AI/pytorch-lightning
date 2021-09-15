@@ -1002,7 +1002,7 @@ def test_argv_transformations_with_optimizers_and_lr_schedulers():
     assert actual == expected
 
     argv = base + ["--optimizer", "Adadelta", "--optimizer.lr", "10"]
-    expected = {"class_path": "torch.optim.adadelta.Adadelta", "init_args": {"lr": "10"}}
+    expected = {"class_path": "torch.optim.adadelta.Adadelta", "init_args": {"lr": 10}}
     base, actual = LightningArgumentParser._convert_argv_to_config(OPTIMIZER_REGISTRY.classes, "optimizer", argv)
     assert new_argv == base
     assert actual == expected
