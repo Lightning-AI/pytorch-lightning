@@ -20,6 +20,7 @@ from pytorch_lightning.plugins.training_type.single_device import SingleDevicePl
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import _PATH
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -62,10 +63,10 @@ class SingleTPUPlugin(SingleDevicePlugin):
         self.tpu_local_core_rank = xm.get_local_ordinal()
         self.tpu_global_core_rank = xm.get_ordinal()
 
-    def save(self, state_dict: Dict, path: str) -> None:
+    def save(self, state_dict: Dict, path: _PATH) -> None:
         xm.save(state_dict, path)
 
-    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: _PATH) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
