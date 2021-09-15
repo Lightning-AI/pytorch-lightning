@@ -205,6 +205,19 @@ class WandbLogger(LightningLoggerBase):
 
     More arguments can be passed for logging segmentation masks and bounding boxes. Refer to `Image Overlays documentation <https://docs.wandb.ai/guides/track/log/media#image-overlays>`_.
 
+    **Log Tables**
+
+    `W&B Tables <https://docs.wandb.ai/guides/data-vis>`_ can be used to log, query and analyze tabular data.
+
+    They support any type of media (text, image, video, audio, molecule, html, etc) and are great for storing, understanding and sharing any form of data, from datasets to model predictions.
+
+    .. code-block:: python
+
+        columns = ['caption', 'image', 'sound']
+        data = [['cheese', wandb.Image(image_1), wandb.Audio(sound_1)]
+                ['wine', wandb.Image(image_2), wandb.Audio(sound_2)]]
+        wandb_logger.log_table(key='samples', columns=columns, data=data)
+
     See Also:
         - `Demo in Google Colab <http://wandb.me/lightning>`__ with hyperparameter search and model logging
         - `W&B Documentation <https://docs.wandb.ai/integrations/lightning>`__
@@ -361,6 +374,23 @@ class WandbLogger(LightningLoggerBase):
             self.experiment.log(metrics)
 
     @rank_zero_only
+    def log_table(
+        self,
+        key: str,
+        columns: List[str] = None,
+        data: List[List[Any]] = None,
+        dataframe: "pandas.Dataframe" = None,
+        step: Optional[int] = None,
+    ) -> None:
+        """Log a Table containing any object type (text, image, audio, video, molecule, html, etc).
+
+        Can be defined either with `columns` and `data` or with `dataframe`.
+        """
+
+        metrics = {key: wandb.Table(columns=columns, data=data, dataframe=dataframe)}
+        self.log_metrics(metrics, step)
+
+    @rank_zero_only
     def log_text(
         self,
         key: str,
@@ -374,8 +404,7 @@ class WandbLogger(LightningLoggerBase):
         Can be defined either with `columns` and `data` or with `dataframe`.
         """
 
-        metrics = {key: wandb.Table(columns=columns, data=data, dataframe=dataframe)}
-        self.log_metrics(metrics, step)
+        self.log_table(key, columns, data, dataframe, step)
 
     @rank_zero_only
     def log_images(self, key: str, images: List[Any], **kwargs: str) -> None:
