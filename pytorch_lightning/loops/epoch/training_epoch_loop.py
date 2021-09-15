@@ -324,7 +324,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                 swapped[i] = batch[0]
 
         # squeeze optimizer dimension
-        return swapped[0] if len(swapped) == 1 else swapped
+        return swapped[0] if len(swapped) == 1 and not isinstance(swapped[0], dict) else swapped
 
     def update_lr_schedulers(self, interval: str, update_plateau_schedulers: bool) -> None:
         """updates the lr schedulers based on the given interval."""
