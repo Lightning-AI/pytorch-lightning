@@ -15,7 +15,7 @@ import os
 import pickle
 from argparse import ArgumentParser
 from unittest import mock
-
+import pandas
 import pytest
 
 from pytorch_lightning import Trainer
@@ -214,6 +214,54 @@ def test_wandb_log_model(wandb, tmpdir):
             },
         },
     )
+
+
+@mock.patch("pytorch_lightning.loggers.wandb.wandb")
+def test_wandb_log_media(wandb, tmpdir):
+    """Test that the logger creates the folders and files in the right place."""
+
+    wandb.run = None
+
+    # test log_text with columns and data
+    columns = ["input", "label", "prediction"]
+    data = [["cheese", "english", "english"], ["fromage", "french", "spanish"]]
+    logger = WandbLogger()
+    logger.log_text(key="samples", columns=columns, data=data)
+    wandb.Table.assert_called_once_with(
+        columns=["input", "label", "prediction"],
+        data=[["cheese", "english", "english"], ["fromage", "french", "spanish"]],
+        dataframe=None,
+    )
+    wandb.init().log.assert_called_once_with({"samples": wandb.Table()})
+
+    # test log_text with dataframe
+    wandb.Table.reset_mock()
+    wandb.init().log.reset_mock()
+    df = pandas.DataFrame({"col1": [1, 2], "col2": [3, 4]})
+    logger.log_text(key="samples", dataframe=df)
+    wandb.Table.assert_called_once_with(
+        columns=None,
+        data=None,
+        dataframe=df,
+    )
+    wandb.init().log.assert_called_once_with({"samples": wandb.Table()})
+
+    # test log_images
+    wandb.init().log.reset_mock()
+    logger.log_images(key="samples", images=["1.jpg", "2.jpg"])
+    wandb.Image.assert_called_with("2.jpg")
+    wandb.init().log.assert_called_once_with({"samples": [wandb.Image(), wandb.Image()]})
+
+    # test log_images with captions
+    wandb.init().log.reset_mock()
+    wandb.Image.reset_mock()
+    logger.log_images(key="samples", images=["1.jpg", "2.jpg"], caption=["caption 1", "caption 2"])
+    wandb.Image.assert_called_with("2.jpg", caption="caption 2")
+    wandb.init().log.assert_called_once_with({"samples": [wandb.Image(), wandb.Image()]})
+
+    # test log_images with wrong number of captions
+    with pytest.raises(AssertionError, match="Expected 2 items but only found 1 for caption"):
+        logger.log_images(key="samples", images=["1.jpg", "2.jpg"], caption=["caption 1"])
 
 
 def test_wandb_sanitize_callable_params(tmpdir):
