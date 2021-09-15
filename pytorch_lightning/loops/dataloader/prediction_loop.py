@@ -100,20 +100,20 @@ class PredictionLoop(DataLoaderLoop):
         self._on_predict_end()
         return results
 
-    def on_predict_start(self) -> None:
+    def _on_predict_start(self) -> None:
         """Sets model to eval mode and disables gradients.
 
         Also calls ``on_predict_start`` and ``on_predict_epoch_start`` hooks.
         """
         # enable eval mode + no grads
-        self.on_predict_model_eval()
+        self._on_predict_model_eval()
         self.trainer.lightning_module.zero_grad()
 
         # hook
         self.trainer.call_hook("on_predict_start")
         self.trainer.call_hook("on_predict_epoch_start")
 
-    def on_predict_epoch_end(self) -> Optional[_PREDICT_OUTPUT]:
+    def _on_predict_epoch_end(self) -> Optional[_PREDICT_OUTPUT]:
         """Calls ``on_predict_epoch_end`` hook.
 
         Returns:
@@ -126,7 +126,7 @@ class PredictionLoop(DataLoaderLoop):
         if self.return_predictions:
             return results[0] if self.num_dataloaders == 1 else results
 
-    def on_predict_end(self) -> None:
+    def _on_predict_end(self) -> None:
         """Resets previous gradient status and calls ``on_predict_end`` hook."""
         # clear memory. the predictions are extracted in `on_predict_epoch_end`.
         self.predictions = []
@@ -135,7 +135,7 @@ class PredictionLoop(DataLoaderLoop):
         # hook
         self.trainer.call_hook("on_predict_end")
 
-    def on_predict_model_eval(self):
+    def _on_predict_model_eval(self):
         """Calls ``on_predict_model_eval`` hook."""
         model_ref = self.trainer.lightning_module
         model_ref.on_predict_model_eval()
