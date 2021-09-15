@@ -312,7 +312,7 @@ def test_accumulate_grad_batches_dict_fails(tmpdir):
     model = IPUModel()
     trainer = Trainer(default_root_dir=tmpdir, ipus=1, accumulate_grad_batches={0: 1})
     with pytest.raises(
-        MisconfigurationException, match="IPUs currently only support accumulate_grad_batches being an integer value."
+        MisconfigurationException, match="IPUs currently only support `Trainer.accumulate_grad_batches` being an int"
     ):
         trainer.fit(model)
 

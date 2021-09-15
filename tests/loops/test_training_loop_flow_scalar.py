@@ -18,7 +18,7 @@ from torch.utils.data._utils.collate import default_collate
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.loops.optimization.closure import Closure
+from pytorch_lightning.loops.optimization.optimizer_loop import Closure
 from pytorch_lightning.trainer.states import RunningStage
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.deterministic_model import DeterministicModel
@@ -153,8 +153,8 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     train_step_out = out.training_step_output
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out.loss, torch.Tensor)
-    assert train_step_out.loss.item() == 171
+    assert isinstance(train_step_out["loss"], torch.Tensor)
+    assert train_step_out["loss"].item() == 171
 
     # make sure the optimizer closure returns the correct things
     opt_closure = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._make_closure(
@@ -227,8 +227,8 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     train_step_out = out.training_step_output
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out.loss, torch.Tensor)
-    assert train_step_out.loss.item() == 171
+    assert isinstance(train_step_out["loss"], torch.Tensor)
+    assert train_step_out["loss"].item() == 171
 
     # make sure the optimizer closure returns the correct things
     opt_closure = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._make_closure(
@@ -249,17 +249,16 @@ def test_train_step_no_return(tmpdir):
             self.log("a", loss, on_step=True, on_epoch=True)
 
         def training_epoch_end(self, outputs) -> None:
-            assert len(outputs) == 0
+            assert len(outputs) == 0, outputs
 
         def validation_step(self, batch, batch_idx):
             self.validation_step_called = True
 
         def validation_epoch_end(self, outputs):
-            assert len(outputs) == 0
+            assert len(outputs) == 0, outputs
 
     model = TestModel()
     trainer_args = dict(default_root_dir=tmpdir, fast_dev_run=2)
-
     trainer = Trainer(**trainer_args)
 
     Closure.warning_cache.clear()
