@@ -334,6 +334,90 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     assert trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.state_dict() == expected
 
 
+@RunIf(min_torch="1.7.0")
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+@pytest.mark.parametrize("stop_epoch", (1, 2))
+@pytest.mark.parametrize("stop_batch", (1, 2))
+@pytest.mark.parametrize("n_optimizers,stop_optimizer", [(2, 0), (2, 1), (3, 2)])
+def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_optimizer, stop_epoch, stop_batch):
+    n_batches = 5
+    n_epochs = 3
+
+    class MultipleOptimizerModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+
+        def training_step(self, batch, batch_idx, optimizer_idx):
+            print(batch_idx, optimizer_idx)
+            if self.current_epoch == stop_epoch and batch_idx == stop_batch and optimizer_idx == stop_optimizer:
+                raise CustomException
+            return super().training_step(batch, batch_idx)
+
+        def configure_optimizers(self):
+            return [torch.optim.SGD(self.parameters(), lr=0.1) for _ in range(n_optimizers)]
+
+    model = MultipleOptimizerModel()
+    model.training_epoch_end = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=n_epochs,
+        limit_train_batches=n_batches,
+        num_sanity_val_steps=0,
+        logger=False,
+    )
+
+    # simulate a failure
+    try:
+        trainer.fit(model)
+    except CustomException:
+        pass
+
+    ckpt_path = str(tmpdir / ".pl_auto_save.ckpt")
+    checkpoint = torch.load(ckpt_path)["loops"]["fit_loop"]
+
+    trainer = Trainer()
+    trainer.fit_loop.load_state_dict(checkpoint, restart_progress=False)
+
+    # `nbe_`: non-breaking epoch, as in, no exception will be raised. `be_`: breaking epoch
+    nbe_total_optimizers = stop_epoch * n_optimizers * n_batches
+    be_total_optimizers = stop_batch * n_optimizers + stop_optimizer
+    total_optimizers = nbe_total_optimizers + be_total_optimizers
+    expected = {
+        "optimizer": {
+            "step": {
+                "total": {"ready": total_optimizers + 1, "completed": total_optimizers},
+                "current": {"ready": stop_optimizer + 1, "completed": stop_optimizer},
+            },
+            "zero_grad": {
+                "total": {"ready": total_optimizers, "started": total_optimizers, "completed": total_optimizers},
+                "current": {"ready": stop_optimizer, "started": stop_optimizer, "completed": stop_optimizer},
+            },
+        },
+        "optimizer_position": stop_optimizer,
+    }
+    assert trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress.state_dict() == expected
+
+    trainer = Trainer()
+
+    # restart_progress = True sets current.ready to current.completed, leaves all other progress unchanged
+    trainer.fit_loop.load_state_dict(checkpoint, restart_progress=True)
+    expected = {
+        "optimizer": {
+            "step": {
+                "total": {"ready": total_optimizers + 1, "completed": total_optimizers},
+                "current": {"ready": stop_optimizer, "completed": stop_optimizer},
+            },
+            "zero_grad": {
+                "total": {"ready": total_optimizers, "started": total_optimizers, "completed": total_optimizers},
+                "current": {"ready": stop_optimizer, "started": stop_optimizer, "completed": stop_optimizer},
+            },
+        },
+        "optimizer_position": stop_optimizer,
+    }
+    assert trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress.state_dict() == expected
+
+
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))
 @pytest.mark.parametrize("n_optimizers", (1, 3, 5))
