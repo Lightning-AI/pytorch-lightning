@@ -21,9 +21,9 @@ from pytorch_lightning.callbacks import (
     ModelSummary,
     ProgressBar,
     ProgressBarBase,
-    RichModelSummary,
     RichProgressBar,
 )
+from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities import ModelSummaryMode, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
