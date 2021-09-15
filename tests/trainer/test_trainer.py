@@ -1818,12 +1818,13 @@ def test_exception_when_lightning_module_is_not_set_on_trainer():
         trainer.predict()
 
 
+class CustomException(Exception):
+    pass
+
+
 @RunIf(min_gpus=2, special=True)
 def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
     """Test that DDP kills the remaining processes when only one rank is throwing an exception."""
-
-    class CustomException(Exception):
-        pass
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
