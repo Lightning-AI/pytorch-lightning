@@ -590,10 +590,26 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     # need to remove these elements for comparison; comparing with `fit_loop.state_dict()` would require the
     # fit loop to have an iterator, which is only available during training
     checkpoint["loops"]["fit_loop"]["state_dict"]["dataloader_state_dict"] = ANY
-
     assert state_dict == checkpoint["loops"]["fit_loop"]
 
-    trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"])
+    # with `restart_progress=True`, we expect all `ready` counters to be reset to `completed`
+    trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"], restart_progress=True)
+
+    epoch_progress = trainer.fit_loop.epoch_progress
+    assert epoch_progress.current.ready == stop_epoch
+    assert epoch_progress.current.completed == stop_epoch
+
+    batch_progress = trainer.fit_loop.epoch_loop.batch_progress
+    assert batch_progress.current.ready == be_batches_completed
+    assert batch_progress.current.completed == be_batches_completed
+
+    optim_progress = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress
+    assert optim_progress.optimizer.step.current.ready == be_total_opt_steps
+    assert optim_progress.optimizer.step.current.completed == be_total_opt_steps
+    assert optim_progress.optimizer.zero_grad.current.ready == be_total_zero_grad
+    assert optim_progress.optimizer.zero_grad.current.completed == be_total_zero_grad
+
+    # not sure what the point of these assertions is
     state_dict = trainer.fit_loop.state_dict()
     assert state_dict != checkpoint["loops"]["fit_loop"]
     assert state_dict["epoch_progress"]["total"]["started"] == stop_epoch + 1
