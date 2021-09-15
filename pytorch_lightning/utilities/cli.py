@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import ast
 import inspect
 import os
 import sys
@@ -143,6 +144,7 @@ class LightningArgumentParser(ArgumentParser):
         )
         self.callback_keys: List[str] = []
         self.optimizers_and_lr_schedulers: Dict[str, Tuple[Union[Type, Tuple[Type, ...]], str]] = {}
+        self._argv = sys.argv.copy()
 
     def add_lightning_class_args(
         self,
@@ -203,7 +205,7 @@ class LightningArgumentParser(ArgumentParser):
             assert issubclass(optimizer_class, Optimizer)
         kwargs = {"instantiate": False, "fail_untyped": False, "skip": {"params"}}
         if isinstance(optimizer_class, tuple):
-            self.add_subclass_arguments(optimizer_class, nested_key, **kwargs)
+            self.add_class_choices(optimizer_class, nested_key, **kwargs)
         else:
             self.add_class_arguments(optimizer_class, nested_key, **kwargs)
         self.optimizers_and_lr_schedulers[nested_key] = (optimizer_class, link_to)
@@ -227,48 +229,78 @@ class LightningArgumentParser(ArgumentParser):
             assert issubclass(lr_scheduler_class, LRSchedulerTypeTuple)
         kwargs = {"instantiate": False, "fail_untyped": False, "skip": {"optimizer"}}
         if isinstance(lr_scheduler_class, tuple):
-            self.add_subclass_arguments(lr_scheduler_class, nested_key, **kwargs)
+            self.add_class_choices(lr_scheduler_class, nested_key, **kwargs)
         else:
             self.add_class_arguments(lr_scheduler_class, nested_key, **kwargs)
         self.optimizers_and_lr_schedulers[nested_key] = (lr_scheduler_class, link_to)
 
     def parse_args(self, *args, **kwargs) -> Union[Namespace, Dict[str, Any]]:
-        # hack before https://github.com/omni-us/jsonargparse/issues/84
-        argv = self._prepare_from_registry(sys.argv, OPTIMIZER_REGISTRY)
-        argv = self._prepare_from_registry(argv, LR_SCHEDULER_REGISTRY)
         # hack before https://github.com/omni-us/jsonargparse/issues/85
-        argv = self._prepare_class_list_from_registry(argv, "--trainer.callbacks", CALLBACK_REGISTRY)
+        argv = self._prepare_class_list_from_registry(self._argv, "--trainer.callbacks", CALLBACK_REGISTRY)
         with mock.patch("sys.argv", argv):
             return super().parse_args(*args, **kwargs)
 
+    def add_class_choices(self, classes: Tuple[Type, ...], nested_key: str, *args: Any, **kwargs: Any) -> None:
+        """Replacement for https://github.com/omni-us/jsonargparse/issues/84.
+
+        This should be removed once implemented.
+        """
+        if self._probably_defined_in_config(nested_key, self._argv):
+            # parsing config files would be too difficult, fall back to what's available
+            self.add_subclass_arguments(classes, nested_key, *args, **kwargs)
+        else:
+            clean_argv, config = self._convert_argv_to_config(classes, nested_key, self._argv)
+            self.add_subclass_arguments(classes, nested_key, *args, **kwargs)
+            self.set_defaults({nested_key: config})
+            self._argv = clean_argv
+
     @staticmethod
-    def _prepare_from_registry(argv: List[str], registry: _Registry) -> List[str]:
-        # find if the users is using shortcut command line.
-        map_user_key_to_info = {}
-        for registered_name, registered_cls in registry.items():
-            for v in sys.argv:
-                if "=" not in v:
-                    continue
-                key, name = v.split("=")
-                if registered_name == name:
-                    map_user_key_to_info[key] = _ClassInfo(class_arg=v, cls=registered_cls)
+    def _probably_defined_in_config(nested_key: str, argv: List[str]) -> bool:
+        key_in_argv = any(arg.startswith(f"--{nested_key}") for arg in argv)
+        has_config = any(arg.startswith("--config") for arg in argv)
+        return not key_in_argv and has_config
 
-        if len(map_user_key_to_info) > 0:
-            # for each shortcut command line, add its init arguments and skip them from `sys.argv`.
-            out = []
-            for v in argv:
-                skip = False
-                for key in map_user_key_to_info:
-                    if key in v:
-                        skip = True
-                        map_user_key_to_info[key].add_class_init_arg(v)
-                if not skip:
-                    out.append(v)
-
-            # re-create the global command line and mock `sys.argv`.
-            out += [f"{user_key}={info.class_init}" for user_key, info in map_user_key_to_info.items()]
-            return out
-        return argv
+    @staticmethod
+    def _convert_argv_to_config(classes: Tuple[Type, ...], nested_key: str, argv: List[str]) -> Tuple[List[str], Dict]:
+        passed_args = {}
+        clean_argv = []
+        argv_key = f"--{nested_key}"
+        # get the argv args for this nested key
+        i = 0
+        while i < len(argv):
+            arg = argv[i]
+            if arg.startswith(argv_key):
+                if "=" in arg:
+                    key, value = arg.split("=")
+                else:
+                    key = arg
+                    i += 1
+                    value = argv[i]
+                passed_args[key] = value
+            else:
+                clean_argv.append(arg)
+            i += 1
+        # generate the associated config file
+        argv_class = passed_args.pop(argv_key, None)
+        if argv_class is None:
+            # the user passed a config as a str
+            class_path = passed_args[f"{argv_key}.class_path"]
+            init_args = passed_args.get(f"{argv_key}.init_args", {})
+            config = {"class_path": class_path, "init_args": init_args}
+        elif argv_class.startswith("{"):
+            # the user passed a config as a dict
+            config = ast.literal_eval(argv_class)
+            assert isinstance(config, dict)
+        else:
+            # the user passed the short format
+            init_args = {k[len(argv_key) + 1 :]: v for k, v in passed_args.items()}  # +1 to account for the period
+            for cls in classes:
+                if cls.__name__ == argv_class:
+                    config = _global_add_class_path(cls, init_args)
+                    break
+            else:
+                raise ValueError(f"Could not generate a config for {repr(argv_class)}")
+        return clean_argv, config
 
     @staticmethod
     def _prepare_class_list_from_registry(argv: List[str], pattern: str, registry: _Registry) -> List[str]:

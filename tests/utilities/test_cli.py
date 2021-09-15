@@ -142,9 +142,9 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
 def test_parse_args_parsing(cli_args, expected):
     """Test parsing simple types and None optionals not modified."""
     cli_args = cli_args.split(" ") if cli_args else []
-    parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
-    parser.add_lightning_class_args(Trainer, None)
     with mock.patch("sys.argv", ["any.py"] + cli_args):
+        parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
+        parser.add_lightning_class_args(Trainer, None)
         args = parser.parse_args()
 
     for k, v in expected.items():
@@ -163,9 +163,9 @@ def test_parse_args_parsing(cli_args, expected):
 )
 def test_parse_args_parsing_complex_types(cli_args, expected, instantiate):
     """Test parsing complex types."""
-    parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
-    parser.add_lightning_class_args(Trainer, None)
     with mock.patch("sys.argv", ["any.py"] + cli_args):
+        parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
+        parser.add_lightning_class_args(Trainer, None)
         args = parser.parse_args()
 
     for k, v in expected.items():
@@ -179,9 +179,9 @@ def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
     """Test parsing of gpus and instantiation of Trainer."""
     monkeypatch.setattr("torch.cuda.device_count", lambda: 2)
     cli_args = cli_args.split(" ") if cli_args else []
-    parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
-    parser.add_lightning_class_args(Trainer, None)
     with mock.patch("sys.argv", ["any.py"] + cli_args):
+        parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
+        parser.add_lightning_class_args(Trainer, None)
         args = parser.parse_args()
 
     trainer = Trainer.from_argparse_args(args)
@@ -926,9 +926,7 @@ def test_registries_resolution(use_class_path_callbacks):
 
 def test_argv_transformation_noop():
     base = ["any.py", "--trainer.max_epochs=1"]
-    argv = LightningArgumentParser._prepare_from_registry(base, OPTIMIZER_REGISTRY)
-    argv = LightningArgumentParser._prepare_from_registry(argv, LR_SCHEDULER_REGISTRY)
-    argv = LightningArgumentParser._prepare_class_list_from_registry(argv, "--trainer.callbacks", CALLBACK_REGISTRY)
+    argv = LightningArgumentParser._prepare_class_list_from_registry(base, "--trainer.callbacks", CALLBACK_REGISTRY)
     assert argv == base
 
 
@@ -995,44 +993,35 @@ def test_argv_transformation_multiple_callbacks_with_config():
 
 
 def test_argv_transformations_with_optimizers_and_lr_schedulers():
-    class TestLightningCLI(LightningCLI):
-        def __init__(self, expected, *args):
-            self.expected = expected
-            super().__init__(*args, run=False)
-
-        def before_instantiate_classes(self):
-            argv = LightningArgumentParser._prepare_from_registry(sys.argv, OPTIMIZER_REGISTRY)
-            argv = LightningArgumentParser._prepare_from_registry(argv, LR_SCHEDULER_REGISTRY)
-            argv = LightningArgumentParser._prepare_class_list_from_registry(
-                argv, "--trainer.callbacks", CALLBACK_REGISTRY
-            )
-            assert argv == self.expected
-
     base = ["any.py", "--trainer.max_epochs=1"]
 
-    input = base + ["--optimizer", "Adadelta"]
-    optimizer = {"class_path": "torch.optim.adadelta.Adadelta", "init_args": {}}
-    expected = base + [f"--optimizer={optimizer}"]
-    with mock.patch("sys.argv", input):
-        TestLightningCLI(expected, BoringModel)
+    argv = base + ["--optimizer", "Adadelta"]
+    expected = {"class_path": "torch.optim.adadelta.Adadelta", "init_args": {}}
+    new_argv, actual = LightningArgumentParser._convert_argv_to_config(OPTIMIZER_REGISTRY.classes, "optimizer", argv)
+    assert new_argv == base
+    assert actual == expected
 
-    input = base + ["--optimizer", "Adadelta", "--optimizer.lr", "10"]
-    optimizer = {"class_path": "torch.optim.adadelta.Adadelta", "init_args": {"lr": "10"}}
-    expected = base + [f"--optimizer={optimizer}"]
-    with mock.patch("sys.argv", input):
-        TestLightningCLI(expected, BoringModel)
+    argv = base + ["--optimizer", "Adadelta", "--optimizer.lr", "10"]
+    expected = {"class_path": "torch.optim.adadelta.Adadelta", "init_args": {"lr": "10"}}
+    base, actual = LightningArgumentParser._convert_argv_to_config(OPTIMIZER_REGISTRY.classes, "optimizer", argv)
+    assert new_argv == base
+    assert actual == expected
 
-    input = base + ["--lr_scheduler", "OneCycleLR"]
-    lr_scheduler = {"class_path": "torch.optim.lr_scheduler.OneCycleLR", "init_args": {}}
-    expected = base + [f"--lr_scheduler={lr_scheduler}"]
-    with mock.patch("sys.argv", input):
-        TestLightningCLI(expected, BoringModel)
+    argv = base + ["--lr_scheduler", "OneCycleLR"]
+    expected = {"class_path": "torch.optim.lr_scheduler.OneCycleLR", "init_args": {}}
+    new_argv, actual = LightningArgumentParser._convert_argv_to_config(
+        LR_SCHEDULER_REGISTRY.classes, "lr_scheduler", argv
+    )
+    assert new_argv == base
+    assert actual == expected
 
-    input = base + ["--lr_scheduler", "OneCycleLR", "--lr_scheduler.anneal_strategy=linear"]
-    lr_scheduler = {"class_path": "torch.optim.lr_scheduler.OneCycleLR", "init_args": {"anneal_strategy": "linear"}}
-    expected = base + [f"--lr_scheduler={lr_scheduler}"]
-    with mock.patch("sys.argv", input):
-        TestLightningCLI(expected, BoringModel)
+    argv = base + ["--lr_scheduler", "OneCycleLR", "--lr_scheduler.anneal_strategy=linear"]
+    expected = {"class_path": "torch.optim.lr_scheduler.OneCycleLR", "init_args": {"anneal_strategy": "linear"}}
+    new_argv, actual = LightningArgumentParser._convert_argv_to_config(
+        LR_SCHEDULER_REGISTRY.classes, "lr_scheduler", argv
+    )
+    assert new_argv == base
+    assert actual == expected
 
 
 def test_optimizers_and_lr_schedulers_reload(tmpdir):
