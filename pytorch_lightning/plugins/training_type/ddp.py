@@ -272,7 +272,6 @@ class DDPPlugin(ParallelPlugin):
         # set the ranks and devices
         self.dist.rank = self.global_rank
         self.dist.device = self.root_device
-        self._rank_0_has_called_call_children_scripts = self.broadcast(self._rank_0_has_called_call_children_scripts)
 
     def _check_can_spawn_children(self):
         if self.local_rank != 0:
@@ -390,6 +389,8 @@ class DDPPlugin(ParallelPlugin):
         trainer_fn = self.lightning_module.trainer.state.fn
         if trainer_fn == TrainerFn.FITTING:
             self.configure_ddp()
+
+        self._rank_0_has_called_call_children_scripts = self.broadcast(self._rank_0_has_called_call_children_scripts)
 
     def post_dispatch(self, trainer: "pl.Trainer") -> None:
         self.cluster_environment.teardown()
