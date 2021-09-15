@@ -145,8 +145,10 @@ class CustomException(Exception):
 @pytest.mark.parametrize("n_optimizers,stop_optimizer", [(2, 0), (2, 1), (3, 2)])
 def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_optimizer, stop_epoch, stop_batch):
     """Test that Lightning can resume from a point where a training_step failed while in the middle of processing
-    several optimizer steps for one batch. The test asserts that we end up with the same trained weights as if no
-    failure occured."""
+    several optimizer steps for one batch.
+
+    The test asserts that we end up with the same trained weights as if no failure occured.
+    """
 
     n_batches = 3
     n_epochs = 2
