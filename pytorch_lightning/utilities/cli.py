@@ -197,11 +197,6 @@ class LightningArgumentParser(ArgumentParser):
             nested_key: Name of the nested namespace to store arguments.
             link_to: Dot notation of a parser key to set arguments or AUTOMATIC.
         """
-        # FIXME: this should be in the __init__
-        # self._sanitize_argv(list(self.optimizers_and_lr_schedulers))
-        # FIXME: remove me after https://github.com/omni-us/jsonargparse/issues/83
-        # if not self._contains_from_registry("optimizer", OPTIMIZER_REGISTRY):
-        #    return
         if isinstance(optimizer_class, tuple):
             assert all(issubclass(o, Optimizer) for o in optimizer_class)
         else:
@@ -226,11 +221,6 @@ class LightningArgumentParser(ArgumentParser):
             nested_key: Name of the nested namespace to store arguments.
             link_to: Dot notation of a parser key to set arguments or AUTOMATIC.
         """
-        # FIXME: this should be in the __init__
-        # self._sanitize_argv(list(self.optimizers_and_lr_schedulers))
-        # FIXME: remove me after https://github.com/omni-us/jsonargparse/issues/83
-        # if not self._contains_from_registry("lr_scheduler", LR_SCHEDULER_REGISTRY):
-        #    return
         if isinstance(lr_scheduler_class, tuple):
             assert all(issubclass(o, LRSchedulerTypeTuple) for o in lr_scheduler_class)
         else:
@@ -350,7 +340,7 @@ class LightningArgumentParser(ArgumentParser):
     @staticmethod
     def _contains_from_registry(pattern: str, registry: _Registry) -> bool:
         # FIXME: remove me after https://github.com/omni-us/jsonargparse/issues/83
-        return any(True for v in sys.argv for registered_name in registry if f"--{pattern}={registered_name}" in v)
+        return any(f"--{pattern}={name}" == v for v in sys.argv for name in registry)
 
 
 class SaveConfigCallback(Callback):
@@ -535,12 +525,16 @@ class LightningCLI:
         self.add_core_arguments_to_parser(parser)
         self.add_arguments_to_parser(parser)
         # add default optimizer args
+        # FIXME: this should be done before or after
+        # FIXME: this shouldn't take `optimizers_and_lr_schedulers`
         LightningArgumentParser._sanitize_argv(list(parser.optimizers_and_lr_schedulers))
-        if LightningArgumentParser._contains_from_registry("optimizer", OPTIMIZER_REGISTRY):
-            if "optimizer" not in parser.groups:  # already added by the user in `add_arguments_to_parser`
+        if "optimizer" not in parser.groups:  # already added by the user in `add_arguments_to_parser`
+            # FIXME: remove me after https://github.com/omni-us/jsonargparse/issues/83
+            if LightningArgumentParser._contains_from_registry("optimizer", OPTIMIZER_REGISTRY):
                 parser.add_optimizer_args(OPTIMIZER_REGISTRY.classes)
-        if LightningArgumentParser._contains_from_registry("lr_scheduler", LR_SCHEDULER_REGISTRY):
-            if "lr_scheduler" not in parser.groups:  # already added by the user in `add_arguments_to_parser`
+        if "lr_scheduler" not in parser.groups:  # already added by the user in `add_arguments_to_parser`
+            # FIXME: remove me after https://github.com/omni-us/jsonargparse/issues/83
+            if LightningArgumentParser._contains_from_registry("lr_scheduler", LR_SCHEDULER_REGISTRY):
                 parser.add_lr_scheduler_args(LR_SCHEDULER_REGISTRY.classes)
         self.link_optimizers_and_lr_schedulers(parser)
 
