@@ -35,7 +35,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import log, rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
-from pytorch_lightning.utilities.types import LRSchedulerTypeTuple
+from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeTuple
 from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
 
 warning_cache = WarningCache()
@@ -123,6 +123,7 @@ class DeepSpeedPlugin(DDPPlugin):
         contiguous_memory_optimization: bool = False,
         synchronize_checkpoint_boundary: bool = False,
         load_full_weights: bool = False,
+        partition_module: bool = True,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
         billion parameter models. `For more information: https://pytorch-
@@ -252,6 +253,12 @@ class DeepSpeedPlugin(DDPPlugin):
             load_full_weights: True when loading a single checkpoint file containing the model state dict
                 when using ZeRO Stage 3. This differs from the DeepSpeed checkpoint which contains shards
                 per worker.
+
+            partition_module: When True, partitions the ``LightningModule`` across devices when using ZeRO Stage 3.
+                This is the default behaviour to ensure that the entire module is appropriately initialized
+                for DeepSpeed. When False we do not explicitly convert the model, which is fine if NO layers
+                or ALL layers are defined in ``configure_sharded_model``. This is useful for layers such as
+                ``torch.nn.RNN`` which do internal logic when moving to device.
         """
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
@@ -304,6 +311,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
         self.remote_device = remote_device
         self.load_full_weights = load_full_weights
+        self.partition_module = partition_module
 
         # default FP16 parameters.
         self.loss_scale = loss_scale
@@ -374,7 +382,7 @@ class DeepSpeedPlugin(DDPPlugin):
         precision = self.lightning_module.trainer.accelerator.precision
         model = LightningDeepSpeedModule(pl_module=self.model, precision=precision)
 
-        if self.zero_stage_3:
+        if self.zero_stage_3 and self.partition_module:
             # Ensure the entire model has been moved to the appropriate device
             dtype = torch.float16 if self.precision in (16, "mixed") else torch.float32
             deepspeed.zero.Init(
@@ -660,7 +668,7 @@ class DeepSpeedPlugin(DDPPlugin):
     def _multi_device(self) -> bool:
         return self.num_processes > 1 or self.num_nodes > 1
 
-    def save_checkpoint(self, checkpoint: Dict, filepath: str) -> None:
+    def save_checkpoint(self, checkpoint: Dict, filepath: _PATH) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
@@ -681,7 +689,7 @@ class DeepSpeedPlugin(DDPPlugin):
         checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
         self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint)
 
-    def load_checkpoint(self, checkpoint_path: Union[str, Path]) -> Optional[Dict[str, Any]]:
+    def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         if self.load_full_weights and self.zero_stage_3:
             # Broadcast to ensure we load from the rank 0 checkpoint
             # This doesn't have to be the case when using deepspeed sharded checkpointing

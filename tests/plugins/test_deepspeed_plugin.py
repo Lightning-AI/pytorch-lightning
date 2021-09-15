@@ -1,3 +1,4 @@
+import contextlib
 import json
 import os
 from typing import Any, Dict, Optional
@@ -409,13 +410,15 @@ def test_deepspeed_stage_3_save_warning(tmpdir):
     )
     trainer.fit(model)
     checkpoint_path = os.path.join(tmpdir, "model.pt")
-    with pytest.warns(UserWarning) as record:
-        # both ranks need to call save checkpoint
+
+    # both ranks need to call save checkpoint, however only rank 0 needs to check the warning
+    context_manager = (
+        pytest.warns(UserWarning, match="each worker will save a shard of the checkpoint within a directory.")
+        if trainer.is_global_zero
+        else contextlib.suppress()
+    )
+    with context_manager:
         trainer.save_checkpoint(checkpoint_path)
-    if trainer.is_global_zero:
-        assert len(record) == 1
-        match = "each worker will save a shard of the checkpoint within a directory."
-        assert match in str(record[0].message)
 
 
 @RunIf(min_gpus=1, deepspeed=True, special=True)
@@ -735,13 +738,64 @@ def _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimiz
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
-def test_deepspeed_multigpu_test(tmpdir, deepspeed_config):
+def test_deepspeed_multigpu_test(tmpdir):
     """Test to ensure we can use DeepSpeed with just test using ZeRO Stage 3."""
     model = ModelParallelBoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir, plugins=[DeepSpeedPlugin(stage=3)], gpus=2, fast_dev_run=True, precision=16
     )
     trainer.test(model)
+
+
+@RunIf(min_gpus=1, deepspeed=True, special=True)
+def test_deepspeed_multigpu_partial_partition_parameters(tmpdir):
+    """Test to ensure that a module that defines a layer inside the ``__init__`` and ``configure_sharded_model``
+    correctly converts all parameters to float16 when ``precision=16`` and runs successfully."""
+
+    class TestModel(ModelParallelBoringModel):
+        def __init__(self):
+            super().__init__()
+            self.layer_2 = torch.nn.Linear(32, 32)
+
+        def configure_sharded_model(self) -> None:
+            self.layer = torch.nn.Linear(32, 2)
+
+        def forward(self, x):
+            x = self.layer_2(x)
+            return self.layer(x)
+
+        def on_train_epoch_start(self) -> None:
+            assert all([x.dtype == torch.float16 for x in self.parameters()])
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir, plugins=[DeepSpeedPlugin(stage=3)], gpus=1, fast_dev_run=True, precision=16
+    )
+    trainer.fit(model)
+
+
+@RunIf(min_gpus=1, deepspeed=True, special=True)
+def test_deepspeed_multigpu_test_rnn(tmpdir):
+    """Test to ensure that turning off explicit partitioning of the entire module for ZeRO Stage 3 works when
+    training with certain layers which will crash with explicit partitioning."""
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.rnn = torch.nn.GRU(32, 32)
+
+        def on_train_epoch_start(self) -> None:
+            assert all([x.dtype == torch.float16 for x in self.parameters()])
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        plugins=[DeepSpeedPlugin(stage=3, partition_module=False)],
+        gpus=1,
+        fast_dev_run=True,
+        precision=16,
+    )
+    trainer.fit(model)
 
 
 @RunIf(deepspeed=True)
