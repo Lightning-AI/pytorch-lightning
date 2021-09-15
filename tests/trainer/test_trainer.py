@@ -526,14 +526,14 @@ def test_trainer_properties_resume_from_checkpoint(tmpdir):
             return [optimizer], [lr_scheduler]
 
     model = CustomBoringModel()
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_last=True)
     trainer_args = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=7,
         limit_val_batches=7,
         logger=False,
-        callbacks=[checkpoint_callback],  # this performs the assertions
+        callbacks=[checkpoint_callback],
     )
     trainer = Trainer(**trainer_args)
     trainer.fit(model)

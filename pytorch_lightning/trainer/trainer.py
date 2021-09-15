@@ -913,7 +913,7 @@ class Trainer(
 
     def _restore_modules_and_callbacks(self) -> None:
         # restore modules after setup
-        if self.state.fn == TrainerFn.FITTING:
+        if self.state.fn != TrainerFn.TUNING:
             self.checkpoint_connector.resume_start()
         self.checkpoint_connector.restore_datamodule()
         self.checkpoint_connector.restore_model()
@@ -1099,7 +1099,7 @@ class Trainer(
         # register auto-resubmit when on SLURM
         self.slurm_connector.register_slurm_signal_handlers()
 
-        if self.state.fn == TrainerFn.FITTING:
+        if self.state.fn != TrainerFn.TUNING:
             self.checkpoint_connector.resume_end()
 
         # --------------------------
