@@ -17,42 +17,38 @@ from functools import wraps
 from typing import Callable, Dict, Optional
 
 from pytorch_lightning.overrides import LightningDistributedModule
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_deprecation
+from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
-def parameter_validation(fn: Callable) -> Callable:
-    """Validates that the module parameter lengths match after moving to the device. It is useful when tying
-    weights on TPU's.
+def auto_weight_tying(model_to_device: Callable) -> Callable:
+    """Enables auto parameters tying on TPUs.
 
     Args:
-        fn: ``model_to_device`` method
+        model_to_device: ``TrainingTypePlugin.model_to_device`` method
 
     Note:
         TPU's require weights to be tied/shared after moving the module to the device.
         Failure to do this results in the initialization of new weights which are not tied.
-        To overcome this issue, weights should be tied using the ``on_post_move_to_device`` model hook
-        which is called after the module has been moved to the device.
+        We apply auto parameters tying after the module has been moved to the device.
 
     See Also:
         - `XLA Documentation <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#xla-tensor-quirks>`_
     """
 
-    @wraps(fn)
+    @wraps(model_to_device)
     def inner_fn(self, *args, **kwargs):
-        pre_layer_count = len(list(self.model.parameters()))
-        module = fn(self, *args, **kwargs)
-        self.model.on_post_move_to_device()
-        post_layer_count = len(list(self.model.parameters()))
-
-        if not pre_layer_count == post_layer_count:
-            rank_zero_warn(
-                "The model layers do not match after moving to the target device."
-                " If your model employs weight sharing on TPU,"
-                " please tie your weights using the `on_post_move_to_device` model hook.\n"
-                f"Layer count: [Before: {pre_layer_count} After: {post_layer_count}]"
+        shared_params = find_shared_parameters(self.model)
+        model_to_device(self, *args, **kwargs)
+        if is_overridden("on_post_move_to_device", self.lightning_module):
+            rank_zero_deprecation(
+                "Method `on_post_move_to_device` has been deprecated and will be removed in v1.7.0."
+                " We perform auto parameters tying without the need of implementing `on_post_move_to_device`"
             )
-
-        return module
+            self.model.on_post_move_to_device()
+        else:
+            module = self.model.module if isinstance(self.model, LightningDistributedModule) else self.model
+            apply_weight_tying(module, shared_params)
 
     return inner_fn
 
@@ -99,15 +95,3 @@ def _set_module_by_path(module, path, value):
     for name in path[:-1]:
         module = getattr(module, name)
     setattr(module, path[-1], value)
-
-
-def auto_weight_tying(model_to_device: Callable) -> Callable:
-    @wraps(model_to_device)
-    def inner_fn(self, *args, **kwargs):
-        shared_params = find_shared_parameters(self.model)
-        model_to_device(self, *args, **kwargs)
-        module = self.model.module if isinstance(self.model, LightningDistributedModule) else self.model
-        module = apply_weight_tying(module, shared_params)
-        return module
-
-    return inner_fn
