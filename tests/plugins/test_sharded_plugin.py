@@ -285,3 +285,27 @@ def test_custom_kwargs_sharded(tmpdir, cls):
     args, kwargs = mock_sharded.call_args
     assert "reduce_fp16" in kwargs
     assert kwargs["reduce_fp16"]
+
+
+@RunIf(skip_windows=True, fairscale=True)
+@mock.patch("pytorch_lightning.plugins.DDPShardedPlugin._wrap_optimizers", autospec=True)
+@pytest.mark.parametrize(["params", "expected_buffer_size"], [(dict(), 0), (dict(reduce_buffer_size=128), 128)])
+@pytest.mark.parametrize("num_nodes", [1, 2])
+def test_custom_kwargs_sharded_reduce_buffer_size(tmpdir, params, expected_buffer_size, num_nodes):
+    """Tests to ensure that ``reduce_buffer_size`` is correctly set based on user kwargs."""
+    plugin = DDPShardedPlugin(**params)
+    plugin.num_nodes = num_nodes
+
+    with mock.patch.object(plugin, "_model", autospec=True):
+        with mock.patch(
+            "pytorch_lightning.plugins.training_type.sharded.ShardedDataParallel", autospec=True
+        ) as mock_sharded:
+            plugin.configure_ddp()
+    args, kwargs = mock_sharded.call_args
+    assert "reduce_buffer_size" in kwargs
+
+    if num_nodes > 1 and len(params) == 0:
+        # If user has not specified a buffer size and we're using multiple nodes, check to see if default is set
+        assert kwargs["reduce_buffer_size"] == DDPShardedPlugin._REDUCE_BUFFER_SIZE_DEFAULT
+    else:
+        assert kwargs["reduce_buffer_size"] == expected_buffer_size
