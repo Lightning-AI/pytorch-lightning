@@ -71,7 +71,8 @@ class WandbLogger(LightningLoggerBase):
 
         trainer = Trainer(logger=wandb_logger)
 
-    A new W&B run will automatically be created when training starts if you have not created one manually before with `wandb.init()`.
+    A new W&B run will automatically be created when training starts if you have not created one manually before with
+    `wandb.init()`.
 
     **Log metrics**
 
@@ -203,18 +204,20 @@ class WandbLogger(LightningLoggerBase):
         # using file path
         wandb_logger.log_images(key="samples", images=["img_1.jpg", "img_2.jpg"])
 
-    More arguments can be passed for logging segmentation masks and bounding boxes. Refer to `Image Overlays documentation <https://docs.wandb.ai/guides/track/log/media#image-overlays>`_.
+    More arguments can be passed for logging segmentation masks and bounding boxes. Refer to
+    `Image Overlays documentation <https://docs.wandb.ai/guides/track/log/media#image-overlays>`_.
 
     **Log Tables**
 
     `W&B Tables <https://docs.wandb.ai/guides/data-vis>`_ can be used to log, query and analyze tabular data.
 
-    They support any type of media (text, image, video, audio, molecule, html, etc) and are great for storing, understanding and sharing any form of data, from datasets to model predictions.
+    They support any type of media (text, image, video, audio, molecule, html, etc) and are great for storing,
+    understanding and sharing any form of data, from datasets to model predictions.
 
     .. code-block:: python
 
         columns = ["caption", "image", "sound"]
-        data = [["cheese", wandb.Image(image_1), wandb.Audio(sound_1)]["wine", wandb.Image(image_2), wandb.Audio(sound_2)]]
+        data = [["cheese", wandb.Image(img_1), wandb.Audio(snd_1)], ["wine", wandb.Image(img_2), wandb.Audio(snd_2)]]
         wandb_logger.log_table(key="samples", columns=columns, data=data)
 
     See Also:
