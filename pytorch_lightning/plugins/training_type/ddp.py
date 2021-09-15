@@ -376,6 +376,7 @@ class DDPPlugin(ParallelPlugin):
 
     def pre_dispatch(self):
         # share ddp pids to all processes
+        self._rank_0_has_called_call_children_scripts = self.broadcast(self._rank_0_has_called_call_children_scripts)
         if self._should_run_deadlock_detection():
             self._share_information_to_prevent_deadlock()
 
@@ -389,8 +390,6 @@ class DDPPlugin(ParallelPlugin):
         trainer_fn = self.lightning_module.trainer.state.fn
         if trainer_fn == TrainerFn.FITTING:
             self.configure_ddp()
-
-        self._rank_0_has_called_call_children_scripts = self.broadcast(self._rank_0_has_called_call_children_scripts)
 
     def post_dispatch(self, trainer: "pl.Trainer") -> None:
         self.cluster_environment.teardown()
