@@ -19,7 +19,7 @@ import operator
 import os
 from argparse import Namespace
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
 from weakref import ReferenceType
 
 if TYPE_CHECKING:
