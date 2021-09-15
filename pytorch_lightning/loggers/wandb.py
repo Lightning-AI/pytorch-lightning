@@ -62,7 +62,8 @@ class WandbLogger(LightningLoggerBase):
     .. code-block:: python
 
         from pytorch_lightning.loggers import WandbLogger
-        wandb_logger = WandbLogger(project='MNIST')
+
+        wandb_logger = WandbLogger(project="MNIST")
 
     Pass `WandbLogger` to the `Trainer`:
 
@@ -80,13 +81,13 @@ class WandbLogger(LightningLoggerBase):
 
         class LitModule(LightningModule):
             def training_step(self, batch, batch_idx):
-                self.log('train/loss', loss)
+                self.log("train/loss", loss)
 
     Use directly wandb module:
 
     .. code-block:: python
 
-        wandb.log({'train/loss': loss})
+        wandb.log({"train/loss": loss})
 
     **Log hyper-parameters**
 
@@ -103,13 +104,13 @@ class WandbLogger(LightningLoggerBase):
     .. code-block:: python
 
         # add one parameter
-        wandb_logger.experiment.config['key'] = value
+        wandb_logger.experiment.config["key"] = value
 
         # add multiple parameters
-        wandb_logger.experiment.config.update({key1: val1, key2:val2})
+        wandb_logger.experiment.config.update({key1: val1, key2: val2})
 
         # use directly wandb module
-        wandb.config['key'] = value
+        wandb.config["key"] = value
         wandb.config.update()
 
     **Log gradients, parameters and model topology**
@@ -122,7 +123,7 @@ class WandbLogger(LightningLoggerBase):
         wandb_logger.watch(model)
 
         # log gradients, parameter histogram and model topology
-        wandb_logger.watch(model, log='all')
+        wandb_logger.watch(model, log="all")
 
         # change log frequency of gradients and parameters (100 steps by default)
         wandb_logger.watch(model, log_freq=500)
@@ -148,15 +149,15 @@ class WandbLogger(LightningLoggerBase):
 
     .. code-block:: python
 
-        wandb_logger = WandbLogger(log_model='all')
+        wandb_logger = WandbLogger(log_model="all")
 
     Custom checkpointing can be set up through :class:`~pytorch_lightning.callbacks.ModelCheckpoint`:
 
     .. code-block:: python
 
         # log model only if `val_accuracy` increases
-        wandb_logger = WandbLogger(log_model='all')
-        checkpoint_callback = ModelCheckpoint(monitor='val_accuracy', mode='max')
+        wandb_logger = WandbLogger(log_model="all")
+        checkpoint_callback = ModelCheckpoint(monitor="val_accuracy", mode="max")
         trainer = Trainer(logger=wandb_logger, callbacks=[checkpoint_callback])
 
     `latest` and `best` aliases are automatically set to easily retrieve a model checkpoint:
@@ -165,15 +166,15 @@ class WandbLogger(LightningLoggerBase):
 
         # reference can be retrieved in artifacts panel
         # "VERSION" can be a version (ex: "v2") or an alias ("latest or "best")
-        checkpoint_reference = 'USER/PROJECT/MODEL-RUN_ID:VERSION'
+        checkpoint_reference = "USER/PROJECT/MODEL-RUN_ID:VERSION"
 
         # download checkpoint locally (if not already cached)
-        run = wandb.init(project='MNIST')
-        artifact = run.use_artifact(checkpoint_reference, type='model')
+        run = wandb.init(project="MNIST")
+        artifact = run.use_artifact(checkpoint_reference, type="model")
         artifact_dir = artifact.download()
 
         # load checkpoint
-        model = LitModule.load_from_checkpoint(Path(artifact_dir)/'model.ckpt')
+        model = LitModule.load_from_checkpoint(Path(artifact_dir) / "model.ckpt")
 
     **Log media**
 
@@ -182,26 +183,25 @@ class WandbLogger(LightningLoggerBase):
     .. code-block:: python
 
         # using columns and data
-        columns = ['input', 'label', 'prediction']
-        data = [['cheese', 'english', 'english'],
-                ['fromage', 'french', 'spanish']]
-        wandb_logger.log_text(key='samples', columns=columns, data=data)
+        columns = ["input", "label", "prediction"]
+        data = [["cheese", "english", "english"], ["fromage", "french", "spanish"]]
+        wandb_logger.log_text(key="samples", columns=columns, data=data)
 
         # using a pandas DataFrame
-        wandb_logger.log_text(key='samples', dataframe=my_dataframe)
+        wandb_logger.log_text(key="samples", dataframe=my_dataframe)
 
     Log images with:
 
     .. code-block:: python
 
         # using tensors, numpy arrays or PIL images
-        wandb_logger.log_images(key='samples', images=[img1, img2])
+        wandb_logger.log_images(key="samples", images=[img1, img2])
 
         # adding captions
-        wandb_logger.log_images(key='samples', images=[img1, img2], captions=['tree', 'person'])
+        wandb_logger.log_images(key="samples", images=[img1, img2], captions=["tree", "person"])
 
         # using file path
-        wandb_logger.log_images(key='samples', images=['img_1.jpg', 'img_2.jpg'])
+        wandb_logger.log_images(key="samples", images=["img_1.jpg", "img_2.jpg"])
 
     More arguments can be passed for logging segmentation masks and bounding boxes. Refer to `Image Overlays documentation <https://docs.wandb.ai/guides/track/log/media#image-overlays>`_.
 
@@ -213,10 +213,9 @@ class WandbLogger(LightningLoggerBase):
 
     .. code-block:: python
 
-        columns = ['caption', 'image', 'sound']
-        data = [['cheese', wandb.Image(image_1), wandb.Audio(sound_1)]
-                ['wine', wandb.Image(image_2), wandb.Audio(sound_2)]]
-        wandb_logger.log_table(key='samples', columns=columns, data=data)
+        columns = ["caption", "image", "sound"]
+        data = [["cheese", wandb.Image(image_1), wandb.Audio(sound_1)]["wine", wandb.Image(image_2), wandb.Audio(sound_2)]]
+        wandb_logger.log_table(key="samples", columns=columns, data=data)
 
     See Also:
         - `Demo in Google Colab <http://wandb.me/lightning>`__ with hyperparameter search and model logging
