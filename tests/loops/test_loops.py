@@ -348,11 +348,11 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         assert sequence == expected
 
     num_optimizers_incomplete = stop_epoch * n_batches * n_optimizers + stop_batch * n_optimizers + stop_optimizer
-    opt_idx_sequence_full = list(range(n_optimizers)) * n_epochs * n_batches  # [0, 1, 2, 0, 1, 2, 0, 1, ...]
 
+    opt_idx_sequence_complete = list(range(n_optimizers)) * n_epochs * n_batches  # [0, 1, 2, 0, 1, 2, 0, 1, ...]
     # +1 because we fail inside the closure inside optimizer_step()
-    opt_idx_sequence_incomplete = opt_idx_sequence_full[: (num_optimizers_incomplete + 1)]
-    opt_idx_sequence_resumed = opt_idx_sequence_full[num_optimizers_incomplete:]
+    opt_idx_sequence_incomplete = opt_idx_sequence_complete[: (num_optimizers_incomplete + 1)]
+    opt_idx_sequence_resumed = opt_idx_sequence_complete[num_optimizers_incomplete:]
 
     class MultipleOptimizerModel(BoringModel):
         def __init__(self):
@@ -385,8 +385,8 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         logger=False,
     )
     trainer.fit(model)
-    weights_success = model.parameters()
-    _assert_optimizer_sequence(model.optimizer_step, opt_idx_sequence_full)
+    weights_complete = model.parameters()
+    _assert_optimizer_sequence(model.optimizer_step, opt_idx_sequence_complete)
 
     # simulate a failure
     fail = True
@@ -424,7 +424,7 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
     trainer.fit(model)
     weights_resumed = model.parameters()
 
-    for w0, w1 in zip(weights_success, weights_resumed):
+    for w0, w1 in zip(weights_complete, weights_resumed):
         assert torch.allclose(w0, w1)
 
     _assert_optimizer_sequence(model.optimizer_step, opt_idx_sequence_resumed)
