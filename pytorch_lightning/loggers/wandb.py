@@ -381,7 +381,7 @@ class WandbLogger(LightningLoggerBase):
         key: str,
         columns: List[str] = None,
         data: List[List[Any]] = None,
-        dataframe: "pandas.Dataframe" = None,
+        dataframe: "pandas.DataFrame" = None,
         step: Optional[int] = None,
     ) -> None:
         """Log a Table containing any object type (text, image, audio, video, molecule, html, etc).
@@ -398,7 +398,7 @@ class WandbLogger(LightningLoggerBase):
         key: str,
         columns: List[str] = None,
         data: List[List[str]] = None,
-        dataframe: "pandas.Dataframe" = None,
+        dataframe: "pandas.DataFrame" = None,
         step: Optional[int] = None,
     ) -> None:
         """Log text as a Table.
