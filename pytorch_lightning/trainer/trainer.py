@@ -98,8 +98,8 @@ from pytorch_lightning.utilities.types import (
     _PATH,
     _PREDICT_OUTPUT,
     EVAL_DATALOADERS,
-    TRAIN_DATALOADERS,
     LRSchedulerTypeUnion,
+    TRAIN_DATALOADERS,
 )
 
 log = logging.getLogger(__name__)
