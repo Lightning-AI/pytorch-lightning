@@ -197,6 +197,11 @@ class LightningArgumentParser(ArgumentParser):
             nested_key: Name of the nested namespace to store arguments.
             link_to: Dot notation of a parser key to set arguments or AUTOMATIC.
         """
+        # FIXME: this should be in the __init__
+        # self._sanitize_argv(list(self.optimizers_and_lr_schedulers))
+        # FIXME: remove me after https://github.com/omni-us/jsonargparse/issues/83
+        # if not self._contains_from_registry("optimizer", OPTIMIZER_REGISTRY):
+        #    return
         if isinstance(optimizer_class, tuple):
             assert all(issubclass(o, Optimizer) for o in optimizer_class)
         else:
@@ -221,6 +226,11 @@ class LightningArgumentParser(ArgumentParser):
             nested_key: Name of the nested namespace to store arguments.
             link_to: Dot notation of a parser key to set arguments or AUTOMATIC.
         """
+        # FIXME: this should be in the __init__
+        # self._sanitize_argv(list(self.optimizers_and_lr_schedulers))
+        # FIXME: remove me after https://github.com/omni-us/jsonargparse/issues/83
+        # if not self._contains_from_registry("lr_scheduler", LR_SCHEDULER_REGISTRY):
+        #    return
         if isinstance(lr_scheduler_class, tuple):
             assert all(issubclass(o, LRSchedulerTypeTuple) for o in lr_scheduler_class)
         else:
@@ -231,6 +241,116 @@ class LightningArgumentParser(ArgumentParser):
         else:
             self.add_class_arguments(lr_scheduler_class, nested_key, **kwargs)
         self.optimizers_and_lr_schedulers[nested_key] = (lr_scheduler_class, link_to)
+
+    def parse_args(self, *args, **kwargs) -> Union[Namespace, Dict[str, Any]]:
+        # hack before https://github.com/omni-us/jsonargparse/issues/84
+        argv = self._prepare_from_registry(sys.argv, OPTIMIZER_REGISTRY)
+        argv = self._prepare_from_registry(argv, LR_SCHEDULER_REGISTRY)
+        # hack before https://github.com/omni-us/jsonargparse/issues/85
+        argv = self._prepare_class_list_from_registry(argv, "--trainer.callbacks", CALLBACK_REGISTRY)
+        with mock.patch("sys.argv", argv):
+            return super().parse_args(*args, **kwargs)
+
+    @staticmethod
+    def _prepare_from_registry(argv: List[str], registry: _Registry) -> List[str]:
+        # find if the users is using shortcut command line.
+        map_user_key_to_info = {}
+        for registered_name, registered_cls in registry.items():
+            for v in sys.argv:
+                if "=" not in v:
+                    continue
+                key, name = v.split("=")
+                if registered_name == name:
+                    map_user_key_to_info[key] = _ClassInfo(class_arg=v, cls=registered_cls)
+
+        if len(map_user_key_to_info) > 0:
+            # for each shortcut command line, add its init arguments and skip them from `sys.argv`.
+            out = []
+            for v in argv:
+                skip = False
+                for key in map_user_key_to_info:
+                    if key in v:
+                        skip = True
+                        map_user_key_to_info[key].add_class_init_arg(v)
+                if not skip:
+                    out.append(v)
+
+            # re-create the global command line and mock `sys.argv`.
+            out += [f"{user_key}={info.class_init}" for user_key, info in map_user_key_to_info.items()]
+            return out
+        return argv
+
+    @staticmethod
+    def _prepare_class_list_from_registry(argv: List[str], pattern: str, registry: _Registry) -> List[str]:
+        out = [v for v in argv if pattern not in v]
+        all_matched_args = [v for v in argv if pattern in v]
+        all_simplified_args = [v for v in all_matched_args if f"{pattern}" in v and f"{pattern}=[" not in v]
+        all_cls_simplified_args = [v for v in all_simplified_args if f"{pattern}=" in v]
+        all_non_simplified_args = [v for v in all_matched_args if f"{pattern}=" in v and f"{pattern}=[" in v]
+
+        num_simplified_cls = len(all_simplified_args)
+        should_replace = num_simplified_cls > 0 and not all("class_path" in v for v in all_matched_args)
+
+        if should_replace:
+            # verify the user is properly ordering arguments.
+            assert all_cls_simplified_args[0] == all_simplified_args[0]
+            if len(all_non_simplified_args) > 1:
+                raise MisconfigurationException(f"When provided {pattern} as list, please group them under 1 argument.")
+
+            # group arguments per callbacks
+            infos = []
+            for class_arg_idx, class_arg in enumerate(all_simplified_args):
+                if class_arg in all_cls_simplified_args:
+                    class_name = class_arg.split("=")[1]
+                    registered_cls = registry[class_name]
+                    infos.append(_ClassInfo(class_arg=class_arg, cls=registered_cls, class_arg_idx=class_arg_idx))
+
+            for idx, v in enumerate(all_simplified_args):
+                if v in all_cls_simplified_args:
+                    current_info = [info for info in infos if idx == info.class_arg_idx][0]
+                current_info.add_class_init_arg(v)
+
+            class_args = [info.class_init for info in infos]
+            # add other callback arguments.
+            if len(all_non_simplified_args) > 0:
+                class_args.extend(eval(all_non_simplified_args[0].split("=")[-1]))
+
+            out += [f"{pattern}={class_args}"]
+            return out
+        return argv
+
+    @staticmethod
+    def _sanitize_argv(optimizers_and_lr_schedulers: List[str]) -> None:
+        """This function is used to replace ``<space>`` in ``sys.argv`` with ``=``."""
+
+        def validate_arg(v: str) -> bool:
+            keys = {"--optimizer", "--lr_scheduler", "--trainer.callbacks"}
+            keys.update({f"--{key}" for key in optimizers_and_lr_schedulers})
+            return any(v.startswith(k) for k in keys)
+
+        args = [idx for idx, v in enumerate(sys.argv) if validate_arg(v)]
+        if not args:
+            return
+        start_index = args[0]
+        argv = []
+        should_add = False
+        for v in sys.argv[start_index:]:
+            if validate_arg(v):
+                argv.append(v)
+                should_add = True
+            else:
+                if should_add and not v.startswith("--"):
+                    argv[-1] += "=" + v
+                else:
+                    argv.append(v)
+                should_add = False
+
+        sys.argv = sys.argv[:start_index] + argv
+
+    @staticmethod
+    def _contains_from_registry(pattern: str, registry: _Registry) -> bool:
+        # FIXME: remove me after https://github.com/omni-us/jsonargparse/issues/83
+        return any(True for v in sys.argv for registered_name in registry if f"--{pattern}={registered_name}" in v)
 
 
 class SaveConfigCallback(Callback):
@@ -380,34 +500,6 @@ class LightningCLI:
         """Method that instantiates the argument parser."""
         return LightningArgumentParser(**kwargs)
 
-    @staticmethod
-    def _sanitize_argv(optimizers_and_lr_schedulers: List[str]) -> None:
-        """This function is used to replace ``<space>`` in ``sys.argv`` with ``=``."""
-
-        def validate_arg(v: str) -> bool:
-            keys = {"--optimizer", "--lr_scheduler", "--trainer.callbacks"}
-            keys.update({f"--{key}" for key in optimizers_and_lr_schedulers})
-            return any(v.startswith(k) for k in keys)
-
-        args = [idx for idx, v in enumerate(sys.argv) if validate_arg(v)]
-        if not args:
-            return
-        start_index = args[0]
-        argv = []
-        should_add = False
-        for v in sys.argv[start_index:]:
-            if validate_arg(v):
-                argv.append(v)
-                should_add = True
-            else:
-                if should_add and not v.startswith("--"):
-                    argv[-1] += "=" + v
-                else:
-                    argv.append(v)
-                should_add = False
-
-        sys.argv = sys.argv[:start_index] + argv
-
     def setup_parser(
         self, add_subcommands: bool, main_kwargs: Dict[str, Any], subparser_kwargs: Dict[str, Any]
     ) -> None:
@@ -442,6 +534,14 @@ class LightningCLI:
         self.add_default_arguments_to_parser(parser)
         self.add_core_arguments_to_parser(parser)
         self.add_arguments_to_parser(parser)
+        # add default optimizer args
+        LightningArgumentParser._sanitize_argv(list(parser.optimizers_and_lr_schedulers))
+        if LightningArgumentParser._contains_from_registry("optimizer", OPTIMIZER_REGISTRY):
+            if "optimizer" not in parser.groups:  # already added by the user in `add_arguments_to_parser`
+                parser.add_optimizer_args(OPTIMIZER_REGISTRY.classes)
+        if LightningArgumentParser._contains_from_registry("lr_scheduler", LR_SCHEDULER_REGISTRY):
+            if "lr_scheduler" not in parser.groups:  # already added by the user in `add_arguments_to_parser`
+                parser.add_lr_scheduler_args(LR_SCHEDULER_REGISTRY.classes)
         self.link_optimizers_and_lr_schedulers(parser)
 
     def add_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
@@ -488,22 +588,8 @@ class LightningCLI:
         return parser
 
     @staticmethod
-    def _contains_from_registry(pattern: str, registry: _Registry) -> bool:
-        # FIXME: remove me after https://github.com/omni-us/jsonargparse/issues/83
-        return any(True for v in sys.argv for registered_name in registry if f"--{pattern}={registered_name}" in v)
-
-    @staticmethod
     def link_optimizers_and_lr_schedulers(parser: LightningArgumentParser) -> None:
         """Creates argument links for optimizers and learning rate schedulers that specified a ``link_to``."""
-        LightningCLI._sanitize_argv(list(parser.optimizers_and_lr_schedulers))
-
-        if LightningCLI._contains_from_registry("optimizer", OPTIMIZER_REGISTRY):
-            if "optimizer" not in parser.groups:
-                parser.add_optimizer_args(OPTIMIZER_REGISTRY.classes)
-        if LightningCLI._contains_from_registry("lr_scheduler", LR_SCHEDULER_REGISTRY):
-            if "lr_scheduler" not in parser.groups:
-                parser.add_lr_scheduler_args(LR_SCHEDULER_REGISTRY.classes)
-
         for key, (class_type, link_to) in parser.optimizers_and_lr_schedulers.items():
             if link_to == "AUTOMATIC":
                 continue
@@ -513,81 +599,9 @@ class LightningCLI:
                 add_class_path = _add_class_path_generator(class_type)
                 parser.link_arguments(key, link_to, compute_fn=add_class_path)
 
-    @staticmethod
-    def _prepare_from_registry(argv: List[str], registry: _Registry) -> List[str]:
-        # find if the users is using shortcut command line.
-        map_user_key_to_info = {}
-        for registered_name, registered_cls in registry.items():
-            for v in sys.argv:
-                if "=" not in v:
-                    continue
-                key, name = v.split("=")
-                if registered_name == name:
-                    map_user_key_to_info[key] = _ClassInfo(class_arg=v, cls=registered_cls)
-
-        if len(map_user_key_to_info) > 0:
-            # for each shortcut command line, add its init arguments and skip them from `sys.argv`.
-            out = []
-            for v in argv:
-                skip = False
-                for key in map_user_key_to_info:
-                    if key in v:
-                        skip = True
-                        map_user_key_to_info[key].add_class_init_arg(v)
-                if not skip:
-                    out.append(v)
-
-            # re-create the global command line and mock `sys.argv`.
-            out += [f"{user_key}={info.class_init}" for user_key, info in map_user_key_to_info.items()]
-            return out
-        return argv
-
-    @staticmethod
-    def _prepare_class_list_from_registry(argv: List[str], pattern: str, registry: _Registry) -> List[str]:
-        out = [v for v in argv if pattern not in v]
-        all_matched_args = [v for v in argv if pattern in v]
-        all_simplified_args = [v for v in all_matched_args if f"{pattern}" in v and f"{pattern}=[" not in v]
-        all_cls_simplified_args = [v for v in all_simplified_args if f"{pattern}=" in v]
-        all_non_simplified_args = [v for v in all_matched_args if f"{pattern}=" in v and f"{pattern}=[" in v]
-
-        num_simplified_cls = len(all_simplified_args)
-        should_replace = num_simplified_cls > 0 and not all("class_path" in v for v in all_matched_args)
-
-        if should_replace:
-            # verify the user is properly ordering arguments.
-            assert all_cls_simplified_args[0] == all_simplified_args[0]
-            if len(all_non_simplified_args) > 1:
-                raise MisconfigurationException(f"When provided {pattern} as list, please group them under 1 argument.")
-
-            # group arguments per callbacks
-            infos = []
-            for class_arg_idx, class_arg in enumerate(all_simplified_args):
-                if class_arg in all_cls_simplified_args:
-                    class_name = class_arg.split("=")[1]
-                    registered_cls = registry[class_name]
-                    infos.append(_ClassInfo(class_arg=class_arg, cls=registered_cls, class_arg_idx=class_arg_idx))
-
-            for idx, v in enumerate(all_simplified_args):
-                if v in all_cls_simplified_args:
-                    current_info = [info for info in infos if idx == info.class_arg_idx][0]
-                current_info.add_class_init_arg(v)
-
-            class_args = [info.class_init for info in infos]
-            # add other callback arguments.
-            if len(all_non_simplified_args) > 0:
-                class_args.extend(eval(all_non_simplified_args[0].split("=")[-1]))
-
-            out += [f"{pattern}={class_args}"]
-            return out
-        return argv
-
     def parse_arguments(self, parser: LightningArgumentParser) -> None:
         """Parses command line arguments and stores it in ``self.config``."""
-        argv = self._prepare_from_registry(sys.argv, OPTIMIZER_REGISTRY)
-        argv = self._prepare_from_registry(argv, LR_SCHEDULER_REGISTRY)
-        argv = self._prepare_class_list_from_registry(argv, "--trainer.callbacks", CALLBACK_REGISTRY)
-        with mock.patch("sys.argv", argv):
-            self.config = parser.parse_args()
+        self.config = parser.parse_args()
 
     def before_instantiate_classes(self) -> None:
         """Implement to run some code before instantiating the classes."""

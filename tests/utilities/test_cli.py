@@ -926,9 +926,9 @@ def test_registries_resolution(use_class_path_callbacks):
 
 def test_argv_transformation_noop():
     base = ["any.py", "--trainer.max_epochs=1"]
-    argv = LightningCLI._prepare_from_registry(base, OPTIMIZER_REGISTRY)
-    argv = LightningCLI._prepare_from_registry(argv, LR_SCHEDULER_REGISTRY)
-    argv = LightningCLI._prepare_class_list_from_registry(argv, "--trainer.callbacks", CALLBACK_REGISTRY)
+    argv = LightningArgumentParser._prepare_from_registry(base, OPTIMIZER_REGISTRY)
+    argv = LightningArgumentParser._prepare_from_registry(argv, LR_SCHEDULER_REGISTRY)
+    argv = LightningArgumentParser._prepare_class_list_from_registry(argv, "--trainer.callbacks", CALLBACK_REGISTRY)
     assert argv == base
 
 
@@ -942,7 +942,7 @@ def test_argv_transformation_single_callback():
         }
     ]
     expected = base + [f"--trainer.callbacks={str(callbacks)}"]
-    argv = LightningCLI._prepare_class_list_from_registry(input, "--trainer.callbacks", CALLBACK_REGISTRY)
+    argv = LightningArgumentParser._prepare_class_list_from_registry(input, "--trainer.callbacks", CALLBACK_REGISTRY)
     assert argv == expected
 
 
@@ -965,7 +965,7 @@ def test_argv_transformation_multiple_callbacks():
         },
     ]
     expected = base + [f"--trainer.callbacks={str(callbacks)}"]
-    argv = LightningCLI._prepare_class_list_from_registry(input, "--trainer.callbacks", CALLBACK_REGISTRY)
+    argv = LightningArgumentParser._prepare_class_list_from_registry(input, "--trainer.callbacks", CALLBACK_REGISTRY)
     assert argv == expected
 
 
@@ -990,7 +990,7 @@ def test_argv_transformation_multiple_callbacks_with_config():
         {"class_path": "pytorch_lightning.callbacks.Callback"},
     ]
     expected = base + [f"--trainer.callbacks={str(callbacks)}"]
-    argv = LightningCLI._prepare_class_list_from_registry(input, "--trainer.callbacks", CALLBACK_REGISTRY)
+    argv = LightningArgumentParser._prepare_class_list_from_registry(input, "--trainer.callbacks", CALLBACK_REGISTRY)
     assert argv == expected
 
 
@@ -1001,9 +1001,11 @@ def test_argv_transformations_with_optimizers_and_lr_schedulers():
             super().__init__(*args, run=False)
 
         def before_instantiate_classes(self):
-            argv = self._prepare_from_registry(sys.argv, OPTIMIZER_REGISTRY)
-            argv = self._prepare_from_registry(argv, LR_SCHEDULER_REGISTRY)
-            argv = self._prepare_class_list_from_registry(argv, "--trainer.callbacks", CALLBACK_REGISTRY)
+            argv = LightningArgumentParser._prepare_from_registry(sys.argv, OPTIMIZER_REGISTRY)
+            argv = LightningArgumentParser._prepare_from_registry(argv, LR_SCHEDULER_REGISTRY)
+            argv = LightningArgumentParser._prepare_class_list_from_registry(
+                argv, "--trainer.callbacks", CALLBACK_REGISTRY
+            )
             assert argv == self.expected
 
     base = ["any.py", "--trainer.max_epochs=1"]
