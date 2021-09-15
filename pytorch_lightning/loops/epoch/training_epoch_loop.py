@@ -303,12 +303,13 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if not batch_outputs:
             return {}
 
-        n_opt = max(
+        the_thing_to_take_the_max_from = [
             # get the number of optimizers if it's not empty
             max(optimizers) + 1 if optimizers else 0
             for tbptt in batch_outputs
             for optimizers in tbptt
-        )
+        ]
+        n_opt = max(the_thing_to_take_the_max_from) if the_thing_to_take_the_max_from else 0
 
         swapped = [[] for _ in range(n_opt)]
         for tbptt in batch_outputs:
