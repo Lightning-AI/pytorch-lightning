@@ -14,7 +14,6 @@
 
 import os
 import socket
-from typing import Optional
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.utilities import rank_zero_only
@@ -43,10 +42,13 @@ class LightningEnvironment(ClusterEnvironment):
 
         # If at least `LOCAL_RANK` is available as environment variable, Lightning assumes the user acts as the
         # process launcher/job scheduler and Lightning will not launch new processes.
+        # We capture this on initialization such that the value of `creates_children` doesn't fluctuate
+        # during the course of execution
+        self._creates_children: bool = "LOCAL_RANK" in os.environ
 
     def creates_children(self) -> bool:
         """Returns whether the cluster creates the processes or not."""
-        return "LOCAL_RANK" in os.environ
+        return self._creates_children
 
     def master_address(self) -> str:
         return os.environ.get("MASTER_ADDR", "127.0.0.1")
