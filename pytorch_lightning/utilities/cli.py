@@ -70,17 +70,18 @@ class _Registry(dict):
             if issubclass(cls, base_cls) and cls != base_cls:
                 self(cls=cls)
 
-    def available_objects(self) -> List[str]:
-        """Returns the keys of the registered objects."""
+    @property
+    def names(self) -> List[str]:
+        """Returns the registered names."""
         return list(self.keys())
 
-    def registered_values(self) -> Tuple[Type, ...]:
-        """Returns the values of the registered objects."""
+    @property
+    def classes(self) -> Tuple[Type, ...]:
+        """Returns the registered classes."""
         return tuple(self.values())
 
     def __str__(self) -> str:
-        objects = ", ".join(self.keys())
-        return f"Registered objects: {objects}"
+        return f"Registered objects: {self.names}"
 
 
 CALLBACK_REGISTRY = _Registry()
@@ -202,7 +203,7 @@ class LightningArgumentParser(ArgumentParser):
             assert issubclass(optimizer_class, Optimizer)
         kwargs = {"instantiate": False, "fail_untyped": False, "skip": {"params"}}
         if isinstance(optimizer_class, tuple):
-            self.add_subclass_arguments(optimizer_class, nested_key, required=True, **kwargs)
+            self.add_subclass_arguments(optimizer_class, nested_key, **kwargs)
         else:
             self.add_class_arguments(optimizer_class, nested_key, **kwargs)
         self.optimizers_and_lr_schedulers[nested_key] = (optimizer_class, link_to)
@@ -226,7 +227,7 @@ class LightningArgumentParser(ArgumentParser):
             assert issubclass(lr_scheduler_class, LRSchedulerTypeTuple)
         kwargs = {"instantiate": False, "fail_untyped": False, "skip": {"optimizer"}}
         if isinstance(lr_scheduler_class, tuple):
-            self.add_subclass_arguments(lr_scheduler_class, nested_key, required=True, **kwargs)
+            self.add_subclass_arguments(lr_scheduler_class, nested_key, **kwargs)
         else:
             self.add_class_arguments(lr_scheduler_class, nested_key, **kwargs)
         self.optimizers_and_lr_schedulers[nested_key] = (lr_scheduler_class, link_to)
@@ -498,11 +499,10 @@ class LightningCLI:
 
         if LightningCLI._contains_from_registry("optimizer", OPTIMIZER_REGISTRY):
             if "optimizer" not in parser.groups:
-                parser.add_optimizer_args(OPTIMIZER_REGISTRY.registered_values())
-
+                parser.add_optimizer_args(OPTIMIZER_REGISTRY.classes)
         if LightningCLI._contains_from_registry("lr_scheduler", LR_SCHEDULER_REGISTRY):
             if "lr_scheduler" not in parser.groups:
-                parser.add_lr_scheduler_args(LR_SCHEDULER_REGISTRY.registered_values())
+                parser.add_lr_scheduler_args(LR_SCHEDULER_REGISTRY.classes)
 
         for key, (class_type, link_to) in parser.optimizers_and_lr_schedulers.items():
             if link_to == "AUTOMATIC":
