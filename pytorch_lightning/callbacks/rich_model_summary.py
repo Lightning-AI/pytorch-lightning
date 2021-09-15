@@ -14,6 +14,7 @@
 from typing import List, Union
 
 from pytorch_lightning.callbacks import ModelSummary
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
 from pytorch_lightning.utilities.model_summary import get_human_readable_count
 
@@ -23,6 +24,13 @@ if _RICH_AVAILABLE:
 
 
 class RichModelSummary(ModelSummary):
+    def __init__(self, max_depth: int = 1) -> None:
+        if not _RICH_AVAILABLE:
+            raise MisconfigurationException(
+                "`RichModelSummary` requires `rich` to be installed. Install it by running `pip install rich`."
+            )
+        super().__init__(max_depth)
+
     @staticmethod
     def summarize(
         summary_data: List[List[Union[str, List[str]]]],
@@ -40,10 +48,11 @@ class RichModelSummary(ModelSummary):
         table.add_column("Type", style="magenta")
         table.add_column("Params", justify="right", style="green")
 
-        # print(summary_data)
-        # if self._model.example_input_array is not None:
-        #     table.add_column("In sizes", justify="right", style="green")
-        #     table.add_column("Out sizes", justify="right", style="green")
+        column_names = list(zip(*summary_data))[0]
+
+        for column_name in ["In sizes", "Out sizes"]:
+            if column_name in column_names:
+                table.add_column(column_name, justify="right", style="green")
 
         rows = list(zip(*(arr[1] for arr in summary_data)))
         for row in rows:

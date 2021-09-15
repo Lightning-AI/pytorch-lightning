@@ -46,8 +46,8 @@ __all__ = [
     "ProgressBar",
     "ProgressBarBase",
     "QuantizationAwareTraining",
-    "StochasticWeightAveraging",
-    "Timer",
     "RichModelSummary",
     "RichProgressBar",
+    "StochasticWeightAveraging",
+    "Timer",
 ]
