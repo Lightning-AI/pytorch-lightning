@@ -35,6 +35,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import log, rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
+from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeTuple
 from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
 
@@ -334,16 +335,28 @@ class DeepSpeedPlugin(DDPPlugin):
         return config
 
     def setup_distributed(self):
-        super().setup_distributed()
+        reset_seed()
+
+        # determine which process we are and world size
+        self.set_world_ranks()
+
+        # set warning rank
+        rank_zero_only.rank = self.global_rank
+
+        self.init_deepspeed_distributed()
+
+        # set the ranks and devices
+        self.dist.rank = self.global_rank
+        self.dist.device = self.root_device
         if not self._config_initialized:
             self._format_config()
             self._config_initialized = True
 
-    def init_ddp_connection(self, global_rank: Optional[int] = None, world_size: Optional[int] = None) -> None:
+    def init_deepspeed_distributed(self) -> None:
         if platform.system() != "Windows":
             # do not set env variables on windows, allow deepspeed to control setup
-            global_rank = global_rank if global_rank is not None else self.cluster_environment.global_rank()
-            world_size = world_size if world_size is not None else self.cluster_environment.world_size()
+            global_rank = self.global_rank if self.global_rank is not None else self.cluster_environment.global_rank()
+            world_size = self.world_size if self.world_size is not None else self.cluster_environment.world_size()
             self._set_node_environment_variables(global_rank, world_size)
             log.info(
                 "initializing deepspeed distributed: "

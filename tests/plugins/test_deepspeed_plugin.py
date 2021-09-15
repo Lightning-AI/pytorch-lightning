@@ -810,7 +810,7 @@ def test_deepspeed_plugin_env_variables(mock_deepspeed_distributed, tmpdir, plat
     plugin = trainer.training_type_plugin
     assert isinstance(plugin, DeepSpeedPlugin)
     with mock.patch("platform.system", return_value=platform) as mock_platform:
-        plugin.init_ddp_connection()
+        plugin.init_deepspeed_distributed()
     mock_deepspeed_distributed.assert_called()
     mock_platform.assert_called()
     if platform == "Windows":
