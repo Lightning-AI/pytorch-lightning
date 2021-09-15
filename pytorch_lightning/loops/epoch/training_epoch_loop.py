@@ -17,7 +17,7 @@ import torch
 
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
-from pytorch_lightning.loops.optimization.closure import ClosureResult
+from pytorch_lightning.loops.optimization.closure import OutputResult
 from pytorch_lightning.loops.utilities import _prepare_dataloader_iter
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import Progress, SchedulerProgress
@@ -76,7 +76,7 @@ class TrainingEpochLoop(loops.Loop):
         signals to stop (e.g. by early stopping).
         """
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
-        return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
+        return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached()
 
     def connect(
         self,
@@ -143,7 +143,7 @@ class TrainingEpochLoop(loops.Loop):
         # update non-plateau LR schedulers
         # update epoch-interval ones only when we are at the end of training epoch
         self.update_lr_schedulers("step", update_plateau_schedulers=False)
-        if self._num_training_batches_reached(is_last):
+        if self._num_training_batches_reached():
             self.update_lr_schedulers("epoch", update_plateau_schedulers=False)
 
         batch_end_outputs = [opt_idx_out for opt_idx_out in batch_output.training_step_output if len(opt_idx_out)]
@@ -187,8 +187,9 @@ class TrainingEpochLoop(loops.Loop):
         # update plateau LR scheduler after metrics are logged
         self.update_lr_schedulers("step", update_plateau_schedulers=True)
 
-        # progress global step according to grads progress
-        self._increment_accumulated_grad_global_step()
+        if not self._should_accumulate():
+            # progress global step according to grads progress
+            self.global_step += 1
 
     def on_run_end(self) -> None:
         """Calls the on_epoch_end hook.
@@ -230,7 +231,7 @@ class TrainingEpochLoop(loops.Loop):
         self.trainer.call_hook("on_epoch_end")
         self.trainer.logger_connector.on_epoch_end()
 
-        if self._num_training_batches_reached(self.is_last_batch):
+        if self._num_training_batches_reached():
             self.update_lr_schedulers("epoch", update_plateau_schedulers=True)
 
         self.dataloader_iter = None
@@ -242,7 +243,7 @@ class TrainingEpochLoop(loops.Loop):
 
     def _run_validation(self):
         # reload dataloaders
-        self.val_loop.reload_evaluation_dataloaders()
+        self.val_loop._reload_evaluation_dataloaders()
 
         with torch.no_grad():
             self.val_loop.run()
@@ -251,20 +252,21 @@ class TrainingEpochLoop(loops.Loop):
         """Determine if accumulation will be finished by the end of the current batch."""
         return self.batch_progress.current.ready % self.trainer.accumulate_grad_batches == 0
 
-    def _num_training_batches_reached(self, is_last_batch: bool = False) -> bool:
-        """Checks if we are in the last batch or if there are more batches to follow.
-
-        Args:
-            is_last_batch: Whether the current batch is the last one
-        """
-        return self.batch_progress.current.ready == self.trainer.num_training_batches or is_last_batch
+    def _num_training_batches_reached(self) -> bool:
+        """Checks if we are in the last batch or if there are more batches to follow."""
+        return self.batch_progress.current.ready == self.trainer.num_training_batches or self.is_last_batch
 
     def _should_accumulate(self) -> bool:
         """Checks if the optimizer step should be performed or gradients should be accumulated for the current
         step."""
         accumulation_done = self._accumulated_batches_reached()
+        # Lightning steps on the final batch
         is_final_batch = self._num_training_batches_reached()
-        return not (accumulation_done or is_final_batch)
+        # but the TTP might not
+        ttp_accumulates_on_final_batch = (
+            self.trainer.training_type_plugin.handles_gradient_accumulation or not is_final_batch
+        )
+        return not accumulation_done and ttp_accumulates_on_final_batch
 
     def _track_epoch_end_reduce_metrics(
         self, epoch_output: List[List[STEP_OUTPUT]], batch_end_outputs: STEP_OUTPUT
@@ -284,18 +286,18 @@ class TrainingEpochLoop(loops.Loop):
 
     @staticmethod
     def _prepare_outputs(
-        outputs: List[List[List[ClosureResult]]], batch_mode: bool
+        outputs: List[List[List[OutputResult]]], batch_mode: bool
     ) -> Union[List[List[List[Dict]]], List[List[Dict]], List[Dict], Dict]:
         """Extract required information from batch or epoch end results.
 
         Args:
-            outputs: A 3-dimensional list of ``ClosureResult`` objects with dimensions:
+            outputs: A 3-dimensional list of ``OutputResult`` objects with dimensions:
                 ``[optimizer outs][batch outs][tbptt steps]``.
 
             batch_mode: If True, ignore the batch output dimension.
 
         Returns:
-            The cleaned outputs with ``ClosureResult`` objects converted to dictionaries.
+            The cleaned outputs with ``OutputResult`` objects converted to dictionaries.
             All list dimensions of size one will be collapsed.
         """
         processed_outputs = []
@@ -310,18 +312,7 @@ class TrainingEpochLoop(loops.Loop):
                 opt_outputs = [opt_outputs]
 
             for batch_outputs in opt_outputs:
-                processed_tbptt_outputs = []
-
-                if isinstance(batch_outputs, ClosureResult):
-                    batch_outputs = [batch_outputs]
-
-                for tbptt_output in batch_outputs:
-                    out = {}
-                    if tbptt_output.loss is not None:
-                        out["loss"] = tbptt_output.loss
-                    out.update(tbptt_output.extra)
-                    processed_tbptt_outputs.append(out)
-
+                processed_tbptt_outputs = batch_outputs if isinstance(batch_outputs, list) else [batch_outputs]
                 # if there was only one tbptt step then we can collapse that dimension
                 if len(processed_tbptt_outputs) == 1:
                     processed_tbptt_outputs = processed_tbptt_outputs[0]
@@ -346,13 +337,6 @@ class TrainingEpochLoop(loops.Loop):
             update_plateau_schedulers=update_plateau_schedulers,
             opt_indices=[opt_idx for opt_idx, _ in self.batch_loop.get_active_optimizers(self.total_batch_idx)],
         )
-
-    def _increment_accumulated_grad_global_step(self) -> None:
-        """Increments global step according to grads progress."""
-        if not self._should_accumulate():
-            self.global_step = self.trainer.accelerator.update_global_step(
-                self.batch_progress.current.ready, self.trainer.global_step
-            )
 
     def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:
         """Decide if we should run validation."""

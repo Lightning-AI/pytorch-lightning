@@ -29,7 +29,7 @@ import torch
 from omegaconf import OmegaConf
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, IterableDataset
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
@@ -46,6 +46,7 @@ from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, Mi
 from pytorch_lightning.utilities.seed import seed_everything
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.boring_model import RandomIterableDataset, RandomIterableDatasetWithLen
 from tests.helpers.runif import RunIf
 
 
@@ -960,7 +961,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
         gradient_clip_val=1.0,
     )
 
-    old_backward = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.backward
+    old_backward = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward
 
     def backward(*args, **kwargs):
         # test that gradient is clipped correctly
@@ -970,7 +971,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
         assert (grad_norm - 1.0).abs() < 0.01, f"Gradient norm != 1.0: {grad_norm}"
         return ret_val
 
-    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.backward = backward
+    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward = backward
     trainer.fit(model)
 
 
@@ -995,7 +996,7 @@ def test_gradient_clipping_by_value(tmpdir, precision):
         default_root_dir=tmpdir,
     )
 
-    old_backward = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.backward
+    old_backward = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward
 
     def backward(*args, **kwargs):
         # test that gradient is clipped correctly
@@ -1008,7 +1009,7 @@ def test_gradient_clipping_by_value(tmpdir, precision):
         ), f"Gradient max value {grad_max} != grad_clip_val {grad_clip_val} ."
         return ret_val
 
-    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.backward = backward
+    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward = backward
     trainer.fit(model)
 
 
@@ -1043,8 +1044,8 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
 
     with patch.object(
         trainer.fit_loop.epoch_loop.val_loop.epoch_loop,
-        "evaluation_step",
-        wraps=trainer.fit_loop.epoch_loop.val_loop.epoch_loop.evaluation_step,
+        "_evaluation_step",
+        wraps=trainer.fit_loop.epoch_loop.val_loop.epoch_loop._evaluation_step,
     ) as mocked:
         val_dataloaders = model.val_dataloader__multiple_mixed_length()
         trainer.fit(model, val_dataloaders=val_dataloaders)
@@ -1068,8 +1069,8 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
 
     with patch.object(
         trainer.fit_loop.epoch_loop.val_loop.epoch_loop,
-        "evaluation_step",
-        wraps=trainer.fit_loop.epoch_loop.val_loop.epoch_loop.evaluation_step,
+        "_evaluation_step",
+        wraps=trainer.fit_loop.epoch_loop.val_loop.epoch_loop._evaluation_step,
     ) as mocked:
         val_dataloaders = model.val_dataloader__multiple()
         trainer.fit(model, val_dataloaders=val_dataloaders)
@@ -1287,21 +1288,15 @@ class CustomPredictionWriter(BasePredictionWriter):
 
     def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *args, **kwargs):
         assert prediction.shape == torch.Size([1, 2])
-        if trainer.accelerator_connector.is_distributed:
-            assert len(batch_indices) == 1
-        else:
-            assert batch_indices is None
+        assert len(batch_indices) == 1
         self.write_on_batch_end_called = True
 
     def write_on_epoch_end(self, trainer, pl_module, predictions, batch_indices):
         expected = 1 if trainer.accelerator_connector.is_distributed else 2
         assert len(predictions) == 2
         assert len(predictions[0]) == expected
-        if trainer.accelerator_connector.is_distributed:
-            assert len(batch_indices) == 2
-            assert len(batch_indices[0]) == expected
-        else:
-            assert batch_indices is None
+        assert len(batch_indices) == 2
+        assert len(batch_indices[0]) == expected
         self.write_on_epoch_end_called = True
 
     def on_predict_epoch_end(self, trainer, pl_module, outputs):
@@ -1414,6 +1409,27 @@ def test_trainer_predict_1_gpu(tmpdir):
 @RunIf(skip_windows=True)
 def test_trainer_predict_ddp_cpu(tmpdir):
     predict(tmpdir, "ddp_cpu", 0, 2)
+
+
+@pytest.mark.parametrize("dataset_cls", [RandomDataset, RandomIterableDatasetWithLen, RandomIterableDataset])
+def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmpdir):
+
+    ds = dataset_cls(32, 8)
+    loader = DataLoader(ds)
+    is_iterable_dataset = isinstance(ds, IterableDataset)
+
+    class CustomPredictionWriter(BasePredictionWriter):
+        def __init__(self, output_dir: str, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.output_dir = output_dir
+
+        def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *args, **kwargs):
+            assert not batch_indices if is_iterable_dataset else batch_indices
+
+    cb = CustomPredictionWriter(tmpdir)
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=cb)
+    predictions = trainer.predict(BoringModel(), dataloaders=loader)
+    assert len(predictions) == 8
 
 
 @patch("torch.cuda.device_count", return_value=2)
@@ -1807,12 +1823,13 @@ def test_exception_when_lightning_module_is_not_set_on_trainer():
         trainer.predict()
 
 
+class CustomException(Exception):
+    pass
+
+
 @RunIf(min_gpus=2, special=True)
 def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
     """Test that DDP kills the remaining processes when only one rank is throwing an exception."""
-
-    class CustomException(Exception):
-        pass
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
