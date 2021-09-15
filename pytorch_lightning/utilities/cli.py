@@ -49,8 +49,7 @@ class _Registry(dict):
         key: Optional[str] = None,
         override: bool = False,
     ) -> None:
-        """
-        Registers a class mapped to a name.
+        """Registers a class mapped to a name.
 
         Args:
             cls: the class to be mapped.
@@ -72,11 +71,11 @@ class _Registry(dict):
                 self(cls=cls)
 
     def available_objects(self) -> List[str]:
-        """Returns the keys of the registered objects"""
+        """Returns the keys of the registered objects."""
         return list(self.keys())
 
     def registered_values(self) -> Tuple[Type, ...]:
-        """Returns the values of the registered objects"""
+        """Returns the values of the registered objects."""
         return tuple(self.values())
 
     def __str__(self) -> str:
@@ -96,7 +95,7 @@ LR_SCHEDULER_REGISTRY.register_package(torch.optim.lr_scheduler, torch.optim.lr_
 
 @dataclass
 class _ClassInfo:
-    """This class is an helper to easily build the mocked command line"""
+    """This class is an helper to easily build the mocked command line."""
 
     class_arg: str
     cls: Type
@@ -104,7 +103,7 @@ class _ClassInfo:
     class_arg_idx: Optional[int] = None
 
     class _ClassConfig(TypedDict):
-        """Defines the config structure that ``jsonargparse`` uses for instantiation"""
+        """Defines the config structure that ``jsonargparse`` uses for instantiation."""
 
         class_path: str
         init_args: Dict[str, str]
