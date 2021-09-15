@@ -65,14 +65,13 @@ class WandbLogger(LightningLoggerBase):
 
         wandb_logger = WandbLogger(project="MNIST")
 
-    Pass `WandbLogger` to the `Trainer`:
+    Pass the logger instance to the `Trainer`:
 
     .. code-block:: python
 
         trainer = Trainer(logger=wandb_logger)
 
-    A new W&B run will automatically be created when training starts if you have not created one manually before with
-    `wandb.init()`.
+    A new W&B run will be created when training starts if you have not created one manually before with `wandb.init()`.
 
     **Log metrics**
 
