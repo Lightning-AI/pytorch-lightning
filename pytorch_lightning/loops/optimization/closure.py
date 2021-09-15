@@ -43,7 +43,7 @@ class OutputResult:
         return apply_to_collection(extra, Tensor, check_fn)
 
     def asdict(self) -> Dict[str, Any]:
-        return {}
+        raise NotImplementedError
 
 
 class AbstractClosure(ABC, Generic[T]):

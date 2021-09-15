@@ -12,10 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
+import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.loops.optimization.manual_loop import ManualResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
+
+
+def test_manual_result():
+    training_step_output = {"loss": torch.tensor(25.0, requires_grad=True), "something": "jiraffe"}
+    result = ManualResult.from_training_step_output(training_step_output, normalize=5)
+    asdict = result.asdict()
+    assert not asdict["loss"].requires_grad
+    assert asdict["loss"] == 5
+    assert result.extra == asdict
 
 
 def test_warning_invalid_trainstep_output(tmpdir):
