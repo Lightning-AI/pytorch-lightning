@@ -41,6 +41,7 @@ class Accelerator:
     - CPU
     - GPU
     - TPU
+    - IPU
 
     Each Accelerator gets two plugins upon initialization:
     One to handle differences from the training routine and one to handle different precisions.
@@ -438,6 +439,10 @@ class Accelerator:
 
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         return self.training_type_plugin.update_global_step(total_batch_idx, current_global_step)
+
+    def get_device_stats(self, device: Optional[torch.device] = None) -> None:
+        """Gets stats for a given device"""
+        pass
 
     def on_train_start(self) -> None:
         """Called when train begins."""

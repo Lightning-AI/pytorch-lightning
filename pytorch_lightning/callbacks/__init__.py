@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.callbacks.device_stats_monitor import DeviceStatsMonitor
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.finetuning import BackboneFinetuning, BaseFinetuning
 from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
@@ -34,6 +35,7 @@ __all__ = [
     "Callback",
     "EarlyStopping",
     "GPUStatsMonitor",
+    "DeviceStatsMonitor",
     "XLAStatsMonitor",
     "GradientAccumulationScheduler",
     "LambdaCallback",
