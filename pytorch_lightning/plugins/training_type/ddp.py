@@ -492,7 +492,7 @@ class DDPPlugin(ParallelPlugin):
             return
 
         # If the cluster environment creates the process, allow the scheduler / parent process
-        # to perform the process termination
+        # to perform the process termination external to Lightning.
         if not self._has_called_call_children_scripts:
             return
 
