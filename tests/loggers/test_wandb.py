@@ -263,6 +263,17 @@ def test_wandb_log_media(wandb, tmpdir):
     with pytest.raises(AssertionError, match="Expected 2 items but only found 1 for caption"):
         logger.log_images(key="samples", images=["1.jpg", "2.jpg"], caption=["caption 1"])
 
+    # test log_table
+    wandb.Table.reset_mock()
+    wandb.init().log.reset_mock()
+    logger.log_table(key="samples", columns=columns, data=data, dataframe=df, step=5)
+    wandb.Table.assert_called_once_with(
+        columns=columns,
+        data=data,
+        dataframe=df,
+    )
+    wandb.init().log.assert_called_once_with({"samples": wandb.Table(), "trainer/global_step": 5})
+
 
 def test_wandb_sanitize_callable_params(tmpdir):
     """Callback function are not serializiable.
