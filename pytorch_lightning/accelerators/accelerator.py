@@ -436,9 +436,6 @@ class Accelerator:
         """
         return self.training_type_plugin.restore_checkpoint_after_pre_dispatch
 
-    def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
-        return self.training_type_plugin.update_global_step(total_batch_idx, current_global_step)
-
     def on_train_start(self) -> None:
         """Called when train begins."""
         return self.training_type_plugin.on_train_start()
