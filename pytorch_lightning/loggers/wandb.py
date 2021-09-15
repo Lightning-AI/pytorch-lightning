@@ -49,11 +49,153 @@ class WandbLogger(LightningLoggerBase):
     r"""
     Log using `Weights and Biases <https://docs.wandb.ai/integrations/lightning>`_.
 
-    Install it with pip:
+    **Installation and set-up**
+
+    Install with pip:
 
     .. code-block:: bash
 
         pip install wandb
+
+    Create a `WandbLogger` instance:
+
+    .. code-block:: python
+
+        from pytorch_lightning.loggers import WandbLogger
+        wandb_logger = WandbLogger(project='MNIST')
+
+    Pass `WandbLogger` to the `Trainer`:
+
+    .. code-block:: python
+
+        trainer = Trainer(logger=wandb_logger)
+
+    A new W&B run will automatically be created when training starts if you have not created one manually before with `wandb.init()`.
+
+    **Log metrics**
+
+    Log from :class:`~pytorch_lightning.core.lightning.LightningModule`:
+
+    .. code-block:: python
+
+        class LitModule(LightningModule):
+            def training_step(self, batch, batch_idx):
+                self.log('train/loss', loss)
+
+    Use directly wandb module:
+
+    .. code-block:: python
+
+        wandb.log({'train/loss': loss})
+
+    **Log hyper-parameters**
+
+    Save :class:`~pytorch_lightning.core.lightning.LightningModule` parameters:
+
+    .. code-block:: python
+
+        class LitModule(LightningModule):
+            def __init__(self, *args, **kwarg):
+                self.save_hyperparameters()
+
+    Add other config parameters:
+
+    .. code-block:: python
+
+        # add one parameter
+        trainer.logger.experiment.config['key'] = value
+
+        # add multiple parameters
+        trainer.logger.experiment.config.update({key1: val1, ...})
+
+        # use directly wandb module
+        wandb.config['key'] = value
+        wandb.config.update()
+
+    **Log gradients, parameters and model topology**
+
+    Call the `watch` method for automatically tracking gradients:
+
+    .. code-block:: python
+
+        # log gradients and model topology
+        wandb_logger.watch(model)
+
+        # log gradients, parameter histogram and model topology
+        wandb_logger.watch(model, log='all')
+
+        # change log frequency of gradients and parameters (100 steps by default)
+        wandb_logger.watch(model, log_freq=500)
+
+        # do not log graph (in case of errors)
+        wandb_logger.watch(model, log_graph=False)
+
+    The `watch` method adds hooks to the model which can be removed at the end of training:
+
+    .. code-block:: python
+
+    wandb_logger.unwatch(model)
+
+    **Log model checkpoints**
+
+    Log model checkpoints at the end of training:
+
+    .. code-block:: python
+
+        wandb_logger = WandbLogger(log_model=True)
+
+    Log model checkpoints as they get created during training:
+
+    .. code-block:: python
+
+        wandb_logger = WandbLogger(log_model='all')
+
+    Custom checkpointing can be set up through :class:`~pytorch_lightning.callbacks.ModelCheckpoint`:
+
+    .. code-block:: python
+
+        # log model only if `val_accuracy` increases
+        wandb_logger = WandbLogger(log_model='all')
+        checkpoint_callback = ModelCheckpoint(monitor='val_accuracy', mode='max')
+        trainer = Trainer(logger=wandb_logger, callbacks=[checkpoint_callback])
+
+    `latest` and `best` aliases are automatically set to easily retrieve a model checkpoint:
+
+    .. code-block:: python
+
+        # reference can be retrieved in artifacts panel (VERSION can also be an alias: 'latest' or 'best')
+        checkpoint_reference = 'USER/PROJECT/MODEL-RUN_ID:VERSION'
+
+        # download checkpoint locally (if not already cached)
+        run = wandb.init(project='MNIST')
+        artifact = run.use_artifact(checkpoint_reference, type='model')
+        artifact_dir = artifact.download()
+
+        # load checkpoint
+        model = LitModule.load_from_checkpoint(Path(artifact_dir)/'model.ckpt')
+
+    **Log media**
+
+    Log text with:
+
+    .. code-block:: python
+
+        # using columns and data
+        columns = ['input', 'label', 'prediction']
+        data = [['cheese', 'english', 'english],
+                ['fromage', 'french', 'spanish']]
+        wandb_logger.log_text(key='samples', columns=columns, data=data)
+
+        # using a pandas DataFrame
+        wandb_logger.log_text(key='samples', dataframe=my_dataframe)
+
+    Log images with:
+
+    To be completed
+
+    See Also:
+        - `Demo in Google Colab <http://wandb.me/lightning>`__ with hyperparameter search and model logging
+        - `W&B Documentation <https://docs.wandb.ai/integrations/lightning>`__
 
     Args:
         name: Display name for the run.
@@ -64,7 +206,7 @@ class WandbLogger(LightningLoggerBase):
         anonymous: Enables or explicitly disables anonymous logging.
         project: The name of the project to which this run will belong.
         log_model: Log checkpoints created by :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
-            as W&B artifacts.
+            as W&B artifacts. `latest` and `best` aliases are automatically set.
 
             * if ``log_model == 'all'``, checkpoints are logged during training.
             * if ``log_model == True``, checkpoints are logged at the end of training, except when
@@ -80,23 +222,7 @@ class WandbLogger(LightningLoggerBase):
         ImportError:
             If required WandB package is not installed on the device.
         MisconfigurationException:
-            If both ``log_model`` and ``offline``is set to ``True``.
-
-    Example::
-
-        from pytorch_lightning.loggers import WandbLogger
-        from pytorch_lightning import Trainer
-
-        # instrument experiment with W&B
-        wandb_logger = WandbLogger(project='MNIST', log_model='all')
-        trainer = Trainer(logger=wandb_logger)
-
-        # log gradients and model topology
-        wandb_logger.watch(model)
-
-    See Also:
-        - `Demo in Google Colab <http://wandb.me/lightning>`__ with model logging
-        - `W&B Documentation <https://docs.wandb.ai/integrations/lightning>`__
+            If both ``log_model`` and ``offline`` is set to ``True``.
 
     """
 
@@ -177,6 +303,8 @@ class WandbLogger(LightningLoggerBase):
         :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
 
         Example::
+
+        .. code-block:: python
 
             self.logger.experiment.some_wandb_function()
 
