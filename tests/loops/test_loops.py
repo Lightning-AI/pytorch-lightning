@@ -424,50 +424,11 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
     trainer.fit(model)
     weights_resumed = model.parameters()
 
+    # check that the final weights of a resumed run match the weights of a run that never failed
     for w0, w1 in zip(weights_complete, weights_resumed):
         assert torch.allclose(w0, w1)
 
     _assert_optimizer_sequence(model.optimizer_step, opt_idx_sequence_resumed)
-
-    # trainer.fit_loop.load_state_dict(checkpoint, restart_progress=False)
-    #
-    # # `nbe_`: non-breaking epoch, as in, no exception will be raised. `be_`: breaking epoch
-    # nbe_total_optimizers = stop_epoch * n_optimizers * n_batches
-    # be_total_optimizers = stop_batch * n_optimizers + stop_optimizer
-    # total_optimizers = nbe_total_optimizers + be_total_optimizers
-    # expected = {
-    #     "optimizer": {
-    #         "step": {
-    #             "total": {"ready": total_optimizers + 1, "completed": total_optimizers},
-    #             "current": {"ready": stop_optimizer + 1, "completed": stop_optimizer},
-    #         },
-    #         "zero_grad": {
-    #             "total": {"ready": total_optimizers, "started": total_optimizers, "completed": total_optimizers},
-    #             "current": {"ready": stop_optimizer, "started": stop_optimizer, "completed": stop_optimizer},
-    #         },
-    #     },
-    #     "optimizer_position": stop_optimizer,
-    # }
-    # assert trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress.state_dict() == expected
-    #
-    # trainer = Trainer()
-    #
-    # # restart_progress = True sets current.ready to current.completed, leaves all other progress unchanged
-    # trainer.fit_loop.load_state_dict(checkpoint, restart_progress=True)
-    # expected = {
-    #     "optimizer": {
-    #         "step": {
-    #             "total": {"ready": total_optimizers + 1, "completed": total_optimizers},
-    #             "current": {"ready": stop_optimizer, "completed": stop_optimizer},
-    #         },
-    #         "zero_grad": {
-    #             "total": {"ready": total_optimizers, "started": total_optimizers, "completed": total_optimizers},
-    #             "current": {"ready": stop_optimizer, "started": stop_optimizer, "completed": stop_optimizer},
-    #         },
-    #     },
-    #     "optimizer_position": stop_optimizer,
-    # }
-    # assert trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress.state_dict() == expected
 
 
 @RunIf(min_torch="1.7.0")
