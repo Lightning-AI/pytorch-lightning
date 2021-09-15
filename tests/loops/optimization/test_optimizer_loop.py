@@ -13,21 +13,18 @@
 # limitations under the License.
 
 
-from torch.optim import Adam, SGD
-
-from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.loops.optimization.optimizer_loop import ClosureResult
-
 import os
 from unittest import mock
 from unittest.mock import Mock
 
 import pytest
 import torch
+from torch.optim import Adam, SGD
 
 from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.loops.optimization.optimizer_loop import ClosureResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
