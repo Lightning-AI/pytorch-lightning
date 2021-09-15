@@ -20,3 +20,21 @@ Most importantly, we will also provide guidelines when to use loop customization
 
 Trainer entry points for loops
 ------------------------------
+
+The Trainer has four entry points for training, testing and inference, and each method corresponds to a main loop:
+
++---------------------------------------------------------------+-----------------------------------------------------------------------+-------------------------------------------------------------------------------+
+| Entry point                                                   | Trainer attribute                                                     | Loop class                                                                    |
++===============================================================+=======================================================================+===============================================================================+
+| :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit`        | :attr:`~pytorch_lightning.trainer.trainer.Trainer.fit_loop`           | :class:`~pytorch_lightning.loops.fit_loop.FitLoop`                            |
++---------------------------------------------------------------+-----------------------------------------------------------------------+-------------------------------------------------------------------------------+
+| :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`   | :attr:`~pytorch_lightning.trainer.trainer.Trainer.validate_loop`      | :class:`~pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop`   |
++---------------------------------------------------------------+-----------------------------------------------------------------------+-------------------------------------------------------------------------------+
+| :meth:`~pytorch_lightning.trainer.trainer.Trainer.test`       | :attr:`~pytorch_lightning.trainer.trainer.Trainer.test_loop`          | :class:`~pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop`   |
++---------------------------------------------------------------+-----------------------------------------------------------------------+-------------------------------------------------------------------------------+
+| :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`    | :attr:`~pytorch_lightning.trainer.trainer.Trainer.predict_loop`       | :class:`~pytorch_lightning.loops.dataloader.prediction_loop.PredictionLoop`   |
++---------------------------------------------------------------+-----------------------------------------------------------------------+-------------------------------------------------------------------------------+
+
+When a user calls :code:`Trainer.method`, it redirects to the corresponding :code:`Trainer.loop.run()` which implements the main logic of that particular Lightning loop.
+Think of it as the start of a Python :code:`while` loop.
+The :meth:`~pytorch_lightning.loops.base.Loop.run` method is part of the base :class:`~pytorch_lightning.loops.base.Loop` class that every loop inherits from (like every model inherits from `LightningModule`).
