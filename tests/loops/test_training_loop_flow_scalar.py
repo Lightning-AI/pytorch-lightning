@@ -18,7 +18,7 @@ from torch.utils.data._utils.collate import default_collate
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.loops.optimization.closure import Closure
+from pytorch_lightning.loops.optimization.optimizer_loop import Closure
 from pytorch_lightning.trainer.states import RunningStage
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.deterministic_model import DeterministicModel
@@ -249,17 +249,16 @@ def test_train_step_no_return(tmpdir):
             self.log("a", loss, on_step=True, on_epoch=True)
 
         def training_epoch_end(self, outputs) -> None:
-            assert len(outputs) == 0
+            assert len(outputs) == 0, outputs
 
         def validation_step(self, batch, batch_idx):
             self.validation_step_called = True
 
         def validation_epoch_end(self, outputs):
-            assert len(outputs) == 0
+            assert len(outputs) == 0, outputs
 
     model = TestModel()
     trainer_args = dict(default_root_dir=tmpdir, fast_dev_run=2)
-
     trainer = Trainer(**trainer_args)
 
     Closure.warning_cache.clear()

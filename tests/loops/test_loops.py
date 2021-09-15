@@ -468,7 +468,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         "epoch_loop.batch_loop.manual_loop.state_dict": ANY,
         "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
         "epoch_loop.batch_loop.optimizer_loop.optim_progress": {
-            "optimizer_idx": stop_optimizer,
+            "optimizer_position": stop_optimizer,
             "optimizer": {
                 "step": {
                     "total": {
@@ -611,7 +611,7 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
         "epoch_loop.batch_loop.manual_loop.state_dict": ANY,
         "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
         "epoch_loop.batch_loop.optimizer_loop.optim_progress": {
-            "optimizer_idx": n_optimizers,
+            "optimizer_position": n_optimizers,
             "optimizer": {
                 "step": {
                     "total": {
@@ -697,12 +697,12 @@ def test_fit_loop_reset(tmpdir):
 
     # resetting from a mid-epoch checkpoint should not change progress counters
     mid_epoch_reset_assertions()
-    assert optimizer_loop.optim_progress.optimizer_idx == 1
+    assert optimizer_loop.optim_progress.optimizer_position == 1
     fit_loop.reset()
     epoch_loop.reset()
     optimizer_loop.reset()
     mid_epoch_reset_assertions()
-    assert optimizer_loop.optim_progress.optimizer_idx == 0
+    assert optimizer_loop.optim_progress.optimizer_position == 0
 
     # reset state loaded from a checkpoint from the end of an epoch
     end_of_epoch_ckpt = torch.load(str(tmpdir / "epoch=0-step=3.ckpt"))
@@ -726,7 +726,7 @@ def test_fit_loop_reset(tmpdir):
     assert epoch_loop.batch_progress.current.ready == 4
     assert epoch_loop.batch_progress.current.completed == 4
 
-    assert optimizer_loop.optim_progress.optimizer_idx == 1
+    assert optimizer_loop.optim_progress.optimizer_position == 1
 
     # resetting from a end-of-epoch checkpoint should reset the current counters to 0
     fit_loop.reset()
@@ -745,4 +745,4 @@ def test_fit_loop_reset(tmpdir):
     assert epoch_loop.batch_progress.current.ready == 0
     assert epoch_loop.batch_progress.current.completed == 0
 
-    assert optimizer_loop.optim_progress.optimizer_idx == 0
+    assert optimizer_loop.optim_progress.optimizer_position == 0

@@ -77,7 +77,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         signals to stop (e.g. by early stopping).
         """
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
-        return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
+        return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached()
 
     def connect(
         self,
@@ -142,7 +142,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # update non-plateau LR schedulers
         # update epoch-interval ones only when we are at the end of training epoch
         self.update_lr_schedulers("step", update_plateau_schedulers=False)
-        if self._num_training_batches_reached(is_last):
+        if self._num_training_batches_reached():
             self.update_lr_schedulers("epoch", update_plateau_schedulers=False)
 
         if is_overridden("on_train_batch_end", self.trainer.lightning_module):
@@ -184,8 +184,9 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # update plateau LR scheduler after metrics are logged
         self.update_lr_schedulers("step", update_plateau_schedulers=True)
 
-        # progress global step according to grads progress
-        self._increment_accumulated_grad_global_step()
+        if not self._should_accumulate():
+            # progress global step according to grads progress
+            self.global_step += 1
 
     def on_run_end(self) -> None:
         """Calls the on_epoch_end hook.
@@ -227,7 +228,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.trainer.call_hook("on_epoch_end")
         self.trainer.logger_connector.on_epoch_end()
 
-        if self._num_training_batches_reached(self.is_last_batch):
+        if self._num_training_batches_reached():
             self.update_lr_schedulers("epoch", update_plateau_schedulers=True)
 
         self.dataloader_iter = None
@@ -248,20 +249,21 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         """Determine if accumulation will be finished by the end of the current batch."""
         return self.batch_progress.current.ready % self.trainer.accumulate_grad_batches == 0
 
-    def _num_training_batches_reached(self, is_last_batch: bool = False) -> bool:
-        """Checks if we are in the last batch or if there are more batches to follow.
-
-        Args:
-            is_last_batch: Whether the current batch is the last one
-        """
-        return self.batch_progress.current.ready == self.trainer.num_training_batches or is_last_batch
+    def _num_training_batches_reached(self) -> bool:
+        """Checks if we are in the last batch or if there are more batches to follow."""
+        return self.batch_progress.current.ready == self.trainer.num_training_batches or self.is_last_batch
 
     def _should_accumulate(self) -> bool:
         """Checks if the optimizer step should be performed or gradients should be accumulated for the current
         step."""
         accumulation_done = self._accumulated_batches_reached()
+        # Lightning steps on the final batch
         is_final_batch = self._num_training_batches_reached()
-        return not (accumulation_done or is_final_batch)
+        # but the TTP might not
+        ttp_accumulates_on_final_batch = (
+            self.trainer.training_type_plugin.handles_gradient_accumulation or not is_final_batch
+        )
+        return not accumulation_done and ttp_accumulates_on_final_batch
 
     @staticmethod
     def _swap_optimizers_and_tbptt(tbptt_outputs: _BATCH_OUTPUTS_TYPE, n_opt: int) -> List[List[Dict[str, Any]]]:
@@ -333,13 +335,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             update_plateau_schedulers=update_plateau_schedulers,
             opt_indices=[opt_idx for opt_idx, _ in self.batch_loop.get_active_optimizers(self.total_batch_idx)],
         )
-
-    def _increment_accumulated_grad_global_step(self) -> None:
-        """Increments global step according to grads progress."""
-        if not self._should_accumulate():
-            self.global_step = self.trainer.accelerator.update_global_step(
-                self.batch_progress.current.ready, self.trainer.global_step
-            )
 
     def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:
         """Decide if we should run validation."""
