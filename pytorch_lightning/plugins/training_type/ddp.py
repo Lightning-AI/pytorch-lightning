@@ -188,9 +188,6 @@ class DDPPlugin(ParallelPlugin):
         self.setup_distributed()
 
     def _call_children_scripts(self):
-        if os.getenv("PL_DDP_CREATED_CHILDREN", "0") == "1":
-            return
-
         # bookkeeping of spawned processes
         self._check_can_spawn_children()
 
@@ -256,8 +253,6 @@ class DDPPlugin(ParallelPlugin):
             # with dataloaders delay between 1-10 seconds
             delay = np.random.uniform(1, 5, 1)[0]
             sleep(delay)
-
-        self._has_called_call_children_scripts = True
 
     def setup_distributed(self):
         reset_seed()
@@ -476,7 +471,6 @@ class DDPPlugin(ParallelPlugin):
             global_node_rank_zero += self.world_size // self.num_nodes
 
         self._sync_dir = sync_dirs[self.node_rank]
-
         self._has_called_call_children_scripts = self.broadcast(self._has_called_call_children_scripts)
 
     def _share_pids(self):
@@ -492,8 +486,7 @@ class DDPPlugin(ParallelPlugin):
 
         # If the cluster environment creates the process, allow the scheduler / parent process
         # to perform the process termination
-        cluster_env = self.cluster_environment
-        if cluster_env is not None and (cluster_env.creates_children() and not self._has_called_call_children_scripts):
+        if not self._has_called_call_children_scripts:
             return
 
         sync_dir = self._sync_dir
