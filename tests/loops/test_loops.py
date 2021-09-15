@@ -21,7 +21,7 @@ from unittest.mock import ANY, Mock
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loops import Loop, TrainingBatchLoop
 from pytorch_lightning.trainer.progress import BaseProgress
@@ -334,17 +334,24 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
 
 @RunIf(min_torch="1.7.0")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@pytest.mark.parametrize("stop_epoch", (1, 2))
-@pytest.mark.parametrize("stop_batch", (1, 2))
+@pytest.mark.parametrize("stop_epoch", (0, 1))
+@pytest.mark.parametrize("stop_batch", (0, 1, 2))
 @pytest.mark.parametrize("n_optimizers,stop_optimizer", [(2, 0), (2, 1), (3, 2)])
 def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_optimizer, stop_epoch, stop_batch):
-    n_batches = 5
-    n_epochs = 3
-    fail = True
+    n_batches = 3
+    n_epochs = 2
+    fail = False
+
+    def _assert_optimizer_sequence(method_mock, expected):
+        positional_args = [c[0] for c in method_mock.call_args_list]
+        sequence = [arg[3] for arg in positional_args]
+        assert sequence == expected
 
     num_optimizers_incomplete = stop_epoch * n_batches * n_optimizers + stop_batch * n_optimizers + stop_optimizer
-    opt_idx_sequence_full = list(range(n_optimizers)) * n_epochs * n_batches
-    opt_idx_sequence_incomplete = opt_idx_sequence_full[:num_optimizers_incomplete]
+    opt_idx_sequence_full = list(range(n_optimizers)) * n_epochs * n_batches  # [0, 1, 2, 0, 1, 2, 0, 1, ...]
+
+    # +1 because we fail inside the closure inside optimizer_step()
+    opt_idx_sequence_incomplete = opt_idx_sequence_full[: (num_optimizers_incomplete + 1)]
     opt_idx_sequence_resumed = opt_idx_sequence_full[num_optimizers_incomplete:]
 
     class MultipleOptimizerModel(BoringModel):
@@ -364,9 +371,11 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         def configure_optimizers(self):
             return [torch.optim.SGD(self.parameters(), lr=0.1) for _ in range(n_optimizers)]
 
+    # run without a failure, collect weights
+    fail = False
+    seed_everything(0)
     model = MultipleOptimizerModel()
     model.training_epoch_end = None
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=n_epochs,
@@ -374,11 +383,33 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         num_sanity_val_steps=0,
         logger=False,
     )
+    trainer.fit(model)
+    weights_success = model.parameters()
 
     # simulate a failure
+    fail = True
+    seed_everything(0)
+    model = MultipleOptimizerModel()
+    model.training_epoch_end = None
+    model.optimizer_step = Mock(wraps=model.optimizer_step)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=n_epochs,
+        limit_train_batches=n_batches,
+        num_sanity_val_steps=0,
+        logger=False,
+    )
     with pytest.raises(CustomException):
         trainer.fit(model)
 
+    _assert_optimizer_sequence(model.optimizer_step, opt_idx_sequence_incomplete)
+
+    # resume from failure and collect weights
+    fail = False
+    seed_everything(0)
+    model = MultipleOptimizerModel()
+    model.training_epoch_end = None
+    model.optimizer_step = Mock(wraps=model.optimizer_step)
     trainer = Trainer(
         resume_from_checkpoint=str(tmpdir / ".pl_auto_save.ckpt"),
         default_root_dir=tmpdir,
@@ -388,17 +419,11 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         num_sanity_val_steps=0,
         logger=False,
     )
-
-    fail = False
-    model = MultipleOptimizerModel()
-    model.training_epoch_end = None
-    model.optimizer_step = Mock(wraps=model.optimizer_step)
     trainer.fit(model)
+    weights_resumed = model.parameters()
 
-    def _assert_optimizer_sequence(method_mock, expected):
-        positional_args = [c[0] for c in method_mock.call_args_list]
-        sequence = [arg[3] for arg in positional_args]
-        assert sequence == expected
+    for w0, w1 in zip(weights_success, weights_resumed):
+        assert torch.allclose(w0, w1)
 
     _assert_optimizer_sequence(model.optimizer_step, opt_idx_sequence_resumed)
 
