@@ -376,6 +376,7 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
     seed_everything(0)
     model = MultipleOptimizerModel()
     model.training_epoch_end = None
+    model.optimizer_step = Mock(wraps=model.optimizer_step)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=n_epochs,
@@ -385,6 +386,7 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
     )
     trainer.fit(model)
     weights_success = model.parameters()
+    _assert_optimizer_sequence(model.optimizer_step, opt_idx_sequence_full)
 
     # simulate a failure
     fail = True
