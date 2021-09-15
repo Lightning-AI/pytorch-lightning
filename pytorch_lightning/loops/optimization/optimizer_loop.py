@@ -25,20 +25,17 @@ from pytorch_lightning.loops.optimization.closure import AbstractClosure, Output
 from pytorch_lightning.loops.utilities import (
     _block_parallel_sync_behavior,
     _build_training_step_kwargs,
-    _check_training_step_output,
     _extract_hiddens,
     check_finite_loss,
 )
 from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities import AMPType, DeviceType, grad_norm
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
-from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation, WarningCache
+from pytorch_lightning.utilities.warnings import WarningCache
 
 
 @dataclass
@@ -55,12 +52,11 @@ class ClosureResult(OutputResult):
 
     closure_loss: Optional[Tensor]
     loss: Optional[Tensor] = field(init=False, default=None)
-    extra: Dict[str, Tensor] = field(default_factory=dict)
+    extra: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         # TODO: remove with the deprecation removal in v1.6
-        ClosureResult._check_extra_detach_deprecation(self.extra)
-        self.extra = recursive_detach(self.extra)
+        self.extra = self._check_extra_detach_deprecation(self.extra)
 
         self._clone_loss()
 
@@ -78,9 +74,18 @@ class ClosureResult(OutputResult):
         if isinstance(training_step_output, dict):
             # this should not modify the `training_step_output`, as the user could be using it after `training_step_end`
             closure_loss = training_step_output.get("loss")
+            if closure_loss is None:
+                raise MisconfigurationException(
+                    "In automatic_optimization, when `training_step` returns a dict, the 'loss' key needs to be present"
+                )
             extra = {k: v for k, v in training_step_output.items() if k not in ("loss", "hiddens")}
         elif isinstance(training_step_output, Tensor):
             closure_loss = training_step_output
+        elif training_step_output is not None:
+            raise MisconfigurationException(
+                "In automatic optimization, `training_step` must return a Tensor, "
+                "a dict, or None (where the step will be skipped)."
+            )
 
         if closure_loss is not None:
             # accumulate the loss. If ``accumulate_grad_batches == 1``, no effect
@@ -88,23 +93,8 @@ class ClosureResult(OutputResult):
 
         return cls(closure_loss, extra=extra)
 
-    @staticmethod
-    def _check_extra_detach_deprecation(extra: Dict[str, Any]) -> None:
-        def check_fn(v: Tensor) -> Tensor:
-            if v.grad_fn is not None:
-                rank_zero_deprecation(
-                    f"One of the returned values {set(extra.keys())} has a `grad_fn`. We will detach it automatically"
-                    " but this behaviour will change in v1.6. Please detach it manually:"
-                    " `return {'loss': ..., 'something': something.detach()}`"
-                )
-            return v
-
-        apply_to_collection(extra, Tensor, check_fn)
-
-    def drop_closure_loss(self) -> "ClosureResult":
-        """Return itself without the closure loss which could have a `grad_fn`"""
-        self.closure_loss = None
-        return self
+    def asdict(self) -> Dict[str, Any]:
+        return {"loss": self.loss, **self.extra}
 
 
 class Closure(AbstractClosure[ClosureResult]):
@@ -170,7 +160,7 @@ class Closure(AbstractClosure[ClosureResult]):
         return self._result.loss
 
 
-_OUTPUTS_TYPE = List[List[ClosureResult]]
+_OUTPUTS_TYPE = List[List[Dict[str, Any]]]
 
 
 class OptimizerLoop(Loop):
@@ -222,7 +212,9 @@ class OptimizerLoop(Loop):
             self.optimizer_idx,
         )
         if result.loss is not None:
-            self.outputs[self.optimizer_idx].append(result.drop_closure_loss())
+            # automatic optimization assumes a loss needs to be returned for extras to be considered as the batch
+            # would be skipped otherwise
+            self.outputs[self.optimizer_idx].append(result.asdict())
         self.optim_progress.optimizer_position += 1
 
     def on_run_end(self) -> _OUTPUTS_TYPE:
@@ -466,8 +458,6 @@ class OptimizerLoop(Loop):
             del step_kwargs
 
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
-
-            _check_training_step_output(lightning_module, training_step_output)
 
             self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
 
