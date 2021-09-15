@@ -118,6 +118,10 @@ def test_optimizer_frequencies(tmpdir, frequencies, expected):
     assert list(zip(opt_idx_sequence, optimizer_sequence)) == expected
 
 
+class CustomException(Exception):
+    pass
+
+
 @RunIf(min_torch="1.7.0")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize("stop_epoch", (0, 1))
