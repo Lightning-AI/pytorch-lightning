@@ -209,12 +209,15 @@ class OptimizationProgress(BaseProgress):
 
     Args:
         optimizer: Tracks optimizer progress.
-        optimizer_idx: The index of the current optimizer. Used to know which optimizer we were using when restarting.
+        optimizer_position: The index of the current optimizer amongst the currently active optimizers.
+            Used to know which optimizer we were using when restarting.
+            Since not all optimizers may be active at a given time, this index is different from the ``optimizer_idx``
+            seen in the optimization loops.
     """
 
     # TODO: support for multiple optimizers
     optimizer: OptimizerProgress = field(default_factory=OptimizerProgress)
-    optimizer_idx: int = 0
+    optimizer_position: int = 0
 
     @property
     def optimizer_steps(self) -> int:
@@ -225,4 +228,4 @@ class OptimizationProgress(BaseProgress):
 
     def load_state_dict(self, state_dict: dict) -> None:
         self.optimizer.load_state_dict(state_dict["optimizer"])
-        self.optimizer_idx = state_dict["optimizer_idx"]
+        self.optimizer_position = state_dict["optimizer_position"]

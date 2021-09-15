@@ -67,7 +67,7 @@ def test_loops_state_dict_structure():
                         "current": {"ready": 0, "started": 0, "completed": 0},
                     },
                 },
-                "optimizer_idx": 0,
+                "optimizer_position": 0,
             },
             "epoch_loop.val_loop.state_dict": {},
             "epoch_loop.val_loop.dataloader_progress": {
