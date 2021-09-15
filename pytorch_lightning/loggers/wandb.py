@@ -369,15 +369,17 @@ class WandbLogger(LightningLoggerBase):
         dataframe: "pandas.Dataframe" = None,
         step: Optional[int] = None,
     ) -> None:
-        """Log text as a Table. Can be defined either with `columns` and `data` or with `dataframe`."""
+        """Log text as a Table.
+
+        Can be defined either with `columns` and `data` or with `dataframe`.
+        """
 
         metrics = {key: wandb.Table(columns=columns, data=data, dataframe=dataframe)}
         self.log_metrics(metrics, step)
 
     @rank_zero_only
     def log_images(self, key: str, images: List[Any], **kwargs: str) -> None:
-        """
-        Log images (tensors, numpy arrays, PIL Images or file paths).
+        """Log images (tensors, numpy arrays, PIL Images or file paths).
 
         Optional kwargs are lists passed to each image (ex: caption, masks, boxes).
         """
