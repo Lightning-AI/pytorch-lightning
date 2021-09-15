@@ -106,7 +106,7 @@ class WandbLogger(LightningLoggerBase):
         wandb_logger.experiment.config['key'] = value
 
         # add multiple parameters
-        wandb_logger.experiment.config.update({key1: val1, ...})
+        wandb_logger.experiment.config.update({key1: val1, key2:val2})
 
         # use directly wandb module
         wandb.config['key'] = value
@@ -183,7 +183,7 @@ class WandbLogger(LightningLoggerBase):
 
         # using columns and data
         columns = ['input', 'label', 'prediction']
-        data = [['cheese', 'english', 'english],
+        data = [['cheese', 'english', 'english'],
                 ['fromage', 'french', 'spanish']]
         wandb_logger.log_text(key='samples', columns=columns, data=data)
 
