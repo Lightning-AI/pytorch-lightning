@@ -461,7 +461,7 @@ class DDPPlugin(ParallelPlugin):
         self._has_called_call_children_scripts = self.broadcast(self._has_called_call_children_scripts)
 
         # Short-circuit debug info set for process reconciliation if processes
-        # are managed by an scheduler or parent process external to Lightning
+        # are managed by a scheduler or parent process external to Lightning
         if not self._has_called_call_children_scripts:
             return
 
