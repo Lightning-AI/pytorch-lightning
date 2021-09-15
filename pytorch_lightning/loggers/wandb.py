@@ -19,8 +19,11 @@ import operator
 import os
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 from weakref import ReferenceType
+
+if TYPE_CHECKING:
+    import pandas
 
 import torch.nn as nn
 
@@ -216,6 +219,25 @@ class WandbLogger(LightningLoggerBase):
             self.experiment.log({**metrics, "trainer/global_step": step})
         else:
             self.experiment.log(metrics)
+
+    @rank_zero_only
+    def log_text(
+        self,
+        key: str,
+        columns: List[str] = None,
+        data: List[List[str]] = None,
+        dataframe: "pandas.Dataframe" = None,
+        step: Optional[int] = None,
+    ) -> None:
+
+        metrics = {key: wandb.Table(columns=columns, data=data, dataframe=dataframe)}
+        self.log_metrics(metrics, step)
+
+    @rank_zero_only
+    def log_image(self, key: str, **kwargs: str) -> None:
+        step = kwargs.pop("step", None)
+        metrics = {key: wandb.Image(kwargs)}
+        self.log_metrics(metrics, step)
 
     @property
     def save_dir(self) -> Optional[str]:
