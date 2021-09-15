@@ -521,7 +521,6 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     assert optim_progress.optimizer.zero_grad.current.ready == be_total_zero_grad
     assert optim_progress.optimizer.zero_grad.current.completed == be_total_zero_grad
 
-    # not sure what the point of these assertions is
     state_dict = trainer.fit_loop.state_dict()
     assert state_dict != checkpoint["loops"]["fit_loop"]
     assert state_dict["epoch_progress"]["total"]["started"] == stop_epoch + 1
