@@ -232,7 +232,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         """
         self.trainer.accelerator.backward(loss, optimizer, opt_idx, *args, **kwargs)
 
-        if not self.trainer.fit_loop.should_accumulate():
+        if not self.trainer.fit_loop._should_accumulate():
             # track gradients
             grad_norm_dict = self._track_and_norm_grad(optimizer=optimizer)
             if grad_norm_dict:
@@ -259,7 +259,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         if (
             # when the training type plugin handles accumulation, we want to always call the optimizer step
             not self.trainer.training_type_plugin.handles_gradient_accumulation
-            and self.trainer.fit_loop.should_accumulate()
+            and self.trainer.fit_loop._should_accumulate()
         ):
             # For gradient accumulation
 
