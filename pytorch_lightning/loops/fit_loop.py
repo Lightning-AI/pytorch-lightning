@@ -178,7 +178,10 @@ class FitLoop(Loop):
             self.epoch_progress.current.reset_on_restart()
 
     def on_run_start(self) -> None:
-        """Calls the ``on_train_start`` hook."""
+        """Reset results and metrics, calls the ``on_train_start`` hook."""
+        self.trainer.logger_connector.reset_results()
+        self.trainer.logger_connector.reset_metrics()
+
         self._results.to(device=self.trainer.lightning_module.device)
         self.trainer.call_hook("on_train_start")
 

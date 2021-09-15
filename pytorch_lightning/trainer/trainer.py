@@ -1016,9 +1016,6 @@ class Trainer(
         # ----------------------------
         # TRAIN
         # ----------------------------
-        # reset logger connector
-        self.logger_connector.reset_results()
-        self.logger_connector.reset_metrics()
 
         # hook
         if self.state.fn == TrainerFn.FITTING:
