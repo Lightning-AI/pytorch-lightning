@@ -456,7 +456,14 @@ class DDPPlugin(ParallelPlugin):
             find_unused_parameters=False,
         )
 
-    def _share_information_to_prevent_deadlock(self):
+    def _share_information_to_prevent_deadlock(self) -> None:
+        self._has_called_call_children_scripts = self.broadcast(self._has_called_call_children_scripts)
+
+        # Short-circuit debug info set for process reconciliation if processes
+        # are managed by an scheduler or parent process external to Lightning
+        if not self._has_called_call_children_scripts:
+            return
+
         self._share_pids()
 
         # there should be a unique sync_dir per nodes.
@@ -471,7 +478,6 @@ class DDPPlugin(ParallelPlugin):
             global_node_rank_zero += self.world_size // self.num_nodes
 
         self._sync_dir = sync_dirs[self.node_rank]
-        self._has_called_call_children_scripts = self.broadcast(self._has_called_call_children_scripts)
 
     def _share_pids(self):
         """Make all DDP processes aware of all processes pids."""
