@@ -146,7 +146,6 @@ class CustomException(Exception):
 def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_optimizer, stop_epoch, stop_batch):
     n_batches = 3
     n_epochs = 2
-    fail = False
 
     def _assert_optimizer_sequence(method_mock, expected):
         positional_args = [c[0] for c in method_mock.call_args_list]
@@ -161,9 +160,6 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
     opt_idx_sequence_resumed = opt_idx_sequence_complete[num_optimizers_incomplete:]
 
     class MultipleOptimizerModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-
         def training_step(self, batch, batch_idx, optimizer_idx):
             if (
                 fail
@@ -187,8 +183,10 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         default_root_dir=tmpdir,
         max_epochs=n_epochs,
         limit_train_batches=n_batches,
+        limit_val_batches=0,
         num_sanity_val_steps=0,
         logger=False,
+        checkpoint_callback=False,
     )
     trainer.fit(model)
     weights_complete = model.parameters()
@@ -204,8 +202,10 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         default_root_dir=tmpdir,
         max_epochs=n_epochs,
         limit_train_batches=n_batches,
+        limit_val_batches=0,
         num_sanity_val_steps=0,
         logger=False,
+        checkpoint_callback=False,
     )
     with pytest.raises(CustomException):
         trainer.fit(model)
@@ -226,6 +226,7 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         limit_val_batches=0,
         num_sanity_val_steps=0,
         logger=False,
+        checkpoint_callback=False,
     )
     trainer.fit(model)
     weights_resumed = model.parameters()
