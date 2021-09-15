@@ -67,6 +67,19 @@ Loggers API
     test_tube
     wandb
 
+Loop API
+--------
+
+.. currentmodule:: pytorch_lightning.loops
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    Loop
+    DataLoaderLoop
+
 Plugins API
 -----------
 
