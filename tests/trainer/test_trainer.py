@@ -960,7 +960,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
         gradient_clip_val=1.0,
     )
 
-    old_backward = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.backward
+    old_backward = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward
 
     def backward(*args, **kwargs):
         # test that gradient is clipped correctly
@@ -970,7 +970,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
         assert (grad_norm - 1.0).abs() < 0.01, f"Gradient norm != 1.0: {grad_norm}"
         return ret_val
 
-    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.backward = backward
+    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward = backward
     trainer.fit(model)
 
 
@@ -995,7 +995,7 @@ def test_gradient_clipping_by_value(tmpdir, precision):
         default_root_dir=tmpdir,
     )
 
-    old_backward = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.backward
+    old_backward = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward
 
     def backward(*args, **kwargs):
         # test that gradient is clipped correctly
@@ -1008,7 +1008,7 @@ def test_gradient_clipping_by_value(tmpdir, precision):
         ), f"Gradient max value {grad_max} != grad_clip_val {grad_clip_val} ."
         return ret_val
 
-    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.backward = backward
+    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward = backward
     trainer.fit(model)
 
 
@@ -1043,8 +1043,8 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
 
     with patch.object(
         trainer.fit_loop.epoch_loop.val_loop.epoch_loop,
-        "evaluation_step",
-        wraps=trainer.fit_loop.epoch_loop.val_loop.epoch_loop.evaluation_step,
+        "_evaluation_step",
+        wraps=trainer.fit_loop.epoch_loop.val_loop.epoch_loop._evaluation_step,
     ) as mocked:
         val_dataloaders = model.val_dataloader__multiple_mixed_length()
         trainer.fit(model, val_dataloaders=val_dataloaders)
@@ -1068,8 +1068,8 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
 
     with patch.object(
         trainer.fit_loop.epoch_loop.val_loop.epoch_loop,
-        "evaluation_step",
-        wraps=trainer.fit_loop.epoch_loop.val_loop.epoch_loop.evaluation_step,
+        "_evaluation_step",
+        wraps=trainer.fit_loop.epoch_loop.val_loop.epoch_loop._evaluation_step,
     ) as mocked:
         val_dataloaders = model.val_dataloader__multiple()
         trainer.fit(model, val_dataloaders=val_dataloaders)
@@ -1822,12 +1822,13 @@ def test_exception_when_lightning_module_is_not_set_on_trainer():
         trainer.predict()
 
 
+class CustomException(Exception):
+    pass
+
+
 @RunIf(min_gpus=2, special=True)
 def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
     """Test that DDP kills the remaining processes when only one rank is throwing an exception."""
-
-    class CustomException(Exception):
-        pass
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):

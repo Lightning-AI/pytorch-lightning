@@ -135,19 +135,6 @@ class FitLoop(Loop):
             return self.epoch_loop.val_loop._results
         raise RuntimeError("`FitLoop._results` property isn't defined. Accessed outside of scope")
 
-    @staticmethod
-    def _is_max_limit_enabled(max_value: Optional[int]) -> bool:
-        """Checks whether the max_value is enabled. This can be used for checking whether max_epochs or max_steps
-        is enabled.
-
-        Args:
-            max_value: the value to check
-
-        Returns:
-            whether the limit for this value should be enabled
-        """
-        return max_value not in (None, -1)
-
     @property
     def done(self) -> bool:
         """Evaluates when to leave the loop.
@@ -254,10 +241,6 @@ class FitLoop(Loop):
         # give accelerators a chance to finish
         self.trainer.accelerator.on_train_end()
 
-    def should_accumulate(self) -> bool:
-        """Whether the gradients should be accumulated."""
-        return self.epoch_loop._should_accumulate()
-
     def teardown(self) -> None:
         self.epoch_loop.teardown()
 
@@ -270,3 +253,20 @@ class FitLoop(Loop):
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         # cache the dataloader state dict until the dataloader objects are available
         self._dataloader_state_dict = state_dict.get("dataloader_state_dict", {})
+
+    def _should_accumulate(self) -> bool:
+        """Whether the gradients should be accumulated."""
+        return self.epoch_loop._should_accumulate()
+
+    @staticmethod
+    def _is_max_limit_enabled(max_value: Optional[int]) -> bool:
+        """Checks whether the max_value is enabled. This can be used for checking whether max_epochs or max_steps
+        is enabled.
+
+        Args:
+            max_value: the value to check
+
+        Returns:
+            whether the limit for this value should be enabled
+        """
+        return max_value not in (None, -1)
