@@ -36,7 +36,7 @@ class Loop(ABC, Generic[T]):
 
     This class implements the following loop structure:
 
-    .. codeblock:: python
+    .. code-block:: python
 
         on_run_start()
 
