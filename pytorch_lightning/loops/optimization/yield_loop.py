@@ -1,22 +1,19 @@
 import inspect
 from functools import partial
-from typing import Any, Generator, Optional, List, Tuple
+from typing import Any, Generator, List, Optional, Tuple
 
 from torch.optim import Optimizer
 
 from pytorch_lightning.loops import Loop, OptimizerLoop
 from pytorch_lightning.loops.optimization.optimizer_loop import ClosureResult
 from pytorch_lightning.loops.utilities import _build_training_step_kwargs
-
 from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class Yield:
-    """
-    Interface for the LightningModule to define a flavor for automatic optimization where
-    the training step method yields losses for each optimizer instead of returning them.
-    """
+    """Interface for the LightningModule to define a flavor for automatic optimization where the training step
+    method yields losses for each optimizer instead of returning them."""
 
     def training_step(self, batch, batch_idx, optimizer_idx=0) -> Generator:
         # the optimizer_idx is just here to shortcut the implementation for this POC
