@@ -293,7 +293,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     def _prepare_outputs_training_epoch_end(
         batch_outputs: _OUTPUTS_TYPE,
         automatic: bool,
-    ) -> Union[List[List[List[Dict[str, Any]]]], List[List[Dict[str, Any]]], List[Dict[str, Any]], Dict[str, Any]]:
+    ) -> Union[List[List[List[Dict[str, Any]]]], List[List[Dict[str, Any]]], List[Dict[str, Any]]]:
         """Processes the outputs from the batch loop into the format passed to the ``training_epoch_end`` hook.
 
         ``(n_batches, tbptt_steps, n_opt) -> (n_opt, n_batches, tbptt_steps)``.
@@ -304,7 +304,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         """
         # `batch_outputs` (plural) is the same as `epoch_end_output` (singular)
         if not batch_outputs:
-            return {}
+            return []
 
         if automatic:
             optimizers = [
