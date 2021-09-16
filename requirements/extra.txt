@@ -7,6 +7,7 @@ torchtext>=0.7
 onnx>=1.7.0
 onnxruntime>=1.3.0
 hydra-core>=1.0
+jsonargparse[signatures] @https://github.com/omni-us/jsonargparse/archive/c3e5c210ed9a93bab11fff9da5e1281def893467.zip
 git+git://github.com/omni-us/jsonargparse@c3e5c21#egg=jsonargparse[signatures]
 gcsfs>=2021.5.0
 rich>=10.2.2
