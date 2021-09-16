@@ -16,14 +16,13 @@ import inspect
 import os
 import sys
 from argparse import Namespace
-from dataclasses import dataclass, field
 from types import MethodType, ModuleType
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
 from unittest import mock
 
 import torch
+import yaml
 from torch.optim import Optimizer
-from typing_extensions import TypedDict
 
 import pytorch_lightning as pl
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
@@ -93,35 +92,6 @@ OPTIMIZER_REGISTRY.register_package(torch.optim, torch.optim.Optimizer)
 
 LR_SCHEDULER_REGISTRY = _Registry()
 LR_SCHEDULER_REGISTRY.register_package(torch.optim.lr_scheduler, torch.optim.lr_scheduler._LRScheduler)
-
-
-@dataclass
-class _ClassInfo:
-    """This class is an helper to easily build the mocked command line."""
-
-    class_arg: str
-    cls: Type
-    class_init_args: List[str] = field(default_factory=lambda: [])
-    class_arg_idx: Optional[int] = None
-
-    class _ClassConfig(TypedDict):
-        """Defines the config structure that ``jsonargparse`` uses for instantiation."""
-
-        class_path: str
-        init_args: Dict[str, str]
-
-    def add_class_init_arg(self, arg: str) -> None:
-        if arg != self.class_arg:
-            self.class_init_args.append(arg)
-
-    @property
-    def class_init(self) -> _ClassConfig:
-        init_args = {}
-        for init_arg in self.class_init_args:
-            arg_path, value = init_arg.split("=")
-            key = arg_path.split(".")[-1]
-            init_args[key] = value
-        return self._ClassConfig(class_path=self.cls.__module__ + "." + self.cls.__name__, init_args=init_args)
 
 
 class LightningArgumentParser(ArgumentParser):
@@ -237,8 +207,7 @@ class LightningArgumentParser(ArgumentParser):
         self._lr_schedulers[nested_key] = (lr_scheduler_class, link_to)
 
     def parse_args(self, *args, **kwargs) -> Union[Namespace, Dict[str, Any]]:
-        # hack before https://github.com/omni-us/jsonargparse/issues/85
-        argv = self._prepare_class_list_from_registry(sys._pl_argv, "--trainer.callbacks", CALLBACK_REGISTRY)
+        argv = self._convert_argv_issue_85("trainer.callbacks", sys._pl_argv, CALLBACK_REGISTRY)
         with mock.patch("sys.argv", argv):
             return super().parse_args(*args, **kwargs)
 
@@ -254,9 +223,9 @@ class LightningArgumentParser(ArgumentParser):
                 # parsing config files would be too difficult, fall back to what's available
                 self.add_subclass_arguments(classes, nested_key, *args, **kwargs)
             elif required:
-                raise MisconfigurationException(f"The {nested_key} is required but wasn't passed")
+                raise MisconfigurationException(f"The {nested_key} key is required but wasn't passed")
         else:
-            clean_argv, config = self._convert_argv_to_config(classes, nested_key, sys._pl_argv)
+            clean_argv, config = self._convert_argv_issue_84(classes, nested_key, sys._pl_argv)
             self.add_subclass_arguments(classes, nested_key, *args, **kwargs)
             self.set_defaults({nested_key: config})
             sys._pl_argv = clean_argv
@@ -270,9 +239,8 @@ class LightningArgumentParser(ArgumentParser):
         return val
 
     @staticmethod
-    def _convert_argv_to_config(classes: Tuple[Type, ...], nested_key: str, argv: List[str]) -> Tuple[List[str], Dict]:
-        passed_args = {}
-        clean_argv = []
+    def _convert_argv_issue_84(classes: Tuple[Type, ...], nested_key: str, argv: List[str]) -> Tuple[List[str], Dict]:
+        passed_args, clean_argv = {}, []
         argv_key = f"--{nested_key}"
         # get the argv args for this nested key
         i = 0
@@ -315,43 +283,66 @@ class LightningArgumentParser(ArgumentParser):
         return clean_argv, config
 
     @staticmethod
-    def _prepare_class_list_from_registry(argv: List[str], pattern: str, registry: _Registry) -> List[str]:
-        out = [v for v in argv if pattern not in v]
-        all_matched_args = [v for v in argv if pattern in v]
-        all_simplified_args = [v for v in all_matched_args if f"{pattern}" in v and f"{pattern}=[" not in v]
-        all_cls_simplified_args = [v for v in all_simplified_args if f"{pattern}=" in v]
-        all_non_simplified_args = [v for v in all_matched_args if f"{pattern}=" in v and f"{pattern}=[" in v]
+    def _convert_argv_issue_85(nested_key: str, argv: List[str], registry: _Registry) -> List[str]:
+        """Placeholder for https://github.com/omni-us/jsonargparse/issues/85.
 
-        num_simplified_cls = len(all_simplified_args)
-        should_replace = num_simplified_cls > 0 and not all("class_path" in v for v in all_matched_args)
-
-        if should_replace:
-            # verify the user is properly ordering arguments.
-            assert all_cls_simplified_args[0] == all_simplified_args[0]
-            if len(all_non_simplified_args) > 1:
-                raise MisconfigurationException(f"When provided {pattern} as list, please group them under 1 argument.")
-
-            # group arguments per callbacks
-            infos = []
-            for class_arg_idx, class_arg in enumerate(all_simplified_args):
-                if class_arg in all_cls_simplified_args:
-                    class_name = class_arg.split("=")[1]
-                    registered_cls = registry[class_name]
-                    infos.append(_ClassInfo(class_arg=class_arg, cls=registered_cls, class_arg_idx=class_arg_idx))
-
-            for idx, v in enumerate(all_simplified_args):
-                if v in all_cls_simplified_args:
-                    current_info = [info for info in infos if idx == info.class_arg_idx][0]
-                current_info.add_class_init_arg(v)
-
-            class_args = [info.class_init for info in infos]
-            # add other callback arguments.
-            if len(all_non_simplified_args) > 0:
-                class_args.extend(eval(all_non_simplified_args[0].split("=")[-1]))
-
-            out += [f"{pattern}={class_args}"]
-            return out
-        return argv
+        This should be removed once implemented.
+        """
+        passed_args, clean_argv = [], []
+        passed_configs = {}
+        argv_key = f"--{nested_key}"
+        # get the argv args for this nested key
+        i = 0
+        while i < len(argv):
+            arg = argv[i]
+            if arg.startswith(argv_key):
+                if "=" in arg:
+                    key, value = arg.split("=")
+                else:
+                    key = arg
+                    i += 1
+                    value = argv[i]
+                key = key[2:]  # remove dashes
+                if "class_path" in value:
+                    # the user passed a config as a dict
+                    config = yaml.safe_load(value)
+                    assert all(isinstance(cfg, dict) for cfg in config)
+                    passed_configs[key] = config
+                else:
+                    passed_args.append((key, value))
+            else:
+                clean_argv.append(arg)
+            i += 1
+        # generate the associated config file
+        out = []
+        i, n = 0, len(passed_args)
+        while i < n - 1:
+            ki, vi = passed_args[i]
+            # convert class name to class path
+            cls_type = registry.get(vi)
+            if cls_type is None:
+                raise ValueError(
+                    f"Passed the class `--{nested_key}={ki}` but it's not registered in the registry."
+                    f"The available classes are: {registry.names}"
+                )
+            config = _global_add_class_path(cls_type)
+            out.append(config)
+            # get any init args
+            j = i + 1  # in case the j-loop doesn't run
+            for j in range(i + 1, n):
+                kj, vj = passed_args[j]
+                if ki == kj:
+                    break
+                if kj.startswith(ki):
+                    init_arg_name = kj.split(".")[-1]
+                    out[-1]["init_args"][init_arg_name] = vj
+            i = j
+        # update at the end to preserve the order
+        for k, v in passed_configs.items():
+            out.extend(v)
+        if not out:
+            return clean_argv
+        return clean_argv + [argv_key, str(out)]
 
 
 class SaveConfigCallback(Callback):
@@ -743,8 +734,8 @@ class LightningCLI:
         return fn_kwargs
 
 
-def _global_add_class_path(class_type: Type, init_args: Dict[str, Any]) -> Dict[str, Any]:
-    return {"class_path": class_type.__module__ + "." + class_type.__name__, "init_args": init_args}
+def _global_add_class_path(class_type: Type, init_args: Dict[str, Any] = None) -> Dict[str, Any]:
+    return {"class_path": class_type.__module__ + "." + class_type.__name__, "init_args": init_args or {}}
 
 
 def _add_class_path_generator(class_type: Type) -> Callable[[Dict[str, Any]], Dict[str, Any]]:

@@ -926,7 +926,7 @@ def test_registries_resolution(use_class_path_callbacks):
 
 def test_argv_transformation_noop():
     base = ["any.py", "--trainer.max_epochs=1"]
-    argv = LightningArgumentParser._prepare_class_list_from_registry(base, "--trainer.callbacks", CALLBACK_REGISTRY)
+    argv = LightningArgumentParser._convert_argv_issue_85("trainer.callbacks", base, CALLBACK_REGISTRY)
     assert argv == base
 
 
@@ -939,8 +939,8 @@ def test_argv_transformation_single_callback():
             "init_args": {"monitor": "val_loss"},
         }
     ]
-    expected = base + [f"--trainer.callbacks={str(callbacks)}"]
-    argv = LightningArgumentParser._prepare_class_list_from_registry(input, "--trainer.callbacks", CALLBACK_REGISTRY)
+    expected = base + ["--trainer.callbacks", str(callbacks)]
+    argv = LightningArgumentParser._convert_argv_issue_85("trainer.callbacks", input, CALLBACK_REGISTRY)
     assert argv == expected
 
 
@@ -962,19 +962,20 @@ def test_argv_transformation_multiple_callbacks():
             "init_args": {"monitor": "val_acc"},
         },
     ]
-    expected = base + [f"--trainer.callbacks={str(callbacks)}"]
-    argv = LightningArgumentParser._prepare_class_list_from_registry(input, "--trainer.callbacks", CALLBACK_REGISTRY)
+    expected = base + ["--trainer.callbacks", str(callbacks)]
+    argv = LightningArgumentParser._convert_argv_issue_85("trainer.callbacks", input, CALLBACK_REGISTRY)
     assert argv == expected
 
 
 def test_argv_transformation_multiple_callbacks_with_config():
     base = ["any.py", "--trainer.max_epochs=1"]
+    nested_key = "trainer.callbacks"
     input = base + [
-        "--trainer.callbacks=ModelCheckpoint",
-        "--trainer.callbacks.monitor=val_loss",
-        "--trainer.callbacks=ModelCheckpoint",
-        "--trainer.callbacks.monitor=val_acc",
-        "--trainer.callbacks=[{'class_path': 'pytorch_lightning.callbacks.Callback'}]",
+        f"--{nested_key}=ModelCheckpoint",
+        f"--{nested_key}.monitor=val_loss",
+        f"--{nested_key}=ModelCheckpoint",
+        f"--{nested_key}.monitor=val_acc",
+        f"--{nested_key}=[{{'class_path': 'pytorch_lightning.callbacks.Callback'}}]",
     ]
     callbacks = [
         {
@@ -987,8 +988,9 @@ def test_argv_transformation_multiple_callbacks_with_config():
         },
         {"class_path": "pytorch_lightning.callbacks.Callback"},
     ]
-    expected = base + [f"--trainer.callbacks={str(callbacks)}"]
-    argv = LightningArgumentParser._prepare_class_list_from_registry(input, "--trainer.callbacks", CALLBACK_REGISTRY)
+    expected = base + ["--trainer.callbacks", str(callbacks)]
+    nested_key = "trainer.callbacks"
+    argv = LightningArgumentParser._convert_argv_issue_85(nested_key, input, CALLBACK_REGISTRY)
     assert argv == expected
 
 
@@ -997,19 +999,19 @@ def test_argv_transformations_with_optimizers_and_lr_schedulers():
 
     argv = base + ["--optimizer", "Adadelta"]
     expected = {"class_path": "torch.optim.adadelta.Adadelta", "init_args": {}}
-    new_argv, actual = LightningArgumentParser._convert_argv_to_config(OPTIMIZER_REGISTRY.classes, "optimizer", argv)
+    new_argv, actual = LightningArgumentParser._convert_argv_issue_84(OPTIMIZER_REGISTRY.classes, "optimizer", argv)
     assert new_argv == base
     assert actual == expected
 
     argv = base + ["--optimizer", "Adadelta", "--optimizer.lr", "10"]
     expected = {"class_path": "torch.optim.adadelta.Adadelta", "init_args": {"lr": 10}}
-    base, actual = LightningArgumentParser._convert_argv_to_config(OPTIMIZER_REGISTRY.classes, "optimizer", argv)
+    base, actual = LightningArgumentParser._convert_argv_issue_84(OPTIMIZER_REGISTRY.classes, "optimizer", argv)
     assert new_argv == base
     assert actual == expected
 
     argv = base + ["--lr_scheduler", "OneCycleLR"]
     expected = {"class_path": "torch.optim.lr_scheduler.OneCycleLR", "init_args": {}}
-    new_argv, actual = LightningArgumentParser._convert_argv_to_config(
+    new_argv, actual = LightningArgumentParser._convert_argv_issue_84(
         LR_SCHEDULER_REGISTRY.classes, "lr_scheduler", argv
     )
     assert new_argv == base
@@ -1017,7 +1019,7 @@ def test_argv_transformations_with_optimizers_and_lr_schedulers():
 
     argv = base + ["--lr_scheduler", "OneCycleLR", "--lr_scheduler.anneal_strategy=linear"]
     expected = {"class_path": "torch.optim.lr_scheduler.OneCycleLR", "init_args": {"anneal_strategy": "linear"}}
-    new_argv, actual = LightningArgumentParser._convert_argv_to_config(
+    new_argv, actual = LightningArgumentParser._convert_argv_issue_84(
         LR_SCHEDULER_REGISTRY.classes, "lr_scheduler", argv
     )
     assert new_argv == base
