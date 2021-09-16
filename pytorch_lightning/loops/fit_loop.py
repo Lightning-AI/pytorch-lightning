@@ -16,7 +16,7 @@ from typing import Any, Dict, Optional
 
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
-from pytorch_lightning.loops.utilities import is_max_limit_reached
+from pytorch_lightning.loops.utilities import _is_max_limit_reached
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
@@ -149,8 +149,8 @@ class FitLoop(Loop):
         is reached.
         """
         # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
-        stop_steps = is_max_limit_reached(self.global_step, self.max_steps)
-        stop_epochs = is_max_limit_reached(self.current_epoch, self.max_epochs)
+        stop_steps = _is_max_limit_reached(self.global_step, self.max_steps)
+        stop_epochs = _is_max_limit_reached(self.current_epoch, self.max_epochs)
 
         should_stop = False
         if self.trainer.should_stop:

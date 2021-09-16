@@ -170,7 +170,7 @@ def _get_active_optimizers(
     return [(opt_idx, optimizers[opt_idx])]
 
 
-def is_max_limit_reached(current: int, maximum: int) -> bool:
+def _is_max_limit_reached(current: int, maximum: int) -> bool:
     """Check if the limit has been reached (if enabled).
 
     Args:
