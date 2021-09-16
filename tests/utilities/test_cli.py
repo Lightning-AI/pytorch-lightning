@@ -851,11 +851,6 @@ def test_lightning_cli_run():
     assert isinstance(cli.model, LightningModule)
 
 
-@CALLBACK_REGISTRY
-class CustomCallback(Callback):
-    pass
-
-
 @OPTIMIZER_REGISTRY
 class CustomAdam(torch.optim.Adam):
     pass
@@ -866,10 +861,12 @@ class CustomCosineAnnealingLR(torch.optim.lr_scheduler.CosineAnnealingLR):
     pass
 
 
-def test_registries(tmpdir):
-    assert "EarlyStopping" in CALLBACK_REGISTRY.names
-    assert "CustomCallback" in CALLBACK_REGISTRY.names
+@CALLBACK_REGISTRY
+class CustomCallback(Callback):
+    pass
 
+
+def test_registries(tmpdir):
     assert "SGD" in OPTIMIZER_REGISTRY.names
     assert "RMSprop" in OPTIMIZER_REGISTRY.names
     assert "CustomAdam" in OPTIMIZER_REGISTRY.names
@@ -877,6 +874,9 @@ def test_registries(tmpdir):
     assert "CosineAnnealingLR" in LR_SCHEDULER_REGISTRY.names
     assert "CosineAnnealingWarmRestarts" in LR_SCHEDULER_REGISTRY.names
     assert "CustomCosineAnnealingLR" in LR_SCHEDULER_REGISTRY.names
+   
+    assert "EarlyStopping" in CALLBACK_REGISTRY.names
+    assert "CustomCallback" in CALLBACK_REGISTRY.names
 
 
 @pytest.mark.parametrize("use_class_path_callbacks", [False, True])

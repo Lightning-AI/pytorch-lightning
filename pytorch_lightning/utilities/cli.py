@@ -20,8 +20,8 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
 from unittest import mock
 
 import torch
-import yaml
 from torch.optim import Optimizer
+import yaml
 
 import pytorch_lightning as pl
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
@@ -78,14 +78,14 @@ class _Registry(dict):
         return f"Registered objects: {self.names}"
 
 
-CALLBACK_REGISTRY = _Registry()
-CALLBACK_REGISTRY.register_package(pl.callbacks, pl.callbacks.Callback)
-
 OPTIMIZER_REGISTRY = _Registry()
-OPTIMIZER_REGISTRY.register_package(torch.optim, torch.optim.Optimizer)
+OPTIMIZER_REGISTRY.register_package(torch.optim, Optimizer)
 
 LR_SCHEDULER_REGISTRY = _Registry()
 LR_SCHEDULER_REGISTRY.register_package(torch.optim.lr_scheduler, torch.optim.lr_scheduler._LRScheduler)
+
+CALLBACK_REGISTRY = _Registry()
+CALLBACK_REGISTRY.register_package(pl.callbacks, pl.callbacks.Callback)
 
 
 class LightningArgumentParser(ArgumentParser):
@@ -253,7 +253,7 @@ class LightningArgumentParser(ArgumentParser):
             # the user passed a config as a dict
             config = argv_class
         else:
-            # the user passed the short format
+            # the user passed the shorthand format
             init_args = {k[len(argv_key) + 1 :]: v for k, v in passed_args.items()}  # +1 to account for the period
             for cls in classes:
                 if cls.__name__ == argv_class:
@@ -633,7 +633,7 @@ class LightningCLI:
                     automatic.append(key)
             return automatic
 
-        optimizers = get_automatic(Optimizer, parser._optimizers)
+        optimizers = get_automatic(torch.optim.Optimizer, parser._optimizers)
         lr_schedulers = get_automatic(LRSchedulerTypeTuple, parser._lr_schedulers)
 
         if len(optimizers) == 0:
