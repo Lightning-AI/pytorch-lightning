@@ -211,6 +211,7 @@ class LightningArgumentParser(ArgumentParser):
                 # the key wasn't passed - maybe defined in a config, maybe it's optional
                 continue
             classes, is_list = v
+            # knowing whether the argument is a list type automatically would be too complex
             if is_list:
                 argv = self._convert_argv_issue_85(classes, k, argv)
             else:
@@ -220,14 +221,20 @@ class LightningArgumentParser(ArgumentParser):
             return super().parse_args(*args, **kwargs)
 
     def set_choices(self, nested_key: str, classes: Tuple[Type, ...], is_list: bool = False) -> None:
-        # knowing whether the argument is a list type automatically would be too complex
+        """Adds support for shorthand notation for a particular nested key.
+
+        Args:
+            nested_key: The key whose choices will be set.
+            classes: A tuple of classes to choose from.
+            is_list: Whether the argument is a ``List[object]`` type.
+        """
         self._choices[nested_key] = (classes, is_list)
 
     @staticmethod
     def _convert_argv_issue_84(classes: Tuple[Type, ...], nested_key: str, argv: List[str]) -> List[str]:
         """Placeholder for https://github.com/omni-us/jsonargparse/issues/84.
 
-        This should be removed once implemented.
+        Adds support for shorthand notation for ``object`` arguments.
         """
         passed_args, clean_argv = {}, []
         argv_key = f"--{nested_key}"
@@ -272,7 +279,7 @@ class LightningArgumentParser(ArgumentParser):
     def _convert_argv_issue_85(classes: Tuple[Type, ...], nested_key: str, argv: List[str]) -> List[str]:
         """Placeholder for https://github.com/omni-us/jsonargparse/issues/85.
 
-        This should be removed once implemented.
+        Adds support for shorthand notation for ``List[object]`` arguments.
         """
         passed_args, clean_argv = [], []
         passed_configs = {}
