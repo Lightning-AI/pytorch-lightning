@@ -197,6 +197,8 @@ class OptimizerLoop(Loop):
         if not self.restarting:
             # when reset() is called from outside (manually), we reset the loop progress
             self.optim_progress.optimizer_position = 0
+        else:
+            self.optim_progress.reset_on_restart()
         self.outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
     def on_run_start(  # type: ignore[override]
