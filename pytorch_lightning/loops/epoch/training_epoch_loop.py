@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Any, Dict, Iterator, List, Optional, Union
-
+import numpy as np
 import torch
 
 from pytorch_lightning import loops  # import as loops to avoid circular imports
@@ -21,6 +21,7 @@ from pytorch_lightning.loops.batch.training_batch_loop import _OUTPUTS_TYPE as _
 from pytorch_lightning.loops.utilities import _prepare_dataloader_iter
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import Progress, SchedulerProgress
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 
@@ -145,9 +146,13 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if self._num_training_batches_reached():
             self.update_lr_schedulers("epoch", update_plateau_schedulers=False)
 
-        if is_overridden("on_train_batch_end", self.trainer.lightning_module):
-            batch_end_outputs = self._prepare_outputs_training_batch_end(batch_output.outputs)
-            self.trainer.call_hook("on_train_batch_end", batch_end_outputs, batch, self.batch_idx, 0)
+        # if is_overridden("on_train_batch_end", self.trainer.lightning_module):
+        batch_end_outputs = self._prepare_outputs_training_batch_end(
+            batch_output.outputs,
+            automatic=self.trainer.lightning_module.trainer.lightning_module.automatic_optimization,
+            num_optimizers=len(self.trainer.optimizers),
+        )
+        self.trainer.call_hook("on_train_batch_end", batch_end_outputs, batch, self.batch_idx, 0)
         self.trainer.call_hook("on_batch_end")
         self.trainer.logger_connector.on_batch_end()
 
@@ -203,7 +208,11 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # get the model and call model.training_epoch_end
         model = self.trainer.lightning_module
         if is_overridden("training_epoch_end", model) and self._outputs:
-            epoch_end_outputs = self._prepare_outputs_training_epoch_end(self._outputs, model.automatic_optimization)
+            epoch_end_outputs = self._prepare_outputs_training_epoch_end(
+                self._outputs,
+                automatic=model.automatic_optimization,
+                num_optimizers=len(self.trainer.optimizers),
+            )
             # check that the dataloader/iterator produced a batch
             # FIXME: still necessary?
             if epoch_end_outputs:
@@ -266,33 +275,47 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         return not accumulation_done and ttp_accumulates_on_final_batch
 
     @staticmethod
-    def _swap_optimizers_and_tbptt(tbptt_outputs: _BATCH_OUTPUTS_TYPE, n_opt: int) -> List[List[Dict[str, Any]]]:
-        # `batch_output` (singular) is the same as `tbptt_outputs` (plural)
-        if n_opt == 0:
-            return tbptt_outputs
-        swapped = [[] for _ in range(n_opt)]
-        for optimizers in tbptt_outputs:
-            for opt_idx, values in optimizers.items():
-                swapped[opt_idx].append(values)
-        return swapped
-
-    @staticmethod
     def _prepare_outputs_training_batch_end(
         batch_output: _BATCH_OUTPUTS_TYPE,
+        automatic: bool,
+        num_optimizers: int,
     ) -> Union[List[List[Dict[str, Any]]], List[Dict[str, Any]]]:
         """Processes the outputs from the batch loop into the format passed to the ``training_batch_end`` hook.
 
         ``(tbptt_steps, n_opt) -> (n_opt, tbptt_steps)``. The optimizer dimension might have been squeezed.
         """
-        n_opt = max(max(tbptt.keys()) for tbptt in batch_output) + 1
-        swapped = TrainingEpochLoop._swap_optimizers_and_tbptt(batch_output, n_opt)
-        # squeeze optimizer dimension
-        return swapped[0] if len(swapped) == 1 else swapped
+        if not batch_output:
+            return []
+
+        # convert optimizer dicts to list
+        if automatic:
+            batch_outputs = apply_to_collection(
+                batch_output, dtype=dict, function=_convert_optim_dict, num_optimizers=num_optimizers
+            )
+        array = np.array(batch_output, dtype=object)
+        if array.ndim == 1:
+            array = np.expand_dims(array, 1)
+
+        n_splits, _ = array.shape
+
+        array = array.transpose((0, 1))
+        array = array.squeeze()
+        array = array.tolist()
+
+        # remove residual empty lists
+        array = [item for item in array if isinstance(item, list) and len(item)]
+
+        array = _recursive_unpad(array)
+
+        # in case we squeezed from 1-element array to a 0-dim array
+        array = array if isinstance(array, list) else [array]
+        return array
 
     @staticmethod
     def _prepare_outputs_training_epoch_end(
         batch_outputs: _OUTPUTS_TYPE,
         automatic: bool,
+        num_optimizers: int,
     ) -> Union[List[List[List[Dict[str, Any]]]], List[List[Dict[str, Any]]], List[Dict[str, Any]]]:
         """Processes the outputs from the batch loop into the format passed to the ``training_epoch_end`` hook.
 
@@ -306,35 +329,29 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if not batch_outputs:
             return []
 
+        # convert optimizer dicts to list
         if automatic:
-            optimizers = [
-                # get the number of optimizers if it's not empty
-                max(optimizers) + 1 if optimizers else 0
-                for tbptt in batch_outputs
-                for optimizers in tbptt
-            ]
-            n_opt = max(optimizers) if optimizers else 0
-        else:
-            n_opt = 0
+            batch_outputs = apply_to_collection(
+                batch_outputs, dtype=dict, function=_convert_optim_dict, num_optimizers=num_optimizers
+            )
+        array = np.array(batch_outputs, dtype=object)
+        if array.ndim == 2:
+            array = np.expand_dims(array, 2)
 
-        swapped = [[] for _ in range(n_opt)]
-        for tbptt in batch_outputs:
-            if n_opt == 0 and tbptt:
-                swapped.append(tbptt)
-                continue
-            inner_swap = TrainingEpochLoop._swap_optimizers_and_tbptt(tbptt, n_opt)
-            for opt_idx, tbptt in enumerate(inner_swap):
-                # squeeze tbptt dimension
-                squeezed = tbptt[0] if len(tbptt) == 1 else tbptt
-                swapped[opt_idx].append(squeezed)
+        n_batches, n_splits, _ = array.shape
 
-        # squeeze batch dimension
-        for i, batch in enumerate(swapped):
-            if len(batch) == 1:
-                swapped[i] = batch[0]
+        array = array.transpose((2, 0, 1))
+        array = array.squeeze()
+        array = array.tolist()
 
-        # squeeze optimizer dimension
-        return swapped[0] if len(swapped) == 1 and not isinstance(swapped[0], dict) else swapped
+        # remove residual empty lists
+        array = [item for item in array if isinstance(item, list) and len(item)]
+
+        array = _recursive_unpad(array)
+
+        # in case we squeezed from 1-element array to a 0-dim array
+        array = array if isinstance(array, list) else [array]
+        return array
 
     def update_lr_schedulers(self, interval: str, update_plateau_schedulers: bool) -> None:
         """updates the lr schedulers based on the given interval."""
@@ -377,3 +394,15 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
+
+
+def _convert_optim_dict(outs: Dict[int, Dict[str, Any]], num_optimizers: int) -> List[Dict[str, Any]]:
+    # relevant test: test_step_scheduling_for_multiple_optimizers_with_frequency
+    return [outs[opt_idx] if opt_idx in outs else None for opt_idx in range(num_optimizers)]
+
+
+def _recursive_unpad(nested: List, value: Optional[Any] = None) -> List:
+    if not isinstance(nested, list):
+        return nested
+
+    return [_recursive_unpad(item) for item in nested if item is not value]
