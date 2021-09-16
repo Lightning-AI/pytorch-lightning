@@ -109,6 +109,11 @@ extensions = [
     "pt_lightning_sphinx_theme.extensions.lightning_tutorials",
 ]
 
+# Suppress warnings about duplicate labels (needed for PL tutorials)
+suppress_warnings = [
+    "autosectionlabel.*",
+]
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
@@ -144,7 +149,6 @@ language = None
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
     f"{FOLDER_GENERATED}/PULL_REQUEST_TEMPLATE.md",
-    "notebooks/course_UvA-DL/*",
     "notebooks/sample-template*",
 ]
 
