@@ -37,4 +37,46 @@ The Trainer has four entry points for training, testing and inference, and each 
 
 When a user calls :code:`Trainer.method`, it redirects to the corresponding :code:`Trainer.loop.run()` which implements the main logic of that particular Lightning loop.
 Think of it as the start of a Python :code:`while` loop.
-The :meth:`~pytorch_lightning.loops.base.Loop.run` method is part of the base :class:`~pytorch_lightning.loops.base.Loop` class that every loop inherits from (like every model inherits from `LightningModule`).
+The :meth:`~pytorch_lightning.loops.base.Loop.run` method is part of the base :class:`~pytorch_lightning.loops.base.Loop` class that every loop inherits from (like every model inherits from LightningModule).
+
+
+The Loop base class
+-------------------
+
+The :class:`~pytorch_lightning.loops.base.Loop` class is the base for all loops in Lighting just like the LightningModule is the base for all models.
+It defines a public interface that each loop implementation must follow, the key ones are:
+
+- :class:`~pytorch_lightning.loops.base.Loop.advance`: implements the logic of a single iteration in the loop
+- :class:`~pytorch_lightning.loops.base.Loop.done`: a boolean stopping criteria
+- :class:`~pytorch_lightning.loops.base.Loop.reset`: implements a mechanism to reset the loop so it can be restarted
+
+These methods are called by the default implementation of the :class:`~pytorch_lightning.loops.base.Loop.run` entry point as shown in the code excerpt below.
+
+.. code-block:: python
+
+    def run(self, *args, **kwargs):
+
+        self.reset()
+        self.on_run_start(*args, **kwargs)
+
+        while not self.done:
+            try:
+                self.advance(*args, **kwargs)
+            except StopIteration:
+                break
+
+        output = self.on_run_end()
+        return output
+
+Some important observations here: One, the `run()` method can define input arguments that get forwarded to some of the other methods that get invoked as part of `run()`.
+Such input arguments typically comprise of one or several iterables over which the loop is suppose to iterate, for example, an iterator over a :class:`~torch.utils.data.DataLoader`.
+The reason why the inputs get forwarded is mainly for convenience but implementations are free to change this.
+Secondly, `advance()` can raise a :class:`StopIteration` to exit the loop early.
+This is analogeous to a :code:`break` statement in a raw Python `while`-loop for example.
+Finally, a loop may return an output as part of `run()`.
+This output could for example be a list containing all results produced in each iteration (advance) of the loop.
+
+
+An interesting property of this abstract loop interface is that it can maintain a state.
+It can save its state to a checkpoint through corresponding hooks and if implemented accordingly, resume it's state of exectuion at the appropriate place.
+This design is particularly interesting for fault-tolerant training which is an experimental feature released in Lightning v1.5.
