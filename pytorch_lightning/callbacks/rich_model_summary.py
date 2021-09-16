@@ -14,7 +14,6 @@
 from typing import List, Union
 
 from pytorch_lightning.callbacks import ModelSummary
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
 from pytorch_lightning.utilities.model_summary import get_human_readable_count
 
@@ -24,9 +23,44 @@ if _RICH_AVAILABLE:
 
 
 class RichModelSummary(ModelSummary):
+    r"""
+    Generates a summary of all layers in a :class:`~pytorch_lightning.core.lightning.LightningModule`
+    with `rich text formatting <https://github.com/willmcgugan/rich>`_.
+
+    Install it with pip:
+
+    .. code-block:: bash
+
+        pip install rich
+
+    .. code-block:: python
+
+        from pytorch_lightning import Trainer
+        from pytorch_lightning.callbacks import RichModelSummary
+
+        trainer = Trainer(callbacks=RichModelSummary())
+
+    You could also enable it using the :class:`~pytorch_lightning.callbacks.RichProgressBar`
+
+    .. code-block:: python
+
+        from pytorch_lightning import Trainer
+        from pytorch_lightning.callbacks import RichProgressBar
+
+        trainer = Trainer(callbacks=RichProgressBar())
+
+    Args:
+        max_depth: The maximum depth of layer nesting that the summary will include. A value of 0 turns the
+            layer summary off.
+
+    Raises:
+        ImportError:
+            If required `rich` package is not installed on the device.
+    """
+
     def __init__(self, max_depth: int = 1) -> None:
         if not _RICH_AVAILABLE:
-            raise MisconfigurationException(
+            raise ImportError(
                 "`RichModelSummary` requires `rich` to be installed. Install it by running `pip install rich`."
             )
         super().__init__(max_depth)
@@ -60,12 +94,9 @@ class RichModelSummary(ModelSummary):
 
         console.print(table)
 
-        # Formatting
-        s = "{:<{}}"
-
         parameters = []
         for param in [trainable_parameters, total_parameters - trainable_parameters, total_parameters, model_size]:
-            parameters.append(s.format(get_human_readable_count(param), 10))
+            parameters.append("{:<{}}".format(get_human_readable_count(param), 10))
 
         grid = Table.grid(expand=True)
         grid.add_column()
