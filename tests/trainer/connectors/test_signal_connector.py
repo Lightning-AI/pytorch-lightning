@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import subprocess
-import sys
+import signal
 from time import sleep
 from unittest import mock
 
@@ -33,10 +32,7 @@ def test_fault_tolerant_sig_handler(should_gracefully_terminate, tmpdir):
         class TestModel(BoringModel):
             def training_step(self, batch, batch_idx):
                 if should_gracefully_terminate and self.trainer.current_epoch == 1 and batch_idx == 1:
-                    env_copy = os.environ.copy()
-                    env_copy["PID"] = str(os.getpid())
-                    command = [sys.executable, os.path.join(os.path.dirname(__file__), "fault_tolerant_pid_killer.py")]
-                    subprocess.Popen(command, env=env_copy)
+                    os.kill(os.getpid(), signal.SIGUSR1)
                     sleep(0.1)
                 return super().training_step(batch, batch_idx)
 
