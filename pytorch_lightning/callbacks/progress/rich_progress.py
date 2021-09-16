@@ -30,7 +30,7 @@ if _RICH_AVAILABLE:
         # Only refresh twice a second to prevent jitter
         max_refresh = 0.5
 
-        def __init__(self, style: Union[str, Style]):
+        def __init__(self, style: Union[str, Style]) -> None:
             self.style = style
             super().__init__()
 
@@ -137,7 +137,7 @@ class RichProgressBar(ProgressBarBase):
         self,
         refresh_rate: float = 1.0,
         theme: RichProgressBarTheme = RichProgressBarTheme(),
-    ):
+    ) -> None:
         if not _RICH_AVAILABLE:
             raise ImportError(
                 "`RichProgressBar` requires `rich` to be installed. Install it by running `pip install rich`."
