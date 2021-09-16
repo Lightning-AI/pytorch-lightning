@@ -284,7 +284,6 @@ class LightningArgumentParser(ArgumentParser):
                     key = arg
                     i += 1
                     value = argv[i]
-                key = key[2:]  # remove dashes
                 if "class_path" in value:
                     # the user passed a config as a dict
                     passed_configs[key] = yaml.safe_load(value)
@@ -294,7 +293,7 @@ class LightningArgumentParser(ArgumentParser):
                 clean_argv.append(arg)
             i += 1
         # generate the associated config file
-        out = []
+        config = []
         i, n = 0, len(passed_args)
         while i < n - 1:
             ki, vi = passed_args[i]
@@ -305,8 +304,7 @@ class LightningArgumentParser(ArgumentParser):
                     f"Passed the class `--{nested_key}={ki}` but it's not registered in the registry."
                     f"The available classes are: {registry.names}"
                 )
-            config = _global_add_class_path(cls_type)
-            out.append(config)
+            config.append(_global_add_class_path(cls_type))
             # get any init args
             j = i + 1  # in case the j-loop doesn't run
             for j in range(i + 1, n):
@@ -315,14 +313,14 @@ class LightningArgumentParser(ArgumentParser):
                     break
                 if kj.startswith(ki):
                     init_arg_name = kj.split(".")[-1]
-                    out[-1]["init_args"][init_arg_name] = vj
+                    config[-1]["init_args"][init_arg_name] = vj
             i = j
         # update at the end to preserve the order
         for k, v in passed_configs.items():
-            out.extend(v)
-        if not out:
+            config.extend(v)
+        if not config:
             return clean_argv
-        return clean_argv + [argv_key, str(out)]
+        return clean_argv + [argv_key, str(config)]
 
 
 class SaveConfigCallback(Callback):
