@@ -1,6 +1,6 @@
 import io
 from argparse import ArgumentParser, Namespace
-from typing import List
+from typing import List, Generic, TypeVar
 from unittest.mock import MagicMock
 
 import pytest
@@ -137,6 +137,16 @@ class AddArgparseArgsExampleClassNoDoc:
         pass
 
 
+class AddArgparseArgsExampleClassGeneric:
+    T = TypeVar("T")
+
+    class SomeClass(Generic[T]):
+        pass
+
+    def  __init__(self, invalid_class: SomeClass):
+        pass
+
+
 def extract_help_text(parser):
     help_str_buffer = io.StringIO()
     parser.print_help(file=help_str_buffer)
@@ -201,6 +211,13 @@ def test_add_argparse_args_no_argument_group():
     args = parser.parse_args(fake_argv)
     assert args.main_arg == "abc"
     assert args.my_parameter == 2
+
+
+def test_add_argparse_args_invalid():
+    """Test that `add_argparse_args` doesn't raise `TypeError` when
+    a class has args typed as `typing.Generic` in Python 3.6.
+    """
+    add_argparse_args(AddArgparseArgsExampleClassGeneric, ArgumentParser())
 
 
 def test_gpus_allowed_type():
