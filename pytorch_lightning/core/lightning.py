@@ -752,10 +752,11 @@ class LightningModule(
                 train_outs.append(out)
             training_epoch_end(train_outs)
 
-        # FIXME: is the dataloader stuff wrong???
         Args:
-            outputs: List of outputs you defined in :meth:`training_step`, or if there are
-                multiple dataloaders, a list containing a list of outputs for each dataloader.
+            outputs: List of outputs you defined in :meth:`training_step`.
+                If there are multiple optimizers, it is a list containing a list of outputs for each optimizer.
+                If using ``truncated_bptt_steps > 1``, each element is a list of outputs corresponding to the outputs
+                of each processed split batch.
 
         Return:
             None
