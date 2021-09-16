@@ -455,13 +455,6 @@ class Trainer(
         self.signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
-        if max_steps is None:
-            rank_zero_deprecation(
-                "Setting `max_steps = None` is deprecated in v1.5 and will be removed in v1.7."
-                " Use `max_steps = -1` instead."
-            )
-            max_steps = -1
-
         if max_epochs is None:
             # max_epochs won't default to 1000 if max_steps/max_time are non-default values.
             max_epochs = 1000 if (max_steps == -1 and max_time is None) else -1
