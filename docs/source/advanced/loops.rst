@@ -123,7 +123,7 @@ Its main responsibilities are calling the :code:`*_epoch_start` and :code:`*_epo
 The validation is carried out by yet another loop, :class:`~pytorch_lightning.loops.epoch.validation_epoch_loop.ValidationEpochLoop`.
 
 In the :code:`run()` method, the training epoch loop could in theory simply call the :code:`LightningModule.training_step` already and perform the optimization.
-However, Lightning has built-in support for automatic optimization with multiple optimizers and on top of that also supports truncated back-propagation through time (TODO: add link).
+However, Lightning has built-in support for automatic optimization with multiple optimizers and on top of that also supports :doc:`truncated back-propagation through time <../advanced/sequences>`.
 For this reason there are actually two more loops nested under :class:`~pytorch_lightning.loops.epoch.training_epoch_loop.TrainingEpochLoop`.
 
 TrainingBatchLoop
@@ -132,7 +132,7 @@ TrainingBatchLoop
 The responsibility of the :class:`~pytorch_lightning.loops.batch.training_batch_loop.TrainingBatchLoop` is to split a batch given by the :class:`~pytorch_lightning.loops.epoch.training_epoch_loop.TrainingEpochLoop` along the time-dimension and iterate over the list of splits.
 It also keeps track of the hidden state *hiddens* returned by the training step.
 By default, when truncated back-propagation through time (TBPTT) is turned off, this loop does not do anything except redirect the call to the :class:`~pytorch_lightning.loops.optimization.optimizer_loop.OptimizerLoop`.
-You can read more about TBPTT here (TODO: add link).
+Read more about :doc:`TBPTT <../advanced/sequences>`.
 
 OptimizerLoop
 ^^^^^^^^^^^^^
@@ -320,7 +320,7 @@ Persisting the state of loops
 .. note::
     This is an experimental feature and is not activated by default.
     Set the environment variable `PL_FAULT_TOLERANT_TRAINING = 1` to enable saving the progress of loops.
-    Read more about fault-tolerant training here (TODO: add link).
+    Read more about :doc:`fault-tolerant training training <../advanced/fault_tolerant_training>`.
 
 An interesting property of the abstract loop interface is that it can maintain a state.
 It can save its state to a checkpoint through corresponding hooks and if implemented accordingly, resume it's state of exectuion at the appropriate place.
