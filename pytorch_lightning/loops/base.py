@@ -21,7 +21,6 @@ from torchmetrics import Metric
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import BaseProgress
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 T = TypeVar("T")  # the output type of `run`
@@ -200,25 +199,19 @@ class Loop(ABC, Generic[T]):
         self,
         state_dict: Dict,
         prefix: str = "",
-        restart_progress: bool = True,
         metrics: Optional[Dict[str, Metric]] = None,
     ) -> None:
         """Loads the state of this loop and all its children."""
-        self._load_from_state_dict(state_dict.copy(), prefix, restart_progress, metrics)
+        self._load_from_state_dict(state_dict.copy(), prefix, metrics)
         for k, v in self.__dict__.items():
             if isinstance(v, Loop):
-                v.load_state_dict(state_dict.copy(), prefix + k + ".", restart_progress)
+                v.load_state_dict(state_dict.copy(), prefix + k + ".")
 
-    def _load_from_state_dict(
-        self, state_dict: Dict, prefix: str, restart_progress: bool, metrics: Optional[Dict[str, Metric]] = None
-    ) -> None:
+    def _load_from_state_dict(self, state_dict: Dict, prefix: str, metrics: Optional[Dict[str, Metric]] = None) -> None:
         for k, v in self.__dict__.items():
             key = prefix + k
             if isinstance(v, BaseProgress):
                 v.load_state_dict(state_dict[key])
-                if restart_progress:
-                    apply_to_collection(v, BaseProgress, lambda p: p.reset_on_restart())
-
             elif (
                 isinstance(v, ResultCollection)
                 and self.trainer is not None

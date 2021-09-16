@@ -103,6 +103,11 @@ class TrainingEpochLoop(loops.Loop):
         assert self.batch_loop.optimizer_loop is not None
         self.is_last_batch = False
 
+        if self.restarting:
+            self.batch_progress.current.reset_on_restart()
+            self.scheduler_progress.current.reset_on_restart()
+            self.batch_loop.optimizer_loop.optim_progress.reset_on_restart()
+
         # track epoch output
         self._epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
 

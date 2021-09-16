@@ -238,4 +238,5 @@ class OptimizationProgress(BaseProgress):
         self.optimizer_position = state_dict["optimizer_position"]
 
     def reset_on_restart(self):
-        self.optimizer.reset_on_restart()
+        self.optimizer.step.current.reset_on_restart()
+        self.optimizer.zero_grad.current.reset_on_restart()
