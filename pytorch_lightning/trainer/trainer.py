@@ -1135,7 +1135,7 @@ class Trainer(
         assert self.evaluating
 
         # reload dataloaders
-        self._evaluation_loop.reload_evaluation_dataloaders()
+        self._evaluation_loop._reload_evaluation_dataloaders()
 
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self._evaluation_loop.trainer = self
@@ -1172,7 +1172,7 @@ class Trainer(
             self.call_hook("on_sanity_check_start")
 
             # reload dataloaders
-            self._evaluation_loop.reload_evaluation_dataloaders()
+            self._evaluation_loop._reload_evaluation_dataloaders()
 
             # run eval step
             with torch.no_grad():
