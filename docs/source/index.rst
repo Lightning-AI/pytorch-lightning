@@ -67,6 +67,7 @@ PyTorch Lightning Documentation
    advanced/transfer_learning
    advanced/tpu
    common/test_set
+   advanced/loops
 
 .. toctree::
    :maxdepth: 2
