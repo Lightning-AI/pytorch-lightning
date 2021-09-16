@@ -87,9 +87,6 @@ if _RICH_AVAILABLE:
             else:
                 metrics = self._trainer.progress_bar_metrics
 
-            # todo: what even is v_num
-            metrics.pop("v_num", None)
-
             for k, v in metrics.items():
                 _text += f"{k}: {round(v, 3) if isinstance(v, float) else v} "
             text = Text.from_markup(_text, style=None, justify="left")
