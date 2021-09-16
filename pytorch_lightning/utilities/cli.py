@@ -20,8 +20,8 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
 from unittest import mock
 
 import torch
-from torch.optim import Optimizer
 import yaml
+from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer

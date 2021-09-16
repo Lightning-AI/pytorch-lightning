@@ -874,7 +874,7 @@ def test_registries(tmpdir):
     assert "CosineAnnealingLR" in LR_SCHEDULER_REGISTRY.names
     assert "CosineAnnealingWarmRestarts" in LR_SCHEDULER_REGISTRY.names
     assert "CustomCosineAnnealingLR" in LR_SCHEDULER_REGISTRY.names
-   
+
     assert "EarlyStopping" in CALLBACK_REGISTRY.names
     assert "CustomCallback" in CALLBACK_REGISTRY.names
 
