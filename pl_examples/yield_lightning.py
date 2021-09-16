@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.loops.optimizer.yield_loop import Yield, YieldLoop
+from pytorch_lightning.loops.optimization.yield_loop import Yield, YieldLoop
 
 
 class RandomDataset(Dataset):
