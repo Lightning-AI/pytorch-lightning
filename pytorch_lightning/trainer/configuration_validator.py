@@ -114,7 +114,6 @@ class ConfigValidator:
                 "(rather, they are called on every optimization step)."
             )
 
-
         # ---------------------------------------------------------
         # verify `reload_dataloaders_every_n_epochs` value setting
         # ---------------------------------------------------------

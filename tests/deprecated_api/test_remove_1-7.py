@@ -85,6 +85,7 @@ def test_v1_7_0_datamodule_dims_property(tmpdir):
     with pytest.deprecated_call(match=r"DataModule property `dims` was deprecated in v1.5"):
         _ = LightningDataModule(dims=(1, 1, 1))
 
+
 def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):
     class TestModel(BoringModel):
         def get_progress_bar_dict(self):
@@ -107,11 +108,13 @@ def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):
     with pytest.deprecated_call(match=r"`trainer.progress_bar_dict` is deprecated in v1.5"):
         _ = trainer.progress_bar_dict
 
+
 def test_v1_7_0_trainer_reload_dataloaders_every_n_epochs(tmpdir):
     with pytest.deprecated_call(
         match="Setting `reload_dataloaders_every_n_epochs` with the trainer flag is deprecated "
     ):
         _ = Trainer(reload_dataloaders_every_n_epochs=1)
+
 
 def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
     class CustomBoringModel(BoringModel):
@@ -154,11 +157,13 @@ def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
         _run(model, "test")
         _run(model, "predict")
 
+
 def test_v1_7_0_trainer_prepare_data_per_node(tmpdir):
     with pytest.deprecated_call(
         match="Setting `prepare_data_per_node` with the trainer flag is deprecated and will be removed in v1.7.0!"
     ):
         _ = Trainer(prepare_data_per_node=False)
+
 
 @mock.patch("pytorch_lightning.loggers.test_tube.Experiment")
 def test_v1_7_0_test_tube_logger(_, tmpdir):
