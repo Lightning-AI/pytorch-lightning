@@ -49,6 +49,7 @@ from pytorch_lightning.trainer.connectors.checkpoint_connector import Checkpoint
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.connectors.debugging_connector import DebuggingConnector
 from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_from_env_vars
+from pytorch_lightning.trainer.connectors.fault_tolerant_connector import FaultTolerantConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
@@ -384,6 +385,7 @@ class Trainer(
         self.training_tricks_connector = TrainingTricksConnector(self)
         self.checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
         self.slurm_connector = SLURMConnector(self)
+        self.fault_tolerant_connector = FaultTolerantConnector(self)
         self.tuner = Tuner(self)
 
         # max_epochs won't default to 1000 if max_steps/max_time are specified (including being set to -1).
@@ -1098,6 +1100,9 @@ class Trainer(
 
         # register auto-resubmit when on SLURM
         self.slurm_connector.register_slurm_signal_handlers()
+
+        # used to register gracefully detection of signal to ensure clean exit mechanism
+        self.fault_tolerant_connector.register_fault_tolerant_signal_handlers()
 
         self.checkpoint_connector.resume_end()
 
