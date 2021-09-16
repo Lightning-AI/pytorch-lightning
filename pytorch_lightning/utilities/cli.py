@@ -642,7 +642,7 @@ class LightningCLI:
                     automatic.append(key)
             return automatic
 
-        optimizers = get_automatic(torch.optim.Optimizer, parser._optimizers)
+        optimizers = get_automatic(Optimizer, parser._optimizers)
         lr_schedulers = get_automatic(LRSchedulerTypeTuple, parser._lr_schedulers)
 
         if len(optimizers) == 0:
