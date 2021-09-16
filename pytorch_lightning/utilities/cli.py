@@ -112,6 +112,7 @@ class LightningArgumentParser(ArgumentParser):
         self._lr_schedulers: Dict[str, Tuple[Union[Type, Tuple[Type, ...]], str]] = {}
         # we need a mutable global argv copy in order to support `add_class_choices`
         sys.__argv = sys.argv.copy()
+        self._choices: Dict[str, Tuple[Type, ...]] = {}
 
     def add_lightning_class_args(
         self,
@@ -202,7 +203,9 @@ class LightningArgumentParser(ArgumentParser):
         self._lr_schedulers[nested_key] = (lr_scheduler_class, link_to)
 
     def parse_args(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
-        argv = self._convert_argv_issue_85("trainer.callbacks", sys.__argv, CALLBACK_REGISTRY)
+        argv = sys.__argv
+        for k, v in self._choices.items():
+            argv = self._convert_argv_issue_85(v, k, argv)
         with mock.patch("sys.argv", argv):
             return super().parse_args(*args, **kwargs)
 
@@ -263,12 +266,17 @@ class LightningArgumentParser(ArgumentParser):
                 raise ValueError(f"Could not generate a config for {repr(argv_class)}")
         return clean_argv + [argv_key, config]
 
-    @staticmethod
-    def _convert_argv_issue_85(nested_key: str, argv: List[str], registry: _Registry) -> List[str]:
+    def set_choices(self, *args: Dict[str, Tuple[Type, ...]], **kwargs: Tuple[Type, ...]) -> None:
         """Placeholder for https://github.com/omni-us/jsonargparse/issues/85.
 
         This should be removed once implemented.
         """
+        for arg in args:
+            self._choices.update(arg)
+        self._choices.update(kwargs)
+
+    @staticmethod
+    def _convert_argv_issue_85(classes: Tuple[Type, ...], nested_key: str, argv: List[str]) -> List[str]:
         passed_args, clean_argv = [], []
         passed_configs = {}
         argv_key = f"--{nested_key}"
@@ -297,12 +305,12 @@ class LightningArgumentParser(ArgumentParser):
         while i < n - 1:
             ki, vi = passed_args[i]
             # convert class name to class path
-            cls_type = registry.get(vi)
-            if cls_type is None:
-                raise ValueError(
-                    f"Passed the class `--{nested_key}={ki}` but it's not registered in the registry."
-                    f"The available classes are: {registry.names}"
-                )
+            for cls in classes:
+                if cls.__name__ == vi:
+                    cls_type = cls
+                    break
+            else:
+                raise ValueError(f"Could not generate a config for {repr(vi)}")
             config.append(_global_add_class_path(cls_type))
             # get any init args
             j = i + 1  # in case the j-loop doesn't run
@@ -492,6 +500,7 @@ class LightningCLI:
     def add_core_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         """Adds arguments from the core classes to the parser."""
         parser.add_lightning_class_args(self.trainer_class, "trainer")
+        parser.set_choices({"trainer.callbacks": CALLBACK_REGISTRY.classes})
         trainer_defaults = {"trainer." + k: v for k, v in self.trainer_defaults.items() if k != "callbacks"}
         parser.set_defaults(trainer_defaults)
         parser.add_lightning_class_args(self.model_class, "model", subclass_mode=self.subclass_mode_model)

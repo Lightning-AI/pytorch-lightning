@@ -921,7 +921,7 @@ def test_registries_resolution(use_class_path_callbacks):
 
 def test_argv_transformation_noop():
     base = ["any.py", "--trainer.max_epochs=1"]
-    argv = LightningArgumentParser._convert_argv_issue_85("trainer.callbacks", base, CALLBACK_REGISTRY)
+    argv = LightningArgumentParser._convert_argv_issue_85(CALLBACK_REGISTRY.classes, "trainer.callbacks", base)
     assert argv == base
 
 
@@ -935,7 +935,7 @@ def test_argv_transformation_single_callback():
         }
     ]
     expected = base + ["--trainer.callbacks", str(callbacks)]
-    argv = LightningArgumentParser._convert_argv_issue_85("trainer.callbacks", input, CALLBACK_REGISTRY)
+    argv = LightningArgumentParser._convert_argv_issue_85(CALLBACK_REGISTRY.classes, "trainer.callbacks", input)
     assert argv == expected
 
 
@@ -958,7 +958,7 @@ def test_argv_transformation_multiple_callbacks():
         },
     ]
     expected = base + ["--trainer.callbacks", str(callbacks)]
-    argv = LightningArgumentParser._convert_argv_issue_85("trainer.callbacks", input, CALLBACK_REGISTRY)
+    argv = LightningArgumentParser._convert_argv_issue_85(CALLBACK_REGISTRY.classes, "trainer.callbacks", input)
     assert argv == expected
 
 
@@ -985,7 +985,7 @@ def test_argv_transformation_multiple_callbacks_with_config():
     ]
     expected = base + ["--trainer.callbacks", str(callbacks)]
     nested_key = "trainer.callbacks"
-    argv = LightningArgumentParser._convert_argv_issue_85(nested_key, input, CALLBACK_REGISTRY)
+    argv = LightningArgumentParser._convert_argv_issue_85(CALLBACK_REGISTRY.classes, nested_key, input)
     assert argv == expected
 
 
