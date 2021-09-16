@@ -91,6 +91,9 @@ CALLBACK_REGISTRY.register_package(pl.callbacks, pl.callbacks.Callback)
 class LightningArgumentParser(ArgumentParser):
     """Extension of jsonargparse's ArgumentParser for pytorch-lightning."""
 
+    # use class attribute because `parse_args` is only called on the main parser
+    _choices: Dict[str, Tuple[Type, ...]] = {}
+
     def __init__(self, *args: Any, parse_as_dict: bool = True, **kwargs: Any) -> None:
         """Initialize argument parser that supports configuration file input.
 
@@ -110,9 +113,6 @@ class LightningArgumentParser(ArgumentParser):
         # separate optimizers and lr schedulers to know which were added
         self._optimizers: Dict[str, Tuple[Union[Type, Tuple[Type, ...]], str]] = {}
         self._lr_schedulers: Dict[str, Tuple[Union[Type, Tuple[Type, ...]], str]] = {}
-        # we need a mutable global argv copy in order to support `add_class_choices`
-        sys.__argv = sys.argv.copy()
-        self._choices: Dict[str, Tuple[Type, ...]] = {}
 
     def add_lightning_class_args(
         self,
@@ -173,7 +173,8 @@ class LightningArgumentParser(ArgumentParser):
             assert issubclass(optimizer_class, Optimizer)
         kwargs = {"instantiate": False, "fail_untyped": False, "skip": {"params"}}
         if isinstance(optimizer_class, tuple):
-            self.add_class_choices(optimizer_class, nested_key, **kwargs)
+            self.add_subclass_arguments(optimizer_class, nested_key, **kwargs)
+            self.set_choices(nested_key, optimizer_class)
         else:
             self.add_class_arguments(optimizer_class, nested_key, **kwargs)
         self._optimizers[nested_key] = (optimizer_class, link_to)
@@ -197,36 +198,37 @@ class LightningArgumentParser(ArgumentParser):
             assert issubclass(lr_scheduler_class, LRSchedulerTypeTuple)
         kwargs = {"instantiate": False, "fail_untyped": False, "skip": {"optimizer"}}
         if isinstance(lr_scheduler_class, tuple):
-            self.add_class_choices(lr_scheduler_class, nested_key, **kwargs)
+            self.add_subclass_arguments(lr_scheduler_class, nested_key, **kwargs)
+            self.set_choices(nested_key, lr_scheduler_class)
         else:
             self.add_class_arguments(lr_scheduler_class, nested_key, **kwargs)
         self._lr_schedulers[nested_key] = (lr_scheduler_class, link_to)
 
     def parse_args(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
-        argv = sys.__argv
+        argv = sys.argv
         for k, v in self._choices.items():
-            argv = self._convert_argv_issue_85(v, k, argv)
+            if not any(arg.startswith(f"--{k}") for arg in argv):
+                # the key wasn't passed - maybe defined in a config, maybe it's optional
+                continue
+            classes, is_list = v
+            if is_list:
+                argv = self._convert_argv_issue_85(classes, k, argv)
+            else:
+                argv = self._convert_argv_issue_84(classes, k, argv)
+        self._choices.clear()  # reset
         with mock.patch("sys.argv", argv):
             return super().parse_args(*args, **kwargs)
 
-    def add_class_choices(self, classes: Tuple[Type, ...], nested_key: str, *args: Any, **kwargs: Any) -> None:
+    def set_choices(self, nested_key: str, classes: Tuple[Type, ...], is_list: bool = False) -> None:
+        # knowing whether the argument is a list type automatically would be too complex
+        self._choices[nested_key] = (classes, is_list)
+
+    @staticmethod
+    def _convert_argv_issue_84(classes: Tuple[Type, ...], nested_key: str, argv: List[str]) -> List[str]:
         """Placeholder for https://github.com/omni-us/jsonargparse/issues/84.
 
         This should be removed once implemented.
         """
-        if not any(arg.startswith(f"--{nested_key}") for arg in sys.__argv):  # the key was passed
-            if any(arg.startswith("--config") for arg in sys.__argv):  # a config was passed
-                # parsing config files would be too difficult, fall back to what's available
-                self.add_subclass_arguments(classes, nested_key, *args, **kwargs)
-            elif kwargs.get("required", False):
-                raise MisconfigurationException(f"The {nested_key} key is required but wasn't passed")
-        else:
-            clean_argv = self._convert_argv_issue_84(classes, nested_key, sys.__argv)
-            self.add_subclass_arguments(classes, nested_key, *args, **kwargs)
-            sys.__argv = clean_argv
-
-    @staticmethod
-    def _convert_argv_issue_84(classes: Tuple[Type, ...], nested_key: str, argv: List[str]) -> List[str]:
         passed_args, clean_argv = {}, []
         argv_key = f"--{nested_key}"
         # get the argv args for this nested key
@@ -266,17 +268,12 @@ class LightningArgumentParser(ArgumentParser):
                 raise ValueError(f"Could not generate a config for {repr(argv_class)}")
         return clean_argv + [argv_key, config]
 
-    def set_choices(self, *args: Dict[str, Tuple[Type, ...]], **kwargs: Tuple[Type, ...]) -> None:
+    @staticmethod
+    def _convert_argv_issue_85(classes: Tuple[Type, ...], nested_key: str, argv: List[str]) -> List[str]:
         """Placeholder for https://github.com/omni-us/jsonargparse/issues/85.
 
         This should be removed once implemented.
         """
-        for arg in args:
-            self._choices.update(arg)
-        self._choices.update(kwargs)
-
-    @staticmethod
-    def _convert_argv_issue_85(classes: Tuple[Type, ...], nested_key: str, argv: List[str]) -> List[str]:
         passed_args, clean_argv = [], []
         passed_configs = {}
         argv_key = f"--{nested_key}"
@@ -500,7 +497,7 @@ class LightningCLI:
     def add_core_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         """Adds arguments from the core classes to the parser."""
         parser.add_lightning_class_args(self.trainer_class, "trainer")
-        parser.set_choices({"trainer.callbacks": CALLBACK_REGISTRY.classes})
+        parser.set_choices("trainer.callbacks", CALLBACK_REGISTRY.classes, is_list=True)
         trainer_defaults = {"trainer." + k: v for k, v in self.trainer_defaults.items() if k != "callbacks"}
         parser.set_defaults(trainer_defaults)
         parser.add_lightning_class_args(self.model_class, "model", subclass_mode=self.subclass_mode_model)
