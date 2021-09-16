@@ -93,7 +93,7 @@ Here is what the structure would look like in plain Python:
         for batch_idx, batch in enumerate(train_dataloader):
 
             # TrainingBatchLoop
-            for  split_batch in tbptt_split(batch):
+            for split_batch in tbptt_split(batch):
 
                 # OptimizerLoop
                 for optimizer_idx, opt in enumerate(optimizers):
@@ -163,6 +163,7 @@ A custom loop, like every loop, needs to implement the base :class:`~pytorch_lig
 
     from pytorch_lightning.loops import Loop
 
+
     class CustomLoop(Loop):
         def __init__(self):
             ...
@@ -180,6 +181,7 @@ Instead of writing an entire new loop, one can also override the behavior of an 
 .. code-block:: python
 
     from pytorch_lightning.loops import FitLoop
+
 
     class CustomFitLoop(FitLoop):
         ...
@@ -226,8 +228,7 @@ Imagine we had a LightningModule training step definition like this:
 
     def training_step(self, batch, batch_idx):
         # do something with optimizer 0
-        loss0 = ....
-
+        loss0 = self.loss(self(batch))
         yield loss0
 
         # do something with optimizer 1 that requires loss0
@@ -258,21 +259,30 @@ This will be a subclass of the existing :class:`~pytorch_lightning.loops.optimiz
             self._training_step_generator = None
 
         def connect(self, **kwargs):
-            raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
+            raise NotImplementedError(
+                f"{self.__class__.__name__} does not connect any child loops."
+            )
 
         def on_run_start(self, batch, optimizers, batch_idx):
             super().on_run_start(batch, optimizers, batch_idx)
             assert self.trainer.lightning_module.automatic_optimization
 
             # We request the generator once and save it for later so we can call next() on it.
-            self._training_step_generator = self._get_training_step_generator(batch, batch_idx, opt_idx=0)
+            self._training_step_generator = self._get_training_step_generator(
+                batch, batch_idx, opt_idx=0
+            )
 
         def _make_step_fn(self, batch, batch_idx, opt_idx):
             return partial(self._training_step, self._training_step_generator)
 
         def _get_training_step_generator(self, batch, batch_idx, opt_idx):
             step_kwargs = _build_training_step_kwargs(
-                self.trainer.lightning_module, self.trainer.optimizers, batch, batch_idx, opt_idx, hiddens=None
+                self.trainer.lightning_module,
+                self.trainer.optimizers,
+                batch,
+                batch_idx,
+                opt_idx,
+                hiddens=None,
             )
 
             # Here we are basically calling lightning_module.training_step() and this returns a generator!
@@ -290,8 +300,12 @@ This will be a subclass of the existing :class:`~pytorch_lightning.loops.optimiz
                     training_step_output = next(training_step_generator)
                     self.trainer.accelerator.post_training_step()
 
-                training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
-                result = ClosureResult.from_training_step_output(training_step_output, self.trainer.accumulate_grad_batches)
+                training_step_output = self.trainer.call_hook(
+                    "training_step_end", training_step_output
+                )
+                result = ClosureResult.from_training_step_output(
+                    training_step_output, self.trainer.accumulate_grad_batches
+                )
             return result
 
 As we can see, not much work needs to be done to enable our generator training step.
@@ -334,6 +348,7 @@ The two hooks :class:`~pytorch_lightning.loops.base.Loop.on_save_checkpoint` and
         state_dict["iteration"] = self.iteration
         return state_dict
 
+
     def on_load_checkpoint(self, state_dict):
         self.iteration = state_dict["iteration"]
 
@@ -368,15 +383,17 @@ With the YieldLoop shown above in mind, here is an example:
     class Yield:
         """A simple shell class, to be used with LightningModules
         that implement yielding from the training_step."""
+
         pass
+
 
     # add the class as mixin:
     class MyLightningModule(Yield, LightningModule):
         ...
 
+
     # your loop can now check for compatibility
     class YieldLoop(OptimizerLoop):
-
         def on_run_start(self, batch, optimizers, batch_idx):
             super().on_run_start(batch, optimizers, batch_idx)
             if not isinstance(self.trainer.lightning_module, Yield):
