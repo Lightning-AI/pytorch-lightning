@@ -285,7 +285,8 @@ This will be a subclass of the existing :class:`~pytorch_lightning.loops.optimiz
                 hiddens=None,
             )
 
-            # Here we are basically calling lightning_module.training_step() and this returns a generator!
+            # Here we are basically calling lightning_module.training_step()
+            # and this returns a generator!
             generator = self.trainer.accelerator.training_step(step_kwargs)
             return generator
 
@@ -296,7 +297,8 @@ This will be a subclass of the existing :class:`~pytorch_lightning.loops.optimiz
                 lightning_module._current_fx_name = "training_step"
                 with self.trainer.profiler.profile("training_step"):
 
-                    # Here, instead of calling lightning_module.training_step() we call next() on the generator!
+                    # Here, instead of calling lightning_module.training_step()
+                    # we call next() on the generator!
                     training_step_output = next(training_step_generator)
                     self.trainer.accelerator.post_training_step()
 
