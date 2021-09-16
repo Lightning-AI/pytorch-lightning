@@ -1,6 +1,7 @@
 import logging
 import os
 import signal
+import sys
 from subprocess import call
 
 from pytorch_lightning.plugins.environments import SLURMEnvironment
@@ -18,7 +19,7 @@ class SignalConnector:
         cluster_env = getattr(self.trainer.training_type_plugin, "cluster_environment", None)
         if isinstance(cluster_env, SLURMEnvironment):
             self.register_slurm_signal_handlers()
-        elif _fault_tolerant_training():
+        elif _fault_tolerant_training() and not sys.platform == "win32":
             self.register_fault_tolerant_handlers()
 
     def register_fault_tolerant_handlers(self):

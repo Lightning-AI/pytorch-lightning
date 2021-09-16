@@ -24,7 +24,7 @@ from tests.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize("should_gracefully_terminate", [False, True])
-@RunIf(min_torch="1.7.0", special=True)
+@RunIf(min_torch="1.7.0", skip_windows=True)
 def test_fault_tolerant_sig_handler(should_gracefully_terminate, tmpdir):
 
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": str(int(should_gracefully_terminate))}):
