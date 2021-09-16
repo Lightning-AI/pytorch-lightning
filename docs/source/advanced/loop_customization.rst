@@ -313,28 +313,3 @@ Given this new loop, here is how you connect it to the Trainer:
     trainer.fit(model)  # runs the new loop!
 
 Note that we need to connect it to the :class:`~pytorch_lightning.loops.batch.training_batch_loop.TrainingBatchLoop` and we are replacing the default optimizer loop that Lightning provides.
-
-
-
-
-
-
--------------
-
-An interesting property of the abstract loop interface is that it can maintain a state.
-It can save its state to a checkpoint through corresponding hooks and if implemented accordingly, resume it's state of exectuion at the appropriate place.
-This design is particularly interesting for fault-tolerant training which is an experimental feature released in Lightning v1.5.
-
-
-
-
-FAQ:
-
-**Q:** Why are the loops in Lightning classes and not just simply `for` or `while` loops?
-**A:** Partability, state management, complex interactions between loops as object oriented design, advanced users
-
-**Q:** How do I make sure a given LightningModule is compatible with my custom loop?
-**A:** To restrict the compatibility of a LightningModule to a particular loop type, we recommend to define a specific class mixin for this purpose.
-
-**Q:** How can I access the Trainer from within a loop?
-**A:** There is a :attr:`~pytorch_lightning.loops.base.Loop.trainer` property.
