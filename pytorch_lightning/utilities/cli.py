@@ -215,7 +215,7 @@ class LightningArgumentParser(ArgumentParser):
                 argv = self._convert_argv_issue_85(classes, k, argv)
             else:
                 argv = self._convert_argv_issue_84(classes, k, argv)
-        self._choices.clear()  # reset
+        self._choices.clear()
         with mock.patch("sys.argv", argv):
             return super().parse_args(*args, **kwargs)
 
