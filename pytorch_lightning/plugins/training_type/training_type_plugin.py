@@ -13,7 +13,6 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, TypeVar, Union
 
 import torch
@@ -152,7 +151,7 @@ class TrainingTypePlugin(ABC):
         """
         return self._results
 
-    def load_checkpoint(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
+    def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         torch.cuda.empty_cache()
         return self.checkpoint_io.load_checkpoint(checkpoint_path)
 
@@ -243,16 +242,10 @@ class TrainingTypePlugin(ABC):
         """
         return True
 
-    def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
-        """Provide a hook to count optimizer step calls.
-
-        Args:
-            total_batch_idx: Total number of batches seen for training
-            current_global_step: Current number of optimizer step calls
-
-        Returns: New optimizer step calls
-        """
-        return current_global_step + 1
+    @property
+    def handles_gradient_accumulation(self) -> bool:
+        """Whether the plugin handles gradient accumulation internally."""
+        return False
 
     def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
         """Returns model state."""

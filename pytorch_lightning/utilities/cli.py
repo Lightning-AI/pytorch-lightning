@@ -54,7 +54,9 @@ class LightningArgumentParser(ArgumentParser):
             "--config", action=ActionConfigFile, help="Path to a configuration file in json or yaml format."
         )
         self.callback_keys: List[str] = []
-        self.optimizers_and_lr_schedulers: Dict[str, Tuple[Union[Type, Tuple[Type, ...]], str]] = {}
+        # separate optimizers and lr schedulers to know which were added
+        self._optimizers: Dict[str, Tuple[Union[Type, Tuple[Type, ...]], str]] = {}
+        self._lr_schedulers: Dict[str, Tuple[Union[Type, Tuple[Type, ...]], str]] = {}
 
     def add_lightning_class_args(
         self,
@@ -115,10 +117,10 @@ class LightningArgumentParser(ArgumentParser):
             assert issubclass(optimizer_class, Optimizer)
         kwargs = {"instantiate": False, "fail_untyped": False, "skip": {"params"}}
         if isinstance(optimizer_class, tuple):
-            self.add_subclass_arguments(optimizer_class, nested_key, required=True, **kwargs)
+            self.add_subclass_arguments(optimizer_class, nested_key, **kwargs)
         else:
             self.add_class_arguments(optimizer_class, nested_key, **kwargs)
-        self.optimizers_and_lr_schedulers[nested_key] = (optimizer_class, link_to)
+        self._optimizers[nested_key] = (optimizer_class, link_to)
 
     def add_lr_scheduler_args(
         self,
@@ -139,10 +141,10 @@ class LightningArgumentParser(ArgumentParser):
             assert issubclass(lr_scheduler_class, LRSchedulerTypeTuple)
         kwargs = {"instantiate": False, "fail_untyped": False, "skip": {"optimizer"}}
         if isinstance(lr_scheduler_class, tuple):
-            self.add_subclass_arguments(lr_scheduler_class, nested_key, required=True, **kwargs)
+            self.add_subclass_arguments(lr_scheduler_class, nested_key, **kwargs)
         else:
             self.add_class_arguments(lr_scheduler_class, nested_key, **kwargs)
-        self.optimizers_and_lr_schedulers[nested_key] = (lr_scheduler_class, link_to)
+        self._lr_schedulers[nested_key] = (lr_scheduler_class, link_to)
 
 
 class SaveConfigCallback(Callback):
@@ -374,7 +376,8 @@ class LightningCLI:
     @staticmethod
     def link_optimizers_and_lr_schedulers(parser: LightningArgumentParser) -> None:
         """Creates argument links for optimizers and learning rate schedulers that specified a ``link_to``."""
-        for key, (class_type, link_to) in parser.optimizers_and_lr_schedulers.items():
+        optimizers_and_lr_schedulers = {**parser._optimizers, **parser._lr_schedulers}
+        for key, (class_type, link_to) in optimizers_and_lr_schedulers.items():
             if link_to == "AUTOMATIC":
                 continue
             if isinstance(class_type, tuple):
@@ -423,7 +426,7 @@ class LightningCLI:
             config["callbacks"].append(config_callback)
         return self.trainer_class(**config)
 
-    def _parser(self, subcommand: Optional[str]) -> ArgumentParser:
+    def _parser(self, subcommand: Optional[str]) -> LightningArgumentParser:
         if subcommand is None:
             return self.parser
         # return the subcommand parser for the subcommand passed
@@ -438,19 +441,20 @@ class LightningCLI:
         `configure_optimizers` method is automatically implemented in the model class.
         """
         parser = self._parser(subcommand)
-        optimizers_and_lr_schedulers = parser.optimizers_and_lr_schedulers
 
-        def get_automatic(class_type: Union[Type, Tuple[Type, ...]]) -> List[str]:
+        def get_automatic(
+            class_type: Union[Type, Tuple[Type, ...]], register: Dict[str, Tuple[Union[Type, Tuple[Type, ...]], str]]
+        ) -> List[str]:
             automatic = []
-            for key, (base_class, link_to) in optimizers_and_lr_schedulers.items():
+            for key, (base_class, link_to) in register.items():
                 if not isinstance(base_class, tuple):
                     base_class = (base_class,)
                 if link_to == "AUTOMATIC" and any(issubclass(c, class_type) for c in base_class):
                     automatic.append(key)
             return automatic
 
-        optimizers = get_automatic(Optimizer)
-        lr_schedulers = get_automatic(LRSchedulerTypeTuple)
+        optimizers = get_automatic(Optimizer, parser._optimizers)
+        lr_schedulers = get_automatic(LRSchedulerTypeTuple, parser._lr_schedulers)
 
         if len(optimizers) == 0:
             return
@@ -470,14 +474,17 @@ class LightningCLI:
                 f"`{self.__class__.__name__}.add_configure_optimizers_method_to_model`."
             )
 
-        optimizer_class = optimizers_and_lr_schedulers[optimizers[0]][0]
-        optimizer_init = self._get(self.config_init, optimizers[0], default={})
+        optimizer_class = parser._optimizers[optimizers[0]][0]
+        optimizer_init = self._get(self.config_init, optimizers[0])
         if not isinstance(optimizer_class, tuple):
             optimizer_init = _global_add_class_path(optimizer_class, optimizer_init)
+        if not optimizer_init:
+            # optimizers were registered automatically but not passed by the user
+            return
         lr_scheduler_init = None
         if lr_schedulers:
-            lr_scheduler_class = optimizers_and_lr_schedulers[lr_schedulers[0]][0]
-            lr_scheduler_init = self._get(self.config_init, lr_schedulers[0], default={})
+            lr_scheduler_class = parser._lr_schedulers[lr_schedulers[0]][0]
+            lr_scheduler_init = self._get(self.config_init, lr_schedulers[0])
             if not isinstance(lr_scheduler_class, tuple):
                 lr_scheduler_init = _global_add_class_path(lr_scheduler_class, lr_scheduler_init)
 
@@ -524,8 +531,8 @@ class LightningCLI:
         return fn_kwargs
 
 
-def _global_add_class_path(class_type: Type, init_args: Dict[str, Any]) -> Dict[str, Any]:
-    return {"class_path": class_type.__module__ + "." + class_type.__name__, "init_args": init_args}
+def _global_add_class_path(class_type: Type, init_args: Dict[str, Any] = None) -> Dict[str, Any]:
+    return {"class_path": class_type.__module__ + "." + class_type.__name__, "init_args": init_args or {}}
 
 
 def _add_class_path_generator(class_type: Type) -> Callable[[Dict[str, Any]], Dict[str, Any]]:

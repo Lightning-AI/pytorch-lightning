@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 from argparse import Namespace
+from unittest.mock import MagicMock
 
 import pytest
 import torch
@@ -103,3 +104,14 @@ def test_file_logger_log_hyperparams(tmpdir):
     path_yaml = os.path.join(logger.log_dir, ExperimentWriter.NAME_HPARAMS_FILE)
     params = load_hparams_from_yaml(path_yaml)
     assert all(n in params for n in hparams)
+
+
+def test_flush_n_steps(tmpdir):
+    logger = CSVLogger(tmpdir, flush_logs_every_n_steps=2)
+    metrics = {"float": 0.3, "int": 1, "FloatTensor": torch.tensor(0.1), "IntTensor": torch.tensor(1)}
+    logger.save = MagicMock()
+    logger.log_metrics(metrics, step=0)
+
+    logger.save.assert_not_called()
+    logger.log_metrics(metrics, step=1)
+    logger.save.assert_called_once()
