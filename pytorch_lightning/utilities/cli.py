@@ -11,11 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 import os
+import sys
 from argparse import Namespace
-from types import MethodType
+from types import MethodType, ModuleType
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
+from unittest import mock
 
+import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
@@ -33,6 +37,50 @@ if _JSONARGPARSE_AVAILABLE:
     set_config_read_mode(fsspec_enabled=True)
 else:
     ArgumentParser = object
+
+
+class _Registry(dict):
+    def __call__(self, cls: Type, key: Optional[str] = None, override: bool = False) -> None:
+        """Registers a class mapped to a name.
+
+        Args:
+            cls: the class to be mapped.
+            key: the name that identifies the provided class.
+        """
+        if key is None:
+            key = cls.__name__
+        elif not isinstance(key, str):
+            raise TypeError(f"`key` must be a str, found {key}")
+
+        if key in self and not override:
+            raise MisconfigurationException(f"'{key}' is already present in the registry. HINT: Use `override=True`.")
+        self[key] = cls
+
+    def register_package(self, module: ModuleType, base_cls: Type) -> None:
+        """This function is an utility to register all classes from a module."""
+        for _, cls in inspect.getmembers(module, predicate=inspect.isclass):
+            if issubclass(cls, base_cls) and cls != base_cls:
+                self(cls=cls)
+
+    @property
+    def names(self) -> List[str]:
+        """Returns the registered names."""
+        return list(self.keys())
+
+    @property
+    def classes(self) -> Tuple[Type, ...]:
+        """Returns the registered classes."""
+        return tuple(self.values())
+
+    def __str__(self) -> str:
+        return f"Registered objects: {self.names}"
+
+
+OPTIMIZER_REGISTRY = _Registry()
+OPTIMIZER_REGISTRY.register_package(torch.optim, torch.optim.Optimizer)
+
+LR_SCHEDULER_REGISTRY = _Registry()
+LR_SCHEDULER_REGISTRY.register_package(torch.optim.lr_scheduler, torch.optim.lr_scheduler._LRScheduler)
 
 
 class LightningArgumentParser(ArgumentParser):
@@ -57,6 +105,8 @@ class LightningArgumentParser(ArgumentParser):
         # separate optimizers and lr schedulers to know which were added
         self._optimizers: Dict[str, Tuple[Union[Type, Tuple[Type, ...]], str]] = {}
         self._lr_schedulers: Dict[str, Tuple[Union[Type, Tuple[Type, ...]], str]] = {}
+        # we need a mutable global argv copy in order to support `add_class_choices`
+        sys.__argv = sys.argv.copy()
 
     def add_lightning_class_args(
         self,
@@ -117,7 +167,7 @@ class LightningArgumentParser(ArgumentParser):
             assert issubclass(optimizer_class, Optimizer)
         kwargs = {"instantiate": False, "fail_untyped": False, "skip": {"params"}}
         if isinstance(optimizer_class, tuple):
-            self.add_subclass_arguments(optimizer_class, nested_key, **kwargs)
+            self.add_class_choices(optimizer_class, nested_key, **kwargs)
         else:
             self.add_class_arguments(optimizer_class, nested_key, **kwargs)
         self._optimizers[nested_key] = (optimizer_class, link_to)
@@ -141,10 +191,71 @@ class LightningArgumentParser(ArgumentParser):
             assert issubclass(lr_scheduler_class, LRSchedulerTypeTuple)
         kwargs = {"instantiate": False, "fail_untyped": False, "skip": {"optimizer"}}
         if isinstance(lr_scheduler_class, tuple):
-            self.add_subclass_arguments(lr_scheduler_class, nested_key, **kwargs)
+            self.add_class_choices(lr_scheduler_class, nested_key, **kwargs)
         else:
             self.add_class_arguments(lr_scheduler_class, nested_key, **kwargs)
         self._lr_schedulers[nested_key] = (lr_scheduler_class, link_to)
+
+    def parse_args(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
+        with mock.patch("sys.argv", sys.__argv):
+            return super().parse_args(*args, **kwargs)
+
+    def add_class_choices(self, classes: Tuple[Type, ...], nested_key: str, *args: Any, **kwargs: Any) -> None:
+        """Placeholder for https://github.com/omni-us/jsonargparse/issues/84.
+
+        This should be removed once implemented.
+        """
+        if not any(arg.startswith(f"--{nested_key}") for arg in sys.__argv):  # the key was passed
+            if any(arg.startswith("--config") for arg in sys.__argv):  # a config was passed
+                # parsing config files would be too difficult, fall back to what's available
+                self.add_subclass_arguments(classes, nested_key, *args, **kwargs)
+            elif kwargs.get("required", False):
+                raise MisconfigurationException(f"The {nested_key} key is required but wasn't passed")
+        else:
+            clean_argv = self._convert_argv_issue_84(classes, nested_key, sys.__argv)
+            self.add_subclass_arguments(classes, nested_key, *args, **kwargs)
+            sys.__argv = clean_argv
+
+    @staticmethod
+    def _convert_argv_issue_84(classes: Tuple[Type, ...], nested_key: str, argv: List[str]) -> List[str]:
+        passed_args, clean_argv = {}, []
+        argv_key = f"--{nested_key}"
+        # get the argv args for this nested key
+        i = 0
+        while i < len(argv):
+            arg = argv[i]
+            if arg.startswith(argv_key):
+                if "=" in arg:
+                    key, value = arg.split("=")
+                else:
+                    key = arg
+                    i += 1
+                    value = argv[i]
+                passed_args[key] = value
+            else:
+                clean_argv.append(arg)
+            i += 1
+        # generate the associated config file
+        argv_class = passed_args.pop(argv_key, None)
+        if argv_class is None:
+            # the user passed a config as a str
+            class_path = passed_args[f"{argv_key}.class_path"]
+            init_args_key = f"{argv_key}.init_args"
+            init_args = {k[len(init_args_key) + 1 :]: v for k, v in passed_args.items() if k.startswith(init_args_key)}
+            config = str({"class_path": class_path, "init_args": init_args})
+        elif argv_class.startswith("{"):
+            # the user passed a config as a dict
+            config = argv_class
+        else:
+            # the user passed the shorthand format
+            init_args = {k[len(argv_key) + 1 :]: v for k, v in passed_args.items()}  # +1 to account for the period
+            for cls in classes:
+                if cls.__name__ == argv_class:
+                    config = str(_global_add_class_path(cls, init_args))
+                    break
+            else:
+                raise ValueError(f"Could not generate a config for {repr(argv_class)}")
+        return clean_argv + [argv_key, config]
 
 
 class SaveConfigCallback(Callback):
@@ -328,6 +439,11 @@ class LightningCLI:
         self.add_default_arguments_to_parser(parser)
         self.add_core_arguments_to_parser(parser)
         self.add_arguments_to_parser(parser)
+        # add default optimizer args if necessary
+        if not parser._optimizers:  # already added by the user in `add_arguments_to_parser`
+            parser.add_optimizer_args(OPTIMIZER_REGISTRY.classes)
+        if not parser._lr_schedulers:  # already added by the user in `add_arguments_to_parser`
+            parser.add_lr_scheduler_args(LR_SCHEDULER_REGISTRY.classes)
         self.link_optimizers_and_lr_schedulers(parser)
 
     def add_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
