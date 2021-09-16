@@ -110,7 +110,7 @@ class LightningArgumentParser(ArgumentParser):
         self._optimizers: Dict[str, Tuple[Union[Type, Tuple[Type, ...]], str]] = {}
         self._lr_schedulers: Dict[str, Tuple[Union[Type, Tuple[Type, ...]], str]] = {}
         # we need a mutable global argv copy in order to support `add_class_choices`
-        sys._pl_argv = sys.argv.copy()
+        sys.__argv = sys.argv.copy()
 
     def add_lightning_class_args(
         self,
@@ -201,7 +201,7 @@ class LightningArgumentParser(ArgumentParser):
         self._lr_schedulers[nested_key] = (lr_scheduler_class, link_to)
 
     def parse_args(self, *args, **kwargs) -> Union[Namespace, Dict[str, Any]]:
-        argv = self._convert_argv_issue_85("trainer.callbacks", sys._pl_argv, CALLBACK_REGISTRY)
+        argv = self._convert_argv_issue_85("trainer.callbacks", sys.__argv, CALLBACK_REGISTRY)
         with mock.patch("sys.argv", argv):
             return super().parse_args(*args, **kwargs)
 
@@ -212,16 +212,16 @@ class LightningArgumentParser(ArgumentParser):
 
         This should be removed once implemented.
         """
-        if not any(arg.startswith(f"--{nested_key}") for arg in sys._pl_argv):  # the key was passed
-            if any(arg.startswith("--config") for arg in sys._pl_argv):  # a config was passed
+        if not any(arg.startswith(f"--{nested_key}") for arg in sys.__argv):  # the key was passed
+            if any(arg.startswith("--config") for arg in sys.__argv):  # a config was passed
                 # parsing config files would be too difficult, fall back to what's available
                 self.add_subclass_arguments(classes, nested_key, *args, **kwargs)
             elif required:
                 raise MisconfigurationException(f"The {nested_key} key is required but wasn't passed")
         else:
-            clean_argv = self._convert_argv_issue_84(classes, nested_key, sys._pl_argv)
+            clean_argv = self._convert_argv_issue_84(classes, nested_key, sys.__argv)
             self.add_subclass_arguments(classes, nested_key, *args, **kwargs)
-            sys._pl_argv = clean_argv
+            sys.__argv = clean_argv
 
     @staticmethod
     def _convert_argv_issue_84(classes: Tuple[Type, ...], nested_key: str, argv: List[str]) -> List[str]:
