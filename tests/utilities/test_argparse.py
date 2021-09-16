@@ -1,6 +1,6 @@
 import io
 from argparse import ArgumentParser, Namespace
-from typing import List, Generic, TypeVar
+from typing import Generic, List, TypeVar
 from unittest.mock import MagicMock
 
 import pytest
@@ -143,7 +143,7 @@ class AddArgparseArgsExampleClassGeneric:
     class SomeClass(Generic[T]):
         pass
 
-    def  __init__(self, invalid_class: SomeClass):
+    def __init__(self, invalid_class: SomeClass):
         pass
 
 
@@ -214,9 +214,8 @@ def test_add_argparse_args_no_argument_group():
 
 
 def test_add_argparse_args_invalid():
-    """Test that `add_argparse_args` doesn't raise `TypeError` when
-    a class has args typed as `typing.Generic` in Python 3.6.
-    """
+    """Test that `add_argparse_args` doesn't raise `TypeError` when a class has args typed as `typing.Generic` in
+    Python 3.6."""
     add_argparse_args(AddArgparseArgsExampleClassGeneric, ArgumentParser())
 
 
