@@ -203,7 +203,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # get the model and call model.training_epoch_end
         model = self.trainer.lightning_module
         if is_overridden("training_epoch_end", model) and self._outputs:
-            epoch_end_outputs = self._prepare_outputs_training_epoch_end(self._outputs)
+            epoch_end_outputs = self._prepare_outputs_training_epoch_end(self._outputs, model.automatic_optimization)
             # check that the dataloader/iterator produced a batch
             # FIXME: still necessary?
             if epoch_end_outputs:
@@ -289,9 +289,10 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # squeeze optimizer dimension
         return swapped[0] if len(swapped) == 1 else swapped
 
+    @staticmethod
     def _prepare_outputs_training_epoch_end(
-        self,
         batch_outputs: _OUTPUTS_TYPE,
+        automatic: bool,
     ) -> Union[List[List[List[Dict[str, Any]]]], List[List[Dict[str, Any]]], List[Dict[str, Any]], Dict[str, Any]]:
         """Processes the outputs from the batch loop into the format passed to the ``training_epoch_end`` hook.
 
@@ -305,25 +306,23 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if not batch_outputs:
             return {}
 
-        automatic = self.trainer.lightning_module.automatic_optimization
-
         if automatic:
-            the_thing_to_take_the_max_from = [
+            optimizers = [
                 # get the number of optimizers if it's not empty
                 max(optimizers) + 1 if optimizers else 0
                 for tbptt in batch_outputs
                 for optimizers in tbptt
             ]
-            n_opt = max(the_thing_to_take_the_max_from) if the_thing_to_take_the_max_from else 0
+            n_opt = max(optimizers) if optimizers else 0
         else:
             n_opt = 0
 
         swapped = [[] for _ in range(n_opt)]
         for tbptt in batch_outputs:
-            inner_swap = TrainingEpochLoop._swap_optimizers_and_tbptt(tbptt, n_opt)
-            if n_opt == 0 and inner_swap:
-                swapped.append(inner_swap)
+            if n_opt == 0 and tbptt:
+                swapped.append(tbptt)
                 continue
+            inner_swap = TrainingEpochLoop._swap_optimizers_and_tbptt(tbptt, n_opt)
             for opt_idx, tbptt in enumerate(inner_swap):
                 # squeeze tbptt dimension
                 squeezed = tbptt[0] if len(tbptt) == 1 else tbptt
