@@ -18,6 +18,7 @@ from typing import Optional, Union
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
 from pytorch_lightning.utilities import _RICH_AVAILABLE
 
+Style = None
 if _RICH_AVAILABLE:
     from rich.console import Console, RenderableType
     from rich.progress import BarColumn, Progress, ProgressColumn, TextColumn
