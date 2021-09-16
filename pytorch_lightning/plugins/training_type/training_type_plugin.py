@@ -13,7 +13,6 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, TypeVar, Union
 
 import torch
@@ -152,7 +151,7 @@ class TrainingTypePlugin(ABC):
         """
         return self._results
 
-    def load_checkpoint(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
+    def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         torch.cuda.empty_cache()
         return self.checkpoint_io.load_checkpoint(checkpoint_path)
 
