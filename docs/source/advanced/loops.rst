@@ -298,7 +298,7 @@ This will be a subclass of the existing :class:`~pytorch_lightning.loops.optimiz
 
 As we can see, not much work needs to be done to enable our generator training step.
 The new loop is called :code:`YieldLoop` and contains a reference to the generator returned by the :code:`training_step`.
-On every new run (over the optimizers) we call the :code:`training_step` method on the LightningModule wich is supposed to return a generator because it contains :code:`yield` statements.
+On every new run (over the optimizers) we call the :code:`training_step` method on the LightningModule which is supposed to return a generator because it contains :code:`yield` statements.
 There must be as many :code:`yield` statements as there are optimizers.
 
 Given this new loop, here is how you connect it to the Trainer:
