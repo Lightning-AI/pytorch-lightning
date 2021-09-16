@@ -200,14 +200,12 @@ class LightningArgumentParser(ArgumentParser):
             self.add_class_arguments(lr_scheduler_class, nested_key, **kwargs)
         self._lr_schedulers[nested_key] = (lr_scheduler_class, link_to)
 
-    def parse_args(self, *args, **kwargs) -> Union[Namespace, Dict[str, Any]]:
+    def parse_args(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
         argv = self._convert_argv_issue_85("trainer.callbacks", sys.__argv, CALLBACK_REGISTRY)
         with mock.patch("sys.argv", argv):
             return super().parse_args(*args, **kwargs)
 
-    def add_class_choices(
-        self, classes: Tuple[Type, ...], nested_key: str, *args: Any, required: bool = False, **kwargs: Any
-    ) -> None:
+    def add_class_choices(self, classes: Tuple[Type, ...], nested_key: str, *args: Any, **kwargs: Any) -> None:
         """Placeholder for https://github.com/omni-us/jsonargparse/issues/84.
 
         This should be removed once implemented.
@@ -216,7 +214,7 @@ class LightningArgumentParser(ArgumentParser):
             if any(arg.startswith("--config") for arg in sys.__argv):  # a config was passed
                 # parsing config files would be too difficult, fall back to what's available
                 self.add_subclass_arguments(classes, nested_key, *args, **kwargs)
-            elif required:
+            elif kwargs.get("required", False):
                 raise MisconfigurationException(f"The {nested_key} key is required but wasn't passed")
         else:
             clean_argv = self._convert_argv_issue_84(classes, nested_key, sys.__argv)
@@ -249,7 +247,7 @@ class LightningArgumentParser(ArgumentParser):
             class_path = passed_args[f"{argv_key}.class_path"]
             init_args_key = f"{argv_key}.init_args"
             init_args = {k[len(init_args_key) + 1 :]: v for k, v in passed_args.items() if k.startswith(init_args_key)}
-            config = {"class_path": class_path, "init_args": init_args}
+            config = str({"class_path": class_path, "init_args": init_args})
         elif argv_class.startswith("{"):
             # the user passed a config as a dict
             config = argv_class
@@ -258,11 +256,11 @@ class LightningArgumentParser(ArgumentParser):
             init_args = {k[len(argv_key) + 1 :]: v for k, v in passed_args.items()}  # +1 to account for the period
             for cls in classes:
                 if cls.__name__ == argv_class:
-                    config = _global_add_class_path(cls, init_args)
+                    config = str(_global_add_class_path(cls, init_args))
                     break
             else:
                 raise ValueError(f"Could not generate a config for {repr(argv_class)}")
-        return clean_argv + [argv_key, str(config)]
+        return clean_argv + [argv_key, config]
 
     @staticmethod
     def _convert_argv_issue_85(nested_key: str, argv: List[str], registry: _Registry) -> List[str]:

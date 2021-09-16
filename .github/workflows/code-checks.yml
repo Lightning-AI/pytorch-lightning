@@ -18,5 +18,6 @@ jobs:
       - name: Install mypy
         run: |
           grep mypy requirements/test.txt | xargs -0 pip install
+          mypy --install-types
           pip list
       - run: mypy
