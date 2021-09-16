@@ -72,7 +72,8 @@ class XLADeviceUtils:
         # `xm.get_xla_supported_devices("TPU")` won't be possible.
         if xm.xrt_world_size() > 1:
             return True
-        return len(xm.get_xla_supported_devices("TPU")) > 0
+        tpus = xm.get_xla_supported_devices("TPU")
+        return False if tpus is None else len(tpus) > 0
 
     @staticmethod
     def xla_available() -> bool:
