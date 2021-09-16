@@ -512,9 +512,8 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     checkpoint["loops"]["fit_loop"]["state_dict"]["dataloader_state_dict"] = ANY
     assert state_dict == checkpoint["loops"]["fit_loop"]
 
-    # with `restart_progress=True`, we expect all `ready` counters to be reset to `completed`
     trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"])
-
+    # test resetting manually, we expect all `ready` counters to be reset to `completed`
     trainer.fit_loop.reset()
     trainer.fit_loop.epoch_loop.reset()
     trainer.fit_loop.epoch_loop.batch_loop.reset()
@@ -708,11 +707,11 @@ def test_fit_loop_reset(tmpdir):
 
     fit_loop.load_state_dict(mid_epoch_ckpt["loops"]["fit_loop"])
 
-    def mid_epoch_reset_assertions(has_reset: bool = False):
+    def mid_epoch_reset_assertions(has_reset):
         assert fit_loop.restarting
         assert fit_loop.epoch_progress.total.ready == 1
         assert fit_loop.epoch_progress.total.completed == 0  # the checkpoint was saved mid epoch
-        assert fit_loop.epoch_progress.current.ready == (not int(has_reset))
+        assert fit_loop.epoch_progress.current.ready == (not has_reset)
         assert fit_loop.epoch_progress.current.completed == 0
 
         assert epoch_loop.restarting
@@ -722,7 +721,7 @@ def test_fit_loop_reset(tmpdir):
         assert epoch_loop.batch_progress.current.completed == 2 if has_reset else 1
 
     # resetting from a mid-epoch checkpoint should not change progress counters
-    mid_epoch_reset_assertions()
+    mid_epoch_reset_assertions(has_reset=False)
     assert optimizer_loop.optim_progress.optimizer_position == 1
     fit_loop.reset()
     epoch_loop.reset()
