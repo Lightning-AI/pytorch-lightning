@@ -259,18 +259,14 @@ This will be a subclass of the existing :class:`~pytorch_lightning.loops.optimiz
             self._training_step_generator = None
 
         def connect(self, **kwargs):
-            raise NotImplementedError(
-                f"{self.__class__.__name__} does not connect any child loops."
-            )
+            raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
 
         def on_run_start(self, batch, optimizers, batch_idx):
             super().on_run_start(batch, optimizers, batch_idx)
             assert self.trainer.lightning_module.automatic_optimization
 
             # We request the generator once and save it for later so we can call next() on it.
-            self._training_step_generator = self._get_training_step_generator(
-                batch, batch_idx, opt_idx=0
-            )
+            self._training_step_generator = self._get_training_step_generator(batch, batch_idx, opt_idx=0)
 
         def _make_step_fn(self, batch, batch_idx, opt_idx):
             return partial(self._training_step, self._training_step_generator)
@@ -302,12 +298,8 @@ This will be a subclass of the existing :class:`~pytorch_lightning.loops.optimiz
                     training_step_output = next(training_step_generator)
                     self.trainer.accelerator.post_training_step()
 
-                training_step_output = self.trainer.call_hook(
-                    "training_step_end", training_step_output
-                )
-                result = ClosureResult.from_training_step_output(
-                    training_step_output, self.trainer.accumulate_grad_batches
-                )
+                training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
+                result = ClosureResult.from_training_step_output(training_step_output, self.trainer.accumulate_grad_batches)
             return result
 
 As we can see, not much work needs to be done to enable our generator training step.
@@ -399,9 +391,7 @@ With the YieldLoop shown above in mind, here is an example:
         def on_run_start(self, batch, optimizers, batch_idx):
             super().on_run_start(batch, optimizers, batch_idx)
             if not isinstance(self.trainer.lightning_module, Yield):
-                raise RuntimeError(
-                    "The given LightingModule is not compatible with a YieldLoop."
-                )
+                raise RuntimeError("The given LightingModule is not compatible with a YieldLoop.")
 
 **How can I access the Trainer from within a loop?**
 
