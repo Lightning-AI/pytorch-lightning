@@ -20,6 +20,7 @@ import sys
 from argparse import Namespace
 from copy import deepcopy
 from pathlib import Path
+from unittest import mock
 from unittest.mock import ANY, call, patch
 
 import cloudpickle
@@ -28,11 +29,11 @@ import torch
 from omegaconf import OmegaConf
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, IterableDataset
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, Timer
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -45,6 +46,7 @@ from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, Mi
 from pytorch_lightning.utilities.seed import seed_everything
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.boring_model import RandomIterableDataset, RandomIterableDatasetWithLen
 from tests.helpers.runif import RunIf
 
 
@@ -201,7 +203,7 @@ def test_trainer_accumulate_grad_batches_zero_grad(tmpdir, accumulate_grad_batch
     ],
 )
 def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_batches, limit_train_batches):
-    """Verify optimizer.step() applied to last batch while grad accumulation"""
+    """Verify optimizer.step() applied to last batch while grad accumulation."""
 
     class TestModel(BoringModel):
         def state_dict(self, *args, **kwargs):
@@ -263,7 +265,7 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_bat
 
 
 def test_loading_meta_tags(tmpdir):
-    """test for backward compatibility to meta_tags.csv"""
+    """test for backward compatibility to meta_tags.csv."""
     tutils.reset_seed()
 
     hparams = EvalModelTemplate.get_default_hparams()
@@ -358,9 +360,8 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
 
 
 def test_model_checkpoint_only_weights(tmpdir):
-    """Tests use case where ModelCheckpoint is configured to save only model weights, and
-    user tries to load checkpoint to resume training.
-    """
+    """Tests use case where ModelCheckpoint is configured to save only model weights, and user tries to load
+    checkpoint to resume training."""
     model = EvalModelTemplate()
 
     trainer = Trainer(
@@ -404,7 +405,7 @@ def test_model_freeze_unfreeze():
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
 def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
-    """Verify resuming from checkpoint runs the right number of epochs"""
+    """Verify resuming from checkpoint runs the right number of epochs."""
     # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
     monkeypatch.setenv("TORCH_HOME", tmpdir)
 
@@ -461,7 +462,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
 
 
 def test_trainer_max_steps_and_epochs(tmpdir):
-    """Verify model trains according to specified max steps"""
+    """Verify model trains according to specified max steps."""
     model = BoringModel()
     num_train_samples = math.floor(len(model.train_dataloader()) * 0.5)
 
@@ -491,9 +492,60 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     assert trainer.global_step == num_train_samples * trainer.max_epochs
     assert trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
 
+    # if max_steps is positive and max_epochs is negative, use max_steps
+    trainer_kwargs["max_epochs"] = -1
+    trainer_kwargs["max_steps"] = 3
+    trainer = Trainer(**trainer_kwargs)
+    trainer.fit(model)
+
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
+    assert trainer.global_step == 3
+
+
+@pytest.mark.parametrize(
+    "max_epochs,max_steps,incorrect_variable,incorrect_value",
+    [
+        (-100, None, "max_epochs", -100),
+        (1, -2, "max_steps", -2),
+    ],
+)
+def test_trainer_max_steps_and_epochs_validation(max_epochs, max_steps, incorrect_variable, incorrect_value):
+    """Don't allow max_epochs or max_steps to be less than -1 or a float."""
+    with pytest.raises(
+        MisconfigurationException,
+        match=f"`{incorrect_variable}` must be a positive integer or -1. You passed in {incorrect_value}",
+    ):
+        Trainer(max_epochs=max_epochs, max_steps=max_steps)
+
+
+@pytest.mark.parametrize(
+    "max_epochs,max_steps,is_done,correct_trainer_epochs",
+    [
+        (None, None, False, 1000),
+        (-1, None, False, -1),
+        (None, -1, False, None),
+        (5, -1, False, 5),
+        (-1, 10, False, -1),
+        (None, 0, True, None),
+        (0, None, True, 0),
+        (-1, 0, True, -1),
+        (0, -1, True, 0),
+    ],
+)
+def test_trainer_max_steps_and_epochs_fit_loop_done(max_epochs, max_steps, is_done, correct_trainer_epochs):
+    trainer = Trainer(max_epochs=max_epochs, max_steps=max_steps)
+
+    assert trainer.max_epochs == correct_trainer_epochs
+    assert trainer.max_steps == max_steps
+    assert trainer.fit_loop.done is is_done
+
+    # Make sure there is no timer
+    timer_callbacks = [c for c in trainer.callbacks if isinstance(c, Timer)]
+    assert len(timer_callbacks) == 0
+
 
 def test_trainer_min_steps_and_epochs(tmpdir):
-    """Verify model trains according to specified min steps"""
+    """Verify model trains according to specified min steps."""
     model = EvalModelTemplate()
     num_train_samples = math.floor(len(model.train_dataloader()) * 0.5)
 
@@ -563,7 +615,7 @@ def test_trainer_min_steps_and_min_epochs_not_reached(tmpdir, caplog):
 
 
 def test_trainer_max_steps_accumulate_batches(tmpdir):
-    """Verify model trains according to specified max steps with grad accumulated batches"""
+    """Verify model trains according to specified max steps with grad accumulated batches."""
     model = BoringModel()
     num_train_samples = math.floor(len(model.train_dataloader()) * 0.5)
 
@@ -787,7 +839,8 @@ def test_disabled_validation(tmpdir):
     assert model.validation_epoch_end_invoked, "did not run `validation_epoch_end` with `fast_dev_run=True`"
 
 
-def test_nan_loss_detection(tmpdir):
+@mock.patch("torch.Tensor.backward")
+def test_nan_loss_detection(backward_mock, tmpdir):
     class CurrentModel(BoringModel):
         test_batch_inf = 3
 
@@ -808,12 +861,14 @@ def test_nan_loss_detection(tmpdir):
     with pytest.raises(ValueError, match=r".*The loss returned in `training_step` is.*"):
         trainer.fit(model)
         assert trainer.global_step == model.test_batch_inf
+        assert backward_mock.call_count == model.test_batch_inf
 
     for param in model.parameters():
         assert torch.isfinite(param).all()
 
 
-def test_nan_params_detection(tmpdir):
+@mock.patch("torch.Tensor.backward")
+def test_nan_params_detection(backward_mock, tmpdir):
     class CurrentModel(BoringModel):
         test_batch_nan = 3
 
@@ -828,16 +883,17 @@ def test_nan_params_detection(tmpdir):
     with pytest.raises(ValueError, match=r".*Detected nan and/or inf values in `layer.bias`.*"):
         trainer.fit(model)
         assert trainer.global_step == model.test_batch_nan
+        assert backward_mock.call_count == model.test_batch_nan + 1
 
     # after aborting the training loop, model still has nan-valued params
     params = torch.cat([param.view(-1) for param in model.parameters()])
     assert not torch.isfinite(params).all()
 
 
-def test_trainer_interrupted_flag(tmpdir):
-    """Test the flag denoting that a user interrupted training."""
+def test_on_exception_hook(tmpdir):
+    """Test the on_exception callback hook and the trainer interrupted flag."""
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     class InterruptCallback(Callback):
         def __init__(self):
@@ -846,10 +902,17 @@ def test_trainer_interrupted_flag(tmpdir):
         def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
             raise KeyboardInterrupt
 
+        def on_test_start(self, trainer, pl_module):
+            raise MisconfigurationException
+
     class HandleInterruptCallback(Callback):
         def __init__(self):
             super().__init__()
+            self.exception = None
             self.exc_info = None
+
+        def on_exception(self, trainer, pl_module, exception):
+            self.exception = exception
 
         def on_keyboard_interrupt(self, trainer, pl_module):
             self.exc_info = sys.exc_info()
@@ -867,10 +930,16 @@ def test_trainer_interrupted_flag(tmpdir):
         default_root_dir=tmpdir,
     )
     assert not trainer.interrupted
+    assert handle_interrupt_callback.exception is None
     assert handle_interrupt_callback.exc_info is None
     trainer.fit(model)
     assert trainer.interrupted
+    assert isinstance(handle_interrupt_callback.exception, KeyboardInterrupt)
     assert isinstance(handle_interrupt_callback.exc_info[1], KeyboardInterrupt)
+    with pytest.raises(MisconfigurationException):
+        trainer.test(model)
+    assert trainer.interrupted
+    assert isinstance(handle_interrupt_callback.exception, MisconfigurationException)
 
 
 @pytest.mark.parametrize(
@@ -878,7 +947,7 @@ def test_trainer_interrupted_flag(tmpdir):
     [32, pytest.param(16, marks=RunIf(min_gpus=1, amp_native=True))],
 )
 def test_gradient_clipping_by_norm(tmpdir, precision):
-    """Test gradient clipping by norm"""
+    """Test gradient clipping by norm."""
     tutils.reset_seed()
 
     model = EvalModelTemplate()  # TODO: when precision=16, BoringModel produces NaN, but EvalModelTemplate not
@@ -892,7 +961,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
         gradient_clip_val=1.0,
     )
 
-    old_backward = trainer.fit_loop.epoch_loop.batch_loop.backward
+    old_backward = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward
 
     def backward(*args, **kwargs):
         # test that gradient is clipped correctly
@@ -902,7 +971,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
         assert (grad_norm - 1.0).abs() < 0.01, f"Gradient norm != 1.0: {grad_norm}"
         return ret_val
 
-    trainer.fit_loop.epoch_loop.batch_loop.backward = backward
+    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward = backward
     trainer.fit(model)
 
 
@@ -911,7 +980,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
     [32, pytest.param(16, marks=RunIf(min_gpus=1, amp_native=True))],
 )
 def test_gradient_clipping_by_value(tmpdir, precision):
-    """Test gradient clipping by value"""
+    """Test gradient clipping by value."""
     tutils.reset_seed()
 
     model = BoringModel()
@@ -927,7 +996,7 @@ def test_gradient_clipping_by_value(tmpdir, precision):
         default_root_dir=tmpdir,
     )
 
-    old_backward = trainer.fit_loop.epoch_loop.batch_loop.backward
+    old_backward = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward
 
     def backward(*args, **kwargs):
         # test that gradient is clipped correctly
@@ -940,7 +1009,7 @@ def test_gradient_clipping_by_value(tmpdir, precision):
         ), f"Gradient max value {grad_max} != grad_clip_val {grad_clip_val} ."
         return ret_val
 
-    trainer.fit_loop.epoch_loop.batch_loop.backward = backward
+    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward = backward
     trainer.fit(model)
 
 
@@ -959,9 +1028,7 @@ def test_gpu_choice(tmpdir):
 
 @pytest.mark.parametrize("limit_val_batches", [0.0, 1, 1.0, 0.5, 5])
 def test_num_sanity_val_steps(tmpdir, limit_val_batches):
-    """
-    Test that the number of sanity check batches is clipped to `limit_val_batches`.
-    """
+    """Test that the number of sanity check batches is clipped to `limit_val_batches`."""
     model = EvalModelTemplate()
     model.validation_step = model.validation_step__multiple_dataloaders
     model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
@@ -977,8 +1044,8 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
 
     with patch.object(
         trainer.fit_loop.epoch_loop.val_loop.epoch_loop,
-        "evaluation_step",
-        wraps=trainer.fit_loop.epoch_loop.val_loop.epoch_loop.evaluation_step,
+        "_evaluation_step",
+        wraps=trainer.fit_loop.epoch_loop.val_loop.epoch_loop._evaluation_step,
     ) as mocked:
         val_dataloaders = model.val_dataloader__multiple_mixed_length()
         trainer.fit(model, val_dataloaders=val_dataloaders)
@@ -990,10 +1057,8 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
 
 @pytest.mark.parametrize("limit_val_batches", [0.0, 1, 1.0, 0.3])
 def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
-    """
-    Test that `num_sanity_val_steps=-1` runs through all validation data once, and as many batches as
-    limited by `limit_val_batches` Trainer argument.
-    """
+    """Test that `num_sanity_val_steps=-1` runs through all validation data once, and as many batches as limited by
+    `limit_val_batches` Trainer argument."""
     model = EvalModelTemplate()
     model.validation_step = model.validation_step__multiple_dataloaders
     model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
@@ -1004,8 +1069,8 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
 
     with patch.object(
         trainer.fit_loop.epoch_loop.val_loop.epoch_loop,
-        "evaluation_step",
-        wraps=trainer.fit_loop.epoch_loop.val_loop.epoch_loop.evaluation_step,
+        "_evaluation_step",
+        wraps=trainer.fit_loop.epoch_loop.val_loop.epoch_loop._evaluation_step,
     ) as mocked:
         val_dataloaders = model.val_dataloader__multiple()
         trainer.fit(model, val_dataloaders=val_dataloaders)
@@ -1152,7 +1217,7 @@ def test_trainer_pickle(tmpdir):
 
 @pytest.mark.parametrize("stage", ("fit", "validate", "test"))
 def test_trainer_setup_call(tmpdir, stage):
-    """Test setup call gets the correct stage"""
+    """Test setup call gets the correct stage."""
 
     class CurrentModel(BoringModel):
         def setup(self, stage):
@@ -1223,21 +1288,15 @@ class CustomPredictionWriter(BasePredictionWriter):
 
     def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *args, **kwargs):
         assert prediction.shape == torch.Size([1, 2])
-        if trainer.accelerator_connector.is_distributed:
-            assert len(batch_indices) == 1
-        else:
-            assert batch_indices is None
+        assert len(batch_indices) == 1
         self.write_on_batch_end_called = True
 
     def write_on_epoch_end(self, trainer, pl_module, predictions, batch_indices):
         expected = 1 if trainer.accelerator_connector.is_distributed else 2
         assert len(predictions) == 2
         assert len(predictions[0]) == expected
-        if trainer.accelerator_connector.is_distributed:
-            assert len(batch_indices) == 2
-            assert len(batch_indices[0]) == expected
-        else:
-            assert batch_indices is None
+        assert len(batch_indices) == 2
+        assert len(batch_indices[0]) == expected
         self.write_on_epoch_end_called = True
 
     def on_predict_epoch_end(self, trainer, pl_module, outputs):
@@ -1295,9 +1354,7 @@ def predict(
 
 
 def test_trainer_predict_no_return(tmpdir):
-    """
-    Test trainer.predict warns when nothing is returned
-    """
+    """Test trainer.predict warns when nothing is returned."""
 
     class CustomBoringModel(BoringModel):
         def predict_step(self, batch, batch_idx, dataloader_idx=None):
@@ -1354,12 +1411,31 @@ def test_trainer_predict_ddp_cpu(tmpdir):
     predict(tmpdir, "ddp_cpu", 0, 2)
 
 
+@pytest.mark.parametrize("dataset_cls", [RandomDataset, RandomIterableDatasetWithLen, RandomIterableDataset])
+def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmpdir):
+
+    ds = dataset_cls(32, 8)
+    loader = DataLoader(ds)
+    is_iterable_dataset = isinstance(ds, IterableDataset)
+
+    class CustomPredictionWriter(BasePredictionWriter):
+        def __init__(self, output_dir: str, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.output_dir = output_dir
+
+        def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *args, **kwargs):
+            assert not batch_indices if is_iterable_dataset else batch_indices
+
+    cb = CustomPredictionWriter(tmpdir)
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=cb)
+    predictions = trainer.predict(BoringModel(), dataloaders=loader)
+    assert len(predictions) == 8
+
+
 @patch("torch.cuda.device_count", return_value=2)
 @patch("torch.cuda.is_available", return_value=True)
 def test_spawn_predict_return_predictions(*_):
-    """
-    Test that `return_predictions=True` raise a MisconfigurationException with spawn training type plugins.
-    """
+    """Test that `return_predictions=True` raise a MisconfigurationException with spawn training type plugins."""
     model = BoringModel()
 
     def run(expected_plugin, **trainer_kwargs):
@@ -1375,9 +1451,7 @@ def test_spawn_predict_return_predictions(*_):
 @pytest.mark.parametrize("return_predictions", [None, False, True])
 @pytest.mark.parametrize("precision", [32, 64])
 def test_predict_return_predictions_cpu(return_predictions, precision, tmpdir):
-    """
-    Test that `return_predictions=True`.
-    """
+    """Test that `return_predictions=True`."""
     seed_everything(42)
     model = BoringModel()
 
@@ -1396,8 +1470,8 @@ def test_predict_return_predictions_cpu(return_predictions, precision, tmpdir):
 def test_disabled_training_for_insufficient_limit_train_batches(
     tmpdir, limit_train_batches, global_step, num_training_batches, current_epoch, should_train
 ):
-    """
-    Verify when `limit_train_batches` is float & between [0.0, 1.0] and
+    """Verify when `limit_train_batches` is float & between [0.0, 1.0] and.
+
     `int(self.num_training_batches * self.limit_train_batches) == 0`, the training loop is disabled.
     """
 
@@ -1443,11 +1517,8 @@ def test_disabled_training_for_insufficient_limit_train_batches(
 
 @pytest.mark.parametrize(["max_steps", "max_epochs", "global_step"], [(10, 5, 10), (20, None, 20)])
 def test_repeated_fit_calls_with_max_epochs_and_steps(tmpdir, max_steps, max_epochs, global_step):
-    """
-    Ensure that the training loop is bound by `max_steps` and
-    `max_epochs` for repeated calls of `trainer.fit`, and
-    disabled if the limit is reached
-    """
+    """Ensure that the training loop is bound by `max_steps` and `max_epochs` for repeated calls of `trainer.fit`,
+    and disabled if the limit is reached."""
 
     dataset_len = 200
     batch_size = 10
@@ -1464,9 +1535,7 @@ def test_repeated_fit_calls_with_max_epochs_and_steps(tmpdir, max_steps, max_epo
 
 
 def test_trainer_access_in_configure_optimizers(tmpdir):
-    """
-    Verify that the configure optimizer function can reference the trainer.
-    """
+    """Verify that the configure optimizer function can reference the trainer."""
 
     class TestModel(BoringModel):
         def configure_optimizers(self):
@@ -1481,9 +1550,7 @@ def test_trainer_access_in_configure_optimizers(tmpdir):
 
 @RunIf(min_gpus=1)
 def test_setup_hook_move_to_device_correctly(tmpdir):
-    """
-    Verify that if a user defines a layer in the setup hook function, this is moved to the correct device.
-    """
+    """Verify that if a user defines a layer in the setup hook function, this is moved to the correct device."""
 
     class TestModel(BoringModel):
         def setup(self, stage: str) -> None:
@@ -1635,7 +1702,7 @@ def test_trainer_attach_data_pipeline_to_model(tmpdir):
 
     class TestCallback(Callback):
         def on_fit_start(self, trainer, pl_module: LightningModule) -> None:
-            """Called when fit begins"""
+            """Called when fit begins."""
             assert isinstance(pl_module.data_pipeline, DataPipeline)
 
     model = BoringModel()
@@ -1756,12 +1823,13 @@ def test_exception_when_lightning_module_is_not_set_on_trainer():
         trainer.predict()
 
 
+class CustomException(Exception):
+    pass
+
+
 @RunIf(min_gpus=2, special=True)
 def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
     """Test that DDP kills the remaining processes when only one rank is throwing an exception."""
-
-    class CustomException(Exception):
-        pass
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -1784,9 +1852,7 @@ def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
 
 @RunIf(min_gpus=1)
 def test_multiple_trainer_constant_memory_allocated(tmpdir):
-    """
-    This tests ensures calling the trainer several times reset the memory back to 0.
-    """
+    """This tests ensures calling the trainer several times reset the memory back to 0."""
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -1860,38 +1926,27 @@ class TrainerStagesErrorsModel(BoringModel):
 def test_error_handling_all_stages(tmpdir, accelerator, num_processes):
     model = TrainerStagesErrorsModel()
     trainer = Trainer(default_root_dir=tmpdir, accelerator=accelerator, num_processes=num_processes, fast_dev_run=True)
-    with pytest.raises(Exception, match=r"Error during train"), patch("pytorch_lightning.Trainer._on_exception"):
+
+    with pytest.raises(Exception, match=r"Error during train"), patch(
+        "pytorch_lightning.Trainer._on_exception"
+    ) as exception_hook:
         trainer.fit(model)
-    with pytest.raises(Exception, match=r"Error during validation"), patch("pytorch_lightning.Trainer._on_exception"):
+    exception_hook.assert_called()
+
+    with pytest.raises(Exception, match=r"Error during validation"), patch(
+        "pytorch_lightning.Trainer._on_exception"
+    ) as exception_hook:
         trainer.validate(model)
-    with pytest.raises(Exception, match=r"Error during test"), patch("pytorch_lightning.Trainer._on_exception"):
+    exception_hook.assert_called()
+
+    with pytest.raises(Exception, match=r"Error during test"), patch(
+        "pytorch_lightning.Trainer._on_exception"
+    ) as exception_hook:
         trainer.test(model)
-    with pytest.raises(Exception, match=r"Error during predict"), patch("pytorch_lightning.Trainer._on_exception"):
+    exception_hook.assert_called()
+
+    with pytest.raises(Exception, match=r"Error during predict"), patch(
+        "pytorch_lightning.Trainer._on_exception"
+    ) as exception_hook:
         trainer.predict(model, model.val_dataloader(), return_predictions=False)
-
-
-def test_overridden_on_dataloaders(tmpdir):
-    model = BoringModel()
-    with pytest.deprecated_call(
-        match="Method `on_train_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
-    ):
-        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-        trainer.fit(model)
-
-    with pytest.deprecated_call(
-        match="Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
-    ):
-        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-        trainer.validate(model)
-
-    with pytest.deprecated_call(
-        match="Method `on_test_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
-    ):
-        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-        trainer.test(model)
-
-    with pytest.deprecated_call(
-        match="Method `on_predict_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
-    ):
-        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-        trainer.predict(model)
+    exception_hook.assert_called()

@@ -106,9 +106,7 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
 
 @RunIf(min_gpus=1, amp_native=True)
 def test_amp_skip_optimizer(tmpdir):
-    """
-    Test that optimizers can be skipped when using amp
-    """
+    """Test that optimizers can be skipped when using amp."""
 
     class CustomBoringModel(BoringModel):
         def __init__(self):
@@ -208,16 +206,14 @@ def test_cpu_amp_precision_throws_error(tmpdir):
     amp_native=True,
 )
 def test_cpu_amp_precision_context_manager(tmpdir):
-    """
-    Test to ensure that the context manager correctly is set to CPU + bfloat16, and a scaler isn't set.
-    """
+    """Test to ensure that the context manager correctly is set to CPU + bfloat16, and a scaler isn't set."""
 
     plugin = NativeMixedPrecisionPlugin(precision="bf16", use_cpu=True)
     assert plugin.use_cpu
     assert not hasattr(plugin, "scaler")
     context_manager = plugin.autocast_context_manager()
     assert isinstance(context_manager, torch.cpu.amp.autocast)
-    assert context_manager.fast_dtype == torch.bfloat16
+    assert context_manager.dtype == torch.bfloat16
 
 
 @pytest.mark.skipif(not _TORCH_CPU_AMP_AVAILABLE, reason="Torch CPU AMP is not available.")
@@ -226,9 +222,7 @@ def test_cpu_amp_precision_context_manager(tmpdir):
     amp_native=True,
 )
 def test_cpu_amp_precision_16_throws_error(tmpdir):
-    """
-    Throw error when using 16 as Native CPU AMP only supports bfloat16.
-    """
+    """Throw error when using 16 as Native CPU AMP only supports bfloat16."""
 
     with pytest.raises(
         MisconfigurationException,

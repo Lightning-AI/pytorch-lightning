@@ -45,7 +45,7 @@ if _TORCHVISION_AVAILABLE:
 
 @mock.patch("argparse.ArgumentParser.parse_args")
 def test_default_args(mock_argparse, tmpdir):
-    """Tests default argument parser for Trainer"""
+    """Tests default argument parser for Trainer."""
     mock_argparse.return_value = Namespace(**Trainer.default_attributes())
 
     parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
@@ -60,9 +60,7 @@ def test_default_args(mock_argparse, tmpdir):
 
 @pytest.mark.parametrize("cli_args", [["--accumulate_grad_batches=22"], ["--weights_save_path=./"], []])
 def test_add_argparse_args_redefined(cli_args):
-    """Redefines some default Trainer arguments via the cli and
-    tests the Trainer initialization correctness.
-    """
+    """Redefines some default Trainer arguments via the cli and tests the Trainer initialization correctness."""
     parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
     parser.add_lightning_class_args(Trainer, None)
 
@@ -136,9 +134,9 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
 def test_parse_args_parsing(cli_args, expected):
     """Test parsing simple types and None optionals not modified."""
     cli_args = cli_args.split(" ") if cli_args else []
-    parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
-    parser.add_lightning_class_args(Trainer, None)
     with mock.patch("sys.argv", ["any.py"] + cli_args):
+        parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
+        parser.add_lightning_class_args(Trainer, None)
         args = parser.parse_args()
 
     for k, v in expected.items():
@@ -157,9 +155,9 @@ def test_parse_args_parsing(cli_args, expected):
 )
 def test_parse_args_parsing_complex_types(cli_args, expected, instantiate):
     """Test parsing complex types."""
-    parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
-    parser.add_lightning_class_args(Trainer, None)
     with mock.patch("sys.argv", ["any.py"] + cli_args):
+        parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
+        parser.add_lightning_class_args(Trainer, None)
         args = parser.parse_args()
 
     for k, v in expected.items():
@@ -173,9 +171,9 @@ def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
     """Test parsing of gpus and instantiation of Trainer."""
     monkeypatch.setattr("torch.cuda.device_count", lambda: 2)
     cli_args = cli_args.split(" ") if cli_args else []
-    parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
-    parser.add_lightning_class_args(Trainer, None)
     with mock.patch("sys.argv", ["any.py"] + cli_args):
+        parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
+        parser.add_lightning_class_args(Trainer, None)
         args = parser.parse_args()
 
     trainer = Trainer.from_argparse_args(args)
@@ -285,15 +283,20 @@ def test_lightning_cli_args_callbacks(tmpdir):
     assert cli.trainer.ran_asserts
 
 
-def test_lightning_cli_configurable_callbacks(tmpdir):
+@pytest.mark.parametrize("run", (False, True))
+def test_lightning_cli_configurable_callbacks(tmpdir, run):
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
             parser.add_lightning_class_args(LearningRateMonitor, "learning_rate_monitor")
 
-    cli_args = [f"--trainer.default_root_dir={tmpdir}", "--learning_rate_monitor.logging_interval=epoch"]
+        def fit(self, **_):
+            pass
+
+    cli_args = ["fit"] if run else []
+    cli_args += [f"--trainer.default_root_dir={tmpdir}", "--learning_rate_monitor.logging_interval=epoch"]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
-        cli = MyLightningCLI(BoringModel, run=False)
+        cli = MyLightningCLI(BoringModel, run=run)
 
     callback = [c for c in cli.trainer.callbacks if isinstance(c, LearningRateMonitor)]
     assert len(callback) == 1
@@ -636,12 +639,7 @@ def test_lightning_cli_optimizer_and_lr_scheduler(tmpdir):
             parser.add_optimizer_args(torch.optim.Adam)
             parser.add_lr_scheduler_args(torch.optim.lr_scheduler.ExponentialLR)
 
-    cli_args = [
-        "fit",
-        f"--trainer.default_root_dir={tmpdir}",
-        "--trainer.fast_dev_run=1",
-        "--lr_scheduler.gamma=0.8",
-    ]
+    cli_args = ["fit", f"--trainer.default_root_dir={tmpdir}", "--trainer.fast_dev_run=1", "--lr_scheduler.gamma=0.8"]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = MyLightningCLI(BoringModel)
@@ -783,8 +781,7 @@ def test_lightning_cli_subcommands():
 def test_lightning_cli_custom_subcommand():
     class TestTrainer(Trainer):
         def foo(self, model: LightningModule, x: int, y: float = 1.0):
-            """
-            Sample extra function.
+            """Sample extra function.
 
             Args:
                 model: A model
@@ -945,3 +942,22 @@ def test_lightning_cli_parse_kwargs_with_subcommands(tmpdir):
     validate_mock.assert_called()
     assert cli.trainer.limit_train_batches == 1.0
     assert cli.trainer.limit_val_batches == 3
+
+
+def test_lightning_cli_reinstantiate_trainer():
+    with mock.patch("sys.argv", ["any.py"]):
+        cli = LightningCLI(BoringModel, run=False)
+    assert cli.trainer.max_epochs == 1000
+
+    class TestCallback(Callback):
+        ...
+
+    # make sure a new trainer can be easily created
+    trainer = cli.instantiate_trainer(max_epochs=123, callbacks=[TestCallback()])
+    # the new config is used
+    assert trainer.max_epochs == 123
+    assert {c.__class__ for c in trainer.callbacks} == {c.__class__ for c in cli.trainer.callbacks}.union(
+        {TestCallback}
+    )
+    # the existing config is not updated
+    assert cli.config_init["trainer"]["max_epochs"] is None

@@ -19,7 +19,6 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Iterable, Optional, TextIO, Union
 
-from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 log = logging.getLogger(__name__)
@@ -50,26 +49,15 @@ class AbstractProfiler(ABC):
 
 
 class BaseProfiler(AbstractProfiler):
-    """
-    If you wish to write a custom profiler, you should inherit from this class.
-    """
+    """If you wish to write a custom profiler, you should inherit from this class."""
 
     def __init__(
         self,
         dirpath: Optional[Union[str, Path]] = None,
         filename: Optional[str] = None,
-        output_filename: Optional[str] = None,
     ) -> None:
         self.dirpath = dirpath
         self.filename = filename
-        if output_filename is not None:
-            rank_zero_deprecation(
-                "`Profiler` signature has changed in v1.3. The `output_filename` parameter has been removed in"
-                " favor of `dirpath` and `filename`. Support for the old signature will be removed in v1.5"
-            )
-            filepath = Path(output_filename)
-            self.dirpath = filepath.parent
-            self.filename = filepath.stem
 
         self._output_file: Optional[TextIO] = None
         self._write_stream: Optional[Callable] = None
@@ -79,8 +67,7 @@ class BaseProfiler(AbstractProfiler):
 
     @contextmanager
     def profile(self, action_name: str) -> Generator:
-        """
-        Yields a context manager to encapsulate the scope of a profiled action.
+        """Yields a context manager to encapsulate the scope of a profiled action.
 
         Example::
 
@@ -173,8 +160,7 @@ class BaseProfiler(AbstractProfiler):
         self.dirpath = self.dirpath or log_dir
 
     def teardown(self, stage: Optional[str] = None) -> None:
-        """
-        Execute arbitrary post-profiling tear-down steps.
+        """Execute arbitrary post-profiling tear-down steps.
 
         Closes the currently open file and stream.
         """
@@ -201,8 +187,8 @@ class BaseProfiler(AbstractProfiler):
 
 
 class PassThroughProfiler(BaseProfiler):
-    """
-    This class should be used when you don't want the (small) overhead of profiling.
+    """This class should be used when you don't want the (small) overhead of profiling.
+
     The Trainer uses this class by default.
     """
 

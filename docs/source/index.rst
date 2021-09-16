@@ -3,9 +3,15 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-PyTorch Lightning Documentation
-===============================
+PyTorch Lightning
+=================
 
+
+.. tutoriallist::
+
+.. raw:: html
+
+   <div style="display:none">
 
 .. toctree::
    :maxdepth: 1
@@ -56,6 +62,7 @@ PyTorch Lightning Documentation
    advanced/advanced_gpu
    advanced/mixed_precision
    common/weights_loading
+   advanced/fault_tolerant_training
    advanced/checkpoint_io
    common/optimizers
    advanced/profiler
@@ -84,19 +91,13 @@ PyTorch Lightning Documentation
    :maxdepth: 1
    :name: Tutorials
    :caption: Tutorials
+   :glob:
 
    starter/introduction_guide
    PyTorch Lightning 101 class <https://www.youtube.com/playlist?list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2>
    From PyTorch to PyTorch Lightning [Blog] <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
    From PyTorch to PyTorch Lightning [Video] <https://www.youtube.com/watch?v=QHww1JH7IDU>
-   notebooks/lightning_examples/mnist-hello-world.ipynb
-   notebooks/lightning_examples/datamodules.ipynb
-   notebooks/lightning_examples/cifar10-baseline.ipynb
-   notebooks/lightning_examples/basic-gan.ipynb
-   notebooks/lightning_examples/mnist-tpu-training.ipynb
-   notebooks/lightning_examples/text-transformers.ipynb
-   notebooks/lightning_examples/reinforce-learning-DQN.ipynb
-   notebooks/lightning_examples/augmentation_kornia.ipynb
+   notebooks/**/*
 
 .. toctree::
    :maxdepth: 2
@@ -145,6 +146,10 @@ PyTorch Lightning Documentation
    generated/BECOMING_A_CORE_CONTRIBUTOR.md
    governance
    generated/CHANGELOG.md
+
+.. raw:: html
+
+   </div>
 
 Indices and tables
 ------------------

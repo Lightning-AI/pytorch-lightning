@@ -111,10 +111,9 @@ def tmpdir_server(tmpdir):
 
 @pytest.fixture
 def single_process_pg():
-    """
-    Initialize the default process group with only the current process for
-    testing purposes. The process group is destroyed when the with block is
-    exited.
+    """Initialize the default process group with only the current process for testing purposes.
+
+    The process group is destroyed when the with block is exited.
     """
     if torch.distributed.is_initialized():
         raise RuntimeError("Can't use `single_process_pg` when the default process group is already initialized.")

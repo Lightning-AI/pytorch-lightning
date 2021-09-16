@@ -360,7 +360,7 @@ def _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class):
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
 def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
-    """Test that we choose the custom cluster even when SLURM or TE flags are around"""
+    """Test that we choose the custom cluster even when SLURM or TE flags are around."""
 
     class CustomCluster(LightningEnvironment):
         def master_address(self):

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from typing import Any, Dict, Optional
 from unittest.mock import MagicMock
 
@@ -33,11 +34,12 @@ class CustomCheckpointIO(CheckpointIO):
     def load_checkpoint(self, path: _PATH, storage_options: Optional[Any] = None) -> Dict[str, Any]:
         return torch.load(path)
 
+    def remove_checkpoint(self, path: _PATH) -> None:
+        os.remove(path)
+
 
 def test_checkpoint_plugin_called(tmpdir):
-    """
-    Ensure that the custom checkpoint IO plugin and torch checkpoint IO plugin is called when saving/loading.
-    """
+    """Ensure that the custom checkpoint IO plugin and torch checkpoint IO plugin is called when saving/loading."""
     checkpoint_plugin = CustomCheckpointIO()
     checkpoint_plugin = MagicMock(wraps=checkpoint_plugin, spec=CustomCheckpointIO)
 
@@ -49,10 +51,13 @@ def test_checkpoint_plugin_called(tmpdir):
         default_root_dir=tmpdir,
         plugins=SingleDevicePlugin(device, checkpoint_io=checkpoint_plugin),
         callbacks=ck,
-        max_epochs=1,
+        max_epochs=2,
     )
     trainer.fit(model)
-    assert checkpoint_plugin.save_checkpoint.call_count == 3
+
+    assert checkpoint_plugin.save_checkpoint.call_count == 5
+    assert checkpoint_plugin.remove_checkpoint.call_count == 1
+
     trainer.test(model, ckpt_path=ck.last_model_path)
     checkpoint_plugin.load_checkpoint.assert_called_with(tmpdir / "last.ckpt")
 
@@ -65,10 +70,12 @@ def test_checkpoint_plugin_called(tmpdir):
         default_root_dir=tmpdir,
         plugins=[SingleDevicePlugin(device), checkpoint_plugin],
         callbacks=ck,
-        max_epochs=1,
+        max_epochs=2,
     )
     trainer.fit(model)
-    assert checkpoint_plugin.save_checkpoint.call_count == 3
+
+    assert checkpoint_plugin.save_checkpoint.call_count == 5
+    assert checkpoint_plugin.remove_checkpoint.call_count == 1
 
     trainer.test(model, ckpt_path=ck.last_model_path)
     checkpoint_plugin.load_checkpoint.assert_called_once()
