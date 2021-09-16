@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import ast
 import inspect
 import os
 import sys
@@ -43,12 +42,7 @@ else:
 
 
 class _Registry(dict):
-    def __call__(
-        self,
-        cls: Type,
-        key: Optional[str] = None,
-        override: bool = False,
-    ) -> None:
+    def __call__(self, cls: Type, key: Optional[str] = None, override: bool = False) -> None:
         """Registers a class mapped to a name.
 
         Args:
@@ -225,21 +219,12 @@ class LightningArgumentParser(ArgumentParser):
             elif required:
                 raise MisconfigurationException(f"The {nested_key} key is required but wasn't passed")
         else:
-            clean_argv, config = self._convert_argv_issue_84(classes, nested_key, sys._pl_argv)
+            clean_argv = self._convert_argv_issue_84(classes, nested_key, sys._pl_argv)
             self.add_subclass_arguments(classes, nested_key, *args, **kwargs)
-            self.set_defaults({nested_key: config})
             sys._pl_argv = clean_argv
 
     @staticmethod
-    def _try_eval(val: str) -> Any:
-        try:
-            val = ast.literal_eval(val)
-        except ValueError:
-            pass
-        return val
-
-    @staticmethod
-    def _convert_argv_issue_84(classes: Tuple[Type, ...], nested_key: str, argv: List[str]) -> Tuple[List[str], Dict]:
+    def _convert_argv_issue_84(classes: Tuple[Type, ...], nested_key: str, argv: List[str]) -> List[str]:
         passed_args, clean_argv = {}, []
         argv_key = f"--{nested_key}"
         # get the argv args for this nested key
@@ -267,8 +252,7 @@ class LightningArgumentParser(ArgumentParser):
             config = {"class_path": class_path, "init_args": init_args}
         elif argv_class.startswith("{"):
             # the user passed a config as a dict
-            config = ast.literal_eval(argv_class)
-            assert isinstance(config, dict)
+            config = argv_class
         else:
             # the user passed the short format
             init_args = {k[len(argv_key) + 1 :]: v for k, v in passed_args.items()}  # +1 to account for the period
@@ -278,9 +262,7 @@ class LightningArgumentParser(ArgumentParser):
                     break
             else:
                 raise ValueError(f"Could not generate a config for {repr(argv_class)}")
-        # need to convert from str to the appropriate type
-        config["init_args"] = {k: LightningArgumentParser._try_eval(v) for k, v in config["init_args"].items()}
-        return clean_argv, config
+        return clean_argv + [argv_key, str(config)]
 
     @staticmethod
     def _convert_argv_issue_85(nested_key: str, argv: List[str], registry: _Registry) -> List[str]:
@@ -305,9 +287,7 @@ class LightningArgumentParser(ArgumentParser):
                 key = key[2:]  # remove dashes
                 if "class_path" in value:
                     # the user passed a config as a dict
-                    config = yaml.safe_load(value)
-                    assert all(isinstance(cfg, dict) for cfg in config)
-                    passed_configs[key] = config
+                    passed_configs[key] = yaml.safe_load(value)
                 else:
                     passed_args.append((key, value))
             else:

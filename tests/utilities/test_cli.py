@@ -647,12 +647,7 @@ def test_lightning_cli_optimizer_and_lr_scheduler(tmpdir):
             parser.add_optimizer_args(torch.optim.Adam)
             parser.add_lr_scheduler_args(torch.optim.lr_scheduler.ExponentialLR)
 
-    cli_args = [
-        "fit",
-        f"--trainer.default_root_dir={tmpdir}",
-        "--trainer.fast_dev_run=1",
-        "--lr_scheduler.gamma=0.8",
-    ]
+    cli_args = ["fit", f"--trainer.default_root_dir={tmpdir}", "--trainer.fast_dev_run=1", "--lr_scheduler.gamma=0.8"]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = MyLightningCLI(BoringModel)
@@ -994,36 +989,40 @@ def test_argv_transformation_multiple_callbacks_with_config():
     assert argv == expected
 
 
-def test_argv_transformations_with_optimizers_and_lr_schedulers():
+@pytest.mark.parametrize(
+    ["args", "expected", "nested_key", "registry"],
+    [
+        (
+            ["--optimizer", "Adadelta"],
+            {"class_path": "torch.optim.adadelta.Adadelta", "init_args": {}},
+            "optimizer",
+            OPTIMIZER_REGISTRY,
+        ),
+        (
+            ["--optimizer", "Adadelta", "--optimizer.lr", "10"],
+            {"class_path": "torch.optim.adadelta.Adadelta", "init_args": {"lr": "10"}},
+            "optimizer",
+            OPTIMIZER_REGISTRY,
+        ),
+        (
+            ["--lr_scheduler", "OneCycleLR"],
+            {"class_path": "torch.optim.lr_scheduler.OneCycleLR", "init_args": {}},
+            "lr_scheduler",
+            LR_SCHEDULER_REGISTRY,
+        ),
+        (
+            ["--lr_scheduler", "OneCycleLR", "--lr_scheduler.anneal_strategy=linear"],
+            {"class_path": "torch.optim.lr_scheduler.OneCycleLR", "init_args": {"anneal_strategy": "linear"}},
+            "lr_scheduler",
+            LR_SCHEDULER_REGISTRY,
+        ),
+    ],
+)
+def test_argv_transformations_with_optimizers_and_lr_schedulers(args, expected, nested_key, registry):
     base = ["any.py", "--trainer.max_epochs=1"]
-
-    argv = base + ["--optimizer", "Adadelta"]
-    expected = {"class_path": "torch.optim.adadelta.Adadelta", "init_args": {}}
-    new_argv, actual = LightningArgumentParser._convert_argv_issue_84(OPTIMIZER_REGISTRY.classes, "optimizer", argv)
-    assert new_argv == base
-    assert actual == expected
-
-    argv = base + ["--optimizer", "Adadelta", "--optimizer.lr", "10"]
-    expected = {"class_path": "torch.optim.adadelta.Adadelta", "init_args": {"lr": 10}}
-    base, actual = LightningArgumentParser._convert_argv_issue_84(OPTIMIZER_REGISTRY.classes, "optimizer", argv)
-    assert new_argv == base
-    assert actual == expected
-
-    argv = base + ["--lr_scheduler", "OneCycleLR"]
-    expected = {"class_path": "torch.optim.lr_scheduler.OneCycleLR", "init_args": {}}
-    new_argv, actual = LightningArgumentParser._convert_argv_issue_84(
-        LR_SCHEDULER_REGISTRY.classes, "lr_scheduler", argv
-    )
-    assert new_argv == base
-    assert actual == expected
-
-    argv = base + ["--lr_scheduler", "OneCycleLR", "--lr_scheduler.anneal_strategy=linear"]
-    expected = {"class_path": "torch.optim.lr_scheduler.OneCycleLR", "init_args": {"anneal_strategy": "linear"}}
-    new_argv, actual = LightningArgumentParser._convert_argv_issue_84(
-        LR_SCHEDULER_REGISTRY.classes, "lr_scheduler", argv
-    )
-    assert new_argv == base
-    assert actual == expected
+    argv = base + args
+    new_argv = LightningArgumentParser._convert_argv_issue_84(registry.classes, nested_key, argv)
+    assert new_argv == base + [f"--{nested_key}", str(expected)]
 
 
 def test_optimizers_and_lr_schedulers_reload(tmpdir):
