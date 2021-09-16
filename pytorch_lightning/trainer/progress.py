@@ -233,7 +233,3 @@ class OptimizationProgress(BaseProgress):
     def reset_on_restart(self):
         self.optimizer.step.current.reset_on_restart()
         self.optimizer.zero_grad.current.reset_on_restart()
-
-    def reset_on_batch_end(self):
-        self.optimizer.step.current.reset()
-        self.optimizer.zero_grad.current.reset()
