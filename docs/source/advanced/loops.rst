@@ -346,3 +346,45 @@ For example, the implementation of the :meth:`~pytorch_lightning.loops.base.Loop
     def reset(self):
         if not self.restarting:
             self.iteration = 0
+
+
+FAQ
+---
+
+**Q:** Why are the loops in Lightning classes and not just simply `for` or `while` loops?
+
+**A:** Several reasons:
+1) a loop can be portable, i.e., can be shared and imported in new projects,
+2) managing state and being able to resume a loop is more easily realized with on object-oriented design,
+3) complex interactions between loops can be more easily modelled and leverage design patterns from object oriented design.
+
+**Q:** How do I make sure a given LightningModule is compatible with my custom loop?
+
+**A:** To restrict the compatibility of a LightningModule to a particular loop type, we recommend to define a specific class mixin for this purpose.
+With the YieldLoop shown above in mind, here is an example:
+
+.. code-block:: python
+
+    class Yield:
+        """A simple shell class, to be used with LightningModules
+        that implement yielding from the training_step."""
+        pass
+
+    # add the class as mixin:
+    class MyLightningModule(Yield, LightningModule):
+        ...
+
+    # your loop can now check for compatibility
+    class YieldLoop(OptimizerLoop):
+
+        def on_run_start(self, batch, optimizers, batch_idx):
+            super().on_run_start(batch, optimizers, batch_idx)
+            if not isinstance(self.trainer.lightning_module, Yield):
+                raise RuntimeError(
+                    "The given LightingModule is not compatible with a YieldLoop."
+                )
+
+**Q:** How can I access the Trainer from within a loop?
+
+**A:** There is a :attr:`~pytorch_lightning.loops.base.Loop.trainer` attribute available on each loop.
+When the Trainer runs, it attaches itself to each loop and subloop recursively.
