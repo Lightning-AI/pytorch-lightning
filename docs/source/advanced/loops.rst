@@ -246,7 +246,6 @@ This will be a subclass of the existing :class:`~pytorch_lightning.loops.optimiz
 
 .. code-block:: python
 
-
     from functools import partial
     from pytorch_lightning.loops import Loop, OptimizerLoop
     from pytorch_lightning.loops.optimization.optimizer_loop import ClosureResult
@@ -295,7 +294,6 @@ This will be a subclass of the existing :class:`~pytorch_lightning.loops.optimiz
                 result = ClosureResult.from_training_step_output(training_step_output, self.trainer.accumulate_grad_batches)
             return result
 
-
 As we can see, not much work needs to be done to enable our generator training step.
 The new loop is called :code:`YieldLoop` and contains a reference to the generator returned by the :code:`training_step`.
 On every new run (over the optimizers) we call the :code:`training_step` method on the LightningModule which is supposed to return a generator because it contains :code:`yield` statements.
@@ -304,6 +302,7 @@ There must be as many :code:`yield` statements as there are optimizers.
 Given this new loop, here is how you connect it to the Trainer:
 
 .. code-block:: python
+
     model = LitModel()
     trainer = Trainer()
 
@@ -313,3 +312,37 @@ Given this new loop, here is how you connect it to the Trainer:
     trainer.fit(model)  # runs the new loop!
 
 Note that we need to connect it to the :class:`~pytorch_lightning.loops.batch.training_batch_loop.TrainingBatchLoop` and we are replacing the default optimizer loop that Lightning provides.
+
+
+Persisting the state of loops
+-----------------------------
+
+.. note::
+    This is an experimental feature and is not activated by default.
+    Set the environment variable `PL_FAULT_TOLERANT_TRAINING = 1` to enable saving the progress of loops.
+    Read more about fault-tolerant training here (TODO: add link).
+
+An interesting property of the abstract loop interface is that it can maintain a state.
+It can save its state to a checkpoint through corresponding hooks and if implemented accordingly, resume it's state of exectuion at the appropriate place.
+This design is particularly interesting for fault-tolerant training which is an experimental feature released in Lightning v1.5.
+
+The two hooks :class:`~pytorch_lightning.loops.base.Loop.on_save_checkpoint` and :class:`~pytorch_lightning.loops.base.Loop.on_load_checkpoint` function very similarly to how LightningModules and Callbacks save and load state.
+
+.. code-block:: python
+
+    def on_save_checkpoint(self):
+        state_dict["iteration"] = self.iteration
+        return state_dict
+
+    def on_load_checkpoint(self, state_dict):
+        self.iteration = state_dict["iteration"]
+
+When the Trainer is restaring from a checkpoint (e.g., through :code:`Trainer(resume_from_checkpoint=...)`), the loop exposes a boolean :attr:`~pytorch_lightning.loops.base.Loop.restarting`.
+Based around the value of this variable, the user can write the loop in such a way that it can restart from an arbitrary point given the state loaded from the checkpoint.
+For example, the implementation of the :meth:`~pytorch_lightning.loops.base.Loop.reset` method could look like this given our previous example:
+
+.. code-block:: python
+
+    def reset(self):
+        if not self.restarting:
+            self.iteration = 0
