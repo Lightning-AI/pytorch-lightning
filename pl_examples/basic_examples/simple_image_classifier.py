@@ -11,11 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-MNIST simple image classifier example.
+"""MNIST simple image classifier example.
 
-To run:
-python simple_image_classifier.py --trainer.max_epochs=50
+To run: python simple_image_classifier.py --trainer.max_epochs=50
 """
 
 import torch

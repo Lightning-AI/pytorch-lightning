@@ -293,7 +293,7 @@ def setup(app):
 # Ignoring Third-party packages
 # https://stackoverflow.com/questions/15889621/sphinx-how-to-exclude-imports-in-automodule
 def package_list_from_file(file):
-    """List up package name (not containing version and extras) from a package list file"""
+    """List up package name (not containing version and extras) from a package list file."""
     mocked_packages = []
     with open(file) as fp:
         for ln in fp.readlines():

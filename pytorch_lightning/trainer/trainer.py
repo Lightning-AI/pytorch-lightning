@@ -78,7 +78,6 @@ from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT, EVAL_DATALOADERS, TRAIN_DATALOADERS
 
@@ -131,7 +130,7 @@ class Trainer(
         limit_test_batches: Union[int, float] = 1.0,
         limit_predict_batches: Union[int, float] = 1.0,
         val_check_interval: Union[int, float] = 1.0,
-        flush_logs_every_n_steps: int = 100,
+        flush_logs_every_n_steps: Optional[int] = None,
         log_every_n_steps: int = 50,
         accelerator: Optional[Union[str, Accelerator]] = None,
         sync_batchnorm: bool = False,
@@ -159,7 +158,7 @@ class Trainer(
         stochastic_weight_avg: bool = False,
     ):
         r"""
-        Customize every aspect of training via flags
+        Customize every aspect of training via flags.
 
         Args:
 
@@ -168,7 +167,7 @@ class Trainer(
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
 
-            amp_backend: The mixed precision backend to use ("native" or "apex")
+            amp_backend: The mixed precision backend to use ("native" or "apex").
 
             amp_level: The optimization level to use (O1, O2, etc...).
 
@@ -207,26 +206,32 @@ class Trainer(
             devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,
                 based on the accelerator type.
 
-            distributed_backend: deprecated. Please use 'accelerator'
+            distributed_backend: Deprecated. Please use 'accelerator'.
 
-            fast_dev_run: runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
+            fast_dev_run: Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
                 of train, val and test to find any bugs (ie: a sort of unit test).
 
             flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
 
-            gpus: number of gpus to train on (int) or which GPUs to train on (list or str) applied per node
+                .. deprecated:: v1.5
+                    ``flush_logs_every_n_steps`` has been deprecated in v1.5 and will be removed in v1.7.
+                    Please configure flushing directly in the logger instead.
 
-            gradient_clip_val: 0 means don't clip.
+            gpus: Number of GPUs to train on (int) or which GPUs to train on (list or str) applied per node
 
-            gradient_clip_algorithm: 'value' means clip_by_value, 'norm' means clip_by_norm. Default: 'norm'
+            gradient_clip_val: The value at which to clip gradients. Passing ``gradient_clip_val=0`` disables gradient
+                clipping.
 
-            limit_train_batches: How much of training dataset to check (float = fraction, int = num_batches)
+            gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
+                for clip_by_value, and ``gradient_clip_algorithm="norm"`` for clip_by_norm.
 
-            limit_val_batches: How much of validation dataset to check (float = fraction, int = num_batches)
+            limit_train_batches: How much of training dataset to check (float = fraction, int = num_batches).
 
-            limit_test_batches: How much of test dataset to check (float = fraction, int = num_batches)
+            limit_val_batches: How much of validation dataset to check (float = fraction, int = num_batches).
 
-            limit_predict_batches: How much of prediction dataset to check (float = fraction, int = num_batches)
+            limit_test_batches: How much of test dataset to check (float = fraction, int = num_batches).
+
+            limit_predict_batches: How much of prediction dataset to check (float = fraction, int = num_batches).
 
             logger: Logger (or iterable collection of loggers) for experiment tracking. A ``True`` value uses
                 the default ``TensorBoardLogger``. ``False`` will disable logging. If multiple loggers are
@@ -234,7 +239,7 @@ class Trainer(
                 profiler traces, etc.) are saved in ``default_root_dir`` rather than in the ``log_dir`` of any
                 of the individual loggers.
 
-            log_gpu_memory: None, 'min_max', 'all'. Might slow performance
+            log_gpu_memory: None, 'min_max', 'all'. Might slow performance.
 
             log_every_n_steps: How often to log within steps (defaults to every 50 steps).
 
@@ -245,7 +250,12 @@ class Trainer(
                     Deprecated in v1.5.0 and will be removed in v1.7.0
                     Please set ``prepare_data_per_node`` in LightningDataModule or LightningModule directly instead.
 
-            process_position: orders the progress bar when running multiple models on same machine.
+            process_position: Orders the progress bar when running multiple models on same machine.
+
+                .. deprecated:: v1.5
+                    ``process_position`` has been deprecated in v1.5 and will be removed in v1.7.
+                    Please pass :class:`~pytorch_lightning.callbacks.progress.ProgressBar` with ``process_position``
+                    directly to the Trainer's ``callbacks`` argument instead.
 
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
                 Ignored when a custom progress bar is passed to :paramref:`~Trainer.callbacks`. Default: None, means
@@ -261,12 +271,15 @@ class Trainer(
                 Can be used on CPU, GPU or TPUs.
 
             max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
-                If both max_epochs and max_steps are not specified, defaults to ``max_epochs`` = 1000.
+                If both max_epochs and max_steps are not specified, defaults to ``max_epochs = 1000``.
+                To enable infinite training, set ``max_epochs = -1``.
 
             min_epochs: Force training for at least these many epochs. Disabled by default (None).
-                If both min_epochs and min_steps are not specified, defaults to ``min_epochs`` = 1.
+                If both min_epochs and min_steps are not specified, defaults to ``min_epochs = 1``.
 
-            max_steps: Stop training after this number of steps. Disabled by default (None).
+            max_steps: Stop training after this number of steps. Disabled by default (None). If ``max_steps = None``
+                and ``max_epochs = None``, will default to ``max_epochs = 1000``. To disable this default, set
+                ``max_steps`` to ``-1``.
 
             min_steps: Force training for at least these number of steps. Disabled by default (None).
 
@@ -275,15 +288,14 @@ class Trainer(
                 :class:`datetime.timedelta`, or a dictionary with keys that will be passed to
                 :class:`datetime.timedelta`.
 
-            num_nodes: number of GPU nodes for distributed training.
+            num_nodes: Number of GPU nodes for distributed training.
 
-            num_processes: number of processes for distributed training with distributed_backend="ddp_cpu"
+            num_processes: Number of processes for distributed training with ``accelerator="ddp_cpu"``.
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders.
 
             reload_dataloaders_every_n_epochs: Set to a non-negative integer to reload dataloaders every n epochs.
-                Default: 0
 
             reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch.
 
@@ -331,7 +343,7 @@ class Trainer(
                 reload when reaching the minimum length of datasets.
 
             stochastic_weight_avg: Whether to use `Stochastic Weight Averaging (SWA)
-                <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>_`
+                <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>`_.
 
         """
         super().__init__()
@@ -374,6 +386,7 @@ class Trainer(
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
 
+        # max_epochs won't default to 1000 if max_steps/max_time are specified (including being set to -1).
         fit_loop = FitLoop(
             min_epochs=(1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs),
             max_epochs=(1000 if (max_epochs is None and max_steps is None and max_time is None) else max_epochs),
@@ -396,13 +409,7 @@ class Trainer(
         # default .predict() loop
         self.predict_loop = PredictionLoop()
 
-        # training state
-        if weights_summary is not None and weights_summary not in ModelSummary.MODES:
-            raise MisconfigurationException(
-                f"`weights_summary` can be None, {', '.join(ModelSummary.MODES)}, but got {weights_summary}"
-            )
         self.weights_summary = weights_summary
-        self.shown_warnings = set()
 
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init
@@ -413,6 +420,7 @@ class Trainer(
             process_position,
             default_root_dir,
             weights_save_path,
+            self.weights_summary,
             stochastic_weight_avg,
             max_time,
         )
@@ -500,13 +508,15 @@ class Trainer(
         """
         try:
             return trainer_fn(*args, **kwargs)
-        except KeyboardInterrupt:
+        # TODO: treat KeyboardInterrupt as BaseException (delete the code below) in v1.7
+        except KeyboardInterrupt as exception:
             rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
             # user could press Ctrl+c many times... only shutdown once
             if not self.interrupted:
                 self.state.status = TrainerStatus.INTERRUPTED
                 self.on_keyboard_interrupt()
-        except BaseException:
+                self.on_exception(exception)
+        except BaseException as exception:
             self.state.status = TrainerStatus.INTERRUPTED
             if distributed_available() and self.world_size > 1:
                 # try syncing remaing processes, kill otherwise
@@ -514,6 +524,7 @@ class Trainer(
             self._on_exception()
             # reset bookkeeping
             self.state.stage = None
+            self.on_exception(exception)
             raise
 
     def fit(
@@ -1095,11 +1106,6 @@ class Trainer(
         # --------------------------
         self.call_hook("on_pretrain_routine_start")
 
-        # print model summary
-        if self.is_global_zero and self.weights_summary is not None and not self.testing:
-            max_depth = ModelSummary.MODES[self.weights_summary]
-            summarize(self.lightning_module, max_depth=max_depth)
-
         self.call_hook("on_pretrain_routine_end")
 
     def _run_train(self) -> None:
@@ -1129,7 +1135,7 @@ class Trainer(
         assert self.evaluating
 
         # reload dataloaders
-        self._evaluation_loop.reload_evaluation_dataloaders()
+        self._evaluation_loop._reload_evaluation_dataloaders()
 
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self._evaluation_loop.trainer = self
@@ -1166,7 +1172,7 @@ class Trainer(
             self.call_hook("on_sanity_check_start")
 
             # reload dataloaders
-            self._evaluation_loop.reload_evaluation_dataloaders()
+            self._evaluation_loop._reload_evaluation_dataloaders()
 
             # run eval step
             with torch.no_grad():

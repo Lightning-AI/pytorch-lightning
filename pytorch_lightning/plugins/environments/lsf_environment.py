@@ -20,8 +20,7 @@ from pytorch_lightning.plugins.environments import ClusterEnvironment
 
 
 class LSFEnvironment(ClusterEnvironment):
-    """
-    An environment for running on clusters managed by the LSF resource manager.
+    """An environment for running on clusters managed by the LSF resource manager.
 
     It is expected that any execution using this ClusterEnvironment was executed
     using the Job Step Manager i.e. ``jsrun``.
@@ -104,10 +103,8 @@ class LSFEnvironment(ClusterEnvironment):
         return int(local_rank)
 
     def node_rank(self):
-        """
-        The node rank is determined by the position of the current hostname in the list of hosts stored in
-        the environment variable `LSB_HOSTS`.
-        """
+        """The node rank is determined by the position of the current hostname in the list of hosts stored in the
+        environment variable `LSB_HOSTS`."""
         hosts = self._read_hosts()
         count = {}
         for host in hosts:
@@ -135,8 +132,8 @@ class LSFEnvironment(ClusterEnvironment):
 
     @staticmethod
     def _get_master_port():
-        """
-        A helper function for accessing the master port.
+        """A helper function for accessing the master port.
+
         Uses the LSF job ID so all ranks can compute the master port.
         """
         # check for user-specified master port

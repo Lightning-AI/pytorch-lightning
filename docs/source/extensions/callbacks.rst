@@ -97,6 +97,7 @@ Lightning has a few built-in callbacks.
 
     BackboneFinetuning
     BaseFinetuning
+    BasePredictionWriter
     Callback
     EarlyStopping
     GPUStatsMonitor
@@ -105,11 +106,12 @@ Lightning has a few built-in callbacks.
     LearningRateMonitor
     ModelCheckpoint
     ModelPruning
-    BasePredictionWriter
     ProgressBar
     ProgressBarBase
+    RichProgressBar
     QuantizationAwareTraining
     StochasticWeightAveraging
+    XLAStatsMonitor
 
 ----------
 
@@ -391,6 +393,12 @@ on_keyboard_interrupt
 ^^^^^^^^^^^^^^^^^^^^^
 
 .. automethod:: pytorch_lightning.callbacks.Callback.on_keyboard_interrupt
+    :noindex:
+
+on_exception
+^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_exception
     :noindex:
 
 on_save_checkpoint
