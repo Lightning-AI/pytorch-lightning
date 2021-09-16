@@ -764,19 +764,10 @@ class LightningModule(
         Note:
             If this method is not overridden, this won't be called.
 
-        Example::
-
-            def training_epoch_end(self, training_step_outputs):
-                # do something with all training_step outputs
-                return result
-
-        With multiple dataloaders, ``outputs`` will be a list of lists. The outer list contains
-        one entry per dataloader, while the inner list contains the individual outputs of
-        each training step for that dataloader.
-
         .. code-block:: python
 
             def training_epoch_end(self, training_step_outputs):
+                # do something with all training_step outputs
                 for out in training_step_outputs:
                     ...
         """
