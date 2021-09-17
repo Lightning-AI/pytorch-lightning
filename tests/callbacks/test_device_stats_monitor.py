@@ -28,7 +28,7 @@ from tests.helpers.runif import RunIf
 @RunIf(min_torch="1.8")
 @RunIf(min_gpus=1)
 def test_device_stats_gpu_from_torch(tmpdir):
-    """Test GPU stats are logged using a logger."""
+    """Test GPU stats are logged using a logger with Pytorch >= 1.8.0"""
     model = BoringModel()
     device_stats = DeviceStatsMonitor()
     logger = CSVLogger(tmpdir)
@@ -59,7 +59,7 @@ def test_device_stats_gpu_from_torch(tmpdir):
 @RunIf(max_torch="1.7")
 @RunIf(min_gpus=1)
 def test_device_stats_gpu_from_nvidia(tmpdir):
-    """Test GPU stats are logged using a logger."""
+    """Test GPU stats are logged using a logger with Pytorch < 1.8.0."""
     model = BoringModel()
     device_stats = DeviceStatsMonitor()
     logger = CSVLogger(tmpdir)
@@ -80,10 +80,6 @@ def test_device_stats_gpu_from_nvidia(tmpdir):
 
     path_csv = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
     met_data = np.genfromtxt(path_csv, delimiter=",", names=True, deletechars="", replace_space=" ")
-
-    batch_time_data = met_data["batch_time/intra_step (ms)"]
-    batch_time_data = batch_time_data[~np.isnan(batch_time_data)]
-    assert batch_time_data.shape[0] == trainer.global_step // log_every_n_steps
 
     fields = ["utilization.gpu", "memory.used", "memory.free", "utilization.memory"]
 

@@ -15,7 +15,7 @@ import logging
 import os
 import shutil
 import subprocess
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
 import torch
 
