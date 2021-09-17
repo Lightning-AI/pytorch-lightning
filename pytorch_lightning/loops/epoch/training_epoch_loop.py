@@ -297,8 +297,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if array.ndim == 1:
             array = np.expand_dims(array, 1)
 
-        n_splits, _ = array.shape
-
         array = array.transpose((0, 1))
         array = array.squeeze()
         array = array.tolist()
@@ -339,8 +337,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         array = np.array(batch_outputs, dtype=object)
         if array.ndim == 2:
             array = np.expand_dims(array, 2)
-
-        n_batches, n_splits, _ = array.shape
 
         array = array.transpose((2, 0, 1))
         array = array.squeeze()
