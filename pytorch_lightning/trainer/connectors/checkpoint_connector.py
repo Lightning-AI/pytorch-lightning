@@ -14,13 +14,13 @@
 
 import os
 import re
-from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 import torch
 from torchmetrics import Metric
 
 import pytorch_lightning as pl
+from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
@@ -34,10 +34,10 @@ if _OMEGACONF_AVAILABLE:
 
 
 class CheckpointConnector:
-    def __init__(self, trainer, resume_from_checkpoint: Optional[Union[str, Path]] = None):
+    def __init__(self, trainer: "pl.Trainer", resume_from_checkpoint: Optional[_PATH] = None) -> None:
         self.trainer = trainer
         self.resume_checkpoint_path = resume_from_checkpoint
-        self._loaded_checkpoint = {}
+        self._loaded_checkpoint: Dict[str, Any] = {}
 
     @property
     def hpc_resume_path(self) -> Optional[str]:
@@ -64,7 +64,7 @@ class CheckpointConnector:
         rank_zero_info(f"Restoring states from the checkpoint path at {checkpoint_path}")
         self._loaded_checkpoint = self._load_and_validate_checkpoint(checkpoint_path)
 
-    def _load_and_validate_checkpoint(self, checkpoint_path: _PATH) -> Optional[Dict[str, Any]]:
+    def _load_and_validate_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         loaded_checkpoint = self.trainer.training_type_plugin.load_checkpoint(checkpoint_path)
         if any(key in loaded_checkpoint for key in DEPRECATED_CHECKPOINT_KEYS):
             raise ValueError(
@@ -89,7 +89,7 @@ class CheckpointConnector:
         # wait for all to catch up
         self.trainer.training_type_plugin.barrier("CheckpointConnector.resume_end")
 
-    def restore(self, checkpoint_path: Optional[Union[Path, str]] = None) -> None:
+    def restore(self, checkpoint_path: Optional[_PATH] = None) -> None:
         """Attempt to restore everything at once from a 'PyTorch-Lightning checkpoint' file through file-read and
         state-restore, in this priority:
 
@@ -152,7 +152,7 @@ class CheckpointConnector:
                 if isinstance(module, Metric):
                     module.reset()
 
-    def restore_model_weights(self, checkpoint_path: Optional[Union[str, Path]]) -> None:
+    def restore_model_weights(self, checkpoint_path: Optional[_PATH]) -> None:
         """Restore only the model weights."""
         checkpoint = self._loaded_checkpoint
         if checkpoint_path is not None:
@@ -197,6 +197,7 @@ class CheckpointConnector:
         # crash if max_epochs is lower then the current epoch from the checkpoint
         if (
             FitLoop._is_max_limit_enabled(self.trainer.max_epochs)
+            and self.trainer.max_epochs is not None
             and self.trainer.current_epoch > self.trainer.max_epochs
         ):
             raise MisconfigurationException(
@@ -273,7 +274,7 @@ class CheckpointConnector:
     # PRIVATE OPS
     # ----------------------------------
 
-    def hpc_save(self, folderpath: str, logger):
+    def hpc_save(self, folderpath: str, logger: LightningLoggerBase) -> str:
         # make sure the checkpoint folder exists
         folderpath = str(folderpath)  # because the tests pass a path object
         fs = get_filesystem(folderpath)
@@ -387,7 +388,7 @@ class CheckpointConnector:
 
         return checkpoint
 
-    def hpc_load(self, checkpoint_path: str) -> None:
+    def hpc_load(self, checkpoint_path: _PATH) -> None:
         """Attempts to restore the full training and model state from a HPC checkpoint file.
 
         .. deprecated:: v1.4     Will be removed in v1.6. Use :meth:`restore` instead.
@@ -398,7 +399,7 @@ class CheckpointConnector:
         )
         self.restore(checkpoint_path)
 
-    def max_ckpt_version_in_folder(self, dir_path: Union[str, Path], name_key: str = "ckpt_") -> Optional[int]:
+    def max_ckpt_version_in_folder(self, dir_path: _PATH, name_key: str = "ckpt_") -> Optional[int]:
         """List up files in `dir_path` with `name_key`, then yield maximum suffix number.
 
         Args:
@@ -428,7 +429,7 @@ class CheckpointConnector:
 
         return max(ckpt_vs)
 
-    def get_max_ckpt_path_from_folder(self, folder_path: Union[str, Path]) -> str:
+    def get_max_ckpt_path_from_folder(self, folder_path: _PATH) -> str:
         """Get path of maximum-epoch checkpoint in the folder."""
 
         max_suffix = self.max_ckpt_version_in_folder(folder_path)
