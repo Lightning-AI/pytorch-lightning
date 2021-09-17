@@ -148,9 +148,8 @@ class CheckpointConnector:
 
     def restore_model_weights(self, checkpoint_path: Optional[_PATH]) -> None:
         """Restore only the model weights."""
-        checkpoint = self._loaded_checkpoint
         if checkpoint_path is not None:
-            checkpoint = self._load_and_validate_checkpoint(checkpoint_path)
+            self._load_and_validate_checkpoint(checkpoint_path)
 
     def restore_training_state(self) -> None:
         """Restore the trainer state from the pre-loaded checkpoint.
