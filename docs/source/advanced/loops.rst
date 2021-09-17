@@ -13,7 +13,7 @@ In this advanced user guide, we will learn about:
 - the default loop implementations and subloops Lightning has,
 - how Lightning defines a tree structure of loops and subloops,
 - how you can create a custom loop for a new `training_step` flavor,
-- and how you can connect the custom loop and run it.
+- and how you can connect your custom loop and run it.
 
 Most importantly, we will also provide guidelines on when to use loop customization and when NOT to use it.
 
@@ -36,7 +36,7 @@ The Trainer has four entry points for training, testing and inference, and each 
 +---------------------------------------------------------------+-----------------------------------------------------------------------+-------------------------------------------------------------------------------+
 
 When the user calls :code:`Trainer.<entry-point>`, it redirects to the corresponding :code:`Trainer.loop.run()` which implements the main logic of that particular Lightning loop.
-Think of it as the start of a Python :code:`while` loop.
+Lightning simply organises the Python :code:`while` loop into blocks of code.
 The :meth:`~pytorch_lightning.loops.base.Loop.run` method is part of the base :class:`~pytorch_lightning.loops.base.Loop` class that every loop inherits from (like every model inherits from LightningModule).
 
 
@@ -74,7 +74,7 @@ The reason why the inputs get forwarded is mainly for convenience but implementa
 Secondly, ``advance()`` can raise a :class:`StopIteration` to exit the loop early.
 This is analogous to a :code:`break` statement in a raw Python ``while`` for example.
 Finally, a loop may return an output as part of ``run()``.
-This output could for example be a list containing all results produced in each iteration (advance) of the loop.
+As an example, the loop could return a list containing all results produced in each iteration (advance).
 
 Loops can also be nested! That is, a loop may call another one inside of its ``advance()``.
 
@@ -82,7 +82,7 @@ Default loop implementations
 ----------------------------
 
 The training loop in Lightning is called *fit loop* and is actually a combination of several loops.
-Here is what the structure would look like in plain Python:
+Here is how the nested loop structure would look like in plain Python:
 
 .. code-block:: python
 
@@ -98,7 +98,7 @@ Here is what the structure would look like in plain Python:
                 # OptimizerLoop
                 for optimizer_idx, opt in enumerate(optimizers):
 
-                    loss = lightning_module.training_step(batch, batch_idx, optimizer_idx)
+                   ... = lightning_module.training_step(split_batch, batch_idx, optimizer_idx)
                     ...
 
             # ValidationEpochLoop
@@ -118,7 +118,7 @@ It simply counts the epochs and iterates from one to the next by calling :code:`
 TrainingEpochLoop
 ^^^^^^^^^^^^^^^^^
 
-The :class:`~pytorch_lightning.loops.epoch.training_epoch_loop.TrainingEpochLoop` is the one that iterates over the dataloader that the user returns in their :meth:`~pytorch_lightning.core.lightning.LightningModule.train_dataloader` method.
+The :class:`~pytorch_lightning.loops.epoch.training_epoch_loop.TrainingEpochLoop` is the one that iterates over the dataloader that the user returns from their :meth:`~pytorch_lightning.core.lightning.LightningModule.train_dataloader` method.
 Its main responsibilities are calling the :code:`*_epoch_start` and :code:`*_epoch_end` hooks, accumulating outputs if the user request them in one of these hooks, and running validation at the requested interval.
 The validation is carried out by yet another loop, :class:`~pytorch_lightning.loops.epoch.validation_epoch_loop.ValidationEpochLoop`.
 
@@ -148,7 +148,7 @@ The training loop in Lightning is very general and does not make many assumption
 In almost all use cases the user can do all their research inside the LightningModule alone and will never have to write a custom loop.
 This is very much the intended way and the whole reason why Lightning exists in the first place; to separate the loop boilerplate code from the actual research that we care about the most.
 
-However, for more exotic research it may not always be as easy to implement a new algorithm with just the hooks available in Lightning.
+For more exotic research,  it may not always be as easy to implement a new algorithm with just the hooks available in Lightning.
 Maybe there is a need for a hook in a particular place but it does not exist in Lightning? Or some hooks need to be executed in a different order?
 Or maybe the way a loop pre-fetches data needs to be changed to optimize performance?
 
@@ -219,10 +219,10 @@ To illustrate the power of loop customization we will look at a relatively simpl
 Example: YieldLoop
 ^^^^^^^^^^^^^^^^^^
 
-Here we will build a simple example of a custom loop that enables us to write a new flavor of a training step, where the training step actually becomes a generator and instead of returning losses for optimization, we yield them!
-**Note:** This assumes knowledge of generators in Pythoin and the :code:`yield` mechanism.
+In this example, we will build a custom loop that enables us to write a new flavor of a training step, where the training step actually becomes a generator and instead of returning losses for optimization, we yield them!
+**Note:** This assumes knowledge of generators in Python and the :code:`yield` mechanism.
 
-Imagine we had a LightningModule training step definition like this:
+Imagine you wanted your LightningModule training step to look like this:
 
 .. code-block:: python
 
@@ -242,7 +242,7 @@ But if the computation of say :code:`loss1` depends on :code:`loss0` or another 
 With the training step as a generator as shown above however, we are able to retain the local variables across training_step boundaries when we switch from one optimizer to the next.
 The alternative to this would be *manual optimization* where the same can be achieved, but with the generator loop we can still get all benefits of manual optimization without having to call backward or zero grad ourselves.
 
-In order to enable returning a generator from a training step, we need a custom loop!
+In order to enable returning a generator from a training step, we need to implement a custom loop!
 This will be a subclass of the existing :class:`~pytorch_lightning.loops.optimization.optimizer_loop.OptimizerLoop` and then be attached to the :class:`~pytorch_lightning.loops.batch.training_batch_loop.TrainingBatchLoop`.
 
 .. code-block:: python
@@ -282,7 +282,8 @@ This will be a subclass of the existing :class:`~pytorch_lightning.loops.optimiz
             )
 
             # Here we are basically calling lightning_module.training_step()
-            # and this returns a generator!
+            # and this returns a generator! The training_step is handled by the 
+            # accelerator to enable distributed training.
             generator = self.trainer.accelerator.training_step(step_kwargs)
             return generator
 
@@ -304,7 +305,7 @@ This will be a subclass of the existing :class:`~pytorch_lightning.loops.optimiz
 
 As we can see, not much work needs to be done to enable our generator training step.
 The new loop is called :code:`YieldLoop` and contains a reference to the generator returned by the :code:`training_step`.
-On every new run (over the optimizers) we call the :code:`training_step` method on the LightningModule which is supposed to return a generator because it contains :code:`yield` statements.
+On every new run (over the optimizers) we call the :code:`training_step` method on the LightningModule which is supposed to return a generator as it contains the :code:`yield` statements.
 There must be as many :code:`yield` statements as there are optimizers.
 
 Given this new loop, here is how you connect it to the Trainer:
@@ -327,8 +328,8 @@ Persisting the state of loops
 
 .. note::
     This is an experimental feature and is not activated by default.
-    Set the environment variable `PL_FAULT_TOLERANT_TRAINING = 1` to enable saving the progress of loops.
-    Read more about :doc:`fault-tolerant training training <../advanced/fault_tolerant_training>`.
+    Set the environment variable ``PL_FAULT_TOLERANT_TRAINING = 1`` to enable saving the progress of loops.
+    Read more about :doc:`fault-tolerant training <../advanced/fault_tolerant_training>`.
 
 An interesting property of the abstract loop interface is that it can maintain a state.
 It can save its state to a checkpoint through corresponding hooks and if implemented accordingly, resume it's state of exectuion at the appropriate place.
@@ -341,7 +342,6 @@ The two hooks :class:`~pytorch_lightning.loops.base.Loop.on_save_checkpoint` and
     def on_save_checkpoint(self):
         state_dict["iteration"] = self.iteration
         return state_dict
-
 
     def on_load_checkpoint(self, state_dict):
         self.iteration = state_dict["iteration"]
@@ -364,10 +364,10 @@ FAQ
 
 Several reasons:
 1) a loop can be portable, i.e., can be shared and imported in new projects,
-2) managing state and being able to resume a loop is more easily realized with on object-oriented design,
+2) managing state and being able to resume a loop is more easily realized with an object-oriented design,
 3) complex interactions between loops can be more easily modelled and leverage design patterns from object oriented design.
 
-**How do I make sure a given LightningModule is compatible with my custom loop?**
+**How do I make sure that a given LightningModule is compatible with my custom loop?**
 
 To restrict the compatibility of a LightningModule to a particular loop type, we recommend to define a specific class mixin for this purpose.
 With the YieldLoop shown above in mind, here is an example:
