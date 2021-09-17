@@ -55,8 +55,8 @@ class TrainerPropertyValidator(Callback):
         self.state_dict = state_dict
 
     def _test_on_val_test_predict_tune_start(self, trainer, pl_module):
-        assert trainer.current_epoch == 0
-        assert trainer.global_step == 0
+        assert trainer.current_epoch == self.state_dict["epoch"]
+        assert trainer.global_step == self.state_dict["global_step"]
         assert not any(
             trainer.optimizers[i].state_dict() == self.state_dict["optimizer_states"][i]
             for i in range(len(trainer.optimizers))
@@ -544,16 +544,19 @@ def test_trainer_properties_resume_from_checkpoint(tmpdir):
     resume_cb_validator = TrainerPropertyValidator(state_dict=state_dict)
 
     for fn in ("tune", "fit", "validate", "test", "predict"):
+        model = CustomBoringModel()
         trainer_args.update(
             {
                 "max_epochs": 2,
-                "callbacks": [checkpoint_callback, resume_cb_validator],
+                "callbacks": [resume_cb_validator],
                 "auto_lr_find": True,
                 "resume_from_checkpoint": resume_ckpt,
             }
         )
         if fn == "tune":
             trainer_args.update({"limit_train_batches": 1.0, "limit_val_batches": 1.0})
+        else:
+            trainer_args.update({"limit_train_batches": 7, "limit_val_batches": 7})
 
         trainer = Trainer(**trainer_args)
         getattr(trainer, fn)(model)

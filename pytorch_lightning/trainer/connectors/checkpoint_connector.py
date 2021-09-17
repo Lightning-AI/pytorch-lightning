@@ -171,14 +171,13 @@ class CheckpointConnector:
             return
 
         # restore loops and their progress
-        assert self.trainer.state.fn is not None
         self.restore_loops()
 
         # restore precision plugin (scaler etc.)
         self.trainer.precision_plugin.on_load_checkpoint(self._loaded_checkpoint)
 
+        assert self.trainer.state.fn is not None
         if self.trainer.state.fn == TrainerFn.FITTING:
-
             # restore optimizers and schedulers state
             self.restore_optimizers_and_schedulers()
 
@@ -200,6 +199,7 @@ class CheckpointConnector:
         self.trainer.fit_loop.global_step = self._loaded_checkpoint["global_step"]
         self.trainer.fit_loop.current_epoch = self._loaded_checkpoint["epoch"]
 
+        assert self.trainer.state.fn is not None
         if self.trainer.state.fn == TrainerFn.FITTING:
 
             # crash if max_epochs is lower then the current epoch from the checkpoint

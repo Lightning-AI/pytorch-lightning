@@ -913,12 +913,13 @@ class Trainer(
 
     def _restore_modules_and_callbacks(self) -> None:
         # restore modules after setup
-        if self.state.fn != TrainerFn.TUNING:
-            self.checkpoint_connector.resume_start()
-        self.checkpoint_connector.restore_datamodule()
-        self.checkpoint_connector.restore_model()
-        # restore callback states
-        self.checkpoint_connector.restore_callbacks()
+        self.checkpoint_connector.resume_start()
+
+        if self.state.fn == TrainerFn.FITTING:
+            self.checkpoint_connector.restore_datamodule()
+            self.checkpoint_connector.restore_model()
+            # restore callback states
+            self.checkpoint_connector.restore_callbacks()
 
     def _load_checkpoint_weights(self):
         # only one process running at this point for TPUs, as spawn isn't triggered yet

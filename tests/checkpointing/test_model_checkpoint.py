@@ -986,8 +986,8 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
 
         trainer.test(model)
         # resume_from_checkpoint is resumed when calling `.fit`
-        assert trainer.global_step == 0
-        assert trainer.current_epoch == 0
+        assert trainer.global_step == 4
+        assert trainer.current_epoch == 2
 
         trainer.fit(model)
         assert trainer.global_step == epochs * limit_train_batches
