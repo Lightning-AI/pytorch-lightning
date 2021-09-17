@@ -40,7 +40,7 @@ class RichModelSummary(ModelSummary):
 
         trainer = Trainer(callbacks=RichModelSummary())
 
-    You could also enable it using the :class:`~pytorch_lightning.callbacks.RichProgressBar`
+    You could also enable ``RichModelSummary`` using the :class:`~pytorch_lightning.callbacks.RichProgressBar`
 
     .. code-block:: python
 
