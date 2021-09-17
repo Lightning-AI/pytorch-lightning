@@ -42,6 +42,7 @@ class SignalConnector:
 
         sigterm_handlers.append(self.sigterm_handler_fn)
 
+        # signal.SIGUSR1 doesn't seem available on windows
         if not self._is_on_windows():
             if not self._has_already_handler(signal.SIGUSR1):
                 signal.signal(signal.SIGUSR1, HandlersCompose(sigusr1_handlers))
