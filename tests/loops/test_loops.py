@@ -685,10 +685,29 @@ def test_fit_loop_reset(tmpdir):
     assert not epoch_loop.restarting
     assert not optimizer_loop.restarting
 
+    # we load exactly what was saved - no reset yet
     fit_loop.load_state_dict(mid_epoch_ckpt["loops"]["fit_loop"])
+
+    assert fit_loop.restarting
+    assert fit_loop.epoch_progress.total.ready == 1
+    assert fit_loop.epoch_progress.total.completed == 0  # the checkpoint was saved mid epoch
+    assert fit_loop.epoch_progress.current.ready == 1
+    assert fit_loop.epoch_progress.current.completed == 0
+
+    assert epoch_loop.restarting
+    assert epoch_loop.batch_progress.total.ready == 2
+    assert epoch_loop.batch_progress.total.completed == 1  # the checkpoint was saved on train_batch_end
+    assert epoch_loop.batch_progress.current.ready == 2
+    assert epoch_loop.batch_progress.current.completed == 1
+
+    assert optimizer_loop.restarting
+    assert optimizer_loop.optim_progress.optimizer_position == 1
+
+    # resetting from a mid-of-epoch checkpoint SHOULD NOT reset the current counters to 0
     fit_loop.reset()
     epoch_loop.reset()
     optimizer_loop.reset()
+
     assert fit_loop.restarting
     assert fit_loop.epoch_progress.total.ready == 1
     assert fit_loop.epoch_progress.total.completed == 0  # the checkpoint was saved mid epoch
@@ -712,6 +731,7 @@ def test_fit_loop_reset(tmpdir):
     epoch_loop.restarting = False
     optimizer_loop.restarting = False
 
+    # we load exactly what was saved - no reset yet
     fit_loop.load_state_dict(end_of_epoch_ckpt["loops"]["fit_loop"])
 
     assert fit_loop.restarting
@@ -728,7 +748,7 @@ def test_fit_loop_reset(tmpdir):
 
     assert optimizer_loop.optim_progress.optimizer_position == 1
 
-    # resetting from a end-of-epoch checkpoint should reset the current counters to 0
+    # resetting from a end-of-epoch checkpoint SHOULD reset the current counters to 0
     fit_loop.reset()
     epoch_loop.reset()
     optimizer_loop.reset()
