@@ -36,7 +36,12 @@ from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, Hyperparameter
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from pytorch_lightning.utilities import _TORCH_SHARDED_TENSOR_AVAILABLE, rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities import (
+    _TORCH_SHARDED_TENSOR_AVAILABLE,
+    GradClipAlgorithmType,
+    rank_zero_deprecation,
+    rank_zero_warn,
+)
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
@@ -1467,6 +1472,24 @@ class LightningModule(
                             param.requires_grad = self._param_requires_grad_state[param]
         # save memory
         self._param_requires_grad_state = {}
+
+    def clip_gradients(
+        self,
+        optimizer: Optimizer,
+        optimizer_idx: int,
+        gradient_clip_val: Union[int, float] = 0.0,
+        gradient_clip_algorithm: str = "norm",
+    ):
+        gradient_clip_val = gradient_clip_val or self.trainer.gradient_clip_val
+        gradient_clip_algorithm = gradient_clip_algorithm or self.trainer.gradient_clip_algorithm
+
+        if not isinstance(gradient_clip_val, (int, float)):
+            raise MisconfigurationException("`gradient_clip_val` should be either an int or a float")
+
+        if gradient_clip_algorithm not in list(GradClipAlgorithmType):
+            raise MisconfigurationException(f"`gradient_clip_algorithm` should be in {list(GradClipAlgorithmType)}")
+
+        self.trainer.accelerator.clip_gradients(optimizer, gradient_clip_val, gradient_clip_algorithm)
 
     def optimizer_step(
         self,
