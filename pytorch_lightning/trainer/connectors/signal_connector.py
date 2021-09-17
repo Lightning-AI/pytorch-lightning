@@ -1,6 +1,7 @@
 import logging
 import os
 import signal
+import sys
 from signal import Signals
 from subprocess import call
 from types import FrameType
@@ -41,24 +42,12 @@ class SignalConnector:
 
         sigterm_handlers.append(self.sigterm_handler_fn)
 
-        if not self._has_already_handler(signal.SIGUSR1):
-            signal.signal(signal.SIGUSR1, HandlersCompose(sigusr1_handlers))
+        if not self._is_on_windows():
+            if not self._has_already_handler(signal.SIGUSR1):
+                signal.signal(signal.SIGUSR1, HandlersCompose(sigusr1_handlers))
 
-        if not self._has_already_handler(signal.SIGTERM):
-            signal.signal(signal.SIGTERM, HandlersCompose(sigterm_handlers))
-
-    def _is_on_slurm(self) -> bool:
-        # see if we're using slurm (not interactive)
-        on_slurm = False
-        try:
-            job_name = os.environ["SLURM_JOB_NAME"]
-            if job_name != "bash":
-                on_slurm = True
-        # todo: specify the possible exception
-        except Exception:
-            pass
-
-        return on_slurm
+            if not self._has_already_handler(signal.SIGTERM):
+                signal.signal(signal.SIGTERM, HandlersCompose(sigterm_handlers))
 
     def slurm_sigusr1_handler_fn(self, signum: Signals, frame: FrameType) -> None:
         if self.trainer.is_global_zero:
@@ -95,6 +84,22 @@ class SignalConnector:
 
     def sigterm_handler_fn(self, signum: Signals, frame: FrameType) -> None:
         log.info("bypassing sigterm")
+
+    def _is_on_slurm(self) -> bool:
+        # see if we're using slurm (not interactive)
+        on_slurm = False
+        try:
+            job_name = os.environ["SLURM_JOB_NAME"]
+            if job_name != "bash":
+                on_slurm = True
+        # todo: specify the possible exception
+        except Exception:
+            pass
+
+        return on_slurm
+
+    def _is_on_windows(self) -> bool:
+        return sys.platform == "win32"
 
     def _has_already_handler(self, signum: Signals) -> bool:
         try:
