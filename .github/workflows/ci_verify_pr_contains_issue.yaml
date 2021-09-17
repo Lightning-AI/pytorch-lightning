@@ -1,4 +1,4 @@
-name: VerifyIssue
+name: Verify Issue Linking
 
 on:
   pull_request:
