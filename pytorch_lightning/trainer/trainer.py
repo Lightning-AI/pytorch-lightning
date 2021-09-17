@@ -1017,6 +1017,10 @@ class Trainer(
         # TRAIN
         # ----------------------------
 
+        # reset logger connector
+        self.logger_connector.reset_results()
+        self.logger_connector.reset_metrics()
+
         # hook
         if self.state.fn == TrainerFn.FITTING:
             self.call_hook("on_fit_start")
@@ -1201,7 +1205,7 @@ class Trainer(
             stage = self.state.stage
             self.sanity_checking = True
 
-            # reset validation metrics
+            # reset logger connector
             self.logger_connector.reset_results()
             self.logger_connector.reset_metrics()
 
@@ -1216,7 +1220,7 @@ class Trainer(
 
             self.call_hook("on_sanity_check_end")
 
-            # reset validation metrics
+            # reset logger connector
             self.logger_connector.reset_results()
             self.logger_connector.reset_metrics()
 
