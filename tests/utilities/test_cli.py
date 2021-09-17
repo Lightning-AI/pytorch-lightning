@@ -134,9 +134,9 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
 def test_parse_args_parsing(cli_args, expected):
     """Test parsing simple types and None optionals not modified."""
     cli_args = cli_args.split(" ") if cli_args else []
-    parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
-    parser.add_lightning_class_args(Trainer, None)
     with mock.patch("sys.argv", ["any.py"] + cli_args):
+        parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
+        parser.add_lightning_class_args(Trainer, None)
         args = parser.parse_args()
 
     for k, v in expected.items():
@@ -155,9 +155,9 @@ def test_parse_args_parsing(cli_args, expected):
 )
 def test_parse_args_parsing_complex_types(cli_args, expected, instantiate):
     """Test parsing complex types."""
-    parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
-    parser.add_lightning_class_args(Trainer, None)
     with mock.patch("sys.argv", ["any.py"] + cli_args):
+        parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
+        parser.add_lightning_class_args(Trainer, None)
         args = parser.parse_args()
 
     for k, v in expected.items():
@@ -171,9 +171,9 @@ def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
     """Test parsing of gpus and instantiation of Trainer."""
     monkeypatch.setattr("torch.cuda.device_count", lambda: 2)
     cli_args = cli_args.split(" ") if cli_args else []
-    parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
-    parser.add_lightning_class_args(Trainer, None)
     with mock.patch("sys.argv", ["any.py"] + cli_args):
+        parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
+        parser.add_lightning_class_args(Trainer, None)
         args = parser.parse_args()
 
     trainer = Trainer.from_argparse_args(args)
@@ -639,12 +639,7 @@ def test_lightning_cli_optimizer_and_lr_scheduler(tmpdir):
             parser.add_optimizer_args(torch.optim.Adam)
             parser.add_lr_scheduler_args(torch.optim.lr_scheduler.ExponentialLR)
 
-    cli_args = [
-        "fit",
-        f"--trainer.default_root_dir={tmpdir}",
-        "--trainer.fast_dev_run=1",
-        "--lr_scheduler.gamma=0.8",
-    ]
+    cli_args = ["fit", f"--trainer.default_root_dir={tmpdir}", "--trainer.fast_dev_run=1", "--lr_scheduler.gamma=0.8"]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = MyLightningCLI(BoringModel)
