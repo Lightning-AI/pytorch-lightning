@@ -10,18 +10,14 @@ log = logging.getLogger(__name__)
 
 
 class HandlersCompose:
-    def __init__(self, signal_handlers: Union[List[Callable], Callable], user_defined_handler: Optional[Callable]):
+    def __init__(self, signal_handlers: Union[List[Callable], Callable]):
         if not isinstance(signal_handlers, list):
             signal_handlers = [signal_handlers]
         self.signal_handlers = signal_handlers
-        self.user_defined_handler = user_defined_handler
 
     def __call__(self, signum, frame):
-        if self.user_defined_handler:
-            self.user_defined_handler(signum, frame)
-        else:
-            for signal_handler in self.signal_handlers:
-                signal_handler(signum, frame)
+        for signal_handler in self.signal_handlers:
+            signal_handler(signum, frame)
 
 
 class SignalConnector:
@@ -60,8 +56,8 @@ class SignalConnector:
 
         sigterm_handlers.append(self.sigterm_handler_fn)
 
-        signal.signal(signal.SIGUSR1, HandlersCompose(sigusr1_handlers, self.sigusr1_handler))
-        signal.signal(signal.SIGTERM, HandlersCompose(sigterm_handlers, self.sigterm_handler))
+        signal.signal(signal.SIGUSR1, HandlersCompose(self.sigusr1_handler or sigusr1_handlers))
+        signal.signal(signal.SIGTERM, HandlersCompose(self.sigterm_handler or sigterm_handlers))
 
     def _is_on_slurm(self) -> bool:
         # see if we're using slurm (not interactive)
