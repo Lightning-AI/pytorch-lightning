@@ -289,7 +289,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         # convert optimizer dicts to list
         if automatic:
-            batch_outputs = apply_to_collection(
+            batch_output = apply_to_collection(
                 batch_output, dtype=dict, function=_convert_optim_dict, num_optimizers=num_optimizers
             )
         array = np.array(batch_output, dtype=object)
