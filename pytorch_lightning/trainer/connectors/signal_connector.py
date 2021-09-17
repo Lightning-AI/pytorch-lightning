@@ -3,8 +3,10 @@ import os
 import signal
 from signal import Signals
 from subprocess import call
-from typing import Callable, List, Optional, Union
+from types import FrameType
+from typing import Callable, List, Union
 
+import pytorch_lightning as pl
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 log = logging.getLogger(__name__)
@@ -22,31 +24,13 @@ class HandlersCompose:
 
 
 class SignalConnector:
-    def __init__(self, trainer, sigusr1_handler: Optional[Callable] = None, sigterm_handler: Optional[Callable] = None):
+    def __init__(self, trainer: "pl.Trainer"):
         self.trainer = trainer
-        self.trainer._terminate_gracefully = False
-        self._sigusr1_handler = sigusr1_handler
-        self._sigterm_handler = sigterm_handler
+        self.trainer._terminate_gracefully: bool = False
 
-    @property
-    def sigusr1_handler(self) -> Optional[Callable]:
-        return self._sigusr1_handler
-
-    @sigusr1_handler.setter
-    def sigusr1_handler(self, sigusr1_handler: Callable) -> None:
-        self._sigusr1_handler = sigusr1_handler
-
-    @property
-    def sigterm_handler(self) -> Optional[Callable]:
-        return self._sigterm_handler
-
-    @sigterm_handler.setter
-    def sigterm_handler(self, sigterm_handler: Callable) -> None:
-        self._sigterm_handler = sigterm_handler
-
-    def register_signal_handlers(self):
-        sigusr1_handlers = []
-        sigterm_handlers = []
+    def register_signal_handlers(self) -> None:
+        sigusr1_handlers: List[Callable] = []
+        sigterm_handlers: List[Callable] = []
 
         if _fault_tolerant_training():
             sigusr1_handlers.append(self.fault_tolerant_sigusr1_handler_fn)
@@ -58,10 +42,10 @@ class SignalConnector:
         sigterm_handlers.append(self.sigterm_handler_fn)
 
         if not self._has_already_handler(signal.SIGUSR1):
-            signal.signal(signal.SIGUSR1, HandlersCompose(self.sigusr1_handler or sigusr1_handlers))
+            signal.signal(signal.SIGUSR1, HandlersCompose(sigusr1_handlers))
 
         if not self._has_already_handler(signal.SIGTERM):
-            signal.signal(signal.SIGTERM, HandlersCompose(self.sigterm_handler or sigterm_handlers))
+            signal.signal(signal.SIGTERM, HandlersCompose(sigterm_handlers))
 
     def _is_on_slurm(self) -> bool:
         # see if we're using slurm (not interactive)
@@ -76,7 +60,7 @@ class SignalConnector:
 
         return on_slurm
 
-    def slurm_sigusr1_handler_fn(self, signum, frame):  # pragma: no-cover
+    def slurm_sigusr1_handler_fn(self, signum: Signals, frame: FrameType) -> None:
         if self.trainer.is_global_zero:
             # save weights
             log.info("handling SIGUSR1")
@@ -106,14 +90,14 @@ class SignalConnector:
             # close experiment to avoid issues
             self.trainer.logger.close()
 
-    def fault_tolerant_sigusr1_handler_fn(self, signum, frame):  # pragma: no-cover
+    def fault_tolerant_sigusr1_handler_fn(self, signum: Signals, frame: FrameType):
         self.trainer._terminate_gracefully = True
 
-    def sigterm_handler_fn(self, signum, frame):  # pragma: no-cover
+    def sigterm_handler_fn(self, signum: Signals, frame: FrameType) -> None:
         log.info("bypassing sigterm")
 
-    def _has_already_handler(self, sig: Signals) -> bool:
+    def _has_already_handler(self, signum: Signals) -> bool:
         try:
-            return isinstance(signal.getsignal(sig), Callable)
+            return isinstance(signal.getsignal(signum), Callable)
         except AttributeError:
             return False
