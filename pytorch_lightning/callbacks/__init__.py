@@ -18,6 +18,7 @@ from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
 from pytorch_lightning.callbacks.gradient_accumulation_scheduler import GradientAccumulationScheduler
 from pytorch_lightning.callbacks.lambda_function import LambdaCallback
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
+from pytorch_lightning.callbacks.device_stats_monitor import DeviceStatsMonitor
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.callbacks.model_summary import ModelSummary
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
@@ -33,6 +34,7 @@ __all__ = [
     "BackboneFinetuning",
     "BaseFinetuning",
     "Callback",
+    "DeviceStatsMonitor",
     "EarlyStopping",
     "GPUStatsMonitor",
     "XLAStatsMonitor",
