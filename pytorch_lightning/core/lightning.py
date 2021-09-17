@@ -52,7 +52,7 @@ warning_cache = WarningCache()
 log = logging.getLogger(__name__)
 
 
-class LightningModule(
+class LightningModule(  # noqa
     DeviceDtypeModuleMixin,
     HyperparametersMixin,
     ModelIO,
