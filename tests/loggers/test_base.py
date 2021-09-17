@@ -13,7 +13,8 @@
 # limitations under the License.
 import pickle
 from argparse import Namespace
-from typing import Optional
+from copy import deepcopy
+from typing import Any, Dict, Optional
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -294,17 +295,21 @@ def test_log_hyperparams_being_called(log_hyperparams_mock, tmpdir, logger):
 @patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_hyperparams")
 def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
     class TestModel(BoringModel):
-        def __init__(self, key: int, val: int) -> None:
+        def __init__(self, hparams: Dict[str, Any]) -> None:
             super().__init__()
-            self.save_hyperparameters({key: val})
+            self.save_hyperparameters(hparams)
 
     class TestDataModule(BoringDataModule):
-        def __init__(self, key: int, val: int) -> None:
+        def __init__(self, hparams: Dict[str, Any]) -> None:
             super().__init__()
-            self.save_hyperparameters({key: val})
+            self.save_hyperparameters(hparams)
 
-    model = TestModel(1, 1)
-    dm = TestDataModule(1, 1)
+    class _Test:
+        ...
+
+    same_params = {1: 1, "2": 2, "three": 3.0, "test": _Test()}
+    model = TestModel(same_params)
+    dm = TestDataModule(same_params)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -312,19 +317,33 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         limit_train_batches=0.1,
         limit_val_batches=0.1,
         num_sanity_val_steps=0,
+        checkpoint_callback=False,
+        progress_bar_refresh_rate=0,
+        weights_summary=None,
     )
     # there should be no exceptions raised for the same key/value pair in the hparams of both
     # the lightning module and data module
     trainer.fit(model)
 
-    model = TestModel(1, 1)
-    dm = TestDataModule(1, 2)
+    obj_params = deepcopy(same_params)
+    obj_params["test"] = _Test()
+    model = TestModel(same_params)
+    dm = TestDataModule(obj_params)
+    trainer.fit(model)
+
+    diff_params = deepcopy(same_params)
+    diff_params.update({1: 0, "test": _Test()})
+    model = TestModel(same_params)
+    dm = TestDataModule(diff_params)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=0.1,
         limit_val_batches=0.1,
         num_sanity_val_steps=0,
+        checkpoint_callback=False,
+        progress_bar_refresh_rate=0,
+        weights_summary=None,
     )
     with pytest.raises(MisconfigurationException, match="Error while merging hparams"):
         trainer.fit(model, dm)

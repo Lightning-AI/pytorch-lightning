@@ -1052,7 +1052,7 @@ class Trainer(
                 if colliding_keys:
                     inconsistent_keys = []
                     for key in colliding_keys:
-                        if lightning_hparams[key] != datamodule_hparams[key]:
+                        if id(lightning_hparams[key]) != id(datamodule_hparams[key]):
                             inconsistent_keys.append(key)
                     if inconsistent_keys:
                         raise MisconfigurationException(
