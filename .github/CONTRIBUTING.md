@@ -168,6 +168,7 @@ formatting errors. In certain cases, a missing blank line or a wrong indent can 
 Run these commands
 
 ```bash
+git submodule update --init --recursive
 pip install -r requirements/docs.txt
 cd docs
 make html
