@@ -8,7 +8,7 @@ By advanced users, we mean users that are familiar with the major components und
 
 In this advanced user guide, we will learn about:
 
-- how the Trainer runs a loop,
+- how the ``Trainer`` runs a loop,
 - the ``Loop`` base class design,
 - the default loop implementations and subloops Lightning has,
 - how Lightning defines a tree structure of loops and subloops,
