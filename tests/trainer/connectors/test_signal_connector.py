@@ -23,15 +23,15 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
-@pytest.mark.parametrize("should_gracefully_terminate", [False, True])
+@pytest.mark.parametrize("terminate_gracefully", [False, True])
 @RunIf(min_torch="1.7.0", skip_windows=True)
-def test_fault_tolerant_sig_handler(should_gracefully_terminate, tmpdir):
+def test_fault_tolerant_sig_handler(terminate_gracefully, tmpdir):
 
-    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": str(int(should_gracefully_terminate))}):
+    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": str(int(terminate_gracefully))}):
 
         class TestModel(BoringModel):
             def training_step(self, batch, batch_idx):
-                if should_gracefully_terminate and self.trainer.current_epoch == 1 and batch_idx == 1:
+                if terminate_gracefully and self.trainer.current_epoch == 1 and batch_idx == 1:
                     os.kill(os.getpid(), signal.SIGUSR1)
                     sleep(0.1)
                 return super().training_step(batch, batch_idx)
@@ -39,4 +39,4 @@ def test_fault_tolerant_sig_handler(should_gracefully_terminate, tmpdir):
         model = TestModel()
         trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, limit_train_batches=2, limit_val_batches=2)
         trainer.fit(model)
-        assert trainer._should_gracefully_terminate == should_gracefully_terminate
+        assert trainer._terminate_gracefully == terminate_gracefully

@@ -21,11 +21,11 @@ class HandlersCompose:
 
 
 class SignalConnector:
-    def __init__(self, trainer):
+    def __init__(self, trainer, sigusr1_handler: Optional[Callable] = None, sigterm_handler: Optional[Callable] = None):
         self.trainer = trainer
-        self.trainer._should_gracefully_terminate = False
-        self._sigusr1_handler: Optional[Callable] = None
-        self._sigterm_handler: Optional[Callable] = None
+        self.trainer._terminate_gracefully = False
+        self._sigusr1_handler = sigusr1_handler
+        self._sigterm_handler = sigterm_handler
 
     @property
     def sigusr1_handler(self) -> Optional[Callable]:
@@ -103,7 +103,7 @@ class SignalConnector:
             self.trainer.logger.close()
 
     def fault_tolerant_sigusr1_handler_fn(self, signum, frame):  # pragma: no-cover
-        self.trainer._should_gracefully_terminate = True
+        self.trainer._terminate_gracefully = True
 
     def sigterm_handler_fn(self, signum, frame):  # pragma: no-cover
         log.info("bypassing sigterm")
