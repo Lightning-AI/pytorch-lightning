@@ -52,7 +52,7 @@ from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_fr
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
-from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
+from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import DeprecatedTrainerAttributes
@@ -383,7 +383,7 @@ class Trainer(
         self.debugging_connector = DebuggingConnector(self)
         self.training_tricks_connector = TrainingTricksConnector(self)
         self.checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
-        self.slurm_connector = SLURMConnector(self)
+        self.signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
         # max_epochs won't default to 1000 if max_steps/max_time are specified (including being set to -1).
@@ -1036,7 +1036,7 @@ class Trainer(
         self.accelerator.pre_dispatch(self)
         self._log_hyperparams()
 
-    def _log_hyperparams(self):
+    def _log_hyperparams(self) -> None:
         # log hyper-parameters
         hparams_initial = None
 
@@ -1047,12 +1047,20 @@ class Trainer(
             if self.lightning_module._log_hyperparams and datamodule_log_hyperparams:
                 datamodule_hparams = self.datamodule.hparams_initial
                 lightning_hparams = self.lightning_module.hparams_initial
-
-                colliding_keys = lightning_hparams.keys() & datamodule_hparams.keys()
-                if colliding_keys:
+                inconsistent_keys = []
+                for key in lightning_hparams.keys() & datamodule_hparams.keys():
+                    lm_val, dm_val = lightning_hparams[key], datamodule_hparams[key]
+                    if type(lm_val) != type(dm_val):
+                        inconsistent_keys.append(key)
+                    elif isinstance(lm_val, torch.Tensor) and id(lm_val) != id(dm_val):
+                        inconsistent_keys.append(key)
+                    elif lm_val != dm_val:
+                        inconsistent_keys.append(key)
+                if inconsistent_keys:
                     raise MisconfigurationException(
-                        f"Error while merging hparams: the keys {colliding_keys} are present "
-                        "in both the LightningModule's and LightningDataModule's hparams."
+                        f"Error while merging hparams: the keys {inconsistent_keys} are present "
+                        "in both the LightningModule's and LightningDataModule's hparams "
+                        "but have different values."
                     )
                 hparams_initial = {**lightning_hparams, **datamodule_hparams}
             elif self.lightning_module._log_hyperparams:
@@ -1096,8 +1104,8 @@ class Trainer(
         # wait for all to join if on distributed
         self.accelerator.barrier("setup_training")
 
-        # register auto-resubmit when on SLURM
-        self.slurm_connector.register_slurm_signal_handlers()
+        # register signals
+        self.signal_connector.register_signal_handlers()
 
         self.checkpoint_connector.resume_end()
 

@@ -274,14 +274,15 @@ class CheckpointConnector:
     # PRIVATE OPS
     # ----------------------------------
 
-    def hpc_save(self, folderpath: str, logger: LightningLoggerBase) -> str:
+    def hpc_save(self, folderpath: str, logger: Optional[LightningLoggerBase]) -> str:
         # make sure the checkpoint folder exists
         folderpath = str(folderpath)  # because the tests pass a path object
         fs = get_filesystem(folderpath)
         fs.makedirs(folderpath, exist_ok=True)
 
         # save logger to make sure we get all the metrics
-        logger.save()
+        if logger:
+            logger.finalize("finished")
 
         max_suffix = self.max_ckpt_version_in_folder(folderpath)
         ckpt_number = (max_suffix if max_suffix is not None else 0) + 1
