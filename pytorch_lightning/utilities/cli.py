@@ -46,6 +46,7 @@ class _Registry(dict):
         Args:
             cls: the class to be mapped.
             key: the name that identifies the provided class.
+            override: Whether to override an existing key.
         """
         if key is None:
             key = cls.__name__
