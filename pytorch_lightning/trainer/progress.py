@@ -205,7 +205,7 @@ class OptimizerProgress(BaseProgress):
         self.step.load_state_dict(state_dict["step"])
         self.zero_grad.load_state_dict(state_dict["zero_grad"])
 
-    def reset_on_restart(self):
+    def reset_on_restart(self) -> None:
         self.step.reset_on_restart()
         self.zero_grad.reset_on_restart()
 
