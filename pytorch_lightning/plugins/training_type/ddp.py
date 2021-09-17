@@ -540,7 +540,7 @@ class DDPPlugin(ParallelPlugin):
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         rank_zero_info(f"DistributedDataParallel has {self.num_processes} processes. Serializing to avoid CPU OOMs.")
         for current_worker in range(self.num_processes):
-            if self.local_rank == current_worker and torch.distributed.is_initialized():
+            if self.local_rank == current_worker:
                 checkpoint = super().load_checkpoint(checkpoint_path)
                 del checkpoint["state_dict"]
                 log.info(f"Rank {self.global_rank}: done loading model states from {checkpoint_path}.")
