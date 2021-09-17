@@ -79,7 +79,7 @@ class SignalConnector:
 
             # close experiment to avoid issues
             if self.trainer.logger:
-                self.trainer.logger.finalize()
+                self.trainer.logger.finalize("finished")
 
     def fault_tolerant_sigusr1_handler_fn(self, signum: Signals, frame: FrameType) -> None:
         self.trainer._terminate_gracefully = True
