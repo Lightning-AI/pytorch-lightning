@@ -340,9 +340,6 @@ class DeepSpeedPlugin(DDPPlugin):
         # determine which process we are and world size
         self.set_world_ranks()
 
-        # set warning rank
-        rank_zero_only.rank = self.global_rank
-
         self.init_deepspeed_distributed()
 
         # set the ranks and devices
@@ -355,25 +352,21 @@ class DeepSpeedPlugin(DDPPlugin):
     def init_deepspeed_distributed(self) -> None:
         if platform.system() != "Windows":
             # do not set env variables on windows, allow deepspeed to control setup
-            global_rank = self.global_rank if self.global_rank is not None else self.cluster_environment.global_rank()
-            world_size = self.world_size if self.world_size is not None else self.cluster_environment.world_size()
-            self._set_node_environment_variables(global_rank, world_size)
+            self._set_node_environment_variables()
             log.info(
                 "initializing deepspeed distributed: "
-                f"GLOBAL_RANK: {global_rank}, "
-                f"MEMBER: {global_rank + 1}/{world_size}"
+                f"GLOBAL_RANK: {self.global_rank}, "
+                f"MEMBER: {self.global_rank + 1}/{self.world_size}"
             )
         deepspeed.init_distributed(
             self.torch_distributed_backend, distributed_port=self.cluster_environment.master_port()
         )
 
-    def _set_node_environment_variables(
-        self, global_rank: Optional[int] = None, world_size: Optional[int] = None
-    ) -> None:
+    def _set_node_environment_variables(self) -> None:
         os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        os.environ["RANK"] = str(global_rank)
-        os.environ["WORLD_SIZE"] = str(world_size)
+        os.environ["RANK"] = str(self.global_rank)
+        os.environ["WORLD_SIZE"] = str(self.world_size)
         os.environ["LOCAL_RANK"] = str(self.local_rank)
 
     @property
