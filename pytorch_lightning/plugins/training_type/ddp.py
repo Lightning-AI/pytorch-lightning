@@ -543,6 +543,7 @@ class DDPPlugin(ParallelPlugin):
             if self.local_rank == current_worker:
                 checkpoint = super().load_checkpoint(checkpoint_path)
                 del checkpoint["state_dict"]
+                self._self_deleted_checkpoint_state_dict = True
                 log.info(f"Rank {self.global_rank}: done loading model states from {checkpoint_path}.")
             self.barrier()
         return checkpoint
