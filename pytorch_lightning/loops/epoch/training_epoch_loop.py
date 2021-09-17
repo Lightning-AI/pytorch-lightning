@@ -301,14 +301,12 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         array = array.transpose((0, 1))
         array = array.squeeze()
         array = array.tolist()
-
-        # remove residual empty lists
-        array = [item for item in array if isinstance(item, list) and len(item)]
-
         array = _recursive_unpad(array)
 
         # in case we squeezed from 1-element array to a 0-dim array
         array = array if isinstance(array, list) else [array]
+        # remove residual empty lists
+        array = [item for item in array if isinstance(item, list) and len(item)]
         return array
 
     @staticmethod
@@ -343,14 +341,12 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         array = array.transpose((2, 0, 1))
         array = array.squeeze()
         array = array.tolist()
-
-        # remove residual empty lists
-        array = [item for item in array if isinstance(item, list) and len(item)]
-
         array = _recursive_unpad(array)
 
         # in case we squeezed from 1-element array to a 0-dim array
         array = array if isinstance(array, list) else [array]
+        # remove residual empty lists
+        array = [item for item in array if not isinstance(item, list) or len(item)]
         return array
 
     def update_lr_schedulers(self, interval: str, update_plateau_schedulers: bool) -> None:
