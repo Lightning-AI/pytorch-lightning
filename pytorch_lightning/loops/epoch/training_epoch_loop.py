@@ -18,7 +18,7 @@ import torch
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.loops.optimization.closure import OutputResult
-from pytorch_lightning.loops.utilities import _prepare_dataloader_iter, _get_active_optimizers
+from pytorch_lightning.loops.utilities import _get_active_optimizers, _prepare_dataloader_iter
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import Progress, SchedulerProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException

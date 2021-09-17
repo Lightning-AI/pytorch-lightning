@@ -14,7 +14,7 @@
 from collections import OrderedDict
 from contextlib import contextmanager
 from functools import lru_cache
-from typing import Any, Dict, Generator, Iterator, Optional, Sequence, List, Tuple
+from typing import Any, Dict, Generator, Iterator, List, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
@@ -146,8 +146,8 @@ def _block_parallel_sync_behavior(trainer: "pl.Trainer", block: bool = True) -> 
 def _get_active_optimizers(
     optimizers: List[Optimizer], frequencies: List[int], batch_idx: Optional[int] = None
 ) -> List[Tuple[int, Optimizer]]:
-    """Returns the currently active optimizers. When multiple optimizers are used with different frequencies,
-    only one of the optimizers is active at a time.
+    """Returns the currently active optimizers. When multiple optimizers are used with different frequencies, only
+    one of the optimizers is active at a time.
 
     Returns:
         A list of tuples (opt_idx, optimizer) of currently active optimizers.
