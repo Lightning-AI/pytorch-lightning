@@ -139,7 +139,7 @@ def get_init_arguments_and_types(cls: Any) -> List[Tuple[str, Tuple, Any]]:
         arg_default = cls_default_params[arg].default
         try:
             arg_types = tuple(arg_type.__args__)
-        except AttributeError:
+        except (AttributeError, TypeError):
             arg_types = (arg_type,)
 
         name_type_default.append((arg, arg_types, arg_default))

@@ -94,6 +94,13 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run."""
+        assert self.batch_loop is not None
+        assert self.batch_loop.optimizer_loop is not None
+        if self.restarting:
+            self.batch_progress.current.reset_on_restart()
+            self.scheduler_progress.current.reset_on_restart()
+            self.batch_loop.optimizer_loop.optim_progress.reset_on_restart()
+
         self.is_last_batch = False
         self._outputs = []
 
@@ -250,7 +257,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def _run_validation(self):
         # reload dataloaders
-        self.val_loop.reload_evaluation_dataloaders()
+        self.val_loop._reload_evaluation_dataloaders()
 
         with torch.no_grad():
             self.val_loop.run()

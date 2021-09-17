@@ -174,6 +174,8 @@ class FitLoop(Loop):
 
     def reset(self) -> None:
         """Resets the internal state of this loop."""
+        if self.restarting:
+            self.epoch_progress.current.reset_on_restart()
 
     def on_run_start(self) -> None:
         """Calls the ``on_train_start`` hook."""

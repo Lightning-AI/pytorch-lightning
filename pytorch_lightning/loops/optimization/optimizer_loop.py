@@ -193,8 +193,11 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
 
     def reset(self) -> None:
-        if not self.restarting or self.done:
+        if not self.restarting:
+            # when reset() is called from outside (manually), we reset the loop progress
             self.optim_progress.optimizer_position = 0
+        else:
+            self.optim_progress.reset_on_restart()
         self._outputs = {}
 
     def on_run_start(  # type: ignore[override]
@@ -202,6 +205,8 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
     ) -> None:
         self._batch_idx = batch_idx
         self._indices, self._optimizers = zip(*optimizers)
+        if self.done:
+            self.optim_progress.optimizer_position = 0
 
     def advance(self, batch: Any, *args: Any, **kwargs: Any) -> None:  # type: ignore[override]
         result = self._run_optimization(

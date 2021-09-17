@@ -251,11 +251,11 @@ def test_loop_hierarchy():
     assert state_dict == {"state_dict": {"a": 1}, "progress": {"increment": 1}}
 
 
+@RunIf(min_torch="1.7.0")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize("stop_epoch", (1, 2))
 @pytest.mark.parametrize("stop_batch", (1, 2))
 @pytest.mark.parametrize("n_dataloaders,stop_dataloader", [(2, 0), (2, 1), (3, 2)])
-@RunIf(min_torch="1.7.0")
 def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_dataloader, stop_epoch, stop_batch):
     n_batches = 5
     n_epochs = 3
@@ -284,10 +284,8 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     )
 
     # simulate a failure
-    try:
+    with pytest.raises(CustomException):
         trainer.fit(model)
-    except CustomException:
-        pass
 
     ckpt_path = str(tmpdir / ".pl_auto_save.ckpt")
     checkpoint = torch.load(ckpt_path)["loops"]["fit_loop"]
@@ -299,7 +297,7 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     }
     assert checkpoint["epoch_loop.val_loop.dataloader_progress"] == expected
 
-    trainer.fit_loop.load_state_dict(checkpoint, restart_progress=False)
+    trainer.fit_loop.load_state_dict(checkpoint)
 
     # `nbe_`: non-breaking epoch, as in, no exception will be raised. `be_`: breaking epoch
     nbe_total_val_batch = stop_epoch * n_dataloaders * n_batches
@@ -321,26 +319,14 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     }
     assert trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.state_dict() == expected
 
-    trainer.fit_loop.load_state_dict(checkpoint)
-    expected = {
-        "total": {
-            "ready": total_val_batch + 1,
-            "started": total_val_batch + 1,
-            "processed": total_val_batch,
-            "completed": total_val_batch,
-        },
-        "current": {"ready": stop_batch, "started": stop_batch, "processed": stop_batch, "completed": stop_batch},
-    }
-    assert trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.state_dict() == expected
 
-
+@RunIf(min_torch="1.7.0")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))
 @pytest.mark.parametrize("n_optimizers", (1, 3, 5))
 @pytest.mark.parametrize("stop_epoch", (1, 2))
 @pytest.mark.parametrize("stop_batch", (1, 2))
 @pytest.mark.parametrize("stop_optimizer", (1, 2))
-@RunIf(min_torch="1.7.0")
 def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch, stop_optimizer, n_optimizers, tmpdir):
     stop_optimizer = stop_optimizer if stop_optimizer < n_optimizers else 0
     n_epochs = 3
@@ -382,10 +368,8 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     )
 
     # simulate a failure
-    try:
+    with pytest.raises(CustomException):
         trainer.fit(model)
-    except CustomException:
-        pass
 
     ckpt_path = str(tmpdir / ".pl_auto_save.ckpt")
     assert os.path.exists(ckpt_path)
@@ -500,25 +484,46 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     }
     assert checkpoint["loops"]["fit_loop"] == expected
 
-    trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"], restart_progress=False)
+    trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"])
     state_dict = trainer.fit_loop.state_dict()
 
     # need to remove these elements for comparison; comparing with `fit_loop.state_dict()` would require the
     # fit loop to have an iterator, which is only available during training
     checkpoint["loops"]["fit_loop"]["state_dict"]["dataloader_state_dict"] = ANY
-
     assert state_dict == checkpoint["loops"]["fit_loop"]
 
     trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"])
+    # test resetting manually, we expect all `ready` counters to be reset to `completed`
+    trainer.fit_loop.reset()
+    trainer.fit_loop.epoch_loop.reset()
+    trainer.fit_loop.epoch_loop.batch_loop.reset()
+    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.reset()
+    trainer.fit_loop.epoch_loop.val_loop.reset()
+    trainer.fit_loop.epoch_loop.val_loop.epoch_loop.reset()
+
+    epoch_progress = trainer.fit_loop.epoch_progress
+    assert epoch_progress.current.ready == stop_epoch
+    assert epoch_progress.current.completed == stop_epoch
+
+    batch_progress = trainer.fit_loop.epoch_loop.batch_progress
+    assert batch_progress.current.ready == be_batches_completed
+    assert batch_progress.current.completed == be_batches_completed
+
+    optim_progress = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress
+    assert optim_progress.optimizer.step.current.ready == be_total_opt_steps
+    assert optim_progress.optimizer.step.current.completed == be_total_opt_steps
+    assert optim_progress.optimizer.zero_grad.current.ready == be_total_zero_grad
+    assert optim_progress.optimizer.zero_grad.current.completed == be_total_zero_grad
+
     state_dict = trainer.fit_loop.state_dict()
     assert state_dict != checkpoint["loops"]["fit_loop"]
     assert state_dict["epoch_progress"]["total"]["started"] == stop_epoch + 1
     assert state_dict["epoch_progress"]["current"]["started"] == stop_epoch
 
 
+@RunIf(min_torch="1.7.0")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize("n_optimizers", (1, 3, 5))
-@RunIf(min_torch="1.7.0")
 def test_loop_state_on_complete_run(n_optimizers, tmpdir):
     n_epochs = 3
     n_batches = 3
@@ -647,8 +652,8 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
     assert checkpoint["loops"]["fit_loop"] == expected
 
 
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(min_torch="1.7.0")
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_fit_loop_reset(tmpdir):
     """Test that the reset logic in fit- and epoch loop is aware of whether the loop is restarting from a completed
     loop or from a mid-epoch checkpoint."""
@@ -680,29 +685,27 @@ def test_fit_loop_reset(tmpdir):
     assert not epoch_loop.restarting
     assert not optimizer_loop.restarting
 
+    # we load exactly what was saved - no reset yet
     fit_loop.load_state_dict(mid_epoch_ckpt["loops"]["fit_loop"])
-
-    def mid_epoch_reset_assertions():
-        assert fit_loop.restarting
-        assert fit_loop.epoch_progress.total.ready == 1
-        assert fit_loop.epoch_progress.total.completed == 0  # the checkpoint was saved mid epoch
-        assert fit_loop.epoch_progress.current.ready == 0
-        assert fit_loop.epoch_progress.current.completed == 0
-
-        assert epoch_loop.restarting
-        assert epoch_loop.batch_progress.total.ready == 2
-        assert epoch_loop.batch_progress.total.completed == 1  # the checkpoint was saved on train_batch_end
-        assert epoch_loop.batch_progress.current.ready == 2
-        assert epoch_loop.batch_progress.current.completed == 2
-
-    # resetting from a mid-epoch checkpoint should not change progress counters
-    mid_epoch_reset_assertions()
-    assert optimizer_loop.optim_progress.optimizer_position == 1
+    # resetting from a mid-of-epoch checkpoint SHOULD NOT reset the current counters to 0
     fit_loop.reset()
     epoch_loop.reset()
     optimizer_loop.reset()
-    mid_epoch_reset_assertions()
-    assert optimizer_loop.optim_progress.optimizer_position == 0
+
+    assert fit_loop.restarting
+    assert fit_loop.epoch_progress.total.ready == 1
+    assert fit_loop.epoch_progress.total.completed == 0  # the checkpoint was saved mid epoch
+    assert fit_loop.epoch_progress.current.ready == 0
+    assert fit_loop.epoch_progress.current.completed == 0
+
+    assert epoch_loop.restarting
+    assert epoch_loop.batch_progress.total.ready == 2
+    assert epoch_loop.batch_progress.total.completed == 1  # the checkpoint was saved on train_batch_end
+    assert epoch_loop.batch_progress.current.ready == 2
+    assert epoch_loop.batch_progress.current.completed == 2
+
+    assert optimizer_loop.restarting
+    assert optimizer_loop.optim_progress.optimizer_position == 1
 
     # reset state loaded from a checkpoint from the end of an epoch
     end_of_epoch_ckpt = torch.load(str(tmpdir / "epoch=0-step=3.ckpt"))
@@ -712,23 +715,9 @@ def test_fit_loop_reset(tmpdir):
     epoch_loop.restarting = False
     optimizer_loop.restarting = False
 
+    # we load exactly what was saved - no reset yet
     fit_loop.load_state_dict(end_of_epoch_ckpt["loops"]["fit_loop"])
-
-    assert fit_loop.restarting
-    assert fit_loop.epoch_progress.total.ready == 1
-    assert fit_loop.epoch_progress.total.completed == 0  # the checkpoint saves before the epoch completes
-    assert fit_loop.epoch_progress.current.ready == 0
-    assert fit_loop.epoch_progress.current.completed == 0
-
-    assert epoch_loop.restarting
-    assert epoch_loop.batch_progress.total.ready == 4
-    assert epoch_loop.batch_progress.total.completed == 3  # the checkpoint was saved on train_batch_end
-    assert epoch_loop.batch_progress.current.ready == 4
-    assert epoch_loop.batch_progress.current.completed == 4
-
-    assert optimizer_loop.optim_progress.optimizer_position == 1
-
-    # resetting from a end-of-epoch checkpoint should reset the current counters to 0
+    # resetting from a end-of-epoch checkpoint SHOULD reset the current counters to 0
     fit_loop.reset()
     epoch_loop.reset()
     optimizer_loop.reset()
@@ -745,4 +734,4 @@ def test_fit_loop_reset(tmpdir):
     assert epoch_loop.batch_progress.current.ready == 0
     assert epoch_loop.batch_progress.current.completed == 0
 
-    assert optimizer_loop.optim_progress.optimizer_position == 0
+    assert optimizer_loop.optim_progress.optimizer_position == 1
