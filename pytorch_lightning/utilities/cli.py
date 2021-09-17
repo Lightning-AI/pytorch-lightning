@@ -56,11 +56,11 @@ class _Registry(dict):
             raise MisconfigurationException(f"'{key}' is already present in the registry. HINT: Use `override=True`.")
         self[key] = cls
 
-    def register_classes(self, module: ModuleType, base_cls: Type) -> None:
+    def register_classes(self, module: ModuleType, base_cls: Type, override: bool = False) -> None:
         """This function is an utility to register all classes from a module."""
         for _, cls in inspect.getmembers(module, predicate=inspect.isclass):
             if issubclass(cls, base_cls) and cls != base_cls:
-                self(cls=cls)
+                self(cls=cls, override=override)
 
     @property
     def names(self) -> List[str]:
