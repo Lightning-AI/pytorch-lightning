@@ -1,8 +1,11 @@
 import logging
 import os
 import signal
+from signal import Signals
 from subprocess import call
 from typing import Callable, List, Optional, Union
+
+import _signal
 
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
@@ -56,8 +59,11 @@ class SignalConnector:
 
         sigterm_handlers.append(self.sigterm_handler_fn)
 
-        signal.signal(signal.SIGUSR1, HandlersCompose(self.sigusr1_handler or sigusr1_handlers))
-        signal.signal(signal.SIGTERM, HandlersCompose(self.sigterm_handler or sigterm_handlers))
+        if not self._has_already_handler(signal.SIGUSR1):
+            signal.signal(signal.SIGUSR1, HandlersCompose(self.sigusr1_handler or sigusr1_handlers))
+
+        if not self._has_already_handler(signal.SIGTERM):
+            signal.signal(signal.SIGTERM, HandlersCompose(self.sigterm_handler or sigterm_handlers))
 
     def _is_on_slurm(self) -> bool:
         # see if we're using slurm (not interactive)
@@ -107,3 +113,9 @@ class SignalConnector:
 
     def sigterm_handler_fn(self, signum, frame):  # pragma: no-cover
         log.info("bypassing sigterm")
+
+    def _has_already_handler(self, signal: Signals) -> bool:
+        try:
+            return isinstance(_signal.getsignal(signal), Callable)
+        except AttributeError:
+            return False
