@@ -19,6 +19,7 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
+import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
@@ -307,7 +308,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
     class _Test:
         ...
 
-    same_params = {1: 1, "2": 2, "three": 3.0, "test": _Test()}
+    same_params = {1: 1, "2": 2, "three": 3.0, "test": _Test(), "4": torch.Tensor(4)}
     model = TestModel(same_params)
     dm = TestDataModule(same_params)
 
@@ -335,6 +336,23 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
     diff_params.update({1: 0, "test": _Test()})
     model = TestModel(same_params)
     dm = TestDataModule(diff_params)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+        num_sanity_val_steps=0,
+        checkpoint_callback=False,
+        progress_bar_refresh_rate=0,
+        weights_summary=None,
+    )
+    with pytest.raises(MisconfigurationException, match="Error while merging hparams"):
+        trainer.fit(model, dm)
+
+    tensor_params = deepcopy(same_params)
+    tensor_params.update({"4": torch.Tensor(3)})
+    model = TestModel(same_params)
+    dm = TestDataModule(tensor_params)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,

@@ -1049,7 +1049,12 @@ class Trainer(
                 lightning_hparams = self.lightning_module.hparams_initial
                 inconsistent_keys = []
                 for key in lightning_hparams.keys() & datamodule_hparams.keys():
-                    if id(lightning_hparams[key]) != id(datamodule_hparams[key]):
+                    lm_val, dm_val = lightning_hparams[key], datamodule_hparams[key]
+                    if type(lm_val) != type(dm_val):
+                        inconsistent_keys.append(key)
+                    elif isinstance(lm_val, torch.Tensor) and id(lm_val) != id(dm_val):
+                        inconsistent_keys.append(key)
+                    elif lm_val != dm_val:
                         inconsistent_keys.append(key)
                 if inconsistent_keys:
                     raise MisconfigurationException(
