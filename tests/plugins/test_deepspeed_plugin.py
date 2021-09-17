@@ -23,6 +23,7 @@ from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
 
 if _DEEPSPEED_AVAILABLE:
+    import deepspeed
     from deepspeed.utils.zero_to_fp32 import convert_zero_checkpoint_to_fp32_state_dict
 
 
@@ -383,12 +384,15 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_co
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
 def test_deepspeed_multigpu(tmpdir):
-    """Test to ensure that DeepSpeed with multiple GPUs works."""
+    """Test to ensure that DeepSpeed with multiple GPUs works and deepspeed distributed is initialized
+    correctly."""
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir, plugins=[DeepSpeedPlugin(stage=3)], gpus=2, fast_dev_run=True, precision=16
     )
-    trainer.fit(model)
+    with mock.patch("deepspeed.init_distributed", wraps=deepspeed.init_distributed) as mock_deepspeed_distributed:
+        trainer.fit(model)
+    mock_deepspeed_distributed.assert_called_once()
     trainer.test(model)
 
     _assert_save_model_is_equal(model, tmpdir, trainer)
@@ -810,7 +814,7 @@ def test_deepspeed_plugin_env_variables(mock_deepspeed_distributed, tmpdir, plat
     plugin = trainer.training_type_plugin
     assert isinstance(plugin, DeepSpeedPlugin)
     with mock.patch("platform.system", return_value=platform) as mock_platform:
-        plugin.init_ddp_connection()
+        plugin._init_deepspeed_distributed()
     mock_deepspeed_distributed.assert_called()
     mock_platform.assert_called()
     if platform == "Windows":

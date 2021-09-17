@@ -13,7 +13,6 @@
 # limitations under the License.
 import importlib
 import inspect
-from collections import UserDict
 from inspect import getmembers, isclass
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
@@ -22,7 +21,7 @@ from pytorch_lightning.plugins.training_type.training_type_plugin import Trainin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-class _TrainingTypePluginsRegistry(UserDict):
+class _TrainingTypePluginsRegistry(dict):
     """This class is a Registry that stores information about the Training Type Plugins.
 
     The Plugins are mapped to strings. These strings are names that idenitify
