@@ -282,7 +282,7 @@ This will be a subclass of the existing :class:`~pytorch_lightning.loops.optimiz
             )
 
             # Here we are basically calling lightning_module.training_step()
-            # and this returns a generator! The training_step is handled by the 
+            # and this returns a generator! The training_step is handled by the
             # accelerator to enable distributed training.
             generator = self.trainer.accelerator.training_step(step_kwargs)
             return generator
