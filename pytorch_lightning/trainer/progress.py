@@ -153,6 +153,9 @@ class Progress(BaseProgress):
         self.total.load_state_dict(state_dict["total"])
         self.current.load_state_dict(state_dict["current"])
 
+    def reset_on_restart(self) -> None:
+        self.current.reset_on_restart()
+
 
 @dataclass
 class DataLoaderProgress(Progress):
@@ -230,6 +233,6 @@ class OptimizationProgress(BaseProgress):
         self.optimizer.load_state_dict(state_dict["optimizer"])
         self.optimizer_position = state_dict["optimizer_position"]
 
-    def reset_on_restart(self):
+    def reset_on_restart(self) -> None:
         self.optimizer.step.current.reset_on_restart()
         self.optimizer.zero_grad.current.reset_on_restart()
