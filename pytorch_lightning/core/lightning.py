@@ -1480,6 +1480,23 @@ class LightningModule(
         gradient_clip_val: Union[int, float] = 0.0,
         gradient_clip_algorithm: str = "norm",
     ):
+        """Perform Gradient Clipping for the optimizer parameters. Called before :meth:`optimizer_step`.
+
+        Args:
+            optimizer: Current optimizer being used. ``None`` if using manual optimization.
+            optimizer_idx: Index of the current optimizer being used. ``None`` if using manual optimization.
+            gradient_clip_val: The value at which to clip gradients. Passing ``gradient_clip_val=0`` disables gradient
+                clipping.
+            gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
+                for clip_by_value, and ``gradient_clip_algorithm="norm"`` for clip_by_norm.
+
+        Example::
+
+            # Perform gradient clipping on discriminator (optimizer_idx=1)
+            def clip_gradients(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
+                if optimizer_idx == 1:
+                    super().clip_gradients(optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm)
+        """
         gradient_clip_val = gradient_clip_val or self.trainer.gradient_clip_val
         gradient_clip_algorithm = gradient_clip_algorithm or self.trainer.gradient_clip_algorithm
 
