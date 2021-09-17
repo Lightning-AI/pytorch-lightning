@@ -1036,7 +1036,7 @@ class Trainer(
         self.accelerator.pre_dispatch(self)
         self._log_hyperparams()
 
-    def _log_hyperparams(self):
+    def _log_hyperparams(self) -> None:
         # log hyper-parameters
         hparams_initial = None
 
@@ -1047,12 +1047,20 @@ class Trainer(
             if self.lightning_module._log_hyperparams and datamodule_log_hyperparams:
                 datamodule_hparams = self.datamodule.hparams_initial
                 lightning_hparams = self.lightning_module.hparams_initial
-
-                colliding_keys = lightning_hparams.keys() & datamodule_hparams.keys()
-                if colliding_keys:
+                inconsistent_keys = []
+                for key in lightning_hparams.keys() & datamodule_hparams.keys():
+                    lm_val, dm_val = lightning_hparams[key], datamodule_hparams[key]
+                    if type(lm_val) != type(dm_val):
+                        inconsistent_keys.append(key)
+                    elif isinstance(lm_val, torch.Tensor) and id(lm_val) != id(dm_val):
+                        inconsistent_keys.append(key)
+                    elif lm_val != dm_val:
+                        inconsistent_keys.append(key)
+                if inconsistent_keys:
                     raise MisconfigurationException(
-                        f"Error while merging hparams: the keys {colliding_keys} are present "
-                        "in both the LightningModule's and LightningDataModule's hparams."
+                        f"Error while merging hparams: the keys {inconsistent_keys} are present "
+                        "in both the LightningModule's and LightningDataModule's hparams "
+                        "but have different values."
                     )
                 hparams_initial = {**lightning_hparams, **datamodule_hparams}
             elif self.lightning_module._log_hyperparams:
