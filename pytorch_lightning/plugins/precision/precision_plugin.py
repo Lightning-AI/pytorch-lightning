@@ -100,14 +100,14 @@ class PrecisionPlugin(CheckpointHooks):
     ) -> bool:
         """Hook to do something before each optimizer step."""
         trainer = model.trainer
-        self._track_and_norm_grad(trainer)
+        self._track_grad_norm(trainer)
         self.clip_gradients(
             optimizer, trainer.gradient_clip_val, gradient_clip_algorithm=trainer.gradient_clip_algorithm, model=model
         )
         model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         return True
 
-    def _track_and_norm_grad(self, trainer: "pl.Trainer") -> None:
+    def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
         """Tracks the model's gradient norms."""
         if float(trainer.track_grad_norm) < 0:
             return
