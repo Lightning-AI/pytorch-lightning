@@ -31,7 +31,10 @@ class TorchCheckpointIO(CheckpointIO):
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
         fs = get_filesystem(path)
-        fs.makedirs(os.path.dirname(path), exist_ok=True)
+        dirname = os.path.dirname(path)
+        if fs.isdir(dirname) and len(fs.ls(dirname)) > 0:
+            rank_zero_warn(f"Checkpoint directory {dirname} exists and is not empty.")
+        fs.makedirs(dirname, exist_ok=True)
         try:
             # write the checkpoint dictionary on the file
             atomic_save(checkpoint, path)
