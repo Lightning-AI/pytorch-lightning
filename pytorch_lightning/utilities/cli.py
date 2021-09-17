@@ -56,7 +56,7 @@ class _Registry(dict):
             raise MisconfigurationException(f"'{key}' is already present in the registry. HINT: Use `override=True`.")
         self[key] = cls
 
-    def register_package(self, module: ModuleType, base_cls: Type) -> None:
+    def register_classes(self, module: ModuleType, base_cls: Type) -> None:
         """This function is an utility to register all classes from a module."""
         for _, cls in inspect.getmembers(module, predicate=inspect.isclass):
             if issubclass(cls, base_cls) and cls != base_cls:
@@ -77,10 +77,10 @@ class _Registry(dict):
 
 
 OPTIMIZER_REGISTRY = _Registry()
-OPTIMIZER_REGISTRY.register_package(torch.optim, Optimizer)
+OPTIMIZER_REGISTRY.register_classes(torch.optim, Optimizer)
 
 LR_SCHEDULER_REGISTRY = _Registry()
-LR_SCHEDULER_REGISTRY.register_package(torch.optim.lr_scheduler, torch.optim.lr_scheduler._LRScheduler)
+LR_SCHEDULER_REGISTRY.register_classes(torch.optim.lr_scheduler, torch.optim.lr_scheduler._LRScheduler)
 
 
 class LightningArgumentParser(ArgumentParser):
