@@ -40,6 +40,7 @@ class TrainingTypePlugin(ABC):
         checkpoint_io = checkpoint_io if checkpoint_io is not None else TorchCheckpointIO()
         self._checkpoint_io = checkpoint_io
         self._call_configure_sharded_model_hook = True
+        self._self_deleted_checkpoint_state_dict = False
 
     @property
     def checkpoint_io(self) -> CheckpointIO:
@@ -159,6 +160,8 @@ class TrainingTypePlugin(ABC):
         return checkpoint
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        if "state_dict" not in checkpoint and self._self_deleted_checkpoint_state_dict:
+            return
         self.lightning_module.load_state_dict(checkpoint["state_dict"])
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
