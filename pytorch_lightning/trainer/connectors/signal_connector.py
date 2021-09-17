@@ -5,8 +5,6 @@ from signal import Signals
 from subprocess import call
 from typing import Callable, List, Optional, Union
 
-import _signal
-
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 log = logging.getLogger(__name__)
@@ -114,8 +112,8 @@ class SignalConnector:
     def sigterm_handler_fn(self, signum, frame):  # pragma: no-cover
         log.info("bypassing sigterm")
 
-    def _has_already_handler(self, signal: Signals) -> bool:
+    def _has_already_handler(self, sig: Signals) -> bool:
         try:
-            return isinstance(_signal.getsignal(signal), Callable)
+            return isinstance(signal.getsignal(sig), Callable)
         except AttributeError:
             return False
