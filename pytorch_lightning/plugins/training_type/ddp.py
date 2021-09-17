@@ -51,13 +51,14 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.distributed import (
     distributed_available,
     init_ddp_connection,
+    rank_zero_info,
     rank_zero_only,
     ReduceOp,
     sync_ddp_if_available,
 )
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
 
 if _TORCH_GREATER_EQUAL_1_10:
     from torch.distributed.optim import DistributedOptimizer, PostLocalSGDOptimizer, ZeroRedundancyOptimizer
@@ -535,3 +536,17 @@ class DDPPlugin(ParallelPlugin):
             self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()
+
+    def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
+        rank_zero_info(
+            f"DistributedDataParallel has {self.num_processes} processes. Serializing to avoid CPU OOMs."
+        )
+        for current_worker in range(self.num_processes):
+            if self.local_rank == current_worker and torch.distributed.is_initialized():
+                checkpoint = super().load_checkpoint(checkpoint_path)
+                del checkpoint["state_dict"]
+                log.info(
+                    f"Rank {self.global_rank}: done loading model states from {checkpoint_path}."
+                )
+            self.barrier()
+        return checkpoint
