@@ -274,7 +274,7 @@ class CheckpointConnector:
     # PRIVATE OPS
     # ----------------------------------
 
-    def hpc_save(self, folderpath: str, logger: LightningLoggerBase) -> str:
+    def hpc_save(self, folderpath: str, logger: Optional[LightningLoggerBase]) -> str:
         # make sure the checkpoint folder exists
         folderpath = str(folderpath)  # because the tests pass a path object
         fs = get_filesystem(folderpath)

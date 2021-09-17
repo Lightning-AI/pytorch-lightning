@@ -78,7 +78,8 @@ class SignalConnector:
                 log.warning("requeue failed...")
 
             # close experiment to avoid issues
-            self.trainer.logger.close()
+            if self.trainer.logger:
+                self.trainer.logger.finalize()
 
     def fault_tolerant_sigusr1_handler_fn(self, signum: Signals, frame: FrameType) -> None:
         self.trainer._terminate_gracefully = True
