@@ -19,7 +19,6 @@ import torch
 from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.utilities import move_data_to_device
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
 
 
@@ -472,7 +471,7 @@ class DataHooks:
                 # each batch will be a dict of tensors: {'mnist': batch_mnist, 'cifar': batch_cifar}
                 return {'mnist': mnist_loader, 'cifar': cifar_loader}
         """
-        raise MisconfigurationException("`train_dataloader` must be implemented to be used with the Lightning Trainer")
+        raise NotImplementedError("`train_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def test_dataloader(self) -> EVAL_DATALOADERS:
         r"""
@@ -534,7 +533,7 @@ class DataHooks:
             In the case where you return multiple test dataloaders, the :meth:`test_step`
             will have an argument ``dataloader_idx`` which matches the order here.
         """
-        raise MisconfigurationException("`test_dataloader` must be implemented to be used with the Lightning Trainer")
+        raise NotImplementedError("`test_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def val_dataloader(self) -> EVAL_DATALOADERS:
         r"""
@@ -587,7 +586,7 @@ class DataHooks:
             In the case where you return multiple validation dataloaders, the :meth:`validation_step`
             will have an argument ``dataloader_idx`` which matches the order here.
         """
-        raise MisconfigurationException("`val_dataloader` must be implemented to be used with the Lightning Trainer")
+        raise NotImplementedError("`val_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def predict_dataloader(self) -> EVAL_DATALOADERS:
         r"""
@@ -613,9 +612,7 @@ class DataHooks:
             In the case where you return multiple prediction dataloaders, the :meth:`predict`
             will have an argument ``dataloader_idx`` which matches the order here.
         """
-        raise MisconfigurationException(
-            "`predict_dataloader` must be implemented to be used with the Lightning Trainer"
-        )
+        raise NotImplementedError("`predict_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def on_train_dataloader(self) -> None:
         """Called before requesting the train dataloader.

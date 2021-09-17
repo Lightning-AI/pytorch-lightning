@@ -480,9 +480,9 @@ def test_dm_init_from_datasets_dataloaders(iterable):
     with mock.patch("pytorch_lightning.core.datamodule.DataLoader") as dl_mock:
         dm.train_dataloader()
         dl_mock.assert_called_once_with(train_ds, batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True)
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(NotImplementedError):
         _ = dm.val_dataloader()
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(NotImplementedError):
         _ = dm.test_dataloader()
 
     train_ds_sequence = [ds(), ds()]
@@ -495,9 +495,9 @@ def test_dm_init_from_datasets_dataloaders(iterable):
                 call(train_ds_sequence[1], batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True),
             ]
         )
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(NotImplementedError):
         _ = dm.val_dataloader()
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(NotImplementedError):
         _ = dm.test_dataloader()
 
     valid_ds = ds()
@@ -508,7 +508,7 @@ def test_dm_init_from_datasets_dataloaders(iterable):
         dl_mock.assert_called_with(valid_ds, batch_size=2, shuffle=False, num_workers=0, pin_memory=True)
         dm.test_dataloader()
         dl_mock.assert_called_with(test_ds, batch_size=2, shuffle=False, num_workers=0, pin_memory=True)
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(NotImplementedError):
         _ = dm.train_dataloader()
 
     valid_dss = [ds(), ds()]
