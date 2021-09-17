@@ -4,7 +4,7 @@ import signal
 import sys
 from signal import Signals
 from subprocess import call
-from types import FrameType
+from types import FrameType, FunctionType
 from typing import Callable, List, Union
 
 import pytorch_lightning as pl
@@ -19,7 +19,7 @@ class HandlersCompose:
             signal_handlers = [signal_handlers]
         self.signal_handlers = signal_handlers
 
-    def __call__(self, signum, frame):
+    def __call__(self, signum: Signals, frame: FrameType) -> None:
         for signal_handler in self.signal_handlers:
             signal_handler(signum, frame)
 
@@ -27,7 +27,7 @@ class HandlersCompose:
 class SignalConnector:
     def __init__(self, trainer: "pl.Trainer"):
         self.trainer = trainer
-        self.trainer._terminate_gracefully: bool = False
+        self.trainer._terminate_gracefully = False
 
     def register_signal_handlers(self) -> None:
         sigusr1_handlers: List[Callable] = []
@@ -79,7 +79,7 @@ class SignalConnector:
             # close experiment to avoid issues
             self.trainer.logger.close()
 
-    def fault_tolerant_sigusr1_handler_fn(self, signum: Signals, frame: FrameType):
+    def fault_tolerant_sigusr1_handler_fn(self, signum: Signals, frame: FrameType) -> None:
         self.trainer._terminate_gracefully = True
 
     def sigterm_handler_fn(self, signum: Signals, frame: FrameType) -> None:
@@ -103,6 +103,6 @@ class SignalConnector:
 
     def _has_already_handler(self, signum: Signals) -> bool:
         try:
-            return isinstance(signal.getsignal(signum), Callable)
+            return isinstance(signal.getsignal(signum), FunctionType)
         except AttributeError:
             return False
