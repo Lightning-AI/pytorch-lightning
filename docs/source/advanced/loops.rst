@@ -4,18 +4,18 @@ Loop Customization
 ==================
 
 Loop customization is an experimental feature introduced in Lightning 1.5 that enables advanced users to write new training logic or modify existing behavior in Lightning's training-, evaluation-, or prediction loops.
-By advanced users we mean users that are familiar with the major components under the Trainer and how they interact with the LightningModule.
+By advanced users, we mean users that are familiar with the major components under the ``Trainer`` and how they interact with the ``LightningModule``.
 
-In this advanced user guide we will learn about
+In this advanced user guide, we will learn about:
 
 - how the Trainer runs a loop,
-- the Loop base class,
+- the ``Loop`` base class design,
 - the default loop implementations and subloops Lightning has,
 - how Lightning defines a tree structure of loops and subloops,
-- how you can create a custom loop for a new training step flavor,
+- how you can create a custom loop for a new `training_step` flavor,
 - and how you can connect the custom loop and run it.
 
-Most importantly, we will also provide guidelines when to use loop customization and when NOT to use it.
+Most importantly, we will also provide guidelines on when to use loop customization and when NOT to use it.
 
 
 Trainer entry points for loops
@@ -35,7 +35,7 @@ The Trainer has four entry points for training, testing and inference, and each 
 | :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`    | :attr:`~pytorch_lightning.trainer.trainer.Trainer.predict_loop`       | :class:`~pytorch_lightning.loops.dataloader.prediction_loop.PredictionLoop`   |
 +---------------------------------------------------------------+-----------------------------------------------------------------------+-------------------------------------------------------------------------------+
 
-When the user calls :code:`Trainer.method`, it redirects to the corresponding :code:`Trainer.loop.run()` which implements the main logic of that particular Lightning loop.
+When the user calls :code:`Trainer.<entry-point>`, it redirects to the corresponding :code:`Trainer.loop.run()` which implements the main logic of that particular Lightning loop.
 Think of it as the start of a Python :code:`while` loop.
 The :meth:`~pytorch_lightning.loops.base.Loop.run` method is part of the base :class:`~pytorch_lightning.loops.base.Loop` class that every loop inherits from (like every model inherits from LightningModule).
 
@@ -50,7 +50,7 @@ It defines a public interface that each loop implementation must follow, the key
 - :meth:`~pytorch_lightning.loops.base.Loop.done`: a boolean stopping criteria
 - :meth:`~pytorch_lightning.loops.base.Loop.reset`: implements a mechanism to reset the loop so it can be restarted
 
-These methods are called by the default implementation of the :meth:`~pytorch_lightning.loops.base.Loop.run` entry point as shown in the code excerpt below.
+These methods are called by the default implementation of the :meth:`~pytorch_lightning.loops.base.Loop.run` entry point as shown in the (reduced) code excerpt below.
 
 .. code-block:: python
 
@@ -68,15 +68,15 @@ These methods are called by the default implementation of the :meth:`~pytorch_li
         output = self.on_run_end()
         return output
 
-Some important observations here: One, the `run()` method can define input arguments that get forwarded to some of the other methods that get invoked as part of `run()`.
-Such input arguments typically comprise of one or several iterables over which the loop is suppose to iterate, for example, an iterator over a :class:`~torch.utils.data.DataLoader`.
+Some important observations here: One, the ``run()`` method can define input arguments that get forwarded to some of the other methods that get invoked as part of ``run()``.
+Such input arguments typically comprise of one or several iterables over which the loop is supposed to iterate, for example, an iterator over a :class:`~torch.utils.data.DataLoader`.
 The reason why the inputs get forwarded is mainly for convenience but implementations are free to change this.
-Secondly, `advance()` can raise a :class:`StopIteration` to exit the loop early.
-This is analogeous to a :code:`break` statement in a raw Python `while`-loop for example.
-Finally, a loop may return an output as part of `run()`.
+Secondly, ``advance()`` can raise a :class:`StopIteration` to exit the loop early.
+This is analogous to a :code:`break` statement in a raw Python ``while`` for example.
+Finally, a loop may return an output as part of ``run()``.
 This output could for example be a list containing all results produced in each iteration (advance) of the loop.
 
-Loops can also be nested! That is, a loop may call another one inside of its `advance()`.
+Loops can also be nested! That is, a loop may call another one inside of its ``advance()``.
 
 Default loop implementations
 ----------------------------
