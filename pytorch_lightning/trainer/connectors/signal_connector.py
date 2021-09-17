@@ -16,12 +16,12 @@ class HandlersCompose:
         self.signal_handlers = signal_handlers
         self.user_defined_handler = user_defined_handler
 
-    def __call__(self):
+    def __call__(self, signum, frame):
         if self.user_defined_handler:
-            self.user_defined_handler()
+            self.user_defined_handler(signum, frame)
         else:
             for signal_handler in self.signal_handlers:
-                signal_handler()
+                signal_handler(signum, frame)
 
 
 class SignalConnector:
