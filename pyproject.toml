@@ -34,6 +34,8 @@ warn_unused_ignores = "True"
 allow_redefinition = "True"
 # disable this rule as the Trainer attributes are defined in the connectors, not in its __init__
 disable_error_code = "attr-defined"
+# style choices
+warn_no_return = "False"
 
 # TODO: Fix typing for these modules
 [[tool.mypy.overrides]]
@@ -59,9 +61,15 @@ ignore_errors = "True"
 
 [[tool.mypy.overrides]]
 module = [
+    "pytorch_lightning.callbacks.model_summary",
     "pytorch_lightning.callbacks.pruning",
-    "pytorch_lightning.trainer.evaluation_loop",
-    "pytorch_lightning.trainer.connectors.logger_connector",
+    "pytorch_lightning.loops.optimization.*",
+    "pytorch_lightning.loops.evaluation_loop",
+    "pytorch_lightning.trainer.connectors.checkpoint_connector",
+    "pytorch_lightning.trainer.connectors.logger_connector.*",
+    "pytorch_lightning.trainer.progress",
+    "pytorch_lightning.tuner.auto_gpu_select",
+    "pytorch_lightning.utilities.apply_func",
     "pytorch_lightning.utilities.argparse",
     "pytorch_lightning.utilities.cli",
     "pytorch_lightning.utilities.cloud_io",
@@ -70,6 +78,7 @@ module = [
     "pytorch_lightning.utilities.device_parser",
     "pytorch_lightning.utilities.distributed",
     "pytorch_lightning.utilities.memory",
+    "pytorch_lightning.utilities.model_summary",
     "pytorch_lightning.utilities.parsing",
     "pytorch_lightning.utilities.xla_device",
 ]

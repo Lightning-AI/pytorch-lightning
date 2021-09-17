@@ -27,7 +27,7 @@ from torchmetrics import Metric, MetricCollection
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync, MetricSource, ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _TORCH_GREATER_EQUAL_1_7
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -81,10 +81,10 @@ def _ddp_test_fn(rank, worldsize):
             result.log("h", "b", metric_b, on_step=False, on_epoch=True)
             result.log("h", "c", metric_c, on_step=True, on_epoch=False)
 
-            batch_log = result.metrics(True)[MetricSource.LOG]
+            batch_log = result.metrics(True)["log"]
             assert batch_log == {"a_step": i, "c": i}
 
-        epoch_log = result.metrics(False)[MetricSource.LOG]
+        epoch_log = result.metrics(False)["log"]
         result.reset()
 
         # assert metric state reset to default values
@@ -97,7 +97,7 @@ def _ddp_test_fn(rank, worldsize):
 
 @RunIf(skip_windows=True, min_gpus=2)
 def test_result_reduce_ddp():
-    """Make sure result logging works with DDP"""
+    """Make sure result logging works with DDP."""
     tutils.set_random_master_port()
 
     worldsize = 2
@@ -124,10 +124,10 @@ def test_result_metric_integration():
             result.log("h", "b", metric_b, on_step=False, on_epoch=True)
             result.log("h", "c", metric_c, on_step=True, on_epoch=False)
 
-            batch_log = result.metrics(True)[MetricSource.LOG]
+            batch_log = result.metrics(True)["log"]
             assert batch_log == {"a_step": i, "c": i}
 
-        epoch_log = result.metrics(False)[MetricSource.LOG]
+        epoch_log = result.metrics(False)["log"]
         result.reset()
 
         # assert metric state reset to default values
@@ -141,7 +141,6 @@ def test_result_metric_integration():
     result.extra = {}
     assert str(result) == (
         "ResultCollection("
-        "minimize=1.0, "
         "{"
         "'h.a': ResultMetric('a', value=DummyMetric()), "
         "'h.b': ResultMetric('b', value=DummyMetric()), "
@@ -152,12 +151,10 @@ def test_result_metric_integration():
         "{"
         "True, "
         "device(type='cpu'), "
-        "minimize=tensor(1.), "
         "{'h.a': ResultMetric('a', value=DummyMetric()), "
         "'h.b': ResultMetric('b', value=DummyMetric()), "
-        "'h.c': ResultMetric('c', value=DummyMetric()), "
-        "'_extra': {}}"
-        "}"
+        "'h.c': ResultMetric('c', value=DummyMetric())"
+        "}}"
     )
 
 
@@ -208,9 +205,7 @@ def my_sync_dist(x, *_, **__):
 
 
 def test_result_collection_restoration(tmpdir):
-    """
-    This test make sure metrics are properly reloaded on failure.
-    """
+    """This test make sure metrics are properly reloaded on failure."""
 
     result = ResultCollection(True, torch.device("cpu"))
     metric_a = DummyMetric()
@@ -248,7 +243,7 @@ def test_result_collection_restoration(tmpdir):
             lightning_log("training_step", "b_1", b, on_step=False, on_epoch=True)
             lightning_log("training_step", "c_1", {"1": c, "2": c}, on_step=True, on_epoch=False)
 
-            batch_log = result.metrics(on_step=True)[MetricSource.LOG]
+            batch_log = result.metrics(on_step=True)["log"]
             assert set(batch_log) == {"a_step", "c", "a_1_step", "c_1"}
             assert set(batch_log["c_1"]) == {"1", "2"}
 
@@ -269,12 +264,12 @@ def test_result_collection_restoration(tmpdir):
             # the sync fn has been kept
             assert result_copy["training_step.a"].meta.sync.fn == new_result["training_step.a"].meta.sync.fn
 
-        epoch_log = result.metrics(on_step=False)[MetricSource.LOG]
-        epoch_log_copy = result_copy.metrics(on_step=False)[MetricSource.LOG]
+        epoch_log = result.metrics(on_step=False)["log"]
+        epoch_log_copy = result_copy.metrics(on_step=False)["log"]
         assert epoch_log == epoch_log_copy
 
         lightning_log("train_epoch_end", "a", metric_a, on_step=False, on_epoch=True)
-        epoch_log = result.metrics(on_step=False)[MetricSource.LOG]
+        epoch_log = result.metrics(on_step=False)["log"]
         assert epoch_log == {
             "a_1_epoch": 1,
             "a_epoch": cumulative_sum,
@@ -336,7 +331,7 @@ def test_lightning_module_logging_result_collection(tmpdir, device):
             # default sync fn
             new_results = ResultCollection(False, device)
             new_results.load_state_dict(state_dict, map_location="cpu")
-            assert new_results["validation_step.v"].meta.sync.fn == _Sync.no_op
+            assert new_results["validation_step.v"].meta.sync.fn is None
 
             # check map location
             assert new_results["validation_step.v"].value.device.type == "cpu"
@@ -352,12 +347,6 @@ def test_lightning_module_logging_result_collection(tmpdir, device):
         gpus=1 if device == "cuda" else 0,
     )
     trainer.fit(model)
-
-
-def test_result_collection_extra_reference():
-    """Unit-test to check that the `extra` dict reference is properly set."""
-    rc = ResultCollection(True)
-    assert rc.extra is rc["_extra"]
 
 
 class DummyMeanMetric(Metric):
@@ -379,10 +368,8 @@ class DummyMeanMetric(Metric):
 
 def result_collection_reload(**kwargs):
 
-    """
-    This test is going to validate ResultCollection is properly being reload
-    and final accumulation with Fault Tolerant Training is correct.
-    """
+    """This test is going to validate ResultCollection is properly being reload and final accumulation with Fault
+    Tolerant Training is correct."""
 
     if not _fault_tolerant_training():
         pytest.skip("Fault tolerant not available")
@@ -451,9 +438,9 @@ def result_collection_reload(**kwargs):
                 total = sum(range(5)) * num_processes
                 metrics = self.results.metrics(on_step=False)
                 assert self.results["training_step.tracking"].value == total
-                assert metrics[MetricSource.CALLBACK]["tracking"] == self.dummy_metric.compute() == 2
+                assert metrics["callback"]["tracking"] == self.dummy_metric.compute() == 2
                 assert self.results["training_step.tracking_2"].value == total
-                assert metrics[MetricSource.CALLBACK]["tracking_2"] == self.dummy_metric.compute() == 2
+                assert metrics["callback"]["tracking_2"] == self.dummy_metric.compute() == 2
                 self.has_validated_sum = True
 
     model = ExtendedBoringModel()
@@ -499,7 +486,7 @@ def test_result_collection_reload_2_gpus(tmpdir):
 
 
 def test_metric_collections(tmpdir):
-    """This test ensures the metric attribute is properly found even with complex nested metric structure"""
+    """This test ensures the metric attribute is properly found even with complex nested metric structure."""
 
     class TestModel(BoringModel):
         def __init__(self):

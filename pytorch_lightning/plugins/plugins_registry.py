@@ -13,7 +13,6 @@
 # limitations under the License.
 import importlib
 import inspect
-from collections import UserDict
 from inspect import getmembers, isclass
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
@@ -22,9 +21,8 @@ from pytorch_lightning.plugins.training_type.training_type_plugin import Trainin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-class _TrainingTypePluginsRegistry(UserDict):
-    """
-    This class is a Registry that stores information about the Training Type Plugins.
+class _TrainingTypePluginsRegistry(dict):
+    """This class is a Registry that stores information about the Training Type Plugins.
 
     The Plugins are mapped to strings. These strings are names that idenitify
     a plugin, e.g., "deepspeed". It also returns Optional description and
@@ -45,7 +43,6 @@ class _TrainingTypePluginsRegistry(UserDict):
         or
 
         TrainingTypePluginsRegistry.register("lightning", LightningPlugin, description="Super fast", a=1, b=True)
-
     """
 
     def register(
@@ -56,8 +53,7 @@ class _TrainingTypePluginsRegistry(UserDict):
         override: bool = False,
         **init_params: Any,
     ) -> Callable:
-        """
-        Registers a plugin mapped to a name and with required metadata.
+        """Registers a plugin mapped to a name and with required metadata.
 
         Args:
             name : the name that identifies a plugin, e.g. "deepspeed_stage_3"
@@ -89,9 +85,7 @@ class _TrainingTypePluginsRegistry(UserDict):
         return do_register
 
     def get(self, name: str, default: Optional[Any] = None) -> Any:
-        """
-        Calls the registered plugin with the required parameters
-        and returns the plugin object
+        """Calls the registered plugin with the required parameters and returns the plugin object.
 
         Args:
             name (str): the name that identifies a plugin, e.g. "deepspeed_stage_3"
@@ -108,11 +102,11 @@ class _TrainingTypePluginsRegistry(UserDict):
         raise KeyError(err_msg.format(name, available_names))
 
     def remove(self, name: str) -> None:
-        """Removes the registered plugin by name"""
+        """Removes the registered plugin by name."""
         self.pop(name)
 
     def available_plugins(self) -> List:
-        """Returns a list of registered plugins"""
+        """Returns a list of registered plugins."""
         return list(self.keys())
 
     def __str__(self) -> str:

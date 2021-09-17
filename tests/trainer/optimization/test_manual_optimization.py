@@ -64,16 +64,49 @@ class ManualOptModel(BoringModel):
         return optimizer, optimizer_2
 
 
-def test_multiple_optimizers_manual_no_return(tmpdir):
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {},
+        pytest.param({"gpus": 1, "precision": 16, "amp_backend": "native"}, marks=RunIf(amp_native=True, min_gpus=1)),
+        pytest.param(
+            {"gpus": 1, "precision": 16, "amp_backend": "apex", "amp_level": "O2"},
+            marks=RunIf(amp_apex=True, min_gpus=1),
+        ),
+    ],
+)
+def test_multiple_optimizers_manual_no_return(tmpdir, kwargs):
+    apex_optimizer_patches = []
+    apex_optimizer_steps = []
+
     class TestModel(ManualOptModel):
         def training_step(self, batch, batch_idx):
             # avoid returning a value
             super().training_step(batch, batch_idx)
 
-        def training_epoch_end(self, outputs) -> None:
+        def training_epoch_end(self, outputs):
             # outputs is empty as training_step does not return
             # and it is not automatic optimization
             assert not outputs
+
+        def on_train_start(self):
+            if kwargs.get("amp_backend") != "apex":
+                return
+            # extremely ugly. APEX patches all the native torch optimizers on `_initialize` which we call on
+            # `ApexMixedPrecisionPlugin.dispatch`. Additionally, their replacement `new_step` functions are locally
+            # defined so can't even patch those, thus we need to create the mock after APEX has been initialized
+            nonlocal apex_optimizer_patches, apex_optimizer_steps
+            for opt in self.trainer.optimizers:
+                # `amp.scale_loss` will also patch the step to avoid it when gradient overflow happens. avoid it
+                opt._amp_stash.already_patched = True
+                patch = mock.patch.object(opt, "step")
+                apex_optimizer_patches.append(patch)
+                apex_optimizer_steps.append(patch.start())
+
+        def on_train_end(self):
+            if kwargs.get("amp_backend") == "apex":
+                for p in apex_optimizer_patches:
+                    p.stop()
 
     model = TestModel()
     model.val_dataloader = None
@@ -86,11 +119,25 @@ def test_multiple_optimizers_manual_no_return(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         weights_summary=None,
+        **kwargs,
     )
+
+    if kwargs.get("amp_backend") == "native":
+        # mock the scaler instead of the optimizer step because it can be skipped with NaNs
+        scaler_step_patch = mock.patch.object(
+            trainer.precision_plugin.scaler, "step", wraps=trainer.precision_plugin.scaler.step
+        )
+        scaler_step = scaler_step_patch.start()
 
     with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward) as bwd_mock:
         trainer.fit(model)
     assert bwd_mock.call_count == limit_train_batches * 3
+
+    if kwargs.get("amp_backend") == "native":
+        scaler_step_patch.stop()
+        assert scaler_step.call_count == len(model.optimizers()) * limit_train_batches
+    if kwargs.get("amp_backend") == "apex":
+        assert [s.call_count for s in apex_optimizer_steps] == [len(model.optimizers())] * limit_train_batches
 
 
 def test_multiple_optimizers_manual_return(tmpdir):
@@ -171,40 +218,6 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
     assert bwd_mock.call_count == limit_train_batches * 3
 
 
-@RunIf(min_gpus=1, amp_apex=True)
-def test_multiple_optimizers_manual_apex_no_return(tmpdir):
-    class TestModel(ManualOptModel):
-        def training_step(self, batch, batch_idx):
-            # avoid returning a value
-            super().training_step(batch, batch_idx)
-
-        def training_epoch_end(self, outputs) -> None:
-            # outputs is empty as training_step does not return
-            # and it is not automatic optimization
-            assert len(outputs) == 0
-
-    model = TestModel()
-    model.val_dataloader = None
-
-    limit_train_batches = 2
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
-        max_epochs=1,
-        log_every_n_steps=1,
-        weights_summary=None,
-        precision=16,
-        amp_level="O2",
-        amp_backend="apex",
-        gpus=1,
-    )
-
-    with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward) as bwd_mock:
-        trainer.fit(model)
-    assert bwd_mock.call_count == limit_train_batches * 3
-
-
 class ManualOptimizationExtendedModel(BoringModel):
 
     count = 0
@@ -268,10 +281,8 @@ class ManualOptimizationExtendedModel(BoringModel):
 
 @RunIf(min_gpus=2)
 def test_manual_optimization_and_return_tensor(tmpdir):
-    """
-    This test verify that in `manual_optimization`
-    we don't add gradient when the user return loss in `training_step`
-    """
+    """This test verify that in `manual_optimization` we don't add gradient when the user return loss in
+    `training_step`"""
 
     model = ManualOptimizationExtendedModel()
     model.training_step_end = None
@@ -291,41 +302,10 @@ def test_manual_optimization_and_return_tensor(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=2)
-def test_manual_optimization_and_return_detached_tensor(tmpdir):
-    """
-    This test verify that in `manual_optimization`
-    we don't add gradient when the user return loss in `training_step`
-    When the tensor is detached, return MisConfiguration Error.
-    """
-
-    model = ManualOptimizationExtendedModel()
-    model.detach = True
-    model.training_step_end = None
-    model.training_epoch_end = None
-
-    trainer = Trainer(
-        max_epochs=1,
-        default_root_dir=tmpdir,
-        limit_train_batches=10,
-        limit_test_batches=0,
-        limit_val_batches=0,
-        precision=16,
-        amp_backend="native",
-        accelerator="ddp_spawn",
-        gpus=2,
-    )
-    expected_message = "In manual optimization, `training_step` should not return a Tensor"
-    with pytest.raises(Exception, match=expected_message):
-        trainer.fit(model)
-
-
 @RunIf(min_gpus=1)
 def test_manual_optimization_and_accumulated_gradient(tmpdir):
-    """
-    This test verify that in `automatic_optimization=False`,
-    step is being called only when we shouldn't accumulate.
-    """
+    """This test verify that in `automatic_optimization=False`, step is being called only when we shouldn't
+    accumulate."""
     seed_everything(234)
 
     class ExtendedModel(BoringModel):
@@ -411,15 +391,13 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
 
 @RunIf(min_gpus=1)
 def test_multiple_optimizers_step(tmpdir):
-    """
-    Tests that `step` works with several optimizers
-    """
+    """Tests that `step` works with several optimizers."""
 
     class TestModel(ManualOptModel):
 
         called = False
 
-        def on_after_backward(self):
+        def on_before_optimizer_step(self, *args):
             self.called = True
             norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
             if not (torch.isinf(norm) or torch.isnan(norm)):
@@ -482,9 +460,7 @@ def test_multiple_optimizers_step(tmpdir):
 
 
 def test_step_with_optimizer_closure(tmpdir):
-    """
-    Tests that `step` works with optimizer_closure
-    """
+    """Tests that `step` works with optimizer_closure."""
 
     class TestModel(BoringModel):
 
@@ -556,9 +532,7 @@ def test_step_with_optimizer_closure(tmpdir):
 
 
 def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
-    """
-    Tests that `step` works with optimizer_closure and accumulated_grad
-    """
+    """Tests that `step` works with optimizer_closure and accumulated_grad."""
 
     class TestModel(BoringModel):
         def __init__(self):
@@ -585,7 +559,7 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
             opt.step(closure=optimizer_closure)
 
             weight_after = self.layer.weight.clone()
-            if not self.trainer.fit_loop.should_accumulate():
+            if not self.trainer.fit_loop._should_accumulate():
                 assert not torch.equal(weight_before, weight_after)
             else:
                 assert self.layer.weight.grad is not None
@@ -613,9 +587,7 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
 
 @patch("torch.optim.SGD.step")
 def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
-    """
-    Tests that `step` works with optimizer_closure and extra arguments
-    """
+    """Tests that `step` works with optimizer_closure and extra arguments."""
 
     class TestModel(BoringModel):
         def __init__(self):
@@ -664,9 +636,7 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
 @patch("torch.optim.Adam.step")
 @patch("torch.optim.SGD.step")
 def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, mock_adam_step, tmpdir):
-    """
-    Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
-    """
+    """Tests that `step` works with optimizer_closure and different accumulated_gradient frequency."""
 
     class TestModel(BoringModel):
         def __init__(self):
@@ -847,18 +817,14 @@ def train_manual_optimization(tmpdir, accelerator, model_cls=TesManualOptimizati
 
 @RunIf(min_gpus=2, special=True)
 def test_step_with_optimizer_closure_with_different_frequencies_ddp(tmpdir):
-    """
-    Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
-    """
+    """Tests that `step` works with optimizer_closure and different accumulated_gradient frequency."""
 
     train_manual_optimization(tmpdir, "ddp")
 
 
 @RunIf(min_gpus=2)
 def test_step_with_optimizer_closure_with_different_frequencies_ddp_spawn(tmpdir):
-    """
-    Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
-    """
+    """Tests that `step` works with optimizer_closure and different accumulated_gradient frequency."""
 
     train_manual_optimization(tmpdir, "ddp_spawn")
 
@@ -925,10 +891,7 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp_with_toggle_
 
 
 def test_lr_schedulers(tmpdir):
-    """
-    Test `lr_schedulers()` returns the same objects
-    in the same order as `configure_optimizers()` returns.
-    """
+    """Test `lr_schedulers()` returns the same objects in the same order as `configure_optimizers()` returns."""
 
     class TestModel(BoringModel):
         def __init__(self):
@@ -1001,9 +964,7 @@ def test_lr_schedulers_reduce_lr_on_plateau(tmpdir, scheduler_as_dict):
 
 
 def test_lr_scheduler_step_not_called(tmpdir):
-    """
-    Test `lr_scheduler.step()` is not called in manual optimization.
-    """
+    """Test `lr_scheduler.step()` is not called in manual optimization."""
 
     class TestModel(BoringModel):
         def __init__(self):
@@ -1038,9 +999,7 @@ def test_lr_scheduler_step_not_called(tmpdir):
 @RunIf(min_gpus=1)
 @pytest.mark.parametrize("precision", [16, 32])
 def test_multiple_optimizers_logging(precision, tmpdir):
-    """
-    Tests that metrics are properly being logged.
-    """
+    """Tests that metrics are properly being logged."""
 
     class TestModel(BoringModel):
         def __init__(self):

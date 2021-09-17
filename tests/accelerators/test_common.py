@@ -89,7 +89,7 @@ class DummyModel(BoringModel):
 
 
 def test_configure_sharded_model_false(tmpdir):
-    """Ensure ``configure_sharded_model`` is not called, when turned off"""
+    """Ensure ``configure_sharded_model`` is not called, when turned off."""
 
     class CustomPlugin(SingleDevicePlugin):
         @property
@@ -110,7 +110,8 @@ def test_configure_sharded_model_false(tmpdir):
 
 
 def test_accelerator_configure_sharded_model_called_once(tmpdir):
-    """Ensure that the configure sharded model hook is called, and set to False after to ensure not called again."""
+    """Ensure that the configure sharded model hook is called, and set to False after to ensure not called
+    again."""
 
     model = DummyModel()
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=1)
@@ -120,7 +121,7 @@ def test_accelerator_configure_sharded_model_called_once(tmpdir):
 
 
 def test_configure_sharded_model_called_once(tmpdir):
-    """Ensure ``configure_sharded_model`` is only called once"""
+    """Ensure ``configure_sharded_model`` is only called once."""
 
     model = DummyModel()
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=1)
