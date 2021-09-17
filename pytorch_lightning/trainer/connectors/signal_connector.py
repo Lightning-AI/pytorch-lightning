@@ -1,32 +1,69 @@
 import logging
 import os
 import signal
-import sys
 from subprocess import call
+from typing import Callable, List, Optional, Union
 
-from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 log = logging.getLogger(__name__)
+
+
+class HandlersCompose:
+    def __init__(self, signal_handlers: Union[List[Callable], Callable], user_defined_handler: Optional[Callable]):
+        if not isinstance(signal_handlers, list):
+            signal_handlers = [signal_handlers]
+        self.signal_handlers = signal_handlers
+        self.user_defined_handler = user_defined_handler
+
+    def __call__(self):
+        if self.user_defined_handler:
+            self.user_defined_handler()
+        else:
+            for signal_handler in self.signal_handlers:
+                signal_handler()
 
 
 class SignalConnector:
     def __init__(self, trainer):
         self.trainer = trainer
         self.trainer._should_gracefully_terminate = False
+        self._sigusr1_handler: Optional[Callable] = None
+        self._sigterm_handler: Optional[Callable] = None
+
+    @property
+    def sigusr1_handler(self) -> Optional[Callable]:
+        return self._sigusr1_handler
+
+    @sigusr1_handler.setter
+    def sigusr1_handler(self, sigusr1_handler: Callable) -> None:
+        self._sigusr1_handler = sigusr1_handler
+
+    @property
+    def sigterm_handler(self) -> Optional[Callable]:
+        return self._sigterm_handler
+
+    @sigterm_handler.setter
+    def sigterm_handler(self, sigterm_handler: Callable) -> None:
+        self._sigterm_handler = sigterm_handler
 
     def register_signal_handlers(self):
-        cluster_env = getattr(self.trainer.training_type_plugin, "cluster_environment", None)
-        if isinstance(cluster_env, SLURMEnvironment):
-            self.register_slurm_signal_handlers()
-        elif _fault_tolerant_training() and not sys.platform == "win32":
-            self.register_fault_tolerant_handlers()
+        sigusr1_handlers = []
+        sigterm_handlers = []
 
-    def register_fault_tolerant_handlers(self):
-        signal.signal(signal.SIGUSR1, self.sig_fault_tolerant_handler)
-        signal.signal(signal.SIGTERM, self.term_handler)
+        if _fault_tolerant_training():
+            sigusr1_handlers.append(self.fault_tolerant_sigusr1_handler_fn)
 
-    def register_slurm_signal_handlers(self):
+        if self._is_on_slurm():
+            log.info("Set SLURM handle signals.")
+            sigusr1_handlers.append(self.slurm_sigusr1_handler_fn)
+
+        sigterm_handlers.append(self.sigterm_handler_fn)
+
+        signal.signal(signal.SIGUSR1, HandlersCompose(sigusr1_handlers, self.sigusr1_handler))
+        signal.signal(signal.SIGTERM, HandlersCompose(sigterm_handlers, self.sigterm_handler))
+
+    def _is_on_slurm(self) -> bool:
         # see if we're using slurm (not interactive)
         on_slurm = False
         try:
@@ -37,12 +74,9 @@ class SignalConnector:
         except Exception:
             pass
 
-        if on_slurm:
-            log.info("Set SLURM handle signals.")
-            signal.signal(signal.SIGUSR1, self.sig_slurm_handler)
-            signal.signal(signal.SIGTERM, self.term_handler)
+        return on_slurm
 
-    def sig_slurm_handler(self, signum, frame):  # pragma: no-cover
+    def slurm_sigusr1_handler_fn(self, signum, frame):  # pragma: no-cover
         if self.trainer.is_global_zero:
             # save weights
             log.info("handling SIGUSR1")
@@ -72,8 +106,8 @@ class SignalConnector:
             # close experiment to avoid issues
             self.trainer.logger.close()
 
-    def sig_fault_tolerant_handler(self, signum, frame):  # pragma: no-cover
+    def fault_tolerant_sigusr1_handler_fn(self, signum, frame):  # pragma: no-cover
         self.trainer._should_gracefully_terminate = True
 
-    def term_handler(self, signum, frame):  # pragma: no-cover
+    def sigterm_handler_fn(self, signum, frame):  # pragma: no-cover
         log.info("bypassing sigterm")
