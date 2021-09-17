@@ -3,7 +3,7 @@ name: Verify Issue Linking
 on:
   pull_request:
     branches: [master]
-    types: [opened, edited, reopened]
+    types: [opened, edited, reopened, ready_for_review]
   check_run:
 
 jobs:
