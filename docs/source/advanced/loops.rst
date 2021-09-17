@@ -3,7 +3,7 @@
 Loop Customization
 ==================
 
-Loop customization is an experimental feature introduced in Lightning 1.5 that enables advanced users to write new training logic or modify existing behavior in Lightning's training-, evaluation-, or prediction loops.
+Loop customization is an experimental feature introduced in Lightning 1.5 that enables advanced users to write new training logic or modify existing behavior in Lightning's training, evaluation, or prediction loops.
 By advanced users, we mean users that are familiar with the major components under the ``Trainer`` and how they interact with the ``LightningModule``.
 
 In this advanced user guide, we will learn about:
