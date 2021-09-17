@@ -75,18 +75,17 @@ class RichModelSummary(ModelSummary):
 
         console = Console()
 
-        table = Table(title="Model Summary")
-
-        table.add_column(" ")
-        table.add_column("Name", justify="left", style="cyan", no_wrap=True)
-        table.add_column("Type", style="magenta")
-        table.add_column("Params", justify="right", style="green")
+        table = Table(header_style="bold magenta")
+        table.add_column(" ", style="dim")
+        table.add_column("Name", justify="left", no_wrap=True)
+        table.add_column("Type")
+        table.add_column("Params", justify="right")
 
         column_names = list(zip(*summary_data))[0]
 
         for column_name in ["In sizes", "Out sizes"]:
             if column_name in column_names:
-                table.add_column(column_name, justify="right", style="green")
+                table.add_column(column_name, justify="right", style="white")
 
         rows = list(zip(*(arr[1] for arr in summary_data)))
         for row in rows:
