@@ -878,7 +878,7 @@ def test_registries(tmpdir):
 
     assert "EarlyStopping" in CALLBACK_REGISTRY.names
     assert "CustomCallback" in CALLBACK_REGISTRY.names
-    
+
     with pytest.raises(MisconfigurationException, match="is already present in the registry"):
         OPTIMIZER_REGISTRY.register_classes(torch.optim, torch.optim.Optimizer)
     OPTIMIZER_REGISTRY.register_classes(torch.optim, torch.optim.Optimizer, override=True)
