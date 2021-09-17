@@ -143,7 +143,7 @@ def _block_parallel_sync_behavior(trainer: "pl.Trainer", block: bool = True) -> 
         yield None
 
 
-def get_active_optimizers(
+def _get_active_optimizers(
     optimizers: List[Optimizer], frequencies: List[int], batch_idx: Optional[int] = None
 ) -> List[Tuple[int, Optimizer]]:
     """Returns the currently active optimizers. When multiple optimizers are used with different frequencies,

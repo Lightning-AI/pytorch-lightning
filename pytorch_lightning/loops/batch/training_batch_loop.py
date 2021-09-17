@@ -19,7 +19,7 @@ from torch import Tensor
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.optimization.manual_loop import ManualOptimization
 from pytorch_lightning.loops.optimization.optimizer_loop import OptimizerLoop
-from pytorch_lightning.loops.utilities import get_active_optimizers
+from pytorch_lightning.loops.utilities import _get_active_optimizers
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -116,7 +116,7 @@ class TrainingBatchLoop(Loop):
         if self.trainer.lightning_module.automatic_optimization:
             # in automatic optimization, hand over execution to the OptimizerLoop
             # TODO: total_batch_idx here??
-            optimizers = get_active_optimizers(self.trainer.optimizers, self.trainer.optimizer_frequencies, batch_idx)
+            optimizers = _get_active_optimizers(self.trainer.optimizers, self.trainer.optimizer_frequencies, batch_idx)
             batch_outputs = self.optimizer_loop.run(split_batch, optimizers, batch_idx)
             # combine outputs from each optimizer
             for k in range(len(batch_outputs)):
@@ -138,7 +138,7 @@ class TrainingBatchLoop(Loop):
 
     def num_active_optimizers(self, batch_idx: Optional[int] = None) -> int:
         """Gets the number of active optimizers based on their frequency."""
-        return len(get_active_optimizers(self.trainer.optimizers, self.trainer.optimizer_frequencies, batch_idx))
+        return len(_get_active_optimizers(self.trainer.optimizers, self.trainer.optimizer_frequencies, batch_idx))
 
     def _tbptt_split_batch(self, batch: Any) -> List[Any]:
         """Splits a single batch into a list of sequence steps for tbptt.

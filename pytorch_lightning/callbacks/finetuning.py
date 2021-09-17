@@ -286,9 +286,9 @@ class BaseFinetuning(Callback):
     def on_train_epoch_start(self, trainer, pl_module):
         """Called when the epoch begins."""
         # import is here to avoid circular imports
-        from pytorch_lightning.loops.utilities import get_active_optimizers
+        from pytorch_lightning.loops.utilities import _get_active_optimizers
 
-        for opt_idx, optimizer in get_active_optimizers(trainer.optimizers, trainer.optimizer_frequencies):
+        for opt_idx, optimizer in _get_active_optimizers(trainer.optimizers, trainer.optimizer_frequencies):
             num_param_groups = len(optimizer.param_groups)
             self.finetune_function(pl_module, trainer.current_epoch, optimizer, opt_idx)
             current_param_groups = optimizer.param_groups
