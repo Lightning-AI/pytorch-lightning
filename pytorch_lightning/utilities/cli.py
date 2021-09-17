@@ -93,7 +93,7 @@ class LightningArgumentParser(ArgumentParser):
     """Extension of jsonargparse's ArgumentParser for pytorch-lightning."""
 
     # use class attribute because `parse_args` is only called on the main parser
-    _choices: Dict[str, Tuple[Type, ...]] = {}
+    _choices: Dict[str, Tuple[Tuple[Type, ...], bool]] = {}
 
     def __init__(self, *args: Any, parse_as_dict: bool = True, **kwargs: Any) -> None:
         """Initialize argument parser that supports configuration file input.
