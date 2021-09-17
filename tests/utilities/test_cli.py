@@ -33,7 +33,15 @@ from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
-from pytorch_lightning.utilities.cli import instantiate_class, LightningArgumentParser, LightningCLI, SaveConfigCallback
+from pytorch_lightning.utilities.cli import (
+    instantiate_class,
+    LightningArgumentParser,
+    LightningCLI,
+    LR_SCHEDULER_REGISTRY,
+    OPTIMIZER_REGISTRY,
+    SaveConfigCallback,
+)
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
@@ -678,12 +686,20 @@ def test_lightning_cli_optimizer_and_lr_scheduler_subclasses(tmpdir):
     assert cli.trainer.lr_schedulers[0]["scheduler"].step_size == 50
 
 
-def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(tmpdir):
+@pytest.mark.parametrize("use_registries", [False, True])
+def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_registries, tmpdir):
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
-            parser.add_optimizer_args(torch.optim.Adam, nested_key="optim1", link_to="model.optim1")
+            parser.add_optimizer_args(
+                OPTIMIZER_REGISTRY.classes if use_registries else torch.optim.Adam,
+                nested_key="optim1",
+                link_to="model.optim1",
+            )
             parser.add_optimizer_args((torch.optim.ASGD, torch.optim.SGD), nested_key="optim2", link_to="model.optim2")
-            parser.add_lr_scheduler_args(torch.optim.lr_scheduler.ExponentialLR, link_to="model.scheduler")
+            parser.add_lr_scheduler_args(
+                LR_SCHEDULER_REGISTRY.classes if use_registries else torch.optim.lr_scheduler.ExponentialLR,
+                link_to="model.scheduler",
+            )
 
     class TestModel(BoringModel):
         def __init__(self, optim1: dict, optim2: dict, scheduler: dict):
@@ -692,20 +708,26 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(tmpdir):
             self.optim2 = instantiate_class(self.parameters(), optim2)
             self.scheduler = instantiate_class(self.optim1, scheduler)
 
-    cli_args = [
-        "fit",
-        f"--trainer.default_root_dir={tmpdir}",
-        "--trainer.max_epochs=1",
-        "--optim2.class_path=torch.optim.SGD",
-        "--optim2.init_args.lr=0.01",
-        "--lr_scheduler.gamma=0.2",
-    ]
+    cli_args = ["fit", f"--trainer.default_root_dir={tmpdir}", "--trainer.max_epochs=1", "--lr_scheduler.gamma=0.2"]
+    if use_registries:
+        cli_args += [
+            "--optim1",
+            "Adam",
+            "--optim1.weight_decay",
+            "0.001",
+            "--optim2=SGD",
+            "--optim2.lr=0.01",
+            "--lr_scheduler=ExponentialLR",
+        ]
+    else:
+        cli_args += ["--optim2.class_path=torch.optim.SGD", "--optim2.init_args.lr=0.01"]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = MyLightningCLI(TestModel)
 
     assert isinstance(cli.model.optim1, torch.optim.Adam)
     assert isinstance(cli.model.optim2, torch.optim.SGD)
+    assert cli.model.optim2.param_groups[0]["lr"] == 0.01
     assert isinstance(cli.model.scheduler, torch.optim.lr_scheduler.ExponentialLR)
 
 
@@ -827,6 +849,190 @@ def test_lightning_cli_run():
     assert cli.trainer.global_step == 1
     assert isinstance(cli.trainer, Trainer)
     assert isinstance(cli.model, LightningModule)
+
+
+@OPTIMIZER_REGISTRY
+class CustomAdam(torch.optim.Adam):
+    pass
+
+
+@LR_SCHEDULER_REGISTRY
+class CustomCosineAnnealingLR(torch.optim.lr_scheduler.CosineAnnealingLR):
+    pass
+
+
+def test_registries(tmpdir):
+    assert "SGD" in OPTIMIZER_REGISTRY.names
+    assert "RMSprop" in OPTIMIZER_REGISTRY.names
+    assert "CustomAdam" in OPTIMIZER_REGISTRY.names
+
+    assert "CosineAnnealingLR" in LR_SCHEDULER_REGISTRY.names
+    assert "CosineAnnealingWarmRestarts" in LR_SCHEDULER_REGISTRY.names
+    assert "CustomCosineAnnealingLR" in LR_SCHEDULER_REGISTRY.names
+
+    with pytest.raises(MisconfigurationException, match="is already present in the registry"):
+        OPTIMIZER_REGISTRY.register_classes(torch.optim, torch.optim.Optimizer)
+    OPTIMIZER_REGISTRY.register_classes(torch.optim, torch.optim.Optimizer, override=True)
+
+
+def test_registries_resolution():
+    """This test validates registries are used when simplified command line are being used."""
+    cli_args = [
+        "--optimizer",
+        "Adam",
+        "--optimizer.lr",
+        "0.0001",
+        "--lr_scheduler",
+        "StepLR",
+        "--lr_scheduler.step_size=50",
+    ]
+
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = LightningCLI(BoringModel, run=False)
+
+    optimizers, lr_scheduler = cli.model.configure_optimizers()
+    assert isinstance(optimizers[0], torch.optim.Adam)
+    assert optimizers[0].param_groups[0]["lr"] == 0.0001
+    assert lr_scheduler[0].step_size == 50
+
+
+@pytest.mark.parametrize(
+    ["args", "expected", "nested_key", "registry"],
+    [
+        (
+            ["--optimizer", "Adadelta"],
+            {"class_path": "torch.optim.adadelta.Adadelta", "init_args": {}},
+            "optimizer",
+            OPTIMIZER_REGISTRY,
+        ),
+        (
+            ["--optimizer", "Adadelta", "--optimizer.lr", "10"],
+            {"class_path": "torch.optim.adadelta.Adadelta", "init_args": {"lr": "10"}},
+            "optimizer",
+            OPTIMIZER_REGISTRY,
+        ),
+        (
+            ["--lr_scheduler", "OneCycleLR"],
+            {"class_path": "torch.optim.lr_scheduler.OneCycleLR", "init_args": {}},
+            "lr_scheduler",
+            LR_SCHEDULER_REGISTRY,
+        ),
+        (
+            ["--lr_scheduler", "OneCycleLR", "--lr_scheduler.anneal_strategy=linear"],
+            {"class_path": "torch.optim.lr_scheduler.OneCycleLR", "init_args": {"anneal_strategy": "linear"}},
+            "lr_scheduler",
+            LR_SCHEDULER_REGISTRY,
+        ),
+    ],
+)
+def test_argv_transformations_with_optimizers_and_lr_schedulers(args, expected, nested_key, registry):
+    base = ["any.py", "--trainer.max_epochs=1"]
+    argv = base + args
+    new_argv = LightningArgumentParser._convert_argv_issue_84(registry.classes, nested_key, argv)
+    assert new_argv == base + [f"--{nested_key}", str(expected)]
+
+
+def test_optimizers_and_lr_schedulers_reload(tmpdir):
+    base = ["any.py", "--trainer.max_epochs=1"]
+    input = base + [
+        "--lr_scheduler",
+        "OneCycleLR",
+        "--lr_scheduler.total_steps=10",
+        "--lr_scheduler.max_lr=1",
+        "--optimizer",
+        "Adam",
+        "--optimizer.lr=0.1",
+    ]
+
+    # save config
+    out = StringIO()
+    with mock.patch("sys.argv", input + ["--print_config"]), redirect_stdout(out), pytest.raises(SystemExit):
+        LightningCLI(BoringModel, run=False)
+
+    # validate yaml
+    yaml_config = out.getvalue()
+    dict_config = yaml.safe_load(yaml_config)
+    assert dict_config["optimizer"]["class_path"] == "torch.optim.adam.Adam"
+    assert dict_config["optimizer"]["init_args"]["lr"] == 0.1
+    assert dict_config["lr_scheduler"]["class_path"] == "torch.optim.lr_scheduler.OneCycleLR"
+
+    # reload config
+    yaml_config_file = tmpdir / "config.yaml"
+    yaml_config_file.write_text(yaml_config, "utf-8")
+    with mock.patch("sys.argv", base + [f"--config={yaml_config_file}"]):
+        LightningCLI(BoringModel, run=False)
+
+
+def test_optimizers_and_lr_schedulers_add_arguments_to_parser_implemented_reload(tmpdir):
+    class TestLightningCLI(LightningCLI):
+        def __init__(self, *args):
+            super().__init__(*args, run=False)
+
+        def add_arguments_to_parser(self, parser):
+            parser.add_optimizer_args(OPTIMIZER_REGISTRY.classes, nested_key="opt1", link_to="model.opt1_config")
+            parser.add_optimizer_args(
+                (torch.optim.ASGD, torch.optim.SGD), nested_key="opt2", link_to="model.opt2_config"
+            )
+            parser.add_lr_scheduler_args(LR_SCHEDULER_REGISTRY.classes, link_to="model.sch_config")
+            parser.add_argument("--something", type=str, nargs="+")
+
+    class TestModel(BoringModel):
+        def __init__(self, opt1_config: dict, opt2_config: dict, sch_config: dict):
+            super().__init__()
+            self.opt1_config = opt1_config
+            self.opt2_config = opt2_config
+            self.sch_config = sch_config
+            opt1 = instantiate_class(self.parameters(), opt1_config)
+            assert isinstance(opt1, torch.optim.Adam)
+            opt2 = instantiate_class(self.parameters(), opt2_config)
+            assert isinstance(opt2, torch.optim.ASGD)
+            sch = instantiate_class(opt1, sch_config)
+            assert isinstance(sch, torch.optim.lr_scheduler.OneCycleLR)
+
+    base = ["any.py", "--trainer.max_epochs=1"]
+    input = base + [
+        "--lr_scheduler",
+        "OneCycleLR",
+        "--lr_scheduler.total_steps=10",
+        "--lr_scheduler.max_lr=1",
+        "--opt1",
+        "Adam",
+        "--opt2.lr=0.1",
+        "--opt2",
+        "ASGD",
+        "--lr_scheduler.anneal_strategy=linear",
+        "--something",
+        "a",
+        "b",
+        "c",
+    ]
+
+    # save config
+    out = StringIO()
+    with mock.patch("sys.argv", input + ["--print_config"]), redirect_stdout(out), pytest.raises(SystemExit):
+        TestLightningCLI(TestModel)
+
+    # validate yaml
+    yaml_config = out.getvalue()
+    dict_config = yaml.safe_load(yaml_config)
+    assert dict_config["opt1"]["class_path"] == "torch.optim.adam.Adam"
+    assert dict_config["opt2"]["class_path"] == "torch.optim.asgd.ASGD"
+    assert dict_config["opt2"]["init_args"]["lr"] == 0.1
+    assert dict_config["lr_scheduler"]["class_path"] == "torch.optim.lr_scheduler.OneCycleLR"
+    assert dict_config["lr_scheduler"]["init_args"]["anneal_strategy"] == "linear"
+    assert dict_config["something"] == ["a", "b", "c"]
+
+    # reload config
+    yaml_config_file = tmpdir / "config.yaml"
+    yaml_config_file.write_text(yaml_config, "utf-8")
+    with mock.patch("sys.argv", base + [f"--config={yaml_config_file}"]):
+        cli = TestLightningCLI(TestModel)
+
+    assert cli.model.opt1_config["class_path"] == "torch.optim.adam.Adam"
+    assert cli.model.opt2_config["class_path"] == "torch.optim.asgd.ASGD"
+    assert cli.model.opt2_config["init_args"]["lr"] == 0.1
+    assert cli.model.sch_config["class_path"] == "torch.optim.lr_scheduler.OneCycleLR"
+    assert cli.model.sch_config["init_args"]["anneal_strategy"] == "linear"
 
 
 @RunIf(min_python="3.7.3")  # bpo-17185: `autospec=True` and `inspect.signature` do not play well
