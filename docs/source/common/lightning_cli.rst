@@ -770,6 +770,10 @@ Furthermore, you can register your own optimizers and/or learning rate scheduler
         ...
 
 
+    # register all `Optimizer` subclasses from the `torch.optim` package
+    # This is done automatically!
+    OPTIMIZER_REGISTRY.register_classes(torch.optim, Optimizer)
+
     cli = LightningCLI(...)
 
 .. code-block:: bash

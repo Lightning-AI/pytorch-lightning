@@ -42,6 +42,7 @@ from pytorch_lightning.utilities.cli import (
     OPTIMIZER_REGISTRY,
     SaveConfigCallback,
 )
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
@@ -877,6 +878,10 @@ def test_registries(tmpdir):
 
     assert "EarlyStopping" in CALLBACK_REGISTRY.names
     assert "CustomCallback" in CALLBACK_REGISTRY.names
+    
+    with pytest.raises(MisconfigurationException, match="is already present in the registry"):
+        OPTIMIZER_REGISTRY.register_classes(torch.optim, torch.optim.Optimizer)
+    OPTIMIZER_REGISTRY.register_classes(torch.optim, torch.optim.Optimizer, override=True)
 
 
 @pytest.mark.parametrize("use_class_path_callbacks", [False, True])
