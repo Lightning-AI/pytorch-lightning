@@ -19,7 +19,6 @@ import logging
 import numbers
 import os
 import tempfile
-from abc import ABC
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
@@ -54,7 +53,6 @@ log = logging.getLogger(__name__)
 
 
 class LightningModule(
-    ABC,
     DeviceDtypeModuleMixin,
     HyperparametersMixin,
     ModelIO,
