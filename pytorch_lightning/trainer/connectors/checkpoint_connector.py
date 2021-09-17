@@ -281,7 +281,8 @@ class CheckpointConnector:
         fs.makedirs(folderpath, exist_ok=True)
 
         # save logger to make sure we get all the metrics
-        logger.finalize("finished")
+        if logger:
+            logger.finalize("finished")
 
         max_suffix = self.max_ckpt_version_in_folder(folderpath)
         ckpt_number = (max_suffix if max_suffix is not None else 0) + 1
