@@ -65,7 +65,7 @@ class GPUAccelerator(Accelerator):
         _log.info(f"LOCAL_RANK: {local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]")
 
     def get_device_stats(self, device: Optional[torch.device] = None) -> Dict[str, Any]:
-        """Gets stats for the given GPU device"""
+        """Gets stats for the given GPU device."""
         if _TORCH_GREATER_EQUAL_1_8:
             return torch.cuda.memory_stats(device=device)
         else:

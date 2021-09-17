@@ -61,7 +61,7 @@ class TPUAccelerator(Accelerator):
                 opt.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, self.root_device)
 
     def get_device_stats(self, device: Optional[torch.device] = None) -> Dict[str, Any]:
-        """Gets stats for the given TPU device"""
+        """Gets stats for the given TPU device."""
         device_stats = {}
         memory_info = xm.get_memory_info(device)
 

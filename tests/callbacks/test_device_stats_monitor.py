@@ -28,7 +28,7 @@ from tests.helpers.runif import RunIf
 @RunIf(min_torch="1.8")
 @RunIf(min_gpus=1)
 def test_device_stats_gpu_from_torch(tmpdir):
-    """Test GPU stats are logged using a logger with Pytorch >= 1.8.0"""
+    """Test GPU stats are logged using a logger with Pytorch >= 1.8.0."""
     model = BoringModel()
     device_stats = DeviceStatsMonitor()
     logger = CSVLogger(tmpdir)

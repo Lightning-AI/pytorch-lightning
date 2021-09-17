@@ -438,7 +438,7 @@ class Accelerator:
         return self.training_type_plugin.restore_checkpoint_after_pre_dispatch
 
     def get_device_stats(self, device: Optional[torch.device] = None) -> Dict[str, Any]:
-        """Gets stats for a given device"""
+        """Gets stats for a given device."""
         pass
 
     def on_train_start(self) -> None:
