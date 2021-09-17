@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Union
 
 import torch
 from torch.optim import Optimizer
@@ -60,7 +60,7 @@ class TPUAccelerator(Accelerator):
             for p, v in opt.state.items():
                 opt.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, self.root_device)
 
-    def get_device_stats(self, device: Optional[torch.device] = None) -> Dict[str, Any]:
+    def get_device_stats(self, device: Union[str, torch.dtype]) -> Dict[str, Any]:
         """Gets stats for the given TPU device."""
         device_stats = {}
         memory_info = xm.get_memory_info(device)
