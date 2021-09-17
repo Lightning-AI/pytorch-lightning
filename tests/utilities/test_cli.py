@@ -46,6 +46,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
+from tests.helpers.utils import no_warning_call
 
 torchvision_version = version.parse("0")
 if _TORCHVISION_AVAILABLE:
@@ -1265,3 +1266,11 @@ def test_lightning_cli_reinstantiate_trainer():
     )
     # the existing config is not updated
     assert cli.config_init["trainer"]["max_epochs"] is None
+
+
+def test_cli_configure_optimizers_warning(tmpdir):
+    match = "configure_optimizers` will be overridden by `LightningCLI"
+    with mock.patch("sys.argv", ["any.py"]), no_warning_call(UserWarning, match=match):
+        LightningCLI(BoringModel, run=False)
+    with mock.patch("sys.argv", ["any.py", "--optimizer=Adam"]), pytest.warns(UserWarning, match=match):
+        LightningCLI(BoringModel, run=False)
