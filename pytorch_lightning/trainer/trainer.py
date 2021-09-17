@@ -1382,7 +1382,6 @@ class Trainer(
     def _on_exception(self):
         if not _fault_tolerant_training():
             return
-
         # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
         file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")
         self.save_checkpoint(file_path)

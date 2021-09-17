@@ -173,9 +173,6 @@ def test_loop_hierarchy():
     class SimpleProgress(BaseProgress):
         increment: int = 0
 
-        def reset_on_restart(self):
-            pass
-
     class Simple(Loop):
         def __init__(self, a):
             super().__init__()
@@ -724,3 +721,15 @@ def test_fit_loop_reset(tmpdir):
     fit_loop.reset()
     epoch_loop.reset()
     optimizer_loop.reset()
+
+    assert fit_loop.restarting
+    assert fit_loop.epoch_progress.total.ready == 1
+    assert fit_loop.epoch_progress.total.completed == 0  # the checkpoint saves before the epoch completes
+    assert fit_loop.epoch_progress.current.ready == 0
+    assert fit_loop.epoch_progress.current.completed == 0
+
+    assert epoch_loop.restarting
+    assert epoch_loop.batch_progress.total.ready == 4
+    assert epoch_loop.batch_progress.total.completed == 3  # the checkpoint was saved on train_batch_end
+
+    assert optimizer_loop.optim_progress.optimizer_position == 1
