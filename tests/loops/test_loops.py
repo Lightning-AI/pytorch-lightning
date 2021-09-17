@@ -686,8 +686,6 @@ def test_fit_loop_reset(tmpdir):
     assert not optimizer_loop.restarting
 
     fit_loop.load_state_dict(mid_epoch_ckpt["loops"]["fit_loop"])
-
-    assert optimizer_loop.optim_progress.optimizer_position == 1
     fit_loop.reset()
     epoch_loop.reset()
     optimizer_loop.reset()
