@@ -200,36 +200,7 @@ class CheckpointConnector:
         self.trainer.fit_loop.current_epoch = self._loaded_checkpoint["epoch"]
 
         assert self.trainer.state.fn is not None
-        if self.trainer.state.fn == TrainerFn.FITTING:
-
-            # crash if max_epochs is lower then the current epoch from the checkpoint
-            if (
-                FitLoop._is_max_limit_enabled(self.trainer.max_epochs)
-                and self.trainer.max_epochs is not None
-                and self.trainer.current_epoch > self.trainer.max_epochs
-            ):
-                raise MisconfigurationException(
-                    f"You restored a checkpoint with current_epoch={self.trainer.current_epoch},"
-                    f" but you have set Trainer(max_epochs={self.trainer.max_epochs})."
-                )
-
-            # Division deals with global step stepping once per accumulated batch
-            # Inequality deals with different global step for odd vs even num_training_batches
-            self.trainer.accumulate_grad_batches = self.trainer.accumulation_scheduler.get_accumulate_grad_batches(
-                self.trainer.current_epoch
-            )
-            n_accum = 1 if self.trainer.accumulate_grad_batches is None else self.trainer.accumulate_grad_batches
-            expected_steps = self.trainer.num_training_batches / n_accum
-            if self.trainer.num_training_batches != 0 and self.trainer.global_step % expected_steps > 1:
-                rank_zero_warn(
-                    "You're resuming from a checkpoint that ended mid-epoch."
-                    " Training will start from the beginning of the next epoch."
-                    " This can cause unreliable results if further training is done,"
-                    " consider using an end of epoch checkpoint."
-                )
-
         state_dict = self._loaded_checkpoint.get("loops")
-
         if state_dict is not None:
             if self.trainer.state.fn == TrainerFn.FITTING:
                 self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
@@ -242,6 +213,35 @@ class CheckpointConnector:
 
             if self.trainer.state.fn == TrainerFn.PREDICTING:
                 self.trainer.predict_loop.load_state_dict(state_dict["predict_loop"])
+
+        if self.trainer.state.fn != TrainerFn.FITTING:
+            return
+
+        # crash if max_epochs is lower then the current epoch from the checkpoint
+        if (
+            FitLoop._is_max_limit_enabled(self.trainer.max_epochs)
+            and self.trainer.max_epochs is not None
+            and self.trainer.current_epoch > self.trainer.max_epochs
+        ):
+            raise MisconfigurationException(
+                f"You restored a checkpoint with current_epoch={self.trainer.current_epoch},"
+                f" but you have set Trainer(max_epochs={self.trainer.max_epochs})."
+            )
+
+        # Division deals with global step stepping once per accumulated batch
+        # Inequality deals with different global step for odd vs even num_training_batches
+        self.trainer.accumulate_grad_batches = self.trainer.accumulation_scheduler.get_accumulate_grad_batches(
+            self.trainer.current_epoch
+        )
+        n_accum = 1 if self.trainer.accumulate_grad_batches is None else self.trainer.accumulate_grad_batches
+        expected_steps = self.trainer.num_training_batches / n_accum
+        if self.trainer.num_training_batches != 0 and self.trainer.global_step % expected_steps > 1:
+            rank_zero_warn(
+                "You're resuming from a checkpoint that ended mid-epoch."
+                " Training will start from the beginning of the next epoch."
+                " This can cause unreliable results if further training is done,"
+                " consider using an end of epoch checkpoint."
+            )
 
     def restore_optimizers_and_schedulers(self) -> None:
         """Restores the optimizers and learning rate scheduler states from the pre-loaded checkpoint."""
