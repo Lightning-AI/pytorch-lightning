@@ -150,6 +150,13 @@ class LightningArgumentParser(ArgumentParser):
 class SaveConfigCallback(Callback):
     """Saves a LightningCLI config to the log_dir when training starts.
 
+    Args:
+        parser: The parser object used to parse the configuration.
+        config: The parsed configuration that will be saved.
+        config_filename: Filename for the config file.
+        overwrite: Whether to overwrite an existing config file.
+        multifile: When input is multiple config files, saved config preserves this structure.
+
     Raises:
         RuntimeError: If the config file already exists in the directory to avoid overwriting a previous run
     """
