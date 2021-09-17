@@ -551,12 +551,10 @@ def test_trainer_properties_resume_from_checkpoint(tmpdir):
                 "callbacks": [resume_cb_validator],
                 "auto_lr_find": True,
                 "resume_from_checkpoint": resume_ckpt,
+                "limit_train_batches": 1.0 if fn == "tune" else 7,
+                "limit_val_batches": 1.0 if fn == "tune" else 7,
             }
         )
-        if fn == "tune":
-            trainer_args.update({"limit_train_batches": 1.0, "limit_val_batches": 1.0})
-        else:
-            trainer_args.update({"limit_train_batches": 7, "limit_val_batches": 7})
 
         trainer = Trainer(**trainer_args)
         getattr(trainer, fn)(model)
