@@ -41,6 +41,7 @@ from pytorch_lightning.utilities.cli import (
     OPTIMIZER_REGISTRY,
     SaveConfigCallback,
 )
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
@@ -868,6 +869,10 @@ def test_registries(tmpdir):
     assert "CosineAnnealingLR" in LR_SCHEDULER_REGISTRY.names
     assert "CosineAnnealingWarmRestarts" in LR_SCHEDULER_REGISTRY.names
     assert "CustomCosineAnnealingLR" in LR_SCHEDULER_REGISTRY.names
+
+    with pytest.raises(MisconfigurationException, match="is already present in the registry"):
+        OPTIMIZER_REGISTRY.register_classes(torch.optim, torch.optim.Optimizer)
+    OPTIMIZER_REGISTRY.register_classes(torch.optim, torch.optim.Optimizer, override=True)
 
 
 def test_registries_resolution():
