@@ -53,7 +53,7 @@ class TrainingEpochLoop(loops.Loop):
 
         self._results = ResultCollection(training=True)
         self._epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
-        self._val_loop_done = False
+        self._val_loop_done: bool = False
 
     @property
     def total_batch_idx(self) -> int:

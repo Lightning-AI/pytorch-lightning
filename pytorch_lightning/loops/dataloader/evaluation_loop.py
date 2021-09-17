@@ -90,13 +90,13 @@ class EvaluationLoop(DataLoaderLoop):
         return []
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
-        """Runs the ``_on_evaluation_model_eval``, ``on_evaluation_start`` and ``_on_evaluation_epoch_start``
+        """Runs the ``_on_evaluation_model_eval``, ``_on_evaluation_start`` and ``_on_evaluation_epoch_start``
         hooks."""
         void(*args, **kwargs)
         # hook
         self._on_evaluation_model_eval()
         self.trainer.lightning_module.zero_grad()
-        self.on_evaluation_start()
+        self._on_evaluation_start()
         self._on_evaluation_epoch_start()
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
@@ -181,7 +181,7 @@ class EvaluationLoop(DataLoaderLoop):
             _reload_state_dict(self.dataloaders[self.current_dataloader_idx], self._dataloader_state_dict)
             self._dataloader_state_dict = None
 
-    def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
+    def _on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_{validation/test}_start`` hooks."""
         assert self._results is not None
         self._results.to(device=self.trainer.lightning_module.device)
