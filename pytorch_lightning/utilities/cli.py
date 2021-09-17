@@ -42,7 +42,7 @@ else:
 
 
 class _Registry(dict):
-    def __call__(self, cls: Type, key: Optional[str] = None, override: bool = False) -> None:
+    def __call__(self, cls: Type, key: Optional[str] = None, override: bool = False) -> Type:
         """Registers a class mapped to a name.
 
         Args:
@@ -58,6 +58,7 @@ class _Registry(dict):
         if key in self and not override:
             raise MisconfigurationException(f"'{key}' is already present in the registry. HINT: Use `override=True`.")
         self[key] = cls
+        return cls
 
     def register_classes(self, module: ModuleType, base_cls: Type, override: bool = False) -> None:
         """This function is an utility to register all classes from a module."""
