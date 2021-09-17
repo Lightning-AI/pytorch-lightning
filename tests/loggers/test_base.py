@@ -308,7 +308,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
     class _Test:
         ...
 
-    same_params = {1: 1, "2": 2, "three": 3.0, "test": _Test(), "4": torch.Tensor(4)}
+    same_params = {1: 1, "2": 2, "three": 3.0, "test": _Test(), "4": torch.tensor(4)}
     model = TestModel(same_params)
     dm = TestDataModule(same_params)
 
@@ -350,7 +350,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         trainer.fit(model, dm)
 
     tensor_params = deepcopy(same_params)
-    tensor_params.update({"4": torch.Tensor(3)})
+    tensor_params.update({"4": torch.tensor(3)})
     model = TestModel(same_params)
     dm = TestDataModule(tensor_params)
     trainer = Trainer(
