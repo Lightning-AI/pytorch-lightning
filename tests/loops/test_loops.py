@@ -319,23 +319,6 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     }
     assert trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.state_dict() == expected
 
-    trainer.fit_loop.load_state_dict(checkpoint)
-    expected = {
-        "total": {
-            "ready": total_val_batch + 1,
-            "started": total_val_batch + 1,
-            "processed": total_val_batch,
-            "completed": total_val_batch,
-        },
-        "current": {
-            "ready": stop_batch + 1,
-            "started": stop_batch + 1,
-            "processed": stop_batch,
-            "completed": stop_batch,
-        },
-    }
-    assert trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.state_dict() == expected
-
 
 @RunIf(min_torch="1.7.0")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
