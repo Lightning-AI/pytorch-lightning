@@ -340,7 +340,7 @@ class DeepSpeedPlugin(DDPPlugin):
         # determine which process we are and world size
         self.set_world_ranks()
 
-        self.init_deepspeed_distributed()
+        self._init_deepspeed_distributed()
 
         # set the ranks and devices
         self.dist.rank = self.global_rank
@@ -349,7 +349,7 @@ class DeepSpeedPlugin(DDPPlugin):
             self._format_config()
             self._config_initialized = True
 
-    def init_deepspeed_distributed(self) -> None:
+    def _init_deepspeed_distributed(self) -> None:
         if platform.system() != "Windows":
             # do not set env variables on windows, allow deepspeed to control setup
             self._set_node_environment_variables()
