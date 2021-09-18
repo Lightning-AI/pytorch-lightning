@@ -19,7 +19,6 @@ import logging
 import numbers
 import os
 import tempfile
-from abc import ABC
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
@@ -54,7 +53,6 @@ log = logging.getLogger(__name__)
 
 
 class LightningModule(
-    ABC,
     DeviceDtypeModuleMixin,
     HyperparametersMixin,
     ModelIO,
@@ -1201,7 +1199,7 @@ class LightningModule(
         Example::
 
             def configure_callbacks(self):
-                early_stop = EarlyStopping(monitor"val_acc", mode="max")
+                early_stop = EarlyStopping(monitor="val_acc", mode="max")
                 checkpoint = ModelCheckpoint(monitor="val_loss")
                 return [early_stop, checkpoint]
 

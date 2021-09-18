@@ -1,9 +1,9 @@
-name: VerifyIssue
+name: Verify Issue Linking
 
 on:
   pull_request:
     branches: [master]
-    types: [edited, synchronize, opened, reopened, ready_for_review]
+    types: [opened, edited, reopened, ready_for_review]
   check_run:
 
 jobs:

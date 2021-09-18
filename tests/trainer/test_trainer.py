@@ -685,7 +685,6 @@ def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
 
     trainer_fn = getattr(trainer, fn)
     path_attr = f"{fn}{'d' if fn == 'validate' else 'ed'}_ckpt_path"
-    assert getattr(trainer, path_attr) is None
 
     if ckpt_path == "best":
         # ckpt_path is 'best', meaning we load the best weights
