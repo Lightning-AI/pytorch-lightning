@@ -297,6 +297,13 @@ class LightningLoggerBase(ABC):
         """
         pass
 
+    def log_text(self, *args, **kwargs) -> None:
+        """Log text.
+
+        Arguments are directly passed to the logger.
+        """
+        pass
+
     def save(self) -> None:
         """Save log data."""
         self._finalize_agg_metrics()
@@ -382,6 +389,10 @@ class LoggerCollection(LightningLoggerBase):
     def log_graph(self, model: "pl.LightningModule", input_array=None) -> None:
         for logger in self._logger_iterable:
             logger.log_graph(model, input_array)
+
+    def log_text(self, *args, **kwargs) -> None:
+        for logger in self._logger_iterable:
+            logger.after_save_checkpoint(*args, **kwargs)
 
     def save(self) -> None:
         for logger in self._logger_iterable:
