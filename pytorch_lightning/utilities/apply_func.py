@@ -18,12 +18,11 @@ from collections import OrderedDict
 from collections.abc import Mapping, Sequence
 from copy import copy
 from functools import partial
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_AVAILABLE
 
 if _TORCHTEXT_AVAILABLE:
@@ -35,19 +34,17 @@ else:
     Batch = type(None)
 
 
-def to_dtype_tensor(value, dtype: torch.dtype = None, device: torch.device = None):
-    if device is None:
-        raise MisconfigurationException("device (torch.device) should be provided.")
+def to_dtype_tensor(
+    value: Union[int, float, List[Union[int, float]]], dtype: torch.dtype, device: Union[str, torch.device]
+) -> torch.Tensor:
     return torch.tensor(value, dtype=dtype, device=device)
 
 
-def from_numpy(value, device: torch.device = None):
-    if device is None:
-        raise MisconfigurationException("device (torch.device) should be provided.")
+def from_numpy(value: np.ndarray, device: Union[str, torch.device]) -> torch.Tensor:
     return torch.from_numpy(value).to(device)
 
 
-CONVERSION_DTYPES = [
+CONVERSION_DTYPES: List[Tuple[Any, Callable[[Any, Any], torch.Tensor]]] = [
     # bool -> uint8 as bool -> torch.bool triggers RuntimeError: Unsupported data type for NCCL process group
     (bool, partial(to_dtype_tensor, dtype=torch.uint8)),
     (int, partial(to_dtype_tensor, dtype=torch.int)),
@@ -61,22 +58,21 @@ def _is_namedtuple(obj: object) -> bool:
     return isinstance(obj, tuple) and hasattr(obj, "_asdict") and hasattr(obj, "_fields")
 
 
-def _is_dataclass_instance(obj):
+def _is_dataclass_instance(obj: object) -> bool:
     # https://docs.python.org/3/library/dataclasses.html#module-level-decorators-classes-and-functions
     return dataclasses.is_dataclass(obj) and not isinstance(obj, type)
 
 
 def apply_to_collection(
     data: Any,
-    dtype: Union[type, tuple],
+    dtype: Union[type, Any, Tuple[Union[type, Any]]],
     function: Callable,
-    *args,
-    wrong_dtype: Optional[Union[type, tuple]] = None,
+    *args: Any,
+    wrong_dtype: Optional[Union[type, Tuple[type]]] = None,
     include_none: bool = True,
-    **kwargs
+    **kwargs: Any,
 ) -> Any:
-    """
-    Recursively applies a function to all elements of a certain dtype.
+    """Recursively applies a function to all elements of a certain dtype.
 
     Args:
         data: the collection to apply the function to
@@ -101,7 +97,9 @@ def apply_to_collection(
     if isinstance(data, Mapping):
         out = []
         for k, v in data.items():
-            v = apply_to_collection(v, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            v = apply_to_collection(
+                v, dtype, function, *args, wrong_dtype=wrong_dtype, include_none=include_none, **kwargs
+            )
             if include_none or v is not None:
                 out.append((k, v))
         return elem_type(OrderedDict(out))
@@ -111,18 +109,28 @@ def apply_to_collection(
     if is_namedtuple or is_sequence:
         out = []
         for d in data:
-            v = apply_to_collection(d, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            v = apply_to_collection(
+                d, dtype, function, *args, wrong_dtype=wrong_dtype, include_none=include_none, **kwargs
+            )
             if include_none or v is not None:
                 out.append(v)
         return elem_type(*out) if is_namedtuple else elem_type(out)
 
     if _is_dataclass_instance(data):
-        out = dict()
+        out_dict = {}
         for field in data.__dataclass_fields__:
-            v = apply_to_collection(getattr(data, field), dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            v = apply_to_collection(
+                getattr(data, field),
+                dtype,
+                function,
+                *args,
+                wrong_dtype=wrong_dtype,
+                include_none=include_none,
+                **kwargs,
+            )
             if include_none or v is not None:
-                out[field] = v
-        return elem_type(**out)
+                out_dict[field] = v
+        return elem_type(**out_dict)
 
     # data is neither of dtype, nor a collection
     return data
@@ -131,14 +139,13 @@ def apply_to_collection(
 def apply_to_collections(
     data1: Optional[Any],
     data2: Optional[Any],
-    dtype: Union[type, tuple],
+    dtype: Union[type, Any, Tuple[Union[type, Any]]],
     function: Callable,
-    *args,
-    wrong_dtype: Optional[Union[type, tuple]] = None,
-    **kwargs
+    *args: Any,
+    wrong_dtype: Optional[Union[type, Tuple[type]]] = None,
+    **kwargs: Any,
 ) -> Any:
-    """
-    Zips two collections and applies a function to their items of a certain dtype.
+    """Zips two collections and applies a function to their items of a certain dtype.
 
     Args:
         data1: The first collection
@@ -157,7 +164,9 @@ def apply_to_collections(
         AssertionError:
             If sequence collections have different data sizes.
     """
-    if data1 is None and data2 is not None:
+    if data1 is None:
+        if data2 is None:
+            return
         # in case they were passed reversed
         data1, data2 = data2, None
 
@@ -169,15 +178,17 @@ def apply_to_collections(
     if isinstance(data1, Mapping) and data2 is not None:
         # use union because we want to fail if a key does not exist in both
         zipped = {k: (data1[k], data2[k]) for k in data1.keys() | data2.keys()}
-        return elem_type({
-            k: apply_to_collections(*v, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
-            for k, v in zipped.items()
-        })
+        return elem_type(
+            {
+                k: apply_to_collections(*v, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+                for k, v in zipped.items()
+            }
+        )
 
     is_namedtuple = _is_namedtuple(data1)
     is_sequence = isinstance(data1, Sequence) and not isinstance(data1, str)
     if (is_namedtuple or is_sequence) and data2 is not None:
-        assert len(data1) == len(data2), 'Sequence collections have different sizes'
+        assert len(data1) == len(data2), "Sequence collections have different sizes"
         out = [
             apply_to_collections(v1, v2, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
             for v1, v2 in zip(data1, data2)
@@ -206,17 +217,16 @@ class TransferableDataType(ABC):
     """
 
     @classmethod
-    def __subclasshook__(cls, subclass):
+    def __subclasshook__(cls, subclass: Any) -> Union[bool, Any]:
         if cls is TransferableDataType:
             to = getattr(subclass, "to", None)
             return callable(to)
         return NotImplemented
 
 
-def move_data_to_device(batch: Any, device: torch.device):
-    """
-    Transfers a collection of data to the given device. Any object that defines a method
-    ``to(device)`` will be moved and all other objects in the collection will be left untouched.
+def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
+    """Transfers a collection of data to the given device. Any object that defines a method ``to(device)`` will be
+    moved and all other objects in the collection will be left untouched.
 
     Args:
         batch: A tensor or collection of tensors or anything that has a method `.to(...)`.
@@ -231,7 +241,7 @@ def move_data_to_device(batch: Any, device: torch.device):
         - :class:`torch.device`
     """
 
-    def batch_to(data):
+    def batch_to(data: Any) -> Any:
         # try to move torchtext data first
         if _TORCHTEXT_AVAILABLE and isinstance(data, Batch):
 
@@ -245,20 +255,21 @@ def move_data_to_device(batch: Any, device: torch.device):
             return device_data
 
         kwargs = dict(non_blocking=True) if isinstance(data, torch.Tensor) else {}
-        return data.to(device, **kwargs)
+        data_output = data.to(device, **kwargs)
+        if data_output is not None:
+            return data_output
+        # user wrongly implemented the `TransferableDataType` and forgot to return `self`.
+        return data
 
     dtype = (TransferableDataType, Batch) if _TORCHTEXT_AVAILABLE else TransferableDataType
     return apply_to_collection(batch, dtype=dtype, function=batch_to)
 
 
-def convert_to_tensors(data: Any, device: torch.device) -> Any:
-    if device is None:
-        raise MisconfigurationException("`torch.device` should be provided.")
-
+def convert_to_tensors(data: Any, device: Union[str, torch.device]) -> Any:
     for src_dtype, conversion_func in CONVERSION_DTYPES:
         data = apply_to_collection(data, src_dtype, conversion_func, device=device)
 
-    def _move_to_device_and_make_contiguous(t: torch.Tensor, device: torch.device) -> torch.Tensor:
+    def _move_to_device_and_make_contiguous(t: torch.Tensor, device: Union[str, torch.device]) -> torch.Tensor:
         return t.to(device).contiguous()
 
     data = apply_to_collection(data, torch.Tensor, _move_to_device_and_make_contiguous, device=device)

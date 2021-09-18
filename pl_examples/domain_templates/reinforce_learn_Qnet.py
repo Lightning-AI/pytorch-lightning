@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Deep Reinforcement Learning: Deep Q-network (DQN)
+"""Deep Reinforcement Learning: Deep Q-network (DQN)
 
 The template illustrates using Lightning for Reinforcement Learning. The example builds a basic DQN using the
 classic CartPole environment.
@@ -50,8 +49,7 @@ from pl_examples import cli_lightning_logo
 
 
 class DQN(nn.Module):
-    """
-    Simple MLP network
+    """Simple MLP network.
 
     >>> DQN(10, 5)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     DQN(
@@ -66,24 +64,19 @@ class DQN(nn.Module):
             n_actions: number of discrete actions available in the environment
             hidden_size: size of hidden layers
         """
-        super(DQN, self).__init__()
-        self.net = nn.Sequential(
-            nn.Linear(obs_size, hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size, n_actions),
-        )
+        super().__init__()
+        self.net = nn.Sequential(nn.Linear(obs_size, hidden_size), nn.ReLU(), nn.Linear(hidden_size, n_actions))
 
     def forward(self, x):
         return self.net(x.float())
 
 
 # Named tuple for storing experience steps gathered in training
-Experience = namedtuple('Experience', field_names=['state', 'action', 'reward', 'done', 'new_state'])
+Experience = namedtuple("Experience", field_names=["state", "action", "reward", "done", "new_state"])
 
 
 class ReplayBuffer:
-    """
-    Replay Buffer for storing past experiences allowing the agent to learn from them
+    """Replay Buffer for storing past experiences allowing the agent to learn from them.
 
     >>> ReplayBuffer(5)  # doctest: +ELLIPSIS
     <...reinforce_learn_Qnet.ReplayBuffer object at ...>
@@ -100,8 +93,7 @@ class ReplayBuffer:
         return len(self.buffer)
 
     def append(self, experience: Experience) -> None:
-        """
-        Add experience to the buffer
+        """Add experience to the buffer.
 
         Args:
             experience: tuple (state, action, reward, done, new_state)
@@ -110,7 +102,7 @@ class ReplayBuffer:
 
     def sample(self, batch_size: int) -> Tuple:
         indices = np.random.choice(len(self.buffer), batch_size, replace=False)
-        states, actions, rewards, dones, next_states = zip(*[self.buffer[idx] for idx in indices])
+        states, actions, rewards, dones, next_states = zip(*(self.buffer[idx] for idx in indices))
 
         return (
             np.array(states),
@@ -122,9 +114,7 @@ class ReplayBuffer:
 
 
 class RLDataset(IterableDataset):
-    """
-    Iterable Dataset containing the ExperienceBuffer
-    which will be updated with new experiences during training
+    """Iterable Dataset containing the ExperienceBuffer which will be updated with new experiences during training.
 
     >>> RLDataset(ReplayBuffer(5))  # doctest: +ELLIPSIS
     <...reinforce_learn_Qnet.RLDataset object at ...>
@@ -146,8 +136,7 @@ class RLDataset(IterableDataset):
 
 
 class Agent:
-    """
-    Base Agent class handling the interaction with the environment
+    """Base Agent class handling the interaction with the environment.
 
     >>> env = gym.make("CartPole-v1")
     >>> buffer = ReplayBuffer(10)
@@ -167,13 +156,11 @@ class Agent:
         self.state = self.env.reset()
 
     def reset(self) -> None:
-        """Resets the environment and updates the state"""
+        """Resets the environment and updates the state."""
         self.state = self.env.reset()
 
     def get_action(self, net: nn.Module, epsilon: float, device: str) -> int:
-        """
-        Using the given network, decide what action to carry out
-        using an epsilon-greedy policy
+        """Using the given network, decide what action to carry out using an epsilon-greedy policy.
 
         Args:
             net: DQN network
@@ -188,7 +175,7 @@ class Agent:
         else:
             state = torch.tensor([self.state])
 
-            if device not in ['cpu']:
+            if device not in ["cpu"]:
                 state = state.cuda(device)
 
             q_values = net(state)
@@ -198,9 +185,8 @@ class Agent:
         return action
 
     @torch.no_grad()
-    def play_step(self, net: nn.Module, epsilon: float = 0.0, device: str = 'cpu') -> Tuple[float, bool]:
-        """
-        Carries out a single interaction step between the agent and the environment
+    def play_step(self, net: nn.Module, epsilon: float = 0.0, device: str = "cpu") -> Tuple[float, bool]:
+        """Carries out a single interaction step between the agent and the environment.
 
         Args:
             net: DQN network
@@ -227,7 +213,7 @@ class Agent:
 
 
 class DQNLightning(pl.LightningModule):
-    """ Basic DQN Model
+    """Basic DQN Model.
 
     >>> DQNLightning(env="CartPole-v1")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     DQNLightning(
@@ -281,9 +267,8 @@ class DQNLightning(pl.LightningModule):
         self.populate(self.warm_start_steps)
 
     def populate(self, steps: int = 1000) -> None:
-        """
-        Carries out several random steps through the environment to initially fill
-        up the replay buffer with experiences
+        """Carries out several random steps through the environment to initially fill up the replay buffer with
+        experiences.
 
         Args:
             steps: number of random steps to populate the buffer with
@@ -292,8 +277,7 @@ class DQNLightning(pl.LightningModule):
             self.agent.play_step(self.net, epsilon=1.0)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Passes in a state `x` through the network and gets the `q_values` of each action as an output
+        """Passes in a state `x` through the network and gets the `q_values` of each action as an output.
 
         Args:
             x: environment state
@@ -305,8 +289,7 @@ class DQNLightning(pl.LightningModule):
         return output
 
     def dqn_mse_loss(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
-        """
-        Calculates the mse loss using a mini batch from the replay buffer
+        """Calculates the mse loss using a mini batch from the replay buffer.
 
         Args:
             batch: current mini batch of replay data
@@ -328,9 +311,8 @@ class DQNLightning(pl.LightningModule):
         return nn.MSELoss()(state_action_values, expected_state_action_values)
 
     def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], nb_batch) -> OrderedDict:
-        """
-        Carries out a single step through the environment to update the replay buffer.
-        Then calculates loss based on the minibatch received
+        """Carries out a single step through the environment to update the replay buffer. Then calculates loss
+        based on the minibatch received.
 
         Args:
             batch: current mini batch of replay data
@@ -358,35 +340,31 @@ class DQNLightning(pl.LightningModule):
             self.target_net.load_state_dict(self.net.state_dict())
 
         log = {
-            'total_reward': torch.tensor(self.total_reward).to(device),
-            'reward': torch.tensor(reward).to(device),
-            'steps': torch.tensor(self.global_step).to(device)
+            "total_reward": torch.tensor(self.total_reward).to(device),
+            "reward": torch.tensor(reward).to(device),
+            "steps": torch.tensor(self.global_step).to(device),
         }
 
-        return OrderedDict({'loss': loss, 'log': log, 'progress_bar': log})
+        return OrderedDict({"loss": loss, "log": log, "progress_bar": log})
 
     def configure_optimizers(self) -> List[Optimizer]:
-        """Initialize Adam optimizer"""
+        """Initialize Adam optimizer."""
         optimizer = optim.Adam(self.net.parameters(), lr=self.lr)
         return [optimizer]
 
     def __dataloader(self) -> DataLoader:
-        """Initialize the Replay Buffer dataset used for retrieving experiences"""
+        """Initialize the Replay Buffer dataset used for retrieving experiences."""
         dataset = RLDataset(self.buffer, self.episode_length)
-        dataloader = DataLoader(
-            dataset=dataset,
-            batch_size=self.batch_size,
-            sampler=None,
-        )
+        dataloader = DataLoader(dataset=dataset, batch_size=self.batch_size, sampler=None)
         return dataloader
 
     def train_dataloader(self) -> DataLoader:
-        """Get train loader"""
+        """Get train loader."""
         return self.__dataloader()
 
     def get_device(self, batch) -> str:
-        """Retrieve device currently being used by minibatch"""
-        return batch[0].device.index if self.on_gpu else 'cpu'
+        """Retrieve device currently being used by minibatch."""
+        return batch[0].device.index if self.on_gpu else "cpu"
 
     @staticmethod
     def add_model_specific_args(parent_parser):  # pragma: no-cover
@@ -401,7 +379,7 @@ class DQNLightning(pl.LightningModule):
             "--warm_start_steps",
             type=int,
             default=1000,
-            help="how many samples do we use to fill our buffer at the start of training"
+            help="how many samples do we use to fill our buffer at the start of training",
         )
         parser.add_argument("--eps_last_frame", type=int, default=1000, help="what frame should epsilon stop decaying")
         parser.add_argument("--eps_start", type=float, default=1.0, help="starting value of epsilon")
@@ -413,16 +391,12 @@ class DQNLightning(pl.LightningModule):
 def main(args) -> None:
     model = DQNLightning(**vars(args))
 
-    trainer = pl.Trainer(
-        gpus=1,
-        accelerator='dp',
-        val_check_interval=100,
-    )
+    trainer = pl.Trainer(gpus=1, accelerator="dp", val_check_interval=100)
 
     trainer.fit(model)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli_lightning_logo()
     torch.manual_seed(0)
     np.random.seed(0)

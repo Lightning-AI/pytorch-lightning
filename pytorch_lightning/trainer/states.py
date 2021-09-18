@@ -19,10 +19,11 @@ from pytorch_lightning.utilities import LightningEnum
 
 class TrainerStatus(LightningEnum):
     """Enum for the status of the :class:`~pytorch_lightning.trainer.trainer.Trainer`"""
-    INITIALIZING = 'initializing'  # trainer creation
-    RUNNING = 'running'
-    FINISHED = 'finished'
-    INTERRUPTED = 'interrupted'
+
+    INITIALIZING = "initializing"  # trainer creation
+    RUNNING = "running"
+    FINISHED = "finished"
+    INTERRUPTED = "interrupted"
 
     @property
     def stopped(self) -> bool:
@@ -35,16 +36,16 @@ class TrainerFn(LightningEnum):
     such as :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit` and
     :meth:`~pytorch_lightning.trainer.trainer.Trainer.test`.
     """
-    FITTING = 'fit'
-    VALIDATING = 'validate'
-    TESTING = 'test'
-    PREDICTING = 'predict'
-    TUNING = 'tune'
+
+    FITTING = "fit"
+    VALIDATING = "validate"
+    TESTING = "test"
+    PREDICTING = "predict"
+    TUNING = "tune"
 
     @property
-    def _setup_fn(self) -> 'TrainerFn':
-        """
-        ``FITTING`` is used instead of ``TUNING`` as there are no "tune" dataloaders.
+    def _setup_fn(self) -> "TrainerFn":
+        """``FITTING`` is used instead of ``TUNING`` as there are no "tune" dataloaders.
 
         This is used for the ``setup()`` and ``teardown()`` hooks
         """
@@ -52,8 +53,7 @@ class TrainerFn(LightningEnum):
 
 
 class RunningStage(LightningEnum):
-    """
-    Enum for the current running stage.
+    """Enum for the current running stage.
 
     This stage complements :class:`TrainerFn` by specifying the current running stage for each function.
     More than one running stage value can be set while a :class:`TrainerFn` is running:
@@ -64,21 +64,31 @@ class RunningStage(LightningEnum):
         - ``TrainerFn.PREDICTING`` - ``RunningStage.PREDICTING``
         - ``TrainerFn.TUNING`` - ``RunningStage.{TUNING,SANITY_CHECKING,TRAINING,VALIDATING}``
     """
-    TRAINING = 'train'
-    SANITY_CHECKING = 'sanity_check'
-    VALIDATING = 'validate'
-    TESTING = 'test'
-    PREDICTING = 'predict'
-    TUNING = 'tune'
+
+    TRAINING = "train"
+    SANITY_CHECKING = "sanity_check"
+    VALIDATING = "validate"
+    TESTING = "test"
+    PREDICTING = "predict"
+    TUNING = "tune"
 
     @property
     def evaluating(self) -> bool:
         return self in (self.VALIDATING, self.TESTING)
 
+    @property
+    def dataloader_prefix(self) -> Optional[str]:
+        if self in (self.SANITY_CHECKING, self.TUNING):
+            return None
+        if self == self.VALIDATING:
+            return "val"
+        return self.value
+
 
 @dataclass
 class TrainerState:
-    """Dataclass to encapsulate the current :class:`~pytorch_lightning.trainer.trainer.Trainer` state"""
+    """Dataclass to encapsulate the current :class:`~pytorch_lightning.trainer.trainer.Trainer` state."""
+
     status: TrainerStatus = TrainerStatus.INITIALIZING
     fn: Optional[TrainerFn] = None
     stage: Optional[RunningStage] = None

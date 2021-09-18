@@ -15,9 +15,12 @@ import os
 from typing import Any, Dict
 
 from pytorch_lightning.core.decorators import parameter_validation
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import _PATH
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -27,12 +30,16 @@ if _OMEGACONF_AVAILABLE:
 
 
 class SingleTPUPlugin(SingleDevicePlugin):
-    """ Plugin for training on a single TPU device. """
+    """Plugin for training on a single TPU device."""
 
-    def __init__(self, device: int, debug: bool = False):
+    def __init__(
+        self,
+        device: int,
+        debug: bool = False,
+    ):
 
         device = xm.xla_device(device)
-        super().__init__(device)
+        super().__init__(device=device)
 
         self.debug = debug
         self.tpu_local_core_rank = 0
@@ -56,10 +63,10 @@ class SingleTPUPlugin(SingleDevicePlugin):
         self.tpu_local_core_rank = xm.get_local_ordinal()
         self.tpu_global_core_rank = xm.get_ordinal()
 
-    def save(self, state_dict: Dict, path: str) -> None:
+    def save(self, state_dict: Dict, path: _PATH) -> None:
         xm.save(state_dict, path)
 
-    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: _PATH) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
@@ -74,3 +81,11 @@ class SingleTPUPlugin(SingleDevicePlugin):
     def teardown(self) -> None:
         # TPU teardown
         os.environ.pop("PT_XLA_DEBUG", None)
+
+    @property
+    def checkpoint_io(self) -> CheckpointIO:
+        return self._checkpoint_io
+
+    @checkpoint_io.setter
+    def checkpoint_io(self, plugin: CheckpointIO) -> None:
+        raise MisconfigurationException("TPU Plugin currently does not support custom checkpoint plugins.")

@@ -56,7 +56,7 @@ As a researcher, you can't have any part of your code going wrong. So, make thor
 
 Have a favorite feature from other libraries like fast.ai or transformers? Those should just work with lightning as well. Grab your favorite model or learning rate scheduler from your favorite library and run it in Lightning.
 
----
+______________________________________________________________________
 
 ## Contribution Types
 
@@ -73,26 +73,28 @@ A lot of good work has already been done in project mechanics (requirements.txt,
    - Add details on how to reproduce the issue - a minimal test case is always best, colab is also great.
      Note, that the sample code shall be minimal and if needed with publicly available data.
 
-2. Try to fix it or recommend a solution. We highly recommend to use test-driven approach:
+1. Try to fix it or recommend a solution. We highly recommend to use test-driven approach:
 
    - Convert your minimal code example to a unit/integration test with assert on expected results.
    - Start by debugging the issue... You can run just this particular test in your IDE and draft a fix.
    - Verify that your test case fails on the master branch and only passes with the fix applied.
 
-3. Submit a PR!
+1. Submit a PR!
 
-_**Note**, even if you do not find the solution, sending a PR with a test covering the issue is a valid contribution, and we can help you or finish it with you :]_
+_**Note**, even if you do not find the solution, sending a PR with a test covering the issue is a valid contribution, and we can help you or finish it with you :\]_
 
 ### New Features:
 
 1. Submit a GitHub issue - describe what is the motivation of such feature (adding the use case, or an example is helpful).
-2. Determine the feature scope with us.
-3. Submit a PR! We recommend test driven approach to adding new features as well:
+
+1. Determine the feature scope with us.
+
+1. Submit a PR! We recommend test driven approach to adding new features as well:
 
    - Write a test for the functionality you want to add.
    - Write the functional code until the test passes.
 
-4. Add/update the relevant tests!
+1. Add/update the relevant tests!
 
 - [This PR](https://github.com/PyTorchLightning/pytorch-lightning/pull/2671) is a good example for adding a new metric, and [this one for a new logger](https://github.com/PyTorchLightning/pytorch-lightning/pull/2721).
 
@@ -102,12 +104,14 @@ Want to keep Lightning healthy? Love seeing those green tests? So do we! How to 
 
 Most of the tests in PyTorch Lightning train a trial MNIST model under various trainer conditions (ddp, ddp2+amp, etc...). The tests expect the model to perform to a reasonable degree of testing accuracy to pass. Want to add a new test case and not sure how? [Talk to us!](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-pw5v393p-qRaDgEk24~EjiZNBpSQFgQ)
 
----
+______________________________________________________________________
 
 ## Guidelines
 
 ### Developments scripts
+
 To build the documentation locally, simply execute the following commands from project root (only for Unix):
+
 - `make clean` cleans repo from temp/generated files
 - `make docs` builds documentation under _docs/build/html_
 - `make test` runs all project's tests with coverage
@@ -121,7 +125,7 @@ In case you adding new dependencies, make sure that they are compatible with the
 ### Coding Style
 
 1. Use f-strings for output formation (except logging when we stay with lazy `logging.info("Hello %s!", name)`.
-2. You can use `pre-commit` to make sure your code style is correct.
+1. You can use `pre-commit` to make sure your code style is correct.
 
 ### Documentation
 
@@ -136,6 +140,7 @@ See following short example of a sample function taking one position string and 
 
 ```python
 from typing import Optional
+
 
 def my_func(param_a: int, param_b: Optional[float] = None) -> str:
     """Sample function.
@@ -163,6 +168,7 @@ formatting errors. In certain cases, a missing blank line or a wrong indent can 
 Run these commands
 
 ```bash
+git submodule update --init --recursive
 pip install -r requirements/docs.txt
 cd docs
 make html
@@ -189,6 +195,15 @@ To setup a local development environment, install both local and test dependenci
 python -m pip install ".[dev, examples]"
 python -m pip install pre-commit
 ```
+
+Additionally, for testing backward compatibility with older versions of PyTorch Lightning, you also need to download all saved version-checkpoints from the public AWS storage. Run the following script to get all saved version-checkpoints:
+
+```bash
+wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip -P legacy/
+unzip -o legacy/checkpoints.zip -d legacy/
+```
+
+Note: These checkpoints are generated to set baselines for maintaining backward compatibility with legacy versions of PyTorch Lightning. Details of checkpoints for back-compatibility can be found [here](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/legacy/README.md).
 
 You can run the full test-case in your terminal via this make script:
 
@@ -222,18 +237,18 @@ We welcome any useful contribution! For your convenience here's a recommended wo
    - Create a branch and prepare your changes.
    - Tip: do not work with your master directly, it may become complicated when you need to rebase.
    - Tip: give your PR a good name! It will be useful later when you may work on multiple tasks/PRs.
-2. Test your code!
+1. Test your code!
    - It is always good practice to start coding by creating a test case, verifying it breaks with current behaviour, and passes with your new changes.
    - Make sure your new tests cover all different edge cases.
    - Make sure all exceptions are handled.
-3. Create a "Draft PR" which is clearly marked, to let us know you don't need feedback yet.
-4. When you feel ready for integrating your work, mark your PR "Ready for review".
+1. Create a "Draft PR" which is clearly marked, to let us know you don't need feedback yet.
+1. When you feel ready for integrating your work, mark your PR "Ready for review".
    - Your code should be readable and follow the project's design principles.
    - Make sure all tests are passing.
    - Make sure you add a GitHub issue to your PR.
-5. Use tags in PR name for following cases:
-   - **[blocked by #<number>]** if your work is dependent on other PRs.
-   - **[wip]** when you start to re-edit your work, mark it so no one will accidentally merge it in meantime.
+1. Use tags in PR name for following cases:
+   - **\[blocked by #<number>\]** if your work is dependent on other PRs.
+   - **\[wip\]** when you start to re-edit your work, mark it so no one will accidentally merge it in meantime.
 
 ### Question & Answer
 
@@ -274,20 +289,21 @@ git rebase upstream/master
 git push -f
 ```
 
-#### How to add new tests?**
+#### How to add new tests?
 
 We are using [pytest](https://docs.pytest.org/en/stable/) in Pytorch Lightning.
 
 Here are tutorials:
-* (recommended) [Visual Testing with pytest](https://www.youtube.com/playlist?list=PLCTHcU1KoD99Rim2tzg-IhYY2iu9FFvNo) from JetBrains on YouTube
-* [Effective Python Testing With Pytest](https://realpython.com/pytest-python-testing/) article on realpython.com
+
+- (recommended) [Visual Testing with pytest](https://www.youtube.com/playlist?list=PLCTHcU1KoD99Rim2tzg-IhYY2iu9FFvNo) from JetBrains on YouTube
+- [Effective Python Testing With Pytest](https://realpython.com/pytest-python-testing/) article on realpython.com
 
 Here is the process to create a new test
 
-* 0. Optional: Follow tutorials !
-* 1. Find a file in tests/ which match what you want to test. If none, create one.
-* 2. Use this template to get started !
-* 3. Use `BoringModel and derivates to test out your code`.
+- 0. Optional: Follow tutorials !
+- 1. Find a file in tests/ which match what you want to test. If none, create one.
+- 2. Use this template to get started !
+- 3. Use `BoringModel and derivates to test out your code`.
 
 ```python
 # TEST SHOULD BE IN YOUR FILE: tests/..../...py
@@ -310,57 +326,56 @@ def test_explain_what_is_being_tested(tmpdir):
     # BoringModel is a functional model. You might want to set methods to None to test your behaviour
     # Example: model.training_step_end = None
 
-    trainer = Trainer(
-        default_root_dir=tmpdir, # will save everything within a tmpdir generated for this test
-        ...
-    )
+    trainer = Trainer(default_root_dir=tmpdir, ...)  # will save everything within a tmpdir generated for this test
     trainer.fit(model)
     trainer.test()  # [OPTIONAL]
 
     # assert the behaviour is correct.
     assert ...
 ```
+
 run our/your test with
+
 ```bash
 python -m pytest tests/..../...py::test_explain_what_is_being_tested --verbose --capture=no
 ```
-
 
 #### How to fix PR with mixed base and target branches?
 
 Sometimes you start your PR as a bug-fix but it turns out to be more of a feature (or the other way around).
 Do not panic, the solution is very straightforward and quite simple.
 All you need to do are these two steps in arbitrary order:
-   - Ask someone from Core to change the base/target branch to the correct one
-   - Rebase or cherry-pick your commits onto the correct base branch...
+
+- Ask someone from Core to change the base/target branch to the correct one
+- Rebase or cherry-pick your commits onto the correct base branch...
 
 Let's show how to deal with the git...
 the sample case is moving a PR from `master` to `release/1.2-dev` assuming my branch name is `my-branch`
 and the last true master commit is `ccc111` and your first commit is `mmm222`.
-   * **Cherry-picking** way
-     ```bash
-     git checkout my-branch
-     # create a local backup of your branch
-     git checkout -b my-branch-backup
-     # reset your branch to the correct base
-     git reset release/1.2-dev --hard
-     # ACTION: this step is much easier to do with IDE
-     #  so open one and cherry-pick your last commits from `my-branch-backup`
-     #  resolve all eventual conflict as the new base may contain different code
-     # when all done, push back to the open PR
-     git push -f
-     ```
-   * **Rebasing way**, see more about [rebase onto usage](https://womanonrails.com/git-rebase-onto)
-     ```bash
-     git checkout my-branch
-     # rebase your commits on the correct branch
-     git rebase --onto release/1.2-dev ccc111
-     # if there is no collision you shall see just success
-     #  eventually you would need to resolve collision and in such case follow the instruction in terminal
-     # when all done, push back to the open PR
-     git push -f
-     ```
 
+- **Cherry-picking** way
+  ```bash
+  git checkout my-branch
+  # create a local backup of your branch
+  git checkout -b my-branch-backup
+  # reset your branch to the correct base
+  git reset release/1.2-dev --hard
+  # ACTION: this step is much easier to do with IDE
+  #  so open one and cherry-pick your last commits from `my-branch-backup`
+  #  resolve all eventual conflict as the new base may contain different code
+  # when all done, push back to the open PR
+  git push -f
+  ```
+- **Rebasing way**, see more about [rebase onto usage](https://womanonrails.com/git-rebase-onto)
+  ```bash
+  git checkout my-branch
+  # rebase your commits on the correct branch
+  git rebase --onto release/1.2-dev ccc111
+  # if there is no collision you shall see just success
+  #  eventually you would need to resolve collision and in such case follow the instruction in terminal
+  # when all done, push back to the open PR
+  git push -f
+  ```
 
 ### Bonus Workflow Tip
 

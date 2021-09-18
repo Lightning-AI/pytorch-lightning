@@ -23,7 +23,7 @@ if _FAIRSCALE_AVAILABLE:
         # Just do this for later docstrings
         pass
 
-    def unwrap_lightning_module_sharded(wrapped_model) -> 'pl.LightningModule':
+    def unwrap_lightning_module_sharded(wrapped_model) -> "pl.LightningModule":
         model = wrapped_model
         if isinstance(model, ShardedDataParallel):
             model = model.module

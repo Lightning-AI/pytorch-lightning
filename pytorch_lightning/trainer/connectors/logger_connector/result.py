@@ -14,55 +14,72 @@
 from collections.abc import Generator
 from dataclasses import asdict, dataclass, replace
 from functools import partial, wraps
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from torchmetrics import Metric
+from typing_extensions import TypedDict
 
+from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
-from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
-from pytorch_lightning.utilities.distributed import distributed_available
-from pytorch_lightning.utilities.enums import LightningEnum
+from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
+from pytorch_lightning.utilities.data import extract_batch_size
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.warnings import WarningCache
 
-# re-define the ones from pytorch_lightning.utilities.types without the `Number` type
 # TODO(@tchaton): Typing-pickle issue on python<3.7 (https://github.com/cloudpipe/cloudpickle/pull/318)
-_METRIC = Any  # Union[Metric, torch.Tensor]
-_METRIC_COLLECTION = Union[_METRIC, Mapping[str, _METRIC]]
+_IN_METRIC = Any  # Union[Metric, torch.Tensor]  # Do not include scalars as they were converted to tensors
+_OUT_METRIC = Union[torch.Tensor, Dict[str, torch.Tensor]]
+_PBAR_METRIC = Union[float, Dict[str, float]]
+_OUT_DICT = Dict[str, _OUT_METRIC]
+_PBAR_DICT = Dict[str, _PBAR_METRIC]
+
+
+class _METRICS(TypedDict):
+    callback: _OUT_DICT
+    log: _OUT_DICT
+    pbar: _PBAR_DICT
+
 
 warning_cache = WarningCache()
-
-
-class MetricSource(LightningEnum):
-    CALLBACK = "callback"
-    PBAR = "pbar"
-    LOG = "log"
 
 
 @dataclass
 class _Sync:
     fn: Optional[Callable] = None
-    should: bool = False
+    _should: bool = False
     rank_zero_only: bool = False
     op: Optional[str] = None
     group: Optional[Any] = None
 
     def __post_init__(self) -> None:
-        if self.fn is None:
-            self.fn = self.no_op
+        self._generate_sync_fn()
+
+    @property
+    def should(self) -> bool:
+        return self._should
+
+    @should.setter
+    def should(self, should: bool) -> None:
+        self._should = should
+        # `self._fn` needs to be re-generated.
+        self._generate_sync_fn()
+
+    def _generate_sync_fn(self) -> None:
+        """Used to compute the syncing function and cache it."""
+        fn = self.no_op if self.fn is None or not self.should or self.rank_zero_only else self.fn
+        # save the function as `_fn` as the meta are being re-created and the object references need to match.
+        # ignore typing, bad support for `partial`: mypy/issues/1484
+        self._fn: Callable = partial(fn, reduce_op=self.op, group=self.group)  # type: ignore [arg-type]
 
     @property
     def __call__(self) -> Any:
-        return (
-            partial(self.fn, reduce_op=self.op, group=self.group)
-            if self.should and not self.rank_zero_only else self.no_op
-        )
+        return self._fn
 
     @staticmethod
-    def no_op(value: Any, *_, **__) -> Any:
+    def no_op(value: Any, *_: Any, **__: Any) -> Any:
         return value
 
 
@@ -74,36 +91,34 @@ class _Metadata:
     logger: bool = True
     on_step: bool = False
     on_epoch: bool = True
-    _reduce_fx: Callable = torch.mean
+    reduce_fx: Callable = torch.mean
     enable_graph: bool = False
     dataloader_idx: Optional[int] = None
     metric_attribute: Optional[str] = None
     _sync: Optional[_Sync] = None
 
-    @property
-    def reduce_fx(self) -> Callable:
-        return self._reduce_fx
+    def __post_init__(self) -> None:
+        self._parse_reduce_fx()
 
-    @reduce_fx.setter
-    def reduce_fx(self, reduce_fx: Union[str, Callable]) -> None:
+    def _parse_reduce_fx(self) -> None:
         error = (
-            'Only `self.log(..., reduce_fx={min,max,mean,sum})` are currently supported.'
-            ' Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`.'
-            f' Found: {reduce_fx}'
+            "Only `self.log(..., reduce_fx={min,max,mean,sum})` are currently supported."
+            " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`."
+            f" Found: {self.reduce_fx}"
         )
-        self._reduce_fx = reduce_fx
-        if isinstance(reduce_fx, str):
-            reduce_fx = reduce_fx.lower()
-            if reduce_fx == 'avg':
-                reduce_fx = 'mean'
-            if reduce_fx not in ('min', 'max', 'mean', 'sum'):
+        if isinstance(self.reduce_fx, str):
+            reduce_fx = self.reduce_fx.lower()
+            if reduce_fx == "avg":
+                reduce_fx = "mean"
+            if reduce_fx not in ("min", "max", "mean", "sum"):
                 raise MisconfigurationException(error)
-            self._reduce_fx = getattr(torch, reduce_fx)
+            self.reduce_fx = getattr(torch, reduce_fx)
         elif self.is_custom_reduction:
             raise MisconfigurationException(error)
 
     @property
-    def sync(self) -> Optional[_Sync]:
+    def sync(self) -> _Sync:
+        assert self._sync is not None
         return self._sync
 
     @sync.setter
@@ -147,16 +162,16 @@ class _Metadata:
         copy = replace(self, _sync=replace(self.sync, fn=None))
         d = asdict(copy)
         # delete the `None` value so it does not override
-        del d['_sync']['fn']
+        del d["_sync"]["fn"]
         return d
 
     def __setstate__(self, state: dict, sync_fn: Optional[Callable] = None) -> None:
-        d = {**state, '_sync': _Sync(**state['_sync'], fn=sync_fn)}
+        d = {**state, "_sync": _Sync(**state["_sync"], fn=sync_fn)}
         self.__dict__.update(d)
 
     @classmethod
-    def _reconstruct(cls, state: dict, sync_fn: Optional[Callable] = None) -> '_Metadata':
-        meta = cls(state['fx'], state['name'])
+    def _reconstruct(cls, state: dict, sync_fn: Optional[Callable] = None) -> "_Metadata":
+        meta = cls(state["fx"], state["name"])
         meta.__setstate__(state, sync_fn=sync_fn)
         return meta
 
@@ -174,14 +189,14 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             if self.meta.is_mean_reduction:
                 self.add_state("cumulated_batch_size", torch.tensor(0, dtype=torch.float), dist_reduce_fx=torch.sum)
 
-    def update(self, value: _METRIC, batch_size: torch.Tensor) -> None:
+    def update(self, value: _IN_METRIC, batch_size: torch.Tensor) -> None:
         if self.is_tensor:
             value = value.float()
-            self._forward_cache = value
             # performance: no need to accumulate on values only logged on_step
             if self.meta.on_step and not self.meta.on_epoch:
-                self.value = self.meta.sync(value)
+                self._forward_cache = self.value = self.meta.sync(value)
                 return
+            self._forward_cache = value
             # perform accumulation with reduction
             if self.meta.is_mean_reduction:
                 self.value += value.mean() * batch_size
@@ -191,7 +206,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             elif self.meta.is_sum_reduction:
                 self.value += value.mean() * batch_size
         else:
-            self.value = value  # noqa: attribute-defined-outside-init
+            self.value = value
             self._forward_cache = value._forward_cache
 
     def compute(self) -> torch.Tensor:
@@ -200,8 +215,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             if self.meta.is_mean_reduction:
                 cumulated_batch_size = self.meta.sync(self.cumulated_batch_size)
                 return value / cumulated_batch_size
-            elif self.meta.is_max_reduction or self.meta.is_min_reduction or self.meta.is_sum_reduction:
-                return value
+            return value
         return self.value.compute()
 
     def reset(self) -> None:
@@ -211,7 +225,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             self.value.reset()
         self.has_reset = True
 
-    def forward(self, value: _METRIC, batch_size: torch.Tensor) -> None:
+    def forward(self, value: _IN_METRIC, batch_size: torch.Tensor) -> None:
         if self.meta.enable_graph:
             with torch.no_grad():
                 self.update(value, batch_size)
@@ -222,17 +236,18 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
     def _wrap_compute(self, compute: Any) -> Any:
         # Override to avoid syncing - we handle it ourselves.
         @wraps(compute)
-        def wrapped_func(*args, **kwargs):
+        def wrapped_func(*args: Any, **kwargs: Any) -> Optional[Any]:
             if not self._update_called:
                 rank_zero_warn(
                     f"The ``compute`` method of metric {self.__class__.__name__}"
                     " was called before the ``update`` method which may lead to errors,"
-                    " as metric states have not yet been updated.", UserWarning
+                    " as metric states have not yet been updated.",
+                    UserWarning,
                 )
 
             # return cached value
-            if self._computed is not None:
-                return self._computed
+            if self._computed is not None:  # type: ignore
+                return self._computed  # type: ignore
             self._computed = compute(*args, **kwargs)
             return self._computed
 
@@ -249,76 +264,70 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         return f"{self.__class__.__name__}({state})"
 
     def __getstate__(self, drop_value: bool = False) -> dict:
-        skip = ['update', 'compute', '_update_signature']
+        skip = ["update", "compute", "_update_signature", "_cache"]
         if not self.is_tensor and drop_value:
             # Avoid serializing ResultMetrics which are passed Metrics
-            skip.append('value')
-        with self.sync_context(
-            should_sync=not self.meta.sync.rank_zero_only,
-            process_group=self.meta.sync.group,
-            distributed_available=distributed_available
-        ):
-            d = {k: v for k, v in self.__dict__.items() if k not in skip}
-        d['meta'] = d['meta'].__getstate__()
-        d['_class'] = self.__class__.__name__
+            skip.append("value")
+        d = {k: v for k, v in self.__dict__.items() if k not in skip}
+        d["meta"] = d["meta"].__getstate__()
+        d["_class"] = self.__class__.__name__
+        d["_is_synced"] = False  # don't consider the state as synced on reload
         return d
 
     def __setstate__(self, state: dict, sync_fn: Optional[Callable] = None) -> None:
-        d = {**state, 'meta': _Metadata._reconstruct(state['meta'], sync_fn=sync_fn)}
+        d = {**state, "meta": _Metadata._reconstruct(state["meta"], sync_fn=sync_fn)}
         super().__setstate__(d)
 
     @classmethod
-    def _reconstruct(cls, state: dict, sync_fn: Optional[Callable] = None) -> 'ResultMetric':
+    def _reconstruct(cls, state: dict, sync_fn: Optional[Callable] = None) -> "ResultMetric":
         # need to reconstruct twice because `meta` is used in `__init__`
-        meta = _Metadata._reconstruct(state['meta'])
-        result_metric = cls(meta, state['is_tensor'])
+        meta = _Metadata._reconstruct(state["meta"])
+        result_metric = cls(meta, state["is_tensor"])
         result_metric.__setstate__(state, sync_fn=sync_fn)
         return result_metric
 
+    def to(self, *args: Any, **kwargs: Any) -> "ResultMetric":
+        self.__dict__.update(
+            apply_to_collection(self.__dict__, (torch.Tensor, Metric), move_data_to_device, *args, **kwargs)
+        )
+        return self
+
 
 class ResultMetricCollection(dict):
-    """
-    Dict wrapper for easy access to metadata.
+    """Dict wrapper for easy access to metadata.
 
     All of the leaf items should be instances of
     :class:`~pytorch_lightning.trainer.connectors.logger_connector.result.ResultMetric`
     with the same metadata.
     """
 
-    def __init__(self, *args, metadata: Optional[_Metadata] = None) -> None:
+    def __init__(self, *args: Any) -> None:
         super().__init__(*args)
-        self.meta = metadata
+
+    @property
+    def meta(self) -> _Metadata:
+        return list(self.values())[0].meta
 
     def __getstate__(self, drop_value: bool = False) -> dict:
-
         def getstate(item: ResultMetric) -> dict:
             return item.__getstate__(drop_value=drop_value)
 
-        items = apply_to_collection(dict(self), (ResultMetric, ResultMetricCollection), getstate)
+        items = apply_to_collection(dict(self), ResultMetric, getstate)
         return {"items": items, "meta": self.meta.__getstate__(), "_class": self.__class__.__name__}
 
     def __setstate__(self, state: dict, sync_fn: Optional[Callable] = None) -> None:
-
-        def setstate(item: dict) -> Union[Dict[str, ResultMetric], ResultMetric, Any]:
-            # recurse through dictionaries to set the state. can't use `apply_to_collection`
-            # as it does not recurse items of the same type.
-            if not isinstance(item, dict):
-                return item
-            if item.get('_class') == ResultMetric.__name__:
-                return ResultMetric._reconstruct(item, sync_fn=sync_fn)
-            return {k: setstate(v) for k, v in item.items()}
-
-        items = setstate(state["items"])
+        # can't use `apply_to_collection` as it does not recurse items of the same type
+        items = {k: ResultMetric._reconstruct(v, sync_fn=sync_fn) for k, v in state["items"].items()}
         self.update(items)
 
-        any_result_metric = next(iter(items.values()))
-        self.meta = any_result_metric.meta
-
     @classmethod
-    def _reconstruct(cls, state: dict, sync_fn: Optional[Callable] = None) -> 'ResultMetricCollection':
+    def _reconstruct(cls, state: dict, sync_fn: Optional[Callable] = None) -> "ResultMetricCollection":
         rmc = cls()
         rmc.__setstate__(state, sync_fn=sync_fn)
         return rmc
+
+
+_METRIC_COLLECTION = Union[_IN_METRIC, ResultMetricCollection]
 
 
 class ResultCollection(dict):
@@ -342,7 +351,6 @@ class ResultCollection(dict):
     def __init__(self, training: bool, device: Optional[Union[str, torch.device]] = None) -> None:
         super().__init__()
         self.training = training
-        self._minimize = None
         self._batch_size = torch.tensor(1, device=device)
         self.device: Optional[Union[str, torch.device]] = device
 
@@ -366,46 +374,6 @@ class ResultCollection(dict):
     def batch_size(self, value: int) -> None:
         self._batch_size = torch.tensor(value, device=self.device)
 
-    @property
-    def minimize(self) -> Optional[torch.Tensor]:
-        """
-        The :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` loss
-        will be saved as the ``minimize`` attribute.
-        """
-        return self._minimize
-
-    @minimize.setter
-    def minimize(self, loss: Optional[torch.Tensor]) -> None:
-        if loss is not None:
-            if not isinstance(loss, torch.Tensor):
-                raise ValueError(f"`Result.minimize` must be a `torch.Tensor`, found: {loss}")
-        self._minimize = loss
-
-    @property
-    def extra(self) -> Dict[str, Any]:
-        """
-        Extras are any keys other than the loss returned by
-        :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`
-        """
-        return self.get('_extra', {})
-
-    @extra.setter
-    def extra(self, extra: Dict[str, Any]) -> None:
-
-        def check_fn(v):
-            if v.grad_fn is not None:
-                warning_cache.deprecation(
-                    f"One of the returned values {set(extra.keys())} has a `grad_fn`. We will detach it automatically"
-                    " but this behaviour will change in v1.6. Please detach it manually:"
-                    " `return {'loss': ..., 'something': something.detach()}`"
-                )
-                return v.detach()
-            return v
-
-        # update instead of replace to keep the extra dict reference. TODO: remove with v1.6 deprecation removal
-        extra.update(apply_to_collection(extra, torch.Tensor, check_fn))
-        self['_extra'] = extra
-
     def log(
         self,
         fx: str,
@@ -427,8 +395,8 @@ class ResultCollection(dict):
     ) -> None:
         """See :meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
         # no metrics should be logged with graphs
-        if not enable_graph and isinstance(value, torch.Tensor):
-            value = value.detach()
+        if not enable_graph:
+            value = recursive_detach(value)
 
         # move metrics to cpu on TPU.
         if isinstance(value, torch.Tensor) and value.device.type == "xla":
@@ -438,8 +406,8 @@ class ResultCollection(dict):
         key = f"{fx}.{name}"
         # add dataloader_suffix to both key and fx
         if dataloader_idx is not None:
-            key += f'.{dataloader_idx}'
-            fx += f'.{dataloader_idx}'
+            key += f".{dataloader_idx}"
+            fx += f".{dataloader_idx}"
 
         meta = _Metadata(
             fx=fx,
@@ -448,17 +416,12 @@ class ResultCollection(dict):
             logger=logger,
             on_step=on_step,
             on_epoch=on_epoch,
+            reduce_fx=reduce_fx,
             enable_graph=enable_graph,
             dataloader_idx=dataloader_idx,
             metric_attribute=metric_attribute,
         )
-        meta.reduce_fx = reduce_fx
-        meta.sync = _Sync(
-            should=sync_dist,
-            fn=sync_dist_fn,
-            group=sync_dist_group,
-            rank_zero_only=rank_zero_only,
-        )
+        meta.sync = _Sync(_should=sync_dist, fn=sync_dist_fn, group=sync_dist_group, rank_zero_only=rank_zero_only)
 
         # register logged value if it doesn't exist
         if key not in self:
@@ -467,7 +430,7 @@ class ResultCollection(dict):
         # check the stored metadata and the current one match
         elif meta != self[key].meta:
             raise MisconfigurationException(
-                f'You called `self.log({name}, ...)` twice in `{fx}` with different arguments. This is not allowed'
+                f"You called `self.log({name}, ...)` twice in `{fx}` with different arguments. This is not allowed"
             )
 
         if batch_size is not None:
@@ -476,20 +439,22 @@ class ResultCollection(dict):
         self.update_metrics(key, value)
 
     def register_key(self, key: str, meta: _Metadata, value: _METRIC_COLLECTION) -> None:
-        """Create one ResultMetric object per value. Value can be provided as a nested collection"""
+        """Create one ResultMetric object per value.
 
-        def fn(v: _METRIC) -> ResultMetric:
+        Value can be provided as a nested collection
+        """
+
+        def fn(v: _IN_METRIC) -> ResultMetric:
             metric = ResultMetric(meta, isinstance(v, torch.Tensor))
             return metric.to(self.device)
 
         value = apply_to_collection(value, (torch.Tensor, Metric), fn)
         if isinstance(value, dict):
-            value = ResultMetricCollection(value, metadata=meta)
+            value = ResultMetricCollection(value)
         self[key] = value
 
     def update_metrics(self, key: str, value: _METRIC_COLLECTION) -> None:
-
-        def fn(result_metric, v):
+        def fn(result_metric: ResultMetric, v: ResultMetric) -> None:
             # performance: avoid calling `__call__` to avoid the checks in `torch.nn.Module._call_impl`
             result_metric.forward(v.to(self.device), self.batch_size)
             result_metric.has_reset = False
@@ -515,8 +480,7 @@ class ResultCollection(dict):
 
     def valid_items(self) -> Generator:
         """This function is used to iterate over current valid metrics."""
-        return ((k, v) for k, v in self.items()
-                if not k == "_extra" and not (isinstance(v, ResultMetric) and v.has_reset))
+        return ((k, v) for k, v in self.items() if not (isinstance(v, ResultMetric) and v.has_reset))
 
     def _forked_name(self, result_metric: ResultMetric, on_step: bool) -> Tuple[str, str]:
         name = result_metric.meta.name
@@ -528,8 +492,8 @@ class ResultCollection(dict):
             forked_name += dataloader_suffix
         return name, forked_name
 
-    def metrics(self, on_step: bool) -> Dict[MetricSource, Dict[str, _METRIC]]:
-        metrics = {k: {} for k in MetricSource}
+    def metrics(self, on_step: bool) -> _METRICS:
+        metrics = _METRICS(callback={}, log={}, pbar={})
 
         for _, result_metric in self.valid_items():
 
@@ -543,7 +507,7 @@ class ResultCollection(dict):
             # check if the collection is empty
             has_tensor = False
 
-            def any_tensor(_):
+            def any_tensor(_: Any) -> None:
                 nonlocal has_tensor
                 has_tensor = True
 
@@ -555,22 +519,21 @@ class ResultCollection(dict):
 
             # populate logging metrics
             if result_metric.meta.logger:
-                metrics[MetricSource.LOG][forked_name] = value
+                metrics["log"][forked_name] = value
 
             # populate callback metrics. callback metrics don't take `_step` forked metrics
             if self.training or result_metric.meta.on_epoch and not on_step:
-                metrics[MetricSource.CALLBACK][name] = value
-                metrics[MetricSource.CALLBACK][forked_name] = value
+                metrics["callback"][name] = value
+                metrics["callback"][forked_name] = value
 
             # populate progress_bar metrics. convert tensors to numbers
             if result_metric.meta.prog_bar:
-                metrics[MetricSource.PBAR][forked_name] = metrics_to_scalars(value)
+                metrics["pbar"][forked_name] = metrics_to_scalars(value)
 
         return metrics
 
     def reset(self, metrics: Optional[bool] = None, fx: Optional[str] = None) -> None:
-        """
-        Reset the result collection
+        """Reset the result collection.
 
         Args:
             metrics: If True, only ``torchmetrics.Metric`` results are reset,
@@ -589,81 +552,56 @@ class ResultCollection(dict):
 
     def extract_batch_size(self, batch: Any) -> None:
         try:
-            self.batch_size = self._extract_batch_size(batch)
+            self.batch_size = extract_batch_size(batch)
         except RecursionError:
             self.batch_size = 1
 
-    def _extract_batch_size(self, batch: Any) -> int:
-        """
-        Recursively unpack a batch to find a torch.Tensor.
-
-        Returns:
-            ``len(tensor)`` when found, or ``1`` when it hits an empty or non iterable.
-        """
-        if isinstance(batch, torch.Tensor):
-            size = batch.size(0)
-        elif isinstance(batch, str):
-            return len(batch)
-        elif isinstance(batch, dict):
-            sample = next(iter(batch.values()), 1)
-            size = self._extract_batch_size(sample)
-        elif isinstance(batch, Iterable):
-            sample = next(iter(batch), 1)
-            size = self._extract_batch_size(sample)
-        else:
-            size = 1
-        return size
-
-    def to(self, *args, **kwargs) -> 'ResultCollection':
+    def to(self, *args: Any, **kwargs: Any) -> "ResultCollection":
         """Move all data to the given device."""
+        self.update(apply_to_collection(dict(self), (torch.Tensor, Metric), move_data_to_device, *args, **kwargs))
 
-        def to_(item: Union[torch.Tensor, Metric], *args: Any, **kwargs: Any) -> Union[torch.Tensor, Metric]:
-            return item.to(*args, **kwargs)
-
-        apply_to_collection(self, (torch.Tensor, Metric), to_, *args, **kwargs)
-
-        if self.minimize is not None:
-            self.minimize = self.minimize.to(*args, **kwargs)
         self._batch_size = self._batch_size.to(*args, **kwargs)
-        if 'device' in kwargs:
-            self.device = kwargs['device']
+        if "device" in kwargs:
+            self.device = kwargs["device"]
         return self
 
-    def cpu(self) -> 'ResultCollection':
+    def cpu(self) -> "ResultCollection":
         """Move all data to CPU."""
         return self.to(device="cpu")
 
+    def sync(self) -> None:
+        for result_metric in self.result_metrics:
+            if result_metric.is_tensor:
+                result_metric.sync()
+
+    def unsync(self) -> None:
+        for result_metric in self.result_metrics:
+            if result_metric.is_tensor and result_metric._is_synced:
+                result_metric.unsync()
+
     def __str__(self) -> str:
-        return f'{self.__class__.__name__}({self.training}, {self.device}, {repr(self)})'
+        # remove empty values
+        self_str = str({k: v for k, v in self.items() if v})
+        return f"{self.__class__.__name__}({self_str})"
+
+    def __repr__(self) -> str:
+        return f"{{{self.training}, {repr(self.device)}, {super().__repr__()}}}"
 
     def __getstate__(self, drop_value: bool = True) -> dict:
         d = self.__dict__.copy()
-
-        # can't deepcopy tensors with grad_fn
-        minimize = d['_minimize']
-        if minimize is not None:
-            d['_minimize'] = minimize.detach()
-
-        extra = self.get('_extra')
-        if extra is not None:
-            d['_extra'] = extra
-
         # all the items should be either `ResultMetric`s or `ResultMetricCollection`s
-        items = {k: v.__getstate__(drop_value=drop_value) for k, v in self.items() if k != '_extra'}
-        return {**d, 'items': items}
+        items = {k: v.__getstate__(drop_value=drop_value) for k, v in self.items()}
+        return {**d, "items": items}
 
     def __setstate__(
-        self,
-        state: dict,
-        map_location: Optional[Union[str, torch.device]] = None,
-        sync_fn: Optional[Callable] = None,
+        self, state: dict, map_location: Optional[Union[str, torch.device]] = None, sync_fn: Optional[Callable] = None
     ) -> None:
-        self.__dict__.update({k: v for k, v in state.items() if k != 'items'})
+        self.__dict__.update({k: v for k, v in state.items() if k != "items"})
 
         def setstate(k: str, item: dict) -> Union[ResultMetric, ResultMetricCollection]:
             if not isinstance(item, dict):
-                raise ValueError(f'Unexpected value: {item}')
-            cls = item['_class']
+                raise ValueError(f"Unexpected value: {item}")
+            cls = item["_class"]
             if cls == ResultMetric.__name__:
                 cls = ResultMetric
             elif cls == ResultMetricCollection.__name__:
@@ -673,7 +611,7 @@ class ResultCollection(dict):
             _sync_fn = sync_fn or (self[k].meta.sync.fn if k in self else None)
             return cls._reconstruct(item, sync_fn=_sync_fn)
 
-        items = {k: setstate(k, v) for k, v in state['items'].items()}
+        items = {k: setstate(k, v) for k, v in state["items"].items()}
         self.update(items)
 
         device = map_location or self.device
@@ -693,6 +631,8 @@ class ResultCollection(dict):
 
         if not metrics:
             return
+
+        # iterate through result metrics and re-attached Metric references on reload.
         result_metrics = self.result_metrics
         for metric_attribute, metric in metrics.items():
             for result_metric in result_metrics:

@@ -26,19 +26,20 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 def _ignore_scalar_return_in_dp():
     # Users get confused by this warning so we silence it
     warnings.filterwarnings(
-        'ignore',
-        message='Was asked to gather along dimension 0, but all input tensors were scalars;'
-        ' will instead unsqueeze and return a vector.'
+        "ignore",
+        message=(
+            "Was asked to gather along dimension 0, but all input tensors were scalars;"
+            " will instead unsqueeze and return a vector."
+        ),
     )
 
 
 class LightningParallelModule(_LightningModuleWrapperBase):
-    """
-    Wraps the user's LightningModule and redirects the forward call to the appropriate
-    method, either ``training_step``, ``validation_step``, ``test_step`` or ``predict``.
-    This class is used in combination with :class:`~torch.nn.parallel.DataParallel` as
-    shown in the example. It also takes care of converting Python scalars to Tensors and
-    un-squeezes 0-dimensional Tensors as it is required by :class:`~torch.nn.parallel.DataParallel`.
+    """Wraps the user's LightningModule and redirects the forward call to the appropriate method, either
+    ``training_step``, ``validation_step``, ``test_step`` or ``predict``. This class is used in combination with
+    :class:`~torch.nn.parallel.DataParallel` as shown in the example. It also takes care of converting Python
+    scalars to Tensors and un-squeezes 0-dimensional Tensors as it is required by
+    :class:`~torch.nn.parallel.DataParallel`.
 
     Example:
 
@@ -50,10 +51,9 @@ class LightningParallelModule(_LightningModuleWrapperBase):
 
     Args:
         pl_module: the model to wrap
-
     """
 
-    def __init__(self, pl_module: 'pl.LightningModule') -> None:
+    def __init__(self, pl_module: "pl.LightningModule") -> None:
         super().__init__(pl_module)
         _ignore_scalar_return_in_dp()
 
@@ -67,19 +67,14 @@ class LightningParallelModule(_LightningModuleWrapperBase):
             data = unsqueeze_scalar_tensor(data)
             return data
 
-        output = apply_to_collection(
-            output,
-            dtype=(numbers.Number, torch.Tensor),
-            function=output_transform,
-        )
+        output = apply_to_collection(output, dtype=(numbers.Number, torch.Tensor), function=output_transform)
         return output
 
     def update_replica_device_attributes(self, inputs: Any) -> None:
-        """
-        Updates the device information of LightningModule by reading the device from the inputs.
-        In :class:`~torch.nn.data_parallel.DataParallel` changes to the state during the `forward` pass
-        are lost when the replicas get discarded. The only way to know the current device is from the
-        inputs passed into the model.
+        """Updates the device information of LightningModule by reading the device from the inputs. In
+        :class:`~torch.nn.data_parallel.DataParallel` changes to the state during the `forward` pass are lost when
+        the replicas get discarded. The only way to know the current device is from the inputs passed into the
+        model.
 
         Args:
             inputs: A collection of inputs (typically a tuple). If the inputs don't contain tensors,
@@ -107,14 +102,14 @@ class LightningParallelModule(_LightningModuleWrapperBase):
 
 
 def python_scalar_to_tensor(data: Any, device: torch.device = torch.device("cpu")) -> Any:
-    """ Converts a Python scalar number to a torch tensor and places it on the given device. """
+    """Converts a Python scalar number to a torch tensor and places it on the given device."""
     if isinstance(data, numbers.Number):
         data = torch.tensor([data], device=device)
     return data
 
 
 def unsqueeze_scalar_tensor(data: Any) -> Any:
-    """ Un-squeezes a 0-dim tensor. """
+    """Un-squeezes a 0-dim tensor."""
     if isinstance(data, torch.Tensor) and data.dim() == 0:
         data = data.unsqueeze(0)
     return data

@@ -25,9 +25,7 @@ from tests.helpers.runif import RunIf
 
 
 class SeedTrainLoaderModel(BoringModel):
-    """
-    Overrides training loader to ensure we enforce the same seed for all DDP processes.
-    """
+    """Overrides training loader to ensure we enforce the same seed for all DDP processes."""
 
     def train_dataloader(self):
         seed_everything(42)
@@ -35,7 +33,6 @@ class SeedTrainLoaderModel(BoringModel):
 
 
 class SeedTrainLoaderManualModel(SeedTrainLoaderModel):
-
     def training_step(self, batch, batch_idx, optimizer_idx):
         # manual
         # access your optimizers with use_pl_optimizer=False. Default is True
@@ -72,11 +69,10 @@ class SeedTrainLoaderManualModel(SeedTrainLoaderModel):
 
 
 class SeedTrainLoaderMultipleOptimizersModel(SeedTrainLoaderModel):
-
     def training_step(self, batch, batch_idx, optimizer_idx):
         output = self.layer(batch)
         loss = self.loss(batch, output)
-        return {'loss': loss}
+        return {"loss": loss}
 
     def training_epoch_end(self, outputs) -> None:
         # outputs should be an array with an entry per optimizer
@@ -89,8 +85,7 @@ class SeedTrainLoaderMultipleOptimizersModel(SeedTrainLoaderModel):
 
 
 def record_ddp_fit_model_stats(trainer, model, use_cuda):
-    """
-    Helper to calculate wall clock time for fit + max allocated memory.
+    """Helper to calculate wall clock time for fit + max allocated memory.
 
     Args:
         trainer: The trainer object.
@@ -111,7 +106,7 @@ def record_ddp_fit_model_stats(trainer, model, use_cuda):
 
     if use_cuda:
         torch.cuda.synchronize()
-        max_memory = torch.cuda.max_memory_allocated() / 2**20
+        max_memory = torch.cuda.max_memory_allocated() / 2 ** 20
 
     total_time = time.perf_counter() - time_start
 
@@ -125,9 +120,8 @@ def plugin_parity_test(
     precision: int = 32,
     max_percent_speed_diff: float = 0.1,
 ):
-    """
-    Ensures that the trained model is identical to the standard DDP implementation.
-    Also checks for speed/memory regressions, we should expect always less memory but performance to fluctuate.
+    """Ensures that the trained model is identical to the standard DDP implementation. Also checks for speed/memory
+    regressions, we should expect always less memory but performance to fluctuate.
 
     Args:
         model_cls: Model class to use for test.
@@ -136,7 +130,6 @@ def plugin_parity_test(
         precision: Whether to use AMP or normal FP32 training.
         max_percent_speed_diff: The maximum speed difference compared to normal DDP training.
         This is more a safety net for variability in CI which can vary in speed, not for benchmarking.
-
     """
 
     # Train normal DDP
@@ -144,13 +137,7 @@ def plugin_parity_test(
     ddp_model = model_cls()
     use_cuda = gpus > 0
 
-    trainer = Trainer(
-        fast_dev_run=True,
-        max_epochs=1,
-        gpus=gpus,
-        precision=precision,
-        accelerator='ddp_spawn',
-    )
+    trainer = Trainer(fast_dev_run=True, max_epochs=1, gpus=gpus, precision=precision, accelerator="ddp_spawn")
 
     max_memory_ddp, ddp_time = record_ddp_fit_model_stats(trainer=trainer, model=ddp_model, use_cuda=use_cuda)
 
@@ -158,13 +145,7 @@ def plugin_parity_test(
     seed_everything(seed)
     custom_plugin_model = model_cls()
 
-    trainer = Trainer(
-        fast_dev_run=True,
-        max_epochs=1,
-        gpus=gpus,
-        precision=precision,
-        accelerator='ddp_sharded_spawn',
-    )
+    trainer = Trainer(fast_dev_run=True, max_epochs=1, gpus=gpus, precision=precision, accelerator="ddp_sharded_spawn")
     assert isinstance(trainer.training_type_plugin, DDPSpawnShardedPlugin)
 
     max_memory_custom, custom_model_time = record_ddp_fit_model_stats(
@@ -173,26 +154,26 @@ def plugin_parity_test(
 
     # Assert model parameters are identical after fit
     for ddp_param, custom_param in zip(ddp_model.parameters(), custom_plugin_model.parameters()):
-        assert torch.equal(ddp_param, custom_param), 'Model parameters are different between DDP and Custom plugin'
+        assert torch.equal(ddp_param, custom_param), "Model parameters are different between DDP and Custom plugin"
 
     # Assert speed parity by ensuring percentage difference between custom/ddp is below threshold
     percent_diff = (custom_model_time - ddp_time) / custom_model_time
 
     assert (
         percent_diff <= max_percent_speed_diff
-    ), f'Custom DDP plugin was too slow compared to DDP, Custom Plugin Time: {custom_model_time}, DDP Time: {ddp_time}'
+    ), f"Custom DDP plugin was too slow compared to DDP, Custom Plugin Time: {custom_model_time}, DDP Time: {ddp_time}"
 
     if use_cuda:
         # Assert CUDA memory parity
         assert max_memory_custom <= max_memory_ddp, (
-            'Custom plugin used too much memory compared to DDP, '
-            f'Custom Mem: {max_memory_custom}, DDP Mem: {max_memory_ddp}'
+            "Custom plugin used too much memory compared to DDP, "
+            f"Custom Mem: {max_memory_custom}, DDP Mem: {max_memory_ddp}"
         )
 
 
 @RunIf(skip_windows=True, fairscale=True)
 @pytest.mark.parametrize(
-    'kwargs',
+    "kwargs",
     [
         pytest.param(dict(gpus=1, model_cls=SeedTrainLoaderModel), marks=RunIf(min_gpus=1)),
         pytest.param(
@@ -206,20 +187,20 @@ def plugin_parity_test(
             dict(gpus=2, model_cls=SeedTrainLoaderMultipleOptimizersModel),
             marks=[
                 RunIf(min_gpus=2),
-                pytest.mark.skip(reason='TODO: Current issue with multiple optimizers and FairScale.'),
+                pytest.mark.skip(reason="TODO: Current issue with multiple optimizers and FairScale."),
             ],
         ),
         pytest.param(
             dict(gpus=2, model_cls=SeedTrainLoaderManualModel),
             marks=[
                 RunIf(min_gpus=2),
-                pytest.mark.skip(reason='TODO: Current issue with multiple optimizers and FairScale.'),
+                pytest.mark.skip(reason="TODO: Current issue with multiple optimizers and FairScale."),
             ],
         ),
     ],
 )
 def test_ddp_spawn_sharded_plugin(kwargs):
-    if kwargs['gpus'] > 1:
+    if kwargs["gpus"] > 1:
         # TODO: decrease speed diff since only 2 GPUs sharding 2 optimizers
-        kwargs['max_percent_speed_diff'] = 0.25
+        kwargs["max_percent_speed_diff"] = 0.25
     plugin_parity_test(**kwargs)

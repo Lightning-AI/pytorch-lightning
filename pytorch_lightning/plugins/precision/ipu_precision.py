@@ -13,7 +13,6 @@
 # limitations under the License.
 from typing import Any, Optional, Union
 
-from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
@@ -21,35 +20,32 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.warnings import WarningCache
+
+warning_cache = WarningCache()
 
 
 class IPUPrecisionPlugin(PrecisionPlugin):
-
     def __init__(self, precision: int) -> None:
         super().__init__()
         self.precision = precision
 
-    def backward(
-        self,
-        model: 'pl.LightningModule',
-        closure_loss: Tensor,
-        optimizer: Optimizer,
-        opt_idx: int,
-        should_accumulate: bool,
-        *args: Any,
-        **kwargs: Any,
-    ) -> Tensor:
-        # IPU internally manages bwd step.
-        return closure_loss
+    def backward(self, model: "pl.LightningModule", *args: Any, **kwargs: Any) -> None:
+        if is_overridden("backward", model):
+            warning_cache.warn(
+                "You have overridden the `LightningModule.backward` hook but it will be ignored since IPUs handle"
+                " the backward logic internally."
+            )
 
     def clip_gradients(
         self,
         optimizer: Optimizer,
         clip_val: Union[int, float],
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
-        model: Optional[Module] = None
+        model: Optional[Module] = None,
     ) -> None:
-        """Clips the gradients"""
+        """Clips the gradients."""
         if clip_val is None:
             return
 

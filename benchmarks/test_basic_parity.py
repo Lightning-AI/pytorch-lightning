@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import gc
+import os
 import time
 
 import numpy as np
@@ -20,7 +21,11 @@ import torch
 from tqdm import tqdm
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
-from tests.helpers.advanced_models import ParityModuleMNIST, ParityModuleRNN
+from tests.helpers.advanced_models import ParityModuleCIFAR, ParityModuleMNIST, ParityModuleRNN
+
+_EXTEND_BENCHMARKS = os.getenv("PL_RUNNING_BENCHMARKS", "0") == "1"
+_SHORT_BENCHMARKS = not _EXTEND_BENCHMARKS
+_MARK_SHORT_BM = pytest.mark.skipif(_SHORT_BENCHMARKS, reason="Only run during Benchmarking")
 
 
 def assert_parity_relative(pl_values, pt_values, norm_by: float = 1, max_diff: float = 0.1):
@@ -43,38 +48,32 @@ def assert_parity_absolute(pl_values, pt_values, norm_by: float = 1, max_diff: f
 
 # ParityModuleMNIST runs with num_workers=1
 @pytest.mark.parametrize(
-    'cls_model,max_diff_speed,max_diff_memory',
+    "cls_model,max_diff_speed,max_diff_memory,num_epochs,num_runs",
     [
-        (ParityModuleRNN, 0.05, 0.001),
-        (ParityModuleMNIST, 0.25, 0.001),  # todo: lower this thr
-    ]
+        (ParityModuleRNN, 0.05, 0.001, 4, 3),
+        (ParityModuleMNIST, 0.3, 0.001, 4, 3),  # todo: lower this thr
+        pytest.param(ParityModuleCIFAR, 4.0, 0.0002, 2, 2, marks=_MARK_SHORT_BM),
+    ],
 )
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_pytorch_parity(
-    tmpdir,
-    cls_model: LightningModule,
-    max_diff_speed: float,
-    max_diff_memory: float,
-    num_epochs: int = 4,
-    num_runs: int = 3,
+    tmpdir, cls_model: LightningModule, max_diff_speed: float, max_diff_memory: float, num_epochs: int, num_runs: int
 ):
-    """
-    Verify that the same  pytorch and lightning models achieve the same results
-    """
+    """Verify that the same  pytorch and lightning models achieve the same results."""
     lightning = measure_loops(cls_model, kind="PT Lightning", num_epochs=num_epochs, num_runs=num_runs)
     vanilla = measure_loops(cls_model, kind="Vanilla PT", num_epochs=num_epochs, num_runs=num_runs)
 
     # make sure the losses match exactly  to 5 decimal places
     print(f"Losses are for... \n vanilla: {vanilla['losses']} \n lightning: {lightning['losses']}")
-    for pl_out, pt_out in zip(lightning['losses'], vanilla['losses']):
+    for pl_out, pt_out in zip(lightning["losses"], vanilla["losses"]):
         np.testing.assert_almost_equal(pl_out, pt_out, 5)
 
     # drop the first run for initialize dataset (download & filter)
     assert_parity_absolute(
-        lightning['durations'][1:], vanilla['durations'][1:], norm_by=num_epochs, max_diff=max_diff_speed
+        lightning["durations"][1:], vanilla["durations"][1:], norm_by=num_epochs, max_diff=max_diff_speed
     )
 
-    assert_parity_relative(lightning['memory'], vanilla['memory'], max_diff=max_diff_memory)
+    assert_parity_relative(lightning["memory"], vanilla["memory"], max_diff=max_diff_memory)
 
 
 def _hook_memory():
@@ -87,18 +86,16 @@ def _hook_memory():
 
 
 def measure_loops(cls_model, kind, num_runs=10, num_epochs=10):
-    """
-    Returns an array with the last loss from each epoch for each run
-    """
+    """Returns an array with the last loss from each epoch for each run."""
     hist_losses = []
     hist_durations = []
     hist_memory = []
 
     device_type = "cuda" if torch.cuda.is_available() else "cpu"
     torch.backends.cudnn.deterministic = True
-    for i in tqdm(range(num_runs), desc=f'{kind} with {cls_model.__name__}'):
+    for i in tqdm(range(num_runs), desc=f"{kind} with {cls_model.__name__}"):
         gc.collect()
-        if device_type == 'cuda':
+        if device_type == "cuda":
             torch.cuda.empty_cache()
             torch.cuda.reset_max_memory_cached()
             torch.cuda.reset_max_memory_allocated()
@@ -117,14 +114,10 @@ def measure_loops(cls_model, kind, num_runs=10, num_epochs=10):
         hist_durations.append(time_end - time_start)
         hist_memory.append(used_memory)
 
-    return {
-        'losses': hist_losses,
-        'durations': hist_durations,
-        'memory': hist_memory,
-    }
+    return {"losses": hist_losses, "durations": hist_durations, "memory": hist_memory}
 
 
-def vanilla_loop(cls_model, idx, device_type: str = 'cuda', num_epochs=10):
+def vanilla_loop(cls_model, idx, device_type: str = "cuda", num_epochs=10):
     device = torch.device(device_type)
     # set seed
     seed_everything(idx)
@@ -145,7 +138,7 @@ def vanilla_loop(cls_model, idx, device_type: str = 'cuda', num_epochs=10):
         for j, batch in enumerate(dl):
             batch = [x.to(device) for x in batch]
             loss_dict = model.training_step(batch, j)
-            loss = loss_dict['loss']
+            loss = loss_dict["loss"]
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
@@ -156,7 +149,7 @@ def vanilla_loop(cls_model, idx, device_type: str = 'cuda', num_epochs=10):
     return epoch_losses[-1], _hook_memory()
 
 
-def lightning_loop(cls_model, idx, device_type: str = 'cuda', num_epochs=10):
+def lightning_loop(cls_model, idx, device_type: str = "cuda", num_epochs=10):
     seed_everything(idx)
 
     model = cls_model()
@@ -166,7 +159,7 @@ def lightning_loop(cls_model, idx, device_type: str = 'cuda', num_epochs=10):
         max_epochs=num_epochs if idx > 0 else 1,
         progress_bar_refresh_rate=0,
         weights_summary=None,
-        gpus=1 if device_type == 'cuda' else 0,
+        gpus=1 if device_type == "cuda" else 0,
         checkpoint_callback=False,
         deterministic=True,
         logger=False,

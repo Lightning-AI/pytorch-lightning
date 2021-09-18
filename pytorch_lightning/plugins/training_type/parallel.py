@@ -22,20 +22,22 @@ from torch.nn.parallel import DistributedDataParallel
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
 from pytorch_lightning.utilities import _XLA_AVAILABLE
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, ReduceOp
 
 
 class ParallelPlugin(TrainingTypePlugin, ABC):
-    """ Plugin for training with multiple processes in parallel. """
+    """Plugin for training with multiple processes in parallel."""
 
     def __init__(
         self,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
     ):
-        super().__init__()
+        super().__init__(checkpoint_io)
         self.parallel_devices = parallel_devices
         self.cluster_environment = cluster_environment
 
@@ -82,12 +84,10 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         return distributed_sampler_kwargs
 
     def reconciliate_processes(self, trace: str):
-        """
-        Function to re-conciliate processes on failure
-        """
+        """Function to re-conciliate processes on failure."""
 
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
-        """Perform a all_gather on all processes """
+        """Perform a all_gather on all processes."""
         return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
@@ -104,9 +104,8 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         return torch_backend
 
     @staticmethod
-    def configure_sync_batchnorm(model: 'pl.LightningModule') -> 'pl.LightningModule':
-        """
-        Add global batchnorm for a model spread across multiple GPUs and nodes.
+    def configure_sync_batchnorm(model: "pl.LightningModule") -> "pl.LightningModule":
+        """Add global batchnorm for a model spread across multiple GPUs and nodes.
 
         Override to synchronize batchnorm between specific process groups instead
         of the whole world or use a different sync_bn like `apex`'s version.
@@ -121,8 +120,8 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
 
     @contextmanager
     def block_backward_sync(self):
-        """
-        Blocks ddp sync gradients behaviour on backwards pass.
+        """Blocks ddp sync gradients behaviour on backwards pass.
+
         This is useful for skipping sync when accumulating gradients, reducing communication overhead
         Returns: context manager with sync behaviour off
         """
@@ -131,10 +130,3 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
                 yield None
         else:
             yield None
-
-    def teardown(self) -> None:
-        if self.on_gpu:
-            # GPU teardown
-            self.lightning_module.cpu()
-            # clean up memory
-            torch.cuda.empty_cache()

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Warning-related utilities"""
+"""Warning-related utilities."""
 import warnings
 from functools import partial
 
@@ -32,13 +32,12 @@ class LightningDeprecationWarning(DeprecationWarning):
 
 
 # enable our warnings
-warnings.simplefilter('default', LightningDeprecationWarning)
+warnings.simplefilter("default", LightningDeprecationWarning)
 
 rank_zero_deprecation = partial(rank_zero_warn, category=LightningDeprecationWarning)
 
 
 class WarningCache(set):
-
     def warn(self, m, *args, stacklevel: int = 5, **kwargs):
         if m not in self:
             self.add(m)

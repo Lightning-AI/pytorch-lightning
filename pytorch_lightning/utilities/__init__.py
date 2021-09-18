@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""General utilities"""
+"""General utilities."""
 
 import numpy
 
@@ -23,6 +23,7 @@ from pytorch_lightning.utilities.enums import (  # noqa: F401
     DistributedType,
     GradClipAlgorithmType,
     LightningEnum,
+    ModelSummaryMode,
 )
 from pytorch_lightning.utilities.grads import grad_norm  # noqa: F401
 from pytorch_lightning.utilities.imports import (  # noqa: F401
@@ -38,17 +39,20 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _HYDRA_EXPERIMENTAL_AVAILABLE,
     _IPU_AVAILABLE,
     _IS_INTERACTIVE,
+    _JSONARGPARSE_AVAILABLE,
     _module_available,
     _NATIVE_AMP_AVAILABLE,
     _OMEGACONF_AVAILABLE,
     _POPTORCH_AVAILABLE,
-    _TORCH_GREATER_EQUAL_1_5,
-    _TORCH_GREATER_EQUAL_1_6,
+    _RICH_AVAILABLE,
+    _TORCH_BFLOAT_AVAILABLE,
+    _TORCH_CPU_AMP_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_7,
     _TORCH_GREATER_EQUAL_1_8,
     _TORCH_GREATER_EQUAL_1_9,
-    _TORCH_LOWER_EQUAL_1_4,
+    _TORCH_GREATER_EQUAL_1_10,
     _TORCH_QUANTIZE_AVAILABLE,
+    _TORCH_SHARDED_TENSOR_AVAILABLE,
     _TORCHTEXT_AVAILABLE,
     _TORCHVISION_AVAILABLE,
     _TPU_AVAILABLE,

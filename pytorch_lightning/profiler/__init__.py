@@ -1,6 +1,4 @@
-"""
-Profiling your training run can help you understand if there are any bottlenecks in your code.
-
+"""Profiling your training run can help you understand if there are any bottlenecks in your code.
 
 Built-in checks
 ---------------
@@ -31,7 +29,7 @@ when constructing your `Trainer` object.
 
 The profiler's results will be printed at the completion of a training `fit()`.
 
-.. code-block:: python
+.. code-block::
 
     Profiler Report
 
@@ -61,17 +59,17 @@ This option uses Python's cProfiler_ to provide a report of time spent on *each*
 
     trainer = Trainer(..., profiler="advanced")
 
-    or
+    # or
 
     profiler = AdvancedProfiler()
     trainer = Trainer(..., profiler=profiler)
 
 The profiler's results will be printed at the completion of a training `fit()`. This profiler
-report can be quite long, so you can also specify an `output_filename` to save the report instead
+report can be quite long, so you can also specify a `dirpath` and `filename` to save the report instead
 of logging it to the output in your terminal. The output below shows the profiling for the action
 `get_train_batch`.
 
-.. code-block:: python
+.. code-block::
 
     Profiler Report
 
@@ -101,14 +99,16 @@ to track and the profiler will record performance for code executed within this 
 
     from pytorch_lightning.profiler import Profiler, PassThroughProfiler
 
+
     class MyModel(LightningModule):
         def __init__(self, profiler=None):
             self.profiler = profiler or PassThroughProfiler()
 
         def custom_processing_step(self, data):
-            with profiler.profile('my_custom_action'):
-                # custom processing step
+            with profiler.profile("my_custom_action"):
+                ...
             return data
+
 
     profiler = Profiler()
     model = MyModel(profiler)
@@ -128,7 +128,7 @@ have a look at its `docs <https://pytorch.org/docs/master/profiler.html>`__
 
     trainer = Trainer(..., profiler="pytorch")
 
-    or
+    # or
 
     profiler = PyTorchProfiler(...)
     trainer = Trainer(..., profiler=profiler)
@@ -146,9 +146,9 @@ This profiler will record ``training_step_and_backward``, ``training_step``, ``b
 The output below shows the profiling for the action ``training_step_and_backward``.
 The user can provide ``PyTorchProfiler(record_functions={...})`` to extend the scope of profiled functions.
 
-.. note:: When using the PyTorch Profiler, wall clock time will not not be representative of the true wall clock time. This is due to forcing profiled operations to be measured synchronously, when many CUDA ops happen asynchronously. It is recommended to use this Profiler to find bottlenecks/breakdowns, however for end to end wall clock time use the `SimpleProfiler`.   # noqa E501
+.. note:: When using the PyTorch Profiler, wall clock time will not not be representative of the true wall clock time. This is due to forcing profiled operations to be measured synchronously, when many CUDA ops happen asynchronously. It is recommended to use this Profiler to find bottlenecks/breakdowns, however for end to end wall clock time use the `SimpleProfiler`.   # noqa: E501
 
-.. code-block:: python
+.. code-block::
 
     Profiler Report
 
@@ -192,7 +192,6 @@ Use::
 Or::
 
     python -c 'import torch; print(torch.autograd.profiler.load_nvprof("trace_name.prof"))'
-
 """
 from pytorch_lightning.profiler.advanced import AdvancedProfiler
 from pytorch_lightning.profiler.base import AbstractProfiler, BaseProfiler, PassThroughProfiler
@@ -201,11 +200,11 @@ from pytorch_lightning.profiler.simple import SimpleProfiler
 from pytorch_lightning.profiler.xla import XLAProfiler
 
 __all__ = [
-    'AbstractProfiler',
-    'BaseProfiler',
-    'AdvancedProfiler',
-    'PassThroughProfiler',
-    'PyTorchProfiler',
-    'SimpleProfiler',
-    'XLAProfiler',
+    "AbstractProfiler",
+    "BaseProfiler",
+    "AdvancedProfiler",
+    "PassThroughProfiler",
+    "PyTorchProfiler",
+    "SimpleProfiler",
+    "XLAProfiler",
 ]

@@ -25,16 +25,17 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.core.decorators import parameter_validation
 from pytorch_lightning.overrides import LightningDistributedModule
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.data import has_len
-from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp, tpu_distributed
+from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_env_vars as xenv
@@ -50,10 +51,10 @@ if _OMEGACONF_AVAILABLE:
 
 
 class TPUSpawnPlugin(DDPSpawnPlugin):
-    """ Plugin for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method. """
+    """Plugin for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method."""
 
     def __init__(self, parallel_devices: Optional[List[int]] = None, debug: bool = False, **_: Any) -> None:
-        super().__init__(parallel_devices)
+        super().__init__(parallel_devices=parallel_devices)
         self.debug = debug
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
@@ -89,21 +90,20 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     @staticmethod
     def _validate_patched_dataloaders(model: Module) -> None:
-        """Validate and fail fast if the dataloaders were passed directly to fit.
-        """
-        if hasattr(model, 'train_dataloader') and isinstance(model.train_dataloader, _PatchDataLoader):
+        """Validate and fail fast if the dataloaders were passed directly to fit."""
+        if hasattr(model, "train_dataloader") and isinstance(model.train_dataloader, _PatchDataLoader):
             TPUSpawnPlugin._validate_dataloader(model.train_dataloader.dataloader)
 
-        if hasattr(model, 'val_dataloader') and isinstance(model.val_dataloader, _PatchDataLoader):
+        if hasattr(model, "val_dataloader") and isinstance(model.val_dataloader, _PatchDataLoader):
             TPUSpawnPlugin._validate_dataloader(model.val_dataloader.dataloader)
 
-        if hasattr(model, 'test_dataloader') and isinstance(model.test_dataloader, _PatchDataLoader):
+        if hasattr(model, "test_dataloader") and isinstance(model.test_dataloader, _PatchDataLoader):
             TPUSpawnPlugin._validate_dataloader(model.test_dataloader.dataloader)
 
-        if hasattr(model, 'predict_dataloader') and isinstance(model.predict_dataloader, _PatchDataLoader):
+        if hasattr(model, "predict_dataloader") and isinstance(model.predict_dataloader, _PatchDataLoader):
             TPUSpawnPlugin._validate_dataloader(model.predict_dataloader.dataloader)
 
-    def connect(self, model: 'pl.LightningModule') -> None:
+    def connect(self, model: "pl.LightningModule") -> None:
         TPUSpawnPlugin._validate_patched_dataloaders(model)
         self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
@@ -112,12 +112,11 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = str(1)
 
-    def setup(self, model: Module) -> Module:
+    def setup(self) -> None:
         self.create_mp_queue()
-        return self.model
 
     def create_mp_queue(self):
-        self.start_method = 'fork'
+        self.start_method = "fork"
         smp = mp.get_context(self.start_method)
         self.mp_queue = smp.SimpleQueue()
 
@@ -127,7 +126,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     @property
     def is_distributed(self) -> bool:
-        return self.world_size != 1
+        # HOST_WORLD_SIZE is None outside the xmp.spawn process
+        return os.getenv(xenv.HOST_WORLD_SIZE, None) and self.world_size != 1
 
     def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
         TPUSpawnPlugin._validate_dataloader(dataloader)
@@ -164,7 +164,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         results = trainer.run_stage()
 
-        self.transfer_distrib_spawn_state_on_fit_end(results)
+        self.__transfer_distrib_spawn_state_on_fit_end(trainer, results)
 
         # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
         self.barrier("end-process")
@@ -173,17 +173,19 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.local_rank == 0:
             time.sleep(2)
 
+        # ensure that spawned processes go through teardown before joining
+        trainer._call_teardown_hook()
+
     @parameter_validation
     def model_to_device(self) -> None:
         self.model = self.wrapped_model.to(self.root_device)
 
     def barrier(self, name: Optional[str] = None) -> None:
-        # HOST_WORLD_SIZE is None outside the xmp.spawn process
-        if os.getenv(xenv.HOST_WORLD_SIZE, None) and tpu_distributed():
+        if self.is_distributed:
             rendezvous(name)
 
-    def transfer_distrib_spawn_state_on_fit_end(self, results):
-        checkpoint_callback = self.lightning_module.trainer.checkpoint_callback
+    def __transfer_distrib_spawn_state_on_fit_end(self, trainer: "pl.Trainer", results: Any) -> None:
+        checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
         # requires to compute the state_dict on all processes in case Metrics are present
@@ -194,10 +196,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
             # save the last weights
             last_path = None
-            if (
-                self.lightning_module.trainer.state.fn == TrainerFn.FITTING and best_model_path is not None
-                and len(best_model_path) > 0
-            ):
+            if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
                 self.save(state_dict, last_path)
 
@@ -208,10 +207,12 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 self.mp_queue.put(results)
                 self.lightning_module.add_to_queue(self.mp_queue)  # adds the `callback_metrics` to the queue
 
-    def save(self, state_dict: Dict, path: str) -> None:
+    def save(self, state_dict: Dict, path: _PATH) -> None:
         xm.save(state_dict, path)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
+        if not self.is_distributed:
+            return obj
         buffer = io.BytesIO()
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())
@@ -238,7 +239,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 "Currently, TPUSpawn TrainingTypePlugin only support `sum`, `mean`, `avg` reduce operation."
             )
 
-        output = xm.mesh_reduce('reduce', output, sum)
+        output = xm.mesh_reduce("reduce", output, sum)
 
         if isinstance(reduce_op, str) and reduce_op.lower() in ("avg", "mean"):
             output = output / self.world_size
@@ -249,27 +250,26 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if trainer.logger is not None:
             trainer.logger.finalize("success")
 
-    @property
-    def xmp_spawn_kwargs(self):
+    def get_mp_spawn_kwargs(self, trainer: "pl.Trainer") -> dict:
         return {
-            "args": (self.lightning_module.trainer, self.mp_queue),
+            "args": (trainer, self.mp_queue),
             "nprocs": len(self.parallel_devices),
-            "start_method": self.start_method
+            "start_method": self.start_method,
         }
 
-    def start_training(self, trainer) -> None:
+    def start_training(self, trainer: "pl.Trainer") -> None:
         # todo: precision pluging is call in accelerator setup and should be moved
-        if 'XLA_USE_BF16' in os.environ:
+        if "XLA_USE_BF16" in os.environ:
             del os.environ["XLA_USE_BF16"]
         self._close_logger(trainer)
-        xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
+        xmp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
 
-    def start_evaluating(self, trainer) -> None:
+    def start_evaluating(self, trainer: "pl.Trainer") -> None:
         self._close_logger(trainer)
-        xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
+        xmp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
 
-    def start_predicting(self, trainer) -> None:
-        xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
+    def start_predicting(self, trainer: "pl.Trainer") -> None:
+        xmp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
 
     def training_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
@@ -303,7 +303,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.tpu_global_core_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
             print()
 
-    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: _PATH) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
@@ -341,3 +341,11 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     @classmethod
     def register_plugins(cls, plugin_registry: Dict) -> None:
         plugin_registry.register("tpu_spawn_debug", cls, description="TPUSpawn Plugin with `debug` as True", debug=True)
+
+    @property
+    def checkpoint_io(self) -> CheckpointIO:
+        return self._checkpoint_io
+
+    @checkpoint_io.setter
+    def checkpoint_io(self, plugin: CheckpointIO) -> None:
+        raise MisconfigurationException("TPU Spawn Plugin currently does not support custom checkpoint plugins.")

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Helper functions to help with reproducibility of models. """
+"""Helper functions to help with reproducibility of models."""
 
 import logging
 import os
@@ -28,10 +28,8 @@ log = logging.getLogger(__name__)
 
 
 def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
-    """
-    Function that sets seed for pseudo-random number generators in:
-    pytorch, numpy, python.random
-    In addition, sets the following environment variables:
+    """Function that sets seed for pseudo-random number generators in: pytorch, numpy, python.random In addition,
+    sets the following environment variables:
 
     - `PL_GLOBAL_SEED`: will be passed to spawned subprocesses (e.g. ddp_spawn backend).
     - `PL_SEED_WORKERS`: (optional) is set to 1 if ``workers=True``.
@@ -79,8 +77,8 @@ def _select_seed_randomly(min_seed_value: int = 0, max_seed_value: int = 255) ->
 
 
 def reset_seed() -> None:
-    """
-    Reset the seed to the value that :func:`pytorch_lightning.utilities.seed.seed_everything` previously set.
+    """Reset the seed to the value that :func:`pytorch_lightning.utilities.seed.seed_everything` previously set.
+
     If :func:`pytorch_lightning.utilities.seed.seed_everything` is unused, this function will do nothing.
     """
     seed = os.environ.get("PL_GLOBAL_SEED", None)
@@ -90,9 +88,9 @@ def reset_seed() -> None:
 
 
 def pl_worker_init_function(worker_id: int, rank: Optional = None) -> None:  # pragma: no cover
-    """
-    The worker_init_fn that Lightning automatically adds to your dataloader if you previously set
-    set the seed with ``seed_everything(seed, workers=True)``.
+    """The worker_init_fn that Lightning automatically adds to your dataloader if you previously set set the seed
+    with ``seed_everything(seed, workers=True)``.
+
     See also the PyTorch documentation on
     `randomness in DataLoaders <https://pytorch.org/docs/stable/notes/randomness.html#dataloader>`_.
     """
@@ -102,7 +100,7 @@ def pl_worker_init_function(worker_id: int, rank: Optional = None) -> None:  # p
     # back out the base seed so we can use all the bits
     base_seed = process_seed - worker_id
     log.debug(
-        f'Initializing random number generators of process {global_rank} worker {worker_id} with base seed {base_seed}'
+        f"Initializing random number generators of process {global_rank} worker {worker_id} with base seed {base_seed}"
     )
     ss = np.random.SeedSequence([base_seed, worker_id, global_rank])
     # use 128 bits (4 x 32-bit words)

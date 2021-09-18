@@ -15,15 +15,22 @@ import os
 from datetime import timedelta
 from typing import Dict, List, Optional, Union
 
-import pytorch_lightning as pl
-from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
+from pytorch_lightning.callbacks import (
+    Callback,
+    ModelCheckpoint,
+    ModelSummary,
+    ProgressBar,
+    ProgressBarBase,
+    RichProgressBar,
+)
+from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.timer import Timer
-from pytorch_lightning.utilities import rank_zero_info
+from pytorch_lightning.utilities import ModelSummaryMode, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
 class CallbackConnector:
-
     def __init__(self, trainer):
         self.trainer = trainer
 
@@ -35,6 +42,7 @@ class CallbackConnector:
         process_position: int,
         default_root_dir: Optional[str],
         weights_save_path: Optional[str],
+        weights_summary: Optional[str],
         stochastic_weight_avg: bool,
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
     ):
@@ -60,7 +68,16 @@ class CallbackConnector:
         self._configure_timer_callback(max_time)
 
         # init progress bar
+        if process_position != 0:
+            rank_zero_deprecation(
+                f"Setting `Trainer(process_position={process_position})` is deprecated in v1.5 and will be removed"
+                " in v1.7. Please pass `pytorch_lightning.callbacks.progress.ProgressBar` with"
+                " `process_position` directly to the Trainer's `callbacks` argument instead."
+            )
         self.trainer._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
+
+        # configure the ModelSummary callback
+        self._configure_model_summary_callback(weights_summary)
 
         # push all checkpoint callbacks to the end
         # it is important that these are the last callbacks to run
@@ -78,24 +95,42 @@ class CallbackConnector:
             raise MisconfigurationException(error_msg)
         if self._trainer_has_checkpoint_callbacks() and checkpoint_callback is False:
             raise MisconfigurationException(
-                "Trainer was configured with checkpoint_callback=False but found ModelCheckpoint"
-                " in callbacks list."
+                "Trainer was configured with checkpoint_callback=False but found ModelCheckpoint in callbacks list."
             )
 
         if not self._trainer_has_checkpoint_callbacks() and checkpoint_callback is True:
             self.trainer.callbacks.append(ModelCheckpoint())
+
+    def _configure_model_summary_callback(self, weights_summary: Optional[str] = None) -> None:
+        if any(isinstance(cb, ModelSummary) for cb in self.trainer.callbacks):
+            return
+        if weights_summary is not None:
+            if weights_summary not in ModelSummaryMode.supported_types():
+                raise MisconfigurationException(
+                    f"`weights_summary` can be None, {', '.join(ModelSummaryMode.supported_types())}",
+                    f" but got {weights_summary}",
+                )
+            max_depth = ModelSummaryMode.get_max_depth(weights_summary)
+            if self.trainer._progress_bar_callback is not None and isinstance(
+                self.trainer._progress_bar_callback, RichProgressBar
+            ):
+                model_summary = RichModelSummary(max_depth=max_depth)
+            else:
+                model_summary = ModelSummary(max_depth=max_depth)
+            self.trainer.callbacks.append(model_summary)
 
     def _configure_swa_callbacks(self):
         if not self.trainer._stochastic_weight_avg:
             return
 
         from pytorch_lightning.callbacks.stochastic_weight_avg import StochasticWeightAveraging
+
         existing_swa = [cb for cb in self.trainer.callbacks if isinstance(cb, StochasticWeightAveraging)]
         if not existing_swa:
             self.trainer.callbacks = [StochasticWeightAveraging()] + self.trainer.callbacks
 
     def configure_progress_bar(self, refresh_rate=None, process_position=0):
-        if os.getenv('COLAB_GPU') and refresh_rate is None:
+        if os.getenv("COLAB_GPU") and refresh_rate is None:
             # smaller refresh rate on colab causes crashes, choose a higher value
             refresh_rate = 20
         refresh_rate = 1 if refresh_rate is None else refresh_rate
@@ -103,16 +138,13 @@ class CallbackConnector:
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]
         if len(progress_bars) > 1:
             raise MisconfigurationException(
-                'You added multiple progress bar callbacks to the Trainer, but currently only one'
-                ' progress bar is supported.'
+                "You added multiple progress bar callbacks to the Trainer, but currently only one"
+                " progress bar is supported."
             )
-        elif len(progress_bars) == 1:
+        if len(progress_bars) == 1:
             progress_bar_callback = progress_bars[0]
         elif refresh_rate > 0:
-            progress_bar_callback = ProgressBar(
-                refresh_rate=refresh_rate,
-                process_position=process_position,
-            )
+            progress_bar_callback = ProgressBar(refresh_rate=refresh_rate, process_position=process_position)
             self.trainer.callbacks.append(progress_bar_callback)
         else:
             progress_bar_callback = None
@@ -136,25 +168,19 @@ class CallbackConnector:
             callback.log = model.log
             callback.log_dict = model.log_dict
 
-    @staticmethod
-    def _attach_model_callbacks(model: 'pl.LightningModule', trainer) -> None:
-        """
-        Attaches the callbacks defined in the model.
+    def _attach_model_callbacks(self) -> None:
+        """Attaches the callbacks defined in the model.
+
         If a callback returned by the model's configure_callback method has the same type as one or several
         callbacks already present in the trainer callbacks list, it will replace them.
         In addition, all :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks
         will be pushed to the end of the list, ensuring they run last.
-
-        Args:
-            model: A model which may or may not define new callbacks in
-                :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_callbacks`.
-            trainer: The trainer on which the callbacks get attached/merged.
         """
-        model_callbacks = model.configure_callbacks()
+        model_callbacks = self.trainer.call_hook("configure_callbacks")
         if not model_callbacks:
             return
         model_callback_types = {type(c) for c in model_callbacks}
-        trainer_callback_types = {type(c) for c in trainer.callbacks}
+        trainer_callback_types = {type(c) for c in self.trainer.callbacks}
         override_types = model_callback_types.intersection(trainer_callback_types)
         if override_types:
             rank_zero_info(
@@ -163,16 +189,15 @@ class CallbackConnector:
                 f" {', '.join(sorted(t.__name__ for t in override_types))}"
             )
         # remove all callbacks with a type that occurs in model callbacks
-        all_callbacks = [c for c in trainer.callbacks if type(c) not in override_types]
+        all_callbacks = [c for c in self.trainer.callbacks if type(c) not in override_types]
         all_callbacks.extend(model_callbacks)
         all_callbacks = CallbackConnector._reorder_callbacks(all_callbacks)
         # TODO: connectors refactor: move callbacks list to connector and do not write Trainer state
-        trainer.callbacks = all_callbacks
+        self.trainer.callbacks = all_callbacks
 
     @staticmethod
     def _reorder_callbacks(callbacks: List[Callback]) -> List[Callback]:
-        """
-        Moves all ModelCheckpoint callbacks to the end of the list. The sequential order within the group of
+        """Moves all ModelCheckpoint callbacks to the end of the list. The sequential order within the group of
         checkpoint callbacks is preserved, as well as the order of all other callbacks.
 
         Args:

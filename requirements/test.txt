@@ -1,13 +1,10 @@
 coverage>5.2.0
 codecov>=2.1
 pytest>=6.0
-#pytest-cov>2.10
-#pytest-xdist
-flake8>=3.6
 check-manifest
 twine==3.2
-isort>=5.6.4
-mypy>=0.720, <0.800
+mypy>=0.900
+flake8>=3.9.2
 pre-commit>=1.0
 
 cloudpickle>=1.3

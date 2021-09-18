@@ -19,7 +19,7 @@ import torch
 import torch.nn.functional as F
 
 from pytorch_lightning import Callback, seed_everything, Trainer
-from pytorch_lightning.accelerators import IPUAccelerator
+from pytorch_lightning.accelerators import CPUAccelerator, IPUAccelerator
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins import IPUPlugin, IPUPrecisionPlugin
 from pytorch_lightning.trainer.states import RunningStage
@@ -36,7 +36,6 @@ if _IPU_AVAILABLE:
 
 
 class IPUModel(BoringModel):
-
     def training_step(self, batch, batch_idx):
         output = self(batch)
         loss = self.loss(batch, output)
@@ -63,7 +62,6 @@ class IPUModel(BoringModel):
 
 
 class IPUClassificationModel(ClassificationModel):
-
     def training_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
@@ -90,10 +88,10 @@ class IPUClassificationModel(ClassificationModel):
         return acc
 
     def validation_epoch_end(self, outputs) -> None:
-        self.log('val_acc', torch.stack(outputs).mean())
+        self.log("val_acc", torch.stack(outputs).mean())
 
     def test_epoch_end(self, outputs) -> None:
-        self.log('test_acc', torch.stack(outputs).mean())
+        self.log("test_acc", torch.stack(outputs).mean())
 
 
 @pytest.mark.skipif(_IPU_AVAILABLE, reason="test requires non-IPU machine")
@@ -102,14 +100,14 @@ def test_fail_if_no_ipus(tmpdir):
         Trainer(default_root_dir=tmpdir, ipus=1)
 
     with pytest.raises(MisconfigurationException, match="IPU Accelerator requires IPU devices to run"):
-        Trainer(default_root_dir=tmpdir, ipus=1, accelerator='ipu')
+        Trainer(default_root_dir=tmpdir, ipus=1, accelerator="ipu")
 
 
 @RunIf(ipu=True)
 def test_accelerator_selected(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, ipus=1)
     assert isinstance(trainer.accelerator, IPUAccelerator)
-    trainer = Trainer(default_root_dir=tmpdir, ipus=1, accelerator='ipu')
+    trainer = Trainer(default_root_dir=tmpdir, ipus=1, accelerator="ipu")
     assert isinstance(trainer.accelerator, IPUAccelerator)
 
 
@@ -127,25 +125,25 @@ def test_no_warning_plugin(tmpdir):
 
 
 @RunIf(ipu=True)
-@pytest.mark.parametrize('ipus', [1, 4])
+@pytest.mark.parametrize("ipus", [1, 4])
 def test_all_stages(tmpdir, ipus):
     model = IPUModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, ipus=ipus)
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)
-    trainer.predict(model, model.val_dataloader())
+    trainer.predict(model)
 
 
 @RunIf(ipu=True)
-@pytest.mark.parametrize('ipus', [1, 4])
+@pytest.mark.parametrize("ipus", [1, 4])
 def test_inference_only(tmpdir, ipus):
     model = IPUModel()
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, ipus=ipus)
     trainer.validate(model)
     trainer.test(model)
-    trainer.predict(model, model.val_dataloader())
+    trainer.predict(model)
 
 
 @RunIf(ipu=True)
@@ -155,11 +153,7 @@ def test_optimization(tmpdir):
     dm = ClassifDataModule(length=1024)
     model = IPUClassificationModel()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        ipus=2,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, ipus=2)
 
     # fit model
     trainer.fit(model, dm)
@@ -169,16 +163,16 @@ def test_optimization(tmpdir):
     # validate
     result = trainer.validate(datamodule=dm)
     assert dm.trainer is not None
-    assert result[0]['val_acc'] > 0.7
+    assert result[0]["val_acc"] > 0.7
 
     # test
     result = trainer.test(model, datamodule=dm)
     assert dm.trainer is not None
-    test_result = result[0]['test_acc']
+    test_result = result[0]["test_acc"]
     assert test_result > 0.6
 
     # test saved model
-    model_path = os.path.join(tmpdir, 'model.pt')
+    model_path = os.path.join(tmpdir, "model.pt")
     trainer.save_checkpoint(model_path)
 
     model = IPUClassificationModel.load_from_checkpoint(model_path)
@@ -186,15 +180,13 @@ def test_optimization(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, ipus=2)
 
     result = trainer.test(model, datamodule=dm)
-    saved_result = result[0]['test_acc']
+    saved_result = result[0]["test_acc"]
     assert saved_result == test_result
 
 
 @RunIf(ipu=True)
 def test_mixed_precision(tmpdir):
-
     class TestCallback(Callback):
-
         def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
             assert trainer.accelerator.model.precision == 16
             raise SystemExit
@@ -209,9 +201,7 @@ def test_mixed_precision(tmpdir):
 
 @RunIf(ipu=True)
 def test_pure_half_precision(tmpdir):
-
     class TestCallback(Callback):
-
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
             assert trainer.accelerator.model.precision == 16
             for param in trainer.accelerator.model.parameters():
@@ -232,14 +222,12 @@ def test_pure_half_precision(tmpdir):
 
 @RunIf(ipu=True)
 def test_device_iterations_ipu_plugin(tmpdir):
-
     class TestCallback(Callback):
-
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
             assert trainer.accelerator.training_type_plugin.device_iterations == 2
             # assert device iterations has been set correctly within the poptorch options
             poptorch_model = trainer.accelerator.training_type_plugin.poptorch_models[RunningStage.TRAINING]
-            assert poptorch_model._options.toDict()['device_iterations'] == 2
+            assert poptorch_model._options.toDict()["device_iterations"] == 2
             raise SystemExit
 
     model = IPUModel()
@@ -248,7 +236,7 @@ def test_device_iterations_ipu_plugin(tmpdir):
         fast_dev_run=True,
         ipus=1,
         plugins=IPUPlugin(device_iterations=2),
-        callbacks=TestCallback()
+        callbacks=TestCallback(),
     )
     assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
     with pytest.raises(SystemExit):
@@ -257,16 +245,14 @@ def test_device_iterations_ipu_plugin(tmpdir):
 
 @RunIf(ipu=True)
 def test_accumulated_batches(tmpdir):
-
     class TestCallback(Callback):
-
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
             # ensure the accumulation_scheduler is overridden to accumulate every batch
             # since ipu handle accumulation
             assert trainer.accumulation_scheduler.scheduling == {0: 1}
             # assert poptorch option have been set correctly
             poptorch_model = trainer.accelerator.training_type_plugin.poptorch_models[RunningStage.TRAINING]
-            assert poptorch_model._options.Training.toDict()['gradient_accumulation'] == 2
+            assert poptorch_model._options.Training.toDict()["gradient_accumulation"] == 2
             raise SystemExit
 
     model = IPUModel()
@@ -279,10 +265,9 @@ def test_accumulated_batches(tmpdir):
 
 @RunIf(ipu=True)
 def test_stages_correct(tmpdir):
-    """Ensure all stages correctly are traced correctly by asserting the output for each stage"""
+    """Ensure all stages correctly are traced correctly by asserting the output for each stage."""
 
     class StageModel(IPUModel):
-
         def training_step(self, batch, batch_idx):
             loss = super().training_step(batch, batch_idx)
             # tracing requires a loss value that depends on the model.
@@ -302,9 +287,8 @@ def test_stages_correct(tmpdir):
             return (output - output) + torch.tensor(4)
 
     class TestCallback(Callback):
-
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
-            assert outputs['loss'].item() == 1
+            assert outputs["loss"].item() == 1
 
         def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
             assert outputs.item() == 2
@@ -328,7 +312,7 @@ def test_accumulate_grad_batches_dict_fails(tmpdir):
     model = IPUModel()
     trainer = Trainer(default_root_dir=tmpdir, ipus=1, accumulate_grad_batches={0: 1})
     with pytest.raises(
-        MisconfigurationException, match="IPUs currently only support accumulate_grad_batches being an integer value."
+        MisconfigurationException, match="IPUs currently only support `Trainer.accumulate_grad_batches` being an int"
     ):
         trainer.fit(model)
 
@@ -345,16 +329,16 @@ def test_clip_gradients_fails(tmpdir):
 def test_autoreport(tmpdir):
     """Ensure autoreport dumps to a file."""
     model = IPUModel()
-    autoreport_path = os.path.join(tmpdir, 'report/')
+    autoreport_path = os.path.join(tmpdir, "report/")
     trainer = Trainer(
         default_root_dir=tmpdir,
         ipus=1,
         fast_dev_run=True,
-        plugins=IPUPlugin(autoreport=True, autoreport_dir=autoreport_path)
+        plugins=IPUPlugin(autoreport=True, autoreport_dir=autoreport_path),
     )
     trainer.fit(model)
     assert os.path.exists(autoreport_path)
-    assert os.path.isfile(autoreport_path + 'profile.pop')
+    assert os.path.isfile(autoreport_path + "profile.pop")
 
 
 @RunIf(ipu=True)
@@ -368,7 +352,7 @@ def test_manual_poptorch_opts(tmpdir):
         default_root_dir=tmpdir,
         ipus=1,
         fast_dev_run=True,
-        plugins=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts)
+        plugins=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts),
     )
     trainer.fit(model)
 
@@ -379,10 +363,8 @@ def test_manual_poptorch_opts(tmpdir):
 
 @RunIf(ipu=True)
 def test_manual_poptorch_opts_custom(tmpdir):
-    """
-    Ensure if the user passes manual poptorch Options with custom parameters set,
-    we respect them in our poptorch options and the dataloaders.
-    """
+    """Ensure if the user passes manual poptorch Options with custom parameters set, we respect them in our
+    poptorch options and the dataloaders."""
 
     model = IPUModel()
     training_opts = poptorch.Options()
@@ -396,7 +378,6 @@ def test_manual_poptorch_opts_custom(tmpdir):
     inference_opts.Training.gradientAccumulation(1)
 
     class TestCallback(Callback):
-
         def on_fit_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
             # ensure dataloaders were correctly set up during training.
             plugin = trainer.accelerator.training_type_plugin
@@ -435,10 +416,8 @@ def test_manual_poptorch_opts_custom(tmpdir):
 
 @RunIf(ipu=True)
 def test_replication_factor(tmpdir):
-    """
-    Ensure if the user passes manual poptorch Options with custom parameters set,
-    we set them correctly in the dataloaders.
-    """
+    """Ensure if the user passes manual poptorch Options with custom parameters set, we set them correctly in the
+    dataloaders."""
 
     plugin = IPUPlugin()
     trainer = Trainer(ipus=2, default_root_dir=tmpdir, fast_dev_run=True, plugins=plugin)
@@ -447,9 +426,7 @@ def test_replication_factor(tmpdir):
 
 @RunIf(ipu=True)
 def test_default_opts(tmpdir):
-    """
-    Ensure default opts are set correctly in the IPUPlugin.
-    """
+    """Ensure default opts are set correctly in the IPUPlugin."""
 
     model = IPUModel()
 
@@ -467,12 +444,9 @@ def test_default_opts(tmpdir):
 
 @RunIf(ipu=True)
 def test_multi_optimizers_fails(tmpdir):
-    """
-    Ensure if there are multiple optimizers, we throw an exception
-    """
+    """Ensure if there are multiple optimizers, we throw an exception."""
 
     class TestModel(IPUModel):
-
         def configure_optimizers(self):
             return [torch.optim.Adam(self.parameters()), torch.optim.Adam(self.parameters())]
 
@@ -485,9 +459,72 @@ def test_multi_optimizers_fails(tmpdir):
 
 @RunIf(ipu=True)
 def test_precision_plugin(tmpdir):
-    """
-    Ensure precision plugin value is set correctly.
-    """
+    """Ensure precision plugin value is set correctly."""
 
     plugin = IPUPrecisionPlugin(precision=16)
     assert plugin.precision == 16
+
+
+@RunIf(ipu=True)
+def test_accelerator_ipu():
+
+    trainer = Trainer(accelerator="ipu", ipus=1)
+
+    assert trainer._device_type == "ipu"
+    assert isinstance(trainer.accelerator, IPUAccelerator)
+
+    with pytest.raises(
+        MisconfigurationException, match="You passed `accelerator='ipu'`, but you didn't pass `ipus` to `Trainer`"
+    ):
+        trainer = Trainer(accelerator="ipu")
+
+    trainer = Trainer(accelerator="auto", ipus=8)
+
+    assert trainer._device_type == "ipu"
+    assert isinstance(trainer.accelerator, IPUAccelerator)
+
+
+@RunIf(ipu=True)
+def test_accelerator_cpu_with_ipus_flag():
+
+    trainer = Trainer(accelerator="cpu", ipus=1)
+
+    assert trainer._device_type == "cpu"
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+
+
+@RunIf(ipu=True)
+def test_accelerator_ipu_with_devices():
+
+    trainer = Trainer(accelerator="ipu", devices=8)
+
+    assert trainer.ipus == 8
+    assert isinstance(trainer.training_type_plugin, IPUPlugin)
+    assert isinstance(trainer.accelerator, IPUAccelerator)
+
+
+@RunIf(ipu=True)
+def test_accelerator_auto_with_devices_ipu():
+
+    trainer = Trainer(accelerator="auto", devices=8)
+
+    assert trainer._device_type == "ipu"
+    assert trainer.ipus == 8
+
+
+@RunIf(ipu=True)
+def test_accelerator_ipu_with_ipus_priority():
+    """Test for checking `ipus` flag takes priority over `devices`."""
+
+    ipus = 8
+    with pytest.warns(UserWarning, match="The flag `devices=1` will be ignored,"):
+        trainer = Trainer(accelerator="ipu", devices=1, ipus=ipus)
+
+    assert trainer.ipus == ipus
+
+
+@RunIf(ipu=True)
+def test_set_devices_if_none_ipu():
+
+    trainer = Trainer(accelerator="ipu", ipus=8)
+    assert trainer.devices == 8

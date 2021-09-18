@@ -17,9 +17,8 @@ import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, TextIO, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Optional, TextIO, Union
 
-from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 log = logging.getLogger(__name__)
@@ -50,26 +49,15 @@ class AbstractProfiler(ABC):
 
 
 class BaseProfiler(AbstractProfiler):
-    """
-    If you wish to write a custom profiler, you should inherit from this class.
-    """
+    """If you wish to write a custom profiler, you should inherit from this class."""
 
     def __init__(
         self,
         dirpath: Optional[Union[str, Path]] = None,
         filename: Optional[str] = None,
-        output_filename: Optional[str] = None,
     ) -> None:
         self.dirpath = dirpath
         self.filename = filename
-        if output_filename is not None:
-            rank_zero_deprecation(
-                "`Profiler` signature has changed in v1.3. The `output_filename` parameter has been removed in"
-                " favor of `dirpath` and `filename`. Support for the old signature will be removed in v1.5",
-            )
-            filepath = Path(output_filename)
-            self.dirpath = filepath.parent
-            self.filename = filepath.stem
 
         self._output_file: Optional[TextIO] = None
         self._write_stream: Optional[Callable] = None
@@ -78,9 +66,8 @@ class BaseProfiler(AbstractProfiler):
         self._stage: Optional[str] = None
 
     @contextmanager
-    def profile(self, action_name: str) -> None:
-        """
-        Yields a context manager to encapsulate the scope of a profiled action.
+    def profile(self, action_name: str) -> Generator:
+        """Yields a context manager to encapsulate the scope of a profiled action.
 
         Example::
 
@@ -96,7 +83,7 @@ class BaseProfiler(AbstractProfiler):
         finally:
             self.stop(action_name)
 
-    def profile_iterable(self, iterable, action_name: str) -> None:
+    def profile_iterable(self, iterable: Iterable, action_name: str) -> Generator:
         iterator = iter(iterable)
         while True:
             try:
@@ -164,10 +151,7 @@ class BaseProfiler(AbstractProfiler):
         return os.linesep.join(output)
 
     def setup(
-        self,
-        stage: Optional[str] = None,
-        local_rank: Optional[int] = None,
-        log_dir: Optional[str] = None,
+        self, stage: Optional[str] = None, local_rank: Optional[int] = None, log_dir: Optional[str] = None
     ) -> None:
         """Execute arbitrary pre-profiling set-up steps."""
         self._stage = stage
@@ -176,8 +160,7 @@ class BaseProfiler(AbstractProfiler):
         self.dirpath = self.dirpath or log_dir
 
     def teardown(self, stage: Optional[str] = None) -> None:
-        """
-        Execute arbitrary post-profiling tear-down steps.
+        """Execute arbitrary post-profiling tear-down steps.
 
         Closes the currently open file and stream.
         """
@@ -204,8 +187,8 @@ class BaseProfiler(AbstractProfiler):
 
 
 class PassThroughProfiler(BaseProfiler):
-    """
-    This class should be used when you don't want the (small) overhead of profiling.
+    """This class should be used when you don't want the (small) overhead of profiling.
+
     The Trainer uses this class by default.
     """
 

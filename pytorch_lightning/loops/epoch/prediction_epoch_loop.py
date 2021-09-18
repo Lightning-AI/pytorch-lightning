@@ -1,13 +1,16 @@
 from collections import OrderedDict
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
+import torch
 from deprecate import void
 
-import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
-from pytorch_lightning.trainer.progress import EpochProgress
+from pytorch_lightning.trainer.progress import Progress
+from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.warnings import WarningCache
+
+warning_cache = WarningCache()
 
 
 class PredictionEpochLoop(Loop):
@@ -18,25 +21,17 @@ class PredictionEpochLoop(Loop):
         self.return_predictions: bool = False
         self.predictions: List[Any] = []
         self.current_batch_indices: List[int] = []
-        self.progress = EpochProgress()
+        self.batch_progress = Progress()
 
         self._dl_max_batches: Optional[int] = None
         self._num_dataloaders: Optional[int] = None
         self._warning_cache = WarningCache()
         self._all_batch_indices: List[int] = []
 
-    def connect(
-        self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochProgress] = None, **kwargs: Any
-    ) -> None:
-        """Connects the loop with necessary arguments like the trainer"""
-        super().connect(trainer, *args, **kwargs)
-        if progress is not None:
-            self.progress = progress
-
     @property
     def done(self) -> bool:
-        """Ends prediction when the iteration count exceeds the total number of available batches"""
-        return self.iteration_count >= self._dl_max_batches
+        """Ends prediction when the iteration count exceeds the total number of available batches."""
+        return self.batch_progress.current.completed >= self._dl_max_batches
 
     @property
     def should_store_predictions(self) -> bool:
@@ -44,11 +39,14 @@ class PredictionEpochLoop(Loop):
         any_pred = any(cb.interval.on_epoch for cb in self.trainer.prediction_writer_callbacks)
         return self.return_predictions or any_pred
 
+    def connect(self, **kwargs: "Loop") -> None:
+        raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
+
     def reset(self) -> None:
-        """Resets the loops internal state"""
-        self.iteration_count = 0
+        """Resets the loops internal state."""
         self._all_batch_indices: List[int] = []
         self.predictions: List[Any] = []
+        self.batch_progress.current.reset()
 
     def on_run_start(
         self,
@@ -56,10 +54,9 @@ class PredictionEpochLoop(Loop):
         dataloader_idx: int,
         dl_max_batches: int,
         num_dataloaders: int,
-        return_predictions: bool = False
+        return_predictions: bool = False,
     ) -> None:
-        """
-        Prepares the loops internal state
+        """Prepares the loops internal state.
 
         Args:
             dataloader_iter: the iterator over the current dataloader
@@ -79,10 +76,9 @@ class PredictionEpochLoop(Loop):
         dataloader_idx: int,
         dl_max_batches: int,
         num_dataloaders: int,
-        return_predictions: bool = False
+        return_predictions: bool = False,
     ) -> None:
-        """
-        Runs one prediction step.
+        """Runs one prediction step.
 
         Args:
             dataloader_iter: the iterator over the current dataloader
@@ -98,11 +94,13 @@ class PredictionEpochLoop(Loop):
         with self.trainer.profiler.profile("predict_batch_to_device"):
             batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
 
+        self.batch_progress.increment_ready()
+
         with self.trainer.profiler.profile("predict_step"):
             self._predict_step(batch, batch_idx, dataloader_idx)
 
-    def on_run_end(self) -> Tuple[Any, Any]:
-        """Returns the predictions and the corresponding batch indices"""
+    def on_run_end(self) -> Tuple[List[Any], List[int]]:
+        """Returns the predictions and the corresponding batch indices."""
         predictions = self.predictions
         all_batch_indices = self._all_batch_indices
         # free memory
@@ -111,8 +109,8 @@ class PredictionEpochLoop(Loop):
         return predictions, all_batch_indices
 
     def _predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
-        """Runs the actual predict step together with all the
-        necessary bookkeeping and the hooks tied to the predict step.
+        """Runs the actual predict step together with all the necessary bookkeeping and the hooks tied to the
+        predict step.
 
         Args:
             batch: the current batch to run the prediction on
@@ -129,20 +127,25 @@ class PredictionEpochLoop(Loop):
 
         self.trainer.call_hook("on_predict_batch_start", batch, batch_idx, dataloader_idx)
 
+        self.batch_progress.increment_started()
+
         model_ref._current_fx_name = "predict_step"
         predictions = self.trainer.accelerator.predict_step(step_kwargs)
+
+        self.batch_progress.increment_processed()
 
         if predictions is None:
             self._warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")
 
         self.trainer.call_hook("on_predict_batch_end", predictions, batch, batch_idx, dataloader_idx)
 
+        self.batch_progress.increment_completed()
+
         if self.should_store_predictions:
-            self.predictions.append(predictions)
+            self.predictions.append(move_data_to_device(predictions, torch.device("cpu")))
 
     def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Dict[str, Any]:
-        """
-        Assembles the keyword arguments for the ``predict_step``
+        """Assembles the keyword arguments for the ``predict_step``
 
         Args:
             batch: the current batch to run the prediction on
@@ -152,15 +155,17 @@ class PredictionEpochLoop(Loop):
         Returns:
             the dictionary containing all the keyboard arguments for the predict step
         """
-        step_kwargs = OrderedDict([('batch', batch), ('batch_idx', batch_idx)])
+        step_kwargs = OrderedDict([("batch", batch), ("batch_idx", batch_idx)])
         if self._num_dataloaders > 1:
-            step_kwargs['dataloader_idx'] = dataloader_idx
+            step_kwargs["dataloader_idx"] = dataloader_idx
         return step_kwargs
 
     def _store_batch_indices(self, dataloader_idx: int) -> None:
-        """Stores the batch indices if the predictions should be stored"""
+        """Stores the batch indices if the predictions should be stored."""
         batch_sampler = self.trainer.predict_dataloaders[dataloader_idx].batch_sampler
         if isinstance(batch_sampler, IndexBatchSamplerWrapper):
             self.current_batch_indices = batch_sampler.batch_indices
             if self.should_store_predictions:
                 self._all_batch_indices.append(batch_sampler.batch_indices)
+        else:
+            warning_cache.warn("Lightning couldn't infer the indices fetched for your dataloader.")

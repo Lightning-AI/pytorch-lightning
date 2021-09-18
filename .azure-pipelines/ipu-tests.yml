@@ -60,7 +60,7 @@ jobs:
       displayName: 'Install dependencies'
 
     - bash: |
-        python tests/collect_env_details.py
+        python requirements/collect_env_details.py
         python -c "import torch"
       displayName: 'Env details'
 
@@ -73,25 +73,10 @@ jobs:
       displayName: "Check poptorch installation"
 
     - bash: |
-        wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip -P legacy/
-        unzip -o legacy/checkpoints.zip -d legacy/
-        ls -l legacy/checkpoints/
-      displayName: 'Get legacy checkpoints'
-
-    - bash: |
         source ${{ variables.poplar_sdk }}/poplar-ubuntu*/enable.sh
         source ${{ variables.poplar_sdk }}/popart-ubuntu*/enable.sh
         export POPTORCH_WAIT_FOR_IPU=1
-        python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
+        python -m coverage run --source pytorch_lightning -m pytest tests/accelerators/test_ipu.py -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
       env:
         MKL_THREADING_LAYER: "GNU"
       displayName: 'Testing: standard'
-
-    - bash: |
-        source ${{ variables.poplar_sdk }}/poplar-ubuntu*/enable.sh
-        source ${{ variables.poplar_sdk }}/popart-ubuntu*/enable.sh
-        export POPTORCH_WAIT_FOR_IPU=1
-        bash tests/special_tests.sh
-      env:
-        MKL_THREADING_LAYER: "GNU"
-      displayName: 'Testing: special'

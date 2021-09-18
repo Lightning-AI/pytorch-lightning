@@ -17,6 +17,7 @@ import torch
 from torch.nn import DataParallel
 
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -24,13 +25,15 @@ from pytorch_lightning.utilities.types import _METRIC_COLLECTION
 
 
 class DataParallelPlugin(ParallelPlugin):
-    """
-    Implements data-parallel training in a single process, i.e., the model gets replicated to each
-    device and each gets a split of the data.
-    """
+    """Implements data-parallel training in a single process, i.e., the model gets replicated to each device and
+    each gets a split of the data."""
 
-    def __init__(self, parallel_devices: Optional[List[torch.device]]):
-        super().__init__(parallel_devices=parallel_devices, cluster_environment=None)
+    def __init__(
+        self,
+        parallel_devices: Optional[List[torch.device]],
+        checkpoint_io: Optional[CheckpointIO] = None,
+    ):
+        super().__init__(parallel_devices=parallel_devices, cluster_environment=None, checkpoint_io=checkpoint_io)
 
     @property
     def global_rank(self) -> int:
@@ -48,14 +51,13 @@ class DataParallelPlugin(ParallelPlugin):
     def world_size(self) -> int:
         return 1
 
-    def setup(self, model):
+    def setup(self) -> None:
         # model needs to be moved to the device before it is wrapped
-        model.to(self.root_device)
-        self._model = DataParallel(LightningParallelModule(model), self.parallel_devices)
+        self.model_to_device()
+        self._model = DataParallel(LightningParallelModule(self._model), self.parallel_devices)
 
     def reduce(self, collection: _METRIC_COLLECTION, *args, **kwargs) -> _METRIC_COLLECTION:
-        """
-        Reduces a collection of tensors from all processes. It can be applied to just a single tensor.
+        """Reduces a collection of tensors from all processes. It can be applied to just a single tensor.
 
         Args:
             collection: The collection of tensors to sync and reduce.
@@ -76,9 +78,8 @@ class DataParallelPlugin(ParallelPlugin):
     def root_device(self):
         return self.parallel_devices[0]
 
-    def model_to_device(self):
-        # no need to do anything when model is wrapped in torch.nn.DataParallel
-        pass
+    def model_to_device(self) -> None:
+        self._model.to(self.root_device)
 
     def barrier(self, *args, **kwargs):
         pass
@@ -115,3 +116,10 @@ class DataParallelPlugin(ParallelPlugin):
         if not is_overridden("test_step_end", self.lightning_module):
             return self.reduce(output)
         return output
+
+    def teardown(self) -> None:
+        if self.on_gpu:
+            # GPU teardown
+            self.lightning_module.cpu()
+            # clean up memory
+            torch.cuda.empty_cache()

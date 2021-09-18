@@ -33,21 +33,22 @@ DEFAULT_VALID_LABELS = (7, 8, 11, 12, 13, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27
 
 
 def _create_synth_kitti_dataset(path_dir: str, image_dims: tuple = (1024, 512)):
-    """Create synthetic dataset with random images, just to simulate that the dataset have been already downloaded."""
+    """Create synthetic dataset with random images, just to simulate that the dataset have been already
+    downloaded."""
     path_dir_images = os.path.join(path_dir, KITTI.IMAGE_PATH)
     path_dir_masks = os.path.join(path_dir, KITTI.MASK_PATH)
     for p_dir in (path_dir_images, path_dir_masks):
         os.makedirs(p_dir, exist_ok=True)
     for i in range(3):
-        path_img = os.path.join(path_dir_images, f'dummy_kitti_{i}.png')
-        Image.new('RGB', image_dims).save(path_img)
-        path_mask = os.path.join(path_dir_masks, f'dummy_kitti_{i}.png')
-        Image.new('L', image_dims).save(path_mask)
+        path_img = os.path.join(path_dir_images, f"dummy_kitti_{i}.png")
+        Image.new("RGB", image_dims).save(path_img)
+        path_mask = os.path.join(path_dir_masks, f"dummy_kitti_{i}.png")
+        Image.new("L", image_dims).save(path_mask)
 
 
 class KITTI(Dataset):
-    """
-    Class for KITTI Semantic Segmentation Benchmark dataset
+    """Class for KITTI Semantic Segmentation Benchmark dataset.
+
     Dataset link - http://www.cvlibs.net/datasets/kitti/eval_semseg.php?benchmark=semantics2015
 
     There are 34 classes in the given labels. However, not all of them are useful for training
@@ -73,8 +74,9 @@ class KITTI(Dataset):
     >>> KITTI(dataset_path, 'train')  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     <...semantic_segmentation.KITTI object at ...>
     """
-    IMAGE_PATH = os.path.join('training', 'image_2')
-    MASK_PATH = os.path.join('training', 'semantic')
+
+    IMAGE_PATH = os.path.join("training", "image_2")
+    MASK_PATH = os.path.join("training", "semantic")
 
     def __init__(
         self,
@@ -83,7 +85,7 @@ class KITTI(Dataset):
         img_size: tuple = (1242, 376),
         void_labels: list = DEFAULT_VOID_LABELS,
         valid_labels: list = DEFAULT_VALID_LABELS,
-        transform=None
+        transform=None,
     ):
         self.img_size = img_size
         self.void_labels = void_labels
@@ -103,7 +105,7 @@ class KITTI(Dataset):
         random_inst = random.Random(12345)  # for repeatability
         n_items = len(self.img_list)
         idxs = random_inst.sample(range(n_items), n_items // 5)
-        if self.split == 'train':
+        if self.split == "train":
             idxs = [idx for idx in range(n_items) if idx not in idxs]
         self.img_list = [self.img_list[i] for i in idxs]
         self.mask_list = [self.mask_list[i] for i in idxs]
@@ -116,7 +118,7 @@ class KITTI(Dataset):
         img = img.resize(self.img_size)
         img = np.array(img)
 
-        mask = Image.open(self.mask_list[idx]).convert('L')
+        mask = Image.open(self.mask_list[idx]).convert("L")
         mask = mask.resize(self.img_size)
         mask = np.array(mask)
         mask = self.encode_segmap(mask)
@@ -127,9 +129,7 @@ class KITTI(Dataset):
         return img, mask
 
     def encode_segmap(self, mask):
-        """
-        Sets void classes to zero so they won't be considered for training
-        """
+        """Sets void classes to zero so they won't be considered for training."""
         for voidc in self.void_labels:
             mask[mask == voidc] = self.ignore_index
         for validc in self.valid_labels:
@@ -139,18 +139,15 @@ class KITTI(Dataset):
         return mask
 
     def get_filenames(self, path):
-        """
-        Returns a list of absolute paths to images inside given `path`
-        """
-        files_list = list()
+        """Returns a list of absolute paths to images inside given `path`"""
+        files_list = []
         for filename in os.listdir(path):
             files_list.append(os.path.join(path, filename))
         return files_list
 
 
 class SegModel(pl.LightningModule):
-    """
-    Semantic Segmentation Module
+    """Semantic Segmentation Module.
 
     This is a basic semantic segmentation module implemented with Lightning.
     It uses CrossEntropyLoss as the default loss function. May be replaced with
@@ -200,12 +197,16 @@ class SegModel(pl.LightningModule):
         self.net = UNet(
             num_classes=19, num_layers=self.num_layers, features_start=self.features_start, bilinear=self.bilinear
         )
-        self.transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.35675976, 0.37380189, 0.3764753], std=[0.32064945, 0.32098866, 0.32325324])
-        ])
-        self.trainset = KITTI(self.data_path, split='train', transform=self.transform)
-        self.validset = KITTI(self.data_path, split='valid', transform=self.transform)
+        self.transform = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.35675976, 0.37380189, 0.3764753], std=[0.32064945, 0.32098866, 0.32325324]
+                ),
+            ]
+        )
+        self.trainset = KITTI(self.data_path, split="train", transform=self.transform)
+        self.validset = KITTI(self.data_path, split="valid", transform=self.transform)
 
     def forward(self, x):
         return self.net(x)
@@ -216,8 +217,8 @@ class SegModel(pl.LightningModule):
         mask = mask.long()
         out = self(img)
         loss = F.cross_entropy(out, mask, ignore_index=250)
-        log_dict = {'train_loss': loss}
-        return {'loss': loss, 'log': log_dict, 'progress_bar': log_dict}
+        log_dict = {"train_loss": loss}
+        return {"loss": loss, "log": log_dict, "progress_bar": log_dict}
 
     def validation_step(self, batch, batch_idx):
         img, mask = batch
@@ -225,12 +226,12 @@ class SegModel(pl.LightningModule):
         mask = mask.long()
         out = self(img)
         loss_val = F.cross_entropy(out, mask, ignore_index=250)
-        return {'val_loss': loss_val}
+        return {"val_loss": loss_val}
 
     def validation_epoch_end(self, outputs):
-        loss_val = torch.stack([x['val_loss'] for x in outputs]).mean()
-        log_dict = {'val_loss': loss_val}
-        return {'log': log_dict, 'val_loss': log_dict['val_loss'], 'progress_bar': log_dict}
+        loss_val = torch.stack([x["val_loss"] for x in outputs]).mean()
+        log_dict = {"val_loss": loss_val}
+        return {"log": log_dict, "val_loss": log_dict["val_loss"], "progress_bar": log_dict}
 
     def configure_optimizers(self):
         opt = torch.optim.Adam(self.net.parameters(), lr=self.learning_rate)
@@ -252,10 +253,7 @@ class SegModel(pl.LightningModule):
         parser.add_argument("--num_layers", type=int, default=5, help="number of layers on u-net")
         parser.add_argument("--features_start", type=float, default=64, help="number of features in first layer")
         parser.add_argument(
-            "--bilinear",
-            action='store_true',
-            default=False,
-            help="whether to use bilinear interpolation or transposed"
+            "--bilinear", action="store_true", default=False, help="whether to use bilinear interpolation or transposed"
         )
         return parent_parser
 
@@ -287,7 +285,7 @@ def main(hparams: Namespace):
     trainer.fit(model)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli_lightning_logo()
     parser = ArgumentParser(add_help=False)
     parser = SegModel.add_model_specific_args(parser)

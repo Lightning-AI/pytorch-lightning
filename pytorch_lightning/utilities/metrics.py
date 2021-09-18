@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Helper functions to operate on metric values. """
+"""Helper functions to operate on metric values."""
 import numbers
 from typing import Any
 
@@ -22,19 +22,17 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def metrics_to_scalars(metrics: Any) -> Any:
-    """
-    Recursively walk through a collection and convert single-item tensors to scalar values
+    """Recursively walk through a collection and convert single-item tensors to scalar values.
 
     Raises:
         MisconfigurationException:
-            If ``value`` contains multiple elements, hence preventing conversion to ``float``
+            If tensors inside ``metrics`` contains multiple elements, hence preventing conversion to a scalar.
     """
 
     def to_item(value: torch.Tensor) -> numbers.Number:
         if value.numel() != 1:
             raise MisconfigurationException(
-                f"The metric `{value}` does not contain a single element"
-                f" thus it cannot be converted to float."
+                f"The metric `{value}` does not contain a single element, thus it cannot be converted to a scalar."
             )
         return value.item()
 

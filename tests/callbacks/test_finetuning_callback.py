@@ -26,13 +26,12 @@ from tests.helpers import BoringModel, RandomDataset
 
 
 class TestBackboneFinetuningCallback(BackboneFinetuning):
-
     def on_train_epoch_start(self, trainer, pl_module):
         super().on_train_epoch_start(trainer, pl_module)
         epoch = trainer.current_epoch
         if self.unfreeze_backbone_at_epoch <= epoch:
             optimizer = trainer.optimizers[0]
-            current_lr = optimizer.param_groups[0]['lr']
+            current_lr = optimizer.param_groups[0]["lr"]
             backbone_lr = self.previous_backbone_lr
             if epoch < 6:
                 assert backbone_lr <= current_lr
@@ -41,12 +40,11 @@ class TestBackboneFinetuningCallback(BackboneFinetuning):
 
 
 def test_finetuning_callback(tmpdir):
-    """Test finetuning callbacks works as expected"""
+    """Test finetuning callbacks works as expected."""
 
     seed_everything(42)
 
     class FinetuningBoringModel(BoringModel):
-
         def __init__(self):
             super().__init__()
             self.backbone = nn.Sequential(nn.Linear(32, 32, bias=False), nn.BatchNorm1d(32), nn.ReLU())
@@ -74,19 +72,13 @@ def test_finetuning_callback(tmpdir):
     model = FinetuningBoringModel()
     callback = TestBackboneFinetuningCallback(unfreeze_backbone_at_epoch=3, verbose=False)
 
-    trainer = Trainer(
-        limit_train_batches=4,
-        default_root_dir=tmpdir,
-        callbacks=[callback],
-        max_epochs=8,
-    )
+    trainer = Trainer(limit_train_batches=4, default_root_dir=tmpdir, callbacks=[callback], max_epochs=8)
     trainer.fit(model)
 
     assert model.backbone.has_been_used
 
 
 class TestBackboneFinetuningWarningCallback(BackboneFinetuning):
-
     def finetune_function(self, pl_module, epoch: int, optimizer, opt_idx: int):
         """Called when the epoch begins."""
 
@@ -97,12 +89,11 @@ class TestBackboneFinetuningWarningCallback(BackboneFinetuning):
 
 
 def test_finetuning_callback_warning(tmpdir):
-    """Test finetuning callbacks works as expected"""
+    """Test finetuning callbacks works as expected."""
 
     seed_everything(42)
 
     class FinetuningBoringModel(BoringModel):
-
         def __init__(self):
             super().__init__()
             self.backbone = nn.Linear(32, 2, bias=False)
@@ -133,12 +124,7 @@ def test_finetuning_callback_warning(tmpdir):
     callback = TestBackboneFinetuningWarningCallback(unfreeze_backbone_at_epoch=3, verbose=False)
 
     with pytest.warns(UserWarning, match="Did you init your optimizer in"):
-        trainer = Trainer(
-            limit_train_batches=1,
-            default_root_dir=tmpdir,
-            callbacks=[callback, chk],
-            max_epochs=2,
-        )
+        trainer = Trainer(limit_train_batches=1, default_root_dir=tmpdir, callbacks=[callback, chk], max_epochs=2)
         trainer.fit(model)
 
     assert model.backbone.has_been_used
@@ -147,12 +133,11 @@ def test_finetuning_callback_warning(tmpdir):
 
 
 def test_freeze_unfreeze_function(tmpdir):
-    """Test freeze properly sets requires_grad on the modules"""
+    """Test freeze properly sets requires_grad on the modules."""
 
     seed_everything(42)
 
     class FreezeModel(LightningModule):
-
         def __init__(self):
             super().__init__()
             self.backbone = nn.Sequential(nn.Linear(32, 32), nn.BatchNorm1d(32), nn.ReLU(), nn.Linear(32, 2))
@@ -182,12 +167,11 @@ def test_freeze_unfreeze_function(tmpdir):
 
 
 def test_unfreeze_and_add_param_group_function(tmpdir):
-    """Test unfreeze_and_add_param_group properly unfreeze parameters and add to the correct param_group"""
+    """Test unfreeze_and_add_param_group properly unfreeze parameters and add to the correct param_group."""
 
     seed_everything(42)
 
     class FreezeModel(LightningModule):
-
         def __init__(self):
             super().__init__()
             self.backbone = nn.Sequential(
@@ -228,7 +212,6 @@ def test_unfreeze_and_add_param_group_function(tmpdir):
 
 
 class OnEpochLayerFinetuning(BaseFinetuning):
-
     def freeze_before_training(self, pl_module: LightningModule):
         self.freeze(pl_module.layer)
 
@@ -236,13 +219,13 @@ class OnEpochLayerFinetuning(BaseFinetuning):
         self.unfreeze_and_add_param_group(pl_module.layer[epoch + 1], optimizer)
 
 
-def test_base_finetuning_internal_state(tmpdir):
-    """Test the param_groups updates are properly saved within the internal state of the BaseFinetuning Callbacks"""
+def test_base_finetuning_internal_optimizer_metadata(tmpdir):
+    """Test the param_groups updates are properly saved within the internal state of the BaseFinetuning
+    Callbacks."""
 
     seed_everything(42)
 
     class FreezeModel(BoringModel):
-
         def __init__(self):
             super().__init__()
             self.layer = nn.Sequential(
@@ -265,34 +248,30 @@ def test_base_finetuning_internal_state(tmpdir):
     model = FreezeModel()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=5, limit_train_batches=1, callbacks=[cb, chk])
     trainer.fit(model)
-    assert len(cb._internal_state[0]) == 6
-    assert cb._internal_state[0][0]["params"] == ['layer.0.weight']
-    assert cb._internal_state[0][1]["params"] == ['layer.1.weight', 'layer.1.bias']
-    assert cb._internal_state[0][2]["params"] == ['layer.2.weight']
-    assert cb._internal_state[0][3]["params"] == ['layer.3.weight', 'layer.3.bias']
-    assert cb._internal_state[0][4]["params"] == ['layer.4.weight']
-    assert cb._internal_state[0][5]["params"] == ['layer.5.weight', 'layer.5.bias']
+    assert len(cb._internal_optimizer_metadata[0]) == 6
+    assert cb._internal_optimizer_metadata[0][0]["params"] == ["layer.0.weight"]
+    assert cb._internal_optimizer_metadata[0][1]["params"] == ["layer.1.weight", "layer.1.bias"]
+    assert cb._internal_optimizer_metadata[0][2]["params"] == ["layer.2.weight"]
+    assert cb._internal_optimizer_metadata[0][3]["params"] == ["layer.3.weight", "layer.3.bias"]
+    assert cb._internal_optimizer_metadata[0][4]["params"] == ["layer.4.weight"]
+    assert cb._internal_optimizer_metadata[0][5]["params"] == ["layer.5.weight", "layer.5.bias"]
 
     model = FreezeModel()
     cb = OnEpochLayerFinetuning()
     trainer = Trainer(max_epochs=10, resume_from_checkpoint=chk.last_model_path, callbacks=[cb])
-    with pytest.raises(ValueError, match="loaded state dict has a different number of parameter groups"):
+    with pytest.raises(IndexError, match="index 6 is out of range"):
         trainer.fit(model)
 
 
 def test_on_before_accelerator_backend_setup(tmpdir):
-    """
-    `on_before_accelerator_backend_setup` hook is used by finetuning callbacks to freeze the model before
-    before configure_optimizers function call.
-    """
+    """`on_before_accelerator_backend_setup` hook is used by finetuning callbacks to freeze the model before before
+    configure_optimizers function call."""
 
     class TestCallback(Callback):
-
         def on_before_accelerator_backend_setup(self, trainer, pl_module):
             pl_module.on_before_accelerator_backend_setup_called = True
 
     class TestModel(BoringModel):
-
         def __init__(self):
             super().__init__()
             self.on_before_accelerator_backend_setup_called = False
@@ -309,13 +288,10 @@ def test_on_before_accelerator_backend_setup(tmpdir):
 
 
 def test_complex_nested_model():
-    """
-    Test flattening, freezing, and thawing of models which contain parent (non-leaf) modules with parameters
-    directly themselves rather than exclusively their submodules containing parameters.
-    """
+    """Test flattening, freezing, and thawing of models which contain parent (non-leaf) modules with parameters
+    directly themselves rather than exclusively their submodules containing parameters."""
 
     class ConvBlock(nn.Module):
-
         def __init__(self, in_channels, out_channels):
             super().__init__()
             self.conv = nn.Conv2d(in_channels, out_channels, 3)
@@ -328,13 +304,9 @@ def test_complex_nested_model():
             return self.bn(x)
 
     class ConvBlockParam(nn.Module):
-
         def __init__(self, in_channels, out_channels):
             super().__init__()
-            self.module_dict = nn.ModuleDict({
-                "conv": nn.Conv2d(in_channels, out_channels, 3),
-                "act": nn.ReLU(),
-            })
+            self.module_dict = nn.ModuleDict({"conv": nn.Conv2d(in_channels, out_channels, 3), "act": nn.ReLU()})
             # add trivial test parameter to convblock to validate parent (non-leaf) module parameter handling
             self.parent_param = nn.Parameter(torch.zeros((1), dtype=torch.float))
             self.bn = nn.BatchNorm2d(out_channels)
@@ -345,10 +317,9 @@ def test_complex_nested_model():
             return self.bn(x)
 
     model = nn.Sequential(
-        OrderedDict([
-            ("encoder", nn.Sequential(ConvBlockParam(3, 64), ConvBlock(64, 128))),
-            ("decoder", ConvBlock(128, 10)),
-        ])
+        OrderedDict(
+            [("encoder", nn.Sequential(ConvBlockParam(3, 64), ConvBlock(64, 128))), ("decoder", ConvBlock(128, 10))]
+        )
     )
 
     # There are 10 leaf modules or parent modules w/ parameters in the test model
@@ -365,3 +336,108 @@ def test_complex_nested_model():
     # conv0.weight, conv0.bias, bn0.weight, bn0.bias, parent_param
     # conv1.weight, conv1.bias, bn1.weight, bn1.bias
     assert len(encoder_params) == 9
+
+
+class TestCallbacksRestoreCallback(BaseFinetuning):
+    def freeze_before_training(self, pl_module):
+        self.freeze(pl_module.layer[:3])
+
+    def finetune_function(self, pl_module, epoch, optimizer, opt_idx):
+        if epoch >= 1:
+            self.unfreeze_and_add_param_group(pl_module.layer[epoch - 1], optimizer)
+
+
+class FinetuningBoringModel(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.layer = nn.Sequential(nn.Linear(32, 32), nn.Linear(32, 32), nn.Linear(32, 32), nn.Linear(32, 2))
+
+    def configure_optimizers(self):
+        parameters = filter(lambda x: x.requires_grad, self.parameters())
+        optimizer = torch.optim.SGD(parameters, lr=0.1)
+        return optimizer
+
+
+def test_callbacks_restore(tmpdir):
+    """Test callbacks restore is called after optimizers have been re-created but before optimizer states
+    reload."""
+    chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+
+    model = FinetuningBoringModel()
+    callback = TestCallbacksRestoreCallback()
+
+    trainer_kwargs = dict(
+        default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=1, callbacks=[callback, chk], max_epochs=2
+    )
+
+    trainer = Trainer(**trainer_kwargs)
+    trainer.fit(model)
+
+    # only 1 optimizer
+    assert len(callback._internal_optimizer_metadata) == 1
+
+    # only 2 param groups
+    assert len(callback._internal_optimizer_metadata[0]) == 2
+
+    # original parameters
+    assert callback._internal_optimizer_metadata[0][0] == {
+        "lr": 0.1,
+        "momentum": 0,
+        "dampening": 0,
+        "weight_decay": 0,
+        "nesterov": False,
+        "params": ["layer.3.weight", "layer.3.bias"],
+    }
+
+    # new param group
+    assert callback._internal_optimizer_metadata[0][1] == {
+        "lr": 0.01,
+        "momentum": 0,
+        "dampening": 0,
+        "weight_decay": 0,
+        "nesterov": False,
+        "params": ["layer.0.weight", "layer.0.bias"],
+    }
+
+    trainer_kwargs["max_epochs"] = 3
+    trainer_kwargs["resume_from_checkpoint"] = chk.last_model_path
+
+    trainer = Trainer(**trainer_kwargs)
+    trainer.fit(model)
+
+
+def test_callbacks_restore_backbone(tmpdir):
+    """Test callbacks restore is called after optimizers have been re-created but before optimizer states
+    reload."""
+
+    class BackboneBoringModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.layer = nn.Linear(32, 2)
+            self.backbone = nn.Linear(32, 32)
+
+        def forward(self, x):
+            return self.layer(self.backbone(x))
+
+    ckpt = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=2,
+        progress_bar_refresh_rate=0,
+        callbacks=[ckpt, BackboneFinetuning(unfreeze_backbone_at_epoch=1)],
+    )
+    trainer.fit(BackboneBoringModel())
+
+    # initialize a trainer that continues the previous training
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=3,
+        progress_bar_refresh_rate=0,
+        callbacks=BackboneFinetuning(unfreeze_backbone_at_epoch=1),
+        resume_from_checkpoint=ckpt.last_model_path,
+    )
+    trainer.fit(BackboneBoringModel())

@@ -25,10 +25,10 @@ log = logging.getLogger(__name__)
 
 
 class AdvancedProfiler(BaseProfiler):
-    """
-    This profiler uses Python's cProfiler to record more detailed information about
-    time spent in each function call recorded during a given action. The output is quite
-    verbose and you should only use this if you want very detailed reports.
+    """This profiler uses Python's cProfiler to record more detailed information about time spent in each function
+    call recorded during a given action.
+
+    The output is quite verbose and you should only use this if you want very detailed reports.
     """
 
     def __init__(
@@ -36,7 +36,6 @@ class AdvancedProfiler(BaseProfiler):
         dirpath: Optional[Union[str, Path]] = None,
         filename: Optional[str] = None,
         line_count_restriction: float = 1.0,
-        output_filename: Optional[str] = None,
     ) -> None:
         """
         Args:
@@ -55,7 +54,7 @@ class AdvancedProfiler(BaseProfiler):
             ValueError:
                 If you attempt to stop recording an action which was never started.
         """
-        super().__init__(dirpath=dirpath, filename=filename, output_filename=output_filename)
+        super().__init__(dirpath=dirpath, filename=filename)
         self.profiled_actions: Dict[str, cProfile.Profile] = {}
         self.line_count_restriction = line_count_restriction
 
@@ -74,7 +73,7 @@ class AdvancedProfiler(BaseProfiler):
         recorded_stats = {}
         for action_name, pr in self.profiled_actions.items():
             s = io.StringIO()
-            ps = pstats.Stats(pr, stream=s).strip_dirs().sort_stats('cumulative')
+            ps = pstats.Stats(pr, stream=s).strip_dirs().sort_stats("cumulative")
             ps.print_stats(self.line_count_restriction)
             recorded_stats[action_name] = s.getvalue()
         return self._stats_to_str(recorded_stats)
@@ -87,6 +86,6 @@ class AdvancedProfiler(BaseProfiler):
         # avoids `TypeError: cannot pickle 'cProfile.Profile' object`
         return (
             self.__class__,
-            tuple(),
+            (),
             dict(dirpath=self.dirpath, filename=self.filename, line_count_restriction=self.line_count_restriction),
         )
