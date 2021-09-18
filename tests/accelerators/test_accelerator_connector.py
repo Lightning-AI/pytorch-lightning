@@ -13,7 +13,7 @@
 # limitations under the License
 
 import os
-from typing import Optional
+from typing import Optional, Dict, Union, Any
 from unittest import mock
 
 import pytest
@@ -385,7 +385,8 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
 @mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
 def test_custom_accelerator(device_count_mock, setup_distributed_mock):
     class Accel(Accelerator):
-        pass
+        def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
+            return []
 
     class Prec(PrecisionPlugin):
         pass
