@@ -982,15 +982,15 @@ class Trainer(
         self.call_hook("on_before_accelerator_backend_setup")
         self.accelerator.setup_environment()
 
-        if self._ckpt_path and not self.accelerator.restore_checkpoint_after_pre_dispatch:
-            self._load_checkpoint_weights()
+        # if self._ckpt_path and not self.accelerator.restore_checkpoint_after_pre_dispatch:
+        #     self._load_checkpoint_weights()
 
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
         # check if we should delay restoring checkpoint till later
         if not self.accelerator.restore_checkpoint_after_pre_dispatch:
-            # if self._ckpt_path:
-            #     self._load_checkpoint_weights()
+            if self._ckpt_path:
+                self._load_checkpoint_weights()
             self._restore_modules_and_callbacks()
 
         self._call_configure_sharded_model()  # allow user to setup in model sharded environment
