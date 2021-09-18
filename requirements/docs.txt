@@ -6,7 +6,7 @@ pandoc>=1.0
 docutils>=0.16
 sphinxcontrib-fulltoc>=1.0
 sphinxcontrib-mockautodoc
-https://github.com/sphinx-contrib/youtube/archive/master.zip
+sphinxcontrib-youtube
 https://github.com/PyTorchLightning/lightning_sphinx_theme/archive/master.zip#egg=pt-lightning-sphinx-theme
 sphinx-autodoc-typehints>=1.0
 sphinx-paramlinks>=0.5.1
