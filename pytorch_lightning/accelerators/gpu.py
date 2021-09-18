@@ -62,19 +62,18 @@ class GPUAccelerator(Accelerator):
         if _TORCH_GREATER_EQUAL_1_8:
             return torch.cuda.memory_stats(device)
         else:
-            return _get_gpu_stats(device)
+            return _get_nvidia_gpu_stats(device)
 
     def teardown(self) -> None:
         super().teardown()
         self._move_optimizer_state(torch.device("cpu"))
 
 
-def _get_gpu_stats(device: torch.device) -> Dict[str, float]:
-    """Get the current gpu usage.
+def _get_nvidia_gpu_stats(device: torch.device) -> Dict[str, float]:
+    """Get GPU stats including memory, fan speed, and temperature from nvidia-smi
 
     Return:
-        A dictionary in which the keys are device ids as integers and
-        values are memory usage as integers in MB.
+        A dictionary mapping the metrics to their values.
 
     Raises:
         FileNotFoundError:
