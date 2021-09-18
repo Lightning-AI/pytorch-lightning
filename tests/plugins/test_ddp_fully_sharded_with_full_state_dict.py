@@ -56,7 +56,7 @@ class TestFSDPModel(BoringModel):
             return
         # resetting call_configure_sharded_model_hook attribute so that we could call
         # configure sharded model
-        self.call_configure_sharded_model_hook = False
+        # self.call_configure_sharded_model_hook = False
         # for loading full state dict, we first need to create a new unwrapped model
         # to load state dict and then wrapping
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
