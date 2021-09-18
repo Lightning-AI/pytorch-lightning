@@ -128,6 +128,7 @@ class DDPPlugin(ParallelPlugin):
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
         self._rank_0_has_called_call_children_scripts: bool = False
+        self._self_deleted_checkpoint_state_dict: bool = False
         self.set_world_ranks()
 
     @property
@@ -536,6 +537,11 @@ class DDPPlugin(ParallelPlugin):
             self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()
+
+    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        if "state_dict" not in checkpoint and self._self_deleted_checkpoint_state_dict:
+            return
+        self.lightning_module.load_state_dict(checkpoint["state_dict"])
 
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         rank_zero_info(f"DistributedDataParallel has {self.num_processes} processes. Serializing to avoid CPU OOMs.")
