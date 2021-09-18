@@ -59,7 +59,7 @@ class GPUAccelerator(Accelerator):
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """Gets stats for the given GPU device.
-        
+
         Returns:
         A dictionary mapping the metrics to their values.
 
