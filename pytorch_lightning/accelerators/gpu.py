@@ -60,30 +60,39 @@ class GPUAccelerator(Accelerator):
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """Gets stats for the given GPU device."""
         if _TORCH_GREATER_EQUAL_1_8:
-            return torch.cuda.memory_stats(device)  
+            return torch.cuda.memory_stats(device)
         else:
-            return self._get_gpu_stats(device)  
+            return self._get_gpu_stats(device)
 
     def _get_gpu_stats(self, device: torch.device) -> Dict[str, float]:
+        """Get the current gpu usage.
+
+        Return:
+            A dictionary in which the keys are device ids as integers and
+            values are memory usage as integers in MB.
+
+        Raises:
+            FileNotFoundError:
+                If nvidia-smi installation not found
+        """
+        gpu_stat_metrics = [
+            ("utilization.gpu", "%"),
+            ("memory.used", "MB"),
+            ("memory.free", "MB"),
+            ("utilization.memory", "%"),
+            ("fan.speed", "%"),
+            ("temperature.gpu", "°C"),
+            ("temperature.memory", "°C"),
+        ]
+        gpu_stat_keys = [k for k, _ in gpu_stat_metrics]
+        gpu_query = ",".join(gpu_stat_keys)
+
+        gpu_id = self._get_gpu_id(device.index)
         nvidia_smi_path = shutil.which("nvidia-smi")
         if nvidia_smi_path is None:
             raise FileNotFoundError("nvidia-smi: command not found")
-
-        gpu_stat_keys = [
-            "utilization.gpu",
-            "memory.used",
-            "memory.free",
-            "utilization.memory",
-            "fan.speed",
-            "temperature.gpu",
-            "temperature.memoy",
-        ]
-        gpu_ids = self._get_gpu_id(device.index)
-
-        gpu_query = ",".join(gpu_stat_keys)
-        format = "csv,nounits,noheader"
         result = subprocess.run(
-            [nvidia_smi_path, f"--query-gpu={gpu_query}", f"--format={format}", f"--id={gpu_ids}"],
+            [nvidia_smi_path, f"--query-gpu={gpu_query}", "--format=csv,nounits,noheader", f"--id={gpu_id}"],
             encoding="utf-8",
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
@@ -96,9 +105,12 @@ class GPUAccelerator(Accelerator):
             except ValueError:
                 return 0.0
 
-        stats = [_to_float(x) for x in result.stdout.strip().split(os.linesep)]
-        for key in gpu_stat_keys:
-            gpu_stats = {key: stat for _, stat in enumerate(stats)}
+        s = result.stdout.strip()
+        stats = [_to_float(x) for x in s.split(", ")]
+
+        gpu_stats = {}
+        for i, (x, unit) in enumerate(gpu_stat_metrics):
+            gpu_stats[f"{x} ({unit})"] = stats[i]
         return gpu_stats
 
     def _get_gpu_id(self, device_id: int) -> List[str]:
