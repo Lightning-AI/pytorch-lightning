@@ -65,7 +65,7 @@ class PrecisionType(LightningEnum):
 
     @staticmethod
     def supported_type(precision: Union[str, int]) -> bool:
-        return any(x == precision for x in PrecisionType)
+        return any(x.value == precision for x in PrecisionType)
 
     @staticmethod
     def supported_types() -> List[str]:
@@ -141,6 +141,14 @@ class GradClipAlgorithmType(LightningEnum):
 
     VALUE = "value"
     NORM = "norm"
+
+    @staticmethod
+    def supported_type(val: str) -> bool:
+        return any(x.value == val for x in GradClipAlgorithmType)
+
+    @staticmethod
+    def supported_types() -> List[str]:
+        return [x.value for x in GradClipAlgorithmType]
 
 
 class AutoRestartBatchKeys(LightningEnum):
