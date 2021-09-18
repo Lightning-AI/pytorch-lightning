@@ -21,7 +21,7 @@ import tempfile
 import time
 from pathlib import Path
 from time import sleep
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 import __main__
 import numpy as np
