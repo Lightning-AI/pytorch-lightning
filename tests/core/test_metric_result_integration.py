@@ -552,7 +552,7 @@ def test_metric_collections(tmpdir):
 
 
 def test_metric_result_computed_check():
-    """Unittest ``_get_cache`` with multidimensional tensors."""
+    """Unittest ``_get_cache`` with multielement tensors."""
     sync = _Sync()
     metadata = _Metadata("foo", "bar", on_epoch=True, enable_graph=True)
     metadata.sync = sync
