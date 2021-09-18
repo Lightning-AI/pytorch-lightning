@@ -58,7 +58,15 @@ class GPUAccelerator(Accelerator):
         _log.info(f"LOCAL_RANK: {local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]")
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
-        """Gets stats for the given GPU device."""
+        """Gets stats for the given GPU device.
+        
+        Returns:
+        A dictionary mapping the metrics to their values.
+
+        Raises:
+            FileNotFoundError:
+                If nvidia-smi installation not found
+        """
         if _TORCH_GREATER_EQUAL_1_8:
             return torch.cuda.memory_stats(device)
         else:
@@ -72,7 +80,7 @@ class GPUAccelerator(Accelerator):
 def _get_nvidia_gpu_stats(device: torch.device) -> Dict[str, float]:
     """Get GPU stats including memory, fan speed, and temperature from nvidia-smi
 
-    Return:
+    Returns:
         A dictionary mapping the metrics to their values.
 
     Raises:

@@ -441,7 +441,6 @@ class Accelerator(ABC):
     @abstractmethod
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """Gets stats for a given device."""
-        pass
 
     def on_train_start(self) -> None:
         """Called when train begins."""
