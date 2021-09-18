@@ -439,7 +439,7 @@ class Accelerator(ABC):
         return self.training_type_plugin.restore_checkpoint_after_pre_dispatch
 
     @abstractmethod
-    def get_device_stats(self, device: Union[str, torch.dtype]) -> Dict[str, Any]:
+    def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """Gets stats for a given device."""
         pass
 
