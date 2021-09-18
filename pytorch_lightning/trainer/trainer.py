@@ -116,9 +116,6 @@ class Trainer(
     TrainerDataLoadingMixin,
     DeprecatedTrainerAttributes,
 ):
-    # Needed because of LightningOptimizer
-    _lightning_optimizers = None
-
     @_defaults_from_env_vars
     def __init__(
         self,
@@ -433,6 +430,14 @@ class Trainer(
         self.predict_loop = PredictionLoop()
 
         self.weights_summary = weights_summary
+
+        # Needed because of LightningOptimizer
+        self._lightning_optimizers = None
+
+        # .validate() and .test() set this when they load a checkpoint
+        self.validated_ckpt_path: Optional[str] = None
+        self.tested_ckpt_path: Optional[str] = None
+        self.predicted_ckpt_path: Optional[str] = None
 
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init
