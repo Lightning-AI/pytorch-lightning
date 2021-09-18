@@ -60,9 +60,9 @@ class GPUAccelerator(Accelerator):
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """Gets stats for the given GPU device."""
         if _TORCH_GREATER_EQUAL_1_8:
-            return torch.cuda.memory_stats(device)  
+            return torch.cuda.memory_stats(device)
         else:
-            return self._get_gpu_stats(device)  
+            return self._get_gpu_stats(device)
 
     def _get_gpu_stats(self, device: torch.device) -> Dict[str, float]:
         nvidia_smi_path = shutil.which("nvidia-smi")
