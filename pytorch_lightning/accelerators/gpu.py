@@ -78,7 +78,7 @@ class GPUAccelerator(Accelerator):
 
 
 def _get_nvidia_gpu_stats(device: torch.device) -> Dict[str, float]:
-    """Get GPU stats including memory, fan speed, and temperature from nvidia-smi
+    """Get GPU stats including memory, fan speed, and temperature from nvidia-smi.
 
     Returns:
         A dictionary mapping the metrics to their values.
