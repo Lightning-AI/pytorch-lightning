@@ -61,7 +61,7 @@ class GPUAccelerator(Accelerator):
         """Gets stats for the given GPU device.
 
         Returns:
-        A dictionary mapping the metrics to their values.
+            A dictionary mapping the metrics to their values.
 
         Raises:
             FileNotFoundError:
