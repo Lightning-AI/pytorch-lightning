@@ -143,6 +143,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
 
     def setup_environment(self) -> None:
         super().setup_environment()
+        # remove
         # model_call_configure_sharded_model_hook = getattr(
         #     self.lightning_module, "call_configure_sharded_model_hook", False
         # )
