@@ -54,9 +54,6 @@ class TestFSDPModel(BoringModel):
             # when running stages like test, validate, and predict, we will skip setting up,
             # will directly use the module itself unless we load from checkpoint
             return
-        # resetting call_configure_sharded_model_hook attribute so that we could call
-        # configure sharded model
-        # self.call_configure_sharded_model_hook = False
         # for loading full state dict, we first need to create a new unwrapped model
         # to load state dict and then wrapping
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
@@ -132,13 +129,8 @@ def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
 def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
     trainer.fit(model)
 
-    # model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
-    # trainer_accelerator_call_configure_sharded_model_hook = trainer.accelerator.call_configure_sharded_model_hook
-
     model_path = model_path if model_path else trainer.checkpoint_callback.last_model_path
 
-    # assert model_call_configure_sharded_model_hook
-    # assert not trainer_accelerator_call_configure_sharded_model_hook
     trainer.save_checkpoint(model_path, weights_only=True)
 
     _assert_save_equality(trainer, model_path, cls=TestFSDPModel)
