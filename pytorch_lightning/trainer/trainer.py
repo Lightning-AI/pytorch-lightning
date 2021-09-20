@@ -1164,6 +1164,12 @@ class Trainer(
 
         self.reset_train_val_dataloaders(model)
 
+        # fresh start epoch can be under following situations:
+        # 1) fit loop's current_epoch = 0
+        # 2) fit loop's current_epoch != 0, but trainer.fit() is called again,
+        # either with new dl/dm, or resuming from checkpoint
+        self.fit_loop._is_fresh_start_epoch = True
+
         self.fit_loop.trainer = self
         self.fit_loop.run()
 

@@ -17,6 +17,7 @@ import os
 import pickle
 from copy import deepcopy
 from typing import Generic, TypeVar
+from unittest import mock
 
 import cloudpickle
 import pytest
@@ -598,3 +599,27 @@ def test_model_pickle(tmpdir):
     model = BoringModel()
     pickle.dumps(model)
     cloudpickle.dumps(model)
+
+
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
+def test_reload_dl_resume_from_checkpoint(tmpdir):
+    """Test that train dataloader is only loaded once when resuming from checkpoint."""
+    model = BoringModel()
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
+    trainer_args = dict(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        reload_dataloaders_every_n_epochs=1,
+        logger=False,
+        callbacks=[checkpoint_callback, ModelTrainerPropertyParity()],  # this performs the assertions
+    )
+    trainer = Trainer(**trainer_args)
+    trainer.fit(model)
+
+    trainer_args.update(max_epochs=3)
+    trainer = Trainer(**trainer_args, resume_from_checkpoint=str(tmpdir / "last.ckpt"))
+    trainer.fit(model)
+    # train_dataloader_calls is only loaded once
+    assert len(trainer.dev_debugger.train_dataloader_calls) == 1

@@ -47,6 +47,7 @@ class FitLoop(Loop):
         self.epoch_progress = Progress()
         # caches the loaded dataloader state until dataloader objects are available
         self._dataloader_state_dict: Dict[str, Any] = {}
+        self.is_fresh_start_epoch: bool = False
 
     @property
     def current_epoch(self) -> int:
@@ -188,8 +189,9 @@ class FitLoop(Loop):
         model = self.trainer.lightning_module
 
         # reset train dataloader
-        if self.current_epoch != 0 and self.trainer._should_reload_dl_epoch:
+        if not self._is_fresh_start_epoch and self.trainer._should_reload_dl_epoch:
             self.trainer.reset_train_dataloader(model)
+        self._is_fresh_start_epoch = False
 
         if self._dataloader_state_dict:
             self.trainer.train_dataloader.load_state_dict(self._dataloader_state_dict)
