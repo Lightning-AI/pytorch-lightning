@@ -62,10 +62,11 @@ class TestFSDPModel(BoringModel):
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
 
     def configure_sharded_model(self) -> None:
-        for i, layer in enumerate(self.layer):
-            if i % 2 == 0:
-                self.layer[i] = wrap(layer)
-        self.layer = wrap(self.layer)
+        if not isinstance(self.layer, FullyShardedDataParallel):
+            for i, layer in enumerate(self.layer):
+                if i % 2 == 0:
+                    self.layer[i] = wrap(layer)
+            self.layer = wrap(self.layer)
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         # when loading full state dict, we first need to create a new unwrapped model
@@ -131,13 +132,13 @@ def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
 def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
     trainer.fit(model)
 
-    model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
-    trainer_accelerator_call_configure_sharded_model_hook = trainer.accelerator.call_configure_sharded_model_hook
+    # model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
+    # trainer_accelerator_call_configure_sharded_model_hook = trainer.accelerator.call_configure_sharded_model_hook
 
     model_path = model_path if model_path else trainer.checkpoint_callback.last_model_path
 
-    assert model_call_configure_sharded_model_hook
-    assert not trainer_accelerator_call_configure_sharded_model_hook
+    # assert model_call_configure_sharded_model_hook
+    # assert not trainer_accelerator_call_configure_sharded_model_hook
     trainer.save_checkpoint(model_path, weights_only=True)
 
     _assert_save_equality(trainer, model_path, cls=TestFSDPModel)
