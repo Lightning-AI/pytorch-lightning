@@ -394,3 +394,4 @@ class TrainingEpochLoop(loops.Loop):
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         self._val_loop_done = state_dict["val_loop_done"]
+        super().on_load_checkpoint(state_dict)

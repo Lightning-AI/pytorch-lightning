@@ -20,7 +20,7 @@ from torch.utils.data.dataloader import DataLoader
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, ResultCollection
-from pytorch_lightning.utilities.auto_restart import _reload_state_dict
+from pytorch_lightning.utilities.auto_restart import reload_dataloader_state_dict
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
@@ -177,7 +177,7 @@ class EvaluationLoop(DataLoaderLoop):
             self.trainer.reset_val_dataloader()
 
         if not self.trainer.sanity_checking and self._dataloader_state_dict:
-            _reload_state_dict(self.dataloaders[self.current_dataloader_idx], self._dataloader_state_dict)
+            reload_dataloader_state_dict(self.dataloaders[self.current_dataloader_idx], self._dataloader_state_dict)
             self._dataloader_state_dict = None
 
     def _on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:

@@ -548,7 +548,7 @@ def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
     )
 
 
-def _reload_state_dict(dataloader: DataLoader, state_dict: Dict[str, Any]) -> None:
+def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, Any]) -> None:
     """Utility to reload state_dict within dataloader for fault tolerance."""
 
     if not _fault_tolerant_training():
