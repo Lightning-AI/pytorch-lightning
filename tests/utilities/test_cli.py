@@ -34,6 +34,7 @@ from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import (
+    CALLBACK_REGISTRY,
     instantiate_class,
     LightningArgumentParser,
     LightningCLI,
@@ -861,6 +862,11 @@ class CustomCosineAnnealingLR(torch.optim.lr_scheduler.CosineAnnealingLR):
     pass
 
 
+@CALLBACK_REGISTRY
+class CustomCallback(Callback):
+    pass
+
+
 def test_registries(tmpdir):
     assert "SGD" in OPTIMIZER_REGISTRY.names
     assert "RMSprop" in OPTIMIZER_REGISTRY.names
@@ -870,22 +876,40 @@ def test_registries(tmpdir):
     assert "CosineAnnealingWarmRestarts" in LR_SCHEDULER_REGISTRY.names
     assert "CustomCosineAnnealingLR" in LR_SCHEDULER_REGISTRY.names
 
+    assert "EarlyStopping" in CALLBACK_REGISTRY.names
+    assert "CustomCallback" in CALLBACK_REGISTRY.names
+
     with pytest.raises(MisconfigurationException, match="is already present in the registry"):
         OPTIMIZER_REGISTRY.register_classes(torch.optim, torch.optim.Optimizer)
     OPTIMIZER_REGISTRY.register_classes(torch.optim, torch.optim.Optimizer, override=True)
 
 
-def test_registries_resolution():
+@pytest.mark.parametrize("use_class_path_callbacks", [False, True])
+def test_registries_resolution(use_class_path_callbacks):
     """This test validates registries are used when simplified command line are being used."""
     cli_args = [
         "--optimizer",
         "Adam",
         "--optimizer.lr",
         "0.0001",
+        "--trainer.callbacks=LearningRateMonitor",
+        "--trainer.callbacks.logging_interval=epoch",
+        "--trainer.callbacks.log_momentum=True",
+        "--trainer.callbacks=ModelCheckpoint",
+        "--trainer.callbacks.monitor=loss",
         "--lr_scheduler",
         "StepLR",
         "--lr_scheduler.step_size=50",
     ]
+
+    extras = []
+    if use_class_path_callbacks:
+        callbacks = [
+            {"class_path": "pytorch_lightning.callbacks.Callback"},
+            {"class_path": "pytorch_lightning.callbacks.Callback", "init_args": {}},
+        ]
+        cli_args += [f"--trainer.callbacks={json.dumps(callbacks)}"]
+        extras = [Callback, Callback]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = LightningCLI(BoringModel, run=False)
@@ -894,6 +918,80 @@ def test_registries_resolution():
     assert isinstance(optimizers[0], torch.optim.Adam)
     assert optimizers[0].param_groups[0]["lr"] == 0.0001
     assert lr_scheduler[0].step_size == 50
+
+    callback_types = [type(c) for c in cli.trainer.callbacks]
+    expected = [LearningRateMonitor, SaveConfigCallback, ModelCheckpoint] + extras
+    assert all(t in callback_types for t in expected)
+
+
+def test_argv_transformation_noop():
+    base = ["any.py", "--trainer.max_epochs=1"]
+    argv = LightningArgumentParser._convert_argv_issue_85(CALLBACK_REGISTRY.classes, "trainer.callbacks", base)
+    assert argv == base
+
+
+def test_argv_transformation_single_callback():
+    base = ["any.py", "--trainer.max_epochs=1"]
+    input = base + ["--trainer.callbacks=ModelCheckpoint", "--trainer.callbacks.monitor=val_loss"]
+    callbacks = [
+        {
+            "class_path": "pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint",
+            "init_args": {"monitor": "val_loss"},
+        }
+    ]
+    expected = base + ["--trainer.callbacks", str(callbacks)]
+    argv = LightningArgumentParser._convert_argv_issue_85(CALLBACK_REGISTRY.classes, "trainer.callbacks", input)
+    assert argv == expected
+
+
+def test_argv_transformation_multiple_callbacks():
+    base = ["any.py", "--trainer.max_epochs=1"]
+    input = base + [
+        "--trainer.callbacks=ModelCheckpoint",
+        "--trainer.callbacks.monitor=val_loss",
+        "--trainer.callbacks=ModelCheckpoint",
+        "--trainer.callbacks.monitor=val_acc",
+    ]
+    callbacks = [
+        {
+            "class_path": "pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint",
+            "init_args": {"monitor": "val_loss"},
+        },
+        {
+            "class_path": "pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint",
+            "init_args": {"monitor": "val_acc"},
+        },
+    ]
+    expected = base + ["--trainer.callbacks", str(callbacks)]
+    argv = LightningArgumentParser._convert_argv_issue_85(CALLBACK_REGISTRY.classes, "trainer.callbacks", input)
+    assert argv == expected
+
+
+def test_argv_transformation_multiple_callbacks_with_config():
+    base = ["any.py", "--trainer.max_epochs=1"]
+    nested_key = "trainer.callbacks"
+    input = base + [
+        f"--{nested_key}=ModelCheckpoint",
+        f"--{nested_key}.monitor=val_loss",
+        f"--{nested_key}=ModelCheckpoint",
+        f"--{nested_key}.monitor=val_acc",
+        f"--{nested_key}=[{{'class_path': 'pytorch_lightning.callbacks.Callback'}}]",
+    ]
+    callbacks = [
+        {
+            "class_path": "pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint",
+            "init_args": {"monitor": "val_loss"},
+        },
+        {
+            "class_path": "pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint",
+            "init_args": {"monitor": "val_acc"},
+        },
+        {"class_path": "pytorch_lightning.callbacks.Callback"},
+    ]
+    expected = base + ["--trainer.callbacks", str(callbacks)]
+    nested_key = "trainer.callbacks"
+    argv = LightningArgumentParser._convert_argv_issue_85(CALLBACK_REGISTRY.classes, nested_key, input)
+    assert argv == expected
 
 
 @pytest.mark.parametrize(

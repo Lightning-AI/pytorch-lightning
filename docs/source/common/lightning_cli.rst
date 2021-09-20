@@ -5,7 +5,7 @@
     from unittest import mock
     from typing import List
     import pytorch_lightning as pl
-    from pytorch_lightning import LightningModule, LightningDataModule, Trainer
+    from pytorch_lightning import LightningModule, LightningDataModule, Trainer, Callback
 
 
     class NoFitTrainer(Trainer):
@@ -371,6 +371,59 @@ Similar to the callbacks, any arguments in :class:`~pytorch_lightning.trainer.tr
 :class:`~pytorch_lightning.core.datamodule.LightningDataModule` classes that have as type hint a class can be configured
 the same way using :code:`class_path` and :code:`init_args`.
 
+For callbacks in particular, Lightning simplifies the command line so that only
+the :class:`~pytorch_lightning.callbacks.Callback` name is required.
+The argument's order matters and the user needs to pass the arguments in the following way.
+
+.. code-block:: bash
+
+    $ python ... \
+        --trainer.callbacks={CALLBACK_1_NAME} \
+        --trainer.callbacks.{CALLBACK_1_ARGS_1}=... \
+        --trainer.callbacks.{CALLBACK_1_ARGS_2}=... \
+        ...
+        --trainer.callbacks={CALLBACK_N_NAME} \
+        --trainer.callbacks.{CALLBACK_N_ARGS_1}=... \
+        ...
+
+Here is an example:
+
+.. code-block:: bash
+
+    $ python ... \
+        --trainer.callbacks=EarlyStopping \
+        --trainer.callbacks.patience=5 \
+        --trainer.callbacks=LearningRateMonitor \
+        --trainer.callbacks.logging_interval=epoch
+
+Lightning provides a mechanism for you to add your own callbacks and benefit from the command line simplification
+as described above:
+
+.. code-block:: python
+
+    from pytorch_lightning.utilities.cli import CALLBACK_REGISTRY
+
+
+    @CALLBACK_REGISTRY
+    class CustomCallback(Callback):
+        ...
+
+
+    cli = LightningCLI(...)
+
+.. code-block:: bash
+
+    $  python ... --trainer.callbacks=CustomCallback ...
+
+This callback will be included in the generated config:
+
+.. code-block:: yaml
+
+    trainer:
+      callbacks:
+        - class_path: your_class_path.CustomCallback
+          init_args:
+            ...
 
 Multiple models and/or datasets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -517,9 +570,10 @@ instantiating the trainer class can be found in :code:`self.config['fit']['train
 Configurable callbacks
 ^^^^^^^^^^^^^^^^^^^^^^
 
-As explained previously, any callback can be added by including it in the config via :code:`class_path` and
-:code:`init_args` entries. However, there are other cases in which a callback should always be present and be
-configurable. This can be implemented as follows:
+As explained previously, any Lightning callback can be added by passing it through command line or
+including it in the config via :code:`class_path` and :code:`init_args` entries.
+However, there are other cases in which a callback should always be present and be configurable.
+This can be implemented as follows:
 
 .. testcode::
 
