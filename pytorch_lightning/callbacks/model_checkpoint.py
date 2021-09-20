@@ -302,6 +302,7 @@ class ModelCheckpoint(Callback):
             self._last_time_checked = now
 
         self.save_checkpoint(trainer)
+        trainer.on_after_save_checkpoint()
 
     def on_train_epoch_end(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", unused: Optional = None
@@ -316,6 +317,7 @@ class ModelCheckpoint(Callback):
             and (trainer.current_epoch + 1) % self._every_n_epochs == 0
         ):
             self.save_checkpoint(trainer)
+            trainer.on_after_save_checkpoint()
         trainer.fit_loop.global_step += 1
 
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
@@ -328,6 +330,7 @@ class ModelCheckpoint(Callback):
         ):
             return
         self.save_checkpoint(trainer)
+        trainer.on_after_save_checkpoint()
 
     def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Save a checkpoint when training stops.
@@ -659,6 +662,7 @@ class ModelCheckpoint(Callback):
         filepath = os.path.join(self.dirpath, f"{filepath}{self.FILE_EXTENSION}")
 
         trainer.save_checkpoint(filepath, self.save_weights_only)
+        trainer.on_after_save_checkpoint()
 
         if self.last_model_path and self.last_model_path != filepath:
             trainer.training_type_plugin.remove_checkpoint(self.last_model_path)
@@ -684,6 +688,7 @@ class ModelCheckpoint(Callback):
 
         filepath = self._get_metric_interpolated_filepath_name(monitor_candidates, trainer)
         trainer.save_checkpoint(filepath, self.save_weights_only)
+        trainer.on_after_save_checkpoint()
 
         if self.save_top_k == 1 and self.best_model_path and self.best_model_path != filepath:
             trainer.training_type_plugin.remove_checkpoint(self.best_model_path)
@@ -731,6 +736,7 @@ class ModelCheckpoint(Callback):
                 f' (best {self.best_model_score:0.5f}), saving model to "{filepath}" as top {k}'
             )
         trainer.save_checkpoint(filepath, self.save_weights_only)
+        trainer.on_after_save_checkpoint()
 
         if del_filepath is not None and filepath != del_filepath:
             trainer.training_type_plugin.remove_checkpoint(del_filepath)

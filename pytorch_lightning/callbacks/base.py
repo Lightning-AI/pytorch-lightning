@@ -289,6 +289,10 @@ class Callback(abc.ABC):
             The callback state.
         """
         pass
+    
+    def on_after_save_checkpoint(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        """Called after saving a model checkpoint."""
+        pass
 
     def on_load_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]

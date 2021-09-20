@@ -255,6 +255,11 @@ class TrainerCallbackHookMixin(ABC):
                 callback_states[callback.state_key] = state
         return callback_states
 
+    def on_after_save_checkpoint(self) -> None:
+        """Called after saving a model checkpoint."""
+        for callback in self.callbacks:
+            callback.on_after_save_checkpoint(self, self.lightning_module)
+
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint."""
         # Todo: the `callback_states` are dropped with TPUSpawn as they

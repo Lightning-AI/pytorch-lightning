@@ -363,6 +363,7 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
         super().__init__(*args, **kwargs)
         self.expected_count = expected_count
         self.on_save_checkpoint_count = 0
+        self.on_after_save_checkpoint_count = 0
 
     def on_train_start(self, trainer, pl_module):
         torch.save = Mock(wraps=torch.save)
@@ -372,11 +373,16 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
         super().on_save_checkpoint(trainer, pl_module, checkpoint)
         self.on_save_checkpoint_count += 1
 
+    def on_after_save_checkpoint(self):
+        super().on_after_save_checkpoint()
+        self.on_after_save_checkpoint_count += 1
+
     def on_train_end(self, trainer, pl_module):
         super().on_train_end(trainer, pl_module)
         assert self.best_model_path
         assert self.best_model_score
         assert self.on_save_checkpoint_count == self.expected_count
+        assert self.on_after_save_checkpoint_count == self.expected_count
         if trainer.is_global_zero:
             assert torch.save.call_count == self.expected_count
         else:
