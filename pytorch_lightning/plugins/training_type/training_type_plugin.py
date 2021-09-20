@@ -153,7 +153,10 @@ class TrainingTypePlugin(ABC):
 
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         torch.cuda.empty_cache()
-        return self.checkpoint_io.load_checkpoint(checkpoint_path)
+        checkpoint = self.checkpoint_io.load_checkpoint(checkpoint_path)
+        self.lightning_module.on_load_checkpoint(checkpoint)
+        self.load_model_state_dict(checkpoint)
+        return checkpoint
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         self.lightning_module.load_state_dict(checkpoint["state_dict"])

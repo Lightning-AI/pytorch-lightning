@@ -21,7 +21,7 @@ import tempfile
 import time
 from pathlib import Path
 from time import sleep
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 import __main__
 import numpy as np
@@ -51,13 +51,14 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.distributed import (
     distributed_available,
     init_ddp_connection,
+    rank_zero_info,
     rank_zero_only,
     ReduceOp,
     sync_ddp_if_available,
 )
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
 
 if _TORCH_GREATER_EQUAL_1_10:
     from torch.distributed.optim import DistributedOptimizer, PostLocalSGDOptimizer, ZeroRedundancyOptimizer
@@ -127,6 +128,7 @@ class DDPPlugin(ParallelPlugin):
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
         self._rank_0_has_called_call_children_scripts: bool = False
+        self._self_deleted_checkpoint_state_dict: bool = False
         self.set_world_ranks()
 
     @property
@@ -535,3 +537,19 @@ class DDPPlugin(ParallelPlugin):
             self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()
+
+    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        if "state_dict" not in checkpoint and self._self_deleted_checkpoint_state_dict:
+            return
+        self.lightning_module.load_state_dict(checkpoint["state_dict"])
+
+    def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
+        rank_zero_info(f"DistributedDataParallel has {self.num_processes} processes. Serializing to avoid CPU OOMs.")
+        for current_worker in range(self.num_processes):
+            if self.local_rank == current_worker:
+                checkpoint = super().load_checkpoint(checkpoint_path)
+                del checkpoint["state_dict"]
+                self._self_deleted_checkpoint_state_dict = True
+                log.info(f"Rank {self.global_rank}: done loading model states from {checkpoint_path}.")
+            self.barrier()
+        return checkpoint

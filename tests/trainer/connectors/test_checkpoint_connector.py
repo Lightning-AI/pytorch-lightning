@@ -74,6 +74,7 @@ def test_preloaded_checkpoint_lifecycle(tmpdir):
     ckpt_path = trainer.checkpoint_callback.best_model_path
     trainer = Trainer(default_root_dir=tmpdir, max_steps=2, resume_from_checkpoint=ckpt_path)
     connector = trainer.checkpoint_connector
+    trainer.accelerator.connect(model)
     connector.resume_start()
     assert connector.resume_checkpoint_path == ckpt_path
     assert connector._loaded_checkpoint
