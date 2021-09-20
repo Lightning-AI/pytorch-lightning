@@ -199,11 +199,7 @@ Mixed precision (16-bit) training
 * Your optimization algorithm (training_step) is numerically stable.
 * You want to be the cool person in the lab :p
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/yt_thumbs/thumb_precision.png"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/yt/Trainer+flags+9+-+precision_1.mp4"></video>
+.. youtube:: d-2EHvJX03Y
 
 |
 

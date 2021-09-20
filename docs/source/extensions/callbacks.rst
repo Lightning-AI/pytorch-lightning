@@ -11,11 +11,7 @@
 Callback
 ========
 
-.. raw:: html
-
-    <video width="100%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/callbacks.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/callbacks.mp4"></video>
+.. youtube:: YzqjvW8-bKk
 
 |
 
