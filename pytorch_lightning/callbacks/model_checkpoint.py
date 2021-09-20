@@ -612,6 +612,9 @@ class ModelCheckpoint(Callback):
 
         self.dirpath = ckpt_path
 
+        if not trainer.fast_dev_run and trainer.should_rank_save_checkpoint:
+            self._fs.makedirs(self.dirpath, exist_ok=True)
+
     def _validate_monitor_key(self, trainer: "pl.Trainer") -> None:
         metrics = trainer.callback_metrics
 
