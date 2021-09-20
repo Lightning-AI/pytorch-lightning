@@ -359,6 +359,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `add_argparse_args` raising `TypeError` when args are typed as `typing.Generic` in Python 3.6 ([#9554](https://github.com/PyTorchLightning/pytorch-lightning/pull/9554))
 
+- Fixed `train_dataloader` is loaded twice when resuming from checkpoint during fit loop ([#9614](https://github.com/PyTorchLightning/pytorch-lightning/pull/9614))
 
 ## [1.4.7] - 2021-09-14
 
