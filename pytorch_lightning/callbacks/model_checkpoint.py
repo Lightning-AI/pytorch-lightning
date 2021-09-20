@@ -24,8 +24,7 @@ import re
 import time
 from copy import deepcopy
 from datetime import timedelta
-from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 from weakref import proxy
 
 import numpy as np
