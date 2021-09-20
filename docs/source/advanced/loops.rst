@@ -108,5 +108,3 @@ When we have a custom loop defined in class as shown above, we can attach it to 
 
     model = ...
     trainer.fit(model)
-
-
