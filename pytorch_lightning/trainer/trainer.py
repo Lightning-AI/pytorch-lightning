@@ -1990,6 +1990,13 @@ class Trainer(
     Other
     """
 
+    @property
+    def train_loop(self) -> FitLoop:
+        rank_zero_deprecation(
+            "`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
+        )
+        return self.fit_loop
+
     # TODO: refactor this so that it can be done in LightningOptimizer
     def __getstate__(self):
         # remove lightning_optimizers
@@ -1998,10 +2005,3 @@ class Trainer(
 
     def __setstate__(self, state):
         self.__dict__ = state
-
-    @property
-    def train_loop(self) -> FitLoop:
-        rank_zero_deprecation(
-            "`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
-        )
-        return self.fit_loop
