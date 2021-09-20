@@ -237,8 +237,6 @@ def test_cpu_amp_precision_16_throws_error(tmpdir):
 
 
 class GradientUnscaleNativeAMPPlugin(NativeMixedPrecisionPlugin):
-    _WAS_SCALED_NON_NAN = 0
-
     def pre_optimizer_step(
         self,
         model,
@@ -247,7 +245,6 @@ class GradientUnscaleNativeAMPPlugin(NativeMixedPrecisionPlugin):
         lambda_closure,
         **kwargs,
     ) -> bool:
-        norm_before = torch.nn.utils.clip_grad_norm_(model.parameters(), 2)
         ret_val = super().pre_optimizer_step(
             model,
             optimizer,
@@ -255,17 +252,24 @@ class GradientUnscaleNativeAMPPlugin(NativeMixedPrecisionPlugin):
             lambda_closure,
             **kwargs,
         )
-        norm_after = torch.nn.utils.clip_grad_norm_(model.parameters(), 2)
-
-        # norm_after unscale should be smaller by scaling factor greater than 1
-        if not (torch.isinf(norm_before) or torch.isnan(norm_before)):
-            assert norm_after < norm_before
-            self._WAS_SCALED_NON_NAN += 1
+        self.trainer.lightning_module.norm_after = torch.nn.utils.clip_grad_norm_(model.parameters(), 2)
         return ret_val
 
 
 @RunIf(min_gpus=1, amp_native=True)
 def test_correct_native_grad_unscaling(tmpdir):
+    class TestModel(BoringModel):
+        _WAS_SCALED_NON_NAN = 0
+
+        def on_after_backward(self) -> None:
+            self.norm_before = torch.nn.utils.clip_grad_norm_(model.parameters(), 2)
+
+        def on_train_batch_end(self, *args, **kwargs) -> None:
+            if not (torch.isinf(self.norm_before) or torch.isnan(self.norm_before)):
+                # norm_after unscale should be smaller by scaling factor greater than 1
+                assert self.norm_after < self.norm_before
+                self._WAS_SCALED_NON_NAN += 1
+
     seed_everything(42)
     plugin = GradientUnscaleNativeAMPPlugin()
     trainer = Trainer(
@@ -278,6 +282,6 @@ def test_correct_native_grad_unscaling(tmpdir):
         plugins=plugin,
     )
     assert isinstance(trainer.precision_plugin, GradientUnscaleNativeAMPPlugin)
-    model = BoringModel()
+    model = TestModel()
     trainer.fit(model)
-    assert plugin._WAS_SCALED_NON_NAN
+    assert model._WAS_SCALED_NON_NAN
