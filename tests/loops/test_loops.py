@@ -20,6 +20,7 @@ from unittest.mock import ANY
 
 import pytest
 import torch
+from torch.utils.data import Dataset
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -27,7 +28,7 @@ from pytorch_lightning.loops import Loop, TrainingBatchLoop
 from pytorch_lightning.trainer.progress import BaseProgress
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
-from tests.utilities.test_auto_restart import _run_validation_loop_fault_tolerance, RandomGetItemDataset
+from tests.utilities.test_auto_restart import _run_validation_loop_fault_tolerance
 
 
 class NestedLoop(Loop):
@@ -738,13 +739,27 @@ def test_fit_loop_reset(tmpdir):
     assert optimizer_loop.optim_progress.optimizer_position == 1
 
 
+class TestDataset(Dataset):
+    """A dataset with random elements generated using global rng from torch, numpy and python."""
+
+    def __init__(self, length, size):
+        self.size = size
+        self.len = length
+
+    def __getitem__(self, index):
+        return torch.rand(self.size)
+
+    def __len__(self):
+        return self.len
+
+
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(min_torch="1.7.0")
 @pytest.mark.parametrize(
     "dataset_classes",
     [
-        [[RandomGetItemDataset], [RandomGetItemDataset]],
-        [[RandomGetItemDataset], [RandomGetItemDataset, RandomGetItemDataset]],
+        [[TestDataset], [TestDataset]],
+        [[TestDataset], [TestDataset, TestDataset]],
     ],
 )
 @pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
