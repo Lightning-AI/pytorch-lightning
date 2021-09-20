@@ -17,6 +17,7 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ProgressBarBase, RichProgressBar
+from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -58,5 +59,6 @@ def test_rich_progress_bar(progress_update, tmpdir):
 
 def test_rich_progress_bar_import_error():
 
-    with pytest.raises(ImportError, match="`RichProgressBar` requires `rich` to be installed."):
-        Trainer(callbacks=RichProgressBar())
+    if not _RICH_AVAILABLE:
+        with pytest.raises(ImportError, match="`RichProgressBar` requires `rich` to be installed."):
+            Trainer(callbacks=RichProgressBar())

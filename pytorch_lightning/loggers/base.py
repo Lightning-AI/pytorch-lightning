@@ -313,6 +313,8 @@ class LightningLoggerBase(ABC):
     def close(self) -> None:
         """Do any cleanup that is necessary to close an experiment.
 
+        See deprecation warning below.
+
         .. deprecated:: v1.5
             This method is deprecated in v1.5 and will be removed in v1.7.
             Please use `LightningLoggerBase.finalize` instead.
