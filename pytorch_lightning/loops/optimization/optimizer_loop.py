@@ -226,26 +226,6 @@ class OptimizerLoop(Loop):
         outputs, self.outputs = self.outputs, []  # free memory
         return outputs
 
-    def _backward(
-        self, loss: Tensor, optimizer: torch.optim.Optimizer, opt_idx: int, *args: Any, **kwargs: Any
-    ) -> Tensor:
-        """Performs the backward step.
-
-        Args:
-            loss: The loss value to back-propagate on
-            optimizer: Current optimizer being used
-            opt_idx: Index of the current optimizer being used
-        """
-        self.trainer.accelerator.backward(loss, optimizer, opt_idx, *args, **kwargs)
-
-        if not self.trainer.fit_loop._should_accumulate():
-            # track gradients
-            grad_norm_dict = self._track_and_norm_grad(optimizer=optimizer)
-            if grad_norm_dict:
-                self.trainer.lightning_module._current_fx_name = "on_after_backward"
-                self.trainer.lightning_module.log_grad_norm(grad_norm_dict)
-        return loss
-
     def _run_optimization(
         self, split_batch: Any, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int
     ) -> ClosureResult:
@@ -342,7 +322,7 @@ class OptimizerLoop(Loop):
             return None
 
         def backward_fn(loss: Tensor) -> Tensor:
-            self._backward(loss, optimizer, opt_idx)
+            self.trainer.accelerator.backward(loss, optimizer, opt_idx)
 
             # check if model weights are nan
             if self.trainer.terminate_on_nan:
@@ -477,22 +457,3 @@ class OptimizerLoop(Loop):
                 self.trainer._results.cpu()
 
         return result
-
-    def _track_and_norm_grad(self, optimizer: torch.optim.Optimizer) -> Dict[str, float]:
-        """Tracks gradient norms and clips the gradients of all parameters optimized by the current optimizer.
-
-        Args:
-            optimizer: the current optimizer
-        """
-        # track gradient norms
-        grad_norm_dict = {}
-        can_log = (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0
-        should_track = float(self.trainer.track_grad_norm) > 0
-        if should_track and can_log:
-            grad_norm_dict = grad_norm(self.trainer.lightning_module, self.trainer.track_grad_norm)
-
-        # clip gradients
-        self.trainer.accelerator.clip_gradients(
-            optimizer, self.trainer.gradient_clip_val, gradient_clip_algorithm=self.trainer.gradient_clip_algorithm
-        )
-        return grad_norm_dict
