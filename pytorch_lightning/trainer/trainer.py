@@ -1253,11 +1253,11 @@ class Trainer(
         # model = self.lightning_module
         # model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
         # if self.accelerator.call_configure_sharded_model_hook and not model_call_configure_sharded_model_hook:
-            with self.accelerator.model_sharded_context():
-                self.call_hook("configure_sharded_model")
-                self.call_hook("on_configure_sharded_model")
-            # model.call_configure_sharded_model_hook = True
-            # self.accelerator.call_configure_sharded_model_hook = False
+        with self.accelerator.model_sharded_context():
+            self.call_hook("configure_sharded_model")
+            self.call_hook("on_configure_sharded_model")
+        # model.call_configure_sharded_model_hook = True
+        # self.accelerator.call_configure_sharded_model_hook = False
 
     def _call_teardown_hook(self) -> None:
         fn = self.state.fn._setup_fn
