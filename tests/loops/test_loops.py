@@ -27,6 +27,7 @@ from pytorch_lightning.loops import Loop, TrainingBatchLoop
 from pytorch_lightning.trainer.progress import BaseProgress
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
+from tests.utilities.test_auto_restart import _run_validation_loop_fault_tolerance, RandomGetItemDataset
 
 
 class NestedLoop(Loop):
@@ -735,3 +736,112 @@ def test_fit_loop_reset(tmpdir):
     assert epoch_loop.batch_progress.current.completed == 4
 
     assert optimizer_loop.optim_progress.optimizer_position == 1
+
+
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+@RunIf(min_torch="1.7.0")
+@pytest.mark.parametrize(
+    "dataset_classes",
+    [
+        [[RandomGetItemDataset], [RandomGetItemDataset]],
+        [[RandomGetItemDataset], [RandomGetItemDataset, RandomGetItemDataset]],
+    ],
+)
+@pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
+def test_auto_restart_within_validation_loop(dataset_classes, val_check_interval, tmpdir):
+    num_samples = 4
+    num_validation_loaders = len(dataset_classes[1])
+    trainer, training_step_batches, validation_step_batches = _run_validation_loop_fault_tolerance(
+        dataset_classes, tmpdir, val_check_interval
+    )
+
+    assert len(training_step_batches) == num_samples
+    assert len(validation_step_batches) == num_validation_loaders
+    for batch in validation_step_batches.values():
+        assert len(batch) == (1 / val_check_interval) * num_samples
+
+    checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+    assert not os.path.exists(checkpoint_path)
+
+    state_dict = trainer.fit_loop.state_dict()
+
+    expected = 2 if val_check_interval == 1.0 else 0
+    state_dict["epoch_loop.batch_progress"]["total"] = {
+        "ready": 2 + expected,
+        "completed": 2 + expected,
+        "started": 2 + expected,
+        "processed": 2 + expected,
+    }
+
+    state_dict["epoch_loop.batch_progress"]["current"] = {
+        "ready": 2 + expected,
+        "completed": 2 + expected,
+        "started": 2 + expected,
+        "processed": 2 + expected,
+    }
+
+    expected = 2 if val_check_interval == 1.0 else 0
+    state_dict["epoch_loop.val_loop.dataloader_progress"]["total"] == {
+        "ready": 1 + expected,
+        "completed": expected,
+    }
+
+    total = (1 / val_check_interval) * num_validation_loaders * num_samples
+    state_dict["epoch_loop.val_loop.epoch_loop.batch_progress"]["total"] == {
+        "ready": total,
+        "completed": total,
+    }
+
+    state_dict["epoch_loop.val_loop.epoch_loop.batch_progress"]["current"] == {
+        "ready": num_samples,
+        "completed": num_samples,
+    }
+
+    _, training_step_batches, validation_step_batches = _run_validation_loop_fault_tolerance(
+        dataset_classes, tmpdir, val_check_interval, should_fail=True
+    )
+
+    checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+    assert os.path.exists(checkpoint_path)
+
+    checkpoint = torch.load(checkpoint_path)["loops"]["fit_loop"]
+
+    shift = 2 if val_check_interval == 1.0 else 0
+    assert checkpoint["epoch_loop.batch_progress"]["total"] == {
+        "ready": 2 + shift,
+        "completed": 2 + shift,
+        "started": 2 + shift,
+        "processed": 2 + shift,
+    }
+    assert checkpoint["epoch_loop.batch_progress"]["current"] == {
+        "ready": 2 + shift,
+        "completed": 2 + shift,
+        "started": 2 + shift,
+        "processed": 2 + shift,
+    }
+
+    total = 5 if num_validation_loaders == 2 else 1
+    state_dict["epoch_loop.val_loop.epoch_loop.batch_progress"]["total"] == {
+        "ready": total,
+        "completed": total,
+    }
+
+    state_dict["epoch_loop.val_loop.epoch_loop.batch_progress"]["current"] == {
+        "ready": 1,
+        "completed": 1,
+    }
+
+    trainer, _, _ = _run_validation_loop_fault_tolerance(dataset_classes, tmpdir, val_check_interval, resume=True)
+
+    state_dict = trainer.fit_loop.state_dict()
+
+    total = (1 / val_check_interval) * num_validation_loaders * num_samples
+    state_dict["epoch_loop.val_loop.epoch_loop.batch_progress"]["total"] == {
+        "ready": total,
+        "completed": total,
+    }
+
+    state_dict["epoch_loop.val_loop.epoch_loop.batch_progress"]["current"] == {
+        "ready": num_samples,
+        "completed": num_samples,
+    }
