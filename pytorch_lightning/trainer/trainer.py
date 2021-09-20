@@ -981,10 +981,6 @@ class Trainer(
         # ----------------------------
         self.call_hook("on_before_accelerator_backend_setup")
         self.accelerator.setup_environment()
-
-        # if self._ckpt_path and not self.accelerator.restore_checkpoint_after_pre_dispatch:
-        #     self._load_checkpoint_weights()
-
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
         # check if we should delay restoring checkpoint till later
@@ -1285,14 +1281,14 @@ class Trainer(
         # we will not call the hook; the hook has initialized the sharded model for example.
 
         # used on the model if the user re-create a trainer with resume_from_checkpoint
-        model = self.lightning_module
-        model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
-        if self.accelerator.call_configure_sharded_model_hook and not model_call_configure_sharded_model_hook:
+        # model = self.lightning_module
+        # model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
+        # if self.accelerator.call_configure_sharded_model_hook and not model_call_configure_sharded_model_hook:
             with self.accelerator.model_sharded_context():
                 self.call_hook("configure_sharded_model")
                 self.call_hook("on_configure_sharded_model")
-            model.call_configure_sharded_model_hook = True
-            self.accelerator.call_configure_sharded_model_hook = False
+            # model.call_configure_sharded_model_hook = True
+            # self.accelerator.call_configure_sharded_model_hook = False
 
     def _call_teardown_hook(self) -> None:
         fn = self.state.fn._setup_fn
