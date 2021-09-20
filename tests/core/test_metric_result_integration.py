@@ -141,7 +141,6 @@ def test_result_metric_integration():
     result.extra = {}
     assert str(result) == (
         "ResultCollection("
-        "minimize=1.0, "
         "{"
         "'h.a': ResultMetric('a', value=DummyMetric()), "
         "'h.b': ResultMetric('b', value=DummyMetric()), "
@@ -152,12 +151,10 @@ def test_result_metric_integration():
         "{"
         "True, "
         "device(type='cpu'), "
-        "minimize=tensor(1.), "
         "{'h.a': ResultMetric('a', value=DummyMetric()), "
         "'h.b': ResultMetric('b', value=DummyMetric()), "
-        "'h.c': ResultMetric('c', value=DummyMetric()), "
-        "'_extra': {}}"
-        "}"
+        "'h.c': ResultMetric('c', value=DummyMetric())"
+        "}}"
     )
 
 
@@ -350,12 +347,6 @@ def test_lightning_module_logging_result_collection(tmpdir, device):
         gpus=1 if device == "cuda" else 0,
     )
     trainer.fit(model)
-
-
-def test_result_collection_extra_reference():
-    """Unit-test to check that the `extra` dict reference is properly set."""
-    rc = ResultCollection(True)
-    assert rc.extra is rc["_extra"]
 
 
 class DummyMeanMetric(Metric):

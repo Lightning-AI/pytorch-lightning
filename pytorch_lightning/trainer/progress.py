@@ -153,6 +153,9 @@ class Progress(BaseProgress):
         self.total.load_state_dict(state_dict["total"])
         self.current.load_state_dict(state_dict["current"])
 
+    def reset_on_restart(self) -> None:
+        self.current.reset_on_restart()
+
 
 @dataclass
 class DataLoaderProgress(Progress):
@@ -209,12 +212,15 @@ class OptimizationProgress(BaseProgress):
 
     Args:
         optimizer: Tracks optimizer progress.
-        optimizer_idx: The index of the current optimizer. Used to know which optimizer we were using when restarting.
+        optimizer_position: The index of the current optimizer amongst the currently active optimizers.
+            Used to know which optimizer we were using when restarting.
+            Since not all optimizers may be active at a given time, this index is different from the ``optimizer_idx``
+            seen in the optimization loops.
     """
 
     # TODO: support for multiple optimizers
     optimizer: OptimizerProgress = field(default_factory=OptimizerProgress)
-    optimizer_idx: int = 0
+    optimizer_position: int = 0
 
     @property
     def optimizer_steps(self) -> int:
@@ -225,4 +231,8 @@ class OptimizationProgress(BaseProgress):
 
     def load_state_dict(self, state_dict: dict) -> None:
         self.optimizer.load_state_dict(state_dict["optimizer"])
-        self.optimizer_idx = state_dict["optimizer_idx"]
+        self.optimizer_position = state_dict["optimizer_position"]
+
+    def reset_on_restart(self) -> None:
+        self.optimizer.step.current.reset_on_restart()
+        self.optimizer.zero_grad.current.reset_on_restart()

@@ -56,8 +56,9 @@ def test_loops_state_dict_structure():
                 "total": {"ready": 0, "completed": 0},
                 "current": {"ready": 0, "completed": 0},
             },
-            "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
             "epoch_loop.batch_loop.state_dict": {},
+            "epoch_loop.batch_loop.manual_loop.state_dict": {},
+            "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
             "epoch_loop.batch_loop.optimizer_loop.optim_progress": {
                 "optimizer": {
                     "step": {"total": {"ready": 0, "completed": 0}, "current": {"ready": 0, "completed": 0}},
@@ -66,7 +67,7 @@ def test_loops_state_dict_structure():
                         "current": {"ready": 0, "started": 0, "completed": 0},
                     },
                 },
-                "optimizer_idx": 0,
+                "optimizer_position": 0,
             },
             "epoch_loop.val_loop.state_dict": {},
             "epoch_loop.val_loop.dataloader_progress": {
@@ -80,14 +81,12 @@ def test_loops_state_dict_structure():
             },
             "epoch_loop.val_loop._results": {
                 "training": False,
-                "_minimize": None,
                 "_batch_size": torch.tensor(1),
                 "device": None,
                 "items": {},
             },
             "epoch_loop._results": {
                 "training": True,
-                "_minimize": None,
                 "_batch_size": torch.tensor(1),
                 "device": None,
                 "items": {},
@@ -107,7 +106,6 @@ def test_loops_state_dict_structure():
             },
             "_results": {
                 "training": False,
-                "_minimize": None,
                 "_batch_size": torch.tensor(1),
                 "device": None,
                 "items": {},
@@ -123,7 +121,6 @@ def test_loops_state_dict_structure():
             },
             "_results": {
                 "training": False,
-                "_minimize": None,
                 "_batch_size": torch.tensor(1),
                 "device": None,
                 "items": {},

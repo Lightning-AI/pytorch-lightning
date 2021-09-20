@@ -237,7 +237,7 @@ class ProgressBar(ProgressBarBase):
         total_batches = convert_inf(total_batches)
         if self._should_update(self.train_batch_idx, total_batches):
             self._update_bar(self.main_progress_bar)
-            self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
+            self.main_progress_bar.set_postfix(self.get_metrics(trainer, pl_module))
 
     def on_validation_start(self, trainer, pl_module):
         super().on_validation_start(trainer, pl_module)
@@ -257,7 +257,7 @@ class ProgressBar(ProgressBarBase):
     def on_validation_end(self, trainer, pl_module):
         super().on_validation_end(trainer, pl_module)
         if self.main_progress_bar is not None:
-            self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
+            self.main_progress_bar.set_postfix(self.get_metrics(trainer, pl_module))
         self.val_progress_bar.close()
 
     def on_train_end(self, trainer, pl_module):
