@@ -1956,6 +1956,13 @@ class Trainer(
             return self.predict_loop
 
     @property
+    def train_loop(self) -> FitLoop:
+        rank_zero_deprecation(
+            "`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
+        )
+        return self.fit_loop
+
+    @property
     def _ckpt_path(self) -> Optional[str]:
         if self.state.fn == TrainerFn.VALIDATING:
             return self.validated_ckpt_path
@@ -1989,13 +1996,6 @@ class Trainer(
     """
     Other
     """
-
-    @property
-    def train_loop(self) -> FitLoop:
-        rank_zero_deprecation(
-            "`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
-        )
-        return self.fit_loop
 
     # TODO: refactor this so that it can be done in LightningOptimizer
     def __getstate__(self):
