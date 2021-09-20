@@ -252,7 +252,7 @@ class GradientUnscaleNativeAMPPlugin(NativeMixedPrecisionPlugin):
             lambda_closure,
             **kwargs,
         )
-        self.trainer.lightning_module.norm_after = torch.nn.utils.clip_grad_norm_(model.parameters(), 2)
+        model.norm_after = torch.nn.utils.clip_grad_norm_(model.parameters(), 2)
         return ret_val
 
 
