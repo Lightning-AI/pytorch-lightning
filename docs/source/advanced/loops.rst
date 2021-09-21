@@ -39,26 +39,16 @@ What remains in the Trainer is the loop, zero_grad, backward and optimizer step 
 These are considered *boilerplate* and get automated by Lightning.
 We refer to this as *automatic optimization*.
 
-There are cases however when the LightningModule needs full control over the optimizers (e.g., GANs) and we can
-revert back to *manual optimization* which will move the zero_grad, backward and optimizer step into the hands of the
-user inside of training_step:
+This optimization scheme is very general and applies to the vast majority of deep learning research.
+However, the loops and optimizer calls here remain predetermined in their order and are fully controlled by the Trainer.
 
-.. code-block:: python
-
-    for epoch in range(max_epochs):
-        for i, batch in enumerate(dataloader):
-            lightning_module.training_step(batch, i)
-
-This enables a great amount of control when needed, but the loop structure here still remains predetermined and
-fully controlled by the Trainer.
-
-Loop customization enables a new level of control where also the two remaining for loops and more can be fully changed or replaced.
+Loop customization now enables a new level of control where also the two remaining for loops and more can be fully changed or replaced.
 
 Here is how the above training loop can be defined using the new Loop API:
 
 .. code-block:: python
 
-    class MainLoop(Loop):
+    class FitLoop(Loop):
 
         def __init__(self):
             self.epoch_loop = EpochLoop()
@@ -85,6 +75,9 @@ Here is how the above training loop can be defined using the new Loop API:
         def advance(self):
             i, batch = next(self.iterator)
             lightning_module.training_step(i, batch)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
 
 Defining a loop with a class interface instead of hard-coding a raw Python for/while loop has several benefits:
@@ -99,12 +92,12 @@ When we have a custom loop defined in class as shown above, we can attach it to 
 
 .. code-block:: python
 
-    main_loop = MainLoop()
+    fit_loop = FitLoop()
 
     trainer = Trainer()
 
     # .fit() will use this loop
-    trainer.fit_loop = main_loop
+    trainer.fit_loop = fit_loop
 
     model = ...
     trainer.fit(model)
