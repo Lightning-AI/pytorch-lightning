@@ -452,12 +452,9 @@ class LightningCLI:
         self.subclass_mode_data = subclass_mode_data
 
         self.model_class = model_class
-        self._model_class = model_class
-        self.subclass_mode_model = subclass_mode_model
-        if model_class is None:
-            # used to differentiate between the original value and the processed value
-            self._model_class = LightningModule
-            self.subclass_mode_model = True
+        # used to differentiate between the original value and the processed value
+        self._model_class = model_class or LightningModule
+        self.subclass_mode_model = (model_class is None) or subclass_mode_model
 
         main_kwargs, subparser_kwargs = self._setup_parser_kwargs(
             parser_kwargs or {},  # type: ignore  # github.com/python/mypy/issues/6463
