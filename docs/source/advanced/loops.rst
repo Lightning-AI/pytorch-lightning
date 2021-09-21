@@ -74,7 +74,7 @@ Here is how the above training loop can be defined using the new Loop API:
 
         def advance(self):
             i, batch = next(self.iterator)
-            lightning_module.training_step(i, batch)
+            lightning_module.training_step(batch, i)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
