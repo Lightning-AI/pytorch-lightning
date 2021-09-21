@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
-from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
 
 import torch
@@ -34,7 +33,7 @@ if _NATIVE_AMP_AVAILABLE:
     from torch.cuda.amp import GradScaler
 
 
-class Accelerator(ABC):
+class Accelerator:
     """The Accelerator Base Class. An Accelerator is meant to deal with one type of Hardware.
 
     Currently there are accelerators for:
@@ -438,9 +437,9 @@ class Accelerator(ABC):
         """
         return self.training_type_plugin.restore_checkpoint_after_pre_dispatch
 
-    @abstractmethod
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """Gets stats for a given device."""
+        raise NotImplementedError
 
     def on_train_start(self) -> None:
         """Called when train begins."""

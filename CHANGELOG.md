@@ -142,7 +142,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `PL_RECONCILE_PROCESS` environment variable to enable process reconciliation regardless of cluster environment settings ([#9389](https://github.com/PyTorchLightning/pytorch-lightning/pull/9389))
 
 
-- Added `get_device_stats` to Accelerator interface and implement it for GPU and TPU ([#9586](https://github.com/PyTorchLightning/pytorch-lightning/pull/9586))
+- Added `get_device_stats` to the Accelerator Interface and added its implementation for GPU and TPU ([#9586](https://github.com/PyTorchLightning/pytorch-lightning/pull/9586))
 
 
 - Added `RichModelSummary` callback ([#9546](https://github.com/PyTorchLightning/pytorch-lightning/pull/9546))

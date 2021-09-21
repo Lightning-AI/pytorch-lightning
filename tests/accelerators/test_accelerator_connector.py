@@ -385,8 +385,7 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
 @mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
 def test_custom_accelerator(device_count_mock, setup_distributed_mock):
     class Accel(Accelerator):
-        def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
-            return []
+        pass
 
     class Prec(PrecisionPlugin):
         pass

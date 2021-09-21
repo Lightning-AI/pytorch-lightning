@@ -33,6 +33,3 @@ class IPUAccelerator(Accelerator):
     def optimizer_step(self, optimizer: Optimizer, opt_idx: int, lambda_closure: Callable, **kwargs: Any) -> None:
         # Optimizer step is handled by the IPU accelerator.
         lambda_closure()
-
-    def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
-        raise NotImplementedError
