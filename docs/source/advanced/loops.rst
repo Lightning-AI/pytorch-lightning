@@ -3,9 +3,9 @@
 Loop Customization
 ==================
 
-Loop customization is an experimental feature introduced in Lightning 1.5 that enables advanced users to write new training logic or modify existing behavior in Lightning's training, evaluation, or prediction loops.
-By advanced users, we mean users that are familiar with the major components under the ``Trainer`` and how they interact with the ``LightningModule``.
-
+Loop customization is an experimental feature introduced in Lightning 1.5 that enables users to swap the built-in Lightning loops with custom ones, providing a unprecedented level of flexibility.
+Until now, Lightning did not support well some training paradigms like recommendation engine optimization or active learning.
+The loop customization feature will not only enable researchers to customize Lightning down to its very core, but also allow one to build new functionalities on top of it.
 
 The training loop in Lightning
 ------------------------------
@@ -83,11 +83,11 @@ Defining a loop with a class interface instead of hard-coding a raw Python for/w
 
 1. you can have full control over the data flow through loops
 2. you can add new loops and nest as many of them as they want
-3. if needed, the state of a loop can be saved and resumed (more on that later)
+3. if needed, the state of a loop can be saved and resumed
 4. new hooks can be injected at any point
 
 and much more.
-When we have a custom loop defined in a class as shown above, we can attach it to the trainer.
+When we have a custom loop defined in a class as shown above, we can attach it to the :code:`Trainer`.
 
 .. code-block:: python
 
