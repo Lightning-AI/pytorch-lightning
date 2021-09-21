@@ -230,3 +230,42 @@ Finally, we can rewrite the GAN training step using the new yield mechanism:
         fake_pred = self.discriminator(fake)
         gen_loss = self.criterion(fake_pred, fake_gt)
         yield gen_loss
+
+
+The Loop base class
+-------------------
+
+The :class:`~pytorch_lightning.loops.base.Loop` class is the base for all loops in Lighting just like the LightningModule is the base for all models.
+It defines a public interface that each loop implementation must follow, the key ones are:
+
+- :meth:`~pytorch_lightning.loops.base.Loop.advance`: implements the logic of a single iteration in the loop
+- :meth:`~pytorch_lightning.loops.base.Loop.done`: a boolean stopping criteria
+- :meth:`~pytorch_lightning.loops.base.Loop.reset`: implements a mechanism to reset the loop so it can be restarted
+
+These methods are called by the default implementation of the :meth:`~pytorch_lightning.loops.base.Loop.run` entry point as shown in the (reduced) code excerpt below.
+
+.. code-block:: python
+
+    def run(self, *args, **kwargs):
+
+        self.reset()
+        self.on_run_start(*args, **kwargs)
+
+        while not self.done:
+            try:
+                self.advance(*args, **kwargs)
+            except StopIteration:
+                break
+
+        output = self.on_run_end()
+        return output
+
+Some important observations here: One, the ``run()`` method can define input arguments that get forwarded to some of the other methods that get invoked as part of ``run()``.
+Such input arguments typically comprise of one or several iterables over which the loop is supposed to iterate, for example, an iterator over a :class:`~torch.utils.data.DataLoader`.
+The reason why the inputs get forwarded is mainly for convenience but implementations are free to change this.
+Secondly, ``advance()`` can raise a :class:`StopIteration` to exit the loop early.
+This is analogous to a :code:`break` statement in a raw Python ``while`` for example.
+Finally, a loop may return an output as part of ``run()``.
+As an example, the loop could return a list containing all results produced in each iteration (advance).
+
+Loops can also be nested! That is, a loop may call another one inside of its ``advance()``.
