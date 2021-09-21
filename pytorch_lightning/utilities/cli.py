@@ -42,7 +42,7 @@ else:
 
 
 class _Registry(dict):
-    def __call__(self, cls: Type, key: Optional[str] = None, override: bool = False) -> None:
+    def __call__(self, cls: Type, key: Optional[str] = None, override: bool = False) -> Type:
         """Registers a class mapped to a name.
 
         Args:
@@ -58,6 +58,7 @@ class _Registry(dict):
         if key in self and not override:
             raise MisconfigurationException(f"'{key}' is already present in the registry. HINT: Use `override=True`.")
         self[key] = cls
+        return cls
 
     def register_classes(self, module: ModuleType, base_cls: Type, override: bool = False) -> None:
         """This function is an utility to register all classes from a module."""
@@ -662,12 +663,6 @@ class LightningCLI:
                 "#optimizers-and-learning-rate-schedulers"
             )
 
-        if is_overridden("configure_optimizers", self.model):
-            warnings._warn(
-                f"`{self.model.__class__.__name__}.configure_optimizers` will be overridden by "
-                f"`{self.__class__.__name__}.add_configure_optimizers_method_to_model`."
-            )
-
         optimizer_class = parser._optimizers[optimizers[0]][0]
         optimizer_init = self._get(self.config_init, optimizers[0])
         if not isinstance(optimizer_class, tuple):
@@ -675,6 +670,7 @@ class LightningCLI:
         if not optimizer_init:
             # optimizers were registered automatically but not passed by the user
             return
+
         lr_scheduler_init = None
         if lr_schedulers:
             lr_scheduler_class = parser._lr_schedulers[lr_schedulers[0]][0]
@@ -691,6 +687,11 @@ class LightningCLI:
             lr_scheduler = instantiate_class(optimizer, lr_scheduler_init)
             return [optimizer], [lr_scheduler]
 
+        if is_overridden("configure_optimizers", self.model):
+            warnings._warn(
+                f"`{self.model.__class__.__name__}.configure_optimizers` will be overridden by "
+                f"`{self.__class__.__name__}.add_configure_optimizers_method_to_model`."
+            )
         self.model.configure_optimizers = MethodType(configure_optimizers, self.model)
 
     def _get(self, config: Dict[str, Any], key: str, default: Optional[Any] = None) -> Any:
