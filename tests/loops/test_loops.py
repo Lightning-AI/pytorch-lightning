@@ -20,13 +20,12 @@ from unittest.mock import ANY
 
 import pytest
 import torch
-from torch.utils.data import Dataset
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loops import Loop, TrainingBatchLoop
 from pytorch_lightning.trainer.progress import BaseProgress
-from tests.helpers import BoringModel
+from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 from tests.utilities.test_auto_restart import _run_validation_loop_fault_tolerance
 
@@ -715,6 +714,8 @@ def test_fit_loop_reset(tmpdir):
     epoch_loop = fit_loop.epoch_loop
     fit_loop.restarting = False
     epoch_loop.restarting = False
+    epoch_loop.val_loop.restarting = False
+    epoch_loop.val_loop.epoch_loop.restarting = False
     optimizer_loop.restarting = False
 
     # we load exactly what was saved - no reset yet
@@ -722,6 +723,8 @@ def test_fit_loop_reset(tmpdir):
     # resetting from a end-of-epoch checkpoint SHOULD reset the current counters to 0
     fit_loop.reset()
     epoch_loop.reset()
+    epoch_loop.batch_loop.reset()
+    epoch_loop.val_loop.reset()
     optimizer_loop.reset()
 
     assert fit_loop.restarting
@@ -733,24 +736,10 @@ def test_fit_loop_reset(tmpdir):
     assert epoch_loop.restarting
     assert epoch_loop.batch_progress.total.ready == 4
     assert epoch_loop.batch_progress.total.completed == 3  # the checkpoint was saved on train_batch_end
-    assert epoch_loop.batch_progress.current.ready == 4
-    assert epoch_loop.batch_progress.current.completed == 4
+    assert epoch_loop.batch_progress.current.ready == 0
+    assert epoch_loop.batch_progress.current.completed == 0
 
     assert optimizer_loop.optim_progress.optimizer_position == 1
-
-
-class TestDataset(Dataset):
-    """A dataset with random elements generated using global rng from torch, numpy and python."""
-
-    def __init__(self, length, size):
-        self.size = size
-        self.len = length
-
-    def __getitem__(self, index):
-        return torch.rand(self.size)
-
-    def __len__(self):
-        return self.len
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
@@ -758,8 +747,8 @@ class TestDataset(Dataset):
 @pytest.mark.parametrize(
     "dataset_classes",
     [
-        [[TestDataset], [TestDataset]],
-        [[TestDataset], [TestDataset, TestDataset]],
+        [[RandomDataset], [RandomDataset]],
+        [[RandomDataset], [RandomDataset, RandomDataset]],
     ],
 )
 @pytest.mark.parametrize("val_check_interval", [0.5, 1.0])

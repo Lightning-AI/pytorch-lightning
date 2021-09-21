@@ -1015,20 +1015,18 @@ class ValidationLoopTestModel(LightningModule):
 
 
 def _run_validation_loop_fault_tolerance(
-    dataset_classes, tmpdir, val_check_interval, should_fail: bool = False, resume=False
+    dataset_classes, tmpdir, val_check_interval, should_fail: bool = False, resume=False, dimension=(1, 4)
 ):
     if not resume:
         seed_everything(42)
 
-    num_samples = 4
     train_dataset_classes, validation_dataset_classes = dataset_classes
     num_validation_loaders = len(validation_dataset_classes)
     train_dataloader = [
-        DataLoader(dataset_class(num_samples, 1), batch_size=1, num_workers=0)
-        for dataset_class in train_dataset_classes
+        DataLoader(dataset_class(*dimension), batch_size=1, num_workers=0) for dataset_class in train_dataset_classes
     ]
     val_dataloaders = [
-        DataLoader(dataset_class(num_samples, 1), batch_size=1, num_workers=0)
+        DataLoader(dataset_class(*dimension), batch_size=1, num_workers=0)
         for dataset_class in validation_dataset_classes
     ]
 
@@ -1066,13 +1064,13 @@ def test_auto_restart_within_validation_loop(dataset_classes, val_check_interval
     num_validation_loaders = len(dataset_classes[1])
 
     _, verif_train_batches, verif_valid_batches = _run_validation_loop_fault_tolerance(
-        dataset_classes, tmpdir, val_check_interval
+        dataset_classes, tmpdir, val_check_interval, dimension=(4, 1)
     )
     _, pre_fail_train_batches, pre_fail_valid_batches = _run_validation_loop_fault_tolerance(
-        dataset_classes, tmpdir, val_check_interval, should_fail=True
+        dataset_classes, tmpdir, val_check_interval, should_fail=True, dimension=(4, 1)
     )
     _, post_fail_train_batches, post_fail_valid_batches = _run_validation_loop_fault_tolerance(
-        dataset_classes, tmpdir, val_check_interval, resume=True
+        dataset_classes, tmpdir, val_check_interval, resume=True, dimension=(4, 1)
     )
 
     assert len(verif_train_batches) == len(pre_fail_train_batches) + len(post_fail_train_batches)

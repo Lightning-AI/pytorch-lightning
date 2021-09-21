@@ -75,6 +75,10 @@ class EvaluationLoop(DataLoaderLoop):
         max_batches = self._get_max_batches()
         return sum(max_batches) == 0
 
+    @property
+    def no_progress(self) -> bool:
+        return self.done or self.epoch_loop.no_progress
+
     def reset(self) -> None:
         """Resets the internal state of the loop."""
         self._max_batches = self._get_max_batches()
