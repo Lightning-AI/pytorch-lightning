@@ -455,13 +455,11 @@ class Trainer(
         self.signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
-        if max_epochs is None:
-            # max_epochs won't default to 1000 if max_steps/max_time are non-default values.
-            max_epochs = 1000 if (max_steps == -1 and max_time is None) else -1
-
         fit_loop = FitLoop(
             min_epochs=(1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs),
             max_epochs=max_epochs,
+            max_steps=max_steps,
+            max_time=max_time,
         )
         training_epoch_loop = TrainingEpochLoop(min_steps, max_steps)
         training_batch_loop = TrainingBatchLoop()

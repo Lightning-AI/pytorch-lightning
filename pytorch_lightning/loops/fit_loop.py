@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from typing import Any, Dict, Optional
+from datetime import timedelta
+from typing import Any, Dict, Optional, Union
 
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
@@ -34,13 +35,23 @@ class FitLoop(Loop):
         max_epochs: The maximum number of epochs, can be set -1 to turn this limit off
     """
 
-    def __init__(self, min_epochs: int = 0, max_epochs: int = -1):
+    def __init__(
+        self,
+        min_epochs: int = 0,
+        max_epochs: Optional[int] = None,
+        max_steps: Optional[int] = -1,
+        max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None
+    ):
         super().__init__()
         if max_epochs < -1:
             # Allow max_epochs to be zero, since this will be handled by fit_loop.done
             raise MisconfigurationException(
                 f"`max_epochs` must be a positive integer or -1. You passed in {max_epochs}."
             )
+
+        if max_epochs is None:
+            # max_epochs won't default to 1000 if max_steps/max_time are non-default values.
+            max_epochs = 1000 if (max_steps == -1 and max_time is None) else -1
 
         self.max_epochs = max_epochs
         self.min_epochs = min_epochs
