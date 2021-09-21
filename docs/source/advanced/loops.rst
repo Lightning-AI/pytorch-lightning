@@ -91,14 +91,12 @@ When we have a custom loop defined in a class as shown above, we can attach it t
 
 .. code-block:: python
 
-    fit_loop = FitLoop()
-
+    model = LitModel()
     trainer = Trainer()
 
+    fit_loop = FitLoop()
     # .fit() will use this loop
     trainer.fit_loop = fit_loop
-
-    model = ...
     trainer.fit(model)
 
 
@@ -207,12 +205,11 @@ Given this new loop definition, here is how you connect it to the :code:`Trainer
 
     yield_loop = YieldLoop()
     trainer.fit_loop.epoch_loop.batch_loop.connect(optimizer_loop=yield_loop)
-
     trainer.fit(model)  # runs the new loop!
 
 Note that we need to connect it to the :class:`~pytorch_lightning.loops.batch.training_batch_loop.TrainingBatchLoop` as this is the next higher loop above the optimizer loop.
 
-Now, we can rewrite the GAN training step using the new yield mechanism:
+Finally, we can rewrite the GAN training step using the new yield mechanism:
 
 .. code-block:: python
 
