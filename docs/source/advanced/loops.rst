@@ -192,14 +192,13 @@ But such a mechanism does not exist in Lightning, therefore we need to build a c
 
 
 Here we subclass the existing :class:`~pytorch_lightning.loops.optimization.optimizer_loop.OptimizerLoop` and modify the way it interacts with the model's :code:`training_step`.
-As we can see, not much work needs to be done to enable our generator training step.
 The new loop is called :code:`YieldLoop` and contains a reference to the generator returned by the :code:`training_step`.
 On every new run (over the optimizers) we call the :code:`training_step` method on the LightningModule which is supposed to return a generator as it contains the :code:`yield` statements.
 There must be as many :code:`yield` statements as there are optimizers.
 
 The alternative to this would be *manual optimization* where the same can be achieved, but with the generator loop we can still get all benefits of manual optimization without having to call backward or zero grad ourselves.
 
-Given this new loop definition, here is how you connect it to the Trainer:
+Given this new loop definition, here is how you connect it to the :code:`Trainer`:
 
 .. code-block:: python
 
@@ -212,3 +211,26 @@ Given this new loop definition, here is how you connect it to the Trainer:
     trainer.fit(model)  # runs the new loop!
 
 Note that we need to connect it to the :class:`~pytorch_lightning.loops.batch.training_batch_loop.TrainingBatchLoop` as this is the next higher loop above the optimizer loop.
+
+Now, we can rewrite the GAN training step using the new yield mechanism:
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        real, _ = batch
+
+        # this gets computed in both cases:
+        fake = self.generator(noise)
+
+        # train discriminator, then yield
+        real_pred = self.discriminator(real)
+        real_loss = self.criterion(real_pred, ...)
+        fake_pred = self.discriminator(fake)
+        fake_loss = self.criterion(fake_pred, ...)
+        yield real_loss + fake_loss
+
+        # train generator, then yield
+        fake_pred = self.discriminator(fake)
+        gen_loss = self.criterion(fake_pred, fake_gt)
+        yield gen_loss
+
