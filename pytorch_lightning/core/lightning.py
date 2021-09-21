@@ -1199,7 +1199,7 @@ class LightningModule(
         Example::
 
             def configure_callbacks(self):
-                early_stop = EarlyStopping(monitor"val_acc", mode="max")
+                early_stop = EarlyStopping(monitor="val_acc", mode="max")
                 checkpoint = ModelCheckpoint(monitor="val_loss")
                 return [early_stop, checkpoint]
 
