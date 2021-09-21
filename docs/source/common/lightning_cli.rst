@@ -446,20 +446,20 @@ authors who want to provide their users a range of models to choose from:
 
 
     @MODEL_REGISTRY
-    class SimCLR(LightningModule):
+    class MyModel(LightningModule):
         ...
 
 
     # register all `LightningModule` subclasses from a package
     MODEL_REGISTRY.register_classes(flash.image, LightningModule)
     # print(MODEL_REGISTRY)
-    # >>> Registered objects: ['SimCLR', 'ImageClassifier', 'ObjectDetector', 'StyleTransfer', ...]
+    # >>> Registered objects: ['MyModel', 'ImageClassifier', 'ObjectDetector', 'StyleTransfer', ...]
 
     cli = LightningCLI()
 
 .. code-block:: bash
 
-    $ python trainer.py fit --model=SimCLR --model.feat_dim=64
+    $ python trainer.py fit --model=MyModel --model.feat_dim=64
 
 .. note::
 
