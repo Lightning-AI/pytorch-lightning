@@ -264,7 +264,7 @@ class ModelCheckpoint(Callback):
             self._save_on_train_epoch_end = trainer.val_check_interval == 1.0 and trainer.check_val_every_n_epoch == 1
 
     def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """When pretrain routine starts we determine the ckpt dir on the fly."""
+        """When pretrain routine starts we build the ckpt dir on the fly."""
         self.__resolve_ckpt_dir(trainer)
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
