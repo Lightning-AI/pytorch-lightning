@@ -196,7 +196,7 @@ The new loop is called :code:`YieldLoop` and contains a reference to the generat
 On every new run (over the optimizers) we call the :code:`training_step` method on the LightningModule which is supposed to return a generator as it contains the :code:`yield` statements.
 There must be as many :code:`yield` statements as there are optimizers.
 
-The alternative to this would be *manual optimization* where the same can be achieved, but with the generator loop we can still get all benefits of manual optimization without having to call backward or zero grad ourselves.
+The alternative to this example *manual optimization* where the same can be achieved, but with the generator loop we can still get all benefits of manual optimization without having to call backward or zero grad ourselves.
 
 Given this new loop definition, here is how you connect it to the :code:`Trainer`:
 
