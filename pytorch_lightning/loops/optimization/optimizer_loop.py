@@ -240,7 +240,7 @@ class OptimizerLoop(Loop):
 
         if not self.trainer.fit_loop._should_accumulate():
             # track gradients
-            grad_norm_dict = self._track_and_norm_grad(optimizer=optimizer)
+            grad_norm_dict = self._track_and_norm_grad(optimizer=optimizer, opt_idx=opt_idx)
             if grad_norm_dict:
                 self.trainer.lightning_module._current_fx_name = "on_after_backward"
                 self.trainer.lightning_module.log_grad_norm(grad_norm_dict)
@@ -478,7 +478,7 @@ class OptimizerLoop(Loop):
 
         return result
 
-    def _track_and_norm_grad(self, optimizer: torch.optim.Optimizer) -> Dict[str, float]:
+    def _track_and_norm_grad(self, optimizer: torch.optim.Optimizer, optimizer_idx: int) -> Dict[str, float]:
         """Tracks gradient norms and clips the gradients of all parameters optimized by the current optimizer.
 
         Args:
@@ -492,7 +492,5 @@ class OptimizerLoop(Loop):
             grad_norm_dict = grad_norm(self.trainer.lightning_module, self.trainer.track_grad_norm)
 
         # clip gradients
-        self.trainer.accelerator.clip_gradients(
-            optimizer, self.trainer.gradient_clip_val, gradient_clip_algorithm=self.trainer.gradient_clip_algorithm
-        )
+        self.trainer.lightning_module.clip_gradients(optimizer=optimizer, optimizer_idx=optimizer_idx)
         return grad_norm_dict

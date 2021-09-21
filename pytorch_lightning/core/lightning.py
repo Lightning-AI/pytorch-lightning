@@ -1583,6 +1583,16 @@ class LightningModule(
         """
         optimizer.zero_grad()
 
+    def clip_gradients(
+        self,
+        optimizer: Optimizer,
+        optimizer_idx: int,
+    ) -> None:
+        """clips all the optimizer parameters to the given value."""
+        self.trainer.accelerator.clip_gradients(
+            optimizer, self.trainer.gradient_clip_val, gradient_clip_algorithm=self.trainer.gradient_clip_algorithm
+        )
+
     def tbptt_split_batch(self, batch: Any, split_size: int) -> List[Any]:
         r"""
         When using truncated backpropagation through time, each batch must be split along the
