@@ -233,4 +233,3 @@ Now, we can rewrite the GAN training step using the new yield mechanism:
         fake_pred = self.discriminator(fake)
         gen_loss = self.criterion(fake_pred, fake_gt)
         yield gen_loss
-
