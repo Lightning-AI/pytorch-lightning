@@ -1588,7 +1588,21 @@ class LightningModule(
         optimizer: Optimizer,
         optimizer_idx: int,
     ) -> None:
-        """clips all the optimizer parameters to the given value."""
+        """Override this method to change the default behaviour of ``clip_gradients``.
+
+        Args:
+            optimizer: Current optimizer
+            optimizer_idx: Current optimizer idx
+            optimizer_idx: If you used multiple optimizers this indexes into that list.
+
+        Examples::
+
+            # DEFAULT
+            def clip_gradients(self, optimizer, optimizer_idx):
+                # apply gradient clipping only on the discriminator within a GAN
+                if optimizer_idx == 1:
+                    super().clip_gradients(optimizer, optimizer_idx)
+        """
         self.trainer.accelerator.clip_gradients(
             optimizer, self.trainer.gradient_clip_val, gradient_clip_algorithm=self.trainer.gradient_clip_algorithm
         )

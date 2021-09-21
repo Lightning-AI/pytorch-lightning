@@ -240,7 +240,7 @@ class OptimizerLoop(Loop):
 
         if not self.trainer.fit_loop._should_accumulate():
             # track gradients
-            grad_norm_dict = self._track_and_norm_grad(optimizer=optimizer, opt_idx=opt_idx)
+            grad_norm_dict = self._track_and_norm_grad(optimizer, opt_idx)
             if grad_norm_dict:
                 self.trainer.lightning_module._current_fx_name = "on_after_backward"
                 self.trainer.lightning_module.log_grad_norm(grad_norm_dict)
