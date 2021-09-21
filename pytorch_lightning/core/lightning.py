@@ -1572,6 +1572,8 @@ class LightningModule(
         """
         optimizer.step(closure=optimizer_closure)
 
+        # TODO: Refactor the following code out of this file.
+        # CAVEAT: If the user overrides this method, then model averaging will be disabled by default.
         if _TORCH_GREATER_EQUAL_1_10 and self._model_averager is not None:
             for opt in self.optimizers(use_pl_optimizer=False):
                 for group in opt.param_groups:
