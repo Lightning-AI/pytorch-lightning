@@ -883,6 +883,9 @@ def test_registries(tmpdir):
         OPTIMIZER_REGISTRY.register_classes(torch.optim, torch.optim.Optimizer)
     OPTIMIZER_REGISTRY.register_classes(torch.optim, torch.optim.Optimizer, override=True)
 
+    # test `_Registry.__call__` returns the class
+    assert isinstance(CustomCallback(), CustomCallback)
+
 
 @pytest.mark.parametrize("use_class_path_callbacks", [False, True])
 def test_registries_resolution(use_class_path_callbacks):
