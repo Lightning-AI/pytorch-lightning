@@ -1573,7 +1573,12 @@ class LightningModule(
         optimizer.step(closure=optimizer_closure)
 
         if _TORCH_GREATER_EQUAL_1_10 and self._model_averager is not None:
-            self._model_averager.average_parameters(self.model.parameters())
+            for opt in self.optimizers(use_pl_optimizer=False):
+                for group in opt.param_groups:
+                    for param in group["params"]:
+                        if param.grad is None:
+                            continue
+                        self._model_averager.average_parameters(iter(param))
 
     def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int):
         """Override this method to change the default behaviour of ``optimizer.zero_grad()``.
