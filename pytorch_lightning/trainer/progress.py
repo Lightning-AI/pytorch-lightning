@@ -103,9 +103,8 @@ class ProcessedTracker(StartedTracker):
         self.processed = 0
 
     def reset_on_restart(self) -> None:
-        # use `processed` in this case as the reset value
-        self.completed = self.processed
         super().reset_on_restart()
+        self.processed = self.completed
 
 
 @dataclass
@@ -205,6 +204,10 @@ class OptimizerProgress(BaseProgress):
         self.step.load_state_dict(state_dict["step"])
         self.zero_grad.load_state_dict(state_dict["zero_grad"])
 
+    def reset_on_restart(self) -> None:
+        self.step.reset_on_restart()
+        self.zero_grad.reset_on_restart()
+
 
 @dataclass
 class OptimizationProgress(BaseProgress):
@@ -234,5 +237,4 @@ class OptimizationProgress(BaseProgress):
         self.optimizer_position = state_dict["optimizer_position"]
 
     def reset_on_restart(self) -> None:
-        self.optimizer.step.current.reset_on_restart()
-        self.optimizer.zero_grad.current.reset_on_restart()
+        self.optimizer.reset_on_restart()
