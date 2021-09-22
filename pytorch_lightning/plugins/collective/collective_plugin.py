@@ -59,7 +59,7 @@ class CollectivePlugin(ABC):
     def reduce(
         self,
         tensor: Union[torch.Tensor, Any],
-        group: Optional[Any] = None,
+        process_group: Optional[Any] = None,
         reduce_op: Optional[Union[ReduceOp, str]] = "mean",
     ) -> Union[torch.Tensor, Any]:
         """Reduces the given tensor (e.g. across GPUs/processes).

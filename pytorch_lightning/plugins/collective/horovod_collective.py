@@ -56,9 +56,9 @@ class HorovodCollective(CollectivePlugin):
         return obj
 
     def all_gather(
-        self, result: Union[torch.Tensor], group: Optional[Any] = dist_group.WORLD, sync_grads: bool = False
+        self, result: Union[torch.Tensor], process_group: Optional[Any] = dist_group.WORLD, sync_grads: bool = False
     ) -> List[torch.Tensor]:
-        if group is not None and group != dist_group.WORLD:
+        if process_group is not None and process_group != dist_group.WORLD:
             raise ValueError("Horovod does not support allgather using a subcommunicator at this time. Unset `group`.")
 
         if len(result.shape) == 0:
@@ -74,11 +74,13 @@ class HorovodCollective(CollectivePlugin):
     def reduce(
         self,
         tensor: Union[torch.Tensor, Any],
-        group: Optional[Any] = None,
+        process_group: Optional[Any] = None,
         reduce_op: Optional[Union[ReduceOp, str]] = "mean",
     ) -> Union[torch.Tensor, Any]:
-        if group is not None:
-            raise ValueError("Horovod does not support allreduce using a subcommunicator at this time. Unset `group`.")
+        if process_group is not None:
+            raise ValueError(
+                "Horovod does not support allreduce using a subcommunicator at this time. Unset `process_group`."
+            )
 
         if reduce_op in (None, "avg", "mean"):
             reduce_op = hvd.Average

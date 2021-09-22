@@ -62,12 +62,14 @@ class TPUCollective(CollectivePlugin):
         obj = torch.load(buffer)
         return obj
 
-    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
+    def all_gather(
+        self, tensor: torch.Tensor, process_group: Optional[Any] = None, sync_grads: bool = False
+    ) -> torch.Tensor:
         """
         Function to gather a tensor from several distributed processes
         Args:
             tensor: tensor of shape (batch, ...)
-            group: not available with TPUs
+            process_group: not available with TPUs
             sync_grads: not available with TPUs
         Return:
             A tensor of shape (world_size, batch, ...)
@@ -76,7 +78,9 @@ class TPUCollective(CollectivePlugin):
             tensor = tensor.unsqueeze(0)
         return xm.all_gather(tensor)
 
-    def reduce(self, output: Any, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None) -> Any:
+    def reduce(
+        self, output: Any, process_group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
+    ) -> Any:
         if not isinstance(output, torch.Tensor):
             output = torch.tensor(output, device=self.device)
 

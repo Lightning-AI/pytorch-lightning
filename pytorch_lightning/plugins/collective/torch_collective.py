@@ -21,7 +21,7 @@ from pytorch_lightning.plugins.collective import CollectivePlugin
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, distributed_available
-from pytorch_lightning.utilities.distributed import group as _group
+from pytorch_lightning.utilities.distributed import group as dist_group
 from pytorch_lightning.utilities.distributed import ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION
 
@@ -66,7 +66,7 @@ class TorchCollective(CollectivePlugin):
         obj = [obj]
         if self.rank != 0:
             obj = [None] * len(obj)
-        broadcast_object_list(obj, src, group=_group.WORLD)
+        broadcast_object_list(obj, src, group=dist_group.WORLD)
         return obj[0]
 
     def all_gather(
@@ -77,7 +77,7 @@ class TorchCollective(CollectivePlugin):
     def reduce(
         self,
         tensor: Union[torch.Tensor, _METRIC_COLLECTION],
-        group: Optional[Any] = None,
+        process_group: Optional[Any] = None,
         reduce_op: Optional[Union[ReduceOp, str]] = "mean",
     ) -> Union[torch.Tensor, _METRIC_COLLECTION]:
         """Reduces the given tensor (e.g. across GPUs/processes)
@@ -104,5 +104,5 @@ class TorchCollective(CollectivePlugin):
             return apply_to_collection(tensor, torch.Tensor, mean)
 
         if isinstance(tensor, torch.Tensor):
-            tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
+            tensor = sync_ddp_if_available(tensor, process_group, reduce_op=reduce_op)
         return tensor

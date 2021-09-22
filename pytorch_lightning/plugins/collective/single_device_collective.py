@@ -27,7 +27,9 @@ class SingleDeviceCollective(CollectivePlugin):
     def broadcast(self, obj: object, src: int = 0) -> object:
         return obj
 
-    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
+    def all_gather(
+        self, tensor: torch.Tensor, process_group: Optional[Any] = None, sync_grads: bool = False
+    ) -> torch.Tensor:
         return tensor
 
     def reduce(self, tensor: Union[torch.Tensor, Any], *args: Any, **kwargs: Any) -> Union[torch.Tensor, Any]:
