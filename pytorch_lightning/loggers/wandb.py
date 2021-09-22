@@ -195,13 +195,13 @@ class WandbLogger(LightningLoggerBase):
     .. code-block:: python
 
         # using tensors, numpy arrays or PIL images
-        wandb_logger.log_images(key="samples", images=[img1, img2])
+        wandb_logger.log_image(key="samples", images=[img1, img2])
 
         # adding captions
-        wandb_logger.log_images(key="samples", images=[img1, img2], caption=["tree", "person"])
+        wandb_logger.log_image(key="samples", images=[img1, img2], caption=["tree", "person"])
 
         # using file path
-        wandb_logger.log_images(key="samples", images=["img_1.jpg", "img_2.jpg"])
+        wandb_logger.log_image(key="samples", images=["img_1.jpg", "img_2.jpg"])
 
     More arguments can be passed for logging segmentation masks and bounding boxes. Refer to
     `Image Overlays documentation <https://docs.wandb.ai/guides/track/log/media#image-overlays>`_.
@@ -408,11 +408,12 @@ class WandbLogger(LightningLoggerBase):
         self.log_table(key, columns, data, dataframe, step)
 
     @rank_zero_only
-    def log_images(self, key: str, images: List[Any], **kwargs: str) -> None:
+    def log_image(self, key: str, images: List[Any], **kwargs: str) -> None:
         """Log images (tensors, numpy arrays, PIL Images or file paths).
 
         Optional kwargs are lists passed to each image (ex: caption, masks, boxes).
         """
+        assert isinstance(images, list), f'Expected a list as "images", found {type(images)}'
         n = len(images)
         for k, v in kwargs.items():
             assert len(v) == n, f"Expected {n} items but only found {len(v)} for {k}"
