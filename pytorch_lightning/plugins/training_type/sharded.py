@@ -103,8 +103,8 @@ class DDPShardedPlugin(DDPPlugin):
 
     @contextmanager
     def block_backward_sync(self) -> Generator:
-        """
-        Blocks syncing gradients behaviour on backwards pass.
+        """Blocks syncing gradients behaviour on backwards pass.
+
         This is useful for skipping sync when accumulating gradients, reducing communication overhead
         Returns: context manager with sync behaviour off
         """
