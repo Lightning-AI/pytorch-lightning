@@ -22,11 +22,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.warnings import rank_zero_warn
-
-if _OMEGACONF_AVAILABLE:
-    from omegaconf.dictconfig import DictConfig
 
 
 def str_to_bool_or_str(val: str) -> Union[str, bool]:
@@ -208,57 +204,46 @@ def save_hyperparameters(
     obj: Any, *args: Any, ignore: Optional[Union[Sequence[str], str]] = None, frame: Optional[types.FrameType] = None
 ) -> None:
     """See :meth:`~pytorch_lightning.LightningModule.save_hyperparameters`"""
-    hparams_container_types = [Namespace, dict]
-    if _OMEGACONF_AVAILABLE:
-        hparams_container_types.append(DictConfig)
-    # empty container
+
     if len(args) == 1 and not isinstance(args, str) and not args[0]:
+        # args[0] is an empty container
         return
-    # container
-    elif len(args) == 1 and isinstance(args[0], tuple(hparams_container_types)):
-        hp = args[0]
-        obj._hparams_name = "hparams"
-        obj._set_hparams(hp)
-        obj._hparams_initial = copy.deepcopy(obj._hparams)
-        return
-    # non-container args parsing
+
+    if not frame:
+        current_frame = inspect.currentframe()
+        # inspect.currentframe() return type is Optional[types.FrameType]: current_frame.f_back called only if available
+        if current_frame:
+            frame = current_frame.f_back
+    if not isinstance(frame, types.FrameType):
+        raise AttributeError("There is no `frame` available while being required.")
+
+    if is_dataclass(obj):
+        init_args = {f.name: getattr(obj, f.name) for f in fields(obj)}
     else:
-        if not frame:
-            current_frame = inspect.currentframe()
-            # inspect.currentframe() return type is Optional[types.FrameType]
-            # current_frame.f_back called only if available
-            if current_frame:
-                frame = current_frame.f_back
-        if not isinstance(frame, types.FrameType):
-            raise AttributeError("There is no `frame` available while being required.")
+        init_args = get_init_args(frame)
+    assert init_args, "failed to inspect the obj init"
 
-        if is_dataclass(obj):
-            init_args = {f.name: getattr(obj, f.name) for f in fields(obj)}
+    if ignore is not None:
+        if isinstance(ignore, str):
+            ignore = [ignore]
+        if isinstance(ignore, (list, tuple)):
+            ignore = [arg for arg in ignore if isinstance(arg, str)]
+        init_args = {k: v for k, v in init_args.items() if k not in ignore}
+
+    if not args:
+        # take all arguments
+        hp = init_args
+        obj._hparams_name = "kwargs" if hp else None
+    else:
+        # take only listed arguments in `save_hparams`
+        isx_non_str = [i for i, arg in enumerate(args) if not isinstance(arg, str)]
+        if len(isx_non_str) == 1:
+            hp = args[isx_non_str[0]]
+            cand_names = [k for k, v in init_args.items() if v == hp]
+            obj._hparams_name = cand_names[0] if cand_names else None
         else:
-            init_args = get_init_args(frame)
-        assert init_args, f"failed to inspect the obj init - {frame}"
-
-        if ignore is not None:
-            if isinstance(ignore, str):
-                ignore = [ignore]
-            if isinstance(ignore, (list, tuple, set)):
-                ignore = [arg for arg in ignore if isinstance(arg, str)]
-            init_args = {k: v for k, v in init_args.items() if k not in ignore}
-
-        if not args:
-            # take all arguments
-            hp = init_args
-            obj._hparams_name = "kwargs" if hp else None
-        else:
-            # take only listed arguments in `save_hparams`
-            isx_non_str = [i for i, arg in enumerate(args) if not isinstance(arg, str)]
-            if len(isx_non_str) == 1:
-                hp = args[isx_non_str[0]]
-                cand_names = [k for k, v in init_args.items() if v == hp]
-                obj._hparams_name = cand_names[0] if cand_names else None
-            else:
-                hp = {arg: init_args[arg] for arg in args if isinstance(arg, str)}
-                obj._hparams_name = "kwargs"
+            hp = {arg: init_args[arg] for arg in args if isinstance(arg, str)}
+            obj._hparams_name = "kwargs"
 
     # `hparams` are expected here
     if hp:
