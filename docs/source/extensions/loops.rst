@@ -327,4 +327,3 @@ Finally, a loop may return an output as part of ``run()``.
 As an example, the loop could return a list containing all results produced in each iteration (advance).
 
 Loops can also be nested! That is, a loop may call another one inside of its ``advance()``.
-
