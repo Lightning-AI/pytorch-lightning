@@ -17,7 +17,7 @@ from unittest.mock import DEFAULT
 import pytest
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ProgressBarBase, RichProgressBar
+from pytorch_lightning.callbacks import ProgressBar, ProgressBarBase, RichProgressBar
 from pytorch_lightning.callbacks.progress.rich_progress import RichProgressBarTheme
 from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
 from tests.helpers.boring_model import BoringModel
@@ -42,6 +42,25 @@ def test_rich_progress_bar_refresh_rate():
     progress_bar = RichProgressBar(refresh_rate_per_second=0)
     assert not progress_bar.is_enabled
     assert progress_bar.is_disabled
+
+
+@RunIf(rich=True)
+def test_rich_progress_bar_refresh_rate_colab(tmpdir):
+    """Test that the refresh rate is set correctly based on the Trainer, and warn if the user sets the argument."""
+    trainer = Trainer(default_root_dir=tmpdir)
+    assert trainer.progress_bar_callback.refresh_rate_per_second == 10
+    assert isinstance(trainer.progress_bar_callback, RichProgressBar)
+
+    trainer = Trainer(default_root_dir=tmpdir, progress_bar_refresh_rate=None)
+    assert isinstance(trainer.progress_bar_callback, RichProgressBar)
+    assert trainer.progress_bar_callback.refresh_rate_per_second == 10
+
+    with pytest.warns(
+        UserWarning, match="``RichProgressBar`` does not support setting the refresh rate via the Trainer. "
+    ):
+        trainer = Trainer(default_root_dir=tmpdir, progress_bar_refresh_rate=19)
+        assert isinstance(trainer.progress_bar_callback, ProgressBar)
+        assert trainer.progress_bar_callback.refresh_rate == 19
 
 
 @RunIf(rich=True)

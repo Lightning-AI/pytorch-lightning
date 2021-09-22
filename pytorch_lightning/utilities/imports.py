@@ -85,7 +85,7 @@ _NEPTUNE_AVAILABLE = _module_available("neptune")
 _NEPTUNE_GREATER_EQUAL_0_9 = _NEPTUNE_AVAILABLE and _compare_version("neptune", operator.ge, "0.9.0")
 _OMEGACONF_AVAILABLE = _module_available("omegaconf")
 _POPTORCH_AVAILABLE = _module_available("poptorch")
-_RICH_AVAILABLE = _module_available("rich")
+_RICH_AVAILABLE = _module_available("rich") and _compare_version("rich", operator.ge, "10.2.2")
 _TORCH_CPU_AMP_AVAILABLE = _compare_version(
     "torch", operator.ge, "1.10.dev20210902"
 )  # todo: swap to 1.10.0 once released

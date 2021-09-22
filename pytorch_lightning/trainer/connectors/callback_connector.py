@@ -25,9 +25,9 @@ from pytorch_lightning.callbacks import (
 )
 from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.timer import Timer
-from pytorch_lightning.utilities import ModelSummaryMode, rank_zero_info
+from pytorch_lightning.utilities import _RICH_AVAILABLE, ModelSummaryMode, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn
 
 
 class CallbackConnector:
@@ -130,8 +130,17 @@ class CallbackConnector:
             self.trainer.callbacks = [StochasticWeightAveraging()] + self.trainer.callbacks
 
     def configure_progress_bar(self, refresh_rate=None, process_position=0):
-        if os.getenv("COLAB_GPU") and refresh_rate is None:
-            # smaller refresh rate on colab causes crashes, choose a higher value
+        use_rich_progress_bar = _RICH_AVAILABLE
+        if use_rich_progress_bar and refresh_rate is not None:
+            rank_zero_warn(
+                "``RichProgressBar`` does not support setting the refresh rate via the Trainer. "
+                "If you'd like to change the refresh rate and continue using the ``RichProgressBar``, "
+                "please pass ``callbacks=RichProgressBar(refresh_rate=4)``. "
+                "Setting to the ``TQDMProgressBar``."
+            )
+            use_rich_progress_bar = False
+        if not use_rich_progress_bar and os.getenv("COLAB_GPU") and refresh_rate is None:
+            # smaller refresh rate on colab causes crashes for TQDM, choose a higher value
             refresh_rate = 20
         refresh_rate = 1 if refresh_rate is None else refresh_rate
 
@@ -144,7 +153,11 @@ class CallbackConnector:
         if len(progress_bars) == 1:
             progress_bar_callback = progress_bars[0]
         elif refresh_rate > 0:
-            progress_bar_callback = ProgressBar(refresh_rate=refresh_rate, process_position=process_position)
+            progress_bar_callback = (
+                RichProgressBar()
+                if use_rich_progress_bar
+                else ProgressBar(refresh_rate=refresh_rate, process_position=process_position)
+            )
             self.trainer.callbacks.append(progress_bar_callback)
         else:
             progress_bar_callback = None
