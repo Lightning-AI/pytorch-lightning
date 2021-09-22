@@ -166,7 +166,7 @@ class RichProgressBar(ProgressBarBase):
 
     @property
     def is_enabled(self) -> bool:
-        return self._enabled and self.refresh_rate_per_second > 0
+        return self._enabled and self._refresh_rate_per_second > 0
 
     @property
     def is_disabled(self) -> bool:
