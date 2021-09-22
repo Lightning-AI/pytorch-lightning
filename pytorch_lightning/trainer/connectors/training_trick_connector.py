@@ -54,6 +54,6 @@ class TrainingTricksConnector:
             schedule = {0: accumulate_grad_batches}
             self.trainer.accumulation_scheduler = GradientAccumulationScheduler(schedule)
         else:
-            raise TypeError("Gradient accumulation supports only int and dict types")
+            raise MisconfigurationException("Gradient accumulation supports only int and dict types")
 
         self.trainer.accumulate_grad_batches = self.trainer.accumulation_scheduler.get_accumulate_grad_batches(0)
