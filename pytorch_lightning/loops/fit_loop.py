@@ -43,15 +43,14 @@ class FitLoop(Loop):
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None
     ):
         super().__init__()
-        if max_epochs < -1:
+        if max_epochs is None:
+            # max_epochs won't default to 1000 if max_steps/max_time are non-default values.
+            max_epochs = 1000 if (max_steps == -1 and max_time is None) else -1
+        elif max_epochs < -1:
             # Allow max_epochs to be zero, since this will be handled by fit_loop.done
             raise MisconfigurationException(
                 f"`max_epochs` must be a positive integer or -1. You passed in {max_epochs}."
             )
-
-        if max_epochs is None:
-            # max_epochs won't default to 1000 if max_steps/max_time are non-default values.
-            max_epochs = 1000 if (max_steps == -1 and max_time is None) else -1
 
         self.max_epochs = max_epochs
         self.min_epochs = min_epochs
