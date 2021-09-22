@@ -1493,9 +1493,11 @@ class LightningModule(
         Example::
 
             # Perform gradient clipping on discriminator (optimizer_idx=1)
-            def clip_gradients(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
+            def clip_gradients(self, optimizer, optimizer_idx, gradient_clip_val=0.0, gradient_clip_algorithm="norm"):
                 if optimizer_idx == 1:
-                    super().clip_gradients(optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm)
+                    super().clip_gradients(
+                        optimizer, optimizer_idx, gradient_clip_val=1e-7, gradient_clip_algorithm="value"
+                    )
         """
         gradient_clip_val = gradient_clip_val or self.trainer.gradient_clip_val
         gradient_clip_algorithm = gradient_clip_algorithm or self.trainer.gradient_clip_algorithm
