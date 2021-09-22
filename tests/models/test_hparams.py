@@ -677,7 +677,7 @@ def test_empty_hparams_container(tmpdir):
     assert not model.hparams
 
 
-def test_hparams_name(tmpdir):
+def test_hparams_name_from_container(tmpdir):
     """Test that save_hyperparameters(container) captures the name of the argument correctly."""
     model = HparamsKwargsContainerModel(a=1, b=2)
     assert model._hparams_name is None
