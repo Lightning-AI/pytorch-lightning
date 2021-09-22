@@ -321,7 +321,6 @@ def test_ddp_sharded_no_sync(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         plugins=[sharded_plugin],
-        num_processes=2,
     )
     trainer.state.fn = TrainerFn.FITTING
     trainer.accelerator.connect(model)
