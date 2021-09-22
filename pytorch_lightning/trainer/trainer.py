@@ -248,14 +248,15 @@ class Trainer(
             gpus: Number of GPUs to train on (int) or which GPUs to train on (list or str) applied per node
 
             gradient_clip_val: The value at which to clip gradients. Passing ``gradient_clip_val=0`` disables gradient
-                clipping.
+                clipping. Default (None) which sets it's value to 0.0 internally.
 
                 .. deprecated:: v1.5
                     ``gradient_clip_val`` has been deprecated in v1.5 and will be removed in v1.7.
                     Please configure gradient clipping directly in ``LightningModule.clip_gradients`` instead.
 
             gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
-                for clip_by_value, and ``gradient_clip_algorithm="norm"`` for clip_by_norm.
+                for clip_by_value, and ``gradient_clip_algorithm="norm"`` for clip_by_norm. Default (None) which sets
+                it's value to "norm" internally.
 
                 .. deprecated:: v1.5
                     ``gradient_clip_algorithm`` has been deprecated in v1.5 and will be removed in v1.7.
