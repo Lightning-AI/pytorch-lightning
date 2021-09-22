@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Optional
+from typing import Any, List, Optional
 from weakref import proxy
 
 import pytorch_lightning as pl
@@ -59,11 +59,11 @@ class OptimizerConnector:
             # Take step if call to update_learning_rates matches the interval key and
             # the current step modulo the schedulers frequency is zero
             if lr_scheduler["interval"] == interval and current_idx % lr_scheduler["frequency"] == 0:
-                # If instance of ReduceLROnPlateau, we need a monitor
-                monitor_key, monitor_val = None, None
+                monitor_val = None
                 if lr_scheduler["reduce_on_plateau"]:
+                    # If instance of ReduceLROnPlateau, we need a monitor
                     monitor_key = lr_scheduler["monitor"]
-                    monitor_val = self.trainer.callback_metrics.get(monitor_key)
+                    monitor_val = self._get_monitor_value(monitor_key)
                     if monitor_val is None:
                         if lr_scheduler.get("strict", True):
                             avail_metrics = list(self.trainer.callback_metrics)
@@ -79,27 +79,17 @@ class OptimizerConnector:
                             RuntimeWarning,
                         )
                         continue
-                # update LR
-                old_lr = lr_scheduler["scheduler"].optimizer.param_groups[0]["lr"]
 
                 self.trainer.fit_loop.epoch_loop.scheduler_progress.increment_ready()
 
+                # update LR
                 if lr_scheduler["reduce_on_plateau"]:
                     lr_scheduler["scheduler"].step(monitor_val)
                 else:
                     lr_scheduler["scheduler"].step()
 
-                new_lr = lr_scheduler["scheduler"].optimizer.param_groups[0]["lr"]
-
                 self.trainer.fit_loop.epoch_loop.scheduler_progress.increment_completed()
 
-                if self.trainer.dev_debugger.enabled:
-                    self.trainer.dev_debugger.track_lr_schedulers_update(
-                        self.trainer.fit_loop.batch_idx,
-                        interval,
-                        scheduler_idx,
-                        old_lr,
-                        new_lr,
-                        monitor_key=monitor_key,
-                        monitor_val=monitor_val,
-                    )
+    def _get_monitor_value(self, key: str) -> Any:
+        # this is a separate method to aid in testing
+        return self.trainer.callback_metrics.get(key)
