@@ -95,6 +95,7 @@ When we have a custom loop defined in a class as shown above, we can attach it t
     trainer = Trainer()
 
     fit_loop = FitLoop()
+
     # .fit() will use this loop
     trainer.fit_loop = fit_loop
     trainer.fit(model)
