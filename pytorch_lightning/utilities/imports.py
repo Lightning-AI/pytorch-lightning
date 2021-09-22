@@ -19,6 +19,7 @@ import platform
 import sys
 from importlib.util import find_spec
 
+import pkg_resources
 import torch
 from packaging.version import Version
 from pkg_resources import DistributionNotFound
@@ -53,7 +54,11 @@ def _compare_version(package: str, op, version) -> bool:
     except (ModuleNotFoundError, DistributionNotFound):
         return False
     try:
-        pkg_version = Version(pkg.__version__)
+        if hasattr(pkg, "__version__"):
+            pkg_version = Version(pkg.__version__)
+        else:
+            # try pkg_resources to infer version
+            pkg_version = Version(pkg_resources.get_distribution(pkg).version)
     except TypeError:
         # this is mock by sphinx, so it shall return True ro generate all summaries
         return True
