@@ -45,7 +45,6 @@ class TrainingTricksConnector:
         self.trainer.track_grad_norm = float(track_grad_norm)
 
         # accumulated grads
-        self.trainer.accumulate_grad_batches = accumulate_grad_batches
         self.configure_accumulated_gradients(accumulate_grad_batches)
 
     def configure_accumulated_gradients(self, accumulate_grad_batches: Union[int, Dict[int, int]]) -> None:
@@ -56,3 +55,5 @@ class TrainingTricksConnector:
             self.trainer.accumulation_scheduler = GradientAccumulationScheduler(schedule)
         else:
             raise TypeError("Gradient accumulation supports only int and dict types")
+
+        self.trainer.accumulate_grad_batches = self.trainer.accumulation_scheduler.get_accumulate_grad_batches(0)
