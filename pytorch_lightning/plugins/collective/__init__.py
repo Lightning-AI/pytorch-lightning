@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.plugins.collective.collective_plugin import Collective  # noqa: F401
+from pytorch_lightning.plugins.collective.collective_plugin import CollectivePlugin  # noqa: F401
 from pytorch_lightning.plugins.collective.horovod_collective import HorovodCollective  # noqa: F401
 from pytorch_lightning.plugins.collective.single_device_collective import SingleDeviceCollective  # noqa: F401
 from pytorch_lightning.plugins.collective.torch_collective import TorchCollective  # noqa: F401

@@ -17,7 +17,7 @@ from typing import Any, Optional, Union
 
 import torch
 
-from pytorch_lightning.plugins.collective import Collective
+from pytorch_lightning.plugins.collective import CollectivePlugin
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -28,7 +28,7 @@ if _TPU_AVAILABLE:
     from torch_xla.core.xla_model import rendezvous
 
 
-class TPUCollective(Collective):
+class TPUCollective(CollectivePlugin):
     """Collective interface for TPUSpawning training type plugins."""
 
     def __init__(
@@ -42,16 +42,16 @@ class TPUCollective(Collective):
         self.world_size = world_size
 
     @property
-    def is_distributed(self) -> bool:
+    def _is_distributed(self) -> bool:
         # HOST_WORLD_SIZE is None outside the xmp.spawn process
         return os.getenv(xenv.HOST_WORLD_SIZE, None) is not None and self.world_size != 1
 
     def barrier(self, name: Optional[str] = None) -> None:
-        if self.is_distributed:
+        if self._is_distributed:
             rendezvous(name)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
-        if not self.is_distributed:
+        if not self._is_distributed:
             return obj
         buffer = io.BytesIO()
         torch.save(obj, buffer)
@@ -93,7 +93,3 @@ class TPUCollective(Collective):
             output = output / self.world_size
 
         return output
-
-    def reduce_boolean_decision(self, decision: bool) -> bool:
-        """Reduce the early stopping decision across all processes."""
-        return decision

@@ -19,22 +19,41 @@ import torch
 from pytorch_lightning.utilities.distributed import ReduceOp
 
 
-class Collective(ABC):
-    """Base class for collective functions for training type plugins."""
+class CollectivePlugin(ABC):
+    """Interface for collective functions for training type plugins.
+
+    Lightning collective supports communications between multiple processes and multiple nodes, provides routines such
+    as barrier, broadcast, all_gather, and reduce, reduce
+    """
 
     @abstractmethod
     def barrier(self, name: Optional[str] = None) -> None:
-        """Forces all possibly joined processes to wait for each other."""
+        """Synchronizes all processes which blocks processes until the whole group enters this function.
+
+        Args:
+            name: a str pass into barrier. Only torch xla respect this param
+        """
 
     @abstractmethod
     def broadcast(self, obj: object, src: int = 0) -> object:
-        """Broadcasts an object to all processes."""
+        """Broadcasts an object to all processes.
+
+        Args:
+            obj: the object to broadcast
+            src: source rank.
+        """
 
     @abstractmethod
     def all_gather(
-        self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False
+        self, tensor: torch.Tensor, process_group: Optional[Any] = None, sync_grads: bool = False
     ) -> Union[List[torch.Tensor], torch.Tensor]:
-        """Perform a all_gather on all processes."""
+        """Perform a all_gather on all processes.
+
+        Args:
+            tensor: the tensor to all_gather
+            process_group: the process group to gather results from
+            sync_grads: flag that allows users to synchronize gradients for all_gather op
+        """
 
     @abstractmethod
     def reduce(
@@ -47,10 +66,9 @@ class Collective(ABC):
 
         Args:
             tensor: the tensor to sync and reduce
+            process_group: the process group to reduce
+            reduce_op: the reduction operation. Defaults to 'mean'.
+                Can also be a string 'sum' or ReduceOp.
             *args: plugin-specific positional arguments
             **kwargs: plugin-specific keyword arguments
         """
-
-    @abstractmethod
-    def reduce_boolean_decision(self, decision: bool) -> bool:
-        """Reduce the early stopping decision across all processes."""

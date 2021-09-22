@@ -17,7 +17,7 @@ import torch
 import torch.distributed
 
 from pytorch_lightning.overrides.torch_distributed import broadcast_object_list
-from pytorch_lightning.plugins.collective import Collective
+from pytorch_lightning.plugins.collective import CollectivePlugin
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, distributed_available
@@ -26,8 +26,11 @@ from pytorch_lightning.utilities.distributed import ReduceOp, sync_ddp_if_availa
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION
 
 
-class TorchCollective(Collective):
-    """Collective interface for DDP, DDPSpawn, DP and DDP2."""
+class TorchCollective(CollectivePlugin):
+    """Collective interfaces for PyTorch.
+
+    Mainly used by DDP, DDPSpawn, DP and DDP2.
+    """
 
     def __init__(
         self,
@@ -35,7 +38,6 @@ class TorchCollective(Collective):
         rank: Optional[int] = None,
         device: Optional[Union[str, torch.device]] = torch.device("cpu"),
         device_id: Optional[int] = None,
-        world_size: int = 1,
     ) -> None:
         """
         Note:
@@ -49,9 +51,8 @@ class TorchCollective(Collective):
         self.rank = rank
         self.device = device
         self.device_id = device_id
-        self.world_size = world_size
 
-    def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
+    def barrier(self, *args: Any, **kwargs: Any) -> None:
         if not distributed_available():
             return
         if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
@@ -62,16 +63,16 @@ class TorchCollective(Collective):
     def broadcast(self, obj: Any, src: int = 0) -> Any:
         if not distributed_available():
             return obj
-        else:
-            obj = [obj]
-            if self.rank != 0:
-                obj = [None] * len(obj)
-            broadcast_object_list(obj, 0, group=_group.WORLD)
-            return obj[0]
+        obj = [obj]
+        if self.rank != 0:
+            obj = [None] * len(obj)
+        broadcast_object_list(obj, src, group=_group.WORLD)
+        return obj[0]
 
-    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
-        """Perform a all_gather on all processes."""
-        return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
+    def all_gather(
+        self, tensor: torch.Tensor, process_group: Optional[Any] = None, sync_grads: bool = False
+    ) -> torch.Tensor:
+        return all_gather_ddp_if_available(tensor, group=process_group, sync_grads=sync_grads)
 
     def reduce(
         self,
@@ -87,9 +88,9 @@ class TorchCollective(Collective):
 
         Args:
             tensor: the tensor to sync and reduce
-            group: the process group to gather results from. Defaults to all processes (world)
-            reduce_op: the reduction operation. Defaults to 'mean'/'avg'.
-                Can also be a string 'sum' to calculate the sum during reduction.
+            process_group: the process group to reduce
+            reduce_op: the reduction operation. Defaults to 'mean'.
+                Can also be a string 'sum' or ReduceOp.
 
         Return:
             reduced value, except when the input was not a tensor the output remains is unchanged
@@ -105,9 +106,3 @@ class TorchCollective(Collective):
         if isinstance(tensor, torch.Tensor):
             tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
-
-    def reduce_boolean_decision(self, decision: bool) -> bool:
-        decision = torch.tensor(int(decision), device=self.device)
-        decision = self.reduce(decision, reduce_op=ReduceOp.SUM)
-        decision = bool(decision == self.world_size)
-        return decision

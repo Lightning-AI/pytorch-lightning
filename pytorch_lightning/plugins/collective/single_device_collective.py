@@ -15,34 +15,20 @@ from typing import Any, Optional, Union
 
 import torch
 
-from pytorch_lightning.plugins.collective import Collective
+from pytorch_lightning.plugins.collective import CollectivePlugin
 
 
-class SingleDeviceCollective(Collective):
+class SingleDeviceCollective(CollectivePlugin):
     """Collective interface for single device training type plugins."""
 
     def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
-        """Forces all possibly joined processes to wait for each other."""
         pass
 
     def broadcast(self, obj: object, src: int = 0) -> object:
-        """Broadcasts an object to all processes."""
         return obj
 
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
-        """Perform a all_gather on all processes."""
         return tensor
 
     def reduce(self, tensor: Union[torch.Tensor, Any], *args: Any, **kwargs: Any) -> Union[torch.Tensor, Any]:
-        """Reduces the given tensor (e.g. across GPUs/processes).
-
-        Args:
-            tensor: the tensor to sync and reduce
-            *args: plugin-specific positional arguments
-            **kwargs: plugin-specific keyword arguments
-        """
         return tensor
-
-    def reduce_boolean_decision(self, decision: bool) -> bool:
-        """Reduce the early stopping decision across all processes."""
-        return decision

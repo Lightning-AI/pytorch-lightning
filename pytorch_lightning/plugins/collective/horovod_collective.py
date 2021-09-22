@@ -15,7 +15,7 @@ from typing import Any, List, Optional, Union
 
 import torch
 
-from pytorch_lightning.plugins.collective import Collective
+from pytorch_lightning.plugins.collective import CollectivePlugin
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as dist_group
@@ -25,18 +25,18 @@ if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
 
 
-class HorovodCollective(Collective):
+class HorovodCollective(CollectivePlugin):
     """Collective interface for Horovod training type plugins."""
 
     def __init__(
         self,
-        on_gpu: Optional[bool] = False,
+        on_gpu: bool = False,
         local_rank: int = 0,
     ) -> None:
         self.on_gpu = on_gpu
         self.local_rank = local_rank
 
-    def join(self) -> None:
+    def _join(self) -> None:
         """Horovod function that indicates that the rank finished processing data.
 
         All ranks that did not call join() continue to process allreduce operations. This function blocks the Python
@@ -49,7 +49,7 @@ class HorovodCollective(Collective):
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
         if distributed_available():
-            self.join()
+            self._join()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         obj = hvd.broadcast_object(obj, src)
@@ -66,7 +66,7 @@ class HorovodCollective(Collective):
             result = result.reshape(1)
 
         # sync and gather all
-        self.join()
+        self._join()
         gathered = hvd.allgather(result)
         gathered_result = list(gathered.split(1, dim=0))
         return gathered_result
@@ -77,17 +77,6 @@ class HorovodCollective(Collective):
         group: Optional[Any] = None,
         reduce_op: Optional[Union[ReduceOp, str]] = "mean",
     ) -> Union[torch.Tensor, Any]:
-        """Reduces a tensor from several distributed processes to one aggregated tensor.
-
-        Args:
-            tensor: the tensor to sync and reduce
-            group: the process group to gather results from. Defaults to all processes (world)
-            reduce_op: the reduction operation. Defaults to 'mean'/'avg'.
-                Can also be a string 'sum' to calculate the sum during reduction.
-
-        Return:
-            reduced value, except when the input was not a tensor the output remains is unchanged
-        """
         if group is not None:
             raise ValueError("Horovod does not support allreduce using a subcommunicator at this time. Unset `group`.")
 
@@ -99,9 +88,5 @@ class HorovodCollective(Collective):
             raise ValueError(f"unrecognized `reduce_op`: {reduce_op}")
 
         # sync all processes before reduction
-        self.join()
+        self._join()
         return hvd.allreduce(tensor, op=reduce_op)
-
-    def reduce_boolean_decision(self, decision: bool) -> bool:
-        """Reduce the early stopping decision across all processes."""
-        return decision
