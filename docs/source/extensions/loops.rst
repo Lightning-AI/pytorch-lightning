@@ -1,7 +1,7 @@
 .. _loop_customization:
 
-Loop Customization
-==================
+Loops
+=====
 
 Loop customization is an experimental feature introduced in Lightning 1.5 that enables users to swap the built-in Lightning loops with custom ones, providing a unprecedented level of flexibility.
 Until now, Lightning did not support well some training paradigms like recommendation engine optimization or active learning.
