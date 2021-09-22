@@ -10,7 +10,7 @@ The loop customization feature will not only enable researchers to customize Lig
 The training loop in Lightning
 ------------------------------
 
-Every PyTorch users is familiar with the basic training loop for gradient descent optimization:
+Every PyTorch user is familiar with the basic training loop for gradient descent optimization:
 
 .. code-block:: python
 
@@ -269,3 +269,78 @@ Finally, a loop may return an output as part of ``run()``.
 As an example, the loop could return a list containing all results produced in each iteration (advance).
 
 Loops can also be nested! That is, a loop may call another one inside of its ``advance()``.
+
+
+Which other loops does Lightning have and how can they be changed?
+------------------------------------------------------------------
+
+The Trainer has four entry points for training, testing and inference, and each method corresponds to a main loop:
+
++---------------------------------------------------------------+-----------------------------------------------------------------------+-------------------------------------------------------------------------------+
+| Entry point                                                   | Trainer attribute                                                     | Loop class                                                                    |
++===============================================================+=======================================================================+===============================================================================+
+| :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit`        | :attr:`~pytorch_lightning.trainer.trainer.Trainer.fit_loop`           | :class:`~pytorch_lightning.loops.fit_loop.FitLoop`                            |
++---------------------------------------------------------------+-----------------------------------------------------------------------+-------------------------------------------------------------------------------+
+| :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`   | :attr:`~pytorch_lightning.trainer.trainer.Trainer.validate_loop`      | :class:`~pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop`   |
++---------------------------------------------------------------+-----------------------------------------------------------------------+-------------------------------------------------------------------------------+
+| :meth:`~pytorch_lightning.trainer.trainer.Trainer.test`       | :attr:`~pytorch_lightning.trainer.trainer.Trainer.test_loop`          | :class:`~pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop`   |
++---------------------------------------------------------------+-----------------------------------------------------------------------+-------------------------------------------------------------------------------+
+| :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`    | :attr:`~pytorch_lightning.trainer.trainer.Trainer.predict_loop`       | :class:`~pytorch_lightning.loops.dataloader.prediction_loop.PredictionLoop`   |
++---------------------------------------------------------------+-----------------------------------------------------------------------+-------------------------------------------------------------------------------+
+
+When the user calls :code:`Trainer.<entry-point>`, it redirects to the corresponding :code:`Trainer.loop.run()` which implements the main logic of that particular Lightning loop.
+The :meth:`~pytorch_lightning.loops.base.Loop.run` method is part of the base :class:`~pytorch_lightning.loops.base.Loop` class that every loop inherits from (like every model inherits from LightningModule).
+
+Attaching a custom loop to any of these entry points is straightforward.
+
+**Step 1:** Define the loop class by implementing the base interface.
+
+.. code-block:: python
+
+    from pytorch_lightning.loops import Loop
+
+
+    class CustomLoop(Loop):
+        def __init__(self):
+            ...
+
+        @property
+        def done(self):
+            ...
+
+        def advance(self, *args, **kwargs):
+            # here goes your custom logic
+            ...
+
+Instead of writing an entire new loop, one can also override the behavior of an existing one, for example:
+
+.. code-block:: python
+
+    from pytorch_lightning.loops import FitLoop
+
+
+    class CustomLoop(FitLoop):
+        ...
+
+
+**Step 2:** Attach the loop to the Trainer and run it.
+
+.. code-block:: python
+
+    loop = CustomLoop()
+    trainer = Trainer()
+
+    trainer.fit_loop = loop
+    trainer.fit(model)
+
+    # or
+    trainer.validate_loop = loop
+    trainer.validate(model)
+
+    # or
+    trainer.test_loop = loop
+    trainer.test(model)
+
+    # or
+    trainer.predict_loop = loop
+    trainer.predict(model)
