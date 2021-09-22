@@ -89,6 +89,7 @@ class ClosureResult(OutputResult):
 
         if closure_loss is not None:
             # accumulate the loss. If ``accumulate_grad_batches == 1``, no effect
+            # note: avoid in-place operation `x /= y` here on purpose
             closure_loss = closure_loss / normalize
 
         return cls(closure_loss, extra=extra)
