@@ -216,6 +216,11 @@ def test_trainer_accumulate_grad_batches_dict_zero_grad(tmpdir, accumulate_grad_
         assert sgd_zero_grad.call_count == expected_call_count
 
 
+def test_trainer_accumulate_grad_batches_incorrect_value(tmpdir):
+    with pytest.raises(MisconfigurationException, match=".*supports only int and dict types.*"):
+        Trainer(default_root_dir=tmpdir, accumulate_grad_batches=(2, 5))
+
+
 @pytest.mark.parametrize(
     ["accumulate_grad_batches", "limit_train_batches"],
     [
