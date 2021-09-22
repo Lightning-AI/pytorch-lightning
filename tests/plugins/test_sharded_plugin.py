@@ -309,3 +309,44 @@ def test_custom_kwargs_sharded_reduce_buffer_size(tmpdir, params, expected_buffe
         assert kwargs["reduce_buffer_size"] == DDPShardedPlugin._REDUCE_BUFFER_SIZE_DEFAULT
     else:
         assert kwargs["reduce_buffer_size"] == expected_buffer_size
+
+
+@RunIf(skip_windows=True, fairscale=True)
+def test_ddp_sharded_no_sync(tmpdir):
+    """Tests with ddp plugin."""
+    model = BoringModel()
+    sharded_plugin = DDPShardedPlugin()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        plugins=[sharded_plugin],
+        num_processes=2,
+    )
+    trainer.state.fn = TrainerFn.FITTING
+    trainer.accelerator.connect(model)
+    trainer.accelerator.setup_environment()
+    trainer.accelerator.setup(trainer)
+    trainer.lightning_module.trainer = trainer
+
+    checkpoint_path = os.path.join(tmpdir, "model.pt")
+    trainer.save_checkpoint(checkpoint_path)
+    saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
+
+    optimizer = trainer.optimizers[0]
+
+    def closure():
+        sharded_plugin.model.zero_grad(set_to_none=True)
+        with sharded_plugin.block_backward_sync():
+            input_tensor = torch.rand((64, 2))
+            loss = sharded_plugin.model(input_tensor).abs().sum()
+            loss.backward()
+        return loss
+
+    # Dummy optim loop
+    for i in range(5):
+        _ = optimizer.step(closure=closure)
+
+    # Assert model parameters are identical after loading
+    for ddp_param, shard_param in zip(model.parameters(), saved_model.parameters()):
+        assert torch.equal(ddp_param.to("cpu"), shard_param)
