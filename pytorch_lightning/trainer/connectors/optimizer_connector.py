@@ -47,7 +47,7 @@ class OptimizerConnector:
         if opt_indices is None:
             opt_indices = []
 
-        for scheduler_idx, lr_scheduler in enumerate(self.trainer.lr_schedulers):
+        for lr_scheduler in self.trainer.lr_schedulers:
             if isinstance(lr_scheduler["opt_idx"], int) and lr_scheduler["opt_idx"] not in opt_indices:
                 continue
 
