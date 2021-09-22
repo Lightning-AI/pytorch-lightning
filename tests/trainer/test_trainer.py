@@ -1049,17 +1049,21 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
 def test_gradient_clipping_by_value(tmpdir, precision):
     """Test gradient clipping by value."""
     tutils.reset_seed()
-
-    model = BoringModel()
-
     grad_clip_val = 1e-10
+
+    class CustomBoringModel(BoringModel):
+        def clip_gradients(self, optimizer, optimizer_idx, gradient_clip_val=0.0, gradient_clip_algorithm="norm"):
+            super().clip_gradients(
+                optimizer, optimizer_idx, gradient_clip_val=grad_clip_val, gradient_clip_algorithm="value"
+            )
+
+    model = CustomBoringModel()
+
     trainer = Trainer(
         max_steps=1,
         max_epochs=1,
         precision=precision,
         gpus=int(torch.cuda.is_available()),
-        gradient_clip_val=grad_clip_val,
-        gradient_clip_algorithm="value",
         default_root_dir=tmpdir,
     )
 
