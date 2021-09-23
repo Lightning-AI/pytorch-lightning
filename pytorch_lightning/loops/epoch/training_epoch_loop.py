@@ -408,8 +408,8 @@ def _convert_optim_dict(outs: Dict[int, Dict[str, Any]], num_optimizers: int) ->
 
 
 def _recursive_unpad(nested: List[Any], value: Optional[Any] = None) -> List:
-    """Removes the given pad value from the nested list. Not strictly the reverse operation of :func:`_recursive_pad`
-    because it removes the padding element everywhere, not just from the end of a list.
+    """Removes the given pad value from the nested list. Not strictly the reverse operation of
+    :func:`_recursive_pad` because it removes the padding element everywhere, not just from the end of a list.
 
     Example::
         >>> _recursive_unpad([[[0, 1, 0]], [2], [0, 0]], value=0)
