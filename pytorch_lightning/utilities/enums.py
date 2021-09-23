@@ -65,7 +65,7 @@ class PrecisionType(LightningEnum):
 
     @staticmethod
     def supported_type(precision: Union[str, int]) -> bool:
-        return any(x.value == precision for x in PrecisionType)
+        return any(x == precision for x in PrecisionType)
 
     @staticmethod
     def supported_types() -> List[str]:

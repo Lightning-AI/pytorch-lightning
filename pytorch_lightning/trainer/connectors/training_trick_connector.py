@@ -39,8 +39,7 @@ class TrainingTricksConnector:
                 f"Gradient Clipping Value can be an int or a float, got {gradient_clip_val}."
             )
 
-        gradient_clip_algorithm = gradient_clip_algorithm.lower()
-        if not GradClipAlgorithmType.supported_type(gradient_clip_algorithm):
+        if not GradClipAlgorithmType.supported_type(gradient_clip_algorithm.lower()):
             raise MisconfigurationException(
                 f"Gradient Clipping Algorithm {gradient_clip_algorithm} is invalid. "
                 f"Allowed algorithms: {GradClipAlgorithmType.supported_types()}."
@@ -54,7 +53,7 @@ class TrainingTricksConnector:
 
         self.trainer.terminate_on_nan = terminate_on_nan
         self.trainer.gradient_clip_val = gradient_clip_val
-        self.trainer.gradient_clip_algorithm = GradClipAlgorithmType(gradient_clip_algorithm)
+        self.trainer.gradient_clip_algorithm = GradClipAlgorithmType(gradient_clip_algorithm.lower())
         self.trainer.track_grad_norm = float(track_grad_norm)
 
         # accumulated grads
