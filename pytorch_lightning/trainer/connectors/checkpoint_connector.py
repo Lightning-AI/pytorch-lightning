@@ -21,7 +21,7 @@ from torchmetrics import Metric
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.loops.fit_loop import FitLoop
+from pytorch_lightning.loops.utilities import _is_max_limit_reached
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
@@ -220,7 +220,7 @@ class CheckpointConnector:
 
         # crash if max_epochs is lower then the current epoch from the checkpoint
         if (
-            FitLoop._is_max_limit_enabled(self.trainer.max_epochs)
+            _is_max_limit_reached(self.trainer.max_epochs)
             and self.trainer.max_epochs is not None
             and self.trainer.current_epoch > self.trainer.max_epochs
         ):
