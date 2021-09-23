@@ -62,7 +62,6 @@ from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerCo
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.deprecated_api import DeprecatedTrainerAttributes
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
@@ -114,7 +113,6 @@ class Trainer(
     TrainerModelHooksMixin,
     TrainerOptimizersMixin,
     TrainerDataLoadingMixin,
-    DeprecatedTrainerAttributes,
 ):
     # Needed because of LightningOptimizer
     _lightning_optimizers = None
@@ -433,6 +431,14 @@ class Trainer(
         self.predict_loop = PredictionLoop()
 
         self.weights_summary = weights_summary
+
+        # Needed because of LightningOptimizer
+        self._lightning_optimizers = None
+
+        # .validate() and .test() set this when they load a checkpoint
+        self.validated_ckpt_path: Optional[str] = None
+        self.tested_ckpt_path: Optional[str] = None
+        self.predicted_ckpt_path: Optional[str] = None
 
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init
@@ -1958,6 +1964,13 @@ class Trainer(
             return self._evaluation_loop
         if self.predicting:
             return self.predict_loop
+
+    @property
+    def train_loop(self) -> FitLoop:
+        rank_zero_deprecation(
+            "`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
+        )
+        return self.fit_loop
 
     @property
     def _ckpt_path(self) -> Optional[str]:
