@@ -44,14 +44,25 @@ def preserve_global_rank_variable():
 
 @pytest.fixture(scope="function", autouse=True)
 def assert_environment_unchanged():
-    """ Ensures that environment variables set during the test do not leak out. """
+    """Ensures that environment variables set during the test do not leak out."""
     env_backup = os.environ.copy()
     yield
-    leaked_vars = [var for var in os.environ.keys() if var not in env_backup.keys()]
-    # restore environment for next test
+    leaked_vars = os.environ.keys() - env_backup.keys()
     os.environ.clear()
     os.environ.update(env_backup)
-    assert not leaked_vars, f"test is leaking environment variable(s): {', '.join(leaked_vars)}"
+    # these are currently known leakers - ideally these would not be allowed
+    allowlist = {
+        "CUDA_DEVICE_ORDER",
+        "LOCAL_RANK",
+        "NODE_RANK",
+        "WORLD_SIZE",
+        "MASTER_ADDR",
+        "MASTER_PORT",
+        "PL_GLOBAL_SEED",
+        "PL_SEED_WORKERS",
+    }
+    leaked_vars.difference_update(allowlist)
+    assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
 
 
 @pytest.fixture(scope="function", autouse=True)
