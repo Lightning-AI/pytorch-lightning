@@ -123,7 +123,7 @@ jobs:
       fail-fast: false
       matrix:
         python_version: ["3.6", "3.7", "3.8", "3.9"]
-        pytorch_version: ["1.6", "1.7", "1.8", "1.9", "1.10"]
+        pytorch_version: ["1.6", "1.7", "1.8", "1.9"]
         exclude:
           - python_version: "3.9"
             pytorch_version: "1.6"
