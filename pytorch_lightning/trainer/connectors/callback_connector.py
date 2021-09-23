@@ -146,7 +146,7 @@ class CallbackConnector:
             )
         if len(progress_bars) == 1:
             return progress_bars[0]
-        elif refresh_rate is None or refresh_rate > 0:
+        if refresh_rate != 0
             if _RICH_AVAILABLE:
                 if refresh_rate is None:
                     progress_bar_callback = RichProgressBar()
