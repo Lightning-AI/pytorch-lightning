@@ -417,7 +417,8 @@ class WandbLogger(LightningLoggerBase):
             raise TypeError(f'Expected a list as "images", found {type(images)}')
         n = len(images)
         for k, v in kwargs.items():
-            assert len(v) == n, f"Expected {n} items but only found {len(v)} for {k}"
+            if len(v) != n:
+                raise ValueError(f"Expected {n} items but only found {len(v)} for {k}")
         step = kwargs.pop("step", None)
         kwarg_list = [{k: kwargs[k][i] for k in kwargs.keys()} for i in range(n)]
         metrics = {key: [wandb.Image(img, **kwarg) for img, kwarg in zip(images, kwarg_list)]}
