@@ -344,7 +344,7 @@ def test_combined_data_loader_validation_test(cuda_available_mock, device_count_
     )
 
     trainer = Trainer(replace_sampler_ddp=replace_sampler_ddp, accelerator="ddp", gpus=2)
-    dataloader = trainer.auto_add_sampler(dataloader, shuffle=True)
+    dataloader = trainer.prepare_dataloader(dataloader, shuffle=True)
     _count = 0
 
     def _assert_distributed_sampler(v):

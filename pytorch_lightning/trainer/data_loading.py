@@ -11,21 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
 import multiprocessing
 import os
 from abc import ABC
 from copy import deepcopy
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
-from torch.utils.data import BatchSampler, DataLoader, RandomSampler, Sampler, SequentialSampler
-from torch.utils.data.dataset import IterableDataset
+from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator
-from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
@@ -33,9 +30,11 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import (
     _capture_metadata_collate,
-    CaptureIterableDataset,
-    CaptureMapDataset,
-    FastForwardSampler,
+)
+from pytorch_lightning.utilities.dataloader_preparation import (
+    _get_dataloader_init_kwargs, 
+    _get_distributed_sampler,
+
 )
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
@@ -119,11 +118,24 @@ class TrainerDataLoadingMixin(ABC):
         if int(os.environ.get("PL_SEED_WORKERS", 0)) and dataloader.worker_init_fn is None:
             dataloader.worker_init_fn = partial(pl_worker_init_function, rank=self.global_rank)
 
-    def auto_add_sampler(self, dataloader: Any, shuffle: bool, mode: Optional[RunningStage] = None) -> Any:
+    def _requires_distributed_sampler(self, dataloader) -> bool:
+        return (
+            self.accelerator_connector.replace_sampler_ddp
+            and self.accelerator_connector.is_distributed
+            and not isinstance(dataloader.sampler, DistributedSampler)
+            and not has_iterable_dataset(dataloader)
+        )
+
+    def prepare_dataloader(self, dataloader: Any, shuffle: bool, mode: Optional[RunningStage] = None) -> Any:
+        """
+        This function handles to following functionalities:
+            - Injecting a `DistributedDataSampler` within the `DataLoader if accelertor is is_distributed
+            - Wrapping the datasets and samplers into Fault Tolerant Components   
+        """
         if isinstance(dataloader, CombinedLoader):
-            # apply `auto_add_sampler` on all the collection of loaders
+            # apply `prepare_dataloader` on all the collection of loaders
             dataloader.loaders = apply_to_collection(
-                dataloader.loaders, DataLoader, self.auto_add_sampler, shuffle, mode=mode
+                dataloader.loaders, DataLoader, self.prepare_dataloader, shuffle, mode=mode
             )
             return dataloader
 
@@ -131,12 +143,7 @@ class TrainerDataLoadingMixin(ABC):
         if not isinstance(dataloader, DataLoader):
             return dataloader
 
-        if (
-            self.accelerator_connector.replace_sampler_ddp
-            and self.accelerator_connector.is_distributed
-            and not isinstance(dataloader.sampler, DistributedSampler)
-            and not has_iterable_dataset(dataloader)
-        ):
+        if self._requires_distributed_sampler(dataloader):
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
                 raise MisconfigurationException(
                     "You seem to have configured a sampler in your DataLoader. This will be replaced "
@@ -144,145 +151,24 @@ class TrainerDataLoadingMixin(ABC):
                     " distributed training. Either remove the sampler from your DataLoader or set"
                     " `replace_sampler_ddp`=False if you want to use your custom sampler."
                 )
-            sampler = self._get_distributed_sampler(dataloader, shuffle, mode=mode)
-            dataloader = self.replace_sampler(dataloader, sampler, mode=mode)
+            sampler = _get_distributed_sampler(
+                dataloader, shuffle, mode=mode, overfit_batches=self.overfit_batches, **self.distributed_sampler_kwargs)
         else:
-            if _fault_tolerant_training():
-                dataloader = self.replace_sampler(dataloader, dataloader.sampler, mode=mode)
-
+            sampler = dataloader.sampler
+        
+        # the DataLoader should be re-created only if we need to inject 
+        # the fault tolerant components or the distributed sampler.
+        if _fault_tolerant_training() or isinstance(sampler, DistributedSampler):
+            dataloader = self._prepare_dataloader(dataloader, sampler, mode=mode)
+        
         return dataloader
 
     @staticmethod
-    def _resolve_batch_sampler(
-        dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
-    ) -> Dict[str, Any]:
-        batch_sampler = getattr(dataloader, "batch_sampler")
-        is_predicting = mode == RunningStage.PREDICTING
-        # checking the batch sampler type is different than PyTorch default.
-        if (batch_sampler is not None and type(batch_sampler) is not BatchSampler) or is_predicting:
-            batch_sampler = type(batch_sampler)(
-                sampler,
-                batch_size=batch_sampler.batch_size,
-                drop_last=(False if is_predicting else batch_sampler.drop_last),
-            )
-            if is_predicting:
-                batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
-
-            if _fault_tolerant_training():
-                fast_forward_sampler = batch_sampler = FastForwardSampler(batch_sampler)
-                fast_forward_sampler.setup(dataloader_batch_size=1)
-
-            return {
-                "sampler": None,
-                "shuffle": False,
-                "batch_sampler": batch_sampler,
-                "batch_size": 1,
-                "drop_last": False,
-            }
-
-        if _fault_tolerant_training():
-            fast_forward_sampler = sampler = FastForwardSampler(sampler)
-            fast_forward_sampler.setup(dataloader_batch_size=dataloader.batch_size)
-
-        return {"sampler": sampler, "shuffle": False, "batch_sampler": None}
-
-    @staticmethod
-    def _get_dataloader_init_kwargs(
-        dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
-    ) -> Dict[str, Any]:
-        if not isinstance(dataloader, DataLoader):
-            raise ValueError(f"The dataloader {dataloader} needs to subclass `torch.utils.data.DataLoader`")
-
-        # get the dataloader instance attributes
-        attrs = {k: v for k, v in vars(dataloader).items() if not k.startswith("_")}
-        # not part of `vars`
-        attrs["multiprocessing_context"] = dataloader.multiprocessing_context
-
-        # get the dataloader instance `__init__` parameters
-        params = dict(inspect.signature(dataloader.__init__).parameters)
-        has_variadic_kwargs = any(p.kind is p.VAR_KEYWORD for p in params.values())
-        if has_variadic_kwargs:
-            # if the signature takes **kwargs, assume they will be passed down with `super().__init__(**kwargs)`
-            params.update(inspect.signature(DataLoader.__init__).parameters)
-            del params["self"]
-
-        # keep only the params whose default is different to the current attr value
-        non_defaults = {name for name, p in params.items() if name in attrs and p.default != attrs[name]}
-        # add `dataset` as it might have been replaced with `*args`
-        non_defaults.add("dataset")
-
-        # kwargs to re-construct the dataloader
-        dl_kwargs = {k: v for k, v in attrs.items() if k in non_defaults}
-        dl_kwargs.update(TrainerDataLoadingMixin._resolve_batch_sampler(dataloader, sampler, mode=mode))
-
-        required_args = {
-            p.name
-            for p in params.values()
-            if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
-            and p.default is p.empty
-            and p.name not in dl_kwargs
-        }
-        # the dataloader has required args which we could not extract from the existing attributes
-        if required_args:
-            required_args = sorted(required_args)
-            dataloader_cls_name = dataloader.__class__.__name__
-            raise MisconfigurationException(
-                f"Trying to inject `DistributedSampler` into the `{dataloader_cls_name}` instance. "
-                "This would fail as some of the `__init__` arguments are not available as instance attributes. "
-                f"The missing attributes are {required_args}. "
-                f"HINT: If you wrote the `{dataloader_cls_name}` class, define `self.missing_arg_name` or "
-                "manually add the `DistributedSampler` as: "
-                f"`{dataloader_cls_name}(dataset, sampler=DistributedSampler(dataset))`."
-            )
-
-        if not has_variadic_kwargs:
-            # the dataloader signature does not allow keyword arguments that need to be passed
-            missing_kwargs = dl_kwargs.keys() - params.keys()
-            if missing_kwargs:
-                missing_kwargs = sorted(missing_kwargs)
-                dataloader_cls_name = dataloader.__class__.__name__
-                raise MisconfigurationException(
-                    f"Trying to inject `DistributedSampler` into the `{dataloader_cls_name}` instance. "
-                    "This would fail as it doesn't expose all its attributes in the `__init__` signature. "
-                    f"The missing arguments are {missing_kwargs}. "
-                    f"HINT: If you wrote the `{dataloader_cls_name}` class, add the `__init__` arguments or "
-                    "manually add the `DistributedSampler` as: "
-                    f"`{dataloader_cls_name}(dataset, sampler=DistributedSampler(dataset))`."
-                )
-
-        if isinstance(dl_kwargs["dataset"], IterableDataset):
-            dl_kwargs["batch_sampler"] = None
-            dl_kwargs["sampler"] = None
-
-        if _fault_tolerant_training():
-            if isinstance(dl_kwargs["dataset"], IterableDataset):
-                # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
-                dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
-            elif len(dl_kwargs["dataset"]):
-                dl_kwargs["dataset"] = CaptureMapDataset(dataset=dl_kwargs["dataset"])
-            else:
-                raise MisconfigurationException(
-                    "This shouldn't happen, please open an issue on Lightning Github repository."
-                )
-
-        return dl_kwargs
-
-    @staticmethod
-    def replace_sampler(dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None) -> DataLoader:
-        dl_kwargs = TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler, mode=mode)
+    def _prepare_dataloader(dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None) -> DataLoader:
+        dl_kwargs = _get_dataloader_init_kwargs(dataloader, sampler, mode=mode)
         dl_cls = type(dataloader)
         dataloader = dl_cls(**dl_kwargs)
         return dataloader
-
-    def _get_distributed_sampler(
-        self, dataloader: DataLoader, shuffle: bool, mode: Optional[RunningStage] = None
-    ) -> DistributedSampler:
-        kwargs = self.distributed_sampler_kwargs
-        kwargs["shuffle"] = shuffle and not self.overfit_batches
-        kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
-        cls = UnrepeatedDistributedSampler if mode == RunningStage.PREDICTING else DistributedSampler
-        sampler = cls(dataloader.dataset, **kwargs)
-        return sampler
 
     def reset_train_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the train dataloader and initialises required variables (number of batches, when to validate,
@@ -299,7 +185,7 @@ class TrainerDataLoadingMixin(ABC):
                     "You requested to overfit but enabled training dataloader shuffling."
                     " We are turning off the training dataloader shuffling for you."
                 )
-                self.train_dataloader = self.replace_sampler(
+                self.train_dataloader = self._prepare_dataloader(
                     self.train_dataloader, SequentialSampler(self.train_dataloader.dataset), mode=RunningStage.TRAINING
                 )
 
@@ -308,7 +194,7 @@ class TrainerDataLoadingMixin(ABC):
 
         # automatically add samplers
         self.train_dataloader = apply_to_collection(
-            self.train_dataloader, DataLoader, self.auto_add_sampler, shuffle=True, mode=RunningStage.TRAINING
+            self.train_dataloader, DataLoader, self.prepare_dataloader, shuffle=True, mode=RunningStage.TRAINING
         )
 
         # check the workers recursively
@@ -409,7 +295,7 @@ class TrainerDataLoadingMixin(ABC):
                         "You requested to overfit but enabled val/test dataloader shuffling."
                         " We are turning it off for you."
                     )
-                    dataloaders[loader_i] = self.replace_sampler(loader, SequentialSampler(loader.dataset), mode=mode)
+                    dataloaders[loader_i] = self._prepare_dataloader(loader, SequentialSampler(loader.dataset), mode=mode)
                 else:
                     rank_zero_warn(
                         f"Your `{mode.dataloader_prefix}_dataloader` has `shuffle=True`,"
@@ -420,7 +306,7 @@ class TrainerDataLoadingMixin(ABC):
             rank_zero_warn("One of given dataloaders is None and it will be skipped.")
 
         # add samplers
-        dataloaders = [self.auto_add_sampler(dl, False, mode=mode) for dl in dataloaders if dl is not None]
+        dataloaders = [self.prepare_dataloader(dl, False, mode=mode) for dl in dataloaders if dl is not None]
 
         # add worker_init_fn for correct seeding in worker processes
         apply_to_collection(dataloaders, dtype=DataLoader, function=self.auto_add_worker_init_fn)
