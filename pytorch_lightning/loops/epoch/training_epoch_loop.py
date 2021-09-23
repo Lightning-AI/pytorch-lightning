@@ -15,7 +15,6 @@ from collections import defaultdict
 from typing import Any, Dict, Generator, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
-import pytest
 import torch
 
 from pytorch_lightning import loops  # import as loops to avoid circular imports
