@@ -216,6 +216,23 @@ def test_trainer_accumulate_grad_batches_dict_zero_grad(tmpdir, accumulate_grad_
         assert sgd_zero_grad.call_count == expected_call_count
 
 
+def test_trainer_accumulate_grad_batches_with_callback(tmpdir):
+    with patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
+        model = BoringModel()
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            limit_train_batches=10,
+            limit_val_batches=1,
+            max_epochs=4,
+            weights_summary=None,
+            callbacks=[GradientAccumulationScheduler({1: 2, 3: 4})],
+        )
+        assert trainer.accumulate_grad_batches == 1
+        trainer.fit(model)
+
+        assert sgd_zero_grad.call_count == 10 + 5 + 5 + 3
+
+
 def test_trainer_accumulate_grad_batches_incorrect_value(tmpdir):
     with pytest.raises(MisconfigurationException, match=".*supports only int and dict types.*"):
         Trainer(default_root_dir=tmpdir, accumulate_grad_batches=(2, 5))
