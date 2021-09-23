@@ -148,6 +148,9 @@ class Progress(BaseProgress):
         """Utility function to easily create an instance from keyword arguments to both ``Tracker``s."""
         return cls(total=tracker_cls(**kwargs), current=tracker_cls(**kwargs))
 
+    def reset_on_epoch(self) -> None:
+        self.current.reset()
+
     def reset_on_restart(self) -> None:
         self.current.reset_on_restart()
 
@@ -158,8 +161,9 @@ class Progress(BaseProgress):
 
 @dataclass
 class DataLoaderProgress(Progress):
-    """Tracks the dataloader progress These counters are local to a trainer rank. By default, they are not globally
-    synced across all ranks.
+    """Tracks dataloader progress.
+
+    These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
 
     Args:
         total: Tracks the total dataloader progress.
@@ -171,9 +175,29 @@ class DataLoaderProgress(Progress):
 
 
 @dataclass
+class BatchProgress(Progress):
+    """Tracks batch progress.
+
+    These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
+
+    Args:
+        total: Tracks the total dataloader progress.
+        current: Tracks the current dataloader progress.
+        is_last_batch: Whether the batch is the last one. This is useful for iterable datasets.
+    """
+
+    is_last_batch: bool = False
+
+    def reset_on_epoch(self) -> None:
+        super().reset_on_epoch()
+        self.is_last_batch = False
+
+
+@dataclass
 class SchedulerProgress(Progress):
-    """Tracks the scheduler progress. These counters are local to a trainer rank. By default, they are not globally
-    synced across all ranks.
+    """Tracks scheduler progress.
+
+    These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
 
     Args:
         total: Tracks the total scheduler progress.
@@ -197,8 +221,8 @@ class OptimizerProgress(BaseProgress):
     zero_grad: Progress = field(default_factory=lambda: Progress.from_defaults(StartedTracker))
 
     def reset_on_epoch(self) -> None:
-        self.step.current.reset()
-        self.zero_grad.current.reset()
+        self.step.reset_on_epoch()
+        self.zero_grad.reset_on_epoch()
 
     def reset_on_restart(self) -> None:
         self.step.reset_on_restart()
