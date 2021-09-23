@@ -63,6 +63,7 @@ def restore_env_variables():
         "PL_SEED_WORKERS",
         "WANDB_MODE",
         "HOROVOD_FUSION_THRESHOLD",
+        "RANK",  # set by DeepSpeed
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
