@@ -25,9 +25,9 @@ from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.migration.migrations import migrate_checkpoint
-from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
+from pytorch_lightning.utilities.migration import pl_legacy_patch
+from pytorch_lightning.utilities.migration.migrations import migrate_checkpoint
 from pytorch_lightning.utilities.types import _PATH
 
 if _OMEGACONF_AVAILABLE:

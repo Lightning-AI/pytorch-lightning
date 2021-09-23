@@ -11,23 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Contains migration functions to upgrade legacy checkpoints to the format of the current Lightning version.
+
+When Lightning loads a checkpoint, these migrations will be applied on the loaded checkpoint dictionary sequentially,
+see :func:`migrate_checkpoint`.
 """
-Contains migration functions to upgrade legacy checkpoints to the format of the current Lightning version.
 
-When Lightning loads a checkpoint, these migrations will be applied on the loaded checkpoint dictionary
-sequentially, see :func:`migrate_checkpoint`.
-"""
-
-import sys
-from typing import Dict, Any, Type, Optional
-
-import pytorch_lightning.utilities.argparse
-
-import pytorch_lightning as pl
 import sys
 from distutils.version import LooseVersion
 from types import ModuleType, TracebackType
+from typing import Any, Dict, Optional, Type
 
+import pytorch_lightning as pl
 import pytorch_lightning.utilities.argparse
 
 _CHECKPOINT = Dict[str, Any]
