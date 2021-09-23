@@ -295,21 +295,21 @@ class LightningLoggerBase(ABC):
             model: lightning model
             input_array: input passes to `model.forward`
         """
-        pass
+        raise NotImplementedError
 
     def log_text(self, *args, **kwargs) -> None:
         """Log text.
 
         Arguments are directly passed to the logger.
         """
-        pass
+        raise NotImplementedError
 
     def log_image(self, *args, **kwargs) -> None:
         """Log image.
 
         Arguments are directly passed to the logger.
         """
-        pass
+        raise NotImplementedError
 
     def save(self) -> None:
         """Save log data."""
