@@ -52,8 +52,7 @@ class HorovodCollective(CollectivePlugin):
             self._join()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
-        obj = hvd.broadcast_object(obj, src)
-        return obj
+        return hvd.broadcast_object(obj, src)
 
     def all_gather(
         self, result: Union[torch.Tensor], process_group: Optional[Any] = dist_group.WORLD, sync_grads: bool = False
