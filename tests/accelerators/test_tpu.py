@@ -1,7 +1,7 @@
-from pytorch_lightning.plugins.training_type import TPUSpawnPlugin
 from pytorch_lightning.accelerators import TPUAccelerator
-from tests.helpers.runif import RunIf
 from pytorch_lightning.plugins import SingleTPUPlugin
+from pytorch_lightning.plugins.training_type import TPUSpawnPlugin
+from tests.helpers.runif import RunIf
 
 
 @RunIf(tpu=True)
