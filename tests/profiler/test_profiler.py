@@ -265,7 +265,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=1,
         limit_train_batches=5,
         limit_val_batches=5,

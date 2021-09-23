@@ -527,7 +527,6 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
         limit_val_batches=2,
         limit_test_batches=2,
         max_epochs=2,
-        progress_bar_refresh_rate=1,
     )
 
     # Train the model ⚡
@@ -598,7 +597,6 @@ def test_logging_dict_on_validation_step(tmpdir):
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=2,
-        progress_bar_refresh_rate=1,
     )
 
     trainer.fit(model)

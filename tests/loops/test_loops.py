@@ -362,7 +362,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         limit_train_batches=n_batches,
         limit_val_batches=0,
         accumulate_grad_batches=accumulate_grad_batches,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         logger=False,
         checkpoint_callback=False,
     )
@@ -557,7 +557,7 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
         limit_train_batches=n_batches,
         limit_val_batches=0,
         accumulate_grad_batches=accumulate_grad_batches,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         logger=False,
         checkpoint_callback=True,
     )

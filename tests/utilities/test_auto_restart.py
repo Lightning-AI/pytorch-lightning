@@ -941,7 +941,7 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir, dataset_classes, mult
         default_root_dir=tmpdir,
         max_epochs=3,
         weights_summary=None,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         multiple_trainloader_mode=multiple_trainloader_mode,
     )
 
