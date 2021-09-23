@@ -138,6 +138,9 @@ class CallbackConnector:
             self.trainer.callbacks = [StochasticWeightAveraging()] + self.trainer.callbacks
 
     def configure_progress_bar(self, refresh_rate=None, process_position=0):
+        # if progress bar callback already exists return it
+        # if Rich is available refresh_rate is None return Rich ProgressBar
+        # else return TQDM ProgressBar
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]
         if len(progress_bars) > 1:
             raise MisconfigurationException(
@@ -146,7 +149,8 @@ class CallbackConnector:
             )
         if len(progress_bars) == 1:
             return progress_bars[0]
-        if refresh_rate != 0
+        # check if progress bar has been turned off (i.e refresh_rate == 0)
+        if refresh_rate != 0:
             if _RICH_AVAILABLE:
                 if refresh_rate is None:
                     progress_bar_callback = RichProgressBar()
