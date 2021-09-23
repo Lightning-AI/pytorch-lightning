@@ -109,13 +109,12 @@ def _get_dataloader_init_kwargs(
 def _resolve_sampler(
     dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
 ) -> Dict[str, Any]:
-    """
-    This function is used to handle the sampler, batch_sampler arguments associated
-    within a DataLoader for its re-instantiation.
-    
-    If the dataloader is being used for prediction, 
-    the sampler will be wrapped into an `IndexBatchSamplerWrapper`, so Lightning can keep track of its indices.
-    If fault tolerant training is enabled, the sampler will be wrapped into a `FastForwardSampler`.
+    """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its
+    re-instantiation.
+
+    If the dataloader is being used for prediction, the sampler will be wrapped into an `IndexBatchSamplerWrapper`, so
+    Lightning can keep track of its indices. If fault tolerant training is enabled, the sampler will be wrapped into a
+    `FastForwardSampler`.
     """
     batch_sampler = getattr(dataloader, "batch_sampler")
     is_predicting = mode == RunningStage.PREDICTING
@@ -155,9 +154,7 @@ def _get_distributed_sampler(
     mode: Optional[RunningStage] = None,
     **distributed_sampler_kwargs,
 ) -> DistributedSampler:
-    """
-    This function is used to created the distributed sampler injected within the user DataLoader.
-    """
+    """This function is used to created the distributed sampler injected within the user DataLoader."""
     kwargs = distributed_sampler_kwargs
     kwargs["shuffle"] = shuffle and not overfit_batches
     kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
