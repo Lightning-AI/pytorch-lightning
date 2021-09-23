@@ -158,7 +158,7 @@ def test_multiple_eval_dataloader(tmpdir, ckpt_path):
 
 
 def test_train_dataloader_passed_to_fit(tmpdir):
-    """Verify that train dataloader can be passed to fit"""
+    """Verify that train dataloader can be passed to fit."""
 
     # only train passed to fit
     model = EvalModelTemplate()
@@ -242,7 +242,7 @@ class Counter(Callback):
     ["limit_train_batches", "limit_val_batches", "limit_test_batches"], [(0.0, 0.0, 0.0), (1.0, 1.0, 1.0)]
 )
 def test_inf_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
-    """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit in percent"""
+    """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit in percent."""
 
     ckpt_callback = ModelCheckpoint(monitor="val_log", save_top_k=1, mode="max", verbose=False)
     epoch_cb = Counter()
@@ -293,7 +293,7 @@ def test_inf_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches,
     ],
 )
 def test_dataloaders_with_limit_train_batches(tmpdir, dataset, limit_train_batches):
-    """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit as number"""
+    """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit as number."""
 
     ckpt_callback = ModelCheckpoint(monitor="val_log", save_top_k=1, mode="max", verbose=False)
     epoch_cb = Counter()
@@ -330,7 +330,7 @@ def test_dataloaders_with_limit_train_batches(tmpdir, dataset, limit_train_batch
     ],
 )
 def test_dataloaders_with_limit_val_batches(tmpdir, dataset, limit_val_batches):
-    """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit as number"""
+    """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit as number."""
 
     epoch_cb = Counter()
     callbacks = [epoch_cb]
@@ -375,7 +375,7 @@ def test_dataloaders_with_limit_val_batches(tmpdir, dataset, limit_val_batches):
 def test_datasets_dataloaders_with_limit_num_batches(
     tmpdir, dataset, limit_train_batches, limit_val_batches, limit_test_batches
 ):
-    """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit as number"""
+    """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit as number."""
 
     ckpt_callback = ModelCheckpoint(monitor="val_log", save_top_k=1, mode="max", verbose=False)
     epoch_cb = Counter()
@@ -415,7 +415,7 @@ def test_datasets_dataloaders_with_limit_num_batches(
     [(0.0, 0.0, 0.0), (0, 0, 0.5), (1.0, 1.0, 1.0), (0.2, 0.4, 0.4)],
 )
 def test_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
-    """Verify num_batches for train, val & test dataloaders passed with batch limit in percent"""
+    """Verify num_batches for train, val & test dataloaders passed with batch limit in percent."""
     model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__multiple_mixed_length
     model.test_dataloader = model.test_dataloader__multiple_mixed_length
@@ -447,7 +447,7 @@ def test_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, lim
     ["limit_train_batches", "limit_val_batches", "limit_test_batches"], [(0, 0, 0), (1, 2, 3), (1, 2, 1e50)]
 )
 def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
-    """Verify num_batches for train, val & test dataloaders passed with batch limit as number"""
+    """Verify num_batches for train, val & test dataloaders passed with batch limit as number."""
 
     model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__multiple_mixed_length
@@ -469,8 +469,8 @@ def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_v
 
     with patch.object(
         trainer.fit_loop.epoch_loop.val_loop.epoch_loop,
-        "evaluation_step",
-        wraps=trainer.fit_loop.epoch_loop.val_loop.epoch_loop.evaluation_step,
+        "_evaluation_step",
+        wraps=trainer.fit_loop.epoch_loop.val_loop.epoch_loop._evaluation_step,
     ) as mocked:
         trainer.fit(model)
         assert trainer.num_training_batches == limit_train_batches
@@ -479,8 +479,8 @@ def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_v
 
     with patch.object(
         trainer.test_loop.epoch_loop,
-        "evaluation_step",
-        wraps=trainer.test_loop.epoch_loop.evaluation_step,
+        "_evaluation_step",
+        wraps=trainer.test_loop.epoch_loop._evaluation_step,
     ) as mocked:
         trainer.test(model)
         test_dataloader_lengths = [len(x) for x in model.test_dataloader()]
@@ -495,7 +495,7 @@ def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_v
 
 @pytest.mark.parametrize("fast_dev_run", [True, 1, 3, -1, "temp"])
 def test_dataloaders_with_fast_dev_run(tmpdir, fast_dev_run):
-    """Verify num_batches for train, val & test dataloaders passed with fast_dev_run"""
+    """Verify num_batches for train, val & test dataloaders passed with fast_dev_run."""
     model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__multiple_mixed_length
     model.test_dataloader = model.test_dataloader__multiple_mixed_length
@@ -541,7 +541,7 @@ def test_dataloaders_with_fast_dev_run(tmpdir, fast_dev_run):
 
 @pytest.mark.parametrize("ckpt_path", [None, "best", "specific"])
 def test_mixing_of_dataloader_options(tmpdir, ckpt_path):
-    """Verify that dataloaders can be passed to fit"""
+    """Verify that dataloaders can be passed to fit."""
 
     model = EvalModelTemplate()
 
@@ -628,7 +628,7 @@ def test_inf_val_dataloader(tmpdir, check_interval):
 
 
 def test_error_on_zero_len_dataloader(tmpdir):
-    """Test that error is raised if a zero-length dataloader is defined"""
+    """Test that error is raised if a zero-length dataloader is defined."""
 
     model = EvalModelTemplate()
     model.train_dataloader = model.train_dataloader__zero_length
@@ -650,7 +650,7 @@ def test_error_on_zero_len_dataloader(tmpdir):
 @pytest.mark.parametrize("stage", ("train", "test", "val"))
 @patch("pytorch_lightning.trainer.data_loading.multiprocessing.cpu_count", return_value=4)
 def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
-    """Test that error is raised if dataloader with only a few workers is used"""
+    """Test that error is raised if dataloader with only a few workers is used."""
 
     model = BoringModel()
 
@@ -680,7 +680,7 @@ def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
 @pytest.mark.parametrize("stage", ("train", "test", "val"))
 @patch("pytorch_lightning.trainer.data_loading.multiprocessing.cpu_count", return_value=4)
 def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
-    """Test that error is raised if dataloader with only a few workers is used"""
+    """Test that error is raised if dataloader with only a few workers is used."""
 
     model = EvalModelTemplate()
     model.training_step = model.training_step__multiple_dataloaders
@@ -731,8 +731,8 @@ def _user_worker_init_fn(_):
 
 @RunIf(max_torch="1.8.9")
 def test_missing_worker_init_fn():
-    """
-    Test that naive worker seed initialization leads to undesired random state in subprocesses.
+    """Test that naive worker seed initialization leads to undesired random state in subprocesses.
+
     PyTorch 1.9+ does not have this issue.
     """
     dataset = NumpyRandomDataset()
@@ -816,7 +816,8 @@ def test_auto_add_worker_init_fn_distributed(tmpdir, monkeypatch):
 
 
 def test_warning_with_small_dataloader_and_logging_interval(tmpdir):
-    """Test that a warning message is shown if the dataloader length is too short for the chosen logging interval."""
+    """Test that a warning message is shown if the dataloader length is too short for the chosen logging
+    interval."""
     model = BoringModel()
     dataloader = DataLoader(RandomDataset(32, length=10))
     model.train_dataloader = lambda: dataloader
@@ -868,10 +869,11 @@ def test_warning_with_iterable_dataset_and_len(tmpdir):
     trainer.predict(model, dataloaders=dataloader)
 
 
-def test_iterable_dataset_stop_iteration_at_epoch_beginning():
+@pytest.mark.parametrize("yield_at_all", (False, True))
+def test_iterable_dataset_stop_iteration_at_epoch_beginning(yield_at_all):
     """Test that the training loop skips execution if the iterator is empty from the start."""
 
-    class RandomDataset(IterableDataset):
+    class TestDataset(IterableDataset):
         def __init__(self, gen):
             self.gen = gen
 
@@ -879,23 +881,20 @@ def test_iterable_dataset_stop_iteration_at_epoch_beginning():
             return iter(self.gen())
 
     class TestModel(BoringModel):
-        def train_dataloader(self):
-            return DataLoader(RandomDataset(self.gen), batch_size=2)
-
         def gen(self):
-            # produce data in epoch 0
-            # no data otherwise
-            if self.current_epoch == 0:
+            # produce data in epoch 0, no data otherwise
+            if yield_at_all and self.current_epoch == 0:
                 yield torch.rand(32)
                 yield torch.rand(32)
                 yield torch.rand(32)
 
     model = TestModel()
+    train_dataloader = DataLoader(TestDataset(model.gen), batch_size=2)
     trainer = Trainer(
         default_root_dir=os.getcwd(), max_epochs=2, weights_summary=None  # we expect the second epoch to be skipped
     )
-    trainer.fit(model)
-    assert trainer.global_step == 2
+    trainer.fit(model, train_dataloader=train_dataloader)
+    assert trainer.global_step == 2 * yield_at_all
     assert trainer.current_epoch == 1
 
 
@@ -924,7 +923,7 @@ class DistribSamplerCallback(Callback):
 
 @RunIf(min_gpus=2, skip_windows=True)
 def test_dataloader_distributed_sampler(tmpdir):
-    """Test DistributedSampler and it's arguments for DDP backend"""
+    """Test DistributedSampler and it's arguments for DDP backend."""
     seed_everything(123)
     model = EvalModelTemplate()
     trainer = Trainer(
@@ -950,7 +949,8 @@ class ModelWithDataLoaderDistributedSampler(EvalModelTemplate):
 
 @RunIf(min_gpus=2, skip_windows=True)
 def test_dataloader_distributed_sampler_already_attached(tmpdir):
-    """Test DistributedSampler and it's arguments for DDP backend when DistSampler already included on dataloader"""
+    """Test DistributedSampler and it's arguments for DDP backend when DistSampler already included on
+    dataloader."""
     seed_everything(123)
     model = ModelWithDataLoaderDistributedSampler()
     trainer = Trainer(
@@ -1014,7 +1014,7 @@ def test_batch_size_smaller_than_num_gpus(tmpdir):
     [pytest.param("min_size", 5), pytest.param("max_size_cycle", 10)],
 )
 def test_fit_multiple_train_loaders(tmpdir, multiple_trainloader_mode, num_training_batches):
-    """Integration test for multple train loaders"""
+    """Integration test for multple train loaders."""
     model = EvalModelTemplate()
 
     model.train_dataloader = model.train_dataloader__multiple_mapping
@@ -1313,10 +1313,8 @@ def test_dataloaders_load_only_once_passed_loaders(tmpdir):
 
 
 def test_dataloaders_reset_and_attach(tmpdir):
-    """
-    Test that repeated calls to Trainer.{fit,validate,test,predict} properly reset and dataloaders before
-    attaching the new one.
-    """
+    """Test that repeated calls to Trainer.{fit,validate,test,predict} properly reset and dataloaders before
+    attaching the new one."""
     # the assertions compare the datasets and not dataloaders since we patch and replace the samplers
     dataloader_0 = DataLoader(dataset=RandomDataset(32, 64))
     dataloader_1 = DataLoader(dataset=RandomDataset(32, 64))
@@ -1358,9 +1356,7 @@ def test_dataloaders_reset_and_attach(tmpdir):
 
 @pytest.mark.parametrize("multiple_trainloader_mode", ["min_size", "max_size_cycle"])
 def test_correct_dataloader_idx_in_hooks(tmpdir, multiple_trainloader_mode):
-    """
-    Check the correct dataloader_idx inside hooks
-    """
+    """Check the correct dataloader_idx inside hooks."""
 
     class CustomBoringModel(BoringModel):
         def __init__(self):

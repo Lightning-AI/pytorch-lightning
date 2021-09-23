@@ -22,7 +22,7 @@ from pytorch_lightning.trainer.progress import DataLoaderProgress
 
 
 class DataLoaderLoop(Loop):
-    """Base class to loop over all dataloaders"""
+    """Base class to loop over all dataloaders."""
 
     def __init__(self):
         super().__init__()
@@ -31,32 +31,34 @@ class DataLoaderLoop(Loop):
     @property
     @abstractmethod
     def dataloaders(self) -> Sequence[DataLoader]:
-        """Returns the dataloaders to loop over"""
+        """Returns the dataloaders to loop over."""
 
     @property
     def current_dataloader_idx(self) -> int:
-        """Returns the index of the current dataloader"""
+        """Returns the index of the current dataloader."""
         return self.dataloader_progress.current.ready - 1
 
     @property
     def current_dataloader(self) -> DataLoader:
-        """Returns the current dataloader"""
+        """Returns the current dataloader."""
         return self.dataloaders[self.current_dataloader_idx]
 
     @property
     def num_dataloaders(self) -> int:
-        """Returns the number of dataloaders present"""
+        """Returns the number of dataloaders present."""
         return len(self.dataloaders) if self.dataloaders is not None else 0
 
     @property
     def done(self) -> bool:
-        """Returns whether all dataloaders have been processed"""
+        """Returns whether all dataloaders have been processed."""
         return self.dataloader_progress.current.completed >= self.num_dataloaders
 
     def reset(self) -> None:
-        """Resets the internal state"""
+        """Resets the internal state."""
         if not self.restarting:
             self.dataloader_progress.current.reset()
+        else:
+            self.dataloader_progress.current.reset_on_restart()
 
     def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
         self.dataloader_progress.increment_ready()

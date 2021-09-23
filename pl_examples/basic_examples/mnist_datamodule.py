@@ -41,8 +41,7 @@ if not _TORCHVISION_MNIST_AVAILABLE:
 
 
 class MNISTDataModule(LightningDataModule):
-    """
-    Standard MNIST, train, val, test splits and transforms
+    """Standard MNIST, train, val, test splits and transforms.
 
     >>> MNISTDataModule()  # doctest: +ELLIPSIS
     <...mnist_datamodule.MNISTDataModule object at ...>
@@ -100,14 +99,14 @@ class MNISTDataModule(LightningDataModule):
         MNIST(self.data_dir, train=False, download=True)
 
     def setup(self, stage: Optional[str] = None):
-        """Split the train and valid dataset"""
+        """Split the train and valid dataset."""
         extra = dict(transform=self.default_transforms) if self.default_transforms else {}
         dataset = MNIST(self.data_dir, train=True, download=False, **extra)
         train_length = len(dataset)
         self.dataset_train, self.dataset_val = random_split(dataset, [train_length - self.val_split, self.val_split])
 
     def train_dataloader(self):
-        """MNIST train set removes a subset to use for validation"""
+        """MNIST train set removes a subset to use for validation."""
         loader = DataLoader(
             self.dataset_train,
             batch_size=self.batch_size,
@@ -119,7 +118,7 @@ class MNISTDataModule(LightningDataModule):
         return loader
 
     def val_dataloader(self):
-        """MNIST val set uses a subset of the training set for validation"""
+        """MNIST val set uses a subset of the training set for validation."""
         loader = DataLoader(
             self.dataset_val,
             batch_size=self.batch_size,
@@ -131,7 +130,7 @@ class MNISTDataModule(LightningDataModule):
         return loader
 
     def test_dataloader(self):
-        """MNIST test set uses the test split"""
+        """MNIST test set uses the test split."""
         extra = dict(transform=self.test_transforms) if self.test_transforms else {}
         dataset = MNIST(self.data_dir, train=False, download=False, **extra)
         loader = DataLoader(

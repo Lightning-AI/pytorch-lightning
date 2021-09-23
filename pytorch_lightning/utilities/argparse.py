@@ -34,8 +34,8 @@ class ParseArgparserDataType(ABC):
 def from_argparse_args(
     cls: Type[ParseArgparserDataType], args: Union[Namespace, ArgumentParser], **kwargs: Any
 ) -> ParseArgparserDataType:
-    """Create an instance from CLI arguments.
-    Eventually use varibles from OS environement which are defined as "PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>"
+    """Create an instance from CLI arguments. Eventually use varibles from OS environement which are defined as
+    "PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>".
 
     Args:
         cls: Lightning class
@@ -139,7 +139,7 @@ def get_init_arguments_and_types(cls: Any) -> List[Tuple[str, Tuple, Any]]:
         arg_default = cls_default_params[arg].default
         try:
             arg_types = tuple(arg_type.__args__)
-        except AttributeError:
+        except (AttributeError, TypeError):
             arg_types = (arg_type,)
 
         name_type_default.append((arg, arg_types, arg_default))
@@ -293,13 +293,6 @@ def _gpus_allowed_type(x: str) -> Union[int, str]:
     if "," in x:
         return str(x)
     return int(x)
-
-
-def _gpus_arg_default(x: str) -> Union[int, str]:  # pragma: no-cover
-    # unused, but here for backward compatibility with old checkpoints that need to be able to
-    # unpickle the function from the checkpoint, as it was not filtered out in versions < 1.2.8
-    # see: https://github.com/PyTorchLightning/pytorch-lightning/pull/6898
-    pass
 
 
 def _int_or_float_type(x: Union[int, float, str]) -> Union[int, float]:

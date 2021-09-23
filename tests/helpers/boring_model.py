@@ -70,8 +70,7 @@ class RandomIterableDatasetWithLen(IterableDataset):
 
 class BoringModel(LightningModule):
     def __init__(self):
-        """
-        Testing PL Module
+        """Testing PL Module.
 
         Use as follows:
         - subclass
@@ -85,7 +84,6 @@ class BoringModel(LightningModule):
 
         model = BaseTestModel()
         model.training_epoch_end = None
-
         """
         super().__init__()
         self.layer = torch.nn.Linear(32, 2)
@@ -184,3 +182,18 @@ class BoringDataModule(LightningDataModule):
 
     def predict_dataloader(self):
         return DataLoader(self.random_predict)
+
+
+class ManualOptimBoringModel(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
+
+    def training_step(self, batch, batch_idx):
+        opt = self.optimizers()
+        output = self(batch)
+        loss = self.loss(batch, output)
+        opt.zero_grad()
+        self.manual_backward(loss)
+        opt.step()
+        return loss

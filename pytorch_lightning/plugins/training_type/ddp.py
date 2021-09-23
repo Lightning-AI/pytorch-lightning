@@ -29,6 +29,7 @@ import torch
 import torch.distributed
 from torch.nn.parallel.distributed import DistributedDataParallel
 
+import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
@@ -76,12 +77,10 @@ log = logging.getLogger(__name__)
 
 
 class DDPPlugin(ParallelPlugin):
-    """
-    Plugin for multi-process single-device training on one or multiple nodes.
+    """Plugin for multi-process single-device training on one or multiple nodes.
 
-    The master process in each node spawns N-1 child processes via :func:`subprocess.Popen`,
-    where N is the number of devices (e.g. GPU) per node.
-    It is very similar to how :mod:`torch.distributed.launch` launches processes.
+    The master process in each node spawns N-1 child processes via :func:`subprocess.Popen`, where N is the number of
+    devices (e.g. GPU) per node. It is very similar to how :mod:`torch.distributed.launch` launches processes.
     """
 
     distributed_backend = "ddp"
@@ -127,6 +126,7 @@ class DDPPlugin(ParallelPlugin):
         self._model_averaging_period = model_averaging_period
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
+        self._rank_0_has_called_call_children_scripts: bool = False
         self.set_world_ranks()
 
     @property
@@ -253,6 +253,8 @@ class DDPPlugin(ParallelPlugin):
             delay = np.random.uniform(1, 5, 1)[0]
             sleep(delay)
 
+        self._rank_0_has_called_call_children_scripts = True
+
     def setup_distributed(self):
         reset_seed()
 
@@ -317,8 +319,6 @@ class DDPPlugin(ParallelPlugin):
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
 
-            # Post-localSDG is only available after 1.9,
-            # and `torch.distributed.optim` package currently is not available on Windows.
             if (
                 _TORCH_GREATER_EQUAL_1_10
                 and isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState)
@@ -330,7 +330,7 @@ class DDPPlugin(ParallelPlugin):
         optimizers = self.lightning_module.trainer.optimizers
         if self._model_averaging_period is None:
             raise ValueError(
-                "Post-localSGD algorithm is used, " "but model averaging period is not provided to DDP plugin."
+                "Post-localSGD algorithm is used, but model averaging period is not provided to DDP plugin."
             )
         averager = averagers.PeriodicModelAverager(period=self._model_averaging_period, warmup_steps=warmup_steps)
         for x, optimizer in enumerate(optimizers):
@@ -376,7 +376,9 @@ class DDPPlugin(ParallelPlugin):
 
     def pre_dispatch(self):
         # share ddp pids to all processes
-        self._share_information_to_prevent_deadlock()
+        self._rank_0_has_called_call_children_scripts = self.broadcast(self._rank_0_has_called_call_children_scripts)
+        if self._should_run_deadlock_detection():
+            self._share_information_to_prevent_deadlock()
 
         # move the model to the correct device
         self.model_to_device()
@@ -389,7 +391,7 @@ class DDPPlugin(ParallelPlugin):
         if trainer_fn == TrainerFn.FITTING:
             self.configure_ddp()
 
-    def post_dispatch(self) -> None:
+    def post_dispatch(self, trainer: "pl.Trainer") -> None:
         self.cluster_environment.teardown()
 
     def barrier(self, *args, **kwargs) -> None:
@@ -404,7 +406,7 @@ class DDPPlugin(ParallelPlugin):
         return self.dist.broadcast(obj)
 
     def pre_backward(self, closure_loss: torch.Tensor) -> None:
-        """Run before precision plugin executes backward"""
+        """Run before precision plugin executes backward."""
         if not self.lightning_module.automatic_optimization:
             prepare_for_backward(self.model, closure_loss)
 
@@ -412,8 +414,7 @@ class DDPPlugin(ParallelPlugin):
         self.model.to(self.root_device)
 
     def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> torch.Tensor:
-        """
-        Reduces a tensor from several distributed processes to one aggregated tensor.
+        """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
             tensor: the tensor to sync and reduce
@@ -458,7 +459,16 @@ class DDPPlugin(ParallelPlugin):
             find_unused_parameters=False,
         )
 
-    def _share_information_to_prevent_deadlock(self):
+    def _should_run_deadlock_detection(self) -> bool:
+        """Determines whether the plugin will perform process reconciliation in case of errors.
+
+        If the environment variable `PL_RECONCILE_PROCESS` is set, run detection regardless of the cluster environment.
+        By default this is disabled. Otherwise, if the cluster environment creates the processes, allow the scheduler /
+        parent process to perform the process termination, external to Lightning.
+        """
+        return os.getenv("PL_RECONCILE_PROCESS", "0") == "1" or self._rank_0_has_called_call_children_scripts
+
+    def _share_information_to_prevent_deadlock(self) -> None:
         self._share_pids()
 
         # there should be a unique sync_dir per nodes.
@@ -474,17 +484,18 @@ class DDPPlugin(ParallelPlugin):
 
         self._sync_dir = sync_dirs[self.node_rank]
 
-    def _share_pids(self):
-        """
-        Make all DDP processes aware of all processes pids.
-        """
+    def _share_pids(self) -> None:
+        """Make all DDP processes aware of all processes pids."""
         self.barrier()
         pids = self.all_gather(torch.tensor(os.getpid(), device=self.root_device))
         pids = pids.cpu().numpy().tolist()
         self._pids = pids if isinstance(pids, list) else [pids]
 
-    def reconciliate_processes(self, trace: str):
+    def reconciliate_processes(self, trace: str) -> None:
         if self.world_size < 2:
+            return
+
+        if not self._should_run_deadlock_detection():
             return
 
         sync_dir = self._sync_dir

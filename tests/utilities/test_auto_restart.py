@@ -118,10 +118,8 @@ def test_fast_forward_getattr():
 
 
 def test_fast_forward_on_batch_sampler():
-    """
-    This test ensures ``FastForwardSampler`` applied to ``BatchSampler`` correctly retrived
-    the right next batch on restart.
-    """
+    """This test ensures ``FastForwardSampler`` applied to ``BatchSampler`` correctly retrived the right next batch
+    on restart."""
     dataset = range(15)
     sampler = SequentialSampler(dataset)
     batch_sampler = BatchSampler(sampler, 3, False)
@@ -144,10 +142,8 @@ def test_fast_forward_on_batch_sampler():
 
 
 def test_fast_forward_on_sequential_sampler():
-    """
-    This test ensures ``FastForwardSampler`` applied to ``SequentialSampler`` correctly retrived
-    the right next batch on restart.
-    """
+    """This test ensures ``FastForwardSampler`` applied to ``SequentialSampler`` correctly retrived the right next
+    batch on restart."""
     dataset = range(15)
     sequential_sampler = SequentialSampler(dataset)
     sampler = FastForwardSampler(sequential_sampler)
@@ -170,10 +166,8 @@ def test_fast_forward_on_sequential_sampler():
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="todo (tchaton) Need more investigation")
 def test_fast_forward_on_random_sampler():
-    """
-    This test ensures ``FastForwardSampler`` applied to ``RandomSampler`` correctly retrived
-    the right next batch on restart.
-    """
+    """This test ensures ``FastForwardSampler`` applied to ``RandomSampler`` correctly retrived the right next
+    batch on restart."""
     seed = 42
     seed_everything(42)
 
@@ -250,10 +244,8 @@ class RangeIterableDataset(IterableDataset):
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 30 sec and should be skipped in Azure CI")
 @pytest.mark.parametrize("num_workers", [0, 1, 2])
 def test_fast_forward_sampler_over_iterable_dataset(num_workers):
-    """
-    This test ensures ``FastForwardSampler`` and ``CaptureIterableDataset`` are properly being
-    used to capture workers states.
-    """
+    """This test ensures ``FastForwardSampler`` and ``CaptureIterableDataset`` are properly being used to capture
+    workers states."""
     batch_size = 3
     initial_seed = seed_everything(42)
     generator = torch.Generator()
@@ -364,7 +356,7 @@ def _test_fast_forward_sampler_with_distributed_sampler(rank, worldsize):
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 25 sec and should be skipped in Azure CI")
 @RunIf(skip_windows=True)
 def test_fast_forward_sampler_with_distributed_sampler():
-    """Make sure result logging works with DDP"""
+    """Make sure result logging works with DDP."""
     tutils.set_random_master_port()
     worldsize = 2
     mp.spawn(_test_fast_forward_sampler_with_distributed_sampler, args=(worldsize,), nprocs=worldsize)
@@ -638,7 +630,7 @@ def test_fast_forward_sampler_iterative_dataset():
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 55 sec and should be skipped in Azure CI")
 @RunIf(skip_windows=True)
 def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
-    """Make sure result logging works with DDP"""
+    """Make sure result logging works with DDP."""
     tutils.set_random_master_port()
     worldsize = 2
     mp.spawn(
@@ -700,9 +692,7 @@ def test_dataloader_to_state_dict_and_reload():
 @RunIf(min_torch="1.7.0")
 @pytest.mark.parametrize("use_fault_tolerant", ["0", "1"])
 def test_data_loading_wraps_dataset_and_samplers(use_fault_tolerant, tmpdir):
-    """
-    This test ensures the dataset and sampler are properly wrapped when fault tolerant is enabled.
-    """
+    """This test ensures the dataset and sampler are properly wrapped when fault tolerant is enabled."""
 
     class CustomBatchSampler(BatchSampler):
         pass
@@ -807,8 +797,7 @@ class RandomGetItemDataset(Dataset):
 @pytest.mark.parametrize("batch_size", [1, 2, 3])
 def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     """Test that the sequence of batches coming from a random number generator continues with the correct sequence
-    after reloading the state.
-    """
+    after reloading the state."""
 
     def create_dataset_sampler():
         dset = CaptureMapDataset(dataset_class(16, 8))
@@ -927,7 +916,7 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1):
     trainer = Trainer(**trainer_kwargs)
     with suppress(CustomException):
         trainer.fit(model, train_dataloader=train_dataloader)
-    return model.seen_batches
+    return model.seen_batches, model.parameters()
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
@@ -956,12 +945,12 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir, dataset_classes, mult
         multiple_trainloader_mode=multiple_trainloader_mode,
     )
 
-    all_batches = _run_training(trainer_kwargs, dataset_classes)
+    all_batches, weights0 = _run_training(trainer_kwargs, dataset_classes)
     all_batches = torch.stack(all_batches)
     assert len(all_batches) == 9
 
     # Simulate 1st failure
-    complete_batches = _run_training(trainer_kwargs, dataset_classes, fail_on_step=4)
+    complete_batches, _ = _run_training(trainer_kwargs, dataset_classes, fail_on_step=4)
     assert len(complete_batches) == 4
 
     checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
@@ -969,10 +958,15 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir, dataset_classes, mult
 
     # Resume after failure
     trainer_kwargs.update(resume_from_checkpoint=checkpoint_path)
-    resumed_batches = _run_training(trainer_kwargs, dataset_classes, fail_on_step=-1)
+    resumed_batches, weights1 = _run_training(trainer_kwargs, dataset_classes, fail_on_step=-1)
     assert len(resumed_batches) == 5
 
     # the resumed batches should match the batches of the successful training
     all_batches_resumed = torch.stack(complete_batches + resumed_batches)
     assert len(all_batches_resumed) == 9
     assert torch.equal(all_batches, all_batches_resumed)
+
+    # the final weights of a resumed training should equal the weights of an uninterrupted training
+    for w0, w1 in zip(weights0, weights1):
+        assert w0 is not w1
+        assert torch.allclose(w0, w1)

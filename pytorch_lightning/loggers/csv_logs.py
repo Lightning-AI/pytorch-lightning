@@ -63,11 +63,11 @@ class ExperimentWriter:
         self.metrics_file_path = os.path.join(self.log_dir, self.NAME_METRICS_FILE)
 
     def log_hparams(self, params: Dict[str, Any]) -> None:
-        """Record hparams"""
+        """Record hparams."""
         self.hparams.update(params)
 
     def log_metrics(self, metrics_dict: Dict[str, float], step: Optional[int] = None) -> None:
-        """Record metrics"""
+        """Record metrics."""
 
         def _handle_value(value):
             if isinstance(value, torch.Tensor):
@@ -82,7 +82,7 @@ class ExperimentWriter:
         self.metrics.append(metrics)
 
     def save(self) -> None:
-        """Save recorded hparams and metrics into files"""
+        """Save recorded hparams and metrics into files."""
         hparams_file = os.path.join(self.log_dir, self.NAME_HPARAMS_FILE)
         save_hparams_to_yaml(hparams_file, self.hparams)
 
@@ -118,6 +118,7 @@ class CSVLogger(LightningLoggerBase):
         version: Experiment version. If version is not specified the logger inspects the save
             directory for existing versions, then automatically assigns the next available version.
         prefix: A string to put at the beginning of metric keys.
+        flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
     """
 
     LOGGER_JOIN_CHAR = "-"
@@ -128,6 +129,7 @@ class CSVLogger(LightningLoggerBase):
         name: Optional[str] = "default",
         version: Optional[Union[int, str]] = None,
         prefix: str = "",
+        flush_logs_every_n_steps: int = 100,
     ):
         super().__init__()
         self._save_dir = save_dir
@@ -135,13 +137,14 @@ class CSVLogger(LightningLoggerBase):
         self._version = version
         self._prefix = prefix
         self._experiment = None
+        self._flush_logs_every_n_steps = flush_logs_every_n_steps
 
     @property
     def root_dir(self) -> str:
-        """
-        Parent directory for all checkpoint subdirectories.
-        If the experiment name parameter is ``None`` or the empty string, no experiment subdirectory is used
-        and the checkpoint will be saved in "save_dir/version_dir"
+        """Parent directory for all checkpoint subdirectories.
+
+        If the experiment name parameter is ``None`` or the empty string, no experiment subdirectory is used and the
+        checkpoint will be saved in "save_dir/version_dir"
         """
         if not self.name:
             return self.save_dir
@@ -149,20 +152,19 @@ class CSVLogger(LightningLoggerBase):
 
     @property
     def log_dir(self) -> str:
+        """The log directory for this run.
+
+        By default, it is named ``'version_${self.version}'`` but it can be overridden by passing a string value for the
+        constructor's version parameter instead of ``None`` or an int.
         """
-        The log directory for this run. By default, it is named
-        ``'version_${self.version}'`` but it can be overridden by passing a string value
-        for the constructor's version parameter instead of ``None`` or an int.
-        """
-        # create a pseudo standard path ala test-tube
+        # create a pseudo standard path
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
         log_dir = os.path.join(self.root_dir, version)
         return log_dir
 
     @property
     def save_dir(self) -> Optional[str]:
-        """
-        The current directory where logs are saved.
+        """The current directory where logs are saved.
 
         Returns:
             The path to current directory where logs are saved.
@@ -198,6 +200,8 @@ class CSVLogger(LightningLoggerBase):
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         metrics = self._add_prefix(metrics)
         self.experiment.log_metrics(metrics, step)
+        if step is not None and (step + 1) % self._flush_logs_every_n_steps == 0:
+            self.save()
 
     @rank_zero_only
     def save(self) -> None:
@@ -210,8 +214,7 @@ class CSVLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        """
-        Gets the name of the experiment.
+        """Gets the name of the experiment.
 
         Returns:
             The name of the experiment.
@@ -220,8 +223,7 @@ class CSVLogger(LightningLoggerBase):
 
     @property
     def version(self) -> int:
-        """
-        Gets the version of the experiment.
+        """Gets the version of the experiment.
 
         Returns:
             The version of the experiment if it is specified, else the next version.
