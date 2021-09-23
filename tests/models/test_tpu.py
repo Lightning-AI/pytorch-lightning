@@ -177,7 +177,7 @@ def test_model_16bit_tpu_cores_8(tmpdir):
 @RunIf(tpu=True)
 @pl_multi_process_test
 def test_model_tpu_early_stop(tmpdir):
-    """Test if single TPU core training works"""
+    """Test if single TPU core training works."""
 
     class CustomBoringModel(BoringModel):
         def validation_step(self, *args, **kwargs):
@@ -222,7 +222,7 @@ def test_tpu_grad_norm(tmpdir):
 @RunIf(tpu=True)
 @pl_multi_process_test
 def test_tpu_clip_grad_by_value(tmpdir):
-    """Test if clip_gradients by value works on TPU"""
+    """Test if clip_gradients by value works on TPU."""
     tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -242,7 +242,7 @@ def test_tpu_clip_grad_by_value(tmpdir):
 @RunIf(tpu=True)
 @pl_multi_process_test
 def test_dataloaders_passed_to_fit(tmpdir):
-    """Test if dataloaders passed to trainer works on TPU"""
+    """Test if dataloaders passed to trainer works on TPU."""
     tutils.reset_seed()
     model = BoringModel()
 
@@ -257,19 +257,19 @@ def test_dataloaders_passed_to_fit(tmpdir):
 )
 @RunIf(tpu=True)
 def test_tpu_id_to_be_as_expected(tpu_cores, expected_tpu_id):
-    """Test if trainer.tpu_id is set as expected"""
+    """Test if trainer.tpu_id is set as expected."""
     assert Trainer(tpu_cores=tpu_cores).accelerator_connector.tpu_id == expected_tpu_id
 
 
 def test_tpu_misconfiguration():
-    """Test if trainer.tpu_id is set as expected"""
+    """Test if trainer.tpu_id is set as expected."""
     with pytest.raises(MisconfigurationException, match="`tpu_cores` can only be"):
         Trainer(tpu_cores=[1, 8])
 
 
 @pytest.mark.skipif(_TPU_AVAILABLE, reason="test requires missing TPU")
 def test_exception_when_no_tpu_found(tmpdir):
-    """Test if exception is thrown when xla devices are not available"""
+    """Test if exception is thrown when xla devices are not available."""
 
     with pytest.raises(MisconfigurationException, match="No TPU devices were found."):
         Trainer(tpu_cores=8)
@@ -278,14 +278,14 @@ def test_exception_when_no_tpu_found(tmpdir):
 @pytest.mark.parametrize("tpu_cores", [1, 8, [1]])
 @RunIf(tpu=True)
 def test_distributed_backend_set_when_using_tpu(tmpdir, tpu_cores):
-    """Test if distributed_backend is set to `tpu` when tpu_cores is not None"""
+    """Test if distributed_backend is set to `tpu` when tpu_cores is not None."""
     assert Trainer(tpu_cores=tpu_cores).distributed_backend == "tpu"
 
 
 @RunIf(tpu=True)
 @pl_multi_process_test
 def test_broadcast_on_tpu():
-    """Checks if an object from the master process is broadcasted to other processes correctly"""
+    """Checks if an object from the master process is broadcasted to other processes correctly."""
 
     def test_broadcast(rank):
         trainer = Trainer(tpu_cores=8)
@@ -332,7 +332,7 @@ def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
 @RunIf(tpu=True)
 @pl_multi_process_test
 def test_tpu_cores_with_argparse(cli_args, expected):
-    """Test passing tpu_cores in command line"""
+    """Test passing tpu_cores in command line."""
     cli_args = cli_args.split(" ") if cli_args else []
     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
         parser = ArgumentParser(add_help=False)
@@ -347,7 +347,7 @@ def test_tpu_cores_with_argparse(cli_args, expected):
 @RunIf(tpu=True)
 @pl_multi_process_test
 def test_tpu_reduce():
-    """Test tpu spawn reduce operation"""
+    """Test tpu spawn reduce operation."""
 
     def test_reduce(rank):
         trainer = Trainer(tpu_cores=8)
@@ -372,8 +372,8 @@ def test_tpu_reduce():
 @pytest.mark.parametrize("clip_val", [10])
 @mock.patch("torch.nn.utils.clip_grad_norm_")
 def test_tpu_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
-    """
-    Ensure that clip gradients is only called if the value is greater than 0.
+    """Ensure that clip gradients is only called if the value is greater than 0.
+
     TODO: Fix (test fails with parametrize)
     """
     tutils.reset_seed()
@@ -411,7 +411,7 @@ def test_if_test_works_with_checkpoint_false(tmpdir):
 @RunIf(tpu=True)
 @pl_multi_process_test
 def test_tpu_sync_dist():
-    """Test tpu spawn sync dist operation"""
+    """Test tpu spawn sync dist operation."""
 
     def test_sync_dist(_):
         sync = _Sync(TPUSpawnPlugin().reduce, should=True, op=torch.distributed.ReduceOp.SUM)

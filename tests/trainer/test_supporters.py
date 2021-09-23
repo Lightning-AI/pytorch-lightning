@@ -36,7 +36,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def test_tensor_running_accum_reset():
-    """Test that reset would set all attributes to the initialization state"""
+    """Test that reset would set all attributes to the initialization state."""
 
     window_length = 10
 
@@ -89,7 +89,7 @@ def test_none_length_cycle_iterator():
     ],
 )
 def test_combined_dataset(dataset_1, dataset_2):
-    """Verify the length of the CombinedDataset"""
+    """Verify the length of the CombinedDataset."""
     datasets = [dataset_1, dataset_2]
     combined_dataset = CombinedDataset(datasets)
 
@@ -104,7 +104,7 @@ def test_combined_dataset_length_mode_error():
 
 
 def test_combined_loader_iterator_dict_min_size():
-    """Test `CombinedLoaderIterator` given mapping loaders"""
+    """Test `CombinedLoaderIterator` given mapping loaders."""
     loaders = {
         "a": torch.utils.data.DataLoader(range(10), batch_size=4),
         "b": torch.utils.data.DataLoader(range(20), batch_size=5),
@@ -127,19 +127,19 @@ def test_combined_loader_init_mode_error():
 
 
 def test_combined_loader_loader_type_error():
-    """Test the ValueError when wrapping the loaders"""
+    """Test the ValueError when wrapping the loaders."""
     with pytest.raises(TypeError, match="Expected data to be int, Sequence or Mapping, but got NoneType"):
         CombinedLoader(None, "max_size_cycle")
 
 
 def test_combined_loader_calc_length_mode_error():
-    """Test the ValueError when calculating the number of batches"""
+    """Test the ValueError when calculating the number of batches."""
     with pytest.raises(TypeError, match="Expected data to be int, Sequence or Mapping, but got NoneType"):
         CombinedLoader._calc_num_batches(None)
 
 
 def test_combined_loader_dict_min_size():
-    """Test `CombinedLoader` of mode 'min_size' given mapping loaders"""
+    """Test `CombinedLoader` of mode 'min_size' given mapping loaders."""
     loaders = {
         "a": torch.utils.data.DataLoader(range(10), batch_size=4),
         "b": torch.utils.data.DataLoader(range(20), batch_size=5),
@@ -158,7 +158,7 @@ def test_combined_loader_dict_min_size():
 
 
 def test_combined_loader_dict_max_size_cycle():
-    """Test `CombinedLoader` of mode 'max_size_cycle' given mapping loaders"""
+    """Test `CombinedLoader` of mode 'max_size_cycle' given mapping loaders."""
     loaders = {
         "a": torch.utils.data.DataLoader(range(10), batch_size=4),
         "b": torch.utils.data.DataLoader(range(20), batch_size=5),
@@ -177,7 +177,7 @@ def test_combined_loader_dict_max_size_cycle():
 
 
 def test_combined_loader_sequence_min_size():
-    """Test `CombinedLoader` of mode 'min_size' given sequence loaders"""
+    """Test `CombinedLoader` of mode 'min_size' given sequence loaders."""
     loaders = [
         torch.utils.data.DataLoader(range(10), batch_size=4),
         torch.utils.data.DataLoader(range(20), batch_size=5),
@@ -210,7 +210,7 @@ class TestIterableDataset(IterableDataset):
 @pytest.mark.parametrize("mode", ["min_size", "max_size_cycle"])
 @pytest.mark.parametrize("use_multiple_dataloaders", [False, True])
 def test_combined_loader_sequence_iterable_dataset(mode, use_multiple_dataloaders):
-    """Test `CombinedLoader` of mode 'min_size' given sequence loaders"""
+    """Test `CombinedLoader` of mode 'min_size' given sequence loaders."""
     if use_multiple_dataloaders:
         loaders = [
             torch.utils.data.DataLoader(TestIterableDataset(10), batch_size=2),
@@ -272,7 +272,7 @@ def test_combined_loader_sequence_with_map_and_iterable(lengths):
 
 
 def test_combined_loader_sequence_max_size_cycle():
-    """Test `CombinedLoader` of mode 'max_size_cycle' given sequence loaders"""
+    """Test `CombinedLoader` of mode 'max_size_cycle' given sequence loaders."""
     loaders = [
         torch.utils.data.DataLoader(range(10), batch_size=4),
         torch.utils.data.DataLoader(range(20), batch_size=5),
@@ -312,10 +312,8 @@ def test_nested_calc_num_data(input_data, compute_func, expected_length):
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("torch.cuda.is_available", return_value=True)
 def test_combined_data_loader_validation_test(cuda_available_mock, device_count_mock, tmpdir):
-    """
-    This test makes sure distributed sampler has been properly injected in dataloaders
-    when using CombinedLoader
-    """
+    """This test makes sure distributed sampler has been properly injected in dataloaders when using
+    CombinedLoader."""
 
     class CustomDataset(Dataset):
         def __init__(self, data):

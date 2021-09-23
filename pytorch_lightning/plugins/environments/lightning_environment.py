@@ -20,8 +20,7 @@ from pytorch_lightning.utilities import rank_zero_only
 
 
 class LightningEnvironment(ClusterEnvironment):
-    """
-    The default environment used by Lightning for a single node or free cluster (not managed).
+    """The default environment used by Lightning for a single node or free cluster (not managed).
 
     There are two modes the Lightning environment can operate with:
 
@@ -42,8 +41,8 @@ class LightningEnvironment(ClusterEnvironment):
         self._world_size: int = 1
 
     def creates_children(self) -> bool:
-        """
-        Returns whether the cluster creates the processes or not.
+        """Returns whether the cluster creates the processes or not.
+
         If at least :code:`LOCAL_RANK` is available as environment variable, Lightning assumes the user acts as the
         process launcher/job scheduler and Lightning will not launch new processes.
         """
@@ -83,10 +82,10 @@ class LightningEnvironment(ClusterEnvironment):
 
 
 def find_free_network_port() -> int:
-    """
-    Finds a free port on localhost.
-    It is useful in single-node training when we don't want to connect to a real master node but
-    have to set the `MASTER_PORT` environment variable.
+    """Finds a free port on localhost.
+
+    It is useful in single-node training when we don't want to connect to a real master node but have to set the
+    `MASTER_PORT` environment variable.
     """
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(("", 0))

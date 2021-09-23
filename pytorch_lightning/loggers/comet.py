@@ -240,11 +240,11 @@ class CometLogger(LightningLoggerBase):
     def log_metrics(self, metrics: Dict[str, Union[torch.Tensor, float]], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
         # Comet.ml expects metrics to be a dictionary of detached tensors on CPU
-        for key, val in metrics.items():
-            if is_tensor(val):
-                metrics[key] = val.cpu().detach()
-
         metrics_without_epoch = metrics.copy()
+        for key, val in metrics_without_epoch.items():
+            if is_tensor(val):
+                metrics_without_epoch[key] = val.cpu().detach()
+
         epoch = metrics_without_epoch.pop("epoch", None)
         metrics_without_epoch = self._add_prefix(metrics_without_epoch)
         self.experiment.log_metrics(metrics_without_epoch, step=step, epoch=epoch)
@@ -268,8 +268,7 @@ class CometLogger(LightningLoggerBase):
 
     @property
     def save_dir(self) -> Optional[str]:
-        """
-        Gets the save directory.
+        """Gets the save directory.
 
         Returns:
             The path to the save directory.
@@ -278,8 +277,7 @@ class CometLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        """
-        Gets the project name.
+        """Gets the project name.
 
         Returns:
             The project name if it is specified, else "comet-default".
@@ -295,8 +293,7 @@ class CometLogger(LightningLoggerBase):
 
     @property
     def version(self) -> str:
-        """
-        Gets the version.
+        """Gets the version.
 
         Returns:
             The first one of the following that is set in the following order

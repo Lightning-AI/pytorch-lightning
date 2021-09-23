@@ -29,7 +29,7 @@ from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict, ran
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.migration.migrations import migrate_checkpoint
+from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.parsing import parse_class_init_keys
 
 log = logging.getLogger(__name__)
@@ -126,10 +126,11 @@ class ModelIO:
             pretrained_model.freeze()
             y_hat = pretrained_model(x)
         """
-        if map_location is not None:
-            checkpoint = pl_load(checkpoint_path, map_location=map_location)
-        else:
-            checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
+        with pl_legacy_patch():
+            if map_location is not None:
+                checkpoint = pl_load(checkpoint_path, map_location=map_location)
+            else:
+                checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
 
         # convert legacy checkpoints to the new format
         checkpoint = migrate_checkpoint(checkpoint)
@@ -222,8 +223,7 @@ class ModelIO:
     # OPTIONAL HOOKS
     # -------------------------
     def on_hpc_save(self, checkpoint: Dict[str, Any]) -> None:
-        """
-        Hook to do whatever you need right before Slurm manager saves the model.
+        """Hook to do whatever you need right before Slurm manager saves the model.
 
         Args:
             checkpoint: A dictionary in which you can save variables to save in a checkpoint.
@@ -231,8 +231,7 @@ class ModelIO:
         """
 
     def on_hpc_load(self, checkpoint: Dict[str, Any]) -> None:
-        """
-        Hook to do whatever you need right before Slurm manager loads the model.
+        """Hook to do whatever you need right before Slurm manager loads the model.
 
         Args:
             checkpoint: A dictionary with variables from the checkpoint.
@@ -252,8 +251,7 @@ def _convert_loaded_hparams(model_args: dict, hparams_type: Optional[Union[Calla
 
 
 def update_hparams(hparams: dict, updates: dict) -> None:
-    """
-    Overrides hparams with new values
+    """Overrides hparams with new values.
 
     >>> hparams = {'c': 4}
     >>> update_hparams(hparams, {'a': {'b': 2}, 'c': 1})
@@ -266,7 +264,6 @@ def update_hparams(hparams: dict, updates: dict) -> None:
     Args:
         hparams: the original params and also target object
         updates: new params to be used as update
-
     """
     for k, v in updates.items():
         # if missing, add the key

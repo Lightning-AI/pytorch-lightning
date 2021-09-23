@@ -146,8 +146,7 @@ class HorovodPlugin(ParallelPlugin):
             hvd.join()
 
     def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"):
-        """
-        Reduces a tensor from several distributed processes to one aggregated tensor.
+        """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
             tensor: the tensor to sync and reduce

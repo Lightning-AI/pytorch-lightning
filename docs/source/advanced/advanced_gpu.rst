@@ -170,11 +170,15 @@ Below is an example of using both ``wrap`` and ``auto_wrap`` to create your mode
 FairScale Activation Checkpointing
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Activation checkpointing frees activations from memory as soon as they are not needed during the forward pass. They are then re-computed for the backwards pass as needed.
+Activation checkpointing frees activations from memory as soon as they are not needed during the forward pass. They are then re-computed for the backwards pass as needed. Activation checkpointing is very useful when you have intermediate layers that produce large activations.
 
 FairScales' checkpointing wrapper also handles batch norm layers correctly unlike the PyTorch implementation, ensuring stats are tracked correctly due to the multiple forward passes.
 
 This saves memory when training larger models however requires wrapping modules you'd like to use activation checkpointing on. See `here <https://fairscale.readthedocs.io/en/latest/api/nn/misc/checkpoint_activations.html>`__ for more information.
+
+.. warning::
+
+    Ensure to not wrap the entire model with activation checkpointing. This is not the intended usage of activation checkpointing, and will lead to failures as seen in `this discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/9144>`__.
 
 .. code-block:: python
 
@@ -185,7 +189,8 @@ This saves memory when training larger models however requires wrapping modules 
     class MyModel(pl.LightningModule):
         def __init__(self):
             # Wrap layers using checkpoint_wrapper
-            self.block = checkpoint_wrapper(nn.Sequential(nn.Linear(32, 32), nn.ReLU()))
+            self.block_1 = checkpoint_wrapper(nn.Sequential(nn.Linear(32, 32), nn.ReLU()))
+            self.block_2 = nn.Linear(32, 2)
 
 
 .. _deepspeed:
@@ -301,7 +306,9 @@ You can also modify the ZeRO-Offload parameters via the plugin as below.
 
     model = MyModel()
     trainer = Trainer(
-        gpus=4, plugins=DeepSpeedPlugin(cpu_offload=True, allgather_bucket_size=5e8, reduce_bucket_size=5e8), precision=16
+        gpus=4,
+        plugins=DeepSpeedPlugin(offload_optimizer=True, allgather_bucket_size=5e8, reduce_bucket_size=5e8),
+        precision=16,
     )
     trainer.fit(model)
 
@@ -515,7 +522,36 @@ DeepSpeed Activation Checkpointing
 Activation checkpointing frees activations from memory as soon as they are not needed during the forward pass.
 They are then re-computed for the backwards pass as needed.
 
-This saves memory when training larger models however requires using a checkpoint function to run the module as shown below.
+Activation checkpointing is very useful when you have intermediate layers that produce large activations.
+
+This saves memory when training larger models, however requires using a checkpoint function to run modules as shown below.
+
+.. warning::
+
+    Ensure to not wrap the entire model with activation checkpointing. This is not the intended usage of activation checkpointing, and will lead to failures as seen in `this discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/9144>`__.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.plugins import DeepSpeedPlugin
+    import deepspeed
+
+
+    class MyModel(LightningModule):
+        ...
+
+        def __init__(self):
+            super().__init__()
+            self.block_1 = nn.Sequential(nn.Linear(32, 32), nn.ReLU())
+            self.block_2 = torch.nn.Linear(32, 2)
+
+        def forward(self, x):
+            # Use the DeepSpeed checkpointing function instead of calling the module directly
+            # checkpointing self.layer_h means the activations are deleted after use,
+            # and re-calculated during the backward passes
+            x = torch.utils.checkpoint.checkpoint(self.block_1, x)
+            return self.block_2(x)
+
 
 .. code-block:: python
 
@@ -528,12 +564,13 @@ This saves memory when training larger models however requires using a checkpoin
         ...
 
         def configure_sharded_model(self):
-            self.block = nn.Sequential(nn.Linear(32, 32), nn.ReLU())
+            self.block_1 = nn.Sequential(nn.Linear(32, 32), nn.ReLU())
+            self.block_2 = torch.nn.Linear(32, 2)
 
         def forward(self, x):
             # Use the DeepSpeed checkpointing function instead of calling the module directly
-            output = deepspeed.checkpointing.checkpoint(self.block, x)
-            return output
+            x = deepspeed.checkpointing.checkpoint(self.block_1, x)
+            return self.block_2(x)
 
 
     model = MyModel()
@@ -546,7 +583,7 @@ This saves memory when training larger models however requires using a checkpoin
         gpus=4,
         plugins=DeepSpeedPlugin(
             stage=3,
-            cpu_offload=True,  # Enable CPU Offloading
+            offload_optimizer=True,  # Enable CPU Offloading
             cpu_checkpointing=True,  # (Optional) offload activations to CPU
         ),
         precision=16,
@@ -624,7 +661,7 @@ In some cases you may want to define your own DeepSpeed Config, to access all pa
         },
         "zero_optimization": {
             "stage": 2,  # Enable Stage 2 ZeRO (Optimizer/Gradient state partitioning)
-            "cpu_offload": True,  # Enable Offloading optimizer state/calculation to the host CPU
+            "offload_optimizer": True,  # Enable Offloading optimizer state/calculation to the host CPU
             "contiguous_gradients": True,  # Reduce gradient fragmentation.
             "overlap_comm": True,  # Overlap reduce/backward operation of gradients for speed.
             "allgather_bucket_size": 2e8,  # Number of elements to all gather at once.

@@ -13,23 +13,25 @@
 # limitations under the License.
 
 from collections import OrderedDict
-from typing import Any, Dict, Iterator, List, Optional, Union
+from functools import lru_cache
+from typing import Any, Dict, Iterator, Optional, Union
 
 from deprecate import void
-from torch import Tensor
 
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.utilities import _prepare_dataloader_iter
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher
 from pytorch_lightning.utilities.memory import recursive_detach
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 
 
 class EvaluationEpochLoop(Loop):
-    """
-    This is the loop performing the evaluation. It mainly loops over the given dataloader and runs the validation
-    or test step (depending on the trainer's current state).
+    """This is the loop performing the evaluation.
+
+    It mainly loops over the given dataloader and runs the validation or test step (depending on the trainer's current
+    state).
     """
 
     def __init__(self) -> None:
@@ -37,7 +39,7 @@ class EvaluationEpochLoop(Loop):
         self.dataloader: Optional[Iterator] = None
         self._dl_max_batches: Optional[int] = None
         self._num_dataloaders: Optional[int] = None
-        self.outputs: List[STEP_OUTPUT] = []
+        self.outputs: EPOCH_OUTPUT = []
         self.batch_progress = Progress()
         self.dataloader_iter: Optional[Iterator] = None
 
@@ -57,11 +59,13 @@ class EvaluationEpochLoop(Loop):
 
         if not self.restarting:
             self.batch_progress.current.reset()
+        else:
+            self.batch_progress.current.reset_on_restart()
 
     def on_run_start(
         self, data_fetcher: AbstractDataFetcher, dataloader_idx: int, dl_max_batches: int, num_dataloaders: int
     ) -> None:
-        """Adds the passed arguments to the loop's state if necessary
+        """Adds the passed arguments to the loop's state if necessary.
 
         Args:
             data_fetcher: the current data_fetcher wrapping the dataloader
@@ -103,19 +107,19 @@ class EvaluationEpochLoop(Loop):
         self.batch_progress.increment_ready()
 
         # hook
-        self.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
+        self._on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
 
         self.batch_progress.increment_started()
 
         # lightning module methods
         with self.trainer.profiler.profile("evaluation_step_and_end"):
-            output = self.evaluation_step(batch, batch_idx, dataloader_idx)
-            output = self.evaluation_step_end(output)
+            output = self._evaluation_step(batch, batch_idx, dataloader_idx)
+            output = self._evaluation_step_end(output)
 
         self.batch_progress.increment_processed()
 
         # track loss history
-        self.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
+        self._on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
 
         self.batch_progress.increment_completed()
 
@@ -123,16 +127,24 @@ class EvaluationEpochLoop(Loop):
         self.trainer.logger_connector.update_eval_step_metrics()
 
         # track epoch level outputs
-        self.outputs = self._track_output_for_epoch_end(self.outputs, output)
+        if self._should_track_batch_outputs_for_epoch_end():
+            output = recursive_detach(output, to_cpu=self.trainer.move_metrics_to_cpu)
+            if output is not None:
+                self.outputs.append(output)
 
-    def on_run_end(self) -> List[STEP_OUTPUT]:
-        """Returns the outputs of the whole run"""
+    def on_run_end(self) -> EPOCH_OUTPUT:
+        """Returns the outputs of the whole run."""
         outputs = self.outputs
         # free memory
         self.outputs = []
+        self.dataloader_iter = None
         return outputs
 
-    def evaluation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Optional[STEP_OUTPUT]:
+    def teardown(self) -> None:
+        # in case the model changes
+        self._should_track_batch_outputs_for_epoch_end.cache_clear()
+
+    def _evaluation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Optional[STEP_OUTPUT]:
         """The evaluation step (validation_step or test_step depending on the trainer's state).
 
         Args:
@@ -157,13 +169,13 @@ class EvaluationEpochLoop(Loop):
 
         return output
 
-    def evaluation_step_end(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        """Calls the `{validation/test}_step_end` hook"""
+    def _evaluation_step_end(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+        """Calls the `{validation/test}_step_end` hook."""
         hook_name = "test_step_end" if self.trainer.testing else "validation_step_end"
         output = self.trainer.call_hook(hook_name, *args, **kwargs)
         return output
 
-    def on_evaluation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def _on_evaluation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """Calls the ``on_{validation/test}_batch_start`` hook.
 
         Args:
@@ -184,7 +196,7 @@ class EvaluationEpochLoop(Loop):
         else:
             self.trainer.call_hook("on_validation_batch_start", batch, batch_idx, dataloader_idx)
 
-    def on_evaluation_batch_end(
+    def _on_evaluation_batch_end(
         self, output: Optional[STEP_OUTPUT], batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
         """The ``on_{validation/test}_batch_end`` hook.
@@ -200,11 +212,8 @@ class EvaluationEpochLoop(Loop):
 
         self.trainer.logger_connector.on_batch_end()
 
-        # track debug metrics
-        self.trainer.dev_debugger.track_eval_loss_history(batch_idx, dataloader_idx, output)
-
     def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Dict[str, Union[Any, int]]:
-        """Helper function to build the arguments for the current step
+        """Helper function to build the arguments for the current step.
 
         Args:
             batch: The current batch to run through the step
@@ -225,13 +234,10 @@ class EvaluationEpochLoop(Loop):
 
         return step_kwargs
 
-    def _track_output_for_epoch_end(
-        self, outputs: List[STEP_OUTPUT], output: Optional[STEP_OUTPUT]
-    ) -> List[STEP_OUTPUT]:
-        if output is not None:
-            if isinstance(output, dict):
-                output = recursive_detach(output, to_cpu=self.trainer.move_metrics_to_cpu)
-            elif isinstance(output, Tensor) and output.is_cuda and self.trainer.move_metrics_to_cpu:
-                output = output.cpu()
-            outputs.append(output)
-        return outputs
+    @lru_cache(1)
+    def _should_track_batch_outputs_for_epoch_end(self) -> bool:
+        """Whether the batch outputs should be stored for later usage."""
+        model = self.trainer.lightning_module
+        if self.trainer.testing:
+            return is_overridden("test_epoch_end", model)
+        return is_overridden("validation_epoch_end", model)

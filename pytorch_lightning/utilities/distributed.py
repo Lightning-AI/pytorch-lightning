@@ -109,9 +109,7 @@ def rank_zero_info(*args: Any, stacklevel: int = 4, **kwargs: Any) -> None:
 
 
 def gather_all_tensors(result: torch.Tensor, group: Optional[Any] = None) -> List[torch.Tensor]:
-    """
-    Function to gather all tensors from several ddp processes onto a list that
-    is broadcasted to all processes
+    """Function to gather all tensors from several ddp processes onto a list that is broadcasted to all processes.
 
     Args:
         result: the value to sync
@@ -164,8 +162,7 @@ def sync_ddp_if_available(
 def sync_ddp(
     result: torch.Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
 ) -> torch.Tensor:
-    """
-    Function to reduce the tensors from several ddp processes to one master process
+    """Function to reduce the tensors from several ddp processes to one master process.
 
     Args:
         result: the value to sync and reduce (typically tensor or number)
@@ -181,10 +178,14 @@ def sync_ddp(
     if group is None:
         group = torch.distributed.group.WORLD
 
-    op = reduce_op if isinstance(reduce_op, ReduceOp) else ReduceOp.SUM
-
-    if isinstance(reduce_op, str) and reduce_op.lower() in ("avg", "mean"):
-        divide_by_world_size = True
+    if isinstance(reduce_op, str):
+        if reduce_op.lower() in ("avg", "mean"):
+            op = ReduceOp.SUM
+            divide_by_world_size = True
+        else:
+            op = getattr(ReduceOp, reduce_op.upper())
+    else:
+        op = reduce_op
 
     # sync all processes before reduction
     torch.distributed.barrier(group=group)
@@ -224,8 +225,7 @@ class AllGatherGrad(torch.autograd.Function):
 def all_gather_ddp_if_available(
     tensor: torch.Tensor, group: Optional["torch.distributed.ProcessGroup"] = None, sync_grads: bool = False
 ) -> torch.Tensor:
-    """
-    Function to gather a tensor from several distributed processes
+    """Function to gather a tensor from several distributed processes.
 
     Args:
         tensor: tensor of shape (batch, ...)
@@ -250,9 +250,7 @@ def register_ddp_comm_hook(
     ddp_comm_hook: Optional[Callable] = None,
     ddp_comm_wrapper: Optional[Callable] = None,
 ) -> None:
-    """
-    Function to register communication hook for DDP model
-    https://pytorch.org/docs/master/ddp_comm_hooks.html
+    """Function to register communication hook for DDP model https://pytorch.org/docs/master/ddp_comm_hooks.html.
 
     Args:
         model:
@@ -369,9 +367,8 @@ def init_ddp_connection(
     world_size: Optional[int] = None,
     **kwargs: Any,
 ) -> None:
-    """
-    Utility function to initialize DDP connection by setting env variables
-    and initiliazing the distributed process group.
+    """Utility function to initialize DDP connection by setting env variables and initiliazing the distributed
+    process group.
 
     Args:
         cluster_environment: ``ClusterEnvironment`` instance

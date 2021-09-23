@@ -45,9 +45,7 @@ else:
 
 
 class ExternalMNISTInputIterator:
-    """
-    This iterator class wraps torchvision's MNIST dataset and returns the images and labels in batches
-    """
+    """This iterator class wraps torchvision's MNIST dataset and returns the images and labels in batches."""
 
     def __init__(self, mnist_ds, batch_size):
         self.batch_size = batch_size
@@ -73,9 +71,7 @@ class ExternalMNISTInputIterator:
 
 
 class ExternalSourcePipeline(Pipeline):
-    """
-    This DALI pipeline class just contains the MNIST iterator
-    """
+    """This DALI pipeline class just contains the MNIST iterator."""
 
     def __init__(self, batch_size, eii, num_threads, device_id):
         super().__init__(batch_size, num_threads, device_id, seed=12)
@@ -88,10 +84,8 @@ class ExternalSourcePipeline(Pipeline):
 
 
 class DALIClassificationLoader(DALIClassificationIterator):
-    """
-    This class extends DALI's original `DALIClassificationIterator` with the `__len__()` function
-     so that we can call `len()` on it
-    """
+    """This class extends DALI's original `DALIClassificationIterator` with the `__len__()` function so that we can
+    call `len()` on it."""
 
     def __init__(
         self,
@@ -198,8 +192,9 @@ def cli_main():
     if not _DALI_AVAILABLE:
         return
 
-    cli = LightningCLI(LitClassifier, MyDataModule, seed_everything_default=1234, save_config_overwrite=True)
-    cli.trainer.test(cli.model, datamodule=cli.datamodule)
+    cli = LightningCLI(LitClassifier, MyDataModule, seed_everything_default=1234, save_config_overwrite=True, run=False)
+    cli.trainer.fit(cli.model, datamodule=cli.datamodule)
+    cli.trainer.test(ckpt_path="best")
 
 
 if __name__ == "__main__":

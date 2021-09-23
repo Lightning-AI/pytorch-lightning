@@ -23,7 +23,6 @@ import pt_lightning_sphinx_theme
 PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 PATH_ROOT = os.path.join(PATH_HERE, "..", "..")
 PATH_RAW_NB = os.path.join(PATH_ROOT, "_notebooks")
-PATH_IPYNB = os.path.join(PATH_HERE, "notebooks")
 sys.path.insert(0, os.path.abspath(PATH_ROOT))
 sys.path.append(os.path.join(PATH_RAW_NB, ".actions"))
 
@@ -43,7 +42,7 @@ spec.loader.exec_module(about)
 
 # -- Project documents -------------------------------------------------------
 
-HelperCLI.copy_notebooks(PATH_RAW_NB, PATH_IPYNB)
+HelperCLI.copy_notebooks(PATH_RAW_NB, PATH_HERE, "notebooks")
 
 
 def _transform_changelog(path_in: str, path_out: str) -> None:
@@ -107,6 +106,12 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_paramlinks",
     "sphinx_togglebutton",
+    "pt_lightning_sphinx_theme.extensions.lightning_tutorials",
+]
+
+# Suppress warnings about duplicate labels (needed for PL tutorials)
+suppress_warnings = [
+    "autosectionlabel.*",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -144,7 +149,6 @@ language = None
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
     f"{FOLDER_GENERATED}/PULL_REQUEST_TEMPLATE.md",
-    "notebooks/course_UvA-DL/*",
     "notebooks/sample-template*",
 ]
 
@@ -292,7 +296,7 @@ def setup(app):
 # Ignoring Third-party packages
 # https://stackoverflow.com/questions/15889621/sphinx-how-to-exclude-imports-in-automodule
 def package_list_from_file(file):
-    """List up package name (not containing version and extras) from a package list file"""
+    """List up package name (not containing version and extras) from a package list file."""
     mocked_packages = []
     with open(file) as fp:
         for ln in fp.readlines():
