@@ -262,9 +262,6 @@ class OptimizationProgress(BaseProgress):
     def reset_on_restart(self) -> None:
         self.optimizer.reset_on_restart()
 
-    def reset_on_restart(self) -> None:
-        self.optimizer.reset_on_restart()
-
     def load_state_dict(self, state_dict: dict) -> None:
         self.optimizer.load_state_dict(state_dict["optimizer"])
         self.optimizer_position = state_dict["optimizer_position"]
