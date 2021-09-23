@@ -64,6 +64,10 @@ def restore_env_variables():
         "WANDB_MODE",
         "HOROVOD_FUSION_THRESHOLD",
         "RANK",  # set by DeepSpeed
+        "POPLAR_ENGINE_OPTIONS",  # set by IPUPlugin
+        # set by XLA
+        "XRT_MESH_SERVICE_ADDRESS",
+        "XRT_TORCH_DIST_ROOT",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
