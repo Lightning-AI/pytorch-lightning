@@ -16,7 +16,6 @@ import pickle
 from argparse import ArgumentParser
 from unittest import mock
 
-import pandas
 import pytest
 
 from pytorch_lightning import Trainer
