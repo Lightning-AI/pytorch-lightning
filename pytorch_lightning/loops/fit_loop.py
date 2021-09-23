@@ -40,7 +40,7 @@ class FitLoop(Loop):
         min_epochs: int = 0,
         max_epochs: Optional[int] = None,
         max_steps: Optional[int] = -1,
-        max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None
+        max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
     ):
         super().__init__()
         if max_epochs is None:
@@ -267,16 +267,3 @@ class FitLoop(Loop):
     def _should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated."""
         return self.epoch_loop._should_accumulate()
-
-    @staticmethod
-    def _is_max_limit_enabled(max_value: Optional[int]) -> bool:
-        """Checks whether the max_value is enabled. This can be used for checking whether max_epochs or max_steps
-        is enabled.
-
-        Args:
-            max_value: the value to check
-
-        Returns:
-            whether the limit for this value should be enabled
-        """
-        return max_value not in (None, -1)
