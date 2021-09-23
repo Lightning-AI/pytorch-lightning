@@ -19,6 +19,7 @@ from torch import optim
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
@@ -99,17 +100,13 @@ def test_reducelronplateau_with_no_monitor_in_lr_scheduler_dict_raises(tmpdir):
         trainer.fit(model)
 
 
-def test_onecyclelr_with_epoch_interval_dict_warns(tmpdir):
+def test_onecyclelr_with_epoch_interval_warns():
     """Test warning when a OneCycleLR is used and interval is epoch."""
     model = BoringModel()
     optimizer = optim.Adam(model.parameters())
-    model.configure_optimizers = lambda: {
-        "optimizer": optimizer,
-        "lr_scheduler": {"scheduler": optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.01, total_steps=3)},
-    }
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    lr_scheduler = {"scheduler": optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.01, total_steps=3)}
     with pytest.warns(RuntimeWarning, match="Are you sure you didn't mean 'interval': 'step'?"):
-        trainer.fit(model)
+        TrainerOptimizersMixin._configure_schedulers([lr_scheduler], None, False)
 
 
 def test_reducelronplateau_scheduling(tmpdir):
@@ -432,43 +429,29 @@ def test_optimizer_config_dict_with_extra_keys_warns(tmpdir):
     """Test exception when optimizer configuration dict has extra keys."""
     model = BoringModel()
     optimizer = optim.Adam(model.parameters())
-    model.configure_optimizers = lambda: {
+    optim_conf = {
         "optimizer": optimizer,
         "lr_scheduler": {"scheduler": optim.lr_scheduler.StepLR(optimizer, 1)},
         "foo": 1,
         "bar": 2,
     }
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.warns(RuntimeWarning, match=r"Found unsupported keys in the optimizer configuration: \[.+\]"):
-        trainer.fit(model)
+        TrainerOptimizersMixin._configure_optimizers(optim_conf)
 
 
 def test_multiple_optimizer_config_dicts_with_extra_keys_warns(tmpdir):
     """Test exception when multiple optimizer configuration dicts have extra keys."""
-
-    class DummyModel(BoringModel):
-        def training_step(self, batch, batch_idx, optimizer_idx):
-            return super().training_step(batch, batch_idx)
-
-        def training_epoch_end(self, outputs) -> None:
-            pass
-
-        def configure_optimizers(self):
-            optimizer1 = optim.Adam(self.parameters(), lr=0.01)
-            optimizer2 = optim.Adam(self.parameters(), lr=0.01)
-
-            lr_scheduler_config_1 = {"scheduler": optim.lr_scheduler.StepLR(optimizer1, 1)}
-            lr_scheduler_config_2 = {"scheduler": optim.lr_scheduler.StepLR(optimizer2, 1)}
-
-            return [
-                {"optimizer": optimizer1, "lr_scheduler": lr_scheduler_config_1, "foo": 1, "bar": 2},
-                {"optimizer": optimizer2, "lr_scheduler": lr_scheduler_config_2, "foo": 1, "bar": 2},
-            ]
-
-    model = DummyModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    model = BoringModel()
+    optimizer1 = optim.Adam(model.parameters(), lr=0.01)
+    optimizer2 = optim.Adam(model.parameters(), lr=0.01)
+    lr_scheduler_config_1 = {"scheduler": optim.lr_scheduler.StepLR(optimizer1, 1)}
+    lr_scheduler_config_2 = {"scheduler": optim.lr_scheduler.StepLR(optimizer2, 1)}
+    optim_conf = [
+        {"optimizer": optimizer1, "lr_scheduler": lr_scheduler_config_1, "foo": 1, "bar": 2},
+        {"optimizer": optimizer2, "lr_scheduler": lr_scheduler_config_2, "foo": 1, "bar": 2},
+    ]
     with pytest.warns(RuntimeWarning, match=r"Found unsupported keys in the optimizer configuration: \[.+\]"):
-        trainer.fit(model)
+        TrainerOptimizersMixin._configure_optimizers(optim_conf)
 
 
 def test_lr_scheduler_with_unknown_interval_raises(tmpdir):

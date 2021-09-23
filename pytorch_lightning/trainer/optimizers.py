@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import ABC
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch import optim
@@ -40,6 +40,15 @@ class TrainerOptimizersMixin(ABC):
             )
             optim_conf = _MockOptimizer()
 
+        optimizers, lr_schedulers, optimizer_frequencies, monitor = self._configure_optimizers(optim_conf)
+        lr_schedulers = self._configure_schedulers(lr_schedulers, monitor, not pl_module.automatic_optimization)
+        _validate_scheduler_optimizer(optimizers, lr_schedulers)
+        return optimizers, lr_schedulers, optimizer_frequencies
+
+    @staticmethod
+    def _configure_optimizers(
+        optim_conf: Union[Dict[str, Any], List, Optimizer, Tuple]
+    ) -> Tuple[List, List, List, Optional[str]]:
         optimizers, lr_schedulers, optimizer_frequencies = [], [], []
         monitor = None
 
@@ -98,12 +107,7 @@ class TrainerOptimizersMixin(ABC):
                 ' * {"optimizer": `torch.optim.Optimizer`, (optional) "lr_scheduler": `torch.optim.lr_scheduler`}\n'
                 ' * A list of the previously described dict format, with an optional "frequency" key (int)'
             )
-
-        is_manual_optimization = not pl_module.automatic_optimization
-        lr_schedulers = self.configure_schedulers(lr_schedulers, monitor, is_manual_optimization)
-        _validate_scheduler_optimizer(optimizers, lr_schedulers)
-
-        return optimizers, lr_schedulers, optimizer_frequencies
+        return optimizers, lr_schedulers, optimizer_frequencies, monitor
 
     def convert_to_lightning_optimizers(self):
         def _convert_to_lightning_optimizer(trainer, optimizer):
@@ -116,8 +120,9 @@ class TrainerOptimizersMixin(ABC):
             opt_idx: _convert_to_lightning_optimizer(self, opt) for opt_idx, opt in enumerate(self.optimizers)
         }
 
-    def configure_schedulers(
-        self, schedulers: list, monitor: Optional[str], is_manual_optimization: bool
+    @staticmethod
+    def _configure_schedulers(
+        schedulers: list, monitor: Optional[str], is_manual_optimization: bool
     ) -> List[Dict[str, Any]]:
         """Convert each scheduler into dict structure with relevant information."""
         lr_schedulers = []
@@ -215,7 +220,7 @@ class _MockOptimizer(Optimizer):
         return "No Optimizer"
 
 
-def _validate_optim_conf(optim_conf):
+def _validate_optim_conf(optim_conf: Dict[str, Any]) -> None:
     valid_keys = {"optimizer", "lr_scheduler", "frequency", "monitor"}
     extra_keys = [k for k in optim_conf.keys() if k not in valid_keys]
     if extra_keys:
