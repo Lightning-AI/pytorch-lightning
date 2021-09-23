@@ -261,7 +261,7 @@ def test_wandb_log_media(wandb, tmpdir):
     wandb.init().log.assert_called_once_with({"samples": [wandb.Image(), wandb.Image()]})
 
     # test log_image with wrong number of captions
-    with pytest.raises(AssertionError, match="Expected 2 items but only found 1 for caption"):
+    with pytest.raises(ValueError, match="Expected 2 items but only found 1 for caption"):
         logger.log_image(key="samples", images=["1.jpg", "2.jpg"], caption=["caption 1"])
 
     # test log_table
