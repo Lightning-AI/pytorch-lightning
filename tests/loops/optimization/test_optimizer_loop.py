@@ -110,6 +110,10 @@ def test_optimizer_frequencies(tmpdir, frequencies, expected):
         def training_step(self, batch, batch_idx, optimizer_idx):
             return super().training_step(batch, batch_idx)
 
+        def training_epoch_end(self, outputs):
+            assert len(outputs[0]) == len([_ for idx, _ in expected if idx == 0])
+            assert len(outputs[1]) == len([_ for idx, _ in expected if idx == 1])
+
         def configure_optimizers(self):
             opt0 = SGD(self.parameters(), lr=0.1)
             opt1 = Adam(self.parameters(), lr=0.1)

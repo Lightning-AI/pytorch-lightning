@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Iterator, List, Optional, Union
+from collections import defaultdict
+from typing import Any, Dict, Iterator, List, Optional, Union, Generator, Tuple
 
 import numpy as np
+import pytest
 import torch
 
 from pytorch_lightning import loops  # import as loops to avoid circular imports
@@ -341,10 +343,10 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             batch_outputs = apply_to_collection(
                 batch_outputs, dtype=dict, function=_convert_optim_dict, num_optimizers=num_optimizers
             )
-        array = np.array(batch_outputs, dtype=object)
+
+        array = _recursive_pad(batch_outputs)
         if array.ndim == 2:
             array = np.expand_dims(array, 2)
-
         array = array.transpose((2, 0, 1))
         array = array.squeeze()
         array = array.tolist()
@@ -405,7 +407,45 @@ def _convert_optim_dict(outs: Dict[int, Dict[str, Any]], num_optimizers: int) ->
 
 
 def _recursive_unpad(nested: List, value: Optional[Any] = None) -> List:
+    """Removes the given pad value from the nested list."""
     if not isinstance(nested, list):
         return nested
 
     return [_recursive_unpad(item) for item in nested if item is not value]
+
+
+# relevant tests:
+# test_optimizer_loop.py::test_optimizer_frequencies
+# test_train_loop_flow_scalar.py::test_training_step_no_return_when_even
+def _recursive_pad(nested: List, fill_value: Optional[Any] = None) -> np.array:
+    """Pads a jagged nested list of lists with the given value such that a proper multi-dimensional array can be
+    formed with rectangular shape."""
+    # code adapted from stackexchange:
+    # https://codereview.stackexchange.com/questions/222623/pad-a-ragged-multidimensional-array-to-rectangular-shape
+    dimensions = _get_max_shape(nested)
+    result = np.full(dimensions, fill_value, dtype=object)
+    for index, value in _iterate_nested_array(nested):
+        result[index] = value
+    return result
+
+
+def _get_dimensions(array: List, level: int = 0) -> Generator:
+    yield level, len(array)
+    if all(isinstance(row, list) for row in array):
+        for row in array:
+            yield from _get_dimensions(row, level + 1)
+
+
+def _get_max_shape(array: List) -> List[int]:
+    dimensions = defaultdict(int)
+    for level, length in _get_dimensions(array):
+        dimensions[level] = max(dimensions[level], length)
+    return [value for _, value in sorted(dimensions.items())]
+
+
+def _iterate_nested_array(array: List, index: Tuple = ()) -> Generator:
+    if all(isinstance(item, list) for item in array):
+        for idx, row in enumerate(array):
+            yield from _iterate_nested_array(row, (*index, idx))
+    else:  # final level
+        yield (*index, slice(len(array))), array
