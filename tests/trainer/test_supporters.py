@@ -17,11 +17,11 @@ from unittest import mock
 
 import pytest
 import torch
-from torch.utils.data import DataLoader, sampler, TensorDataset
+from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.data.dataset import Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import RandomSampler, Sampler, SequentialSampler
-
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.supporters import (
     _nested_calc_num_data,
@@ -31,6 +31,7 @@ from pytorch_lightning.trainer.supporters import (
     CycleIterator,
     TensorRunningAccum,
 )
+from pytorch_lightning.utilities.auto_restart import FastForwardSampler, CaptureMapDataset
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -308,11 +309,13 @@ def test_nested_calc_num_data(input_data, compute_func, expected_length):
     assert calculated_length == expected_length
 
 
+@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_7, reason="Requires at least PyTorch 1.7")
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "PL_TRAINER_GPUS": "2"})
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("torch.cuda.is_available", return_value=True)
+@pytest.mark.parametrize("use_fault_tolerant", [False, True])
 @pytest.mark.parametrize("replace_sampler_ddp", [False, True])
-def test_combined_data_loader_validation_test(cuda_available_mock, device_count_mock, replace_sampler_ddp, tmpdir):
+def test_combined_data_loader_validation_test(cuda_available_mock, device_count_mock, use_fault_tolerant, replace_sampler_ddp, tmpdir):
     """This test makes sure distributed sampler has been properly injected in dataloaders when using
     CombinedLoader."""
 
@@ -341,13 +344,18 @@ def test_combined_data_loader_validation_test(cuda_available_mock, device_count_
         }
     )
 
-    trainer = Trainer(replace_sampler_ddp=replace_sampler_ddp, accelerator="ddp", gpus=2)
-    dataloader = trainer.prepare_dataloader(dataloader, shuffle=True)
-    _count = 0
+    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": str(int(use_fault_tolerant))}):
+
+        trainer = Trainer(replace_sampler_ddp=replace_sampler_ddp, accelerator="ddp", gpus=2)
+        dataloader = trainer.prepare_dataloader(dataloader, shuffle=True)
+        _count = 0
 
     def _assert_distributed_sampler(v):
         nonlocal _count
         _count += 1
+        if use_fault_tolerant:
+            assert isinstance(v, FastForwardSampler)
+            v = v._sampler
         if replace_sampler_ddp:
             assert isinstance(v, DistributedSampler)
         else:
@@ -355,3 +363,12 @@ def test_combined_data_loader_validation_test(cuda_available_mock, device_count_
 
     apply_to_collection(dataloader.sampler, Sampler, _assert_distributed_sampler)
     assert _count == 5
+
+    def _assert_dataset(loader):
+        d = loader.dataset
+        if use_fault_tolerant:
+            assert isinstance(d, CaptureMapDataset)
+        else:
+            assert isinstance(d, CustomDataset)
+
+    apply_to_collection(dataloader.loaders, DataLoader, _assert_dataset)
