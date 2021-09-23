@@ -225,7 +225,7 @@ class OptimizerProgress(BaseProgress):
         self.step.reset_on_epoch()
         self.zero_grad.reset_on_epoch()
 
-    def reset_on_restart(self):
+    def reset_on_restart(self) -> None:
         self.step.reset_on_restart()
         self.zero_grad.reset_on_restart()
 
