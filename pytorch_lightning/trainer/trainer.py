@@ -1892,7 +1892,7 @@ class Trainer(
 
     @property
     def is_last_batch(self) -> bool:
-        return self.fit_loop.epoch_loop.is_last_batch
+        return self.fit_loop.epoch_loop.batch_progress.is_last_batch
 
     @property
     def fit_loop(self) -> FitLoop:
