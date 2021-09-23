@@ -429,7 +429,7 @@ def test_unknown_configure_optimizers_raises(tmpdir):
 
 
 def test_optimizer_config_dict_with_extra_keys_warns(tmpdir):
-    """Test exception when optimizer configuration dict has unknown interval param value."""
+    """Test exception when optimizer configuration dict has extra keys."""
     model = BoringModel()
     optimizer = optim.Adam(model.parameters())
     model.configure_optimizers = lambda: {
@@ -444,7 +444,8 @@ def test_optimizer_config_dict_with_extra_keys_warns(tmpdir):
 
 
 def test_multiple_optimizer_config_dicts_with_extra_keys_warns(tmpdir):
-    """Test exception when multiple optimizer configuration dicts have unknown interval param value."""
+    """Test exception when multiple optimizer configuration dicts have extra keys."""
+
     class DummyModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
             return super().training_step(batch, batch_idx)
