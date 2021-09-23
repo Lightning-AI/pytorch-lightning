@@ -51,6 +51,7 @@ def test_loops_state_dict_structure():
             "epoch_loop.batch_progress": {
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "is_last_batch": False,
             },
             "epoch_loop.scheduler_progress": {
                 "total": {"ready": 0, "completed": 0},
