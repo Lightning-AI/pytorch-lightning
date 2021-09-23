@@ -88,20 +88,6 @@ class TrainerDataLoadingMixin(ABC):
         if not isinstance(dataloader, DataLoader):
             return dataloader
 
-        if self._requires_distributed_sampler(dataloader):
-            if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
-                raise MisconfigurationException(
-                    "You seem to have configured a sampler in your DataLoader. This will be replaced "
-                    " by `DistributedSampler` since `replace_sampler_ddp` is True and you are using"
-                    " distributed training. Either remove the sampler from your DataLoader or set"
-                    " `replace_sampler_ddp`=False if you want to use your custom sampler."
-                )
-            sampler = TrainerDataLoadingMixin._get_distributed_sampler(
-                dataloader, shuffle, mode=mode, overfit_batches=self.overfit_batches, **self.distributed_sampler_kwargs
-            )
-        else:
-            sampler = dataloader.sampler
-
         # the DataLoader should be re-created only if we need to inject
         # the fault tolerant components or the distributed sampler or we need to track indices for predictions.
         if (
@@ -109,6 +95,7 @@ class TrainerDataLoadingMixin(ABC):
             or self._requires_distributed_sampler(dataloader)
             or mode == RunningStage.PREDICTING
         ):
+            sampler = self._determine_sampler(dataloader, shuffle=shuffle, mode=mode)
             dataloader = self._prepare_dataloader(dataloader, sampler, mode=mode)
 
         return dataloader
@@ -467,6 +454,21 @@ class TrainerDataLoadingMixin(ABC):
                 )
 
         return dl_kwargs
+
+    def _determine_sampler(self, dataloader: DataLoader, shuffle: bool, mode: Optional[RunningStage] = None) -> Sampler:
+        if self._requires_distributed_sampler(dataloader):
+            if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
+                raise MisconfigurationException(
+                    "You seem to have configured a sampler in your DataLoader. This will be replaced "
+                    " by `DistributedSampler` since `replace_sampler_ddp` is True and you are using"
+                    " distributed training. Either remove the sampler from your DataLoader or set"
+                    " `replace_sampler_ddp`=False if you want to use your custom sampler."
+                )
+            return TrainerDataLoadingMixin._get_distributed_sampler(
+                dataloader, shuffle, mode=mode, overfit_batches=self.overfit_batches, **self.distributed_sampler_kwargs
+            )
+
+        return dataloader.sampler
 
     @staticmethod
     def _resolve_sampler(
