@@ -16,7 +16,7 @@ from datetime import timedelta
 from typing import Optional, Union
 
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
-from pytorch_lightning.utilities import _RICH_AVAILABLE
+from pytorch_lightning.utilities import _RICH_AVAILABLE, rank_zero_only
 
 Style = None
 if _RICH_AVAILABLE:
@@ -192,7 +192,7 @@ class RichProgressBar(ProgressBarBase):
         return "Predicting"
 
     def _init_progress(self, trainer, pl_module, stage: Optional[str] = None):
-        if self.progress is None or not self.progress.live.is_started:
+        if self.progress is None or not self.progress.live.is_started and trainer.is_global_zero:
             self.progress = Progress(
                 TextColumn("[progress.description]{task.description}"),
                 BarColumn(
@@ -232,14 +232,11 @@ class RichProgressBar(ProgressBarBase):
     def on_sanity_check_start(self, trainer, pl_module):
         super().on_sanity_check_start(trainer, pl_module)
         self._init_progress(trainer, pl_module)
-        self.val_sanity_progress_bar_id = self.progress.add_task(
-            f"[{self.theme.text_color}]{self.sanity_check_description}",
-            total=trainer.num_sanity_val_steps,
-        )
+        self.val_sanity_progress_bar_id = self._add_task(trainer.num_sanity_val_steps, self.sanity_check_description)
 
     def on_sanity_check_end(self, trainer, pl_module):
         super().on_sanity_check_end(trainer, pl_module)
-        self.progress.update(self.val_sanity_progress_bar_id, visible=False)
+        self._update(self.val_sanity_progress_bar_id, visible=False)
 
     def on_train_epoch_start(self, trainer, pl_module):
         super().on_train_epoch_start(trainer, pl_module)
@@ -253,58 +250,56 @@ class RichProgressBar(ProgressBarBase):
         total_batches = total_train_batches + self._total_val_batches
 
         train_description = self._get_train_description(trainer.current_epoch)
+        self.main_progress_bar_id = self._add_task(total_batches, train_description)
 
-        self.main_progress_bar_id = self.progress.add_task(
+    @rank_zero_only
+    def _add_task(self, total_batches, train_description):
+        return self.progress.add_task(
             f"[{self.theme.text_color}]{train_description}",
             total=total_batches,
         )
 
+    @rank_zero_only
+    def _update(self, progress_bar_id: int, visible: bool = True):
+        self.progress.update(progress_bar_id, advance=1.0, visible=visible)
+
     def on_validation_epoch_start(self, trainer, pl_module):
         super().on_validation_epoch_start(trainer, pl_module)
         if self._total_val_batches > 0:
-            self.val_progress_bar_id = self.progress.add_task(
-                f"[{self.theme.text_color}]{self.validation_description}",
-                total=self._total_val_batches,
-            )
+            self.val_progress_bar_id = self._add_task(self._total_val_batches, self.validation_description)
 
     def on_validation_epoch_end(self, trainer, pl_module):
         super().on_validation_epoch_end(trainer, pl_module)
         if self.val_progress_bar_id is not None:
-            self.progress.update(self.val_progress_bar_id, visible=False)
+            self._update(self.val_progress_bar_id, visible=False)
 
     def on_test_epoch_start(self, trainer, pl_module):
         super().on_train_epoch_start(trainer, pl_module)
-        self.test_progress_bar_id = self.progress.add_task(
-            f"[{self.theme.text_color}]{self.test_description}",
-            total=self.total_test_batches,
-        )
+        self.test_progress_bar_id = self._add_task(self.total_test_batches, self.test_description)
 
     def on_predict_epoch_start(self, trainer, pl_module):
         super().on_predict_epoch_start(trainer, pl_module)
-        self.predict_progress_bar_id = self.progress.add_task(
-            f"[{self.theme.text_color}]{self.predict_description}",
-            total=self.total_predict_batches,
-        )
+        self.predict_progress_bar_id = self._add_task(self.total_predict_batches, self.predict_description)
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-        self.progress.update(self.main_progress_bar_id, advance=1.0)
+        self._update(self.main_progress_bar_id)
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         if trainer.sanity_checking:
-            self.progress.update(self.val_sanity_progress_bar_id, advance=1.0)
+            self._update(self.val_sanity_progress_bar_id)
         elif self.val_progress_bar_id:
-            self.progress.update(self.main_progress_bar_id, advance=1.0)
-            self.progress.update(self.val_progress_bar_id, advance=1.0)
+            self._update(self.main_progress_bar_id)
+            self._update(self.val_progress_bar_id)
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_test_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-        self.progress.update(self.test_progress_bar_id, advance=1.0)
+        self._update(self.test_progress_bar_id)
 
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_predict_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-        self.progress.update(self.predict_progress_bar_id, advance=1.0)
+        self._update(self.predict_progress_bar_id)
 
     def _get_train_description(self, current_epoch: int) -> str:
         train_description = f"Epoch {current_epoch}"
@@ -317,9 +312,11 @@ class RichProgressBar(ProgressBarBase):
                 train_description += " "
         return train_description
 
+    @rank_zero_only
     def teardown(self, trainer, pl_module, stage: Optional[str] = None) -> None:
         self.progress.stop()
 
+    @rank_zero_only
     def on_exception(self, trainer, pl_module, exception: BaseException) -> None:
         if isinstance(exception, KeyboardInterrupt):
             self.progress.stop()
