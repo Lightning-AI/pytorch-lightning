@@ -413,7 +413,8 @@ class WandbLogger(LightningLoggerBase):
 
         Optional kwargs are lists passed to each image (ex: caption, masks, boxes).
         """
-        assert isinstance(images, list), f'Expected a list as "images", found {type(images)}'
+        if not isinstance(images, list):
+            raise TypeError(f'Expected a list as "images", found {type(images)}')
         n = len(images)
         for k, v in kwargs.items():
             assert len(v) == n, f"Expected {n} items but only found {len(v)} for {k}"
