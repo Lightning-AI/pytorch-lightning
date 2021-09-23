@@ -43,11 +43,12 @@ def preserve_global_rank_variable():
 
 
 @pytest.fixture(scope="function", autouse=True)
-def assert_environment_unchanged():
+def restore_env_variables():
     """Ensures that environment variables set during the test do not leak out."""
     env_backup = os.environ.copy()
     yield
     leaked_vars = os.environ.keys() - env_backup.keys()
+    # restore environment as it was before running the test
     os.environ.clear()
     os.environ.update(env_backup)
     # these are currently known leakers - ideally these would not be allowed
