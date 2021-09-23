@@ -17,8 +17,7 @@ from unittest import mock
 
 import pytest
 import torch
-from torch.utils.data import DataLoader, TensorDataset
-from torch.utils.data import sampler
+from torch.utils.data import DataLoader, sampler, TensorDataset
 from torch.utils.data.dataset import Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import RandomSampler, Sampler, SequentialSampler
@@ -328,7 +327,6 @@ def test_combined_data_loader_validation_test(cuda_available_mock, device_count_
             return self.data[index]
 
     class CustomSampler(RandomSampler):
-
         def __init__(self, data_source, name) -> None:
             super().__init__(data_source)
             self.name = name
