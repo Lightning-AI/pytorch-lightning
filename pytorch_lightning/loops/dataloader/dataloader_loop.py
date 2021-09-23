@@ -57,6 +57,8 @@ class DataLoaderLoop(Loop):
         """Resets the internal state."""
         if not self.restarting:
             self.dataloader_progress.current.reset()
+        else:
+            self.dataloader_progress.current.reset_on_restart()
 
     def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
         self.dataloader_progress.increment_ready()

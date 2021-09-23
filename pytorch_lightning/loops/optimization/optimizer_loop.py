@@ -89,7 +89,8 @@ class ClosureResult(OutputResult):
 
         if closure_loss is not None:
             # accumulate the loss. If ``accumulate_grad_batches == 1``, no effect
-            closure_loss /= normalize
+            # note: avoid in-place operation `x /= y` here on purpose
+            closure_loss = closure_loss / normalize
 
         return cls(closure_loss, extra=extra)
 
@@ -197,6 +198,8 @@ class OptimizerLoop(Loop):
         if not self.restarting:
             # when reset() is called from outside (manually), we reset the loop progress
             self.optim_progress.optimizer_position = 0
+        else:
+            self.optim_progress.reset_on_restart()
         self.outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
     def on_run_start(  # type: ignore[override]
