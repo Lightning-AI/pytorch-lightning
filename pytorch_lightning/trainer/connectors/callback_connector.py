@@ -82,9 +82,7 @@ class CallbackConnector:
                 " will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.ProgressBar` with"
                 " `refresh_rate` directly to the Trainer's `callbacks` argument instead."
             )
-        import logging
 
-        logging.critical(enable_progress_bar)
         if enable_progress_bar:
             self.trainer._progress_bar_callback = self.configure_progress_bar(
                 progress_bar_refresh_rate, process_position
