@@ -123,8 +123,8 @@ class TrainerDataLoadingMixin(ABC):
     def prepare_dataloader(self, dataloader: Any, shuffle: bool, mode: Optional[RunningStage] = None) -> Any:
         """This function handles to following functionalities:
 
-        - Injecting a `DistributedDataSampler` within the `DataLoader if accelertor is is_distributed
-        - Wrapping the datasets and samplers into Fault Tolerant Components
+        - Injecting a `DistributedDataSampler` into the `DataLoader` if on a distributed environment
+        - Wrapping the datasets and samplers into fault-tolerant components
         """
         if isinstance(dataloader, CombinedLoader):
             # apply `prepare_dataloader` on all the collection of loaders
@@ -152,17 +152,10 @@ class TrainerDataLoadingMixin(ABC):
             sampler = dataloader.sampler
 
         # the DataLoader should be re-created only if we need to inject
-        # the fault tolerant components or the distributed sampler.
-        if _fault_tolerant_training() or isinstance(sampler, DistributedSampler):
+        # the fault tolerant components or the distributed sampler or we need to track indices for predictions.
+        if _fault_tolerant_training() or self._requires_distributed_sampler(dataloader) or mode == RunningStage.PREDICTING:
             dataloader = self._prepare_dataloader(dataloader, sampler, mode=mode)
 
-        return dataloader
-
-    @staticmethod
-    def _prepare_dataloader(dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None) -> DataLoader:
-        dl_kwargs = _get_dataloader_init_kwargs(dataloader, sampler, mode=mode)
-        dl_cls = type(dataloader)
-        dataloader = dl_cls(**dl_kwargs)
         return dataloader
 
     def reset_train_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
@@ -414,6 +407,13 @@ class TrainerDataLoadingMixin(ABC):
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
         self.accelerator.barrier("get_dataloaders")
+        return dataloader
+
+    @staticmethod
+    def _prepare_dataloader(dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None) -> DataLoader:
+        dl_kwargs = _get_dataloader_init_kwargs(dataloader, sampler, mode=mode)
+        dl_cls = type(dataloader)
+        dataloader = dl_cls(**dl_kwargs)
         return dataloader
 
     @staticmethod
