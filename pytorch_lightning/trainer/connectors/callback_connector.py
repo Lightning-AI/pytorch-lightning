@@ -105,8 +105,7 @@ class CallbackConnector:
                     "You have set both `accumulate_grad_batches` and passed an "
                     "instance of `GradientAccumulationScheduler` inside callbacks."
                 )
-            else:
-                grad_accum_callback = grad_accum_callback[0]
+            grad_accum_callback = grad_accum_callback[0]
         else:
             if accumulate_grad_batches is None:
                 accumulate_grad_batches = 1
