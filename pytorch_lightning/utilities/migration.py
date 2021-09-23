@@ -18,9 +18,8 @@ import pytorch_lightning.utilities.argparse
 
 
 class pl_legacy_patch:
-    """
-    Registers legacy artifacts (classes, methods, etc.) that were removed but still need to be
-    included for unpickling old checkpoints. The following patches apply.
+    """Registers legacy artifacts (classes, methods, etc.) that were removed but still need to be included for
+    unpickling old checkpoints. The following patches apply.
 
         1. ``pytorch_lightning.utilities.argparse._gpus_arg_default``: Applies to all checkpoints saved prior to
            version 1.2.8. See: https://github.com/PyTorchLightning/pytorch-lightning/pull/6898
