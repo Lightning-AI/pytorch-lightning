@@ -19,11 +19,8 @@ import operator
 import os
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Any, Dict, List, Optional, Union
 from weakref import ReferenceType
-
-if TYPE_CHECKING:
-    import pandas
 
 import torch.nn as nn
 
@@ -380,7 +377,7 @@ class WandbLogger(LightningLoggerBase):
         key: str,
         columns: List[str] = None,
         data: List[List[Any]] = None,
-        dataframe: "pandas.DataFrame" = None,
+        dataframe: Any = None,
         step: Optional[int] = None,
     ) -> None:
         """Log a Table containing any object type (text, image, audio, video, molecule, html, etc).
@@ -397,7 +394,7 @@ class WandbLogger(LightningLoggerBase):
         key: str,
         columns: List[str] = None,
         data: List[List[str]] = None,
-        dataframe: "pandas.DataFrame" = None,
+        dataframe: Any = None,
         step: Optional[int] = None,
     ) -> None:
         """Log text as a Table.
