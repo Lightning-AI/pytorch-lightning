@@ -352,11 +352,14 @@ def test_combined_data_loader_validation_test(
         trainer = Trainer(replace_sampler_ddp=replace_sampler_ddp, accelerator="ddp", gpus=2)
         dataloader = trainer.prepare_dataloader(dataloader, shuffle=True)
         _count = 0
+        _has_fastforward_sampler = False
 
     def _assert_distributed_sampler(v):
         nonlocal _count
+        nonlocal _has_fastforward_sampler
         _count += 1
         if use_fault_tolerant:
+            _has_fastforward_sampler = True
             assert isinstance(v, FastForwardSampler)
             v = v._sampler
         if replace_sampler_ddp:
@@ -366,6 +369,7 @@ def test_combined_data_loader_validation_test(
 
     apply_to_collection(dataloader.sampler, Sampler, _assert_distributed_sampler)
     assert _count == 5
+    assert _has_fastforward_sampler == use_fault_tolerant
 
     def _assert_dataset(loader):
         d = loader.dataset
