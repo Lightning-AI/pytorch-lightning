@@ -63,11 +63,11 @@ class CheckpointConnector:
             return
 
         rank_zero_info(f"Restoring states from the checkpoint path at {checkpoint_path}")
-        with pl_legacy_patch():
-            self._loaded_checkpoint = self._load_and_validate_checkpoint(checkpoint_path)
+        self._loaded_checkpoint = self._load_and_validate_checkpoint(checkpoint_path)
 
     def _load_and_validate_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
-        loaded_checkpoint = self.trainer.training_type_plugin.load_checkpoint(checkpoint_path)
+        with pl_legacy_patch():
+            loaded_checkpoint = self.trainer.training_type_plugin.load_checkpoint(checkpoint_path)
         if any(key in loaded_checkpoint for key in DEPRECATED_CHECKPOINT_KEYS):
             raise ValueError(
                 "The checkpoint you're attempting to load follows an"
@@ -158,8 +158,7 @@ class CheckpointConnector:
         """Restore only the model weights."""
         checkpoint = self._loaded_checkpoint
         if checkpoint_path is not None:
-            with pl_legacy_patch():
-                checkpoint = self._load_and_validate_checkpoint(checkpoint_path)
+            checkpoint = self._load_and_validate_checkpoint(checkpoint_path)
 
         self.trainer.lightning_module.on_load_checkpoint(checkpoint)
         self.trainer.training_type_plugin.load_model_state_dict(checkpoint)
