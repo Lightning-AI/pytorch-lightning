@@ -15,7 +15,6 @@ import pytest
 
 from pytorch_lightning.loops import TrainingEpochLoop
 
-
 _out00 = {"loss": 0.0}
 _out01 = {"loss": 0.1}
 _out02 = {"loss": 0.2}
