@@ -45,7 +45,7 @@ def test_rich_progress_bar_refresh_rate():
 
 
 @RunIf(rich=True)
-def test_rich_progress_bar_refresh_rate_colab(tmpdir):
+def test_rich_progress_bar_refresh_rate(tmpdir):
     """Test that the refresh rate is set correctly based on the Trainer, and warn if the user sets the argument."""
     trainer = Trainer(default_root_dir=tmpdir)
     assert trainer.progress_bar_callback.refresh_rate_per_second == 10
