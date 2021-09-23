@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.data.dataset import Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import RandomSampler, Sampler, SequentialSampler
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.supporters import (
     _nested_calc_num_data,
@@ -31,9 +31,10 @@ from pytorch_lightning.trainer.supporters import (
     CycleIterator,
     TensorRunningAccum,
 )
-from pytorch_lightning.utilities.auto_restart import FastForwardSampler, CaptureMapDataset
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.auto_restart import CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7
 
 
 def test_tensor_running_accum_reset():
@@ -315,7 +316,9 @@ def test_nested_calc_num_data(input_data, compute_func, expected_length):
 @mock.patch("torch.cuda.is_available", return_value=True)
 @pytest.mark.parametrize("use_fault_tolerant", [False, True])
 @pytest.mark.parametrize("replace_sampler_ddp", [False, True])
-def test_combined_data_loader_validation_test(cuda_available_mock, device_count_mock, use_fault_tolerant, replace_sampler_ddp, tmpdir):
+def test_combined_data_loader_validation_test(
+    cuda_available_mock, device_count_mock, use_fault_tolerant, replace_sampler_ddp, tmpdir
+):
     """This test makes sure distributed sampler has been properly injected in dataloaders when using
     CombinedLoader."""
 
