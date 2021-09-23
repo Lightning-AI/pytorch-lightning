@@ -114,7 +114,6 @@ class TrainingBatchLoop(Loop):
 
         if self.trainer.lightning_module.automatic_optimization:
             # in automatic optimization, hand over execution to the OptimizerLoop
-            # TODO: total_batch_idx here??
             optimizers = _get_active_optimizers(self.trainer.optimizers, self.trainer.optimizer_frequencies, batch_idx)
             batch_outputs = self.optimizer_loop.run(split_batch, optimizers, batch_idx)
             # combine outputs from each optimizer
