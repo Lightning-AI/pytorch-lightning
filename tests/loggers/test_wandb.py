@@ -260,6 +260,10 @@ def test_wandb_log_media(wandb, tmpdir):
     wandb.Image.assert_called_with("2.jpg", caption="caption 2")
     wandb.init().log.assert_called_once_with({"samples": [wandb.Image(), wandb.Image()]})
 
+    # test log_image without a list
+    with pytest.raises(TypeError, match="""Expected a list as "images", found <class 'str'>"""):
+        logger.log_image(key="samples", images="1.jpg")
+
     # test log_image with wrong number of captions
     with pytest.raises(ValueError, match="Expected 2 items but only found 1 for caption"):
         logger.log_image(key="samples", images=["1.jpg", "2.jpg"], caption=["caption 1"])
