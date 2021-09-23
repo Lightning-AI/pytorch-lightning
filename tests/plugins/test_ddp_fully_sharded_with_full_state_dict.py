@@ -71,8 +71,7 @@ class TestFSDPModel(BoringModel):
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         # when loading full state dict, we first need to create a new unwrapped model
-        if self.layer is None or isinstance(self.layer, FullyShardedDataParallel):
-            self._init_model()
+        self._init_model()
 
     def configure_optimizers(self):
         return torch.optim.SGD(self.layer.parameters(), lr=0.1)
