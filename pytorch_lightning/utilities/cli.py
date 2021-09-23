@@ -341,6 +341,13 @@ class LightningArgumentParser(ArgumentParser):
 class SaveConfigCallback(Callback):
     """Saves a LightningCLI config to the log_dir when training starts.
 
+    Args:
+        parser: The parser object used to parse the configuration.
+        config: The parsed configuration that will be saved.
+        config_filename: Filename for the config file.
+        overwrite: Whether to overwrite an existing config file.
+        multifile: When input is multiple config files, saved config preserves this structure.
+
     Raises:
         RuntimeError: If the config file already exists in the directory to avoid overwriting a previous run
     """
@@ -351,11 +358,13 @@ class SaveConfigCallback(Callback):
         config: Union[Namespace, Dict[str, Any]],
         config_filename: str,
         overwrite: bool = False,
+        multifile: bool = False,
     ) -> None:
         self.parser = parser
         self.config = config
         self.config_filename = config_filename
         self.overwrite = overwrite
+        self.multifile = multifile
 
     def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
         # save the config in `setup` because (1) we want it to save regardless of the trainer function run
@@ -375,7 +384,9 @@ class SaveConfigCallback(Callback):
             # the `log_dir` needs to be created as we rely on the logger to do it usually
             # but it hasn't logged anything at this point
             get_filesystem(log_dir).makedirs(log_dir, exist_ok=True)
-            self.parser.save(self.config, config_path, skip_none=False, overwrite=self.overwrite)
+            self.parser.save(
+                self.config, config_path, skip_none=False, overwrite=self.overwrite, multifile=self.multifile
+            )
 
     def __reduce__(self) -> Tuple[Type["SaveConfigCallback"], Tuple, Dict]:
         # `ArgumentParser` is un-pickleable. Drop it
@@ -392,6 +403,7 @@ class LightningCLI:
         save_config_callback: Optional[Type[SaveConfigCallback]] = SaveConfigCallback,
         save_config_filename: str = "config.yaml",
         save_config_overwrite: bool = False,
+        save_config_multifile: bool = False,
         trainer_class: Union[Type[Trainer], Callable[..., Trainer]] = Trainer,
         trainer_defaults: Optional[Dict[str, Any]] = None,
         seed_everything_default: Optional[int] = None,
@@ -424,6 +436,7 @@ class LightningCLI:
             save_config_callback: A callback class to save the training config.
             save_config_filename: Filename for the config file.
             save_config_overwrite: Whether to overwrite an existing config file.
+            save_config_multifile: When input is multiple config files, saved config preserves this structure.
             trainer_class: An optional subclass of the :class:`~pytorch_lightning.trainer.trainer.Trainer` class or a
                 callable which returns a :class:`~pytorch_lightning.trainer.trainer.Trainer` instance when called.
             trainer_defaults: Set to override Trainer defaults or add persistent callbacks.
@@ -446,6 +459,7 @@ class LightningCLI:
         self.save_config_callback = save_config_callback
         self.save_config_filename = save_config_filename
         self.save_config_overwrite = save_config_overwrite
+        self.save_config_multifile = save_config_multifile
         self.trainer_class = trainer_class
         self.trainer_defaults = trainer_defaults or {}
         self.seed_everything_default = seed_everything_default
@@ -627,7 +641,11 @@ class LightningCLI:
                 config["callbacks"].append(self.trainer_defaults["callbacks"])
         if self.save_config_callback and not config["fast_dev_run"]:
             config_callback = self.save_config_callback(
-                self.parser, self.config, self.save_config_filename, overwrite=self.save_config_overwrite
+                self.parser,
+                self.config,
+                self.save_config_filename,
+                overwrite=self.save_config_overwrite,
+                multifile=self.save_config_multifile,
             )
             config["callbacks"].append(config_callback)
         return self.trainer_class(**config)

@@ -15,9 +15,8 @@
 import os
 import time
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional
 
-import torch
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
@@ -44,7 +43,6 @@ class InternalDebugger:
         self.enabled = os.environ.get("PL_DEV_DEBUG", "0") == "1"
         self.trainer = trainer
         self.events: List[Dict[str, Any]] = []
-        self.saved_lr_scheduler_updates: List[Dict[str, Union[int, float, str, torch.Tensor, None]]] = []
         self.train_dataloader_calls: List[Dict[str, Any]] = []
         self.val_dataloader_calls: List[Dict[str, Any]] = []
         self.test_dataloader_calls: List[Dict[str, Any]] = []
@@ -100,26 +98,3 @@ class InternalDebugger:
             self.val_dataloader_calls.append(values)
         elif "test" in name:
             self.test_dataloader_calls.append(values)
-
-    @enabled_only
-    def track_lr_schedulers_update(
-        self,
-        batch_idx: int,
-        interval: int,
-        scheduler_idx: int,
-        old_lr: float,
-        new_lr: float,
-        monitor_key: Optional[str] = None,
-        monitor_val: Optional[torch.Tensor] = None,
-    ) -> None:
-        loss_dict = {
-            "batch_idx": batch_idx,
-            "interval": interval,
-            "scheduler_idx": scheduler_idx,
-            "epoch": self.trainer.current_epoch,
-            "monitor_key": monitor_key,
-            "monitor_val": monitor_val,
-            "old_lr": old_lr,
-            "new_lr": new_lr,
-        }
-        self.saved_lr_scheduler_updates.append(loss_dict)
