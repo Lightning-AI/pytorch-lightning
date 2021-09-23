@@ -159,7 +159,9 @@ class Progress(BaseProgress):
 
 @dataclass
 class DataLoaderProgress(Progress):
-    """Tracks the dataloader progress These counters are local to a trainer rank. By default, they are not globally
+    """Tracks dataloader progress.
+
+    These counters are local to a trainer rank. By default, they are not globally
     synced across all ranks.
 
     Args:
@@ -172,8 +174,30 @@ class DataLoaderProgress(Progress):
 
 
 @dataclass
+class BatchProgress(Progress):
+    """Tracks batch progress.
+
+    These counters are local to a trainer rank. By default, they are not globally
+    synced across all ranks.
+
+    Args:
+        total: Tracks the total dataloader progress.
+        current: Tracks the current dataloader progress.
+        is_last_batch: Whether the batch is the last one. This is useful for iterable datasets.
+    """
+
+    is_last_batch: bool = False
+
+    def reset_on_restart(self) -> None:
+        super().reset_on_restart()
+        self.is_last_batch = False
+
+
+@dataclass
 class SchedulerProgress(Progress):
-    """Tracks the scheduler progress. These counters are local to a trainer rank. By default, they are not globally
+    """Tracks scheduler progress.
+
+    These counters are local to a trainer rank. By default, they are not globally
     synced across all ranks.
 
     Args:
