@@ -28,15 +28,9 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.auto_restart import (
-    _capture_metadata_collate,
-)
-from pytorch_lightning.utilities.dataloader_preparation import (
-    _get_dataloader_init_kwargs, 
-    _get_distributed_sampler,
-
-)
+from pytorch_lightning.utilities.auto_restart import _capture_metadata_collate
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
+from pytorch_lightning.utilities.dataloader_preparation import _get_dataloader_init_kwargs, _get_distributed_sampler
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
@@ -127,10 +121,10 @@ class TrainerDataLoadingMixin(ABC):
         )
 
     def prepare_dataloader(self, dataloader: Any, shuffle: bool, mode: Optional[RunningStage] = None) -> Any:
-        """
-        This function handles to following functionalities:
-            - Injecting a `DistributedDataSampler` within the `DataLoader if accelertor is is_distributed
-            - Wrapping the datasets and samplers into Fault Tolerant Components   
+        """This function handles to following functionalities:
+
+        - Injecting a `DistributedDataSampler` within the `DataLoader if accelertor is is_distributed
+        - Wrapping the datasets and samplers into Fault Tolerant Components
         """
         if isinstance(dataloader, CombinedLoader):
             # apply `prepare_dataloader` on all the collection of loaders
@@ -152,15 +146,16 @@ class TrainerDataLoadingMixin(ABC):
                     " `replace_sampler_ddp`=False if you want to use your custom sampler."
                 )
             sampler = _get_distributed_sampler(
-                dataloader, shuffle, mode=mode, overfit_batches=self.overfit_batches, **self.distributed_sampler_kwargs)
+                dataloader, shuffle, mode=mode, overfit_batches=self.overfit_batches, **self.distributed_sampler_kwargs
+            )
         else:
             sampler = dataloader.sampler
-        
-        # the DataLoader should be re-created only if we need to inject 
+
+        # the DataLoader should be re-created only if we need to inject
         # the fault tolerant components or the distributed sampler.
         if _fault_tolerant_training() or isinstance(sampler, DistributedSampler):
             dataloader = self._prepare_dataloader(dataloader, sampler, mode=mode)
-        
+
         return dataloader
 
     @staticmethod
@@ -295,7 +290,9 @@ class TrainerDataLoadingMixin(ABC):
                         "You requested to overfit but enabled val/test dataloader shuffling."
                         " We are turning it off for you."
                     )
-                    dataloaders[loader_i] = self._prepare_dataloader(loader, SequentialSampler(loader.dataset), mode=mode)
+                    dataloaders[loader_i] = self._prepare_dataloader(
+                        loader, SequentialSampler(loader.dataset), mode=mode
+                    )
                 else:
                     rank_zero_warn(
                         f"Your `{mode.dataloader_prefix}_dataloader` has `shuffle=True`,"

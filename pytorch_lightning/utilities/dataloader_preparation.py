@@ -22,11 +22,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities.auto_restart import (
-    CaptureIterableDataset,
-    CaptureMapDataset,
-    FastForwardSampler,
-)
+from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
@@ -62,9 +58,7 @@ def _get_dataloader_init_kwargs(
     required_args = {
         p.name
         for p in params.values()
-        if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
-        and p.default is p.empty
-        and p.name not in dl_kwargs
+        if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD) and p.default is p.empty and p.name not in dl_kwargs
     }
     # the dataloader has required args which we could not extract from the existing attributes
     if required_args:
