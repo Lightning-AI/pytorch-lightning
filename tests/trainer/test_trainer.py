@@ -33,7 +33,7 @@ from torch.utils.data import DataLoader, IterableDataset
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, Timer
+from pytorch_lightning.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -195,8 +195,8 @@ def test_trainer_accumulate_grad_batches_zero_grad(tmpdir, accumulate_grad_batch
 @pytest.mark.parametrize(
     ["accumulate_grad_batches", "expected_call_count"],
     [
-        ({1: 2, 3: 4}, 23),  # 10+5+5+3
-        ({0: 2, 2: 1}, 30),  # 5+5+10+10
+        ({1: 2, 3: 4}, 10 + 5 + 5 + 3),
+        ({0: 2, 2: 1}, 5 + 5 + 10 + 10),
     ],
 )
 def test_trainer_accumulate_grad_batches_dict_zero_grad(tmpdir, accumulate_grad_batches, expected_call_count):
@@ -219,6 +219,13 @@ def test_trainer_accumulate_grad_batches_dict_zero_grad(tmpdir, accumulate_grad_
 def test_trainer_accumulate_grad_batches_incorrect_value(tmpdir):
     with pytest.raises(MisconfigurationException, match=".*supports only int and dict types.*"):
         Trainer(default_root_dir=tmpdir, accumulate_grad_batches=(2, 5))
+
+
+def test_trainer_accumulate_grad_batches_with_grad_acc_callback(tmpdir):
+    with pytest.raises(
+        MisconfigurationException, match=".*set both `accumulate_grad_batches` and passed an instance.*"
+    ):
+        Trainer(default_root_dir=tmpdir, accumulate_grad_batches=7, callbacks=[GradientAccumulationScheduler({0: 2})])
 
 
 @pytest.mark.parametrize(

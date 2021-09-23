@@ -140,7 +140,7 @@ class Trainer(
         track_grad_norm: Union[int, float, str] = -1,
         check_val_every_n_epoch: int = 1,
         fast_dev_run: Union[int, bool] = False,
-        accumulate_grad_batches: Union[int, Dict[int, int]] = 1,
+        accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None,
         max_epochs: Optional[int] = None,
         min_epochs: Optional[int] = None,
         max_steps: Optional[int] = None,
@@ -457,6 +457,7 @@ class Trainer(
             self.weights_summary,
             stochastic_weight_avg,
             max_time,
+            accumulate_grad_batches,
         )
 
         # hook
@@ -478,7 +479,6 @@ class Trainer(
             gradient_clip_val,
             gradient_clip_algorithm,
             track_grad_norm,
-            accumulate_grad_batches,
             terminate_on_nan,
         )
         self._setup_on_init(num_sanity_val_steps)
