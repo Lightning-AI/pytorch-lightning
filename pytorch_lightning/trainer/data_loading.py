@@ -145,11 +145,10 @@ class TrainerDataLoadingMixin(ABC):
                     " `replace_sampler_ddp`=False if you want to use your custom sampler."
                 )
             sampler = self._get_distributed_sampler(dataloader, shuffle, mode=mode)
+            dataloader = self.replace_sampler(dataloader, sampler, mode=mode)
         else:
-            # use current sampler
-            sampler = dataloader.sampler
-
-        dataloader = self.replace_sampler(dataloader, sampler, mode=mode)
+            if _fault_tolerant_training():
+                dataloader = self.replace_sampler(dataloader, dataloader.sampler, mode=mode)
 
         return dataloader
 

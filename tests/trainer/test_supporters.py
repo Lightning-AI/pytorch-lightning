@@ -18,9 +18,10 @@ from unittest import mock
 import pytest
 import torch
 from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import sampler
 from torch.utils.data.dataset import Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data.sampler import Sampler, SequentialSampler
+from torch.utils.data.sampler import RandomSampler, Sampler, SequentialSampler
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.supporters import (
@@ -311,7 +312,8 @@ def test_nested_calc_num_data(input_data, compute_func, expected_length):
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "PL_TRAINER_GPUS": "2"})
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("torch.cuda.is_available", return_value=True)
-def test_combined_data_loader_validation_test(cuda_available_mock, device_count_mock, tmpdir):
+@pytest.mark.parametrize("replace_sampler_ddp", [False, True])
+def test_combined_data_loader_validation_test(cuda_available_mock, device_count_mock, replace_sampler_ddp, tmpdir):
     """This test makes sure distributed sampler has been properly injected in dataloaders when using
     CombinedLoader."""
 
@@ -325,22 +327,33 @@ def test_combined_data_loader_validation_test(cuda_available_mock, device_count_
         def __getitem__(self, index):
             return self.data[index]
 
+    class CustomSampler(RandomSampler):
+
+        def __init__(self, data_source, name) -> None:
+            super().__init__(data_source)
+            self.name = name
+
+    dataset = CustomDataset(range(10))
     dataloader = CombinedLoader(
         {
             "a": DataLoader(CustomDataset(range(10))),
+            "a": DataLoader(dataset, sampler=CustomSampler(dataset, "custom_sampler")),
             "b": {"c": DataLoader(CustomDataset(range(10))), "d": DataLoader(CustomDataset(range(10)))},
             "e": [DataLoader(CustomDataset(range(10))), DataLoader(CustomDataset(range(10)))],
         }
     )
 
-    trainer = Trainer(replace_sampler_ddp=True, accelerator="ddp", gpus=2)
+    trainer = Trainer(replace_sampler_ddp=replace_sampler_ddp, accelerator="ddp", gpus=2)
     dataloader = trainer.auto_add_sampler(dataloader, shuffle=True)
     _count = 0
 
     def _assert_distributed_sampler(v):
         nonlocal _count
         _count += 1
-        assert isinstance(v, DistributedSampler)
+        if replace_sampler_ddp:
+            assert isinstance(v, DistributedSampler)
+        else:
+            assert isinstance(v, (SequentialSampler, CustomSampler))
 
     apply_to_collection(dataloader.sampler, Sampler, _assert_distributed_sampler)
     assert _count == 5
