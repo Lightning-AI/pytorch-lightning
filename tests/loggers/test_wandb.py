@@ -247,22 +247,22 @@ def test_wandb_log_media(wandb, tmpdir):
     )
     wandb.init().log.assert_called_once_with({"samples": wandb.Table()})
 
-    # test log_images
+    # test log_image
     wandb.init().log.reset_mock()
-    logger.log_images(key="samples", images=["1.jpg", "2.jpg"])
+    logger.log_image(key="samples", images=["1.jpg", "2.jpg"])
     wandb.Image.assert_called_with("2.jpg")
     wandb.init().log.assert_called_once_with({"samples": [wandb.Image(), wandb.Image()]})
 
-    # test log_images with captions
+    # test log_image with captions
     wandb.init().log.reset_mock()
     wandb.Image.reset_mock()
-    logger.log_images(key="samples", images=["1.jpg", "2.jpg"], caption=["caption 1", "caption 2"])
+    logger.log_image(key="samples", images=["1.jpg", "2.jpg"], caption=["caption 1", "caption 2"])
     wandb.Image.assert_called_with("2.jpg", caption="caption 2")
     wandb.init().log.assert_called_once_with({"samples": [wandb.Image(), wandb.Image()]})
 
-    # test log_images with wrong number of captions
+    # test log_image with wrong number of captions
     with pytest.raises(AssertionError, match="Expected 2 items but only found 1 for caption"):
-        logger.log_images(key="samples", images=["1.jpg", "2.jpg"], caption=["caption 1"])
+        logger.log_image(key="samples", images=["1.jpg", "2.jpg"], caption=["caption 1"])
 
     # test log_table
     wandb.Table.reset_mock()
