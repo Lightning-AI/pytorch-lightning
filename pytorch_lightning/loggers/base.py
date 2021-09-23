@@ -295,7 +295,7 @@ class LightningLoggerBase(ABC):
             model: lightning model
             input_array: input passes to `model.forward`
         """
-        raise NotImplementedError
+        pass
 
     def log_text(self, *args, **kwargs) -> None:
         """Log text.
