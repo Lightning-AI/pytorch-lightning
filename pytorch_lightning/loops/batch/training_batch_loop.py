@@ -191,5 +191,5 @@ class TrainingBatchLoop(Loop):
         current_place_in_loop = batch_idx % optimizers_loop_length
 
         # find optimzier index by looking for the first {item > current_place} in the cumsum list
-        opt_idx = int(np.argmax(self.optimizer_freq_cumsum > current_place_in_loop))
+        opt_idx = np.searchsorted(self.optimizer_freq_cumsum, current_place_in_loop, side="right")
         return [(opt_idx, self.trainer.optimizers[opt_idx])]
