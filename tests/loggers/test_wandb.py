@@ -238,7 +238,7 @@ def test_wandb_log_media(wandb, tmpdir):
     # test log_text with dataframe
     wandb.Table.reset_mock()
     wandb.init().log.reset_mock()
-    df = pandas.DataFrame({"col1": [1, 2], "col2": [3, 4]})
+    df = 'pandas.DataFrame({"col1": [1, 2], "col2": [3, 4]})'  # TODO: incompatible numpy/pandas versions in test env
     logger.log_text(key="samples", dataframe=df)
     wandb.Table.assert_called_once_with(
         columns=None,
