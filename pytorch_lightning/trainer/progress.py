@@ -150,7 +150,7 @@ class Progress(BaseProgress):
 
     def reset_on_epoch(self) -> None:
         self.current.reset()
-     
+
     def reset_on_restart(self) -> None:
         self.current.reset_on_restart()
 
