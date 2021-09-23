@@ -61,6 +61,8 @@ def restore_env_variables():
         "MASTER_PORT",
         "PL_GLOBAL_SEED",
         "PL_SEED_WORKERS",
+        "WANDB_MODE",
+        "HOROVOD_FUSION_THRESHOLD",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
