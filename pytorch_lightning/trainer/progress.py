@@ -103,9 +103,8 @@ class ProcessedTracker(StartedTracker):
         self.processed = 0
 
     def reset_on_restart(self) -> None:
-        # use `processed` in this case as the reset value
-        self.completed = self.processed
         super().reset_on_restart()
+        self.processed = self.completed
 
 
 @dataclass
@@ -149,15 +148,18 @@ class Progress(BaseProgress):
         """Utility function to easily create an instance from keyword arguments to both ``Tracker``s."""
         return cls(total=tracker_cls(**kwargs), current=tracker_cls(**kwargs))
 
-    def load_state_dict(self, state_dict: dict) -> None:
-        self.total.load_state_dict(state_dict["total"])
-        self.current.load_state_dict(state_dict["current"])
+    def reset_on_epoch(self) -> None:
+        self.current.reset()
 
     def reset_on_run(self) -> None:
         self.current.reset()
 
     def reset_on_restart(self) -> None:
         self.current.reset_on_restart()
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        self.total.load_state_dict(state_dict["total"])
+        self.current.load_state_dict(state_dict["current"])
 
 
 @dataclass
@@ -256,6 +258,9 @@ class OptimizationProgress(BaseProgress):
 
     def reset_on_run(self) -> None:
         self.optimizer.reset_on_run()
+
+    def reset_on_restart(self) -> None:
+        self.optimizer.reset_on_restart()
 
     def reset_on_restart(self) -> None:
         self.optimizer.reset_on_restart()

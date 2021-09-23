@@ -709,9 +709,11 @@ def test_fit_loop_reset(tmpdir):
 
     assert epoch_loop.restarting
     assert epoch_loop.batch_progress.total.ready == 2
+    assert epoch_loop.batch_progress.total.processed == 2
     assert epoch_loop.batch_progress.total.completed == 1  # the checkpoint was saved on train_batch_end
-    assert epoch_loop.batch_progress.current.ready == 2
-    assert epoch_loop.batch_progress.current.completed == 2
+    assert epoch_loop.batch_progress.current.ready == 1  # currents get set to the completed value
+    assert epoch_loop.batch_progress.current.processed == 1
+    assert epoch_loop.batch_progress.current.completed == 1
 
     assert optimizer_loop.restarting
     assert optimizer_loop.optim_progress.optimizer_position == 1
@@ -739,8 +741,10 @@ def test_fit_loop_reset(tmpdir):
 
     assert epoch_loop.restarting
     assert epoch_loop.batch_progress.total.ready == 4
+    assert epoch_loop.batch_progress.total.processed == 4
     assert epoch_loop.batch_progress.total.completed == 3  # the checkpoint was saved on train_batch_end
-    assert epoch_loop.batch_progress.current.ready == 0
-    assert epoch_loop.batch_progress.current.completed == 0
+    assert epoch_loop.batch_progress.current.ready == 3  # currents get set to the completed value
+    assert epoch_loop.batch_progress.current.processed == 3
+    assert epoch_loop.batch_progress.current.completed == 3
 
     assert optimizer_loop.optim_progress.optimizer_position == 1

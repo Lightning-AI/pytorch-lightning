@@ -74,6 +74,14 @@ class CallbackConnector:
                 " in v1.7. Please pass `pytorch_lightning.callbacks.progress.ProgressBar` with"
                 " `process_position` directly to the Trainer's `callbacks` argument instead."
             )
+
+        if progress_bar_refresh_rate is not None:
+            rank_zero_deprecation(
+                f"Setting `Trainer(progress_bar_refresh_rate={progress_bar_refresh_rate})` is deprecated in v1.5 and"
+                " will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.ProgressBar` with"
+                " `refresh_rate` directly to the Trainer's `callbacks` argument instead."
+            )
+
         self.trainer._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
 
         # configure the ModelSummary callback
