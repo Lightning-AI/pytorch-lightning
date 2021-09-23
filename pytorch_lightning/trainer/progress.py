@@ -161,8 +161,7 @@ class Progress(BaseProgress):
 class DataLoaderProgress(Progress):
     """Tracks dataloader progress.
 
-    These counters are local to a trainer rank. By default, they are not globally
-    synced across all ranks.
+    These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
 
     Args:
         total: Tracks the total dataloader progress.
@@ -177,8 +176,7 @@ class DataLoaderProgress(Progress):
 class BatchProgress(Progress):
     """Tracks batch progress.
 
-    These counters are local to a trainer rank. By default, they are not globally
-    synced across all ranks.
+    These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
 
     Args:
         total: Tracks the total dataloader progress.
@@ -197,8 +195,7 @@ class BatchProgress(Progress):
 class SchedulerProgress(Progress):
     """Tracks scheduler progress.
 
-    These counters are local to a trainer rank. By default, they are not globally
-    synced across all ranks.
+    These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
 
     Args:
         total: Tracks the total scheduler progress.
