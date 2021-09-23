@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import os
-import time
 from functools import wraps
 from typing import Any, Callable, Dict, List, Optional
 
@@ -42,31 +41,10 @@ class InternalDebugger:
     def __init__(self, trainer: "pl.Trainer") -> None:
         self.enabled = os.environ.get("PL_DEV_DEBUG", "0") == "1"
         self.trainer = trainer
-        self.events: List[Dict[str, Any]] = []
         self.train_dataloader_calls: List[Dict[str, Any]] = []
         self.val_dataloader_calls: List[Dict[str, Any]] = []
         self.test_dataloader_calls: List[Dict[str, Any]] = []
         self.dataloader_sequence_calls: List[Dict[str, Any]] = []
-
-    @enabled_only
-    def track_event(
-        self,
-        evt_type: str,
-        evt_value: Any = None,
-        global_rank: Optional[int] = None,
-        local_rank: Optional[int] = None,
-        comment: str = "",
-    ) -> None:
-        self.events.append(
-            {
-                "timestamp": time.time(),
-                "event": evt_type,
-                "value": evt_value,
-                "global_rank": global_rank,
-                "local_rank": local_rank,
-                "comment": comment,
-            }
-        )
 
     @enabled_only
     def track_load_dataloader_call(self, name: str, dataloaders: List[DataLoader]) -> None:
