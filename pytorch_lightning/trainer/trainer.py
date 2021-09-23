@@ -135,7 +135,7 @@ class Trainer(
         tpu_cores: Optional[Union[List[int], str, int]] = None,
         ipus: Optional[int] = None,
         log_gpu_memory: Optional[str] = None,
-        progress_bar_refresh_rate: Optional[int] = None,
+        progress_bar_refresh_rate: Optional[int] = None,  # TODO: remove in v1.7
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
         check_val_every_n_epoch: int = 1,
@@ -281,6 +281,11 @@ class Trainer(
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
                 Ignored when a custom progress bar is passed to :paramref:`~Trainer.callbacks`. Default: None, means
                 a suitable value will be chosen based on the environment (terminal, Google COLAB, etc.).
+
+                .. deprecated:: v1.5
+                    ``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
+                    Please pass :class:`~pytorch_lightning.callbacks.progress.ProgressBar` with ``refresh_rate``
+                    directly to the Trainer's ``callbacks`` argument instead.
 
             profiler: To profile individual steps during training and assist in identifying bottlenecks.
 
@@ -1022,6 +1027,11 @@ class Trainer(
         # ----------------------------
         # TRAIN
         # ----------------------------
+
+        # reset logger connector
+        self.logger_connector.reset_results()
+        self.logger_connector.reset_metrics()
+
         # hook
         if self.state.fn == TrainerFn.FITTING:
             self.call_hook("on_fit_start")
@@ -1206,6 +1216,10 @@ class Trainer(
             stage = self.state.stage
             self.sanity_checking = True
 
+            # reset logger connector
+            self.logger_connector.reset_results()
+            self.logger_connector.reset_metrics()
+
             self.call_hook("on_sanity_check_start")
 
             # reload dataloaders
@@ -1217,8 +1231,9 @@ class Trainer(
 
             self.call_hook("on_sanity_check_end")
 
-            # reset validation metrics
-            self.logger_connector.reset()
+            # reset logger connector
+            self.logger_connector.reset_results()
+            self.logger_connector.reset_metrics()
 
             # reset the seed to what it was before sanity check
             # prevents sanity check to affect random sampling in training
@@ -1877,7 +1892,7 @@ class Trainer(
 
     @property
     def is_last_batch(self) -> bool:
-        return self.fit_loop.epoch_loop.is_last_batch
+        return self.fit_loop.epoch_loop.batch_progress.is_last_batch
 
     @property
     def fit_loop(self) -> FitLoop:

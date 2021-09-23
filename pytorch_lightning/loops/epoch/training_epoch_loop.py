@@ -23,7 +23,7 @@ from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.loops.batch.training_batch_loop import _OUTPUTS_TYPE as _BATCH_OUTPUTS_TYPE
 from pytorch_lightning.loops.utilities import _prepare_dataloader_iter
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import Progress, SchedulerProgress
+from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -48,9 +48,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.max_steps: int = max_steps
 
         self.global_step: int = 0
-        # manually tracking which is the last batch is necessary for iterable dataset support
-        self.is_last_batch: Optional[bool] = None
-        self.batch_progress = Progress()
+        self.batch_progress = BatchProgress()
         self.scheduler_progress = SchedulerProgress()
 
         self.batch_loop: Optional[TrainingBatchLoop] = None
@@ -99,16 +97,14 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         assert self.batch_loop is not None
         assert self.batch_loop.optimizer_loop is not None
         if self.restarting:
-            self.batch_progress.current.reset_on_restart()
+            self.batch_progress.reset_on_restart()
             self.scheduler_progress.current.reset_on_restart()
             self.batch_loop.optimizer_loop.optim_progress.reset_on_restart()
 
-        self.is_last_batch = False
         self._outputs = []
-
         if not self.restarting or self._num_training_batches_reached():
-            self.batch_progress.current.reset()
-            self.scheduler_progress.current.reset()
+            self.batch_progress.reset_on_epoch()
+            self.scheduler_progress.reset_on_epoch()
             assert self.batch_loop is not None
             assert self.batch_loop.optimizer_loop is not None
             self.batch_loop.optimizer_loop.optim_progress.reset_on_epoch()
@@ -132,6 +128,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             StopIteration: When the epoch is canceled by the user returning -1
         """
         batch_idx, (batch, is_last) = next(self.dataloader_iter)
+        self.batch_progress.is_last_batch = is_last
 
         if not self.trainer.data_connector.train_data_fetcher.store_on_device:
             with self.trainer.profiler.profile("training_batch_to_device"):
@@ -143,8 +140,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             batch_output = self.batch_loop.run(batch, batch_idx)
 
         self.batch_progress.increment_processed()
-
-        self.is_last_batch = is_last
 
         # when returning -1 from train_step, we end epoch early
         if batch_output.signal == -1:
@@ -185,7 +180,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # -----------------------------------------
         # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
         # -----------------------------------------
-        should_check_val = self._should_check_val_fx(self.batch_idx, self.is_last_batch)
+        should_check_val = self._should_check_val_fx(self.batch_idx, self.batch_progress.is_last_batch)
         if should_check_val:
             self.trainer.validating = True
             self._run_validation()
@@ -270,7 +265,9 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def _num_training_batches_reached(self) -> bool:
         """Checks if we are in the last batch or if there are more batches to follow."""
-        return self.batch_progress.current.ready == self.trainer.num_training_batches or self.is_last_batch
+        return (
+            self.batch_progress.current.ready == self.trainer.num_training_batches or self.batch_progress.is_last_batch
+        )
 
     def _should_accumulate(self) -> bool:
         """Checks if the optimizer step should be performed or gradients should be accumulated for the current

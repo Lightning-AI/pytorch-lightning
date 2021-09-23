@@ -20,7 +20,9 @@ from unittest.mock import ANY
 
 import pytest
 import torch
+from torch.utils.data import DataLoader
 
+from pl_examples.bug_report_model import RandomDataset
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loops import Loop, TrainingBatchLoop
@@ -443,6 +445,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
                 "processed": stop_batch,
                 "completed": stop_batch,
             },
+            "is_last_batch": False,
         },
         "epoch_loop.scheduler_progress": {
             "total": {"ready": nbe_sch_steps + be_sch_steps, "completed": nbe_sch_steps + be_sch_steps},
@@ -548,13 +551,16 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
 
             return optimizers, lr_schedulers
 
+        def train_dataloader(self):
+            # override to test the `is_last_batch` value
+            return DataLoader(RandomDataset(32, n_batches))
+
     model = TestModel()
     model.training_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=n_epochs,
-        limit_train_batches=n_batches,
         limit_val_batches=0,
         accumulate_grad_batches=accumulate_grad_batches,
         progress_bar_refresh_rate=0,
@@ -562,6 +568,8 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
         checkpoint_callback=True,
     )
     trainer.fit(model)
+
+    assert trainer.num_training_batches == n_batches
 
     ckpt_path = trainer.checkpoint_callback.best_model_path
     assert os.path.exists(ckpt_path)
@@ -607,6 +615,7 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
                 "processed": n_batches,
                 "completed": n_batches,
             },
+            "is_last_batch": True,
         },
         "epoch_loop.scheduler_progress": {
             "total": {"ready": n_sch_steps_total, "completed": n_sch_steps_total},
@@ -700,9 +709,11 @@ def test_fit_loop_reset(tmpdir):
 
     assert epoch_loop.restarting
     assert epoch_loop.batch_progress.total.ready == 2
+    assert epoch_loop.batch_progress.total.processed == 2
     assert epoch_loop.batch_progress.total.completed == 1  # the checkpoint was saved on train_batch_end
-    assert epoch_loop.batch_progress.current.ready == 2
-    assert epoch_loop.batch_progress.current.completed == 2
+    assert epoch_loop.batch_progress.current.ready == 1  # currents get set to the completed value
+    assert epoch_loop.batch_progress.current.processed == 1
+    assert epoch_loop.batch_progress.current.completed == 1
 
     assert optimizer_loop.restarting
     assert optimizer_loop.optim_progress.optimizer_position == 1
@@ -730,8 +741,10 @@ def test_fit_loop_reset(tmpdir):
 
     assert epoch_loop.restarting
     assert epoch_loop.batch_progress.total.ready == 4
+    assert epoch_loop.batch_progress.total.processed == 4
     assert epoch_loop.batch_progress.total.completed == 3  # the checkpoint was saved on train_batch_end
-    assert epoch_loop.batch_progress.current.ready == 0
-    assert epoch_loop.batch_progress.current.completed == 0
+    assert epoch_loop.batch_progress.current.ready == 3  # currents get set to the completed value
+    assert epoch_loop.batch_progress.current.processed == 3
+    assert epoch_loop.batch_progress.current.completed == 3
 
     assert optimizer_loop.optim_progress.optimizer_position == 1
