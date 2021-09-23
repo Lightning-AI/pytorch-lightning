@@ -153,7 +153,11 @@ class TrainerDataLoadingMixin(ABC):
 
         # the DataLoader should be re-created only if we need to inject
         # the fault tolerant components or the distributed sampler or we need to track indices for predictions.
-        if _fault_tolerant_training() or self._requires_distributed_sampler(dataloader) or mode == RunningStage.PREDICTING:
+        if (
+            _fault_tolerant_training()
+            or self._requires_distributed_sampler(dataloader)
+            or mode == RunningStage.PREDICTING
+        ):
             dataloader = self._prepare_dataloader(dataloader, sampler, mode=mode)
 
         return dataloader
