@@ -220,7 +220,7 @@ class CheckpointConnector:
 
         # crash if max_epochs is lower then the current epoch from the checkpoint
         if (
-            _is_max_limit_reached(self.trainer.max_epochs)
+            self.trainer.max_epochs != -1
             and self.trainer.max_epochs is not None
             and self.trainer.current_epoch > self.trainer.max_epochs
         ):
