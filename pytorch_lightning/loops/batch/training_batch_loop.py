@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from copy import deepcopy
 from typing import Any, List, Optional, Tuple
 
 import numpy as np
@@ -20,8 +19,8 @@ from torch import Tensor
 from torch.optim import Optimizer
 
 from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.loops.batch.manual import ManualOptimization
-from pytorch_lightning.loops.optimizer.optimizer_loop import OptimizerLoop
+from pytorch_lightning.loops.optimization.manual_loop import ManualOptimization
+from pytorch_lightning.loops.optimization.optimizer_loop import OptimizerLoop
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -124,16 +123,15 @@ class TrainingBatchLoop(Loop):
 
         if self.trainer.lightning_module.automatic_optimization:
             # in automatic optimization, hand over execution to the OptimizerLoop
-            optimizers = [optimizer for _, optimizer in self.get_active_optimizers(batch_idx)]
-            batch_outputs = self.optimizer_loop.run(split_batch, optimizers, batch_idx)
+            batch_outputs = self.optimizer_loop.run(split_batch, self.get_active_optimizers(batch_idx), batch_idx)
             # combine outputs from each optimizer
             for k in range(len(batch_outputs)):
                 self.batch_outputs[k].extend(batch_outputs[k])
         else:
             # in manual optimization, hand over execution to the ManualOptimization loop
-            output = self.manual_loop.run(split_batch, batch_idx)
-            if output is not None:
-                self.batch_outputs[0].append(deepcopy(output))
+            result = self.manual_loop.run(split_batch, batch_idx)
+            if result:
+                self.batch_outputs[0].append(result)
 
     def on_run_end(self) -> None:
         self.optimizer_loop._hiddens = None

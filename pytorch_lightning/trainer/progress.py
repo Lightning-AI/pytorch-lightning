@@ -103,9 +103,8 @@ class ProcessedTracker(StartedTracker):
         self.processed = 0
 
     def reset_on_restart(self) -> None:
-        # use `processed` in this case as the reset value
-        self.completed = self.processed
         super().reset_on_restart()
+        self.processed = self.completed
 
 
 @dataclass
@@ -149,6 +148,12 @@ class Progress(BaseProgress):
         """Utility function to easily create an instance from keyword arguments to both ``Tracker``s."""
         return cls(total=tracker_cls(**kwargs), current=tracker_cls(**kwargs))
 
+    def reset_on_epoch(self) -> None:
+        self.current.reset()
+
+    def reset_on_restart(self) -> None:
+        self.current.reset_on_restart()
+
     def load_state_dict(self, state_dict: dict) -> None:
         self.total.load_state_dict(state_dict["total"])
         self.current.load_state_dict(state_dict["current"])
@@ -156,8 +161,9 @@ class Progress(BaseProgress):
 
 @dataclass
 class DataLoaderProgress(Progress):
-    """Tracks the dataloader progress These counters are local to a trainer rank. By default, they are not globally
-    synced across all ranks.
+    """Tracks dataloader progress.
+
+    These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
 
     Args:
         total: Tracks the total dataloader progress.
@@ -169,9 +175,29 @@ class DataLoaderProgress(Progress):
 
 
 @dataclass
+class BatchProgress(Progress):
+    """Tracks batch progress.
+
+    These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
+
+    Args:
+        total: Tracks the total dataloader progress.
+        current: Tracks the current dataloader progress.
+        is_last_batch: Whether the batch is the last one. This is useful for iterable datasets.
+    """
+
+    is_last_batch: bool = False
+
+    def reset_on_epoch(self) -> None:
+        super().reset_on_epoch()
+        self.is_last_batch = False
+
+
+@dataclass
 class SchedulerProgress(Progress):
-    """Tracks the scheduler progress. These counters are local to a trainer rank. By default, they are not globally
-    synced across all ranks.
+    """Tracks scheduler progress.
+
+    These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
 
     Args:
         total: Tracks the total scheduler progress.
@@ -195,8 +221,12 @@ class OptimizerProgress(BaseProgress):
     zero_grad: Progress = field(default_factory=lambda: Progress.from_defaults(StartedTracker))
 
     def reset_on_epoch(self) -> None:
-        self.step.current.reset()
-        self.zero_grad.current.reset()
+        self.step.reset_on_epoch()
+        self.zero_grad.reset_on_epoch()
+
+    def reset_on_restart(self) -> None:
+        self.step.reset_on_restart()
+        self.zero_grad.reset_on_restart()
 
     def load_state_dict(self, state_dict: dict) -> None:
         self.step.load_state_dict(state_dict["step"])
@@ -209,12 +239,15 @@ class OptimizationProgress(BaseProgress):
 
     Args:
         optimizer: Tracks optimizer progress.
-        optimizer_idx: The index of the current optimizer. Used to know which optimizer we were using when restarting.
+        optimizer_position: The index of the current optimizer amongst the currently active optimizers.
+            Used to know which optimizer we were using when restarting.
+            Since not all optimizers may be active at a given time, this index is different from the ``optimizer_idx``
+            seen in the optimization loops.
     """
 
     # TODO: support for multiple optimizers
     optimizer: OptimizerProgress = field(default_factory=OptimizerProgress)
-    optimizer_idx: int = 0
+    optimizer_position: int = 0
 
     @property
     def optimizer_steps(self) -> int:
@@ -223,6 +256,9 @@ class OptimizationProgress(BaseProgress):
     def reset_on_epoch(self) -> None:
         self.optimizer.reset_on_epoch()
 
+    def reset_on_restart(self) -> None:
+        self.optimizer.reset_on_restart()
+
     def load_state_dict(self, state_dict: dict) -> None:
         self.optimizer.load_state_dict(state_dict["optimizer"])
-        self.optimizer_idx = state_dict["optimizer_idx"]
+        self.optimizer_position = state_dict["optimizer_position"]

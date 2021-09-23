@@ -59,6 +59,8 @@ class EvaluationEpochLoop(Loop):
 
         if not self.restarting:
             self.batch_progress.current.reset()
+        else:
+            self.batch_progress.current.reset_on_restart()
 
     def on_run_start(
         self, data_fetcher: AbstractDataFetcher, dataloader_idx: int, dl_max_batches: int, num_dataloaders: int
@@ -105,19 +107,19 @@ class EvaluationEpochLoop(Loop):
         self.batch_progress.increment_ready()
 
         # hook
-        self.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
+        self._on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
 
         self.batch_progress.increment_started()
 
         # lightning module methods
         with self.trainer.profiler.profile("evaluation_step_and_end"):
-            output = self.evaluation_step(batch, batch_idx, dataloader_idx)
-            output = self.evaluation_step_end(output)
+            output = self._evaluation_step(batch, batch_idx, dataloader_idx)
+            output = self._evaluation_step_end(output)
 
         self.batch_progress.increment_processed()
 
         # track loss history
-        self.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
+        self._on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
 
         self.batch_progress.increment_completed()
 
@@ -135,9 +137,14 @@ class EvaluationEpochLoop(Loop):
         outputs = self.outputs
         # free memory
         self.outputs = []
+        self.dataloader_iter = None
         return outputs
 
-    def evaluation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Optional[STEP_OUTPUT]:
+    def teardown(self) -> None:
+        # in case the model changes
+        self._should_track_batch_outputs_for_epoch_end.cache_clear()
+
+    def _evaluation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Optional[STEP_OUTPUT]:
         """The evaluation step (validation_step or test_step depending on the trainer's state).
 
         Args:
@@ -162,13 +169,13 @@ class EvaluationEpochLoop(Loop):
 
         return output
 
-    def evaluation_step_end(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+    def _evaluation_step_end(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         """Calls the `{validation/test}_step_end` hook."""
         hook_name = "test_step_end" if self.trainer.testing else "validation_step_end"
         output = self.trainer.call_hook(hook_name, *args, **kwargs)
         return output
 
-    def on_evaluation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def _on_evaluation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """Calls the ``on_{validation/test}_batch_start`` hook.
 
         Args:
@@ -189,7 +196,7 @@ class EvaluationEpochLoop(Loop):
         else:
             self.trainer.call_hook("on_validation_batch_start", batch, batch_idx, dataloader_idx)
 
-    def on_evaluation_batch_end(
+    def _on_evaluation_batch_end(
         self, output: Optional[STEP_OUTPUT], batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
         """The ``on_{validation/test}_batch_end`` hook.
@@ -234,7 +241,3 @@ class EvaluationEpochLoop(Loop):
         if self.trainer.testing:
             return is_overridden("test_epoch_end", model)
         return is_overridden("validation_epoch_end", model)
-
-    def teardown(self) -> None:
-        # in case the model changes
-        self._should_track_batch_outputs_for_epoch_end.cache_clear()

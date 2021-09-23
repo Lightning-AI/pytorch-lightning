@@ -422,8 +422,8 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
     def _track_data_hook_calls(obj: "LightningDataModule", fn: callable) -> callable:
         """A decorator that checks if prepare_data/setup/teardown has been called.
 
-        - When ``dm.prepare_data()`` is called, ``dm.has_prepared_data`` gets set to True
-        - When ``dm.setup()``, ``dm.has_setup_{fit,validate,test}`` get set to True
+        - When ``dm.prepare_data()`` is called, ``dm._has_prepared_data`` gets set to True
+        - When ``dm.setup()``, ``dm._has_setup_{fit,validate,test}`` get set to True
         - When ``dm.setup(stage)`` is called, where stage is any of ``{fit,validate,test,predict}``.
           Its corresponding `dm_has_setup_{stage}` attribute gets set to True
         - ``dm.teardown()`` and ``dm.teardown(stage)`` act exactly like ``dm.setup``

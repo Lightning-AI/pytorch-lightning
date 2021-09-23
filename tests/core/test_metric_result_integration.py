@@ -27,7 +27,12 @@ from torchmetrics import Metric, MetricCollection
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import (
+    _Metadata,
+    _Sync,
+    ResultCollection,
+    ResultMetric,
+)
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _TORCH_GREATER_EQUAL_1_7
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -141,7 +146,6 @@ def test_result_metric_integration():
     result.extra = {}
     assert str(result) == (
         "ResultCollection("
-        "minimize=1.0, "
         "{"
         "'h.a': ResultMetric('a', value=DummyMetric()), "
         "'h.b': ResultMetric('b', value=DummyMetric()), "
@@ -152,12 +156,10 @@ def test_result_metric_integration():
         "{"
         "True, "
         "device(type='cpu'), "
-        "minimize=tensor(1.), "
         "{'h.a': ResultMetric('a', value=DummyMetric()), "
         "'h.b': ResultMetric('b', value=DummyMetric()), "
-        "'h.c': ResultMetric('c', value=DummyMetric()), "
-        "'_extra': {}}"
-        "}"
+        "'h.c': ResultMetric('c', value=DummyMetric())"
+        "}}"
     )
 
 
@@ -350,12 +352,6 @@ def test_lightning_module_logging_result_collection(tmpdir, device):
         gpus=1 if device == "cuda" else 0,
     )
     trainer.fit(model)
-
-
-def test_result_collection_extra_reference():
-    """Unit-test to check that the `extra` dict reference is properly set."""
-    rc = ResultCollection(True)
-    assert rc.extra is rc["_extra"]
 
 
 class DummyMeanMetric(Metric):
@@ -553,3 +549,16 @@ def test_metric_collections(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, limit_train_batches=2, limit_val_batches=0)
     trainer.fit(model)
+
+
+def test_metric_result_computed_check():
+    """Unittest ``_get_cache`` with multielement tensors."""
+    sync = _Sync()
+    metadata = _Metadata("foo", "bar", on_epoch=True, enable_graph=True)
+    metadata.sync = sync
+    rm = ResultMetric(metadata, is_tensor=True)
+    computed_value = torch.tensor([1, 2, 3])
+    rm._computed = computed_value
+    cache = ResultCollection._get_cache(rm, on_step=False)
+    # `enable_graph=True` so no detach, identity works
+    assert cache is computed_value

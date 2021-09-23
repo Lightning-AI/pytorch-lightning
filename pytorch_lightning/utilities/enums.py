@@ -73,7 +73,7 @@ class PrecisionType(LightningEnum):
 
 
 class DistributedType(LightningEnum):
-    """Define type of ditributed computing.
+    """Define type of distributed computing.
 
     >>> # you can match the type with string
     >>> DistributedType.DDP == 'ddp'
@@ -147,3 +147,35 @@ class AutoRestartBatchKeys(LightningEnum):
     """Defines special dictionary keys used to track captured dataset state with multiple workers."""
 
     PL_RESTART_META = "__pl_restart_meta"
+
+
+class ModelSummaryMode(LightningEnum):
+    # TODO: remove in v1.6 (as `mode` would be deprecated for `max_depth`)
+    """Define the Model Summary mode to be used.
+
+    Can be one of
+        - `top`: only the top-level modules will be recorded (the children of the root module)
+        - `full`: summarizes all layers and their submodules in the root module
+
+    >>> # you can match the type with string
+    >>> ModelSummaryMode.TOP == 'TOP'
+    True
+    >>> # which is case invariant
+    >>> ModelSummaryMode.TOP in ('top', 'FULL')
+    True
+    """
+
+    TOP = "top"
+    FULL = "full"
+
+    @staticmethod
+    def get_max_depth(mode: str) -> int:
+        if mode == ModelSummaryMode.TOP:
+            return 1
+        if mode == ModelSummaryMode.FULL:
+            return -1
+        raise ValueError(f"`mode` can be {', '.join(list(ModelSummaryMode))}, got {mode}.")
+
+    @staticmethod
+    def supported_types() -> List[str]:
+        return [x.value for x in ModelSummaryMode]

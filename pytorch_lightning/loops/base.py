@@ -13,19 +13,20 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Generic, Optional, TypeVar
 
 from deprecate import void
 from torchmetrics import Metric
 
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import BaseProgress, Progress
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
+T = TypeVar("T")  # the output type of `run`
 
-class Loop(ABC):
+
+class Loop(ABC, Generic[T]):
     """Basic Loops interface. All classes derived from this must implement the following properties and methods:
 
         * :attr:`done` (property): Condition to break the loop
@@ -91,7 +92,7 @@ class Loop(ABC):
             the default output value of :meth:`on_run_end`
         """
 
-    def run(self, *args: Any, **kwargs: Any) -> Optional[Any]:
+    def run(self, *args: Any, **kwargs: Any) -> T:
         """The main entry point to the loop.
 
         Will frequently check the :attr:`done` condition and calls :attr:`advance`
@@ -147,7 +148,7 @@ class Loop(ABC):
     def on_advance_end(self) -> None:
         """Hook to be called each time after :attr:`advance` is called."""
 
-    def on_run_end(self) -> Any:
+    def on_run_end(self) -> T:
         """Hook to be called at the end of the run.
 
         Its return argument is returned from :attr:`run`.
@@ -198,25 +199,19 @@ class Loop(ABC):
         self,
         state_dict: Dict,
         prefix: str = "",
-        restart_progress: bool = True,
         metrics: Optional[Dict[str, Metric]] = None,
     ) -> None:
         """Loads the state of this loop and all its children."""
-        self._load_from_state_dict(state_dict.copy(), prefix, restart_progress, metrics)
+        self._load_from_state_dict(state_dict.copy(), prefix, metrics)
         for k, v in self.__dict__.items():
             if isinstance(v, Loop):
-                v.load_state_dict(state_dict.copy(), prefix + k + ".", restart_progress)
+                v.load_state_dict(state_dict.copy(), prefix + k + ".")
 
-    def _load_from_state_dict(
-        self, state_dict: Dict, prefix: str, restart_progress: bool, metrics: Optional[Dict[str, Metric]] = None
-    ) -> None:
+    def _load_from_state_dict(self, state_dict: Dict, prefix: str, metrics: Optional[Dict[str, Metric]] = None) -> None:
         for k, v in self.__dict__.items():
             key = prefix + k
             if isinstance(v, BaseProgress):
                 v.load_state_dict(state_dict[key])
-                if restart_progress:
-                    apply_to_collection(v, Progress, lambda p: p.current.reset_on_restart())
-
             elif (
                 isinstance(v, ResultCollection)
                 and self.trainer is not None
