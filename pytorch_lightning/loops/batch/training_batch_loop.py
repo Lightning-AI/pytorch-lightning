@@ -40,7 +40,6 @@ class TrainingBatchLoop(Loop):
         self.manual_loop = ManualOptimization()
 
         self._warning_cache: WarningCache = WarningCache()
-        self._optimizer_freq_cumsum: Optional[int] = None
         self._remaining_splits: Optional[List[Any]] = None
 
     @property
