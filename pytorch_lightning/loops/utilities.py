@@ -166,5 +166,5 @@ def _get_active_optimizers(
     current_place_in_loop = batch_idx % optimizers_loop_length
 
     # find optimizer index by looking for the first {item > current_place} in the cumsum list
-    opt_idx = int(np.argmax(freq_cumsum > current_place_in_loop))
+    opt_idx = np.searchsorted(freq_cumsum, current_place_in_loop, side="right")
     return [(opt_idx, optimizers[opt_idx])]
