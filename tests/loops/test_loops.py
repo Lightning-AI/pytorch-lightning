@@ -20,7 +20,9 @@ from unittest.mock import ANY
 
 import pytest
 import torch
+from torch.utils.data import DataLoader
 
+from pl_examples.bug_report_model import RandomDataset
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loops import Loop, TrainingBatchLoop
@@ -443,6 +445,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
                 "processed": stop_batch,
                 "completed": stop_batch,
             },
+            "is_last_batch": False,
         },
         "epoch_loop.scheduler_progress": {
             "total": {"ready": nbe_sch_steps + be_sch_steps, "completed": nbe_sch_steps + be_sch_steps},
@@ -548,13 +551,15 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
 
             return optimizers, lr_schedulers
 
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(32, n_batches))
+
     model = TestModel()
     model.training_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=n_epochs,
-        limit_train_batches=n_batches,
         limit_val_batches=0,
         accumulate_grad_batches=accumulate_grad_batches,
         progress_bar_refresh_rate=0,
@@ -562,6 +567,8 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
         checkpoint_callback=True,
     )
     trainer.fit(model)
+
+    assert trainer.num_training_batches == n_batches
 
     ckpt_path = trainer.checkpoint_callback.best_model_path
     assert os.path.exists(ckpt_path)
@@ -607,6 +614,7 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
                 "processed": n_batches,
                 "completed": n_batches,
             },
+            "is_last_batch": True,
         },
         "epoch_loop.scheduler_progress": {
             "total": {"ready": n_sch_steps_total, "completed": n_sch_steps_total},
