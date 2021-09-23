@@ -61,17 +61,16 @@ if _RICH_AVAILABLE:
     class MetricsTextColumn(ProgressColumn):
         """A column containing text."""
 
-        def __init__(self, trainer, pl_module, stage):
+        def __init__(self, trainer, pl_module):
             self._trainer = trainer
             self._pl_module = pl_module
-            self._stage = stage
             self._tasks = {}
             self._current_task_id = 0
             super().__init__()
 
         def render(self, task) -> Text:
-            if self._stage != "fit" or self._trainer.sanity_checking:
-                return ""
+            if self._trainer.state.fn != "fit" or self._trainer.sanity_checking:
+                return Text("")
             if self._trainer.training and task.id not in self._tasks:
                 self._tasks[task.id] = "None"
                 if self._renderable_cache:
@@ -89,8 +88,7 @@ if _RICH_AVAILABLE:
 
             for k, v in metrics.items():
                 _text += f"{k}: {round(v, 3) if isinstance(v, float) else v} "
-            text = Text.from_markup(_text, style=None, justify="left")
-            return text
+            return Text(_text, justify="left")
 
 
 @dataclass
@@ -146,7 +144,7 @@ class RichProgressBar(ProgressBarBase):
         self._refresh_rate_per_second: int = refresh_rate_per_second
         self._enabled: bool = True
         self._total_val_batches: int = 0
-        self.progress: Progress = None
+        self.progress: Optional[Progress] = None
         self.val_sanity_progress_bar_id: Optional[int] = None
         self.main_progress_bar_id: Optional[int] = None
         self.val_progress_bar_id: Optional[int] = None
@@ -193,21 +191,47 @@ class RichProgressBar(ProgressBarBase):
     def predict_description(self) -> str:
         return "Predicting"
 
-    def setup(self, trainer, pl_module, stage: Optional[str] = None):
-        self.progress = Progress(
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(complete_style=self.theme.progress_bar_complete, finished_style=self.theme.progress_bar_finished),
-            BatchesProcessedColumn(style=self.theme.batch_process),
-            CustomTimeColumn(style=self.theme.time),
-            ProcessingSpeedColumn(style=self.theme.processing_speed),
-            MetricsTextColumn(trainer, pl_module, stage),
-            refresh_per_second=self.refresh_rate_per_second,
-            disable=self.is_disabled,
-        )
-        self.progress.start()
+    def _init_progress(self, trainer, pl_module, stage: Optional[str] = None):
+        if self.progress is None or not self.progress.live.is_started:
+            self.progress = Progress(
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(
+                    complete_style=self.theme.progress_bar_complete, finished_style=self.theme.progress_bar_finished
+                ),
+                BatchesProcessedColumn(style=self.theme.batch_process),
+                CustomTimeColumn(style=self.theme.time),
+                ProcessingSpeedColumn(style=self.theme.processing_speed),
+                MetricsTextColumn(trainer, pl_module),
+                refresh_per_second=self.refresh_rate_per_second,
+                disable=self.is_disabled,
+            )
+            self.progress.start()
+
+    def on_train_start(self, trainer, pl_module):
+        super().on_train_start(trainer, pl_module)
+        self._init_progress(trainer, pl_module)
+
+    def on_predict_start(self, trainer, pl_module):
+        super().on_predict_start(trainer, pl_module)
+        self._init_progress(trainer, pl_module)
+
+    def on_test_start(self, trainer, pl_module):
+        super().on_test_start(trainer, pl_module)
+        self._init_progress(trainer, pl_module)
+
+    def on_validation_start(self, trainer, pl_module):
+        super().on_validation_start(trainer, pl_module)
+        self._init_progress(trainer, pl_module)
+
+    def __getstate__(self):
+        # can't pickle the rich progress objects
+        state = self.__dict__.copy()
+        state["progress"] = None
+        return state
 
     def on_sanity_check_start(self, trainer, pl_module):
         super().on_sanity_check_start(trainer, pl_module)
+        self._init_progress(trainer, pl_module)
         self.val_sanity_progress_bar_id = self.progress.add_task(
             f"[{self.theme.text_color}]{self.sanity_check_description}",
             total=trainer.num_sanity_val_steps,
