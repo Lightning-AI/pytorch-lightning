@@ -153,7 +153,7 @@ class Progress(BaseProgress):
         self.total.load_state_dict(state_dict["total"])
         self.current.load_state_dict(state_dict["current"])
 
-    def reset_on_epoch(self) -> None:
+    def reset_on_run(self) -> None:
         self.current.reset()
 
     def reset_on_restart(self) -> None:
@@ -189,8 +189,8 @@ class BatchProgress(Progress):
 
     is_last_batch: bool = False
 
-    def reset_on_epoch(self) -> None:
-        super().reset_on_epoch()
+    def reset_on_run(self) -> None:
+        super().reset_on_run()
         self.is_last_batch = False
 
 
@@ -221,9 +221,9 @@ class OptimizerProgress(BaseProgress):
     step: Progress = field(default_factory=lambda: Progress.from_defaults(ReadyCompletedTracker))
     zero_grad: Progress = field(default_factory=lambda: Progress.from_defaults(StartedTracker))
 
-    def reset_on_epoch(self) -> None:
-        self.step.reset_on_epoch()
-        self.zero_grad.reset_on_epoch()
+    def reset_on_run(self) -> None:
+        self.step.reset_on_run()
+        self.zero_grad.reset_on_run()
 
     def reset_on_restart(self):
         self.step.reset_on_restart()
@@ -254,8 +254,8 @@ class OptimizationProgress(BaseProgress):
     def optimizer_steps(self) -> int:
         return self.optimizer.step.total.completed
 
-    def reset_on_epoch(self) -> None:
-        self.optimizer.reset_on_epoch()
+    def reset_on_run(self) -> None:
+        self.optimizer.reset_on_run()
 
     def reset_on_restart(self) -> None:
         self.optimizer.reset_on_restart()

@@ -93,16 +93,16 @@ class TrainingEpochLoop(loops.Loop):
         assert self.batch_loop.optimizer_loop is not None
         if self.restarting:
             self.batch_progress.reset_on_restart()
-            self.scheduler_progress.current.reset_on_restart()
+            self.scheduler_progress.reset_on_restart()
             self.batch_loop.optimizer_loop.optim_progress.reset_on_restart()
 
         # track epoch output
         self._epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
 
         if not self.restarting or self._num_training_batches_reached():
-            self.batch_progress.reset_on_epoch()
-            self.scheduler_progress.reset_on_epoch()
-            self.batch_loop.optimizer_loop.optim_progress.reset_on_epoch()
+            self.batch_progress.reset_on_run()
+            self.scheduler_progress.reset_on_run()
+            self.batch_loop.optimizer_loop.optim_progress.reset_on_run()
 
     def on_run_start(self, dataloader_iter: Iterator, **kwargs: Any) -> None:
         # hook
