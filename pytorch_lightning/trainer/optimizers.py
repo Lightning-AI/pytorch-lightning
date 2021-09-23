@@ -58,11 +58,14 @@ class TrainerOptimizersMixin(ABC):
             lr_schedulers = sch if isinstance(sch, list) else [sch]
         # single dictionary
         elif isinstance(optim_conf, dict):
+            _validate_optim_conf(optim_conf)
             optimizers = [optim_conf["optimizer"]]
             monitor = optim_conf.get("monitor", None)
             lr_schedulers = [optim_conf["lr_scheduler"]] if "lr_scheduler" in optim_conf else []
         # multiple dictionaries
         elif isinstance(optim_conf, (list, tuple)) and all(isinstance(d, dict) for d in optim_conf):
+            for opt_dict in optim_conf:
+                _validate_optim_conf(opt_dict)
             optimizers = [opt_dict["optimizer"] for opt_dict in optim_conf]
             scheduler_dict = (
                 lambda scheduler, opt_idx: dict(scheduler, opt_idx=opt_idx)
@@ -160,6 +163,13 @@ class TrainerOptimizersMixin(ABC):
                             ' For example: {"optimizer": optimizer, "lr_scheduler":'
                             ' {"scheduler": scheduler, "monitor": "your_loss"}}'
                         )
+                    is_one_cycle = isinstance(scheduler["scheduler"], optim.lr_scheduler.OneCycleLR)
+                    if is_one_cycle and scheduler.get("interval", "epoch") == "epoch":
+                        rank_zero_warn(
+                            "A `OneCycleLR` scheduler is using 'interval': 'epoch'."
+                            " Are you sure you didn't mean 'interval': 'step'?",
+                            RuntimeWarning,
+                        )
                     lr_schedulers.append({**default_config, **scheduler})
                 elif isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
                     if monitor is None:
@@ -203,6 +213,13 @@ class _MockOptimizer(Optimizer):
 
     def __repr__(self):
         return "No Optimizer"
+
+
+def _validate_optim_conf(optim_conf):
+    valid_keys = {"optimizer", "lr_scheduler", "frequency", "monitor"}
+    extra_keys = [k for k in optim_conf.keys() if k not in valid_keys]
+    if extra_keys:
+        rank_zero_warn(f"Found unsupported keys in the optimizer configuration: {extra_keys}", RuntimeWarning)
 
 
 def _validate_scheduler_optimizer(optimizers, lr_schedulers):
