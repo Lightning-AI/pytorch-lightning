@@ -20,7 +20,7 @@ from pytorch_lightning.utilities import _RICH_AVAILABLE
 
 Style = None
 if _RICH_AVAILABLE:
-    from rich.console import Console, RenderableType
+    from rich.console import RenderableType
     from rich.progress import BarColumn, Progress, ProgressColumn, TextColumn
     from rich.style import Style
     from rich.text import Text
@@ -152,7 +152,6 @@ class RichProgressBar(ProgressBarBase):
         self.val_progress_bar_id: Optional[int] = None
         self.test_progress_bar_id: Optional[int] = None
         self.predict_progress_bar_id: Optional[int] = None
-        self.console = Console(record=True)
         self.theme = theme
 
     @property
@@ -202,7 +201,6 @@ class RichProgressBar(ProgressBarBase):
             CustomTimeColumn(style=self.theme.time),
             ProcessingSpeedColumn(style=self.theme.processing_speed),
             MetricsTextColumn(trainer, pl_module, stage),
-            console=self.console,
             refresh_per_second=self.refresh_rate_per_second,
             disable=self.is_disabled,
         )
