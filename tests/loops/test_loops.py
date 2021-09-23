@@ -552,6 +552,7 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
             return optimizers, lr_schedulers
 
         def train_dataloader(self):
+            # override to test the `is_last_batch` value
             return DataLoader(RandomDataset(32, n_batches))
 
     model = TestModel()
