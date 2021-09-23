@@ -60,6 +60,9 @@ class GPUAccelerator(Accelerator):
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """Gets stats for the given GPU device.
 
+        Args:
+            device: GPU device for which to get stats
+
         Returns:
             A dictionary mapping the metrics to their values.
 
@@ -69,8 +72,7 @@ class GPUAccelerator(Accelerator):
         """
         if _TORCH_GREATER_EQUAL_1_8:
             return torch.cuda.memory_stats(device)
-        else:
-            return _get_nvidia_gpu_stats(device)
+        return _get_nvidia_gpu_stats(device)
 
     def teardown(self) -> None:
         super().teardown()
@@ -79,6 +81,9 @@ class GPUAccelerator(Accelerator):
 
 def _get_nvidia_gpu_stats(device: torch.device) -> Dict[str, float]:
     """Get GPU stats including memory, fan speed, and temperature from nvidia-smi.
+
+    Args:
+        device: GPU device for which to get stats
 
     Returns:
         A dictionary mapping the metrics to their values.

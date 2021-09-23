@@ -65,15 +65,17 @@ class TPUAccelerator(Accelerator):
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """Gets stats for the given TPU device.
 
-        Returns:
-        A dictionary mapping the metrics (free memory and peak memory) to their values.
-        """
-        device_stats = {}
-        memory_info = xm.get_memory_info(device)
+        Args:
+            device: TPU device for which to get stats
 
+        Returns:
+            A dictionary mapping the metrics (free memory and peak memory) to their values.
+        """
+        memory_info = xm.get_memory_info(device)
         free_memory = memory_info["kb_free"]
         peak_memory = memory_info["kb_total"] - free_memory
-
-        device_stats["avg. free memory (MB)"] = free_memory
-        device_stats["avg. peak memory (MB)"] = peak_memory
+        device_stats = {
+            "avg. free memory (MB)": free_memory,
+            "avg. peak memory (MB)": peak_memory,
+        }
         return device_stats
