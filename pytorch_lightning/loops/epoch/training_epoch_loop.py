@@ -399,24 +399,37 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
 
 def _convert_optim_dict(outs: Dict[int, Dict[str, Any]], num_optimizers: int) -> List[Dict[str, Any]]:
-    # relevant test: test_step_scheduling_for_multiple_optimizers_with_frequency
+    """Converts an optimizer dict to a list in which the key of the dict determines the position of the element.
+
+    Example::
+        >>> _convert_optim_dict({0: {"loss": 0.0}, 2: {"loss": 0.2}}, num_optimizers=3)
+        [{'loss': 0.0}, None, {'loss': 0.2}]
+    """
     return [outs[opt_idx] if opt_idx in outs else None for opt_idx in range(num_optimizers)]
 
 
-def _recursive_unpad(nested: List, value: Optional[Any] = None) -> List:
-    """Removes the given pad value from the nested list."""
+def _recursive_unpad(nested: List[Any], value: Optional[Any] = None) -> List:
+    """Removes the given pad value from the nested list. Not strictly the reverse operation of :func:`_recursive_pad`
+    because it removes the padding element everywhere, not just from the end of a list.
+
+    Example::
+        >>> _recursive_unpad([[[0, 1, 0]], [2], [0, 0]], value=0)
+        [[[1]], [2], []]
+    """
     if not isinstance(nested, list):
         return nested
 
-    return [_recursive_unpad(item) for item in nested if item is not value]
+    return [_recursive_unpad(item, value) for item in nested if item != value]
 
 
-# relevant tests:
-# test_optimizer_loop.py::test_optimizer_frequencies
-# test_train_loop_flow_scalar.py::test_training_step_no_return_when_even
-def _recursive_pad(nested: List, fill_value: Optional[Any] = None) -> np.array:
+def _recursive_pad(nested: List[Any], fill_value: Optional[Any] = None) -> np.array:
     """Pads a jagged nested list of lists with the given value such that a proper multi-dimensional array can be
-    formed with rectangular shape."""
+    formed with rectangular shape. The padding appends to the incomplete lists.
+
+    Example::
+        >>> _recursive_pad([[], [1], [2, 3], [4]], fill_value=0)  # doctest: +NORMALIZE_WHITESPACE
+        array([[0, 0], [1, 0], [2, 3], [4, 0]], dtype=object)
+    """
     # code adapted from stackexchange:
     # https://codereview.stackexchange.com/questions/222623/pad-a-ragged-multidimensional-array-to-rectangular-shape
     dimensions = _get_max_shape(nested)
@@ -426,21 +439,27 @@ def _recursive_pad(nested: List, fill_value: Optional[Any] = None) -> np.array:
     return result
 
 
-def _get_dimensions(array: List, level: int = 0) -> Generator:
+def _get_dimensions(array: List[Any], level: int = 0) -> Generator:
     yield level, len(array)
     if all(isinstance(row, list) for row in array):
         for row in array:
             yield from _get_dimensions(row, level + 1)
 
 
-def _get_max_shape(array: List) -> List[int]:
+def _get_max_shape(array: List[Any]) -> List[int]:
+    """Calculates the max size in each dimension of a jagged (non-rectangular) nested list of lists.
+
+    Example::
+        >>> _get_max_shape([[], [[1], [2]], []])
+        [3, 2, 1]
+    """
     dimensions = defaultdict(int)
     for level, length in _get_dimensions(array):
         dimensions[level] = max(dimensions[level], length)
     return [value for _, value in sorted(dimensions.items())]
 
 
-def _iterate_nested_array(array: List, index: Tuple = ()) -> Generator:
+def _iterate_nested_array(array: List[Any], index: Tuple = ()) -> Generator:
     if all(isinstance(item, list) for item in array):
         for idx, row in enumerate(array):
             yield from _iterate_nested_array(row, (*index, idx))
