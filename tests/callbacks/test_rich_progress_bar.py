@@ -35,6 +35,16 @@ def test_rich_progress_bar_callback():
 
 
 @RunIf(rich=True)
+def test_rich_progress_bar_refresh_rate():
+    progress_bar = RichProgressBar(refresh_rate_per_second=1)
+    assert progress_bar.is_enabled
+    assert not progress_bar.is_disabled
+    progress_bar = RichProgressBar(refresh_rate_per_second=0)
+    assert not progress_bar.is_enabled
+    assert progress_bar.is_disabled
+
+
+@RunIf(rich=True)
 @mock.patch("pytorch_lightning.callbacks.progress.rich_progress.Progress.update")
 def test_rich_progress_bar(progress_update, tmpdir):
     model = BoringModel()

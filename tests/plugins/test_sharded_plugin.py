@@ -309,3 +309,13 @@ def test_custom_kwargs_sharded_reduce_buffer_size(tmpdir, params, expected_buffe
         assert kwargs["reduce_buffer_size"] == DDPShardedPlugin._REDUCE_BUFFER_SIZE_DEFAULT
     else:
         assert kwargs["reduce_buffer_size"] == expected_buffer_size
+
+
+@RunIf(skip_windows=True, fairscale=True)
+def test_block_backward_sync(tmpdir):
+    plugin = DDPShardedPlugin()
+    model = mock.MagicMock(spec=ShardedDataParallel)
+    with mock.patch.object(plugin, "_model", model):
+        with plugin.block_backward_sync():
+            pass
+    model.no_sync.assert_called_once()

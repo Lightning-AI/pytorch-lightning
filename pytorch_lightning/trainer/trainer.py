@@ -62,7 +62,6 @@ from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerCo
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.deprecated_api import DeprecatedTrainerAttributes
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
@@ -114,7 +113,6 @@ class Trainer(
     TrainerModelHooksMixin,
     TrainerOptimizersMixin,
     TrainerDataLoadingMixin,
-    DeprecatedTrainerAttributes,
 ):
     # Needed because of LightningOptimizer
     _lightning_optimizers = None
@@ -1033,6 +1031,11 @@ class Trainer(
         # ----------------------------
         # TRAIN
         # ----------------------------
+
+        # reset logger connector
+        self.logger_connector.reset_results()
+        self.logger_connector.reset_metrics()
+
         # hook
         if self.state.fn == TrainerFn.FITTING:
             self.call_hook("on_fit_start")
@@ -1217,6 +1220,10 @@ class Trainer(
             stage = self.state.stage
             self.sanity_checking = True
 
+            # reset logger connector
+            self.logger_connector.reset_results()
+            self.logger_connector.reset_metrics()
+
             self.call_hook("on_sanity_check_start")
 
             # reload dataloaders
@@ -1228,8 +1235,9 @@ class Trainer(
 
             self.call_hook("on_sanity_check_end")
 
-            # reset validation metrics
-            self.logger_connector.reset()
+            # reset logger connector
+            self.logger_connector.reset_results()
+            self.logger_connector.reset_metrics()
 
             # reset the seed to what it was before sanity check
             # prevents sanity check to affect random sampling in training
@@ -1888,7 +1896,7 @@ class Trainer(
 
     @property
     def is_last_batch(self) -> bool:
-        return self.fit_loop.epoch_loop.is_last_batch
+        return self.fit_loop.epoch_loop.batch_progress.is_last_batch
 
     @property
     def fit_loop(self) -> FitLoop:
@@ -1965,6 +1973,13 @@ class Trainer(
             return self._evaluation_loop
         if self.predicting:
             return self.predict_loop
+
+    @property
+    def train_loop(self) -> FitLoop:
+        rank_zero_deprecation(
+            "`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
+        )
+        return self.fit_loop
 
     @property
     def _ckpt_path(self) -> Optional[str]:

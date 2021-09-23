@@ -63,7 +63,20 @@ class LogInTwoMethods(BoringModel):
         self.log("val_acc", outs)
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
+def mock_optimizer_connector(trainer):
+    # do not use `unittest.Mock` because we need to store the return value
+    calls = {}
+    old_get_monitor_value = trainer.optimizer_connector._get_monitor_value
+
+    def mock(key):
+        value = old_get_monitor_value(key)
+        calls[trainer.current_epoch] = {key: value}
+        return value
+
+    trainer.optimizer_connector._get_monitor_value = mock
+    return calls
+
+
 @pytest.mark.parametrize(
     "validation_step_none,val_dataloaders_none,monitor",
     [(False, False, "val_log"), (True, False, "train_log_epoch"), (False, True, "val_log")],
@@ -137,13 +150,11 @@ def test_model_checkpoint_score_and_ckpt(
         max_epochs=max_epochs,
         enable_progress_bar=False,
     )
+    calls = mock_optimizer_connector(trainer)
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     ckpt_files = list(Path(tmpdir).glob("*.ckpt"))
-    lr_scheduler_debug = trainer.dev_debugger.saved_lr_scheduler_updates
     assert len(ckpt_files) == len(model.scores) == max_epochs
-    assert len(lr_scheduler_debug) == max_epochs
 
     for epoch in range(max_epochs):
         score = model.scores[epoch]
@@ -169,12 +180,10 @@ def test_model_checkpoint_score_and_ckpt(
             # checkpoint is saved after updating lr_scheduler states
             assert actual_step_count == epoch + 2  # step_count starts at 1
             assert actual_lr == lr * gamma ** (epoch + 1)
+        else:
+            assert calls[epoch] == {monitor: score}
 
-        assert lr_scheduler_debug[epoch]["monitor_val"] == (score if reduce_lr_on_plateau else None)
-        assert lr_scheduler_debug[epoch]["monitor_key"] == (monitor if reduce_lr_on_plateau else None)
 
-
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize(
     "val_check_interval,reduce_lr_on_plateau,epoch_aligned",
     [(0.25, True, True), (0.25, False, True), (0.42, False, False)],
@@ -239,33 +248,23 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         enable_progress_bar=False,
         num_sanity_val_steps=0,
     )
+    calls = mock_optimizer_connector(trainer)
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
-    ckpt_files = list(Path(tmpdir).glob("*.ckpt"))
-    lr_scheduler_debug = trainer.dev_debugger.saved_lr_scheduler_updates
-
-    assert len(ckpt_files) == len(model.scores) == per_epoch_val_checks * max_epochs
-    assert len(lr_scheduler_debug) == max_epochs
-
-    def _make_assertions(epoch, ix, version=""):
+    def _make_assertions(epoch, ix):
         global_ix = ix + per_epoch_val_checks * epoch
-        duplicated = bool(version)
 
         # checkpoint saved at the end of training epoch will have updated lr_scheduler states
-        epoch_end_checkpoint = duplicated
-        if epoch_aligned:
-            epoch_end_checkpoint = ix == (per_epoch_val_checks - 1)
+        epoch_end_checkpoint = epoch_aligned and ix == (per_epoch_val_checks - 1)
 
         score = model.scores[global_ix]
         expected_score = getattr(model, f"{monitor}s")[global_ix].mean().item()
-        expected_filename = f"{monitor}={score:.4f}-epoch={epoch}{version}.ckpt"
+        expected_filename = f"{monitor}={score:.4f}-epoch={epoch}.ckpt"
         assert math.isclose(score, expected_score, rel_tol=1e-4)
 
         chk = pl_load(os.path.join(checkpoint.dirpath, expected_filename))
         assert chk["epoch"] == epoch + 1
-        epoch_num = epoch + duplicated
-        expected_global_step = per_val_train_batches * (global_ix + 1) + (leftover_train_batches * epoch_num)
+        expected_global_step = per_val_train_batches * (global_ix + 1) + (leftover_train_batches * epoch)
         assert chk["global_step"] == expected_global_step
 
         mc_specific_data = chk["callbacks"][
@@ -284,12 +283,15 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
 
         return score
 
+    ckpt_files = list(Path(tmpdir).glob("*.ckpt"))
+    assert len(ckpt_files) == len(model.scores) == per_epoch_val_checks * max_epochs
+
     for epoch in range(max_epochs):
         for i in range(per_epoch_val_checks):
             score = _make_assertions(epoch, i)
 
-        assert lr_scheduler_debug[epoch]["monitor_val"] == (score if reduce_lr_on_plateau else None)
-        assert lr_scheduler_debug[epoch]["monitor_key"] == (monitor if reduce_lr_on_plateau else None)
+        if reduce_lr_on_plateau:
+            assert calls[epoch] == {monitor: score}
 
 
 @pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
