@@ -143,6 +143,11 @@ def _block_parallel_sync_behavior(trainer: "pl.Trainer", block: bool = True) -> 
         yield None
 
 
+@lru_cache(1)
+def _cumulative_optimizer_frequencies(frequencies: Tuple[int]):
+    return np.cumsum(frequencies)
+
+
 def _get_active_optimizers(
     optimizers: List[Optimizer], frequencies: List[int], batch_idx: Optional[int] = None
 ) -> List[Tuple[int, Optimizer]]:
@@ -156,7 +161,7 @@ def _get_active_optimizers(
         # call training_step once per optimizer
         return list(enumerate(optimizers))
 
-    freq_cumsum = np.cumsum(frequencies)
+    freq_cumsum = _cumulative_optimizer_frequencies(tuple(frequencies))
     optimizers_loop_length = freq_cumsum[-1]
     current_place_in_loop = batch_idx % optimizers_loop_length
 
