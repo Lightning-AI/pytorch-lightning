@@ -101,7 +101,7 @@ class TrainingEpochLoop(loops.Loop):
         self.is_last_batch = False
 
         # track epoch output
-        self._epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
+        self._epoch_output = [[] for _ in range(self._num_active_optimizers(self.total_batch_idx))]
 
         if not self.restarting or self._num_training_batches_reached():
             self.batch_progress.current.reset()
@@ -377,3 +377,7 @@ class TrainingEpochLoop(loops.Loop):
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
+
+    def _num_active_optimizers(self, batch_idx: Optional[int] = None) -> int:
+        """Gets the number of active optimizers based on their frequency."""
+        return len(_get_active_optimizers(self.trainer.optimizers, self.trainer.optimizer_frequencies, batch_idx))

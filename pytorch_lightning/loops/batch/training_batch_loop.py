@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional
 
 from deprecate import void
 from torch import Tensor
@@ -134,10 +134,6 @@ class TrainingBatchLoop(Loop):
     def teardown(self) -> None:
         # release memory
         self._remaining_splits = None
-
-    def num_active_optimizers(self, batch_idx: Optional[int] = None) -> int:
-        """Gets the number of active optimizers based on their frequency."""
-        return len(_get_active_optimizers(self.trainer.optimizers, self.trainer.optimizer_frequencies, batch_idx))
 
     def _tbptt_split_batch(self, batch: Any) -> List[Any]:
         """Splits a single batch into a list of sequence steps for tbptt.
