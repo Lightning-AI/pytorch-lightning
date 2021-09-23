@@ -33,3 +33,7 @@ class CPUAccelerator(Accelerator):
             raise MisconfigurationException(f"Device should be CPU, got {self.root_device} instead.")
 
         return super().setup(trainer)
+
+    def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
+        """Returns dummy implementation for now"""
+        return {}

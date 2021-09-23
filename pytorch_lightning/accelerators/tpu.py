@@ -72,9 +72,6 @@ class TPUAccelerator(Accelerator):
         free_memory = memory_info["kb_free"]
         peak_memory = memory_info["kb_total"] - free_memory
 
-        free_memory = self.training_type_plugin.reduce(free_memory) * 0.001
-        peak_memory = self.training_type_plugin.reduce(peak_memory) * 0.001
-
         device_stats["avg. free memory (MB)"] = free_memory
         device_stats["avg. peak memory (MB)"] = peak_memory
         return device_stats
