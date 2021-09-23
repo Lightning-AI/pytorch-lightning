@@ -311,7 +311,7 @@ def test_training_step_no_return_when_even(tmpdir):
     for batch_idx, batch in enumerate(model.train_dataloader()):
         out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx)
         if not batch_idx % 2:
-            assert out.outputs == [[]]
+            assert out.outputs == []
         assert out.signal == 0
 
 
