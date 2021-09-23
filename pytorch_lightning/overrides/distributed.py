@@ -23,13 +23,10 @@ from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 
 
 class LightningDistributedModule(_LightningModuleWrapperBase):
-
-    def __init__(self, pl_module: 'pl.LightningModule') -> None:
-        """
-        Wraps the user's LightningModule and redirects the forward call to the appropriate
-        method, either ``training_step``, ``validation_step``, ``test_step`` or ``predict``.
-        This class is used in combination with :class:`~torch.nn.parallel.DistributedDataParallel` as
-        shown in the example.
+    def __init__(self, pl_module: "pl.LightningModule") -> None:
+        """Wraps the user's LightningModule and redirects the forward call to the appropriate method, either
+        ``training_step``, ``validation_step``, ``test_step`` or ``predict``. This class is used in combination
+        with :class:`~torch.nn.parallel.DistributedDataParallel` as shown in the example.
 
         Example:
 
@@ -41,7 +38,6 @@ class LightningDistributedModule(_LightningModuleWrapperBase):
 
         Args:
             pl_module: the model to wrap
-
         """
         super().__init__(pl_module)
 
@@ -63,6 +59,9 @@ def _find_tensors(obj):  # pragma: no-cover
 # Note: Keep track of Pytorch DDP and update if there is a change
 # https://github.com/pytorch/pytorch/blob/v1.7.1/torch/nn/parallel/distributed.py#L626-L638
 def prepare_for_backward(model: DistributedDataParallel, output: Any):
+    # `prepare_for_backward` is `DistributedDataParallel` specific.
+    if not isinstance(model, DistributedDataParallel):
+        return
     if torch.is_grad_enabled() and model.require_backward_grad_sync:
         model.require_forward_param_sync = True
         # We'll return the output object verbatim since it is a freeform
@@ -79,16 +78,12 @@ def prepare_for_backward(model: DistributedDataParallel, output: Any):
 
 
 class UnrepeatedDistributedSampler(DistributedSampler):
-    """
-    A fork of the pytorch DistributedSampler that doesn't repeat data, instead
-    allowing the number of batches per process to be off-by-one from each other.
-    This makes this sampler usable for predictions (it's deterministic and
-    doesn't require shuffling). It is potentially unsafe to use this sampler for
-    training, because during training the DistributedDataParallel syncs buffers
-    on each forward pass, so it could freeze if one of the processes runs one
-    fewer batch. During prediction, buffers are only synced on the first batch,
-    so this is safe to use as long as each process runs at least one batch. We
-    verify this in an assert.
+    """A fork of the pytorch DistributedSampler that doesn't repeat data, instead allowing the number of batches
+    per process to be off-by-one from each other. This makes this sampler usable for predictions (it's
+    deterministic and doesn't require shuffling). It is potentially unsafe to use this sampler for training,
+    because during training the DistributedDataParallel syncs buffers on each forward pass, so it could freeze if
+    one of the processes runs one fewer batch. During prediction, buffers are only synced on the first batch, so
+    this is safe to use as long as each process runs at least one batch. We verify this in an assert.
 
     Taken from https://github.com/jpuigcerver/PyLaia/blob/v1.0.0/laia/data/unpadded_distributed_sampler.py
     and https://github.com/pytorch/pytorch/issues/25162#issuecomment-634146002
@@ -114,7 +109,7 @@ class UnrepeatedDistributedSampler(DistributedSampler):
         assert len(indices) == self.total_size
 
         # subsample
-        indices = indices[self.rank:self.total_size:self.num_replicas]
+        indices = indices[self.rank : self.total_size : self.num_replicas]
         assert len(indices) == self.num_samples
 
         return iter(indices)

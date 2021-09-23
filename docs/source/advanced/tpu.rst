@@ -23,7 +23,7 @@ A TPU is a Tensor processing unit. Each TPU has 8 cores where each
 core is optimized for 128x128 matrix multiplies. In general, a single
 TPU is about as fast as 5 V100 GPUs!
 
-A TPU pod hosts many TPUs on it. Currently, TPU pod v2 has 2048 cores!
+A TPU pod hosts many TPUs on it. Currently, TPU v3 Pod has up to 2048 TPU cores and 32 TiB of memory!
 You can request a full pod from Google cloud or a "slice" which gives you
 some subset of those 2048 cores.
 
@@ -64,9 +64,9 @@ To get a TPU on colab, follow these steps:
 
    .. code-block::
 
-        !pip install cloud-tpu-client==0.10 https://storage.googleapis.com/tpu-pytorch/wheels/torch_xla-1.8-cp37-cp37m-linux_x86_64.whl
+        !pip install cloud-tpu-client==0.10 https://storage.googleapis.com/tpu-pytorch/wheels/torch_xla-1.9-cp37-cp37m-linux_x86_64.whl
 
-5. Once the above is done, install PyTorch Lightning (v 0.7.0+).
+5. Once the above is done, install PyTorch Lightning.
 
    .. code-block::
 
@@ -92,29 +92,18 @@ for TPU use
 
     import torch_xla.core.xla_model as xm
 
+
     def train_dataloader(self):
-        dataset = MNIST(
-            os.getcwd(),
-            train=True,
-            download=True,
-            transform=transforms.ToTensor()
-        )
+        dataset = MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor())
 
         # required for TPU support
         sampler = None
         if use_tpu:
             sampler = torch.utils.data.distributed.DistributedSampler(
-                dataset,
-                num_replicas=xm.xrt_world_size(),
-                rank=xm.get_ordinal(),
-                shuffle=True
+                dataset, num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal(), shuffle=True
             )
 
-        loader = DataLoader(
-            dataset,
-            sampler=sampler,
-            batch_size=32
-        )
+        loader = DataLoader(dataset, sampler=sampler, batch_size=32)
 
         return loader
 
@@ -294,6 +283,120 @@ has more detailed information on how PyTorch code can be optimized for TPU. In p
 `metrics report <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#get-a-metrics-report>`_ allows
 one to identify operations that lead to context switching.
 
+-------------
+
+Troubleshooting
+---------------
+
+- **Missing XLA configuration**
+
+.. code-block::
+
+    File "/usr/local/lib/python3.8/dist-packages/torch_xla/core/xla_model.py", line 18, in <lambda>
+        _DEVICES = xu.LazyProperty(lambda: torch_xla._XLAC._xla_get_devices())
+    RuntimeError: tensorflow/compiler/xla/xla_client/computation_client.cc:273 : Missing XLA configuration
+    Traceback (most recent call last):
+    ...
+    File "/home/kaushikbokka/pytorch-lightning/pytorch_lightning/utilities/device_parser.py", line 125, in parse_tpu_cores
+        raise MisconfigurationException('No TPU devices were found.')
+    pytorch_lightning.utilities.exceptions.MisconfigurationException: No TPU devices were found.
+
+This means the system is missing XLA configuration. You would need to set up XRT TPU device configuration.
+
+For TPUVM architecture, you could set it in your terminal by:
+
+.. code-block:: bash
+
+    export XRT_TPU_CONFIG="localservice;0;localhost:51011"
+
+And for the old TPU + 2VM architecture, you could set it by:
+
+.. code-block:: bash
+
+    export TPU_IP_ADDRESS=10.39.209.42  # You could get the IP Address in the GCP TPUs section
+    export XRT_TPU_CONFIG="tpu_worker;0;$TPU_IP_ADDRESS:8470"
+
+- **How to clear up the programs using TPUs in the background**
+
+.. code-block:: bash
+
+    lsof -w /lib/libtpu.so | grep "python" |  awk '{print $2}' | xargs -r kill -9
+
+Sometimes, there can still be old programs running on the TPUs, which would make the TPUs unavailable to use. You could use the above command in the terminal to kill the running processes.
+
+- **Replication issue**
+
+.. code-block::
+
+    File "/usr/local/lib/python3.6/dist-packages/torch_xla/core/xla_model.py", line 200, in set_replication
+        replication_devices = xla_replication_devices(devices)
+    File "/usr/local/lib/python3.6/dist-packages/torch_xla/core/xla_model.py", line 187, in xla_replication_devices
+        .format(len(local_devices), len(kind_devices)))
+    RuntimeError: Cannot replicate if number of devices (1) is different from 8
+
+This error is raised when the XLA device is called outside the spawn process. Internally in `TPUSpawn` Plugin for training on multiple tpu cores, we use XLA's `xmp.spawn`.
+Don't use ``xm.xla_device()`` while working on Lightning + TPUs!
+
+- **Unsupported datatype transfer to TPU**
+
+.. code-block::
+
+    File "/usr/local/lib/python3.8/dist-packages/torch_xla/utils/utils.py", line 205, in _for_each_instance_rewrite
+        v = _for_each_instance_rewrite(result.__dict__[k], select_fn, fn, rwmap)
+    File "/usr/local/lib/python3.8/dist-packages/torch_xla/utils/utils.py", line 206, in _for_each_instance_rewrite
+        result.__dict__[k] = v
+    TypeError: 'mappingproxy' object does not support item assignment
+
+PyTorch XLA only supports Tensor objects for CPU to TPU data transfer. Might cause issues if the User is trying to send some non-tensor objects through the DataLoader or during saving states.
+
+- **Using `tpu_spawn_debug` Plugin**
+
+.. code-block:: python
+
+    import pytorch_lightning as pl
+
+    my_model = MyLightningModule()
+    trainer = pl.Trainer(tpu_cores=8, plugins="tpu_spawn_debug")
+    trainer.fit(my_model)
+
+Example Metrics report:
+
+.. code-block::
+
+    Metric: CompileTime
+        TotalSamples: 202
+        Counter: 06m09s401ms746.001us
+        ValueRate: 778ms572.062us / second
+        Rate: 0.425201 / second
+        Percentiles: 1%=001ms32.778us; 5%=001ms61.283us; 10%=001ms79.236us; 20%=001ms110.973us; 50%=001ms228.773us; 80%=001ms339.183us; 90%=001ms434.305us; 95%=002ms921.063us; 99%=21s102ms853.173us
+
+
+A lot of PyTorch operations aren't lowered to XLA, which could lead to significant slowdown of the training process.
+These operations are moved to the CPU memory and evaluated, and then the results are transfered back to the XLA device(s).
+By using the `tpu_spawn_debug` plugin, users could create a metrics report to diagnose issues.
+
+The report includes things like (`XLA Reference <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#troubleshooting>`_):
+
+* how many times we issue XLA compilations and time spent on issuing.
+* how many times we execute and time spent on execution
+* how many device data handles we create/destroy etc.
+
+- **TPU Pod Training Startup script**
+
+All TPU VMs in a Pod setup are required to access the model code and data.
+One easy way to achieve this is to use the following startup script when creating the TPU VM pod.
+It will perform the data downloading on all TPU VMs. Note that you need to export the corresponding environment variables following the instruction in Create TPU Node.
+
+.. code-block:: bash
+
+    gcloud alpha compute tpus tpu-vm create ${TPU_NAME} --zone ${ZONE} --project ${PROJECT_ID} --accelerator-type v3-32 --version ${RUNTIME_VERSION} --metadata startup-script=setup.py
+
+Then users could ssh to any TPU worker, e.g. worker 0, check if data/model downloading is finished and
+start the training after generating the ssh-keys to ssh between VM workers on a pod:
+
+.. code-block:: bash
+
+    python3 -m torch_xla.distributed.xla_dist --tpu=$TPU_NAME -- python3 train.py --max_epochs=5 --batch_size=32
 
 About XLA
 ----------

@@ -11,27 +11,37 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import platform
 from typing import Optional
+from urllib.error import HTTPError
 from warnings import warn
 
 from torch.utils.data import DataLoader, random_split
 
-from pl_examples import _DATASETS_PATH, _TORCHVISION_MNIST_AVAILABLE
+from pl_examples import _DATASETS_PATH
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
 if _TORCHVISION_AVAILABLE:
     from torchvision import transforms as transform_lib
+
+_TORCHVISION_MNIST_AVAILABLE = not bool(os.getenv("PL_USE_MOCKED_MNIST", False))
 if _TORCHVISION_MNIST_AVAILABLE:
-    from torchvision.datasets import MNIST
-else:
+    try:
+        from torchvision.datasets import MNIST
+
+        MNIST(_DATASETS_PATH, download=True)
+    except HTTPError as e:
+        print(f"Error {e} downloading `torchvision.datasets.MNIST`")
+        _TORCHVISION_MNIST_AVAILABLE = False
+if not _TORCHVISION_MNIST_AVAILABLE:
+    print("`torchvision.datasets.MNIST` not available. Using our hosted version")
     from tests.helpers.datasets import MNIST
 
 
 class MNISTDataModule(LightningDataModule):
-    """
-    Standard MNIST, train, val, test splits and transforms
+    """Standard MNIST, train, val, test splits and transforms.
 
     >>> MNISTDataModule()  # doctest: +ELLIPSIS
     <...mnist_datamodule.MNISTDataModule object at ...>
@@ -89,14 +99,14 @@ class MNISTDataModule(LightningDataModule):
         MNIST(self.data_dir, train=False, download=True)
 
     def setup(self, stage: Optional[str] = None):
-        """Split the train and valid dataset"""
+        """Split the train and valid dataset."""
         extra = dict(transform=self.default_transforms) if self.default_transforms else {}
         dataset = MNIST(self.data_dir, train=True, download=False, **extra)
         train_length = len(dataset)
         self.dataset_train, self.dataset_val = random_split(dataset, [train_length - self.val_split, self.val_split])
 
     def train_dataloader(self):
-        """MNIST train set removes a subset to use for validation"""
+        """MNIST train set removes a subset to use for validation."""
         loader = DataLoader(
             self.dataset_train,
             batch_size=self.batch_size,
@@ -108,7 +118,7 @@ class MNISTDataModule(LightningDataModule):
         return loader
 
     def val_dataloader(self):
-        """MNIST val set uses a subset of the training set for validation"""
+        """MNIST val set uses a subset of the training set for validation."""
         loader = DataLoader(
             self.dataset_val,
             batch_size=self.batch_size,
@@ -120,7 +130,7 @@ class MNISTDataModule(LightningDataModule):
         return loader
 
     def test_dataloader(self):
-        """MNIST test set uses the test split"""
+        """MNIST test set uses the test split."""
         extra = dict(transform=self.test_transforms) if self.test_transforms else {}
         dataset = MNIST(self.data_dir, train=False, download=False, **extra)
         loader = DataLoader(
@@ -138,9 +148,9 @@ class MNISTDataModule(LightningDataModule):
         if not _TORCHVISION_AVAILABLE:
             return None
         if self.normalize:
-            mnist_transforms = transform_lib.Compose([
-                transform_lib.ToTensor(), transform_lib.Normalize(mean=(0.5, ), std=(0.5, ))
-            ])
+            mnist_transforms = transform_lib.Compose(
+                [transform_lib.ToTensor(), transform_lib.Normalize(mean=(0.5,), std=(0.5,))]
+            )
         else:
             mnist_transforms = transform_lib.ToTensor()
 

@@ -11,14 +11,81 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import asdict, dataclass, field
+from typing import Type
 
 
 @dataclass
-class Tracker:
+class BaseProgress:
+    """Mixin that implements state-loading utilities for dataclasses."""
+
+    def state_dict(self) -> dict:
+        return asdict(self)
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        self.__dict__.update(state_dict)
+
+    @classmethod
+    def from_state_dict(cls, state_dict: dict) -> "BaseProgress":
+        obj = cls()
+        obj.load_state_dict(state_dict)
+        return obj
+
+
+@dataclass
+class ReadyCompletedTracker(BaseProgress):
+    """Track an event's progress.
+
+    Args:
+        ready: Intended to track the number of events ready to start.
+        completed: Intended to be incremented after the event completes (e.g. after ``on_*_end`` runs).
+
+    These attributes should be increased in order, that is, :attr:`ready` first and :attr:`completed` last.
     """
-    Track an event's progress.
+
+    ready: int = 0
+    completed: int = 0
+
+    def reset(self) -> None:
+        """Reset the state."""
+        self.ready = 0
+        self.completed = 0
+
+    def reset_on_restart(self) -> None:
+        """Reset the progress on restart.
+
+        If there is a failure before all attributes are increased, restore the attributes to the last fully completed
+        value.
+        """
+        self.ready = self.completed
+
+
+@dataclass
+class StartedTracker(ReadyCompletedTracker):
+    """Track an event's progress.
+
+    Args:
+        ready: Intended to track the number of events ready to start.
+        started: Intended to be incremented after the event is started (e.g. after ``on_*_start`` runs).
+        completed: Intended to be incremented after the event completes (e.g. after ``on_*_end`` runs).
+
+    These attributes should be increased in order, that is, :attr:`ready` first and :attr:`completed` last.
+    """
+
+    started: int = 0
+
+    def reset(self) -> None:
+        super().reset()
+        self.started = 0
+
+    def reset_on_restart(self) -> None:
+        super().reset_on_restart()
+        self.started = self.completed
+
+
+@dataclass
+class ProcessedTracker(StartedTracker):
+    """Track an event's progress.
 
     Args:
         ready: Intended to track the number of events ready to start.
@@ -26,155 +93,172 @@ class Tracker:
         processed: Intended to be incremented after the event is processed.
         completed: Intended to be incremented after the event completes (e.g. after ``on_*_end`` runs).
 
-    Attributes set to ``None`` are treated as unused and are restricted.
+    These attributes should be increased in order, that is, :attr:`ready` first and :attr:`completed` last.
     """
-    ready: Optional[int] = 0
-    started: Optional[int] = 0
-    processed: Optional[int] = 0
-    completed: Optional[int] = 0
+
+    processed: int = 0
 
     def reset(self) -> None:
-        if self.ready is not None:
-            self.ready = 0
-        if self.started is not None:
-            self.started = 0
-        if self.processed is not None:
-            self.processed = 0
-        if self.completed is not None:
-            self.completed = 0
+        super().reset()
+        self.processed = 0
 
-    def __setattr__(self, key: str, value: int) -> None:
-        if getattr(self, key, 0) is None:
-            raise AttributeError(f"The '{key}' attribute is meant to be unused")
-        return super().__setattr__(key, value)
-
-    def __repr__(self):
-        # hide `None` fields
-        args = [f"{k}={v}" for k, v in self.__dict__.items() if v is not None]
-        return f"{self.__class__.__name__}({', '.join(args)})"
+    def reset_on_restart(self) -> None:
+        super().reset_on_restart()
+        self.processed = self.completed
 
 
 @dataclass
-class Progress:
-    """
-    Track aggregated and current progress.
+class Progress(BaseProgress):
+    """Track aggregated and current progress.
 
     Args:
-        total: Intended to track the total progress of an event
-        current: Intended to track the current progress of an event
+        total: Intended to track the total progress of an event.
+        current: Intended to track the current progress of an event.
     """
-    total: Tracker = field(default_factory=Tracker)
-    current: Tracker = field(default_factory=Tracker)
+
+    total: ReadyCompletedTracker = field(default_factory=ProcessedTracker)
+    current: ReadyCompletedTracker = field(default_factory=ProcessedTracker)
+
+    def __post_init__(self) -> None:
+        if type(self.total) is not type(self.current):  # noqa: E721
+            raise ValueError("The `total` and `current` instances should be of the same class")
 
     def increment_ready(self) -> None:
-        if self.total.ready is None or self.current.ready is None:
-            return
         self.total.ready += 1
         self.current.ready += 1
 
     def increment_started(self) -> None:
-        if self.total.started is None or self.current.started is None:
-            return
+        if not isinstance(self.total, StartedTracker):
+            raise TypeError(f"`{self.total.__class__.__name__}` doesn't have a `started` attribute")
         self.total.started += 1
         self.current.started += 1
 
     def increment_processed(self) -> None:
-        if self.total.processed is None or self.current.processed is None:
-            return
+        if not isinstance(self.total, ProcessedTracker):
+            raise TypeError(f"`{self.total.__class__.__name__}` doesn't have a `processed` attribute")
         self.total.processed += 1
         self.current.processed += 1
 
     def increment_completed(self) -> None:
-        if self.total.completed is None or self.current.completed is None:
-            return
         self.total.completed += 1
         self.current.completed += 1
 
     @classmethod
-    def from_defaults(cls, **kwargs: Optional[int]) -> 'Progress':
-        return cls(total=Tracker(**kwargs), current=Tracker(**kwargs))
+    def from_defaults(cls, tracker_cls: Type[ReadyCompletedTracker], **kwargs: int) -> "Progress":
+        """Utility function to easily create an instance from keyword arguments to both ``Tracker``s."""
+        return cls(total=tracker_cls(**kwargs), current=tracker_cls(**kwargs))
+
+    def reset_on_epoch(self) -> None:
+        self.current.reset()
+
+    def reset_on_restart(self) -> None:
+        self.current.reset_on_restart()
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        self.total.load_state_dict(state_dict["total"])
+        self.current.load_state_dict(state_dict["current"])
 
 
 @dataclass
-class LoopProgress:
-    """
-    Track loop progress during execution.
+class DataLoaderProgress(Progress):
+    """Tracks dataloader progress.
 
     These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
 
     Args:
-        epoch: Tracks epochs progress.
-        batch: Tracks batch progress.
+        total: Tracks the total dataloader progress.
+        current: Tracks the current dataloader progress.
     """
-    epoch: Progress = field(default_factory=Progress)
-    batch: Progress = field(default_factory=Progress)
 
-    def increment_epoch_completed(self) -> None:
-        self.epoch.increment_completed()
-        self.reset_on_epoch()
-
-    def reset_on_epoch(self) -> None:
-        self.batch.current.reset()
-        self.epoch.current.reset()
+    total: ReadyCompletedTracker = field(default_factory=ReadyCompletedTracker)
+    current: ReadyCompletedTracker = field(default_factory=ReadyCompletedTracker)
 
 
 @dataclass
-class OptimizationProgress:
+class BatchProgress(Progress):
+    """Tracks batch progress.
+
+    These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
+
+    Args:
+        total: Tracks the total dataloader progress.
+        current: Tracks the current dataloader progress.
+        is_last_batch: Whether the batch is the last one. This is useful for iterable datasets.
     """
-    Track optimization progress.
+
+    is_last_batch: bool = False
+
+    def reset_on_epoch(self) -> None:
+        super().reset_on_epoch()
+        self.is_last_batch = False
+
+
+@dataclass
+class SchedulerProgress(Progress):
+    """Tracks scheduler progress.
+
+    These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
+
+    Args:
+        total: Tracks the total scheduler progress.
+        current: Tracks the current scheduler progress.
+    """
+
+    total: ReadyCompletedTracker = field(default_factory=ReadyCompletedTracker)
+    current: ReadyCompletedTracker = field(default_factory=ReadyCompletedTracker)
+
+
+@dataclass
+class OptimizerProgress(BaseProgress):
+    """Track optimizer progress.
+
+    Args:
+        step: Tracks ``optimizer.step`` calls.
+        zero_grad: Tracks ``optimizer.zero_grad`` calls.
+    """
+
+    step: Progress = field(default_factory=lambda: Progress.from_defaults(ReadyCompletedTracker))
+    zero_grad: Progress = field(default_factory=lambda: Progress.from_defaults(StartedTracker))
+
+    def reset_on_epoch(self) -> None:
+        self.step.reset_on_epoch()
+        self.zero_grad.reset_on_epoch()
+
+    def reset_on_restart(self) -> None:
+        self.step.reset_on_restart()
+        self.zero_grad.reset_on_restart()
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        self.step.load_state_dict(state_dict["step"])
+        self.zero_grad.load_state_dict(state_dict["zero_grad"])
+
+
+@dataclass
+class OptimizationProgress(BaseProgress):
+    """Track optimization progress.
 
     Args:
         optimizer: Tracks optimizer progress.
-        scheduler: Tracks scheduler progress.
+        optimizer_position: The index of the current optimizer amongst the currently active optimizers.
+            Used to know which optimizer we were using when restarting.
+            Since not all optimizers may be active at a given time, this index is different from the ``optimizer_idx``
+            seen in the optimization loops.
     """
-    optimizer: Progress = Progress.from_defaults(processed=None)
-    scheduler: Progress = Progress.from_defaults(started=None, processed=None)
-    zero_grad: Progress = Progress.from_defaults(processed=None)
+
+    # TODO: support for multiple optimizers
+    optimizer: OptimizerProgress = field(default_factory=OptimizerProgress)
+    optimizer_position: int = 0
 
     @property
     def optimizer_steps(self) -> int:
-        return self.optimizer.total.completed
-
-    @property
-    def scheduler_steps(self) -> int:
-        return self.scheduler.total.completed
-
-
-@dataclass
-class TrainingProgress(Progress):
-    """
-    Extends ``Progress`` with training specific attributes
-
-    Args:
-        optimization: Tracks optimization progress
-    """
-    optimization: OptimizationProgress = field(default_factory=OptimizationProgress)
-
-
-@dataclass
-class TrainingLoopProgress(LoopProgress):
-    epoch: TrainingProgress = field(default_factory=TrainingProgress)
+        return self.optimizer.step.total.completed
 
     def reset_on_epoch(self) -> None:
-        # override to avoid resetting `epoch.current`
-        self.batch.current.reset()
+        self.optimizer.reset_on_epoch()
 
+    def reset_on_restart(self) -> None:
+        self.optimizer.reset_on_restart()
 
-@dataclass
-class FitLoopProgress:
-    train: TrainingLoopProgress = field(default_factory=TrainingLoopProgress)
-    val: LoopProgress = field(default_factory=LoopProgress)
-
-
-@dataclass
-class LoopState:
-    """
-    Basic dataclass to track loop progress across trainer functions during trainer execution.
-
-    This class will be removed and these attributes will live in each loop.
-    """
-
-    fit: FitLoopProgress = field(default_factory=FitLoopProgress)
-    val: LoopProgress = field(default_factory=LoopProgress)
-    test: LoopProgress = field(default_factory=LoopProgress)
-    predict: LoopProgress = field(default_factory=LoopProgress)
+    def load_state_dict(self, state_dict: dict) -> None:
+        self.optimizer.load_state_dict(state_dict["optimizer"])
+        self.optimizer_position = state_dict["optimizer_position"]

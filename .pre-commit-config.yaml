@@ -15,6 +15,12 @@
 default_language_version:
   python: python3.8
 
+ci:
+  autofix_prs: true
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit suggestions'
+  autoupdate_schedule: quarterly
+  # submodules: true
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.0.1
@@ -25,19 +31,67 @@ repos:
       - id: check-docstring-first
       - id: check-executables-have-shebangs
       - id: check-toml
+      - id: check-case-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=350', '--enforce-all']
+        exclude: |
+            (?x)^(
+                docs/source/_static/images/general/fast_2.gif|
+                docs/source/_static/images/mnist_imgs/pt_to_pl.jpg|
+                docs/source/_static/images/lightning_module/pt_to_pl.png|
+                docs/source/_static/images/general/pl_quick_start_full_compressed.gif|
+                docs/source/_static/images/general/pl_overview_flat.jpg|
+                docs/source/_static/images/general/pl_overview.gif
+            )$
+      - id: detect-private-key
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v2.23.2
+    hooks:
+      - id: pyupgrade
+        args: [--py36-plus]
+        name: Upgrade code
+
+  - repo: https://github.com/myint/docformatter
+    rev: v1.4
+    hooks:
+      - id: docformatter
+        args: [--in-place, --wrap-summaries=115, --wrap-descriptions=120]
+
+  - repo: https://github.com/asottile/yesqa
+    rev: v1.2.3
+    hooks:
+      - id: yesqa
+        name: Unused noqa
 
   - repo: https://github.com/PyCQA/isort
-    rev: 5.8.0
+    rev: 5.9.3
     hooks:
       - id: isort
         name: Format imports
 
-  - repo: https://github.com/pre-commit/mirrors-yapf
-    rev: v0.31.0
+  - repo: https://github.com/psf/black
+    rev: 21.7b0
     hooks:
-      - id: yapf
+      - id: black
         name: Format code
-        language: python
+
+  - repo: https://github.com/asottile/blacken-docs
+    rev: v1.10.0
+    hooks:
+      - id: blacken-docs
+        args: [ --line-length=120 ]
+        additional_dependencies: [ black==21.7b0 ]
+
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 0.7.8
+    hooks:
+      - id: mdformat
+        additional_dependencies:
+          - mdformat-gfm
+          #- mdformat-black
+          - mdformat_frontmatter
+        exclude: CHANGELOG.md
 
   - repo: https://github.com/PyCQA/flake8
     rev: 3.9.2

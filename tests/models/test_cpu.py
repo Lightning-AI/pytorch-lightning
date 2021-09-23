@@ -46,7 +46,7 @@ def test_cpu_slurm_save_load(tmpdir):
     real_global_step = trainer.global_step
 
     # traning complete
-    assert trainer.state.finished, 'cpu model failed to complete'
+    assert trainer.state.finished, "cpu model failed to complete"
 
     # predict with trained model before saving
     # make a prediction
@@ -94,12 +94,10 @@ def test_cpu_slurm_save_load(tmpdir):
 
 
 def test_early_stopping_cpu_model(tmpdir):
-
     class ModelTrainVal(BoringModel):
-
         def validation_step(self, *args, **kwargs):
             output = super().validation_step(*args, **kwargs)
-            self.log('val_loss', output['x'])
+            self.log("val_loss", output["x"])
             return output
 
     tutils.reset_seed()
@@ -137,7 +135,7 @@ def test_multi_cpu_model_ddp(tmpdir):
         limit_val_batches=0.2,
         gpus=None,
         num_processes=2,
-        accelerator='ddp_cpu',
+        accelerator="ddp_cpu",
     )
 
     dm = ClassifDataModule()
@@ -146,10 +144,12 @@ def test_multi_cpu_model_ddp(tmpdir):
 
 
 def test_lbfgs_cpu_model(tmpdir):
-    """Test each of the trainer options. Testing LBFGS optimizer"""
+    """Test each of the trainer options.
+
+    Testing LBFGS optimizer
+    """
 
     class ModelSpecifiedOptimizer(BoringModel):
-
         def __init__(self, optimizer_name, learning_rate):
             super().__init__()
             self.optimizer_name = optimizer_name
@@ -193,15 +193,14 @@ def test_running_test_after_fitting(tmpdir):
     """Verify test() on fitted model."""
 
     class ModelTrainValTest(BoringModel):
-
         def validation_step(self, *args, **kwargs):
             output = super().validation_step(*args, **kwargs)
-            self.log('val_loss', output['x'])
+            self.log("val_loss", output["x"])
             return output
 
         def test_step(self, *args, **kwargs):
             output = super().test_step(*args, **kwargs)
-            self.log('test_loss', output['y'])
+            self.log("test_loss", output["y"])
             return output
 
     model = ModelTrainValTest()
@@ -230,21 +229,22 @@ def test_running_test_after_fitting(tmpdir):
     trainer.test()
 
     # test we have good test accuracy
-    tutils.assert_ok_model_acc(trainer, key='test_loss', thr=0.5)
+    tutils.assert_ok_model_acc(trainer, key="test_loss", thr=0.5)
 
 
 def test_running_test_no_val(tmpdir):
-    """Verify `test()` works on a model with no `val_dataloader`. It performs
-    train and test only"""
+    """Verify `test()` works on a model with no `val_dataloader`.
+
+    It performs train and test only
+    """
 
     class ModelTrainTest(BoringModel):
-
         def val_dataloader(self):
             pass
 
         def test_step(self, *args, **kwargs):
             output = super().test_step(*args, **kwargs)
-            self.log('test_loss', output['y'])
+            self.log("test_loss", output["y"])
             return output
 
     model = ModelTrainTest()
@@ -273,7 +273,7 @@ def test_running_test_no_val(tmpdir):
     trainer.test()
 
     # test we have good test accuracy
-    tutils.assert_ok_model_acc(trainer, key='test_loss')
+    tutils.assert_ok_model_acc(trainer, key="test_loss")
 
 
 def test_simple_cpu(tmpdir):
@@ -281,16 +281,11 @@ def test_simple_cpu(tmpdir):
     model = BoringModel()
 
     # fit model
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_val_batches=0.1,
-        limit_train_batches=20,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=20)
     trainer.fit(model)
 
     # traning complete
-    assert trainer.state.finished, 'amp + ddp model failed to complete'
+    assert trainer.state.finished, "amp + ddp model failed to complete"
 
 
 def test_cpu_model(tmpdir):
@@ -320,75 +315,3 @@ def test_all_features_cpu_model(tmpdir):
     model = BoringModel()
 
     tpipes.run_model_test(trainer_options, model, on_gpu=False, min_acc=0.01)
-
-
-def test_tbptt_cpu_model(tmpdir):
-    """Test truncated back propagation through time works."""
-    truncated_bptt_steps = 2
-    sequence_size = 30
-    batch_size = 30
-
-    x_seq = torch.rand(batch_size, sequence_size, 1)
-    y_seq_list = torch.rand(batch_size, sequence_size, 1).tolist()
-
-    class MockSeq2SeqDataset(torch.utils.data.Dataset):
-
-        def __getitem__(self, i):
-            return x_seq, y_seq_list
-
-        def __len__(self):
-            return 1
-
-    class BpttTestModel(BoringModel):
-
-        def __init__(self, batch_size, in_features, out_features, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.test_hidden = None
-            self.batch_size = batch_size
-            self.layer = torch.nn.Linear(in_features, out_features)
-
-        def training_step(self, batch, batch_idx, hiddens):
-            assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
-            self.test_hidden = torch.rand(1)
-
-            x_tensor, y_list = batch
-            assert x_tensor.shape[1] == truncated_bptt_steps, "tbptt split Tensor failed"
-
-            y_tensor = torch.tensor(y_list, dtype=x_tensor.dtype)
-            assert y_tensor.shape[1] == truncated_bptt_steps, "tbptt split list failed"
-
-            pred = self(x_tensor.view(batch_size, truncated_bptt_steps))
-            loss_val = torch.nn.functional.mse_loss(pred, y_tensor.view(batch_size, truncated_bptt_steps))
-            return {
-                "loss": loss_val,
-                "hiddens": self.test_hidden,
-            }
-
-        def training_epoch_end(self, training_step_outputs):
-            training_step_outputs = training_step_outputs[0]
-            assert len(training_step_outputs) == (sequence_size / truncated_bptt_steps)
-            loss = torch.stack([x["loss"] for x in training_step_outputs]).mean()
-            self.log("train_loss", loss)
-
-        def train_dataloader(self):
-            return torch.utils.data.DataLoader(
-                dataset=MockSeq2SeqDataset(),
-                batch_size=batch_size,
-                shuffle=False,
-                sampler=None,
-            )
-
-    model = BpttTestModel(batch_size=batch_size, in_features=truncated_bptt_steps, out_features=truncated_bptt_steps)
-    model.example_input_array = torch.randn(5, truncated_bptt_steps)
-
-    # fit model
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        truncated_bptt_steps=truncated_bptt_steps,
-        limit_val_batches=0,
-        weights_summary=None,
-    )
-    trainer.fit(model)
-
-    assert trainer.state.finished, f"Training failed with {trainer.state}"

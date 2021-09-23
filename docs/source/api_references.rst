@@ -1,6 +1,8 @@
 API References
 ==============
 
+.. include:: links.rst
+
 Accelerator API
 ---------------
 
@@ -89,8 +91,6 @@ Training Type Plugins
     DDPSpawnPlugin
     DeepSpeedPlugin
     HorovodPlugin
-    RPCPlugin
-    RPCSequentialPlugin
     SingleTPUPlugin
     TPUSpawnPlugin
 
@@ -124,10 +124,23 @@ Cluster Environments
 
     ClusterEnvironment
     LightningEnvironment
+    LSFEnvironment
     TorchElasticEnvironment
     KubeflowEnvironment
     SLURMEnvironment
 
+Checkpoint IO Plugins
+^^^^^^^^^^^^^^^^^^^^^
+
+.. currentmodule:: pytorch_lightning.plugins.io
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    CheckpointIO
+    TorchCheckpointIO
 
 Profiler API
 ------------
@@ -137,8 +150,15 @@ Profiler API
 .. autosummary::
     :toctree: api
     :nosignatures:
+    :template: classtemplate.rst
 
-    profilers
+    AbstractProfiler
+    AdvancedProfiler
+    BaseProfiler
+    PassThroughProfiler
+    PyTorchProfiler
+    SimpleProfiler
+
 
 Trainer API
 -----------

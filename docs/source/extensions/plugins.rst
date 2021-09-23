@@ -4,6 +4,8 @@
 Plugins
 #######
 
+.. include:: ../links.rst
+
 Plugins allow custom integrations to the internals of the Trainer such as a custom precision or
 distributed implementation.
 
@@ -60,8 +62,8 @@ Expert users may choose to extend an existing plugin by overriding its methods .
 
     from pytorch_lightning.plugins import DDPPlugin
 
-    class CustomDDPPlugin(DDPPlugin):
 
+    class CustomDDPPlugin(DDPPlugin):
         def configure_ddp(self):
             self._model = MyCustomDistributedDataParallel(
                 self.model,
@@ -115,8 +117,6 @@ Training Type Plugins
     DDPSpawnPlugin
     DeepSpeedPlugin
     HorovodPlugin
-    RPCPlugin
-    RPCSequentialPlugin
     SingleTPUPlugin
     TPUSpawnPlugin
 
@@ -150,6 +150,7 @@ Cluster Environments
 
     ClusterEnvironment
     LightningEnvironment
+    LSFEnvironment
     TorchElasticEnvironment
     KubeflowEnvironment
     SLURMEnvironment

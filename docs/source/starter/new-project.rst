@@ -84,19 +84,10 @@ Step 1: Define LightningModule
 .. testcode::
 
     class LitAutoEncoder(pl.LightningModule):
-
         def __init__(self):
             super().__init__()
-            self.encoder = nn.Sequential(
-                nn.Linear(28*28, 64),
-                nn.ReLU(),
-                nn.Linear(64, 3)
-            )
-            self.decoder = nn.Sequential(
-                nn.Linear(3, 64),
-                nn.ReLU(),
-                nn.Linear(64, 28*28)
-            )
+            self.encoder = nn.Sequential(nn.Linear(28 * 28, 64), nn.ReLU(), nn.Linear(64, 3))
+            self.decoder = nn.Sequential(nn.Linear(3, 64), nn.ReLU(), nn.Linear(64, 28 * 28))
 
         def forward(self, x):
             # in lightning, forward defines the prediction/inference actions
@@ -112,7 +103,7 @@ Step 1: Define LightningModule
             x_hat = self.decoder(z)
             loss = F.mse_loss(x_hat, x)
             # Logging to TensorBoard by default
-            self.log('train_loss', loss)
+            self.log("train_loss", loss)
             return loss
 
         def configure_optimizers(self):
@@ -129,13 +120,14 @@ A :doc:`lightning module <../common/lightning_module>` defines a *system* not a 
 Examples of systems are:
 
 - `Autoencoder <https://github.com/PyTorchLightning/lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_ae/basic_ae_module.py>`_
-- `BERT <https://colab.research.google.com/github/PytorchLightning/pytorch-lightning/blob/master/notebooks/04-transformers-text-classification.ipynb>`_
-- `DQN <https://colab.research.google.com/github/PytorchLightning/pytorch-lightning/blob/master/notebooks/08-Domain-specific-demos.ipynb>`_
-- `GAN <https://colab.research.google.com/github/PytorchLightning/pytorch-lightning/blob/master/notebooks/03-basic-gan.ipynb>`_
-- `Image classifier <https://colab.research.google.com/github/PytorchLightning/pytorch-lightning/blob/master/notebooks/01-mnist-hello-world.ipynb>`_
+- `BERT <https://colab.research.google.com/github/PyTorchLightning/lightning-tutorials/blob/publication/.notebooks/lightning_examples/text-transformers.ipynb>`_
+- `DQN <https://colab.research.google.com/github/PyTorchLightning/lightning-tutorials/blob/publication/.notebooks/lightning_examples/reinforce-learning-DQN.ipynb>`_
+- `GAN <https://colab.research.google.com/github/PyTorchLightning/lightning-tutorials/blob/publication/.notebooks/lightning_examples/basic-gan.ipynb>`_
+- `Image classifier <https://colab.research.google.com/github/PyTorchLightning/lightning-tutorials/blob/publication/.notebooks/lightning_examples/mnist-hello-world.ipynb>`_
 - Seq2seq
 - `SimCLR <https://github.com/PyTorchLightning/lightning-bolts/blob/master/pl_bolts/models/self_supervised/simclr/simclr_module.py>`_
 - `VAE <https://github.com/PyTorchLightning/lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_vae/basic_vae_module.py>`_
+- `and a lot more <https://github.com/PyTorchLightning/lightning-tutorials/tree/publication/.notebooks/lightning_examples>`_
 
 Under the hood a LightningModule is still just a :class:`torch.nn.Module` that groups all research code into a single file to make it self-contained:
 
@@ -151,7 +143,6 @@ of the 20+ hooks found in :ref:`hooks`
 .. testcode::
 
     class LitAutoEncoder(LightningModule):
-
         def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
@@ -219,7 +210,7 @@ The :class:`~pytorch_lightning.trainer.Trainer` automates:
 * Tensorboard (see :doc:`loggers <../common/loggers>` options)
 * :doc:`Multi-GPU <../advanced/multi_gpu>` support
 * :doc:`TPU <../advanced/tpu>`
-* :doc:`AMP <../advanced/amp>` support
+* :ref:`16-bit precision AMP <amp>` support
 
 .. tip:: If you prefer to manually manage optimizers you can use the :ref:`manual_opt` mode  (ie: RL, GANs, etc...).
 
@@ -265,6 +256,7 @@ Turn off automatic optimization and you control the train loop!
     def __init__(self):
         self.automatic_optimization = False
 
+
     def training_step(self, batch, batch_idx):
         # access your optimizers with use_pl_optimizer=False. Default is True
         opt_a, opt_b = self.optimizers(use_pl_optimizer=True)
@@ -294,7 +286,7 @@ Pull out any model inside your system for predictions.
     # ----------------------------------
     # to use as embedding extractor
     # ----------------------------------
-    autoencoder = LitAutoEncoder.load_from_checkpoint('path/to/checkpoint_file.ckpt')
+    autoencoder = LitAutoEncoder.load_from_checkpoint("path/to/checkpoint_file.ckpt")
     encoder_model = autoencoder.encoder
     encoder_model.eval()
 
@@ -322,6 +314,7 @@ You can also add a forward method to do predictions however you want.
             embedding = self.encoder(x)
             return embedding
 
+
     autoencoder = LitAutoEncoder()
     autoencoder = autoencoder(torch.rand(1, 28 * 28))
 
@@ -341,6 +334,7 @@ You can also add a forward method to do predictions however you want.
             image = self.decoder(z)
             image = image.view(1, 1, 28, 28)
             return image
+
 
     autoencoder = LitAutoEncoder()
     image_sample = autoencoder()
@@ -364,11 +358,11 @@ a forward method or trace only the sub-models you need.
     # ----------------------------------
     # onnx
     # ----------------------------------
-    with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
-         autoencoder = LitAutoEncoder()
-         input_sample = torch.randn((1, 28 * 28))
-         autoencoder.to_onnx(tmpfile.name, input_sample, export_params=True)
-         os.path.isfile(tmpfile.name)
+    with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as tmpfile:
+        autoencoder = LitAutoEncoder()
+        input_sample = torch.randn((1, 28 * 28))
+        autoencoder.to_onnx(tmpfile.name, input_sample, export_params=True)
+        os.path.isfile(tmpfile.name)
 
 --------------------
 
@@ -389,10 +383,7 @@ It's trivial to use CPUs, GPUs or TPUs in Lightning. There's **NO NEED** to chan
 .. code-block:: python
 
     # train on 1024 CPUs across 128 machines
-    trainer = pl.Trainer(
-        num_processes=8,
-        num_nodes=128
-    )
+    trainer = pl.Trainer(num_processes=8, num_nodes=128)
 
 .. code-block:: python
 
@@ -402,10 +393,7 @@ It's trivial to use CPUs, GPUs or TPUs in Lightning. There's **NO NEED** to chan
 .. code-block:: python
 
     # train on multiple GPUs across nodes (32 gpus here)
-    trainer = pl.Trainer(
-        gpus=4,
-        num_nodes=8
-    )
+    trainer = pl.Trainer(gpus=4, num_nodes=8)
 
 .. code-block:: python
 
@@ -428,12 +416,7 @@ Without changing a SINGLE line of your code, you can now do the following with t
 
     # train on TPUs using 16 bit precision
     # using only half the training data and checking validation every quarter of a training epoch
-    trainer = pl.Trainer(
-        tpu_cores=8,
-        precision=16,
-        limit_train_batches=0.5,
-        val_check_interval=0.25
-    )
+    trainer = pl.Trainer(tpu_cores=8, precision=16, limit_train_batches=0.5, val_check_interval=0.25)
 
 -----------
 
@@ -451,11 +434,11 @@ If you prefer to do it manually, here's the equivalent
 .. code-block:: python
 
     # load the ckpt
-    ckpt = torch.load('path/to/checkpoint.ckpt')
+    ckpt = torch.load("path/to/checkpoint.ckpt")
 
     # equivalent to the above
     model = LitModel()
-    model.load_state_dict(ckpt['state_dict'])
+    model.load_state_dict(ckpt["state_dict"])
 
 ---------
 
@@ -485,9 +468,10 @@ The equivalent in Lightning is:
         prediction = ...
         return prediction
 
+
     def training_epoch_end(self, training_step_outputs):
         for prediction in predictions:
-            # do something with these
+            ...
 
 In the event that you use DP or DDP2 distributed modes (ie: split a batch across GPUs),
 use the x_step_end to manually aggregate (or don't implement it to let lightning auto-aggregate for you).
@@ -515,10 +499,11 @@ The lightning equivalent is:
         loss = ...
         return loss
 
+
     def training_step_end(self, losses):
         gpu_0_loss = losses[0]
         gpu_1_loss = losses[1]
-        return (gpu_0_loss + gpu_1_loss) * 1/2
+        return (gpu_0_loss + gpu_1_loss) * 1 / 2
 
 .. tip:: The validation and test loops have the same structure.
 
@@ -533,7 +518,7 @@ any method in the LightningModule.
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        self.log('my_metric', x)
+        self.log("my_metric", x)
 
 The :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method has a few options:
 
@@ -550,7 +535,7 @@ you can override the default behavior by manually setting the flags
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        self.log('my_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log("my_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
 .. note::
     The loss value shown in the progress bar is smoothed (averaged) over the last values,
@@ -562,7 +547,7 @@ You can also use any method of your logger directly:
 
     def training_step(self, batch, batch_idx):
         tensorboard = self.logger.experiment
-        tensorboard.any_summary_writer_method_you_want())
+        tensorboard.any_summary_writer_method_you_want()
 
 Once your training starts, you can view the logs by using your favorite logger or booting up the Tensorboard logs:
 
@@ -591,18 +576,18 @@ Here's an example adding a not-so-fancy learning rate decay rule:
 
     from pytorch_lightning.callbacks import Callback
 
-    class DecayLearningRate(Callback):
 
+    class DecayLearningRate(Callback):
         def __init__(self):
             self.old_lrs = []
 
         def on_train_start(self, trainer, pl_module):
             # track the initial learning rates
             for opt_idx, optimizer in enumerate(trainer.optimizers):
-                group = [param_group['lr'] for param_group in optimizer.param_groups]
+                group = [param_group["lr"] for param_group in optimizer.param_groups]
                 self.old_lrs.append(group)
 
-        def on_train_epoch_end(self, trainer, pl_module, outputs):
+        def on_train_epoch_end(self, trainer, pl_module):
             for opt_idx, optimizer in enumerate(trainer.optimizers):
                 old_lr_group = self.old_lrs[opt_idx]
                 new_lr_group = []
@@ -610,8 +595,9 @@ Here's an example adding a not-so-fancy learning rate decay rule:
                     old_lr = old_lr_group[p_idx]
                     new_lr = old_lr * 0.98
                     new_lr_group.append(new_lr)
-                    param_group['lr'] = new_lr
+                    param_group["lr"] = new_lr
                 self.old_lrs[opt_idx] = new_lr_group
+
 
     # And pass the callback to the Trainer
     decay_callback = DecayLearningRate()
@@ -637,45 +623,41 @@ Make your data code reusable by organizing it into a :class:`~pytorch_lightning.
 .. testcode::
 
   class MNISTDataModule(LightningDataModule):
+      def __init__(self, batch_size=32):
+          super().__init__()
+          self.batch_size = batch_size
 
-        def __init__(self, batch_size=32):
-            super().__init__()
-            self.batch_size = batch_size
+      # When doing distributed training, Datamodules have two optional arguments for
+      # granular control over download/prepare/splitting data:
 
-        # When doing distributed training, Datamodules have two optional arguments for
-        # granular control over download/prepare/splitting data:
+      # OPTIONAL, called only on 1 GPU/machine
+      def prepare_data(self):
+          MNIST(os.getcwd(), train=True, download=True)
+          MNIST(os.getcwd(), train=False, download=True)
 
-        # OPTIONAL, called only on 1 GPU/machine
-        def prepare_data(self):
-            MNIST(os.getcwd(), train=True, download=True)
-            MNIST(os.getcwd(), train=False, download=True)
+      # OPTIONAL, called for every GPU/machine (assigning state is OK)
+      def setup(self, stage: Optional[str] = None):
+          # transforms
+          transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+          # split dataset
+          if stage in (None, "fit"):
+              mnist_train = MNIST(os.getcwd(), train=True, transform=transform)
+              self.mnist_train, self.mnist_val = random_split(mnist_train, [55000, 5000])
+          if stage == (None, "test"):
+              self.mnist_test = MNIST(os.getcwd(), train=False, transform=transform)
 
-        # OPTIONAL, called for every GPU/machine (assigning state is OK)
-        def setup(self, stage: Optional[str] = None):
-            # transforms
-            transform=transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize((0.1307,), (0.3081,))
-            ])
-            # split dataset
-            if stage in (None, 'fit'):
-                mnist_train = MNIST(os.getcwd(), train=True, transform=transform)
-                self.mnist_train, self.mnist_val = random_split(mnist_train, [55000, 5000])
-            if stage == (None, 'test'):
-                self.mnist_test = MNIST(os.getcwd(), train=False, transform=transform)
+      # return the dataloader for each split
+      def train_dataloader(self):
+          mnist_train = DataLoader(self.mnist_train, batch_size=self.batch_size)
+          return mnist_train
 
-        # return the dataloader for each split
-        def train_dataloader(self):
-            mnist_train = DataLoader(self.mnist_train, batch_size=self.batch_size)
-            return mnist_train
+      def val_dataloader(self):
+          mnist_val = DataLoader(self.mnist_val, batch_size=self.batch_size)
+          return mnist_val
 
-        def val_dataloader(self):
-            mnist_val = DataLoader(self.mnist_val, batch_size=self.batch_size)
-            return mnist_val
-
-        def test_dataloader(self):
-            mnist_test = DataLoader(self.mnist_test, batch_size=self.batch_size)
-            return mnist_test
+      def test_dataloader(self):
+          mnist_test = DataLoader(self.mnist_test, batch_size=self.batch_size)
+          return mnist_test
 
 :class:`~pytorch_lightning.core.datamodule.LightningDataModule` is designed to enable sharing and reusing data splits
 and transforms across different projects. It encapsulates all the steps needed to process data: downloading,
@@ -747,12 +729,12 @@ Other cool features
 Once you define and train your first Lightning model, you might want to try other cool features like
 
 - :doc:`Automatic early stopping <../common/early_stopping>`
-- :ref:`Automatic truncated-back-propagation-through-time <common/trainer:truncated_bptt_steps>`
+- :ref:`Automatic truncated-back-propagation-through-time <common/lightning_module:truncated_bptt_steps>`
 - :ref:`Automatically scale your batch size <advanced/training_tricks:Auto scaling of batch size>`
 - :doc:`Automatically find a good learning rate <../advanced/lr_finder>`
 - :ref:`Load checkpoints directly from S3 <common/weights_loading:Checkpoint Loading>`
 - :doc:`Scale to massive compute clusters <../clouds/cluster>`
-- :doc:`Use multiple dataloaders per train/val/test loop <../advanced/multiple_loaders>`
+- :doc:`Use multiple dataloaders per train/val/test loop <../guides/data>`
 - :ref:`Use multiple optimizers to do reinforcement learning or even GANs <common/optimizers:Use multiple optimizers (like GANs)>`
 
 Or read our :doc:`Guide <../starter/introduction_guide>` to learn more!

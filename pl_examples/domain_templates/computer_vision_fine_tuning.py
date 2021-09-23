@@ -11,12 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Computer vision example on Transfer Learning.
-This computer vision example illustrates how one could fine-tune a pre-trained
-network (by default, a ResNet50 is used) using pytorch-lightning. For the sake
-of this example, the 'cats and dogs dataset' (~60MB, see `DATA_URL` below) and
-the proposed network (denoted by `TransferLearningModel`, see below) is
-trained for 15 epochs.
+"""Computer vision example on Transfer Learning. This computer vision example illustrates how one could fine-tune a
+pre-trained network (by default, a ResNet50 is used) using pytorch-lightning. For the sake of this example, the
+'cats and dogs dataset' (~60MB, see `DATA_URL` below) and the proposed network (denoted by `TransferLearningModel`,
+see below) is trained for 15 epochs.
 
 The training consists of three stages.
 
@@ -67,7 +65,6 @@ DATA_URL = "https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered
 
 
 class MilestonesFinetuning(BaseFinetuning):
-
     def __init__(self, milestones: tuple = (5, 10), train_bn: bool = False):
         super().__init__()
         self.milestones = milestones
@@ -91,14 +88,8 @@ class MilestonesFinetuning(BaseFinetuning):
 
 
 class CatDogImageDataModule(LightningDataModule):
-
-    def __init__(
-        self,
-        dl_path: Union[str, Path] = "data",
-        num_workers: int = 0,
-        batch_size: int = 8,
-    ):
-        """CatDogImageDataModule
+    def __init__(self, dl_path: Union[str, Path] = "data", num_workers: int = 0, batch_size: int = 8):
+        """CatDogImageDataModule.
 
         Args:
             dl_path: root directory where to download the data
@@ -125,11 +116,14 @@ class CatDogImageDataModule(LightningDataModule):
 
     @property
     def train_transform(self):
-        return transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(), self.normalize_transform
-        ])
+        return transforms.Compose(
+            [
+                transforms.Resize((224, 224)),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                self.normalize_transform,
+            ]
+        )
 
     @property
     def valid_transform(self):
@@ -159,7 +153,6 @@ class CatDogImageDataModule(LightningDataModule):
 
 
 class TransferLearningModel(pl.LightningModule):
-
     def __init__(
         self,
         backbone: str = "resnet50",
@@ -171,7 +164,7 @@ class TransferLearningModel(pl.LightningModule):
         num_workers: int = 6,
         **kwargs,
     ) -> None:
-        """TransferLearningModel
+        """TransferLearningModel.
 
         Args:
             backbone: Name (as in ``torchvision.models``) of the feature extractor
@@ -206,19 +199,17 @@ class TransferLearningModel(pl.LightningModule):
         self.feature_extractor = nn.Sequential(*_layers)
 
         # 2. Classifier:
-        _fc_layers = [
-            nn.Linear(2048, 256),
-            nn.ReLU(),
-            nn.Linear(256, 32),
-            nn.Linear(32, 1),
-        ]
+        _fc_layers = [nn.Linear(2048, 256), nn.ReLU(), nn.Linear(256, 32), nn.Linear(32, 1)]
         self.fc = nn.Sequential(*_fc_layers)
 
         # 3. Loss:
         self.loss_func = F.binary_cross_entropy_with_logits
 
     def forward(self, x):
-        """Forward pass. Returns logits."""
+        """Forward pass.
+
+        Returns logits.
+        """
 
         # 1. Feature extraction:
         x = self.feature_extractor(x)
@@ -273,23 +264,24 @@ class TransferLearningModel(pl.LightningModule):
 
 
 class MyLightningCLI(LightningCLI):
-
     def add_arguments_to_parser(self, parser):
-        parser.add_class_arguments(MilestonesFinetuning, 'finetuning')
-        parser.link_arguments('data.batch_size', 'model.batch_size')
-        parser.link_arguments('finetuning.milestones', 'model.milestones')
-        parser.link_arguments('finetuning.train_bn', 'model.train_bn')
-        parser.set_defaults({
-            'trainer.max_epochs': 15,
-            'trainer.weights_summary': None,
-            'trainer.progress_bar_refresh_rate': 1,
-            'trainer.num_sanity_val_steps': 0,
-        })
+        parser.add_class_arguments(MilestonesFinetuning, "finetuning")
+        parser.link_arguments("data.batch_size", "model.batch_size")
+        parser.link_arguments("finetuning.milestones", "model.milestones")
+        parser.link_arguments("finetuning.train_bn", "model.train_bn")
+        parser.set_defaults(
+            {
+                "trainer.max_epochs": 15,
+                "trainer.weights_summary": None,
+                "trainer.progress_bar_refresh_rate": 1,
+                "trainer.num_sanity_val_steps": 0,
+            }
+        )
 
-    def instantiate_trainer(self):
-        finetuning_callback = MilestonesFinetuning(**self.config_init['finetuning'])
-        self.trainer_defaults['callbacks'] = [finetuning_callback]
-        super().instantiate_trainer()
+    def instantiate_trainer(self, *args):
+        finetuning_callback = MilestonesFinetuning(**self._get(self.config_init, "finetuning"))
+        self.trainer_defaults["callbacks"] = [finetuning_callback]
+        return super().instantiate_trainer(*args)
 
 
 def cli_main():

@@ -25,16 +25,17 @@ from pytorch_lightning.utilities import (
     _DEEPSPEED_AVAILABLE,
     _FAIRSCALE_AVAILABLE,
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
-    _FAIRSCALE_PIPE_AVAILABLE,
     _HOROVOD_AVAILABLE,
+    _IPU_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
-    _RPC_AVAILABLE,
+    _RICH_AVAILABLE,
     _TORCH_QUANTIZE_AVAILABLE,
     _TPU_AVAILABLE,
 )
 
 try:
     from horovod.common.util import nccl_built
+
     nccl_built()
 except (ImportError, ModuleNotFoundError, AttributeError):
     _HOROVOD_NCCL_AVAILABLE = False
@@ -43,13 +44,12 @@ finally:
 
 
 class RunIf:
-    """
-    RunIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
+    """RunIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
 
-        @RunIf(min_torch="0.0")
-        @pytest.mark.parametrize("arg1", [1, 2.0])
-        def test_wrapper(arg1):
-            assert arg1 > 0.0
+    @RunIf(min_torch="0.0")
+    @pytest.mark.parametrize("arg1", [1, 2.0])
+    def test_wrapper(arg1):
+        assert arg1 > 0.0
     """
 
     def __new__(
@@ -63,16 +63,16 @@ class RunIf:
         amp_apex: bool = False,
         amp_native: bool = False,
         tpu: bool = False,
+        ipu: bool = False,
         horovod: bool = False,
         horovod_nccl: bool = False,
         skip_windows: bool = False,
         special: bool = False,
-        rpc: bool = False,
         fairscale: bool = False,
-        fairscale_pipe: bool = False,
         fairscale_fully_sharded: bool = False,
         deepspeed: bool = False,
-        **kwargs
+        rich: bool = False,
+        **kwargs,
     ):
         """
         Args:
@@ -85,15 +85,15 @@ class RunIf:
             amp_apex: NVIDIA Apex is installed
             amp_native: if native PyTorch native AMP is supported
             tpu: if TPU is available
+            ipu: if IPU is available
             horovod: if Horovod is installed
             horovod_nccl: if Horovod is installed with NCCL support
-            skip_windows: skip test for Windows platform (typically fo some limited torch functionality)
+            skip_windows: skip test for Windows platform (typically for some limited torch functionality)
             special: running in special mode, outside pytest suit
-            rpc: requires Remote Procedure Call (RPC)
             fairscale: if `fairscale` module is required to run the test
-            fairscale_pipe: if `fairscale` with pipe module is required to run the test
             fairscale_fully_sharded: if `fairscale` fully sharded module is required to run the test
             deepspeed: if `deepspeed` module is required to run the test
+            rich: if `rich` module is required to run the test
             kwargs: native pytest.mark.skipif keyword arguments
         """
         conditions = []
@@ -119,7 +119,7 @@ class RunIf:
             reasons.append(f"python>={min_python}")
 
         if quantization:
-            _miss_default = 'fbgemm' not in torch.backends.quantized.supported_engines
+            _miss_default = "fbgemm" not in torch.backends.quantized.supported_engines
             conditions.append(not _TORCH_QUANTIZE_AVAILABLE or _miss_default)
             reasons.append("PyTorch quantization")
 
@@ -139,6 +139,10 @@ class RunIf:
             conditions.append(not _TPU_AVAILABLE)
             reasons.append("TPU")
 
+        if ipu:
+            conditions.append(not _IPU_AVAILABLE)
+            reasons.append("IPU")
+
         if horovod:
             conditions.append(not _HOROVOD_AVAILABLE)
             reasons.append("Horovod")
@@ -148,21 +152,13 @@ class RunIf:
             reasons.append("Horovod with NCCL")
 
         if special:
-            env_flag = os.getenv("PL_RUNNING_SPECIAL_TESTS", '0')
-            conditions.append(env_flag != '1')
+            env_flag = os.getenv("PL_RUNNING_SPECIAL_TESTS", "0")
+            conditions.append(env_flag != "1")
             reasons.append("Special execution")
-
-        if rpc:
-            conditions.append(not _RPC_AVAILABLE)
-            reasons.append("RPC")
 
         if fairscale:
             conditions.append(not _FAIRSCALE_AVAILABLE)
             reasons.append("Fairscale")
-
-        if fairscale_pipe:
-            conditions.append(not _FAIRSCALE_PIPE_AVAILABLE)
-            reasons.append("Fairscale Pipe")
 
         if fairscale_fully_sharded:
             conditions.append(not _FAIRSCALE_FULLY_SHARDED_AVAILABLE)
@@ -172,12 +168,13 @@ class RunIf:
             conditions.append(not _DEEPSPEED_AVAILABLE)
             reasons.append("Deepspeed")
 
+        if rich:
+            conditions.append(not _RICH_AVAILABLE)
+            reasons.append("Rich")
+
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
-            *args,
-            condition=any(conditions),
-            reason=f"Requires: [{' + '.join(reasons)}]",
-            **kwargs,
+            *args, condition=any(conditions), reason=f"Requires: [{' + '.join(reasons)}]", **kwargs
         )
 
 

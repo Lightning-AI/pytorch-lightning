@@ -20,7 +20,7 @@ import logging
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
 
 import torch
-from torch.nn import Module
+from torch.nn import Module, ModuleDict
 from torch.nn.modules.batchnorm import _BatchNorm
 from torch.optim.optimizer import Optimizer
 
@@ -63,12 +63,12 @@ class BaseFinetuning(Callback):
 
         class FeatureExtractorFreezeUnfreeze(BaseFinetuning):
 
-            def __init__(self, unfreeze_at_epoch=10)
+            def __init__(self, unfreeze_at_epoch=10):
                 self._unfreeze_at_epoch = unfreeze_at_epoch
 
             def freeze_before_training(self, pl_module):
                 # freeze any module you want
-                # Here, we are freezing ``feature_extractor``
+                # Here, we are freezing `feature_extractor`
                 self.freeze(pl_module.feature_extractor)
 
             def finetune_function(self, pl_module, current_epoch, optimizer, optimizer_idx):
@@ -82,30 +82,35 @@ class BaseFinetuning(Callback):
     """
 
     def __init__(self):
-        self._internal_state: Dict[int, List[Dict[str, Any]]] = {}
+        self._internal_optimizer_metadata: Dict[int, List[Dict[str, Any]]] = {}
+        self._restarting = False
 
     def on_save_checkpoint(
-        self,
-        trainer: 'pl.Trainer',
-        pl_module: 'pl.LightningModule',
-        checkpoint: Dict[str, Any],
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
     ) -> Dict[int, List[Dict[str, Any]]]:
-        return self._internal_state
+        return self._internal_optimizer_metadata
 
     def on_load_checkpoint(
-        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', callback_state: Dict[int, List[Dict[str, Any]]]
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[int, List[Dict[str, Any]]]
     ) -> None:
-        self._internal_state = callback_state
+        self._restarting = True
+        self._internal_optimizer_metadata = callback_state
+
+    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         # restore the param_groups created during the previous training.
-        named_parameters = dict(pl_module.named_parameters())
-        for opt_idx, optimizer in enumerate(trainer.optimizers):
-            param_groups = self.__apply_mapping_to_param_groups(self._internal_state[opt_idx], named_parameters)
-            optimizer.param_groups = param_groups
+        if self._restarting:
+            named_parameters = dict(pl_module.named_parameters())
+            for opt_idx, optimizer in enumerate(trainer.optimizers):
+                param_groups = self.__apply_mapping_to_param_groups(
+                    self._internal_optimizer_metadata[opt_idx], named_parameters
+                )
+                optimizer.param_groups = param_groups
+            self._restarting = False
 
     @staticmethod
     def flatten_modules(modules: Union[Module, Iterable[Union[Module, Iterable]]]) -> List[Module]:
-        """
-        This function is used to flatten a module or an iterable of modules into a list of its modules.
+        """This function is used to flatten a module or an iterable of modules into a list of its leaf modules
+        (modules with no children) and parent modules that have parameters directly themselves.
 
         Args:
             modules: A given module or an iterable of modules
@@ -113,6 +118,9 @@ class BaseFinetuning(Callback):
         Returns:
             List of modules
         """
+        if isinstance(modules, ModuleDict):
+            modules = modules.values()
+
         if isinstance(modules, Iterable):
             _modules = []
             for m in modules:
@@ -121,14 +129,12 @@ class BaseFinetuning(Callback):
         else:
             _modules = modules.modules()
 
-        # Leaf nodes in the graph have no children, so we use that to filter
-        return [m for m in _modules if not list(m.children())]
+        # Capture all leaf modules as well as parent modules that have parameters directly themsleves
+        return [m for m in _modules if not list(m.children()) or m._parameters]
 
     @staticmethod
     def filter_params(
-        modules: Union[Module, Iterable[Union[Module, Iterable]]],
-        train_bn: bool = True,
-        requires_grad: bool = True
+        modules: Union[Module, Iterable[Union[Module, Iterable]]], train_bn: bool = True, requires_grad: bool = True
     ) -> Generator:
         """Yields the `requires_grad` parameters of a given module or list of modules.
 
@@ -136,7 +142,6 @@ class BaseFinetuning(Callback):
             modules: A given module or an iterable of modules
             train_bn: Whether to train BatchNorm module
             requires_grad: Whether to create a generator for trainable or non-trainable parameters.
-
         Returns:
             Generator
         """
@@ -144,27 +149,27 @@ class BaseFinetuning(Callback):
         for mod in modules:
             if isinstance(mod, _BatchNorm) and not train_bn:
                 continue
-            for param in mod.parameters():
+            # recursion could yield duplicate parameters for parent modules w/ parameters so disabling it
+            for param in mod.parameters(recurse=False):
                 if param.requires_grad == requires_grad:
                     yield param
 
     @staticmethod
     def make_trainable(modules: Union[Module, Iterable[Union[Module, Iterable]]]) -> None:
-        """
-        Unfreezes the parameters of the provided modules
+        """Unfreezes the parameters of the provided modules.
 
         Args:
             modules: A given module or an iterable of modules
         """
         modules = BaseFinetuning.flatten_modules(modules)
         for module in modules:
-            for param in module.parameters():
+            # recursion could yield duplicate parameters for parent modules w/ parameters so disabling it
+            for param in module.parameters(recurse=False):
                 param.requires_grad = True
 
     @staticmethod
     def freeze(modules: Union[Module, Iterable[Union[Module, Iterable]]], train_bn: bool = True) -> None:
-        """
-        Freezes the parameters of the provided modules
+        """Freezes the parameters of the provided modules.
 
         Args:
             modules: A given module or an iterable of modules
@@ -178,14 +183,13 @@ class BaseFinetuning(Callback):
             if isinstance(mod, _BatchNorm) and train_bn:
                 BaseFinetuning.make_trainable(mod)
             else:
-                for param in mod.parameters():
+                # recursion could yield duplicate parameters for parent modules w/ parameters so disabling it
+                for param in mod.parameters(recurse=False):
                     param.requires_grad = False
 
     @staticmethod
     def filter_on_optimizer(optimizer: Optimizer, params: Iterable) -> List:
-        """
-        This function is used to exclude any parameter which already exists in
-        this optimizer
+        """This function is used to exclude any parameter which already exists in this optimizer.
 
         Args:
             optimizer: Optimizer used for parameter exclusion
@@ -207,7 +211,8 @@ class BaseFinetuning(Callback):
                 "The provided params to be freezed already exist within another group of this optimizer."
                 " Those parameters will be skipped.\n"
                 "HINT: Did you init your optimizer in `configure_optimizer` as such:\n"
-                f" {type(optimizer)}(filter(lambda p: p.requires_grad, self.parameters()), ...) ", UserWarning
+                f" {type(optimizer)}(filter(lambda p: p.requires_grad, self.parameters()), ...) ",
+                UserWarning,
             )
         return out_params
 
@@ -216,11 +221,10 @@ class BaseFinetuning(Callback):
         modules: Union[Module, Iterable[Union[Module, Iterable]]],
         optimizer: Optimizer,
         lr: Optional[float] = None,
-        initial_denom_lr: float = 10.,
+        initial_denom_lr: float = 10.0,
         train_bn: bool = True,
     ) -> None:
-        """
-        Unfreezes a module and adds its parameters to an optimizer.
+        """Unfreezes a module and adds its parameters to an optimizer.
 
         Args:
 
@@ -241,15 +245,12 @@ class BaseFinetuning(Callback):
             None
         """
         BaseFinetuning.make_trainable(modules)
-        params_lr = optimizer.param_groups[0]['lr'] if lr is None else float(lr)
-        denom_lr = initial_denom_lr if lr is None else 1.
+        params_lr = optimizer.param_groups[0]["lr"] if lr is None else float(lr)
+        denom_lr = initial_denom_lr if lr is None else 1.0
         params = BaseFinetuning.filter_params(modules, train_bn=train_bn, requires_grad=True)
         params = BaseFinetuning.filter_on_optimizer(optimizer, params)
         if params:
-            optimizer.add_param_group({
-                'params': params,
-                'lr': params_lr / denom_lr,
-            })
+            optimizer.add_param_group({"params": params, "lr": params_lr / denom_lr})
 
     def on_before_accelerator_backend_setup(self, trainer, pl_module):
         self.freeze_before_training(pl_module)
@@ -259,45 +260,43 @@ class BaseFinetuning(Callback):
         output = []
         for g in param_groups:
             # skip params to save memory
-            group_state = {k: v for k, v in g.items() if k != 'params'}
-            group_state['params'] = [mapping[p] for p in g['params']]
+            group_state = {k: v for k, v in g.items() if k != "params"}
+            group_state["params"] = [mapping[p] for p in g["params"]]
             output.append(group_state)
         return output
 
     def _store(
         self,
-        pl_module: 'pl.LightningModule',
+        pl_module: "pl.LightningModule",
         opt_idx: int,
         num_param_groups: int,
         current_param_groups: List[Dict[str, Any]],
     ) -> None:
         mapping = {p: n for n, p in pl_module.named_parameters()}
-        if opt_idx not in self._internal_state:
-            self._internal_state[opt_idx] = self.__apply_mapping_to_param_groups(current_param_groups, mapping)
+        if opt_idx not in self._internal_optimizer_metadata:
+            self._internal_optimizer_metadata[opt_idx] = self.__apply_mapping_to_param_groups(
+                current_param_groups, mapping
+            )
         elif num_param_groups != len(current_param_groups):
             # save new param_groups possibly created by the users.
-            self._internal_state[opt_idx].extend(
+            self._internal_optimizer_metadata[opt_idx].extend(
                 self.__apply_mapping_to_param_groups(current_param_groups[num_param_groups:], mapping)
             )
 
     def on_train_epoch_start(self, trainer, pl_module):
         """Called when the epoch begins."""
-        for opt_idx, optimizer in trainer.train_loop.get_active_optimizers():
+        for opt_idx, optimizer in trainer.fit_loop.epoch_loop.batch_loop.get_active_optimizers():
             num_param_groups = len(optimizer.param_groups)
             self.finetune_function(pl_module, trainer.current_epoch, optimizer, opt_idx)
             current_param_groups = optimizer.param_groups
             self._store(pl_module, opt_idx, num_param_groups, current_param_groups)
 
-    def finetune_function(self, pl_module: 'pl.LightningModule', epoch: int, optimizer: Optimizer, opt_idx: int):
-        """
-        Override to add your unfreeze logic
-        """
+    def finetune_function(self, pl_module: "pl.LightningModule", epoch: int, optimizer: Optimizer, opt_idx: int):
+        """Override to add your unfreeze logic."""
         raise NotImplementedError
 
-    def freeze_before_training(self, pl_module: 'pl.LightningModule'):
-        """
-        Override to add your freeze logic
-        """
+    def freeze_before_training(self, pl_module: "pl.LightningModule"):
+        """Override to add your freeze logic."""
         raise NotImplementedError
 
 
@@ -349,22 +348,37 @@ class BackboneFinetuning(BaseFinetuning):
         backbone_initial_ratio_lr: float = 10e-2,
         backbone_initial_lr: Optional[float] = None,
         should_align: bool = True,
-        initial_denom_lr: float = 10.,
+        initial_denom_lr: float = 10.0,
         train_bn: bool = True,
         verbose: bool = False,
         round: int = 12,
     ):
         super().__init__()
 
-        self.unfreeze_backbone_at_epoch = unfreeze_backbone_at_epoch
-        self.backbone_initial_lr = backbone_initial_lr
-        self.lambda_func = lambda_func
-        self.backbone_initial_ratio_lr = backbone_initial_ratio_lr
-        self.should_align = should_align
-        self.initial_denom_lr = initial_denom_lr
-        self.train_bn = train_bn
-        self.round = round
-        self.verbose = verbose
+        self.unfreeze_backbone_at_epoch: int = unfreeze_backbone_at_epoch
+        self.lambda_func: Callable = lambda_func
+        self.backbone_initial_ratio_lr: float = backbone_initial_ratio_lr
+        self.backbone_initial_lr: Optional[float] = backbone_initial_lr
+        self.should_align: bool = should_align
+        self.initial_denom_lr: float = initial_denom_lr
+        self.train_bn: bool = train_bn
+        self.verbose: bool = verbose
+        self.round: int = round
+        self.previous_backbone_lr: Optional[float] = None
+
+    def on_save_checkpoint(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
+    ) -> Dict[int, Any]:
+        return {
+            "internal_optimizer_metadata": self._internal_optimizer_metadata,
+            "previous_backbone_lr": self.previous_backbone_lr,
+        }
+
+    def on_load_checkpoint(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[int, List[Dict[str, Any]]]
+    ) -> None:
+        self.previous_backbone_lr = callback_state["previous_backbone_lr"]
+        super().on_load_checkpoint(trainer, pl_module, callback_state["internal_optimizer_metadata"])
 
     def on_fit_start(self, trainer, pl_module):
         """
@@ -373,25 +387,28 @@ class BackboneFinetuning(BaseFinetuning):
                 If LightningModule has no nn.Module `backbone` attribute.
         """
         if hasattr(pl_module, "backbone") and isinstance(pl_module.backbone, Module):
-            return
+            return super().on_fit_start(trainer, pl_module)
         raise MisconfigurationException("The LightningModule should have a nn.Module `backbone` attribute")
 
-    def freeze_before_training(self, pl_module: 'pl.LightningModule'):
+    def freeze_before_training(self, pl_module: "pl.LightningModule"):
         self.freeze(pl_module.backbone)
 
-    def finetune_function(self, pl_module: 'pl.LightningModule', epoch: int, optimizer: Optimizer, opt_idx: int):
+    def finetune_function(self, pl_module: "pl.LightningModule", epoch: int, optimizer: Optimizer, opt_idx: int):
         """Called when the epoch begins."""
         if epoch == self.unfreeze_backbone_at_epoch:
-            current_lr = optimizer.param_groups[0]['lr']
-            initial_backbone_lr = self.backbone_initial_lr if self.backbone_initial_lr is not None \
+            current_lr = optimizer.param_groups[0]["lr"]
+            initial_backbone_lr = (
+                self.backbone_initial_lr
+                if self.backbone_initial_lr is not None
                 else current_lr * self.backbone_initial_ratio_lr
+            )
             self.previous_backbone_lr = initial_backbone_lr
             self.unfreeze_and_add_param_group(
                 pl_module.backbone,
                 optimizer,
                 initial_backbone_lr,
                 train_bn=self.train_bn,
-                initial_denom_lr=self.initial_denom_lr
+                initial_denom_lr=self.initial_denom_lr,
             )
             if self.verbose:
                 log.info(
@@ -400,10 +417,13 @@ class BackboneFinetuning(BaseFinetuning):
                 )
 
         elif epoch > self.unfreeze_backbone_at_epoch:
-            current_lr = optimizer.param_groups[0]['lr']
+            current_lr = optimizer.param_groups[0]["lr"]
             next_current_backbone_lr = self.lambda_func(epoch + 1) * self.previous_backbone_lr
-            next_current_backbone_lr = current_lr if (self.should_align and next_current_backbone_lr > current_lr) \
+            next_current_backbone_lr = (
+                current_lr
+                if (self.should_align and next_current_backbone_lr > current_lr)
                 else next_current_backbone_lr
+            )
             optimizer.param_groups[-1]["lr"] = next_current_backbone_lr
             self.previous_backbone_lr = next_current_backbone_lr
             if self.verbose:

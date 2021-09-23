@@ -23,10 +23,11 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
+from tests.utilities.test_model_summary import UnorderedModel
 
 
 def test_model_saves_with_input_sample(tmpdir):
-    """Test that ONNX model saves with input sample and size is greater than 3 MB"""
+    """Test that ONNX model saves with input sample and size is greater than 3 MB."""
     model = BoringModel()
     trainer = Trainer(fast_dev_run=True)
     trainer.fit(model)
@@ -40,7 +41,7 @@ def test_model_saves_with_input_sample(tmpdir):
 
 @RunIf(min_gpus=1)
 def test_model_saves_on_gpu(tmpdir):
-    """Test that model saves on gpu"""
+    """Test that model saves on gpu."""
     model = BoringModel()
     trainer = Trainer(gpus=1, fast_dev_run=True)
     trainer.fit(model)
@@ -53,7 +54,7 @@ def test_model_saves_on_gpu(tmpdir):
 
 
 def test_model_saves_with_example_output(tmpdir):
-    """Test that ONNX model saves when provided with example output"""
+    """Test that ONNX model saves when provided with example output."""
     model = BoringModel()
     trainer = Trainer(fast_dev_run=True)
     trainer.fit(model)
@@ -66,10 +67,17 @@ def test_model_saves_with_example_output(tmpdir):
     assert os.path.exists(file_path) is True
 
 
-def test_model_saves_with_example_input_array(tmpdir):
-    """Test that ONNX model saves with_example_input_array and size is greater than 3 MB"""
-    model = BoringModel()
-    model.example_input_array = torch.randn(5, 32)
+@pytest.mark.parametrize(
+    ["modelclass", "input_sample"],
+    [
+        (BoringModel, torch.randn(1, 32)),
+        (UnorderedModel, (torch.rand(2, 3), torch.rand(2, 10))),
+    ],
+)
+def test_model_saves_with_example_input_array(tmpdir, modelclass, input_sample):
+    """Test that ONNX model saves with example_input_array and size is greater than 3 MB."""
+    model = modelclass()
+    model.example_input_array = input_sample
 
     file_path = os.path.join(tmpdir, "model.onnx")
     model.to_onnx(file_path)
@@ -79,7 +87,7 @@ def test_model_saves_with_example_input_array(tmpdir):
 
 @RunIf(min_gpus=2)
 def test_model_saves_on_multi_gpu(tmpdir):
-    """Test that ONNX model saves on a distributed backend"""
+    """Test that ONNX model saves on a distributed backend."""
     tutils.set_random_master_port()
 
     trainer_options = dict(
@@ -88,7 +96,7 @@ def test_model_saves_on_multi_gpu(tmpdir):
         limit_train_batches=10,
         limit_val_batches=10,
         gpus=[0, 1],
-        accelerator='ddp_spawn',
+        accelerator="ddp_spawn",
         progress_bar_refresh_rate=0,
     )
 
@@ -103,7 +111,7 @@ def test_model_saves_on_multi_gpu(tmpdir):
 
 
 def test_verbose_param(tmpdir, capsys):
-    """Test that output is present when verbose parameter is set"""
+    """Test that output is present when verbose parameter is set."""
     model = BoringModel()
     model.example_input_array = torch.randn(5, 32)
 
@@ -114,20 +122,20 @@ def test_verbose_param(tmpdir, capsys):
 
 
 def test_error_if_no_input(tmpdir):
-    """Test that an error is thrown when there is no input tensor"""
+    """Test that an error is thrown when there is no input tensor."""
     model = BoringModel()
     model.example_input_array = None
     file_path = os.path.join(tmpdir, "model.onnx")
     with pytest.raises(
         ValueError,
-        match=r'Could not export to ONNX since neither `input_sample` nor'
-        r' `model.example_input_array` attribute is set.'
+        match=r"Could not export to ONNX since neither `input_sample` nor"
+        r" `model.example_input_array` attribute is set.",
     ):
         model.to_onnx(file_path)
 
 
 def test_if_inference_output_is_valid(tmpdir):
-    """Test that the output inferred from ONNX model is same as from PyTorch"""
+    """Test that the output inferred from ONNX model is same as from PyTorch."""
     model = BoringModel()
     model.example_input_array = torch.randn(5, 32)
 

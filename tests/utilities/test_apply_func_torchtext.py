@@ -25,17 +25,14 @@ def _get_torchtext_data_iterator(include_lengths=False):
         pad_first=False,  # nosec
         init_token="<s>",
         eos_token="</s>",  # nosec
-        include_lengths=include_lengths
+        include_lengths=include_lengths,
     )  # nosec
 
     example1 = Example.fromdict({"text": "a b c a c"}, {"text": ("text", text_field)})
     example2 = Example.fromdict({"text": "b c a a"}, {"text": ("text", text_field)})
     example3 = Example.fromdict({"text": "c b a"}, {"text": ("text", text_field)})
 
-    dataset = Dataset(
-        [example1, example2, example3],
-        {"text": text_field},
-    )
+    dataset = Dataset([example1, example2, example3], {"text": text_field})
     text_field.build_vocab(dataset)
 
     iterator = Iterator(
@@ -48,13 +45,13 @@ def _get_torchtext_data_iterator(include_lengths=False):
         repeat=False,
         shuffle=None,
         sort=None,
-        sort_within_batch=None
+        sort_within_batch=None,
     )
     return iterator, text_field
 
 
-@pytest.mark.parametrize('include_lengths', [False, True])
-@pytest.mark.parametrize(['device'], [pytest.param(torch.device('cuda', 0))])
+@pytest.mark.parametrize("include_lengths", [False, True])
+@pytest.mark.parametrize(["device"], [pytest.param(torch.device("cuda", 0))])
 @RunIf(min_gpus=1)
 def test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, device):
     data_iterator, _ = _get_torchtext_data_iterator(include_lengths=include_lengths)
@@ -64,13 +61,13 @@ def test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, de
 
     if include_lengths:
         # tensor with data
-        assert (batch_on_device.text[0].device == device)
+        assert batch_on_device.text[0].device == device
         # tensor with length of data
-        assert (batch_on_device.text[1].device == device)
+        assert batch_on_device.text[1].device == device
     else:
-        assert (batch_on_device.text.device == device)
+        assert batch_on_device.text.device == device
 
 
-@pytest.mark.parametrize('include_lengths', [False, True])
+@pytest.mark.parametrize("include_lengths", [False, True])
 def test_batch_move_data_to_device_torchtext_include_lengths_cpu(include_lengths):
-    test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, torch.device('cpu'))
+    test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, torch.device("cpu"))

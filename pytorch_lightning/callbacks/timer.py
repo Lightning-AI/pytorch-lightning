@@ -36,9 +36,8 @@ class Interval(LightningEnum):
 
 
 class Timer(Callback):
-    """
-    The Timer callback tracks the time spent in the training, validation, and test loops and interrupts the Trainer
-    if the given time limit for the training loop is reached.
+    """The Timer callback tracks the time spent in the training, validation, and test loops and interrupts the
+    Trainer if the given time limit for the training loop is reached.
 
     Args:
         duration: A string in the format DD:HH:MM:SS (days, hours, minutes seconds), or a :class:`datetime.timedelta`,
@@ -143,29 +142,28 @@ class Timer(Callback):
     def on_test_end(self, *args, **kwargs) -> None:
         self._end_time[RunningStage.TESTING] = time.monotonic()
 
-    def on_train_batch_end(self, trainer: 'pl.Trainer', *args, **kwargs) -> None:
+    def on_train_batch_end(self, trainer: "pl.Trainer", *args, **kwargs) -> None:
         if self._interval != Interval.step or self._duration is None:
             return
         self._check_time_remaining(trainer)
 
-    def on_train_epoch_end(self, trainer: 'pl.Trainer', *args, **kwargs) -> None:
+    def on_train_epoch_end(self, trainer: "pl.Trainer", *args, **kwargs) -> None:
         if self._interval != Interval.epoch or self._duration is None:
             return
         self._check_time_remaining(trainer)
 
     def on_save_checkpoint(
-        self,
-        trainer: 'pl.Trainer',
-        pl_module: 'pl.LightningModule',
-        checkpoint: Dict[str, Any],
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
     ) -> Dict[str, Any]:
         return {"time_elapsed": {stage.value: self.time_elapsed(stage) for stage in list(RunningStage)}}
 
-    def on_load_checkpoint(self, callback_state: Dict[str, Any]) -> None:
+    def on_load_checkpoint(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
+    ) -> None:
         time_elapsed = callback_state.get("time_elapsed", {})
         self._offset = time_elapsed.get(RunningStage.TRAINING.value, 0)
 
-    def _check_time_remaining(self, trainer: 'pl.Trainer') -> None:
+    def _check_time_remaining(self, trainer: "pl.Trainer") -> None:
         should_stop = self.time_elapsed() >= self._duration
         should_stop = trainer.accelerator.broadcast(should_stop)
         trainer.should_stop = trainer.should_stop or should_stop

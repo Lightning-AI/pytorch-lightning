@@ -11,24 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""General utilities"""
+"""General utilities."""
 
 import numpy
 
 from pytorch_lightning.utilities.apply_func import move_data_to_device  # noqa: F401
-from pytorch_lightning.utilities.distributed import (  # noqa: F401
-    AllGatherGrad,
-    rank_zero_deprecation,
-    rank_zero_info,
-    rank_zero_only,
-    rank_zero_warn,
-)
+from pytorch_lightning.utilities.distributed import AllGatherGrad, rank_zero_info, rank_zero_only  # noqa: F401
 from pytorch_lightning.utilities.enums import (  # noqa: F401
     AMPType,
     DeviceType,
     DistributedType,
     GradClipAlgorithmType,
     LightningEnum,
+    ModelSummaryMode,
 )
 from pytorch_lightning.utilities.grads import grad_norm  # noqa: F401
 from pytorch_lightning.utilities.imports import (  # noqa: F401
@@ -38,29 +33,33 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _FAIRSCALE_AVAILABLE,
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
     _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE,
-    _FAIRSCALE_PIPE_AVAILABLE,
     _GROUP_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _HYDRA_AVAILABLE,
     _HYDRA_EXPERIMENTAL_AVAILABLE,
+    _IPU_AVAILABLE,
     _IS_INTERACTIVE,
+    _JSONARGPARSE_AVAILABLE,
     _module_available,
     _NATIVE_AMP_AVAILABLE,
     _OMEGACONF_AVAILABLE,
-    _RPC_AVAILABLE,
-    _TORCH_GREATER_EQUAL_1_5,
-    _TORCH_GREATER_EQUAL_1_6,
+    _POPTORCH_AVAILABLE,
+    _RICH_AVAILABLE,
+    _TORCH_BFLOAT_AVAILABLE,
+    _TORCH_CPU_AMP_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_7,
     _TORCH_GREATER_EQUAL_1_8,
     _TORCH_GREATER_EQUAL_1_9,
-    _TORCH_LOWER_EQUAL_1_4,
+    _TORCH_GREATER_EQUAL_1_10,
     _TORCH_QUANTIZE_AVAILABLE,
+    _TORCH_SHARDED_TENSOR_AVAILABLE,
     _TORCHTEXT_AVAILABLE,
     _TORCHVISION_AVAILABLE,
     _TPU_AVAILABLE,
     _XLA_AVAILABLE,
 )
 from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable  # noqa: F401
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn  # noqa: F401
 
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
 FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps

@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional
+from contextlib import contextmanager
+from typing import Dict, Generator, Optional
 
 import torch
-from torch.optim import Optimizer
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.states import TrainerFn
@@ -32,12 +32,14 @@ if _FAIRSCALE_AVAILABLE:
 
 
 class DDPSpawnShardedPlugin(DDPSpawnPlugin):
-    """ Optimizer sharded training provided by FairScale. """
+    """Optimizer sharded training provided by FairScale."""
 
-    def configure_ddp(self):
+    def configure_ddp(self) -> None:
         self._wrap_optimizers()
         self._model = ShardedDataParallel(
-            LightningShardedDataParallel(self.model), sharded_optimizer=self.lightning_module.trainer.optimizers
+            LightningShardedDataParallel(self.model),
+            sharded_optimizer=self.lightning_module.trainer.optimizers,
+            **self._ddp_kwargs
         )
         setattr(self._model, "require_backward_grad_sync", False)
 
@@ -57,10 +59,23 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
             return
         self._reinit_optimizers_with_oss()
 
-    def optimizer_state(self, optimizer: 'OSS') -> Optional[dict]:
+    def optimizer_state(self, optimizer: "OSS") -> Optional[dict]:
         if isinstance(optimizer, OSS):
             optimizer.consolidate_state_dict()
         return self._optim_state_dict(optimizer)
+
+    @contextmanager
+    def block_backward_sync(self) -> Generator:
+        """Blocks syncing gradients behaviour on backwards pass.
+
+        This is useful for skipping sync when accumulating gradients, reducing communication overhead
+        Returns: context manager with sync behaviour off
+        """
+        if isinstance(self.model, ShardedDataParallel):
+            with self.model.no_sync():
+                yield None
+        else:
+            yield None
 
     @rank_zero_only
     def _optim_state_dict(self, optimizer):
@@ -71,7 +86,7 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
         return optimizer.state_dict()
 
     @property
-    def lightning_module(self) -> LightningModule:
+    def lightning_module(self) -> "pl.LightningModule":
         if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
             raise MisconfigurationException(
                 "`DDPSpawnShardedPlugin` requires `fairscale` to be installed."
@@ -79,7 +94,7 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
             )
         return unwrap_lightning_module_sharded(self._model)
 
-    def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
+    def pre_backward(self, closure_loss: torch.Tensor) -> None:
         pass
 
     def post_training_step(self):
@@ -92,3 +107,12 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
         if isinstance(precision_plugin, ShardedNativeMixedPrecisionPlugin):
             precision_plugin.scaler = ShardedGradScaler()
         super().new_process(process_idx, trainer, mp_queue)
+
+    @classmethod
+    def register_plugins(cls, plugin_registry: Dict) -> None:
+        plugin_registry.register(
+            "ddp_sharded_spawn_find_unused_parameters_false",
+            cls,
+            description="DDP Spawn Sharded Plugin with `find_unused_parameters` as False",
+            find_unused_parameters=False,
+        )

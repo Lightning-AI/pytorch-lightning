@@ -9,7 +9,7 @@
 Loggers
 *******
 
-Lightning supports the most popular logging frameworks (TensorBoard, Comet, etc...). TensorBoard is used by default,
+Lightning supports the most popular logging frameworks (TensorBoard, Comet, Neptune, etc...). TensorBoard is used by default,
 but you can pass to the :class:`~pytorch_lightning.trainer.trainer.Trainer` any combination of the following loggers.
 
 .. note::
@@ -45,13 +45,14 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
 
     import os
     from pytorch_lightning.loggers import CometLogger
+
     comet_logger = CometLogger(
-        api_key=os.environ.get('COMET_API_KEY'),
-        workspace=os.environ.get('COMET_WORKSPACE'),  # Optional
-        save_dir='.',  # Optional
-        project_name='default_project',  # Optional
-        rest_api_key=os.environ.get('COMET_REST_API_KEY'),  # Optional
-        experiment_name='default'  # Optional
+        api_key=os.environ.get("COMET_API_KEY"),
+        workspace=os.environ.get("COMET_WORKSPACE"),  # Optional
+        save_dir=".",  # Optional
+        project_name="default_project",  # Optional
+        rest_api_key=os.environ.get("COMET_REST_API_KEY"),  # Optional
+        experiment_name="default",  # Optional
     )
     trainer = Trainer(logger=comet_logger)
 
@@ -63,7 +64,7 @@ The :class:`~pytorch_lightning.loggers.CometLogger` is available anywhere except
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
             some_img = fake_image()
-            self.logger.experiment.add_image('generated_images', some_img, 0)
+            self.logger.experiment.add_image("generated_images", some_img, 0)
 
 .. seealso::
     :class:`~pytorch_lightning.loggers.CometLogger` docs.
@@ -86,10 +87,8 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
 .. code-block:: python
 
     from pytorch_lightning.loggers import MLFlowLogger
-    mlf_logger = MLFlowLogger(
-        experiment_name="default",
-        tracking_uri="file:./ml-runs"
-    )
+
+    mlf_logger = MLFlowLogger(experiment_name="default", tracking_uri="file:./ml-runs")
     trainer = Trainer(logger=mlf_logger)
 
 .. seealso::
@@ -108,33 +107,49 @@ First, install the package:
 
     pip install neptune-client
 
+or with conda:
+
+.. code-block:: bash
+
+    conda install -c conda-forge neptune-client
+
 Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
-.. testcode::
+.. code-block:: python
 
     from pytorch_lightning.loggers import NeptuneLogger
 
     neptune_logger = NeptuneLogger(
-        api_key='ANONYMOUS',  # replace with your own
-        project_name='shared/pytorch-lightning-integration',
-        experiment_name='default',  # Optional,
-        params={'max_epochs': 10},  # Optional,
-        tags=['pytorch-lightning', 'mlp'],  # Optional,
+        api_key="ANONYMOUS",  # replace with your own
+        project="common/pytorch-lightning-integration",  # format "<WORKSPACE/PROJECT>"
+        tags=["training", "resnet"],  # optional
     )
     trainer = Trainer(logger=neptune_logger)
 
 The :class:`~pytorch_lightning.loggers.NeptuneLogger` is available anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
-.. testcode::
+.. code-block:: python
 
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
-            some_img = fake_image()
-            self.logger.experiment.add_image('generated_images', some_img, 0)
+            # generic recipe for logging custom metadata (neptune specific)
+            metadata = ...
+            self.logger.experiment["your/metadata/structure"].log(metadata)
+
+Note that syntax: ``self.logger.experiment["your/metadata/structure"].log(metadata)``
+is specific to Neptune and it extends logger capabilities.
+Specifically, it allows you to log various types of metadata like scores, files,
+images, interactive visuals, CSVs, etc. Refer to the
+`Neptune docs <https://docs.neptune.ai/you-should-know/logging-metadata#essential-logging-methods>`_
+for more detailed explanations.
+
+You can always use regular logger methods: ``log_metrics()`` and ``log_hyperparams()`` as these are also supported.
 
 .. seealso::
     :class:`~pytorch_lightning.loggers.NeptuneLogger` docs.
+
+    Logger `user guide <https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning>`_.
 
 ----------------
 
@@ -146,7 +161,8 @@ To use `TensorBoard <https://pytorch.org/docs/stable/tensorboard.html>`_ as your
 .. testcode::
 
     from pytorch_lightning.loggers import TensorBoardLogger
-    logger = TensorBoardLogger('tb_logs', name='my_model')
+
+    logger = TensorBoardLogger("tb_logs", name="my_model")
     trainer = Trainer(logger=logger)
 
 The :class:`~pytorch_lightning.loggers.TensorBoardLogger` is available anywhere except ``__init__`` in your
@@ -157,7 +173,7 @@ The :class:`~pytorch_lightning.loggers.TensorBoardLogger` is available anywhere 
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
             some_img = fake_image()
-            self.logger.experiment.add_image('generated_images', some_img, 0)
+            self.logger.experiment.add_image("generated_images", some_img, 0)
 
 .. seealso::
     :class:`~pytorch_lightning.loggers.TensorBoardLogger` docs.
@@ -181,7 +197,8 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
 .. code-block:: python
 
     from pytorch_lightning.loggers import TestTubeLogger
-    logger = TestTubeLogger('tb_logs', name='my_model')
+
+    logger = TestTubeLogger("tb_logs", name="my_model")
     trainer = Trainer(logger=logger)
 
 The :class:`~pytorch_lightning.loggers.TestTubeLogger` is available anywhere except ``__init__`` in your
@@ -192,7 +209,7 @@ The :class:`~pytorch_lightning.loggers.TestTubeLogger` is available anywhere exc
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
             some_img = fake_image()
-            self.logger.experiment.add_image('generated_images', some_img, 0)
+            self.logger.experiment.add_image("generated_images", some_img, 0)
 
 .. seealso::
     :class:`~pytorch_lightning.loggers.TestTubeLogger` docs.
@@ -217,7 +234,7 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
     from pytorch_lightning.loggers import WandbLogger
 
     # instrument experiment with W&B
-    wandb_logger = WandbLogger(project='MNIST', log_model='all')
+    wandb_logger = WandbLogger(project="MNIST", log_model="all")
     trainer = Trainer(logger=wandb_logger)
 
     # log gradients and model topology
@@ -226,14 +243,12 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
 The :class:`~pytorch_lightning.loggers.WandbLogger` is available anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
-.. testcode::
+.. code-block:: python
 
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
             some_img = fake_image()
-            self.log({
-                "generated_images": [wandb.Image(some_img, caption="...")]
-            })
+            self.log({"generated_images": [wandb.Image(some_img, caption="...")]})
 
 .. seealso::
     :class:`~pytorch_lightning.loggers.WandbLogger` docs.
@@ -249,8 +264,9 @@ Lightning supports the use of multiple loggers, just pass a list to the
 .. code-block:: python
 
     from pytorch_lightning.loggers import TensorBoardLogger, TestTubeLogger
-    logger1 = TensorBoardLogger('tb_logs', name='my_model')
-    logger2 = TestTubeLogger('tb_logs', name='my_model')
+
+    logger1 = TensorBoardLogger("tb_logs", name="my_model")
+    logger2 = TestTubeLogger("tb_logs", name="my_model")
     trainer = Trainer(logger=[logger1, logger2])
 
 The loggers are available as a list anywhere except ``__init__`` in your
@@ -262,6 +278,6 @@ The loggers are available as a list anywhere except ``__init__`` in your
         def any_lightning_module_function_or_hook(self):
             some_img = fake_image()
             # Option 1
-            self.logger.experiment[0].add_image('generated_images', some_img, 0)
+            self.logger.experiment[0].add_image("generated_images", some_img, 0)
             # Option 2
-            self.logger[0].experiment.add_image('generated_images', some_img, 0)
+            self.logger[0].experiment.add_image("generated_images", some_img, 0)

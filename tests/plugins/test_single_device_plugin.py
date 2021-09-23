@@ -29,7 +29,6 @@ def test_single_cpu():
 
 
 class BoringModelGPU(BoringModel):
-
     def on_train_start(self) -> None:
         # make sure that the model is on GPU when training
         assert self.device == torch.device("cuda:0")
@@ -38,7 +37,7 @@ class BoringModelGPU(BoringModel):
 
 @RunIf(skip_windows=True, min_gpus=1)
 def test_single_gpu():
-    """Tests if device is set correctely when training and after teardown for single GPU plugin."""
+    """Tests if device is set correctly when training and after teardown for single GPU plugin."""
     trainer = Trainer(gpus=1, fast_dev_run=True)
     # assert training type plugin attributes for device setting
     assert isinstance(trainer.training_type_plugin, SingleDevicePlugin)

@@ -16,6 +16,7 @@ import os
 import queue as q
 import traceback
 from multiprocessing import Process, Queue
+from typing import Any, Callable, Union
 
 from pytorch_lightning.utilities.imports import _XLA_AVAILABLE
 
@@ -26,7 +27,7 @@ if _XLA_AVAILABLE:
 TPU_CHECK_TIMEOUT = 60
 
 
-def inner_f(queue, func, *args, **kwargs):  # pragma: no cover
+def inner_f(queue: Queue, func: Callable, *args: Any, **kwargs: Any) -> None:  # pragma: no cover
     try:
         queue.put(func(*args, **kwargs))
     # todo: specify the possible exception
@@ -35,11 +36,10 @@ def inner_f(queue, func, *args, **kwargs):  # pragma: no cover
         queue.put(None)
 
 
-def pl_multi_process(func):
-
+def pl_multi_process(func: Callable) -> Callable:
     @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        queue = Queue()
+    def wrapper(*args: Any, **kwargs: Any) -> Union[bool, Any]:
+        queue: Queue = Queue()
         proc = Process(target=inner_f, args=(queue, func, *args), kwargs=kwargs)
         proc.start()
         proc.join(TPU_CHECK_TIMEOUT)
@@ -53,15 +53,14 @@ def pl_multi_process(func):
 
 
 class XLADeviceUtils:
-    """Used to detect the type of XLA device"""
+    """Used to detect the type of XLA device."""
 
     _TPU_AVAILABLE = False
 
     @staticmethod
     @pl_multi_process
     def _is_device_tpu() -> bool:
-        """
-        Check if TPU devices are available
+        """Check if TPU devices are available.
 
         Return:
             A boolean value indicating if TPU devices are available
@@ -77,8 +76,7 @@ class XLADeviceUtils:
 
     @staticmethod
     def xla_available() -> bool:
-        """
-        Check if XLA library is installed
+        """Check if XLA library is installed.
 
         Return:
             A boolean value indicating if a XLA is installed
@@ -87,13 +85,12 @@ class XLADeviceUtils:
 
     @staticmethod
     def tpu_device_exists() -> bool:
-        """
-        Runs XLA device check within a separate process
+        """Runs XLA device check within a separate process.
 
         Return:
             A boolean value indicating if a TPU device exists on the system
         """
-        if os.getenv("PL_TPU_AVAILABLE", '0') == "1":
+        if os.getenv("PL_TPU_AVAILABLE", "0") == "1":
             XLADeviceUtils._TPU_AVAILABLE = True
 
         if XLADeviceUtils.xla_available() and not XLADeviceUtils._TPU_AVAILABLE:
@@ -101,5 +98,5 @@ class XLADeviceUtils:
             XLADeviceUtils._TPU_AVAILABLE = XLADeviceUtils._is_device_tpu()
 
             if XLADeviceUtils._TPU_AVAILABLE:
-                os.environ["PL_TPU_AVAILABLE"] = '1'
+                os.environ["PL_TPU_AVAILABLE"] = "1"
         return XLADeviceUtils._TPU_AVAILABLE

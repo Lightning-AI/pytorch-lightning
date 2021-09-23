@@ -33,22 +33,19 @@ from tests.helpers.boring_model import BoringModel  # noqa: E402
 @pytest.mark.skip("Multi-node testing is currently disabled")
 @RunIf(special=True)
 def test_logging_sync_dist_true_ddp(tmpdir):
-    """
-    Tests to ensure that the sync_dist flag works with CPU (should just return the original value)
-    """
+    """Tests to ensure that the sync_dist flag works with CPU (should just return the original value)"""
     fake_result = 1
 
     class TestModel(BoringModel):
-
         def training_step(self, batch, batch_idx):
             acc = self.step(batch[0])
-            self.log('foo', torch.tensor(fake_result), on_step=False, on_epoch=True)
+            self.log("foo", torch.tensor(fake_result), on_step=False, on_epoch=True)
             return acc
 
         def validation_step(self, batch, batch_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)
-            self.log('bar', torch.tensor(fake_result), on_step=False, on_epoch=True)
+            self.log("bar", torch.tensor(fake_result), on_step=False, on_epoch=True)
             return {"x": loss}
 
     model = TestModel()
@@ -64,8 +61,8 @@ def test_logging_sync_dist_true_ddp(tmpdir):
     )
     trainer.fit(model)
 
-    assert trainer.logged_metrics['foo'] == fake_result
-    assert trainer.logged_metrics['bar'] == fake_result
+    assert trainer.logged_metrics["foo"] == fake_result
+    assert trainer.logged_metrics["bar"] == fake_result
 
 
 # TODO(Borda): When multi-node tests are re-enabled (.github/workflows/ci_test-mnodes.yml)
@@ -73,17 +70,14 @@ def test_logging_sync_dist_true_ddp(tmpdir):
 @pytest.mark.skip("Multi-node testing is currently disabled")
 @RunIf(special=True)
 def test__validation_step__log(tmpdir):
-    """
-    Tests that validation_step can log
-    """
+    """Tests that validation_step can log."""
 
     class TestModel(BoringModel):
-
         def training_step(self, batch, batch_idx):
             acc = self.step(batch)
             acc = acc + batch_idx
-            self.log('a', acc, on_step=True, on_epoch=True)
-            self.log('a2', 2)
+            self.log("a", acc, on_step=True, on_epoch=True)
+            self.log("a2", 2)
 
             self.training_step_called = True
             return acc
@@ -91,7 +85,7 @@ def test__validation_step__log(tmpdir):
         def validation_step(self, batch, batch_idx):
             acc = self.step(batch)
             acc = acc + batch_idx
-            self.log('b', acc, on_step=True, on_epoch=True)
+            self.log("b", acc, on_step=True, on_epoch=True)
             self.training_step_called = True
 
         def backward(self, loss, optimizer, optimizer_idx):
@@ -115,15 +109,8 @@ def test__validation_step__log(tmpdir):
     trainer.fit(model)
 
     # make sure all the metrics are available for callbacks
-    assert set(trainer.logged_metrics) == {
-        'a2',
-        'a_step',
-        'a_epoch',
-        'b_step',
-        'b_epoch',
-        'epoch',
-    }
+    assert set(trainer.logged_metrics) == {"a2", "a_step", "a_epoch", "b_step", "b_epoch", "epoch"}
 
     # we don't want to enable val metrics during steps because it is not something that users should do
     # on purpose DO NOT allow b_step... it's silly to monitor val step metrics
-    assert set(trainer.callback_metrics) == {'a', 'a2', 'b', 'a_epoch', 'b_epoch', 'a_step'}
+    assert set(trainer.callback_metrics) == {"a", "a2", "b", "a_epoch", "b_epoch", "a_step"}

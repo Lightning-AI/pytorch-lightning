@@ -11,9 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-To run this template just do:
-python generative_adversarial_net.py
+"""To run this template just do: python generative_adversarial_net.py.
 
 After a few epochs, launch TensorBoard to see the images being generated at every batch:
 
@@ -25,10 +23,11 @@ from argparse import ArgumentParser, Namespace
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F  # noqa
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from pl_examples import _TORCHVISION_MNIST_AVAILABLE, cli_lightning_logo
+from pl_examples import cli_lightning_logo
+from pl_examples.basic_examples.mnist_datamodule import MNIST
 from pytorch_lightning.core import LightningDataModule, LightningModule
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
@@ -36,10 +35,6 @@ from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 if _TORCHVISION_AVAILABLE:
     import torchvision
     from torchvision import transforms
-if _TORCHVISION_MNIST_AVAILABLE:
-    from torchvision.datasets import MNIST
-else:
-    from tests.helpers.datasets import MNIST
 
 
 class Generator(nn.Module):
@@ -172,7 +167,7 @@ class GAN(LightningModule):
 
             # adversarial loss is binary cross-entropy
             g_loss = self.adversarial_loss(self.discriminator(self(z)), valid)
-            tqdm_dict = {'g_loss': g_loss}
+            tqdm_dict = {"g_loss": g_loss}
             self.log_dict(tqdm_dict)
             return g_loss
 
@@ -194,7 +189,7 @@ class GAN(LightningModule):
 
             # discriminator loss is the average of these
             d_loss = (real_loss + fake_loss) / 2
-            tqdm_dict = {'d_loss': d_loss}
+            tqdm_dict = {"d_loss": d_loss}
             self.log_dict(tqdm_dict)
 
             return d_loss
@@ -214,7 +209,7 @@ class GAN(LightningModule):
         # log sampled images
         sample_imgs = self(z)
         grid = torchvision.utils.make_grid(sample_imgs)
-        self.logger.experiment.add_image('generated_images', grid, self.current_epoch)
+        self.logger.experiment.add_image("generated_images", grid, self.current_epoch)
 
 
 class MNISTDataModule(LightningDataModule):
@@ -266,7 +261,7 @@ def main(args: Namespace) -> None:
     trainer.fit(model, dm)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli_lightning_logo()
     parser = ArgumentParser()
 

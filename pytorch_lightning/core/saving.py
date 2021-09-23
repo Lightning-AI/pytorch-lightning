@@ -19,7 +19,6 @@ import logging
 import os
 from argparse import Namespace
 from copy import deepcopy
-from functools import partial
 from typing import Any, Callable, Dict, IO, MutableMapping, Optional, Union
 from warnings import warn
 
@@ -30,6 +29,7 @@ from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict, ran
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.parsing import parse_class_init_keys
 
 log = logging.getLogger(__name__)
@@ -42,16 +42,13 @@ if _OMEGACONF_AVAILABLE:
     from omegaconf.errors import UnsupportedValueType, ValidationError
 
 # the older shall be on the top
-CHECKPOINT_PAST_HPARAMS_KEYS = (
-    'hparams',
-    'module_arguments',  # used in 0.7.6
-)
+CHECKPOINT_PAST_HPARAMS_KEYS = ("hparams", "module_arguments")  # used in 0.7.6
 
 
-class ModelIO(object):
-    CHECKPOINT_HYPER_PARAMS_KEY = 'hyper_parameters'
-    CHECKPOINT_HYPER_PARAMS_NAME = 'hparams_name'
-    CHECKPOINT_HYPER_PARAMS_TYPE = 'hparams_type'
+class ModelIO:
+    CHECKPOINT_HYPER_PARAMS_KEY = "hyper_parameters"
+    CHECKPOINT_HYPER_PARAMS_NAME = "hparams_name"
+    CHECKPOINT_HYPER_PARAMS_TYPE = "hparams_type"
 
     @classmethod
     def load_from_checkpoint(
@@ -129,21 +126,22 @@ class ModelIO(object):
             pretrained_model.freeze()
             y_hat = pretrained_model(x)
         """
-        if map_location is not None:
-            checkpoint = pl_load(checkpoint_path, map_location=map_location)
-        else:
-            checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
+        with pl_legacy_patch():
+            if map_location is not None:
+                checkpoint = pl_load(checkpoint_path, map_location=map_location)
+            else:
+                checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
 
         if hparams_file is not None:
-            extension = hparams_file.split('.')[-1]
-            if extension.lower() == 'csv':
+            extension = hparams_file.split(".")[-1]
+            if extension.lower() == "csv":
                 hparams = load_hparams_from_tags_csv(hparams_file)
-            elif extension.lower() in ('yml', 'yaml'):
+            elif extension.lower() in ("yml", "yaml"):
                 hparams = load_hparams_from_yaml(hparams_file)
             else:
-                raise ValueError('.csv, .yml or .yaml is required for `hparams_file`')
+                raise ValueError(".csv, .yml or .yaml is required for `hparams_file`")
 
-            hparams['on_gpu'] = False
+            hparams["on_gpu"] = False
 
             # overwrite hparams by the given file
             checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY] = hparams
@@ -202,35 +200,25 @@ class ModelIO(object):
         model.on_load_checkpoint(checkpoint)
 
         # load the state_dict on the model automatically
-        model.load_state_dict(checkpoint['state_dict'], strict=strict)
+        keys = model.load_state_dict(checkpoint["state_dict"], strict=strict)
+
+        if not strict:
+            if keys.missing_keys:
+                rank_zero_warn(
+                    f"Found keys that are in the model state dict but not in the checkpoint: {keys.missing_keys}"
+                )
+            if keys.unexpected_keys:
+                rank_zero_warn(
+                    f"Found keys that are not in the model state dict but in the checkpoint: {keys.unexpected_keys}"
+                )
 
         return model
-
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """
-        Do something with the checkpoint.
-        Gives model a chance to load something before ``state_dict`` is restored.
-
-        Args:
-            checkpoint: A dictionary with variables from the checkpoint.
-        """
-
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """
-        Give the model a chance to add something to the checkpoint.
-        ``state_dict`` is already there.
-
-        Args:
-            checkpoint: A dictionary in which you can save variables to save in a checkpoint.
-                Contents need to be pickleable.
-        """
 
     # -------------------------
     # OPTIONAL HOOKS
     # -------------------------
     def on_hpc_save(self, checkpoint: Dict[str, Any]) -> None:
-        """
-        Hook to do whatever you need right before Slurm manager saves the model.
+        """Hook to do whatever you need right before Slurm manager saves the model.
 
         Args:
             checkpoint: A dictionary in which you can save variables to save in a checkpoint.
@@ -238,8 +226,7 @@ class ModelIO(object):
         """
 
     def on_hpc_load(self, checkpoint: Dict[str, Any]) -> None:
-        """
-        Hook to do whatever you need right before Slurm manager loads the model.
+        """Hook to do whatever you need right before Slurm manager loads the model.
 
         Args:
             checkpoint: A dictionary with variables from the checkpoint.
@@ -259,8 +246,7 @@ def _convert_loaded_hparams(model_args: dict, hparams_type: Optional[Union[Calla
 
 
 def update_hparams(hparams: dict, updates: dict) -> None:
-    """
-    Overrides hparams with new values
+    """Overrides hparams with new values.
 
     >>> hparams = {'c': 4}
     >>> update_hparams(hparams, {'a': {'b': 2}, 'c': 1})
@@ -273,7 +259,6 @@ def update_hparams(hparams: dict, updates: dict) -> None:
     Args:
         hparams: the original params and also target object
         updates: new params to be used as update
-
     """
     for k, v in updates.items():
         # if missing, add the key
@@ -381,8 +366,7 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
     if _OMEGACONF_AVAILABLE:
         # deepcopy: hparams from user shouldn't be resolved
         hparams = deepcopy(hparams)
-        to_container = partial(OmegaConf.to_container, resolve=True)
-        hparams = apply_to_collection(hparams, DictConfig, to_container)
+        hparams = apply_to_collection(hparams, DictConfig, OmegaConf.to_container, resolve=True)
         with fs.open(config_yaml, "w", encoding="utf-8") as fp:
             try:
                 OmegaConf.save(hparams, fp)

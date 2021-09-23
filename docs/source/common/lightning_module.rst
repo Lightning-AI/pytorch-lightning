@@ -80,7 +80,7 @@ Notice a few things.
         out = net(x)
 
 Thus, to use Lightning, you just need to organize your code which takes about 30 minutes,
-(and let's be real, you probably should do anyhow).
+(and let's be real, you probably should do anyway).
 
 ------------
 
@@ -91,24 +91,25 @@ Here are the only required methods.
 
 .. code-block:: python
 
-    >>> import pytorch_lightning as pl
-    >>> class LitModel(pl.LightningModule):
-    ...
-    ...     def __init__(self):
-    ...         super().__init__()
-    ...         self.l1 = nn.Linear(28 * 28, 10)
-    ...
-    ...     def forward(self, x):
-    ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
-    ...
-    ...     def training_step(self, batch, batch_idx):
-    ...         x, y = batch
-    ...         y_hat = self(x)
-    ...         loss = F.cross_entropy(y_hat, y)
-    ...         return loss
-    ...
-    ...     def configure_optimizers(self):
-    ...         return torch.optim.Adam(self.parameters(), lr=0.02)
+    import pytorch_lightning as pl
+
+
+    class LitModel(pl.LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.l1 = nn.Linear(28 * 28, 10)
+
+        def forward(self, x):
+            return torch.relu(self.l1(x.view(x.size(0), -1)))
+
+        def training_step(self, batch, batch_idx):
+            x, y = batch
+            y_hat = self(x)
+            loss = F.cross_entropy(y_hat, y)
+            return loss
+
+        def configure_optimizers(self):
+            return torch.optim.Adam(self.parameters(), lr=0.02)
 
 Which you can train by doing:
 
@@ -153,16 +154,15 @@ To add a training loop use the `training_step` method
 .. code-block:: python
 
     class LitClassifier(pl.LightningModule):
+        def __init__(self, model):
+            super().__init__()
+            self.model = model
 
-         def __init__(self, model):
-             super().__init__()
-             self.model = model
-
-         def training_step(self, batch, batch_idx):
-             x, y = batch
-             y_hat = self.model(x)
-             loss = F.cross_entropy(y_hat, y)
-             return loss
+        def training_step(self, batch, batch_idx):
+            x, y = batch
+            y_hat = self.model(x)
+            loss = F.cross_entropy(y_hat, y)
+            return loss
 
 Under the hood, Lightning does the following (pseudocode):
 
@@ -201,7 +201,7 @@ If you want to calculate epoch-level metrics and log them, use the `.log` method
 
          # logs metrics for each training_step,
          # and the average across the epoch, to the progress bar and logger
-         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
          return loss
 
 The `.log` object automatically reduces the requested metrics across the full epoch.
@@ -213,6 +213,7 @@ Here's the pseudocode of what it does under the hood:
     for batch in train_dataloader:
         # forward
         out = training_step(val_batch)
+        outs.append(out)
 
         # clear gradients
         optimizer.zero_grad()
@@ -223,7 +224,7 @@ Here's the pseudocode of what it does under the hood:
         # update parameters
         optimizer.step()
 
-    epoch_metric = torch.mean(torch.stack([x['train_loss'] for x in outs]))
+    epoch_metric = torch.mean(torch.stack([x["train_loss"] for x in outs]))
 
 Train epoch-level operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -236,11 +237,12 @@ If you need to do something with all the outputs of each `training_step`, overri
          y_hat = self.model(x)
          loss = F.cross_entropy(y_hat, y)
          preds = ...
-         return {'loss': loss, 'other_stuff': preds}
+         return {"loss": loss, "other_stuff": preds}
+
 
      def training_epoch_end(self, training_step_outputs):
-        for pred in training_step_outputs:
-            # do something
+         for pred in training_step_outputs:
+             ...
 
 The matching pseudocode is:
 
@@ -250,6 +252,7 @@ The matching pseudocode is:
     for batch in train_dataloader:
         # forward
         out = training_step(val_batch)
+        outs.append(out)
 
         # clear gradients
         optimizer.zero_grad()
@@ -264,8 +267,8 @@ The matching pseudocode is:
 
 Training with DataParallel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-When training using a `accelerator` that splits data from each batch across GPUs, sometimes you might
-need to aggregate them on the master GPU for processing (dp, or ddp2).
+When training using an `accelerator` that splits data from each batch across GPUs, sometimes you might
+need to aggregate them on the main GPU for processing (dp, or ddp2).
 
 In this case, implement the `training_step_end` method
 
@@ -276,18 +279,25 @@ In this case, implement the `training_step_end` method
          y_hat = self.model(x)
          loss = F.cross_entropy(y_hat, y)
          pred = ...
-         return {'loss': loss, 'pred': pred}
+         return {"loss": loss, "pred": pred}
+
 
      def training_step_end(self, batch_parts):
-         gpu_0_prediction = batch_parts[0]['pred']
-         gpu_1_prediction = batch_parts[1]['pred']
+         # predictions from each GPU
+         predictions = batch_parts["pred"]
+         # losses from each GPU
+         losses = batch_parts["loss"]
+
+         gpu_0_prediction = predictions[0]
+         gpu_1_prediction = predictions[1]
 
          # do something with both outputs
-         return (batch_parts[0]['loss'] + batch_parts[1]['loss']) / 2
+         return (losses[0] + losses[1]) / 2
+
 
      def training_epoch_end(self, training_step_outputs):
-        for out in training_step_outputs:
-            # do something with preds
+         for out in training_step_outputs:
+             ...
 
 The full pseudocode that lighting does under the hood is:
 
@@ -323,7 +333,7 @@ To add a validation loop, override the `validation_step` method of the :class:`~
             x, y = batch
             y_hat = self.model(x)
             loss = F.cross_entropy(y_hat, y)
-            self.log('val_loss', loss)
+            self.log("val_loss", loss)
 
 Under the hood, Lightning does the following:
 
@@ -359,17 +369,18 @@ If you need to do something with all the outputs of each `validation_step`, over
          x, y = batch
          y_hat = self.model(x)
          loss = F.cross_entropy(y_hat, y)
-         pred =  ...
+         pred = ...
          return pred
 
+
      def validation_epoch_end(self, validation_step_outputs):
-        for pred in validation_step_outputs:
-            # do something with a pred
+         for pred in validation_step_outputs:
+             ...
 
 Validating with DataParallel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-When training using a `accelerator` that splits data from each batch across GPUs, sometimes you might
-need to aggregate them on the master GPU for processing (dp, or ddp2).
+When training using an `accelerator` that splits data from each batch across GPUs, sometimes you might
+need to aggregate them on the main GPU for processing (dp, or ddp2).
 
 In this case, implement the `validation_step_end` method
 
@@ -380,18 +391,25 @@ In this case, implement the `validation_step_end` method
          y_hat = self.model(x)
          loss = F.cross_entropy(y_hat, y)
          pred = ...
-         return {'loss': loss, 'pred': pred}
+         return {"loss": loss, "pred": pred}
+
 
      def validation_step_end(self, batch_parts):
-         gpu_0_prediction = batch_parts.pred[0]['pred']
-         gpu_1_prediction = batch_parts.pred[1]['pred']
+         # predictions from each GPU
+         predictions = batch_parts["pred"]
+         # losses from each GPU
+         losses = batch_parts["loss"]
+
+         gpu_0_prediction = predictions[0]
+         gpu_1_prediction = predictions[1]
 
          # do something with both outputs
-         return (batch_parts[0]['loss'] + batch_parts[1]['loss']) / 2
+         return (losses[0] + losses[1]) / 2
+
 
      def validation_epoch_end(self, validation_step_outputs):
-        for out in validation_step_outputs:
-            # do something with preds
+         for out in validation_step_outputs:
+             ...
 
 The full pseudocode that lighting does under the hood is:
 
@@ -441,12 +459,12 @@ There are two ways to call `test()`:
     trainer.fit(model)
 
     # automatically auto-loads the best weights
-    trainer.test(test_dataloaders=test_dataloader)
+    trainer.test(dataloaders=test_dataloader)
 
     # or call with pretrained model
     model = MyLightningModule.load_from_checkpoint(PATH)
     trainer = Trainer()
-    trainer.test(model, test_dataloaders=test_dataloader)
+    trainer.test(model, dataloaders=test_dataloader)
 
 ----------
 
@@ -460,14 +478,14 @@ For research, LightningModules are best structured as systems.
     import torch
     from torch import nn
 
-    class Autoencoder(pl.LightningModule):
 
-         def __init__(self, latent_dim=2):
+    class Autoencoder(pl.LightningModule):
+        def __init__(self, latent_dim=2):
             super().__init__()
             self.encoder = nn.Sequential(nn.Linear(28 * 28, 256), nn.ReLU(), nn.Linear(256, latent_dim))
             self.decoder = nn.Sequential(nn.Linear(latent_dim, 256), nn.ReLU(), nn.Linear(256, 28 * 28))
 
-         def training_step(self, batch, batch_idx):
+        def training_step(self, batch, batch_idx):
             x, _ = batch
 
             # encode
@@ -481,15 +499,23 @@ For research, LightningModules are best structured as systems.
             reconstruction_loss = nn.functional.mse_loss(recons, x)
             return reconstruction_loss
 
-         def validation_step(self, batch, batch_idx):
+        def validation_step(self, batch, batch_idx):
             x, _ = batch
             x = x.view(x.size(0), -1)
             z = self.encoder(x)
             recons = self.decoder(z)
             reconstruction_loss = nn.functional.mse_loss(recons, x)
-            self.log('val_reconstruction', reconstruction_loss)
+            self.log("val_reconstruction", reconstruction_loss)
 
-         def configure_optimizers(self):
+        def predict_step(self, batch, batch_idx, dataloader_idx):
+            x, _ = batch
+
+            # encode
+            # for predictions, we could return the embedding or the reconstruction or both based on our need.
+            x = x.view(x.size(0), -1)
+            return self.encoder(x)
+
+        def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=0.0002)
 
 Which can be trained like this:
@@ -510,6 +536,7 @@ The methods above are part of the lightning interface:
 - training_step
 - validation_step
 - test_step
+- predict_step
 - configure_optimizers
 
 Note that in this case, the train loop and val loop are exactly the same. We can of course reuse this code.
@@ -517,22 +544,21 @@ Note that in this case, the train loop and val loop are exactly the same. We can
 .. code-block:: python
 
     class Autoencoder(pl.LightningModule):
-
-         def __init__(self, latent_dim=2):
+        def __init__(self, latent_dim=2):
             super().__init__()
             self.encoder = nn.Sequential(nn.Linear(28 * 28, 256), nn.ReLU(), nn.Linear(256, latent_dim))
             self.decoder = nn.Sequential(nn.Linear(latent_dim, 256), nn.ReLU(), nn.Linear(256, 28 * 28))
 
-         def training_step(self, batch, batch_idx):
+        def training_step(self, batch, batch_idx):
             loss = self.shared_step(batch)
 
             return loss
 
-         def validation_step(self, batch, batch_idx):
+        def validation_step(self, batch, batch_idx):
             loss = self.shared_step(batch)
-            self.log('val_loss', loss)
+            self.log("val_loss", loss)
 
-         def shared_step(self, batch):
+        def shared_step(self, batch):
             x, _ = batch
 
             # encode
@@ -545,7 +571,7 @@ Note that in this case, the train loop and val loop are exactly the same. We can
             # loss
             return nn.functional.mse_loss(recons, x)
 
-         def configure_optimizers(self):
+        def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=0.0002)
 
 We create a new method called `shared_step` that all loops can use. This method name is arbitrary and NOT reserved.
@@ -554,11 +580,19 @@ Inference in research
 ^^^^^^^^^^^^^^^^^^^^^
 In the case where we want to perform inference with the system we can add a `forward` method to the LightningModule.
 
+.. note:: When using forward, you are responsible to call :func:`~torch.nn.Module.eval` and use the :func:`~torch.no_grad` context manager.
+
 .. code-block:: python
 
     class Autoencoder(pl.LightningModule):
         def forward(self, x):
             return self.decoder(x)
+
+
+    model = Autoencoder()
+    model.eval()
+    with torch.no_grad():
+        reconstruction = model(embedding)
 
 The advantage of adding a forward is that in complex systems, you can do a much more involved inference procedure,
 such as text generation:
@@ -566,7 +600,6 @@ such as text generation:
 .. code-block:: python
 
     class Seq2Seq(pl.LightningModule):
-
         def forward(self, x):
             embeddings = self(x)
             hidden_states = self.encoder(embeddings)
@@ -574,6 +607,25 @@ such as text generation:
                 # decode
                 ...
             return decoded
+
+In the case where you want to scale your inference, you should be using
+:meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step`.
+
+.. code-block:: python
+
+    class Autoencoder(pl.LightningModule):
+        def forward(self, x):
+            return self.decoder(x)
+
+        def predict_step(self, batch, batch_idx, dataloader_idx=None):
+            # this calls forward
+            return self(batch)
+
+
+    data_module = ...
+    model = Autoencoder()
+    trainer = Trainer(gpus=2)
+    trainer.predict(model, data_module)
 
 Inference in production
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -584,35 +636,43 @@ For cases like production, you might want to iterate different models inside a L
     import pytorch_lightning as pl
     from pytorch_lightning.metrics import functional as FM
 
+
     class ClassificationTask(pl.LightningModule):
+        def __init__(self, model):
+            super().__init__()
+            self.model = model
 
-         def __init__(self, model):
-             super().__init__()
-             self.model = model
+        def training_step(self, batch, batch_idx):
+            x, y = batch
+            y_hat = self.model(x)
+            loss = F.cross_entropy(y_hat, y)
+            return loss
 
-         def training_step(self, batch, batch_idx):
-             x, y = batch
-             y_hat = self.model(x)
-             loss = F.cross_entropy(y_hat, y)
-             return loss
+        def validation_step(self, batch, batch_idx):
+            loss, acc = self._shared_eval_step(batch, batch_idx)
+            metrics = {"val_acc": acc, "val_loss": loss}
+            self.log_dict(metrics)
+            return metrics
 
-         def validation_step(self, batch, batch_idx):
+        def test_step(self, batch, batch_idx):
+            loss, acc = self._shared_eval_step(batch, batch_idx)
+            metrics = {"test_acc": acc, "test_loss": loss}
+            self.log_dict(metrics)
+            return metrics
+
+        def _shared_eval_step(self, batch, batch_idx):
             x, y = batch
             y_hat = self.model(x)
             loss = F.cross_entropy(y_hat, y)
             acc = FM.accuracy(y_hat, y)
+            return loss, acc
 
-            metrics = {'val_acc': acc, 'val_loss': loss}
-            self.log_dict(metrics)
-            return metrics
+        def predict_step(self, batch, batch_idx, dataloader_idx):
+            x, y = batch
+            y_hat = self.model(x)
 
-         def test_step(self, batch, batch_idx):
-            metrics = self.validation_step(batch, batch_idx)
-            metrics = {'test_acc': metrics['val_acc'], 'test_loss': metrics['val_loss']}
-            self.log_dict(metrics)
-
-         def configure_optimizers(self):
-             return torch.optim.Adam(self.model.parameters(), lr=0.02)
+        def configure_optimizers(self):
+            return torch.optim.Adam(self.model.parameters(), lr=0.02)
 
 Then pass in any arbitrary model to be fit with this task
 
@@ -629,12 +689,12 @@ Tasks can be arbitrarily complex such as implementing GAN training, self-supervi
 .. code-block:: python
 
     class GANTask(pl.LightningModule):
+        def __init__(self, generator, discriminator):
+            super().__init__()
+            self.generator = generator
+            self.discriminator = discriminator
 
-         def __init__(self, generator, discriminator):
-             super().__init__()
-             self.generator = generator
-             self.discriminator = discriminator
-         ...
+        ...
 
 When used like this, the model can be separated from the Task and thus used in production without needing to keep it in
 a `LightningModule`.
@@ -793,18 +853,6 @@ validation_epoch_end
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.validation_epoch_end
     :noindex:
 
-write_prediction
-~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.write_prediction
-    :noindex:
-
-write_prediction_dict
-~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.write_prediction_dict
-    :noindex:
-
 ------------
 
 Properties
@@ -819,8 +867,9 @@ The current epoch
 
 .. code-block:: python
 
-    def training_step(...):
+    def training_step(self):
         if self.current_epoch == 0:
+            ...
 
 -------------
 
@@ -830,7 +879,7 @@ The device the module is on. Use it to keep your code device agnostic
 
 .. code-block:: python
 
-    def training_step(...):
+    def training_step(self):
         z = torch.rand(2, 3, device=self.device)
 
 -------------
@@ -851,7 +900,7 @@ The current step (does not reset each epoch)
 
 .. code-block:: python
 
-    def training_step(...):
+    def training_step(self):
         self.logger.experiment.log_image(..., step=self.global_step)
 
 -------------
@@ -866,6 +915,7 @@ The arguments saved by calling ``save_hyperparameters`` passed through ``__init_
     def __init__(self, learning_rate):
         self.save_hyperparameters()
 
+
     def configure_optimizers(self):
         return Adam(self.parameters(), lr=self.hparams.learning_rate)
 
@@ -877,7 +927,7 @@ The current logger being used (tensorboard or other supported logger)
 
 .. code-block:: python
 
-    def training_step(...):
+    def training_step(self):
         # the generic logger (same no matter if tensorboard or other supported logger)
         self.logger
 
@@ -903,8 +953,9 @@ The type of precision used:
 
 .. code-block:: python
 
-    def training_step(...):
+    def training_step(self):
         if self.precision == 16:
+            ...
 
 ------------
 
@@ -914,7 +965,7 @@ Pointer to the trainer
 
 .. code-block:: python
 
-    def training_step(...):
+    def training_step(self):
         max_steps = self.trainer.max_steps
         any_flag = self.trainer.any_flag
 
@@ -938,6 +989,7 @@ See :ref:`manual optimization<common/optimizers:Manual optimization>` for detail
     def __init__(self):
         self.automatic_optimization = False
 
+
     def training_step(self, batch, batch_idx):
         opt = self.optimizers(use_pl_optimizer=True)
 
@@ -954,6 +1006,7 @@ Manual optimization is most useful for research topics like reinforcement learni
 
     def __init__(self):
         self.automatic_optimization = False
+
 
     def training_step(self, batch, batch_idx):
         # access your optimizers with use_pl_optimizer=False. Default is True
@@ -981,7 +1034,8 @@ Set and access example_input_array which is basically a single batch.
         self.example_input_array = ...
         self.generator = ...
 
-    def on_train_epoch_end(...):
+
+    def on_train_epoch_end(self):
         # generate some images using the example_input_array
         gen_images = self.generator(self.example_input_array)
 
@@ -1009,7 +1063,11 @@ truncated_bptt_steps
 ^^^^^^^^^^^^^^^^^^^^
 
 Truncated back prop breaks performs backprop every k steps of
-a much longer sequence.
+a much longer sequence. This is made possible by passing training batches
+splitted along the time-dimensions into splits of size k to the
+``training_step``. In order to keep the same forward propagation behavior, all
+hidden states should be kept in-between each time-dimension split.
+
 
 If this is enabled, your batches will automatically get truncated
 and the trainer will apply Truncated Backprop to it.
@@ -1024,25 +1082,39 @@ recurrent network trajectories."
 
     from pytorch_lightning import LightningModule
 
-    class MyModel(LightningModule):
 
-        def __init__(self):
+    class MyModel(LightningModule):
+        def __init__(self, input_size, hidden_size, num_layers):
             super().__init__()
+            # batch_first has to be set to True
+            self.lstm = nn.LSTM(
+                input_size=input_size,
+                hidden_size=hidden_size,
+                num_layers=num_layers,
+                batch_first=True,
+            )
+
+            ...
+
             # Important: This property activates truncated backpropagation through time
             # Setting this value to 2 splits the batch into sequences of size 2
             self.truncated_bptt_steps = 2
 
         # Truncated back-propagation through time
         def training_step(self, batch, batch_idx, hiddens):
+            x, y = batch
+
             # the training step must be updated to accept a ``hiddens`` argument
             # hiddens are the hiddens from the previous truncated backprop step
-            out, hiddens = self.lstm(data, hiddens)
-            return {
-                "loss": ...,
-                "hiddens": hiddens
-            }
+            out, hiddens = self.lstm(x, hiddens)
 
-Lightning takes care to split your batch along the time-dimension.
+            ...
+
+            return {"loss": ..., "hiddens": hiddens}
+
+Lightning takes care of splitting your batch along the time-dimension. It is
+assumed to be the second dimension of your batches. Therefore, in the
+example above we have set ``batch_first=True``.
 
 .. code-block:: python
 
@@ -1070,7 +1142,7 @@ for more information.
 
 .. code-block:: python
 
-    def fit(...):
+    def fit(self):
         if global_rank == 0:
             # prepare data is called on GLOBAL_ZERO only
             prepare_data()
@@ -1081,10 +1153,11 @@ for more information.
             # devices can be GPUs, TPUs, ...
             train_on_device(model)
 
+
     def train_on_device(model):
         # called PER DEVICE
         on_fit_start()
-        setup('fit')
+        setup("fit")
         configure_optimizers()
 
         on_pretrain_routine_start()
@@ -1098,7 +1171,8 @@ for more information.
         on_train_end()
 
         on_fit_end()
-        teardown('fit')
+        teardown("fit")
+
 
     def train_loop():
         on_epoch_start()
@@ -1116,9 +1190,11 @@ for more information.
             on_before_zero_grad()
             optimizer_zero_grad()
 
+            on_before_backward()
             backward()
             on_after_backward()
 
+            on_before_optimizer_step()
             optimizer_step()
 
             on_train_batch_end()
@@ -1130,6 +1206,7 @@ for more information.
 
         on_train_epoch_end()
         on_epoch_end()
+
 
     def val_loop():
         on_validation_model_eval()  # calls `model.eval()`
@@ -1165,10 +1242,10 @@ backward
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.backward
     :noindex:
 
-get_progress_bar_dict
-~~~~~~~~~~~~~~~~~~~~~
+on_before_backward
+~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.get_progress_bar_dict
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_before_backward
     :noindex:
 
 on_after_backward
@@ -1267,6 +1344,12 @@ on_test_epoch_end
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_epoch_end
     :noindex:
 
+on_test_start
+~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_start
+    :noindex:
+
 on_test_end
 ~~~~~~~~~~~
 
@@ -1363,6 +1446,12 @@ on_test_model_train
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_model_train
     :noindex:
 
+on_before_optimizer_step
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_before_optimizer_step
+    :noindex:
+
 optimizer_step
 ~~~~~~~~~~~~~~
 
@@ -1433,4 +1522,16 @@ on_after_batch_transfer
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.DataHooks.on_after_batch_transfer
+    :noindex:
+
+add_to_queue
+~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.add_to_queue
+    :noindex:
+
+get_from_queue
+~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.get_from_queue
     :noindex:

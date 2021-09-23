@@ -20,15 +20,12 @@ To run the test set after training completes, use this method.
     trainer.fit(model)
 
     # (1) load the best checkpoint automatically (lightning tracks this for you)
-    trainer.test()
+    trainer.test(ckpt_path="best")
 
-    # (2) don't load a checkpoint, instead use the model with the latest weights
-    trainer.test(ckpt_path=None)
+    # (2) test using a specific checkpoint
+    trainer.test(ckpt_path="/path/to/my_checkpoint.ckpt")
 
-    # (3) test using a specific checkpoint
-    trainer.test(ckpt_path='/path/to/my_checkpoint.ckpt')
-
-    # (4) test with an explicit model (will use this model and not load a checkpoint)
+    # (3) test with an explicit model (will use this model and not load a checkpoint)
     trainer.test(model)
 
 ----------
@@ -55,9 +52,9 @@ To run the test set on a pre-trained model, use this method.
 .. code-block:: python
 
     model = MyLightningModule.load_from_checkpoint(
-        checkpoint_path='/path/to/pytorch_checkpoint.ckpt',
-        hparams_file='/path/to/test_tube/experiment/version/hparams.yaml',
-        map_location=None
+        checkpoint_path="/path/to/pytorch_checkpoint.ckpt",
+        hparams_file="/path/to/test_tube/experiment/version/hparams.yaml",
+        map_location=None,
     )
 
     # init trainer with whatever options
@@ -80,10 +77,10 @@ is not available at the time your model was declared.
 .. code-block:: python
 
     # setup your data loader
-    test = DataLoader(...)
+    test_dataloader = DataLoader(...)
 
     # test (pass in the loader)
-    trainer.test(test_dataloaders=test)
+    trainer.test(dataloaders=test_dataloader)
 
 You can either pass in a single dataloader or a list of them. This optional named
 parameter can be used in conjunction with any of the above use cases. Additionally,
@@ -94,8 +91,10 @@ you can also pass in an :doc:`datamodules <../extensions/datamodules>` that have
 
     class MyDataModule(pl.LightningDataModule):
         ...
+
         def test_dataloader(self):
             return DataLoader(...)
+
 
     # setup your datamodule
     dm = MyDataModule(...)

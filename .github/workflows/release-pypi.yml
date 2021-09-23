@@ -16,7 +16,7 @@ jobs:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
       with:
-        python-version: 3.7
+        python-version: 3.8
 
     - name: Install dependencies
       run: >-
@@ -90,7 +90,7 @@ jobs:
 
     - uses: actions/setup-python@v2
       with:
-        python-version: 3.7
+        python-version: 3.8
 
     - name: Weekly reset caching
       run: echo "::set-output name=period::$(python -c 'import time ; days = time.time() / 60 / 60 / 24 ; print(int(days / 7))' 2>&1)"
@@ -137,8 +137,8 @@ jobs:
         bash legacy/generate_checkpoints.sh $pl_ver
 
     - name: Push files to S3
+      working-directory: ./legacy
       run: |
         aws s3 sync legacy/checkpoints/ s3://pl-public-data/legacy/checkpoints/
-        cd legacy
         zip -r checkpoints.zip checkpoints
         aws s3 cp checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
