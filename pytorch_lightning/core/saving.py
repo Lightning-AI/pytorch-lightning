@@ -218,8 +218,7 @@ class ModelIO:
     # OPTIONAL HOOKS
     # -------------------------
     def on_hpc_save(self, checkpoint: Dict[str, Any]) -> None:
-        """
-        Hook to do whatever you need right before Slurm manager saves the model.
+        """Hook to do whatever you need right before Slurm manager saves the model.
 
         Args:
             checkpoint: A dictionary in which you can save variables to save in a checkpoint.
@@ -227,8 +226,7 @@ class ModelIO:
         """
 
     def on_hpc_load(self, checkpoint: Dict[str, Any]) -> None:
-        """
-        Hook to do whatever you need right before Slurm manager loads the model.
+        """Hook to do whatever you need right before Slurm manager loads the model.
 
         Args:
             checkpoint: A dictionary with variables from the checkpoint.
@@ -248,8 +246,7 @@ def _convert_loaded_hparams(model_args: dict, hparams_type: Optional[Union[Calla
 
 
 def update_hparams(hparams: dict, updates: dict) -> None:
-    """
-    Overrides hparams with new values
+    """Overrides hparams with new values.
 
     >>> hparams = {'c': 4}
     >>> update_hparams(hparams, {'a': {'b': 2}, 'c': 1})
@@ -262,7 +259,6 @@ def update_hparams(hparams: dict, updates: dict) -> None:
     Args:
         hparams: the original params and also target object
         updates: new params to be used as update
-
     """
     for k, v in updates.items():
         # if missing, add the key

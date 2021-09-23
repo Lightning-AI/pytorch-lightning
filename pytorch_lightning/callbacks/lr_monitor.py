@@ -94,10 +94,8 @@ class LearningRateMonitor(Callback):
         self.lr_sch_names = []
 
     def on_train_start(self, trainer, *args, **kwargs):
-        """
-        Called before training, determines unique names for all lr
-        schedulers in the case of multiple of the same type or in
-        the case of multiple parameter groups
+        """Called before training, determines unique names for all lr schedulers in the case of multiple of the
+        same type or in the case of multiple parameter groups.
 
         Raises:
             MisconfigurationException:
@@ -183,9 +181,7 @@ class LearningRateMonitor(Callback):
         return {name: lr}
 
     def _remap_keys(self, names: List[str], token: str = "/pg1") -> None:
-        """
-        This function is used the remap the keys if param groups for a given optimizer increased.
-        """
+        """This function is used the remap the keys if param groups for a given optimizer increased."""
         for new_name in names:
             old_name = new_name.replace(token, "")
             if token in new_name and old_name in self.lrs:

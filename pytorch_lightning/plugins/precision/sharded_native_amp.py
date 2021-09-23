@@ -22,7 +22,7 @@ if _NATIVE_AMP_AVAILABLE and _FAIRSCALE_AVAILABLE:
 
 
 class ShardedNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
-    """Mixed Precision for Sharded Training"""
+    """Mixed Precision for Sharded Training."""
 
     def __init__(self, precision: Union[int, str] = 16, use_cpu: bool = False) -> None:
         super().__init__(precision, use_cpu=use_cpu)

@@ -15,9 +15,8 @@
 import os
 import time
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional
 
-import torch
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
@@ -43,10 +42,7 @@ class InternalDebugger:
     def __init__(self, trainer: "pl.Trainer") -> None:
         self.enabled = os.environ.get("PL_DEV_DEBUG", "0") == "1"
         self.trainer = trainer
-        self.early_stopping_history: List[Dict[str, Any]] = []
-        self.checkpoint_callback_history: List[Dict[str, Any]] = []
         self.events: List[Dict[str, Any]] = []
-        self.saved_lr_scheduler_updates: List[Dict[str, Union[int, float, str, torch.Tensor, None]]] = []
         self.train_dataloader_calls: List[Dict[str, Any]] = []
         self.val_dataloader_calls: List[Dict[str, Any]] = []
         self.test_dataloader_calls: List[Dict[str, Any]] = []
@@ -102,52 +98,3 @@ class InternalDebugger:
             self.val_dataloader_calls.append(values)
         elif "test" in name:
             self.test_dataloader_calls.append(values)
-
-    @enabled_only
-    def track_lr_schedulers_update(
-        self,
-        batch_idx: int,
-        interval: int,
-        scheduler_idx: int,
-        old_lr: float,
-        new_lr: float,
-        monitor_key: Optional[str] = None,
-        monitor_val: Optional[torch.Tensor] = None,
-    ) -> None:
-        loss_dict = {
-            "batch_idx": batch_idx,
-            "interval": interval,
-            "scheduler_idx": scheduler_idx,
-            "epoch": self.trainer.current_epoch,
-            "monitor_key": monitor_key,
-            "monitor_val": monitor_val,
-            "old_lr": old_lr,
-            "new_lr": new_lr,
-        }
-        self.saved_lr_scheduler_updates.append(loss_dict)
-
-    @enabled_only
-    def track_early_stopping_history(
-        self, callback: "pl.callbacks.early_stopping.EarlyStopping", current: torch.Tensor
-    ) -> None:
-        debug_dict = {
-            "epoch": self.trainer.current_epoch,
-            "global_step": self.trainer.global_step,
-            "rank": self.trainer.global_rank,
-            "current": current,
-            "best": callback.best_score,
-            "patience": callback.wait_count,
-        }
-        self.early_stopping_history.append(debug_dict)
-
-    @enabled_only
-    def track_checkpointing_history(self, filepath: str) -> None:
-        cb = self.trainer.checkpoint_callback
-        debug_dict = {
-            "epoch": self.trainer.current_epoch,
-            "global_step": self.trainer.global_step,
-            "monitor": cb.monitor if cb is not None else None,
-            "rank": self.trainer.global_rank,
-            "filepath": filepath,
-        }
-        self.checkpoint_callback_history.append(debug_dict)

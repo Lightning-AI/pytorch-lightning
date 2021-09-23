@@ -11,9 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Tests to ensure that the behaviours related to multiple optimizers works
-"""
+"""Tests to ensure that the behaviours related to multiple optimizers works."""
 import pytest
 import torch
 
@@ -29,7 +27,7 @@ class MultiOptModel(BoringModel):
 
 
 def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
-    """This tests ensures reduction works in unbalanced logging settings"""
+    """This tests ensures reduction works in unbalanced logging settings."""
 
     class TestModel(MultiOptModel):
 
@@ -127,10 +125,8 @@ def test_multiple_optimizers_manual(tmpdir):
 
 
 def test_multiple_optimizers_no_opt_idx_argument(tmpdir):
-    """
-    Test that an error is raised if no optimizer_idx is present when
-    multiple optimizeres are passed in case of automatic_optimization
-    """
+    """Test that an error is raised if no optimizer_idx is present when multiple optimizeres are passed in case of
+    automatic_optimization."""
 
     class TestModel(MultiOptModel):
         def training_step(self, batch, batch_idx):
@@ -143,10 +139,8 @@ def test_multiple_optimizers_no_opt_idx_argument(tmpdir):
 
 
 def test_custom_optimizer_step_with_multiple_optimizers(tmpdir):
-    """
-    This tests ensures custom optimizer_step works,
-    even when optimizer.step is not called for a particular optimizer
-    """
+    """This tests ensures custom optimizer_step works, even when optimizer.step is not called for a particular
+    optimizer."""
 
     class TestModel(BoringModel):
         training_step_called = [0, 0]
@@ -183,13 +177,21 @@ def test_custom_optimizer_step_with_multiple_optimizers(tmpdir):
                 if batch_idx % 2 == 0:
                     self.optimizer_step_called[optimizer_idx] += 1
                     optimizer.step(closure=optimizer_closure)
+                else:
+                    optimizer_closure()
 
     model = TestModel()
     model.val_dataloader = None
 
+    limit_train_batches = 4
     trainer = pl.Trainer(
-        default_root_dir=tmpdir, limit_train_batches=4, max_epochs=1, log_every_n_steps=1, weights_summary=None
+        default_root_dir=tmpdir,
+        limit_train_batches=limit_train_batches,
+        max_epochs=1,
+        log_every_n_steps=1,
+        weights_summary=None,
     )
     trainer.fit(model)
-    assert model.training_step_called == [4, 2]
-    assert model.optimizer_step_called == [4, 2]
+    assert len(model.training_step_called) == len(model.optimizer_step_called) == len(model.optimizers())
+    assert model.training_step_called == [limit_train_batches, limit_train_batches]
+    assert model.optimizer_step_called == [limit_train_batches, limit_train_batches // 2]

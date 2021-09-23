@@ -17,6 +17,7 @@ import re
 from multiprocessing.queues import SimpleQueue
 from typing import Any, Dict, List, Optional, Union
 
+import numpy as np
 import torch
 import torch.distributed
 import torch.multiprocessing as mp
@@ -36,6 +37,7 @@ from pytorch_lightning.utilities import (
     rank_zero_deprecation,
     rank_zero_warn,
 )
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import (
@@ -45,7 +47,9 @@ from pytorch_lightning.utilities.distributed import (
     ReduceOp,
     sync_ddp_if_available,
 )
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
@@ -54,10 +58,8 @@ log = logging.getLogger(__name__)
 
 
 class DDPSpawnPlugin(ParallelPlugin):
-    """
-    Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after
-    training finishes.
-    """
+    """Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training
+    finishes."""
 
     distributed_backend = "ddp_spawn"
 
@@ -201,7 +203,10 @@ class DDPSpawnPlugin(ParallelPlugin):
         if self.sync_batchnorm:
             self.model = self.configure_sync_batchnorm(self.model)
 
-        self.configure_ddp()
+        # skip wrapping the model if we are not fitting as no gradients need to be exchanged
+        trainer_fn = self.lightning_module.trainer.state.fn
+        if trainer_fn == TrainerFn.FITTING:
+            self.configure_ddp()
 
         self.barrier()
 
@@ -213,14 +218,18 @@ class DDPSpawnPlugin(ParallelPlugin):
         # ensure that spawned processes go through teardown before joining
         trainer._call_teardown_hook()
 
-    def post_dispatch(self):
+    def post_dispatch(self, trainer: "pl.Trainer"):
         # restore main state with best weights
         best_path = self.mp_queue.get()
         last_path = self.mp_queue.get()
         self._results = self.mp_queue.get()
         # get the `callback_metrics` and set it to the trainer
         # only in case the user does not override it.
-        self.lightning_module.get_from_queue(self.mp_queue)
+        # TODO: Remove the if in v1.7
+        if is_overridden("get_from_queue", self.lightning_module):
+            self.lightning_module.get_from_queue(self.mp_queue)
+        else:
+            self.get_from_queue(trainer, self.mp_queue)
 
         # recover the weights of the processes trained in the children
         self.__recover_child_process_weights(best_path, last_path)
@@ -254,7 +263,7 @@ class DDPSpawnPlugin(ParallelPlugin):
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
 
-    def configure_ddp(self):
+    def configure_ddp(self) -> None:
         self.pre_configure_ddp()
         self._model = DistributedDataParallel(
             LightningDistributedModule(self.model), device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
@@ -286,7 +295,12 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.mp_queue.put(best_model_path)
             self.mp_queue.put(last_path)
             self.mp_queue.put(results)
-            self.lightning_module.add_to_queue(self.mp_queue)  # adds the `callback_metrics` to the queue
+            # adds the `callback_metrics` to the queue
+            # TODO: Remove the if in v1.7
+            if is_overridden("add_to_queue", self.lightning_module):
+                self.lightning_module.add_to_queue(self.mp_queue)
+            else:
+                self.add_to_queue(trainer, self.mp_queue)
 
     def __recover_child_process_weights(self, best_path, last_path):
         # transfer back the best path to the trainer
@@ -319,13 +333,12 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.model.to(self.root_device)
 
     def pre_backward(self, closure_loss: torch.Tensor) -> None:
-        """Run before precision plugin executes backward"""
+        """Run before precision plugin executes backward."""
         if not self.lightning_module.automatic_optimization:
             prepare_for_backward(self.model, closure_loss)
 
     def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> torch.Tensor:
-        """
-        Reduces a tensor from several distributed processes to one aggregated tensor.
+        """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
             tensor: the tensor to sync and reduce
@@ -340,21 +353,49 @@ class DDPSpawnPlugin(ParallelPlugin):
             tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
-    def training_step(self, *args, **kwargs):
+    def training_step(self, *args, **kwargs) -> Optional[Any]:
         return self.model(*args, **kwargs)
 
-    def validation_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        if isinstance(self.model, DistributedDataParallel):
+            # used when calling `trainer.fit`
+            return self.model(*args, **kwargs)
+        else:
+            # used when calling `trainer.validate`
+            return self.lightning_module.validation_step(*args, **kwargs)
 
-    def test_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        return self.lightning_module.test_step(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def predict_step(self, *args, **kwargs) -> Any:
+        return self.lightning_module.predict_step(*args, **kwargs)
 
     def post_training_step(self):
         if not self.lightning_module.automatic_optimization:
             self.model.require_backward_grad_sync = True
+
+    def add_to_queue(self, trainer: "pl.Trainer", queue: torch.multiprocessing.SimpleQueue) -> None:
+        """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory
+        sharing, we cast the data to numpy.
+
+        Args:
+            queue: the instance of the queue to append the data.
+        """
+        callback_metrics: dict = apply_to_collection(
+            trainer.callback_metrics, torch.Tensor, lambda x: x.cpu().numpy()
+        )  # send as numpy to avoid issues with memory sharing
+        queue.put(callback_metrics)
+
+    def get_from_queue(self, trainer: "pl.Trainer", queue: torch.multiprocessing.SimpleQueue) -> None:
+        """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
+        we cast back the data to ``torch.Tensor``.
+
+        Args:
+            queue: the instance of the queue from where to get the data.
+        """
+        # NOTE: `add_to_queue` needs to be called before
+        callback_metrics: dict = queue.get()
+        trainer.callback_metrics.update(apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x)))
 
     @classmethod
     def register_plugins(cls, plugin_registry: Dict) -> None:

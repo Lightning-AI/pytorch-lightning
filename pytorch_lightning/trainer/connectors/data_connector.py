@@ -133,7 +133,7 @@ class DataConnector:
         lightning_module = self.trainer.lightning_module
         # handle datamodule prepare data:
         # check for prepare_data_per_node & datamodule lifecycle properties before calling datamodule.prepare_data
-        if datamodule is not None and not datamodule.has_prepared_data:
+        if datamodule is not None and not datamodule._has_prepared_data:
             dm_prepare_data_per_node = datamodule.prepare_data_per_node
             dm_eq_prepare_data = datamodule.prepare_data_per_node == self.trainer.prepare_data_per_node
             if self.trainer.prepare_data_per_node is not None and not dm_eq_prepare_data:
@@ -248,12 +248,16 @@ class DataConnector:
     def teardown(self) -> None:
         if self.train_data_fetcher:
             self.train_data_fetcher.teardown()
+            self.train_data_fetcher = None
         if self.validate_data_fetcher:
             self.validate_data_fetcher.teardown()
+            self.validate_data_fetcher = None
         if self.test_data_fetcher:
             self.test_data_fetcher.teardown()
+            self.test_data_fetcher = None
         if self.sanity_check_data_fetcher:
             self.sanity_check_data_fetcher.teardown()
+            self.sanity_check_data_fetcher = None
 
 
 class _PatchDataLoader:

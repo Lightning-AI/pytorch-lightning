@@ -30,9 +30,7 @@ class TestModel(BoringModel):
 
 
 def test_logdir(tmpdir):
-    """
-    Tests that the path is correct when checkpoint and loggers are used
-    """
+    """Tests that the path is correct when checkpoint and loggers are used."""
     expected = os.path.join(tmpdir, "lightning_logs", "version_0")
 
     model = TestModel(expected)
@@ -45,9 +43,7 @@ def test_logdir(tmpdir):
 
 
 def test_logdir_no_checkpoint_cb(tmpdir):
-    """
-    Tests that the path is correct with no checkpoint
-    """
+    """Tests that the path is correct with no checkpoint."""
     expected = os.path.join(tmpdir, "lightning_logs", "version_0")
     model = TestModel(expected)
 
@@ -59,9 +55,7 @@ def test_logdir_no_checkpoint_cb(tmpdir):
 
 
 def test_logdir_no_logger(tmpdir):
-    """
-    Tests that the path is correct even when there is no logger
-    """
+    """Tests that the path is correct even when there is no logger."""
     expected = os.path.join(tmpdir)
     model = TestModel(expected)
 
@@ -73,9 +67,7 @@ def test_logdir_no_logger(tmpdir):
 
 
 def test_logdir_no_logger_no_checkpoint(tmpdir):
-    """
-    Tests that the path is correct even when there is no logger
-    """
+    """Tests that the path is correct even when there is no logger."""
     expected = os.path.join(tmpdir)
     model = TestModel(expected)
 
@@ -87,9 +79,7 @@ def test_logdir_no_logger_no_checkpoint(tmpdir):
 
 
 def test_logdir_custom_callback(tmpdir):
-    """
-    Tests that the path is correct even when there is a custom callback
-    """
+    """Tests that the path is correct even when there is a custom callback."""
     expected = os.path.join(tmpdir, "lightning_logs", "version_0")
     model = TestModel(expected)
 
@@ -103,9 +93,7 @@ def test_logdir_custom_callback(tmpdir):
 
 
 def test_logdir_custom_logger(tmpdir):
-    """
-    Tests that the path is correct even when there is a custom logger
-    """
+    """Tests that the path is correct even when there is a custom logger."""
     expected = os.path.join(tmpdir, "custom_logs", "version_0")
     model = TestModel(expected)
 
@@ -122,7 +110,7 @@ def test_logdir_custom_logger(tmpdir):
 
 
 def test_logdir_logger_collection(tmpdir):
-    """Tests that the logdir equals the default_root_dir when the logger is a LoggerCollection"""
+    """Tests that the logdir equals the default_root_dir when the logger is a LoggerCollection."""
     default_root_dir = tmpdir / "default_root_dir"
     save_dir = tmpdir / "save_dir"
     model = TestModel(default_root_dir)

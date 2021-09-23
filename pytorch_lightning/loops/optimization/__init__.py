@@ -11,17 +11,5 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.loops import FitLoop
-from pytorch_lightning.utilities import rank_zero_deprecation
 
-
-class DeprecatedTrainerAttributes:
-
-    fit_loop: FitLoop
-
-    @property
-    def train_loop(self) -> FitLoop:
-        rank_zero_deprecation(
-            "`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
-        )
-        return self.fit_loop
+from pytorch_lightning.loops.optimization.optimizer_loop import OptimizerLoop  # noqa: F401

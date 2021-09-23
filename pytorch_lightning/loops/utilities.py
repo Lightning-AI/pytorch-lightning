@@ -13,101 +13,51 @@
 # limitations under the License.
 from collections import OrderedDict
 from contextlib import contextmanager
-from typing import Any, Dict, Generator, Iterator, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, Generator, Iterator, Optional, Sequence
 
 import torch
-from torch import Tensor
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins import ParallelPlugin
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
-from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
+from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
-def check_finite_loss(model: "pl.LightningModule", loss: torch.Tensor) -> None:
-    """Checks for finite parameters and loss values.
+def check_finite_loss(loss: Optional[torch.Tensor]) -> None:
+    """Checks for finite loss value.
 
     Args:
-        model: a reference to the ``LightningModule``
         loss: the loss value to check to be finite
     """
-    if not torch.isfinite(loss).all():
+    if loss is not None and not torch.isfinite(loss).all():
         raise ValueError(f"The loss returned in `training_step` is {loss}.")
-    detect_nan_parameters(model)
 
 
-def _check_training_step_output(model: "pl.LightningModule", training_step_output: STEP_OUTPUT) -> None:
-    """Sanity checks that training produced a valid output and optimizer step has already been called in manual
-    optimization.
+def _extract_hiddens(training_step_output: STEP_OUTPUT, truncated_bptt_steps: int) -> Optional[Any]:
+    """Get the hidden state if present from the training step output.
 
-    Args:
-        model: a reference to the trainer
-        training_step_output: the output of the training step (before wrapping in an AttributeDict)
+    Raises:
+        MisconfigurationException: If :attr:`~pytorch_lightning.core.Lightning.LightningModule.truncated_bptt_steps` is
+            not enabled and hiddens are returned or vice versa.
     """
-    if isinstance(training_step_output, torch.Tensor) and not model.automatic_optimization:
-        if training_step_output.grad_fn is None:
-            # TODO: Find why - RuntimeError: Expected to mark a variable ready only once ...
-            raise MisconfigurationException("In manual optimization, `training_step` should not return a Tensor")
-    elif model.automatic_optimization:
-        if not any(
-            (
-                isinstance(training_step_output, torch.Tensor),
-                (isinstance(training_step_output, Mapping) and "loss" in training_step_output),
-                training_step_output is None,
-            )
-        ):
+    is_dict = isinstance(training_step_output, dict)
+    if not truncated_bptt_steps:
+        if is_dict and "hiddens" in training_step_output:
             raise MisconfigurationException(
-                "In automatic optimization, `training_step` must either return a Tensor, "
-                "a dict with key 'loss' or None (where the step will be skipped)."
+                'You returned "hiddens" in your `training_step` but `truncated_bptt_steps` is disabled'
             )
-
-
-def _process_training_step_output(
-    trainer: "pl.Trainer", training_step_output: STEP_OUTPUT
-) -> Tuple[Optional[ResultCollection], Optional[Any]]:
-    """Adds the :param:`training_step_output` to the trainer's results
-
-    Args:
-        trainer: a reference to the trainer
-        training_step_output: the output of the training step (before wrapping into an AttributeDict)
-
-    Returns:
-        the updated results (None if the training_step's output was None) and hiddens exract from the results
-    """
-    if training_step_output is None:
-        return None, None
-
-    results = trainer._results
-
-    loss = None
-    hiddens = None
-
-    # handle dict return
-    if isinstance(training_step_output, dict):
-        # this should not modify the `training_step_output`, as the user could be using it after `training_step_end`
-        loss = training_step_output.get("loss")
-        hiddens = training_step_output.get("hiddens")
-        # detach hiddens to avoid `RuntimeError: Trying to backward through the graph a second time`
-        hiddens = apply_to_collection(hiddens, torch.Tensor, lambda t: t.detach())
-        # use the setter instead of `dict.update` because it calls `detach` on the tensor items
-        results.extra = {k: v for k, v in training_step_output.items() if k not in ("loss", "hiddens")}
-
-    # handle scalar return
-    elif isinstance(training_step_output, torch.Tensor):
-        loss = training_step_output
-
-    # map to results under the hood
-    results.minimize = loss
-
-    if trainer.move_metrics_to_cpu:
-        results.cpu()
-    return results, hiddens
+        return
+    elif not is_dict or "hiddens" not in training_step_output:
+        raise MisconfigurationException(
+            'You enabled `truncated_bptt_steps` but did not return "hiddens" in your `training_step`'
+        )
+    # detach hiddens to avoid `RuntimeError: Trying to backward through the graph a second time`
+    hiddens = recursive_detach(training_step_output["hiddens"])
+    return hiddens
 
 
 def _build_training_step_kwargs(
@@ -116,9 +66,9 @@ def _build_training_step_kwargs(
     batch: Any,
     batch_idx: int,
     opt_idx: Optional[int],
-    hiddens: Optional[Tensor],
+    hiddens: Optional[Any],
 ) -> Dict[str, Any]:
-    """Builds the keyword arguments for training_step
+    """Builds the keyword arguments for training_step.
 
     Args:
         lightning_module: the LightningModule with a `training_step` hook implementation
@@ -163,7 +113,7 @@ def _build_training_step_kwargs(
 
 
 def _prepare_dataloader_iter(data_fetcher: AbstractDataFetcher, batch_idx: int) -> Iterator:
-    """Attach the dataloader"""
+    """Attach the dataloader."""
     if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
         # restore iteration
         dataloader_iter = enumerate(data_fetcher, batch_idx)
@@ -174,9 +124,8 @@ def _prepare_dataloader_iter(data_fetcher: AbstractDataFetcher, batch_idx: int) 
 
 @contextmanager
 def _block_parallel_sync_behavior(trainer: "pl.Trainer", block: bool = True) -> Generator[None, None, None]:
-    """
-    Blocks synchronization in :class:`~pytorch_lightning.plugins.training_type.parallel.ParallelPlugin`.
-    This is useful for example when when accumulating gradients to reduce communication when it is not needed.
+    """Blocks synchronization in :class:`~pytorch_lightning.plugins.training_type.parallel.ParallelPlugin`. This is
+    useful for example when when accumulating gradients to reduce communication when it is not needed.
 
     Args:
         trainer: the trainer instance with a reference to a training type plugin
