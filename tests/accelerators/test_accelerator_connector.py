@@ -13,7 +13,7 @@
 # limitations under the License
 
 import os
-from typing import Any, Dict, Optional, Union
+from typing import Optional
 from unittest import mock
 
 import pytest
