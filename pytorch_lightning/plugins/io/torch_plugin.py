@@ -26,6 +26,7 @@ from pytorch_lightning.utilities.warnings import WarningCache
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
+
 class TorchCheckpointIO(CheckpointIO):
     """CheckpointIO that utilizes :func:`torch.save` and :func:`torch.load` to save and load checkpoints
     respectively, common for most use cases."""
