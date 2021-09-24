@@ -16,7 +16,7 @@ from datetime import timedelta
 from typing import Optional, Union
 
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
-from pytorch_lightning.utilities import _RICH_AVAILABLE, rank_zero_only
+from pytorch_lightning.utilities import _RICH_AVAILABLE
 
 Style = None
 if _RICH_AVAILABLE:
@@ -191,9 +191,8 @@ class RichProgressBar(ProgressBarBase):
     def predict_description(self) -> str:
         return "Predicting"
 
-    @rank_zero_only
     def _init_progress(self, trainer, pl_module, stage: Optional[str] = None):
-        if self.progress is None or not self.progress.live.is_started:
+        if self.progress is None:
             self.progress = Progress(
                 TextColumn("[progress.description]{task.description}"),
                 BarColumn(
@@ -253,16 +252,16 @@ class RichProgressBar(ProgressBarBase):
         train_description = self._get_train_description(trainer.current_epoch)
         self.main_progress_bar_id = self._add_task(total_batches, train_description)
 
-    @rank_zero_only
-    def _add_task(self, total_batches, train_description):
-        return self.progress.add_task(
-            f"[{self.theme.text_color}]{train_description}",
-            total=total_batches,
-        )
+    def _add_task(self, total_batches: int, description: str) -> Optional[int]:
+        if self.progress is not None:
+            return self.progress.add_task(
+                f"[{self.theme.text_color}]{description}",
+                total=total_batches,
+            )
 
-    @rank_zero_only
-    def _update(self, progress_bar_id: int, visible: bool = True):
-        self.progress.update(progress_bar_id, advance=1.0, visible=visible)
+    def _update(self, progress_bar_id: int, visible: bool = True) -> None:
+        if self.progress is not None:
+            self.progress.update(progress_bar_id, advance=1.0, visible=visible)
 
     def on_validation_epoch_start(self, trainer, pl_module):
         super().on_validation_epoch_start(trainer, pl_module)
@@ -313,12 +312,12 @@ class RichProgressBar(ProgressBarBase):
                 train_description += " "
         return train_description
 
-    @rank_zero_only
     def teardown(self, trainer, pl_module, stage: Optional[str] = None) -> None:
         if self.progress is not None:
             self.progress.stop()
+            # reset progress for next stages
+            self.progress = None
 
-    @rank_zero_only
     def on_exception(self, trainer, pl_module, exception: BaseException) -> None:
         if self.progress is not None:
             self.progress.stop()
