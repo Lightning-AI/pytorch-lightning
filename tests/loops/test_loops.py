@@ -757,13 +757,11 @@ def test_fit_loop_reset(tmpdir):
     [([RandomDataset], [RandomDataset]), ([RandomDataset], [RandomDataset, RandomDataset])],
 )
 @pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
-def test_auto_restart_within_validation_loop(train_datasets, val_datasets, val_check_interval, tmpdir):
+def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_interval, tmpdir):
     size, n_batches = 2, 4
     stop_batch = 1
-    n_val_datasets = len(val_datasets)
-    stop_dataloader = n_val_datasets - 1
-    train_dataloaders = [DataLoader(cls(size, n_batches)) for cls in train_datasets]
-    val_dataloaders = [DataLoader(cls(size, n_batches)) for cls in val_datasets]
+    n_val_dataloaders = len(val_datasets)
+    stop_dataloader = n_val_dataloaders - 1
 
     class TestModel(LightningModule):
         def __init__(self, should_fail):
@@ -785,6 +783,12 @@ def test_auto_restart_within_validation_loop(train_datasets, val_datasets, val_c
         def configure_optimizers(self):
             return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 
+        def train_dataloader(self):
+            return [DataLoader(cls(size, n_batches)) for cls in train_datasets]
+
+        def val_dataloader(self):
+            return [DataLoader(cls(size, n_batches)) for cls in val_datasets]
+
     model = TestModel(False)
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -793,7 +797,7 @@ def test_auto_restart_within_validation_loop(train_datasets, val_datasets, val_c
         num_sanity_val_steps=0,
         progress_bar_refresh_rate=0,
     )
-    trainer.fit(model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders)
+    trainer.fit(model)
 
     ckpt_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
     assert not os.path.exists(ckpt_path), "Shouldn't have failed"
@@ -808,16 +812,16 @@ def test_auto_restart_within_validation_loop(train_datasets, val_datasets, val_c
 
     val_per_epoch = int(1 // val_check_interval)
     assert state_dict["epoch_loop.val_loop.dataloader_progress"] == {
-        "total": {"ready": n_val_datasets * val_per_epoch, "completed": n_val_datasets * val_per_epoch},
-        "current": {"ready": n_val_datasets, "completed": n_val_datasets},
+        "total": {"ready": n_val_dataloaders * val_per_epoch, "completed": n_val_dataloaders * val_per_epoch},
+        "current": {"ready": n_val_dataloaders, "completed": n_val_dataloaders},
     }
 
     assert state_dict["epoch_loop.val_loop.epoch_loop.batch_progress"] == {
         "total": {
-            "ready": n_val_datasets * val_per_epoch * n_batches,
-            "started": n_val_datasets * val_per_epoch * n_batches,
-            "processed": n_val_datasets * val_per_epoch * n_batches,
-            "completed": n_val_datasets * val_per_epoch * n_batches,
+            "ready": n_val_dataloaders * val_per_epoch * n_batches,
+            "started": n_val_dataloaders * val_per_epoch * n_batches,
+            "processed": n_val_dataloaders * val_per_epoch * n_batches,
+            "completed": n_val_dataloaders * val_per_epoch * n_batches,
         },
         "current": {"ready": n_batches, "completed": n_batches, "started": n_batches, "processed": n_batches},
     }
@@ -832,7 +836,7 @@ def test_auto_restart_within_validation_loop(train_datasets, val_datasets, val_c
     )
     with pytest.raises(CustomException):
         # will stop during validation
-        trainer.fit(model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders)
+        trainer.fit(model)
 
     assert os.path.exists(ckpt_path)
     checkpoint = torch.load(ckpt_path)["loops"]["fit_loop"]
@@ -881,7 +885,7 @@ def test_auto_restart_within_validation_loop(train_datasets, val_datasets, val_c
         resume_from_checkpoint=ckpt_path,
         progress_bar_refresh_rate=0,
     )
-    trainer.fit(model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders)
+    trainer.fit(model)
 
     # TODO: -1 because there's a bug where global step is off by one on reload
     assert trainer.global_step - 1 == expected_global_step
