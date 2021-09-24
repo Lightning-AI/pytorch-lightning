@@ -24,9 +24,9 @@ import torch.multiprocessing as mp
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
+from pytorch_lightning.overrides.torch_distributed import broadcast_object_list
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
@@ -40,13 +40,9 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.distributed import (
-    distributed_available,
-    init_ddp_connection,
-    rank_zero_only,
-    ReduceOp,
-    sync_ddp_if_available,
-)
+from pytorch_lightning.utilities.distributed import distributed_available
+from pytorch_lightning.utilities.distributed import group as _group
+from pytorch_lightning.utilities.distributed import init_ddp_connection, rank_zero_only, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -93,7 +89,6 @@ class DDPSpawnPlugin(ParallelPlugin):
             )
         self._sync_batchnorm = sync_batchnorm or False
         self._ddp_kwargs = kwargs
-        self.dist = LightningDistributed()
         self.num_processes = len(parallel_devices) if parallel_devices is not None else 0
         self.mp_queue = None
         self._ddp_comm_state = ddp_comm_state
@@ -192,10 +187,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         # TODO: we moved it to the trainer.fit after calling pre_dispatch
         #   ... need to double check that it is the correct place
         # self.trainer.call_setup_hook(self.model)
-
-        # set the ranks and devices
-        self.dist.rank = self.global_rank
-        self.dist.device = self.root_device
 
         # move the model to the correct device
         self.model_to_device()
@@ -324,7 +315,11 @@ class DDPSpawnPlugin(ParallelPlugin):
     def broadcast(self, obj: object, src: int = 0) -> object:
         if not distributed_available():
             return obj
-        return self.dist.broadcast(obj)
+        obj = [obj]
+        if self.global_rank != 0:
+            obj = [None] * len(obj)
+        broadcast_object_list(obj, src, group=_group.WORLD)
+        return obj[0]
 
     def model_to_device(self):
         if self.root_device.type == "cuda":

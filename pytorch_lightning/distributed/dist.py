@@ -18,6 +18,12 @@ from pytorch_lightning.utilities.distributed import group as _group
 
 
 class LightningDistributed:
+    """
+    .. deprecated:: v1.5
+        This method is deprecated in v1.5and will be removed in v1.7.
+        Logic moved to ddp and ddpspawning
+    """
+
     def __init__(self, rank=None, device=None):
         self.rank = rank
         self.device = device
