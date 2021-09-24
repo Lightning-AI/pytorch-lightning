@@ -80,9 +80,7 @@ def test_restore_checkpoint_after_pre_dispatch(tmpdir, restore_after_pre_dispatc
     assert accelerator.restore_checkpoint_after_pre_dispatch == restore_after_pre_dispatch
     assert plugin.restore_checkpoint_after_pre_dispatch == restore_after_pre_dispatch
 
-    trainer = Trainer(
-        default_root_dir=tmpdir, accelerator=accelerator, fast_dev_run=True
-    )
+    trainer = Trainer(default_root_dir=tmpdir, accelerator=accelerator, fast_dev_run=True)
     trainer.fit(model, ckpt_path=checkpoint_path)
     for func in (trainer.test, trainer.validate, trainer.predict):
         accelerator.training_type_plugin.predispatched_called = False

@@ -594,7 +594,9 @@ class Trainer(
                 " Use `trainer.fit(train_dataloaders)` instead. HINT: added 's'"
             )
             train_dataloaders = train_dataloader
-        self._call_and_handle_interrupt(self._fit_impl, model, train_dataloaders, val_dataloaders, ckpt_path, datamodule)
+        self._call_and_handle_interrupt(
+            self._fit_impl, model, train_dataloaders, val_dataloaders, ckpt_path, datamodule
+        )
 
     def _fit_impl(
         self,
@@ -962,7 +964,9 @@ class Trainer(
             # restore callback states
             self.checkpoint_connector.restore_callbacks()
 
-    def _run(self, model: "pl.LightningModule", ckpt_path: Optional[str] = None) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
+    def _run(
+        self, model: "pl.LightningModule", ckpt_path: Optional[str] = None
+    ) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)

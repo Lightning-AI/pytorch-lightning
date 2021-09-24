@@ -61,9 +61,7 @@ def test_resume_training_on_cpu(tmpdir):
     assert weight_tensor.device == torch.device("cpu")
 
     # Verify that training is resumed on CPU
-    trainer = Trainer(
-        checkpoint_callback=True, max_epochs=1, default_root_dir=tmpdir
-    )
+    trainer = Trainer(checkpoint_callback=True, max_epochs=1, default_root_dir=tmpdir)
     trainer.fit(model, ckpt_path=model_path)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 

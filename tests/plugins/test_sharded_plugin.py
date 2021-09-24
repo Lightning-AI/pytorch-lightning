@@ -144,9 +144,7 @@ def test_ddp_sharded_plugin_fit_ckpt_path(tmpdir):
 
     model = BoringModel()
 
-    trainer = Trainer(
-        accelerator="ddp_sharded_spawn", num_processes=2, fast_dev_run=True
-    )
+    trainer = Trainer(accelerator="ddp_sharded_spawn", num_processes=2, fast_dev_run=True)
 
     trainer.fit(model, ckpt_path=checkpoint_path)
 
@@ -166,9 +164,7 @@ def test_ddp_sharded_plugin_fit_ckpt_path_downsize_gpus(tmpdir):
 
     model = BoringModel()
 
-    trainer = Trainer(
-        accelerator="ddp_sharded_spawn", fast_dev_run=True, gpus=1
-    )
+    trainer = Trainer(accelerator="ddp_sharded_spawn", fast_dev_run=True, gpus=1)
 
     trainer.fit(model, ckpt_path=checkpoint_path)
 
@@ -186,9 +182,7 @@ def test_ddp_sharded_plugin_fit_ckpt_path_gpu_to_cpu(tmpdir):
 
     model = BoringModel()
 
-    trainer = Trainer(
-        accelerator="ddp_sharded_spawn", num_processes=2, fast_dev_run=True
-    )
+    trainer = Trainer(accelerator="ddp_sharded_spawn", num_processes=2, fast_dev_run=True)
 
     trainer.fit(model, ckpt_path=checkpoint_path)
 

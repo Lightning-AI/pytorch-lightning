@@ -1848,9 +1848,7 @@ def test_on_load_checkpoint_missing_callbacks(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, callbacks=[chk, CustomCallbackOnLoadCheckpoint()])
     trainer.fit(model)
 
-    trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=5, progress_bar_refresh_rate=1
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=5, progress_bar_refresh_rate=1)
     with pytest.warns(UserWarning, match="CustomCallbackOnLoadCheckpoint"):
         trainer.fit(model, ckpt_path=chk.last_model_path)
 
