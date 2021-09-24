@@ -243,3 +243,10 @@ def test_v1_7_0_lightning_logger_base_close(tmpdir):
     ):
         logger = LoggerCollection([logger])
         logger.close()
+
+
+def test_v1_7_0_deprecate_lightning_distributed(tmpdir):
+    with pytest.deprecated_call(match="This class is deprecated in v1.5 and will be removed in v1.7."):
+        from pytorch_lightning.distributed.dist import LightningDistributed
+
+        _ = LightningDistributed()

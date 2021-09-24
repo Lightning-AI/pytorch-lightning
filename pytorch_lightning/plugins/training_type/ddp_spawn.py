@@ -316,7 +316,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         if not distributed_available():
             return obj
         obj = [obj]
-        if self.global_rank != 0:
+        if self.global_rank != src:
             obj = [None] * len(obj)
         broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
