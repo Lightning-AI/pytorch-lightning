@@ -20,8 +20,8 @@ from pytorch_lightning.utilities.distributed import group as _group
 class LightningDistributed:
     """
     .. deprecated:: v1.5
-        This method is deprecated in v1.5and will be removed in v1.7.
-        Logic moved to ddp and ddpspawning
+        This class is deprecated in v1.5 and will be removed in v1.7.
+        The broadcast logic will be moved to the :class:`DDPPlugin` and  :class`DDPSpawnPlugin` classes.
     """
 
     def __init__(self, rank=None, device=None):
