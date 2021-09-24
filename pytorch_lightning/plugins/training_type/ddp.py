@@ -396,8 +396,6 @@ class DDPPlugin(ParallelPlugin):
             torch.distributed.barrier()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
-        if not distributed_available():
-            raise RuntimeError("DDP is not initialized and torch.distributed is not avalible, can not broadcast object")
         obj = [obj]
         if self.global_rank != 0:
             obj = [None] * len(obj)
