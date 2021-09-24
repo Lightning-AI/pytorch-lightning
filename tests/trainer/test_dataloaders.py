@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from unittest.mock import Mock, patch, call
+from unittest.mock import call, Mock, patch
 
 import numpy
 import pytest
