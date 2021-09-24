@@ -1163,22 +1163,19 @@ def test_dataloaders_load_only_once_no_sanity_check(tmpdir):
         default_root_dir=tmpdir, limit_train_batches=0.3, limit_val_batches=0.3, num_sanity_val_steps=0, max_epochs=3
     )
 
-    call_order = []
-    trainer.reset_train_dataloader = Mock(
-        wraps=trainer.reset_train_dataloader, side_effect=(lambda *_, **__: call_order.append("train_dataloader"))
-    )
-    trainer.reset_val_dataloader = Mock(
-        wraps=trainer.reset_val_dataloader, side_effect=(lambda *_, **__: call_order.append("val_dataloader"))
-    )
-    trainer.reset_test_dataloader = Mock(
-        wraps=trainer.reset_test_dataloader, side_effect=(lambda *_, **__: call_order.append("test_dataloader"))
-    )
+    tracker = Mock()
+    model.train_dataloader = Mock(wraps=model.train_dataloader)
+    model.val_dataloader = Mock(wraps=model.val_dataloader)
+    model.test_dataloader = Mock(wraps=model.test_dataloader)
+
+    tracker.attach_mock(model.train_dataloader, "train_dataloader")
+    tracker.attach_mock(model.val_dataloader, "val_dataloader")
 
     trainer.fit(model)
 
     # verify the sequence
-    expected_sequence = ["train_dataloader", "val_dataloader"]
-    assert call_order == expected_sequence
+    expected_sequence = [call.train_dataloader(), call.val_dataloader()]
+    assert tracker.mock_calls == expected_sequence
 
 
 @pytest.mark.parametrize("n", [1, 2])
