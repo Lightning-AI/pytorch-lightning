@@ -90,12 +90,11 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     new_trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        resume_from_checkpoint=checkpoint_filepath,
         callbacks=[early_stop_callback],
     )
 
     with pytest.raises(MisconfigurationException, match=r"You restored a checkpoint with current_epoch"):
-        new_trainer.fit(model)
+        new_trainer.fit(model, ckpt_path=checkpoint_filepath)
 
 
 def test_early_stopping_no_extraneous_invocations(tmpdir):

@@ -46,17 +46,21 @@ class CheckpointConnector:
         if max_version is not None:
             return os.path.join(dir_path_hpc, f"hpc_ckpt_{max_version}.ckpt")
 
-    def resume_start(self) -> None:
+    def resume_start(self, checkpoint_path: Optional[_PATH] = None) -> None:
         """Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
 
         1. from HPC weights if found
-        2. from `resume_from_checkpoint` file if provided
-        3. don't restore
+        2. from `resume_from_checkpoint` file if provided 
+            .. deprecated:: v1.5
+            `Trainer(resume_from_checkpoint=)` is deprecated in v1.5 and will be removed in v1.7.
+            Please use `Trainer.fit(ckpt_path=)` instead.
+        3. from `checkpoint_path` file if provided
+        4. don't restore
 
         Raises:
             FileNotFoundError: If the path to the checkpoint file is provided but the file does not exist.
         """
-        self.resume_checkpoint_path = self.hpc_resume_path or self.resume_checkpoint_path
+        self.resume_checkpoint_path = self.hpc_resume_path or self.resume_checkpoint_path or checkpoint_path
         checkpoint_path = self.resume_checkpoint_path
         if not checkpoint_path:
             return
@@ -94,7 +98,7 @@ class CheckpointConnector:
         state-restore, in this priority:
 
         1. from HPC weights if found
-        2. from `resume_from_checkpoint` file if provided
+        2. from `checkpoint_path` file if provided
         3. don't restore
 
         All restored states are listed in return value description of `dump_checkpoint`.
@@ -103,7 +107,7 @@ class CheckpointConnector:
             checkpoint_path: Path to a PyTorch Lightning checkpoint file.
         """
         self.resume_checkpoint_path = checkpoint_path
-        self.resume_start()
+        self.resume_start(checkpoint_path)
 
         # restore module states
         self.restore_datamodule()
@@ -153,7 +157,12 @@ class CheckpointConnector:
                     module.reset()
 
     def restore_model_weights(self, checkpoint_path: Optional[_PATH]) -> None:
-        """Restore only the model weights."""
+        """Restore only the model weights.
+
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.7.
+            Please use `CheckpointConnector.restore_model` instead.
+        """
         checkpoint = self._loaded_checkpoint
         if checkpoint_path is not None:
             checkpoint = self._load_and_validate_checkpoint(checkpoint_path)

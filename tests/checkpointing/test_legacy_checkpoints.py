@@ -84,9 +84,8 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
             max_epochs=21,
             accumulate_grad_batches=2,
             deterministic=True,
-            resume_from_checkpoint=path_ckpt,
         )
-        trainer.fit(model, datamodule=dm)
+        trainer.fit(model, datamodule=dm, ckpt_path=path_ckpt)
         res = trainer.test(model, datamodule=dm)
         assert res[0]["test_loss"] <= 0.7
         assert res[0]["test_acc"] >= 0.85

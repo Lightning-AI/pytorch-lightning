@@ -134,8 +134,8 @@ def test_resume_callback_state_saved_by_type(tmpdir):
     assert ckpt_path.exists()
 
     callback = OldStatefulCallback(state=222)
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback], resume_from_checkpoint=ckpt_path)
-    trainer.fit(model)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback])
+    trainer.fit(model, ckpt_path=ckpt_path)
     assert callback.state == 111
 
 
@@ -155,16 +155,14 @@ def test_resume_incomplete_callbacks_list_warning(tmpdir):
         default_root_dir=tmpdir,
         max_steps=1,
         callbacks=[callback1],  # one callback is missing!
-        resume_from_checkpoint=ckpt_path,
     )
     with pytest.warns(UserWarning, match=escape(f"Please add the following callbacks: [{repr(callback0.state_key)}]")):
-        trainer.fit(model)
+        trainer.fit(model, ckpt_path=ckpt_path)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=1,
         callbacks=[callback1, callback0],  # all callbacks here, order switched
-        resume_from_checkpoint=ckpt_path,
     )
     with no_warning_call(UserWarning, match="Please add the following callbacks:"):
-        trainer.fit(model)
+        trainer.fit(model, ckpt_path=ckpt_path)

@@ -63,7 +63,7 @@ def test_plugin_lightning_restore_optimizer_and_schedulers(tmpdir, restore_optim
     model = BoringModel()
     plugin = TestPlugin(torch.device("cpu"))
     trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=True, plugins=plugin, resume_from_checkpoint=checkpoint_path
+        default_root_dir=tmpdir, fast_dev_run=True, plugins=plugin
     )
-    trainer.fit(model)
+    trainer.fit(model, ckpt_path=checkpoint_path)
     assert plugin.load_optimizer_state_dict_called == restore_optimizer_and_schedulers

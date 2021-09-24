@@ -128,8 +128,8 @@ def test_finetuning_callback_warning(tmpdir):
         trainer.fit(model)
 
     assert model.backbone.has_been_used
-    trainer = Trainer(max_epochs=3, resume_from_checkpoint=chk.last_model_path)
-    trainer.fit(model)
+    trainer = Trainer(max_epochs=3)
+    trainer.fit(model, ckpt_path=chk.last_model_path)
 
 
 def test_freeze_unfreeze_function(tmpdir):
@@ -258,9 +258,9 @@ def test_base_finetuning_internal_optimizer_metadata(tmpdir):
 
     model = FreezeModel()
     cb = OnEpochLayerFinetuning()
-    trainer = Trainer(max_epochs=10, resume_from_checkpoint=chk.last_model_path, callbacks=[cb])
+    trainer = Trainer(max_epochs=10, callbacks=[cb])
     with pytest.raises(IndexError, match="index 6 is out of range"):
-        trainer.fit(model)
+        trainer.fit(model, ckpt_path=chk.last_model_path)
 
 
 def test_on_before_accelerator_backend_setup(tmpdir):
@@ -400,10 +400,9 @@ def test_callbacks_restore(tmpdir):
     }
 
     trainer_kwargs["max_epochs"] = 3
-    trainer_kwargs["resume_from_checkpoint"] = chk.last_model_path
 
     trainer = Trainer(**trainer_kwargs)
-    trainer.fit(model)
+    trainer.fit(model, ckpt_path=chk.last_model_path)
 
 
 def test_callbacks_restore_backbone(tmpdir):
@@ -438,6 +437,5 @@ def test_callbacks_restore_backbone(tmpdir):
         max_epochs=3,
         progress_bar_refresh_rate=0,
         callbacks=BackboneFinetuning(unfreeze_backbone_at_epoch=1),
-        resume_from_checkpoint=ckpt.last_model_path,
     )
-    trainer.fit(BackboneBoringModel())
+    trainer.fit(BackboneBoringModel(), ckpt_path=ckpt.last_model_path)

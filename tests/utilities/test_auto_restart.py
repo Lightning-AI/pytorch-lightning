@@ -906,7 +906,7 @@ class TestModel(LightningModule):
         return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 
 
-def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1):
+def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1, ckpt_path = None):
     seed_everything(1)
     train_dataloader = [
         DataLoader(dataset_class(3, 1), batch_size=1, num_workers=0) for dataset_class in dataset_classes
@@ -915,7 +915,7 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1):
     model = TestModel(fail_on_step=fail_on_step)
     trainer = Trainer(**trainer_kwargs)
     with suppress(CustomException):
-        trainer.fit(model, train_dataloader=train_dataloader)
+        trainer.fit(model, train_dataloader=train_dataloader, ckpt_path=ckpt_path)
     return model.seen_batches, model.parameters()
 
 
@@ -957,8 +957,7 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir, dataset_classes, mult
     assert os.path.exists(checkpoint_path)
 
     # Resume after failure
-    trainer_kwargs.update(resume_from_checkpoint=checkpoint_path)
-    resumed_batches, weights1 = _run_training(trainer_kwargs, dataset_classes, fail_on_step=-1)
+    resumed_batches, weights1 = _run_training(trainer_kwargs, dataset_classes, fail_on_step=-1, ckpt_path=checkpoint_path)
     assert len(resumed_batches) == 5
 
     # the resumed batches should match the batches of the successful training

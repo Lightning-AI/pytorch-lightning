@@ -903,11 +903,10 @@ def test_checkpoint_repeated_strategy(tmpdir):
             limit_train_batches=2,
             limit_val_batches=2,
             limit_test_batches=2,
-            resume_from_checkpoint=checkpoint_callback.best_model_path,
             weights_summary=None,
             progress_bar_refresh_rate=0,
         )
-        trainer.fit(model)
+        trainer.fit(model, ckpt_path=checkpoint_callback.best_model_path)
         trainer.test(model, verbose=False)
     assert set(os.listdir(tmpdir)) == {"epoch=00.ckpt", "lightning_logs"}
     assert set(os.listdir(tmpdir.join("lightning_logs"))) == {f"version_{i}" for i in range(4)}
@@ -979,17 +978,16 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
 
         # load from checkpoint
         trainer_config["callbacks"] = [ModelCheckpoint(dirpath=ckpt_dir, save_top_k=-1)]
-        trainer = pl.Trainer(**trainer_config, resume_from_checkpoint=chk)
+        trainer = pl.Trainer(**trainer_config)
         assert_trainer_init(trainer)
 
         model = ExtendedBoringModel()
 
         trainer.test(model)
-        # resume_from_checkpoint is resumed when calling `.fit`
         assert trainer.global_step == 0
         assert trainer.current_epoch == 0
 
-        trainer.fit(model)
+        trainer.fit(model, ckpt_path=chk)
         assert trainer.global_step == epochs * limit_train_batches
         assert trainer.current_epoch == epochs
         assert_checkpoint_log_dir(idx)

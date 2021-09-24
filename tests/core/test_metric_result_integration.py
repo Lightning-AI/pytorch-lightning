@@ -463,10 +463,9 @@ def result_collection_reload(**kwargs):
         else trainer_kwargs["default_root_dir"]
     )
     ckpt_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
-    trainer_kwargs["resume_from_checkpoint"] = ckpt_path
 
     trainer = Trainer(**trainer_kwargs)
-    trainer.fit(model)
+    trainer.fit(model, ckpt_path=ckpt_path)
     assert model.has_validated_sum
 
 

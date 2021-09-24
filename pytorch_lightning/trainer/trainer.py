@@ -333,6 +333,10 @@ class Trainer(
                 no checkpoint file at the path, start from scratch. If resuming from mid-epoch checkpoint,
                 training will start from the beginning of the next epoch.
 
+                .. deprecated:: v1.5
+                    ``resume_from_checkpoint`` is deprecated in v1.5 and will be removed in v1.7.
+                    Please use ``Trainer.fit(ckpt_path)`` instead.
+
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
 
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
@@ -434,11 +438,6 @@ class Trainer(
 
         # Needed because of LightningOptimizer
         self._lightning_optimizers = None
-
-        # .validate() and .test() set this when they load a checkpoint
-        self.validated_ckpt_path: Optional[str] = None
-        self.tested_ckpt_path: Optional[str] = None
-        self.predicted_ckpt_path: Optional[str] = None
 
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init
@@ -561,6 +560,7 @@ class Trainer(
         model: "pl.LightningModule",
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        ckpt_path: Optional[str] = None,
         datamodule: Optional[LightningDataModule] = None,
         train_dataloader=None,  # TODO: remove with 1.6
     ) -> None:
@@ -576,6 +576,10 @@ class Trainer(
 
             val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
 
+            ckpt_path: Path/URL of the checkpoint from which training is resumed. If there is
+                no checkpoint file at the path, start from scratch. If resuming from mid-epoch checkpoint,
+                training will start from the beginning of the next epoch.
+
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
         """
         if train_dataloader is not None:
@@ -584,13 +588,14 @@ class Trainer(
                 " Use `trainer.fit(train_dataloaders)` instead. HINT: added 's'"
             )
             train_dataloaders = train_dataloader
-        self._call_and_handle_interrupt(self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule)
+        self._call_and_handle_interrupt(self._fit_impl, model, train_dataloaders, val_dataloaders, ckpt_path, datamodule)
 
     def _fit_impl(
         self,
         model: "pl.LightningModule",
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        ckpt_path: Optional[str] = None,
         datamodule: Optional[LightningDataModule] = None,
     ) -> None:
         Trainer._log_api_event("fit")
@@ -614,7 +619,7 @@ class Trainer(
             model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
 
-        self._run(model)
+        self._run(model, ckpt_path)
 
         assert self.state.stopped
         self.training = False
@@ -695,12 +700,12 @@ class Trainer(
         # links data to the trainer
         self.data_connector.attach_data(model, val_dataloaders=dataloaders, datamodule=datamodule)
 
-        self.validated_ckpt_path = self.__set_ckpt_path(
+        ckpt_path = self.__set_ckpt_path(
             ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
 
         # run validate
-        results = self._run(model)
+        results = self._run(model, ckpt_path)
 
         assert self.state.stopped
         self.validating = False
@@ -784,12 +789,12 @@ class Trainer(
         # links data to the trainer
         self.data_connector.attach_data(model, test_dataloaders=dataloaders, datamodule=datamodule)
 
-        self.tested_ckpt_path = self.__set_ckpt_path(
+        ckpt_path = self.__set_ckpt_path(
             ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
 
         # run test
-        results = self._run(model)
+        results = self._run(model, ckpt_path)
 
         assert self.state.stopped
         self.testing = False
@@ -867,11 +872,11 @@ class Trainer(
         # links data to the trainer
         self.data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
 
-        self.predicted_ckpt_path = self.__set_ckpt_path(
+        ckpt_path = self.__set_ckpt_path(
             ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
 
-        results = self._run(model)
+        results = self._run(model, ckpt_path)
 
         assert self.state.stopped
         self.predicting = False
@@ -940,24 +945,16 @@ class Trainer(
 
         return result
 
-    def _restore_modules_and_callbacks(self) -> None:
+    def _restore_modules_and_callbacks(self, checkpoint_path: Optional[_PATH] = None) -> None:
         # restore modules after setup
-        if self.state.fn == TrainerFn.FITTING:
-            self.checkpoint_connector.resume_start()
-        self.checkpoint_connector.restore_datamodule()
+        self.checkpoint_connector.resume_start(checkpoint_path)
         self.checkpoint_connector.restore_model()
-        # restore callback states
-        self.checkpoint_connector.restore_callbacks()
+        if self.state.fn == TrainerFn.FITTING:
+            self.checkpoint_connector.restore_datamodule()
+            # restore callback states
+            self.checkpoint_connector.restore_callbacks()
 
-    def _load_checkpoint_weights(self):
-        # only one process running at this point for TPUs, as spawn isn't triggered yet
-        # todo: move this logic internally within the barrier.
-        if not self._device_type == DeviceType.TPU:
-            self.accelerator.barrier()
-        rank_zero_info(f"Loading model weights from checkpoint at {self._ckpt_path}")
-        self.checkpoint_connector.restore_model_weights(self._ckpt_path)
-
-    def _run(self, model: "pl.LightningModule") -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
+    def _run(self, model: "pl.LightningModule", ckpt_path: Optional[str] = None) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
@@ -974,9 +971,6 @@ class Trainer(
         self.data_connector.prepare_data()
         self.callback_connector._attach_model_callbacks()
 
-        if self._ckpt_path and not self.accelerator.restore_checkpoint_after_pre_dispatch:
-            self._load_checkpoint_weights()
-
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
@@ -986,7 +980,7 @@ class Trainer(
 
         # check if we should delay restoring checkpoint till later
         if not self.accelerator.restore_checkpoint_after_pre_dispatch:
-            self._restore_modules_and_callbacks()
+            self._restore_modules_and_callbacks(ckpt_path)
 
         self._call_configure_sharded_model()  # allow user to setup in model sharded environment
         self.accelerator.setup(self)
@@ -1030,12 +1024,11 @@ class Trainer(
         self._pre_dispatch()
 
         if self.accelerator.restore_checkpoint_after_pre_dispatch:
-            if self._ckpt_path:
-                self._load_checkpoint_weights()
-            self._restore_modules_and_callbacks()
+            self._restore_modules_and_callbacks(ckpt_path)
 
         # restore optimizers, etc.
-        self.checkpoint_connector.restore_training_state()
+        if self.state.fn == TrainerFn.FITTING:
+            self.checkpoint_connector.restore_training_state()
 
         # dispatch `start_training` or `start_evaluating` or `start_predicting`
         self._dispatch()
@@ -1730,6 +1723,15 @@ class Trainer(
 
     @property
     def resume_from_checkpoint(self) -> Optional[Union[str, Path]]:
+        """
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.7.
+            Please use `Trainer.resume_checkpoint_path` instead.
+        """
+        return self.resume_checkpoint_path
+
+    @property
+    def resume_checkpoint_path(self) -> Optional[Union[str, Path]]:
         return self.checkpoint_connector.resume_checkpoint_path
 
     def save_checkpoint(self, filepath: _PATH, weights_only: bool = False) -> None:
@@ -1961,15 +1963,6 @@ class Trainer(
             "`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
         )
         return self.fit_loop
-
-    @property
-    def _ckpt_path(self) -> Optional[str]:
-        if self.state.fn == TrainerFn.VALIDATING:
-            return self.validated_ckpt_path
-        if self.state.fn == TrainerFn.TESTING:
-            return self.tested_ckpt_path
-        if self.state.fn == TrainerFn.PREDICTING:
-            return self.predicted_ckpt_path
 
     """
     Logging properties

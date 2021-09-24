@@ -137,7 +137,6 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
                 log_gpu_memory=None,
                 distributed_backend=None,
                 weights_save_path=None,
-                resume_from_checkpoint=None,
                 profiler=None,
             ),
         ),
@@ -907,7 +906,7 @@ def test_lightning_cli_model_choices():
     ) as run:
         cli = LightningCLI(trainer_defaults={"fast_dev_run": 1})
         assert isinstance(cli.model, BoringModel)
-        run.assert_called_once_with(cli.model, ANY, ANY, ANY)
+        run.assert_called_once_with(cli.model, ANY, ANY, ANY, ANY)
 
     with mock.patch("sys.argv", ["any.py", "--model=TestModel", "--model.foo", "123"]):
         cli = LightningCLI(run=False)
