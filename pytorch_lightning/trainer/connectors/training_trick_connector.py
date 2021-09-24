@@ -36,7 +36,7 @@ class TrainingTricksConnector:
         # gradient clipping
         if not isinstance(gradient_clip_val, (int, float)):
             raise MisconfigurationException(
-                f"Gradient Clipping Value can be an int or a float, got {gradient_clip_val}."
+                f"Gradient Clipping Value should be an int or a float. Got {gradient_clip_val}."
             )
 
         if not GradClipAlgorithmType.supported_type(gradient_clip_algorithm.lower()):
@@ -48,7 +48,7 @@ class TrainingTricksConnector:
         # gradient norm tracking
         if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != "inf":
             raise MisconfigurationException(
-                f"track_grad_norm can be an int, a float or 'inf' (infinity norm), got {track_grad_norm}."
+                f"`track_grad_norm` should be an int, a float or 'inf' (infinity norm). Got {track_grad_norm}."
             )
 
         self.trainer.terminate_on_nan = terminate_on_nan
