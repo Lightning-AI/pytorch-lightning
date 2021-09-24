@@ -56,6 +56,8 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             )
         result = lambda_closure()  # native amp does not support closures
         if not model.automatic_optimization:
+            # unscale in manual optimization as user does not rely on lightning
+            # to call backward, but does call LightningOptimizer.step
             self.scaler.unscale_(optimizer)
         super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
         skipped_backward = result is None
