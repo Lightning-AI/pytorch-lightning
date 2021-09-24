@@ -71,10 +71,9 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     ) -> torch.Tensor:
         ret_val = super().post_backward(model, closure_loss, optimizer)
         # unscale here to have it inside the closure before the grad tracking and clipping
-        if model.automatic_optimization and not model.trainer.fit_loop._should_accumulate():
+        if model.automatic_optimization and not model.trainer.fit_loop.should_accumulate():
             self.scaler.unscale_(optimizer)
         return ret_val
-
 
     @contextmanager
     def train_step_context(self) -> Generator[None, None, None]:
