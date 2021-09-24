@@ -389,7 +389,7 @@ class DDPPlugin(ParallelPlugin):
 
     def barrier(self, *args, **kwargs) -> None:
         if not distributed_available():
-            raise RuntimeError("DDP is not initialized and torch.distributed is not avalible, can not broadcast object")
+            return
         if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self.determine_ddp_device_ids())
         else:
