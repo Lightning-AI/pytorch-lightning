@@ -135,12 +135,12 @@ class Trainer(
         tpu_cores: Optional[Union[List[int], str, int]] = None,
         ipus: Optional[int] = None,
         log_gpu_memory: Optional[str] = None,
-        progress_bar_refresh_rate: Optional[int] = None,
+        progress_bar_refresh_rate: Optional[int] = None,  # TODO: remove in v1.7
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
         check_val_every_n_epoch: int = 1,
         fast_dev_run: Union[int, bool] = False,
-        accumulate_grad_batches: Union[int, Dict[int, int]] = 1,
+        accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None,
         max_epochs: Optional[int] = None,
         min_epochs: Optional[int] = None,
         max_steps: Optional[int] = None,
@@ -281,6 +281,11 @@ class Trainer(
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
                 Ignored when a custom progress bar is passed to :paramref:`~Trainer.callbacks`. Default: None, means
                 a suitable value will be chosen based on the environment (terminal, Google COLAB, etc.).
+
+                .. deprecated:: v1.5
+                    ``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
+                    Please pass :class:`~pytorch_lightning.callbacks.progress.ProgressBar` with ``refresh_rate``
+                    directly to the Trainer's ``callbacks`` argument instead.
 
             profiler: To profile individual steps during training and assist in identifying bottlenecks.
 
@@ -437,8 +442,6 @@ class Trainer(
         # default .predict() loop
         self.predict_loop = PredictionLoop()
 
-        self.weights_summary = weights_summary
-
         # Needed because of LightningOptimizer
         self._lightning_optimizers = None
 
@@ -451,9 +454,10 @@ class Trainer(
             process_position,
             default_root_dir,
             weights_save_path,
-            self.weights_summary,
+            weights_summary,
             stochastic_weight_avg,
             max_time,
+            accumulate_grad_batches,
         )
 
         # hook
@@ -475,7 +479,6 @@ class Trainer(
             gradient_clip_val,
             gradient_clip_algorithm,
             track_grad_norm,
-            accumulate_grad_batches,
             terminate_on_nan,
         )
         self._setup_on_init(num_sanity_val_steps)
@@ -1021,6 +1024,11 @@ class Trainer(
         # ----------------------------
         # TRAIN
         # ----------------------------
+
+        # reset logger connector
+        self.logger_connector.reset_results()
+        self.logger_connector.reset_metrics()
+
         # hook
         if self.state.fn == TrainerFn.FITTING:
             self.call_hook("on_fit_start")
@@ -1204,6 +1212,10 @@ class Trainer(
             stage = self.state.stage
             self.sanity_checking = True
 
+            # reset logger connector
+            self.logger_connector.reset_results()
+            self.logger_connector.reset_metrics()
+
             self.call_hook("on_sanity_check_start")
 
             # reload dataloaders
@@ -1215,8 +1227,9 @@ class Trainer(
 
             self.call_hook("on_sanity_check_end")
 
-            # reset validation metrics
-            self.logger_connector.reset()
+            # reset logger connector
+            self.logger_connector.reset_results()
+            self.logger_connector.reset_metrics()
 
             # reset the seed to what it was before sanity check
             # prevents sanity check to affect random sampling in training
@@ -1274,18 +1287,9 @@ class Trainer(
         self.accelerator.barrier("post_setup")
 
     def _call_configure_sharded_model(self) -> None:
-        # Call configure sharded model hook if accelerator requests. In some cases
-        # we will not call the hook; the hook has initialized the sharded model for example.
-
-        # used on the model if the user re-create a trainer with resume_from_checkpoint
-        model = self.lightning_module
-        model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
-        if self.accelerator.call_configure_sharded_model_hook and not model_call_configure_sharded_model_hook:
-            with self.accelerator.model_sharded_context():
-                self.call_hook("configure_sharded_model")
-                self.call_hook("on_configure_sharded_model")
-            model.call_configure_sharded_model_hook = True
-            self.accelerator.call_configure_sharded_model_hook = False
+        with self.accelerator.model_sharded_context():
+            self.call_hook("configure_sharded_model")
+            self.call_hook("on_configure_sharded_model")
 
     def _call_teardown_hook(self) -> None:
         fn = self.state.fn._setup_fn
@@ -1875,7 +1879,7 @@ class Trainer(
 
     @property
     def is_last_batch(self) -> bool:
-        return self.fit_loop.epoch_loop.is_last_batch
+        return self.fit_loop.epoch_loop.batch_progress.is_last_batch
 
     @property
     def fit_loop(self) -> FitLoop:

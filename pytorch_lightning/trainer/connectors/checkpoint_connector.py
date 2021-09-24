@@ -26,6 +26,7 @@ from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecat
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
+from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.types import _PATH
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
@@ -70,7 +71,8 @@ class CheckpointConnector:
         self._loaded_checkpoint = self._load_and_validate_checkpoint(checkpoint_path)
 
     def _load_and_validate_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
-        loaded_checkpoint = self.trainer.training_type_plugin.load_checkpoint(checkpoint_path)
+        with pl_legacy_patch():
+            loaded_checkpoint = self.trainer.training_type_plugin.load_checkpoint(checkpoint_path)
         if any(key in loaded_checkpoint for key in DEPRECATED_CHECKPOINT_KEYS):
             raise ValueError(
                 "The checkpoint you're attempting to load follows an"

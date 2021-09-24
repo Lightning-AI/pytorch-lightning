@@ -227,6 +227,11 @@ def test_v1_7_0_deprecate_add_get_queue(tmpdir):
         trainer.fit(model)
 
 
+def test_v1_7_0_progress_bar_refresh_rate_trainer_constructor(tmpdir):
+    with pytest.deprecated_call(match=r"Setting `Trainer\(progress_bar_refresh_rate=1\)` is deprecated in v1.5"):
+        _ = Trainer(progress_bar_refresh_rate=1)
+
+
 def test_v1_7_0_lightning_logger_base_close(tmpdir):
     logger = CustomLogger()
     with pytest.deprecated_call(

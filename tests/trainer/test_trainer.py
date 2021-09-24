@@ -33,7 +33,7 @@ from torch.utils.data import DataLoader, IterableDataset
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, Timer
+from pytorch_lightning.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -186,9 +186,66 @@ def test_trainer_accumulate_grad_batches_zero_grad(tmpdir, accumulate_grad_batch
             weights_summary=None,
             accumulate_grad_batches=accumulate_grad_batches,
         )
+        assert trainer.accumulate_grad_batches == accumulate_grad_batches
         trainer.fit(model)
 
+        assert sum(isinstance(cb, GradientAccumulationScheduler) for cb in trainer.callbacks) == 1
         assert sgd_zero_grad.call_count == math.ceil(trainer.limit_train_batches / accumulate_grad_batches)
+
+
+@pytest.mark.parametrize(
+    ["accumulate_grad_batches", "expected_call_count"],
+    [
+        ({1: 2, 3: 4}, 10 + 5 + 5 + 3),
+        ({0: 2, 2: 1}, 5 + 5 + 10 + 10),
+    ],
+)
+def test_trainer_accumulate_grad_batches_dict_zero_grad(tmpdir, accumulate_grad_batches, expected_call_count):
+    with patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
+        model = BoringModel()
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            limit_train_batches=10,
+            limit_val_batches=1,
+            max_epochs=4,
+            weights_summary=None,
+            accumulate_grad_batches=accumulate_grad_batches,
+        )
+        assert trainer.accumulate_grad_batches == accumulate_grad_batches.get(0, 1)
+        trainer.fit(model)
+
+        assert sum(isinstance(cb, GradientAccumulationScheduler) for cb in trainer.callbacks) == 1
+        assert sgd_zero_grad.call_count == expected_call_count
+
+
+def test_trainer_accumulate_grad_batches_with_callback(tmpdir):
+    with patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
+        model = BoringModel()
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            limit_train_batches=10,
+            limit_val_batches=1,
+            max_epochs=4,
+            weights_summary=None,
+            callbacks=[GradientAccumulationScheduler({1: 2, 3: 4})],
+        )
+        assert trainer.accumulate_grad_batches == 1
+        trainer.fit(model)
+
+        assert sum(isinstance(cb, GradientAccumulationScheduler) for cb in trainer.callbacks) == 1
+        assert sgd_zero_grad.call_count == 10 + 5 + 5 + 3
+
+
+def test_trainer_accumulate_grad_batches_incorrect_value(tmpdir):
+    with pytest.raises(MisconfigurationException, match=".*should be an int or a dict.*"):
+        Trainer(default_root_dir=tmpdir, accumulate_grad_batches=(2, 5))
+
+
+def test_trainer_accumulate_grad_batches_with_grad_acc_callback(tmpdir):
+    with pytest.raises(
+        MisconfigurationException, match=".*set both `accumulate_grad_batches` and passed an instance.*"
+    ):
+        Trainer(default_root_dir=tmpdir, accumulate_grad_batches=7, callbacks=[GradientAccumulationScheduler({0: 2})])
 
 
 @pytest.mark.parametrize(
@@ -1950,3 +2007,49 @@ def test_error_handling_all_stages(tmpdir, accelerator, num_processes):
     ) as exception_hook:
         trainer.predict(model, model.val_dataloader(), return_predictions=False)
     exception_hook.assert_called()
+
+
+def test_trainer_metrics_reset_before_each_task(tmpdir):
+    """Test that callback, logged and progress bar metrics are reset before each task starts."""
+
+    class TestMetricRestartCallback(Callback):
+        def _make_assertions(self, trainer):
+            assert trainer.callback_metrics == {}
+            assert trainer.progress_bar_metrics == {}
+            assert trainer.logged_metrics == {}
+
+        def on_train_start(self, trainer, *args, **kwargs):
+            self._make_assertions(trainer)
+
+        def on_validation_start(self, trainer, *args, **kwargs):
+            if trainer.state.fn == TrainerFn.VALIDATING:
+                self._make_assertions(trainer)
+
+        def on_test_start(self, trainer, *args, **kwargs):
+            self._make_assertions(trainer)
+
+        def on_predict_start(self, trainer, *args, **kwargs):
+            self._make_assertions(trainer)
+
+    class CustomBoringModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+
+        def training_step(self, *args, **kwargs):
+            self.log("train/metric", 7.0)
+            return super().training_step(*args, **kwargs)
+
+        def validation_step(self, *args, **kwargs):
+            self.log("val/metric", 14.0)
+            return super().validation_step(*args, **kwargs)
+
+        def test_step(self, *args, **kwargs):
+            self.log("test/metric", 21.0)
+            return super().test_step(*args, **kwargs)
+
+    model = CustomBoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=4, callbacks=[TestMetricRestartCallback()])
+    trainer.fit(model)
+    trainer.validate(model)
+    trainer.test(model)
+    trainer.predict(model)
