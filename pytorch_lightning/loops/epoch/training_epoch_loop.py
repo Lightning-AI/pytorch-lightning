@@ -74,7 +74,10 @@ class TrainingEpochLoop(loops.Loop):
         signals to stop (e.g. by early stopping).
         """
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
-        return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached()
+        is_done = max_steps_reached or self._num_training_batches_reached()
+        # when we are restarting we want to check whether the val loop has finished
+        val_loop_done = not self.restarting or self.val_loop.done
+        return (is_done and val_loop_done) or self.trainer.should_stop
 
     def connect(
         self,
@@ -95,14 +98,13 @@ class TrainingEpochLoop(loops.Loop):
             self.batch_progress.reset_on_restart()
             self.scheduler_progress.reset_on_restart()
             self.batch_loop.optimizer_loop.optim_progress.reset_on_restart()
-
-        # track epoch output
-        self._epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
-
-        if not self.restarting or self._num_training_batches_reached():
+        else:
             self.batch_progress.reset_on_run()
             self.scheduler_progress.reset_on_run()
             self.batch_loop.optimizer_loop.optim_progress.reset_on_run()
+
+        # track epoch output
+        self._epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
 
     def on_run_start(self, dataloader_iter: Iterator, **kwargs: Any) -> None:
         # hook
@@ -122,6 +124,10 @@ class TrainingEpochLoop(loops.Loop):
         Raises:
             StopIteration: When the epoch is canceled by the user returning -1
         """
+        if self.restarting and self._should_check_val_fx(self.batch_idx, self.batch_progress.is_last_batch):
+            # skip training and run validation in `on_advance_end`
+            return
+
         batch_idx, (batch, is_last) = next(self.dataloader_iter)
         self.batch_progress.is_last_batch = is_last
 

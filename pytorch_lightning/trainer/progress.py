@@ -195,6 +195,10 @@ class BatchProgress(Progress):
         super().reset_on_run()
         self.is_last_batch = False
 
+    def load_state_dict(self, state_dict: dict) -> None:
+        super().load_state_dict(state_dict)
+        self.is_last_batch = state_dict["is_last_batch"]
+
 
 @dataclass
 class SchedulerProgress(Progress):

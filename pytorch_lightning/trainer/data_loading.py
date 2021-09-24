@@ -304,9 +304,6 @@ class TrainerDataLoadingMixin(ABC):
                     self.train_dataloader, SequentialSampler(self.train_dataloader.dataset), mode=RunningStage.TRAINING
                 )
 
-        # debugging
-        self.dev_debugger.track_load_dataloader_call("train_dataloader", dataloaders=[self.train_dataloader])
-
         # automatically add samplers
         self.train_dataloader = apply_to_collection(
             self.train_dataloader, DataLoader, self.auto_add_sampler, shuffle=True, mode=RunningStage.TRAINING
@@ -385,7 +382,6 @@ class TrainerDataLoadingMixin(ABC):
         assert mode.evaluating or mode == RunningStage.PREDICTING
 
         # always get the loaders first so we can count how many there are
-        loader_name = f"{mode.dataloader_prefix}_dataloader"
         dataloaders = self.request_dataloader(mode, model=model)
 
         if not isinstance(dataloaders, list):
@@ -396,8 +392,6 @@ class TrainerDataLoadingMixin(ABC):
         if self.overfit_batches > 0:
             train_dataloader = self.request_dataloader(RunningStage.TRAINING, model=model)
             dataloaders = [deepcopy(train_dataloader) for _ in range(len(dataloaders))]
-
-        self.dev_debugger.track_load_dataloader_call(loader_name, dataloaders=dataloaders)
 
         for loader_i in range(len(dataloaders)):
             loader = dataloaders[loader_i]
