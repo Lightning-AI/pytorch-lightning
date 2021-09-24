@@ -28,7 +28,7 @@ class LightningDistributed:
     def __init__(self, rank=None, device=None):
         rank_zero_deprecation(
             "This class is deprecated in v1.5 and will be removed in v1.7."
-            "he broadcast logic will be moved to the :class:`DDPPlugin` and :class`DDPSpawnPlugin` classes."
+            "Broadcast logic is implemented directly in the :class:`TrainingTypePlugin` implementations."
         )
         self.rank = rank
         self.device = device
