@@ -163,6 +163,7 @@ class CallbackConnector:
                         "please pass `callbacks=RichProgressBar(refresh_rate=4)`. "
                         "Setting to the `TQDM ProgressBar`."
                     )
+            # else return new TQDMProgressBar
             if os.getenv("COLAB_GPU") and refresh_rate is None:
                 # smaller refresh rate on colab causes crashes for TQDM, choose a higher value
                 refresh_rate = 20
