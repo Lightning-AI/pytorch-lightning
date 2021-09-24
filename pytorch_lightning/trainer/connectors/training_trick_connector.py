@@ -36,12 +36,12 @@ class TrainingTricksConnector:
         # gradient clipping
         if not isinstance(gradient_clip_val, (int, float)):
             raise MisconfigurationException(
-                f"Gradient Clipping Value should be an int or a float. Got {gradient_clip_val}."
+                f"`gradient_clip_val` should be an int or a float. Got {gradient_clip_val}."
             )
 
         if not GradClipAlgorithmType.supported_type(gradient_clip_algorithm.lower()):
             raise MisconfigurationException(
-                f"Gradient Clipping Algorithm {gradient_clip_algorithm} is invalid. "
+                f"`gradient_clip_algorithm` {gradient_clip_algorithm} is invalid. "
                 f"Allowed algorithms: {GradClipAlgorithmType.supported_types()}."
             )
 
