@@ -385,4 +385,3 @@ To run the following demo, install Flash and `BaaL <https://github.com/ElementAI
 
     # 5. Save the model!
     trainer.save_checkpoint("image_classification_model.pt")
-
