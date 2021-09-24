@@ -222,9 +222,9 @@ class _MockOptimizer(Optimizer):
 
 def _validate_optim_conf(optim_conf: Dict[str, Any]) -> None:
     valid_keys = {"optimizer", "lr_scheduler", "frequency", "monitor"}
-    extra_keys = [k for k in optim_conf.keys() if k not in valid_keys]
+    extra_keys = optim_conf.keys() - valid_keys
     if extra_keys:
-        rank_zero_warn(f"Found unsupported keys in the optimizer configuration: {extra_keys}", RuntimeWarning)
+        rank_zero_warn(f"Found unsupported keys in the optimizer configuration: {set(extra_keys)}", RuntimeWarning)
 
 
 def _validate_scheduler_optimizer(optimizers, lr_schedulers):

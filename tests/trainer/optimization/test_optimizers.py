@@ -435,7 +435,7 @@ def test_optimizer_config_dict_with_extra_keys_warns(tmpdir):
         "foo": 1,
         "bar": 2,
     }
-    with pytest.warns(RuntimeWarning, match=r"Found unsupported keys in the optimizer configuration: \[.+\]"):
+    with pytest.warns(RuntimeWarning, match=r"Found unsupported keys in the optimizer configuration: \{.+\}"):
         TrainerOptimizersMixin._configure_optimizers(optim_conf)
 
 
@@ -450,7 +450,7 @@ def test_multiple_optimizer_config_dicts_with_extra_keys_warns(tmpdir):
         {"optimizer": optimizer1, "lr_scheduler": lr_scheduler_config_1, "foo": 1, "bar": 2},
         {"optimizer": optimizer2, "lr_scheduler": lr_scheduler_config_2, "foo": 1, "bar": 2},
     ]
-    with pytest.warns(RuntimeWarning, match=r"Found unsupported keys in the optimizer configuration: \[.+\]"):
+    with pytest.warns(RuntimeWarning, match=r"Found unsupported keys in the optimizer configuration: \{.+\}"):
         TrainerOptimizersMixin._configure_optimizers(optim_conf)
 
 
