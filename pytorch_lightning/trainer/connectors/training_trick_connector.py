@@ -31,13 +31,11 @@ class TrainingTricksConnector:
         terminate_on_nan: bool,
     ):
         if not isinstance(terminate_on_nan, bool):
-            raise MisconfigurationException(f"`terminate_on_nan` should be a bool, got {terminate_on_nan}.")
+            raise TypeError(f"`terminate_on_nan` should be a bool, got {terminate_on_nan}.")
 
         # gradient clipping
         if not isinstance(gradient_clip_val, (int, float)):
-            raise MisconfigurationException(
-                f"`gradient_clip_val` should be an int or a float. Got {gradient_clip_val}."
-            )
+            raise TypeError(f"`gradient_clip_val` should be an int or a float. Got {gradient_clip_val}.")
 
         if not GradClipAlgorithmType.supported_type(gradient_clip_algorithm.lower()):
             raise MisconfigurationException(
