@@ -96,14 +96,17 @@ class CallbackConnector:
         # it is important that these are the last callbacks to run
         self.trainer.callbacks = self._reorder_callbacks(self.trainer.callbacks)
 
-    def _configure_accumulated_gradients(self, accumulate_grad_batches: Union[int, Dict[int, int]]) -> None:
+    def _configure_accumulated_gradients(
+        self, accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None
+    ) -> None:
         grad_accum_callback = [cb for cb in self.trainer.callbacks if isinstance(cb, GradientAccumulationScheduler)]
 
         if grad_accum_callback:
             if accumulate_grad_batches is not None:
                 raise MisconfigurationException(
-                    "You have set both `accumulate_grad_batches` and passed an "
-                    "instance of `GradientAccumulationScheduler` inside callbacks."
+                    "You have set both `accumulate_grad_batches` and passed an instance of "
+                    "`GradientAccumulationScheduler` inside callbacks. Either remove `accumulate_grad_batches` "
+                    "from trainer or remove `GradientAccumulationScheduler` from callbacks list."
                 )
             grad_accum_callback = grad_accum_callback[0]
         else:
@@ -116,10 +119,11 @@ class CallbackConnector:
                 grad_accum_callback = GradientAccumulationScheduler({0: accumulate_grad_batches})
             else:
                 raise MisconfigurationException(
-                    f"Gradient accumulation supports only int and dict types, got {accumulate_grad_batches}"
+                    f"`accumulate_grad_batches` should be an int or a dict. Got {accumulate_grad_batches}."
                 )
 
-        self.trainer.callbacks.append(grad_accum_callback)
+            self.trainer.callbacks.append(grad_accum_callback)
+
         self.trainer.accumulate_grad_batches = grad_accum_callback.get_accumulate_grad_batches(0)
         self.trainer.accumulation_scheduler = grad_accum_callback
 

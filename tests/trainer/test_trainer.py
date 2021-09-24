@@ -189,6 +189,7 @@ def test_trainer_accumulate_grad_batches_zero_grad(tmpdir, accumulate_grad_batch
         assert trainer.accumulate_grad_batches == accumulate_grad_batches
         trainer.fit(model)
 
+        assert sum(isinstance(cb, GradientAccumulationScheduler) for cb in trainer.callbacks) == 1
         assert sgd_zero_grad.call_count == math.ceil(trainer.limit_train_batches / accumulate_grad_batches)
 
 
@@ -213,6 +214,7 @@ def test_trainer_accumulate_grad_batches_dict_zero_grad(tmpdir, accumulate_grad_
         assert trainer.accumulate_grad_batches == accumulate_grad_batches.get(0, 1)
         trainer.fit(model)
 
+        assert sum(isinstance(cb, GradientAccumulationScheduler) for cb in trainer.callbacks) == 1
         assert sgd_zero_grad.call_count == expected_call_count
 
 
@@ -230,11 +232,12 @@ def test_trainer_accumulate_grad_batches_with_callback(tmpdir):
         assert trainer.accumulate_grad_batches == 1
         trainer.fit(model)
 
+        assert sum(isinstance(cb, GradientAccumulationScheduler) for cb in trainer.callbacks) == 1
         assert sgd_zero_grad.call_count == 10 + 5 + 5 + 3
 
 
 def test_trainer_accumulate_grad_batches_incorrect_value(tmpdir):
-    with pytest.raises(MisconfigurationException, match=".*supports only int and dict types.*"):
+    with pytest.raises(MisconfigurationException, match=".*should be an int or a dict.*"):
         Trainer(default_root_dir=tmpdir, accumulate_grad_batches=(2, 5))
 
 
