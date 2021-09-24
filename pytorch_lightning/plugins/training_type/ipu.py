@@ -107,7 +107,7 @@ class IPUPlugin(ParallelPlugin):
             os.environ["POPLAR_ENGINE_OPTIONS"] = json.dumps(options)
 
     def setup(self) -> None:
-        # set the `accumulate_grad_batches` property
+        # set the `accumulate_grad_batches` property as early as possible
         self._handle_gradient_accumulation_steps()
 
         # patch the dataloader creation function with the custom `poptorch.DataLoader`.
