@@ -384,22 +384,6 @@ class Trainer(
         self.data_connector = DataConnector(self, multiple_trainloader_mode)
         self.optimizer_connector = OptimizerConnector(self)
 
-        self.callback_connector = CallbackConnector(self)
-        # init callbacks
-        # Declare attributes to be set in callback_connector on_trainer_init
-        self.callback_connector.on_trainer_init(
-            callbacks,
-            checkpoint_callback,
-            progress_bar_refresh_rate,
-            process_position,
-            default_root_dir,
-            weights_save_path,
-            weights_summary,
-            stochastic_weight_avg,
-            max_time,
-            accumulate_grad_batches,
-        )
-
         self.accelerator_connector = AcceleratorConnector(
             num_processes,
             devices,
@@ -421,6 +405,7 @@ class Trainer(
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self.model_connector = ModelConnector(self)
+        self.callback_connector = CallbackConnector(self)
         self.debugging_connector = DebuggingConnector(self)
         self.training_tricks_connector = TrainingTricksConnector(self)
         self.checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
@@ -457,6 +442,21 @@ class Trainer(
         self.validated_ckpt_path: Optional[str] = None
         self.tested_ckpt_path: Optional[str] = None
         self.predicted_ckpt_path: Optional[str] = None
+
+        # init callbacks
+        # Declare attributes to be set in callback_connector on_trainer_init
+        self.callback_connector.on_trainer_init(
+            callbacks,
+            checkpoint_callback,
+            progress_bar_refresh_rate,
+            process_position,
+            default_root_dir,
+            weights_save_path,
+            weights_summary,
+            stochastic_weight_avg,
+            max_time,
+            accumulate_grad_batches,
+        )
 
         # hook
         self.on_init_start()
