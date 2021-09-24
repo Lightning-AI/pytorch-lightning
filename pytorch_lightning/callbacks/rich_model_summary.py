@@ -88,6 +88,8 @@ class RichModelSummary(ModelSummary):
                 table.add_column(column_name, justify="right", style="white")
 
         rows = list(zip(*(arr[1] for arr in summary_data)))
+        # convert all elements to str for Rich
+        rows = list(list(str(x) for x in row) for row in rows)
         for row in rows:
             table.add_row(*row)
 

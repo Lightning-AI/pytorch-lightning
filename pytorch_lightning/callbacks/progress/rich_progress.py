@@ -191,8 +191,9 @@ class RichProgressBar(ProgressBarBase):
     def predict_description(self) -> str:
         return "Predicting"
 
+    @rank_zero_only
     def _init_progress(self, trainer, pl_module, stage: Optional[str] = None):
-        if self.progress is None or not self.progress.live.is_started and trainer.is_global_zero:
+        if self.progress is None or not self.progress.live.is_started:
             self.progress = Progress(
                 TextColumn("[progress.description]{task.description}"),
                 BarColumn(
@@ -314,9 +315,10 @@ class RichProgressBar(ProgressBarBase):
 
     @rank_zero_only
     def teardown(self, trainer, pl_module, stage: Optional[str] = None) -> None:
-        self.progress.stop()
+        if self.progress is not None:
+            self.progress.stop()
 
     @rank_zero_only
     def on_exception(self, trainer, pl_module, exception: BaseException) -> None:
-        if isinstance(exception, KeyboardInterrupt):
+        if self.progress is not None:
             self.progress.stop()
