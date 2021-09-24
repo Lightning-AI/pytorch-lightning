@@ -22,6 +22,7 @@ from contextlib import redirect_stdout
 from io import StringIO
 from typing import List, Optional, Union
 from unittest import mock
+from unittest.mock import ANY
 
 import pytest
 import torch
@@ -39,6 +40,7 @@ from pytorch_lightning.utilities.cli import (
     LightningArgumentParser,
     LightningCLI,
     LR_SCHEDULER_REGISTRY,
+    MODEL_REGISTRY,
     OPTIMIZER_REGISTRY,
     SaveConfigCallback,
 )
@@ -888,6 +890,32 @@ def test_registries(tmpdir):
     assert isinstance(CustomCallback(), CustomCallback)
 
 
+@MODEL_REGISTRY
+class TestModel(BoringModel):
+    def __init__(self, foo, bar=5):
+        super().__init__()
+        self.foo = foo
+        self.bar = bar
+
+
+MODEL_REGISTRY(cls=BoringModel)
+
+
+def test_lightning_cli_model_choices():
+    with mock.patch("sys.argv", ["any.py", "fit", "--model=BoringModel"]), mock.patch(
+        "pytorch_lightning.Trainer._fit_impl"
+    ) as run:
+        cli = LightningCLI(trainer_defaults={"fast_dev_run": 1})
+        assert isinstance(cli.model, BoringModel)
+        run.assert_called_once_with(cli.model, ANY, ANY, ANY)
+
+    with mock.patch("sys.argv", ["any.py", "--model=TestModel", "--model.foo", "123"]):
+        cli = LightningCLI(run=False)
+        assert isinstance(cli.model, TestModel)
+        assert cli.model.foo == 123
+        assert cli.model.bar == 5
+
+
 @pytest.mark.parametrize("use_class_path_callbacks", [False, True])
 def test_registries_resolution(use_class_path_callbacks):
     """This test validates registries are used when simplified command line are being used."""
@@ -899,6 +927,7 @@ def test_registries_resolution(use_class_path_callbacks):
         "--trainer.callbacks=LearningRateMonitor",
         "--trainer.callbacks.logging_interval=epoch",
         "--trainer.callbacks.log_momentum=True",
+        "--model=BoringModel",
         "--trainer.callbacks=ModelCheckpoint",
         "--trainer.callbacks.monitor=loss",
         "--lr_scheduler",
@@ -916,8 +945,9 @@ def test_registries_resolution(use_class_path_callbacks):
         extras = [Callback, Callback]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
-        cli = LightningCLI(BoringModel, run=False)
+        cli = LightningCLI(run=False)
 
+    assert isinstance(cli.model, BoringModel)
     optimizers, lr_scheduler = cli.model.configure_optimizers()
     assert isinstance(optimizers[0], torch.optim.Adam)
     assert optimizers[0].param_groups[0]["lr"] == 0.0001
