@@ -21,9 +21,10 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.types import _PATH
+from pytorch_lightning.utilities.warnings import WarningCache
 
 log = logging.getLogger(__name__)
-
+warning_cache = WarningCache()
 
 class TorchCheckpointIO(CheckpointIO):
     """CheckpointIO that utilizes :func:`torch.save` and :func:`torch.load` to save and load checkpoints
@@ -33,7 +34,7 @@ class TorchCheckpointIO(CheckpointIO):
         fs = get_filesystem(path)
         dirname = os.path.dirname(path)
         if fs.isdir(dirname) and len(fs.ls(dirname)) > 0:
-            rank_zero_warn(f"Checkpoint directory {dirname} exists and is not empty.")
+            warning_cache.warn(f"Checkpoint directory {dirname} exists and is not empty.")
         fs.makedirs(dirname, exist_ok=True)
         try:
             # write the checkpoint dictionary on the file
