@@ -75,8 +75,8 @@ class TrainingEpochLoop(loops.Loop):
         """
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
         is_done = max_steps_reached or self._num_training_batches_reached()
-        # only when we are restarting we want to check whether the val loop has finished
-        val_loop_done = self.val_loop.done or not self.restarting
+        # when we are restarting we want to check whether the val loop has finished
+        val_loop_done = not self.restarting or self.val_loop.done
         return (is_done and val_loop_done) or self.trainer.should_stop
 
     def connect(
