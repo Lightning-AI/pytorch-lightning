@@ -1090,9 +1090,15 @@ def test_test_dataloader_not_implemented_error_failed(tmpdir):
 
 def test_dataloaders_load_only_once(tmpdir):
     model = BoringModel()
+    tracker = Mock()
+
     model.train_dataloader = Mock(wraps=model.train_dataloader)
     model.val_dataloader = Mock(wraps=model.val_dataloader)
     model.test_dataloader = Mock(wraps=model.test_dataloader)
+
+    tracker.attach_mock(model.train_dataloader, "train_dataloader")
+    tracker.attach_mock(model.val_dataloader, "val_dataloader")
+    tracker.attach_mock(model.test_dataloader, "test_dataloader")
 
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=0.3, limit_val_batches=0.3, max_epochs=3)
     trainer.fit(model)
@@ -1101,11 +1107,7 @@ def test_dataloaders_load_only_once(tmpdir):
     model.val_dataloader.assert_called_once()
     model.test_dataloader.assert_not_called()
 
-    # verify the sequence
-    # calls = trainer.dev_debugger.dataloader_sequence_calls
-    # expected_sequence = ["val_dataloader", "train_dataloader"]
-    # for call, expected in zip(calls, expected_sequence):
-    #     assert call["name"] == expected
+    assert tracker.mock_calls == [call.val_dataloader(), call.train_dataloader()]
 
 
 def test_dataloaders_load_only_once_val_interval(tmpdir):
@@ -1121,38 +1123,36 @@ def test_dataloaders_load_only_once_val_interval(tmpdir):
         max_epochs=3,
     )
 
-    call_order = []
-    trainer.reset_train_dataloader = Mock(
-        wraps=trainer.reset_train_dataloader, side_effect=(lambda *_, **__: call_order.append("train_dataloader"))
-    )
-    trainer.reset_val_dataloader = Mock(
-        wraps=trainer.reset_val_dataloader, side_effect=(lambda *_, **__: call_order.append("val_dataloader"))
-    )
-    trainer.reset_test_dataloader = Mock(
-        wraps=trainer.reset_test_dataloader, side_effect=(lambda *_, **__: call_order.append("test_dataloader"))
-    )
+    tracker = Mock()
+    model.train_dataloader = Mock(wraps=model.train_dataloader)
+    model.val_dataloader = Mock(wraps=model.val_dataloader)
+    model.test_dataloader = Mock(wraps=model.test_dataloader)
+
+    tracker.attach_mock(model.train_dataloader, "train_dataloader")
+    tracker.attach_mock(model.val_dataloader, "val_dataloader")
+    tracker.attach_mock(model.test_dataloader, "test_dataloader")
 
     trainer.fit(model)
     trainer.test(model)
 
     # verify the sequence
     expected_sequence = [
-        "val_dataloader",
-        "train_dataloader",
-        "val_dataloader",
-        "val_dataloader",
-        "val_dataloader",
-        "train_dataloader",
-        "val_dataloader",
-        "val_dataloader",
-        "val_dataloader",
-        "train_dataloader",
-        "val_dataloader",
-        "val_dataloader",
-        "val_dataloader",
-        "test_dataloader",
+        call.val_dataloader(),
+        call.train_dataloader(),
+        call.val_dataloader(),
+        call.val_dataloader(),
+        call.val_dataloader(),
+        call.train_dataloader(),
+        call.val_dataloader(),
+        call.val_dataloader(),
+        call.val_dataloader(),
+        call.train_dataloader(),
+        call.val_dataloader(),
+        call.val_dataloader(),
+        call.val_dataloader(),
+        call.test_dataloader(),
     ]
-    assert call_order == expected_sequence
+    assert tracker.mock_calls == expected_sequence
 
 
 def test_dataloaders_load_only_once_no_sanity_check(tmpdir):
@@ -1170,6 +1170,7 @@ def test_dataloaders_load_only_once_no_sanity_check(tmpdir):
 
     tracker.attach_mock(model.train_dataloader, "train_dataloader")
     tracker.attach_mock(model.val_dataloader, "val_dataloader")
+    tracker.attach_mock(model.test_dataloader, "test_dataloader")
 
     trainer.fit(model)
 
