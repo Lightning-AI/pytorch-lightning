@@ -402,20 +402,6 @@ class Accelerator:
         self.training_type_plugin.save_checkpoint(checkpoint, filepath)
 
     @property
-    def call_configure_sharded_model_hook(self) -> bool:
-        """Allow model parallel hook to be called in suitable environments determined by the training type plugin.
-        This is useful for when we want to shard the model once within fit.
-
-        Returns:
-            True if we want to call the model parallel setup hook.
-        """
-        return self.training_type_plugin.call_configure_sharded_model_hook
-
-    @call_configure_sharded_model_hook.setter
-    def call_configure_sharded_model_hook(self, mode: bool) -> None:
-        self.training_type_plugin.call_configure_sharded_model_hook = mode
-
-    @property
     def setup_optimizers_in_pre_dispatch(self) -> bool:
         """Override to delay setting optimizers and schedulers till after dispatch. This is useful when the
         `TrainingTypePlugin` requires operating on the wrapped accelerator model. However this may break certain

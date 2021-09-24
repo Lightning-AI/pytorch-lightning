@@ -297,12 +297,8 @@ class ModelHooks:
         where we'd like to shard the model instantly, which is useful for extremely large models which can save
         memory and initialization time.
 
-        The accelerator manages whether to call this hook at every given stage.
-        For sharded plugins where model parallelism is required, the hook is usually on called once
-        to initialize the sharded parameters, and not called again in the same process.
-
-        By default for accelerators/plugins that do not use model sharding techniques,
-        this hook is called during each fit/val/test/predict stages.
+        This hook is called during each of fit/val/test/predict stages in the same process, so ensure that
+        implementation of this hook is idempotent.
         """
 
 
