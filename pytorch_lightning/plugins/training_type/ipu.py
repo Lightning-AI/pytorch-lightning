@@ -106,10 +106,10 @@ class IPUPlugin(ParallelPlugin):
                 options["autoReport.directory"] = self.autoreport_dir
             os.environ["POPLAR_ENGINE_OPTIONS"] = json.dumps(options)
 
+    def setup(self) -> None:
         # set the `accumulate_grad_batches` property
         self._handle_gradient_accumulation_steps()
 
-    def setup(self) -> None:
         # patch the dataloader creation function with the custom `poptorch.DataLoader`.
         # this violates the intended control flow for the plugins, but since this is experimental, we have chosen
         # to use the simpler solution before adding abstractions to override the `DataLoader` class
