@@ -338,11 +338,20 @@ class Accelerator:
         return self.training_type_plugin.lightning_module_state_dict()
 
     def barrier(self, name: Optional[str] = None) -> None:
+        """
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.7.
+            Please call training_type_plugin.barrier directly
+        """
         self.training_type_plugin.barrier(name=name)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         """Broadcasts an object to all processes, such that the src object is broadcast to all other ranks if
         needed.
+
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.7.
+            Please call training_type_plugin.broadcast directly
 
         Args:
             obj: Object to broadcast to all process, usually a tensor or collection of tensors.
@@ -352,6 +361,10 @@ class Accelerator:
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Function to gather a tensor from several distributed processes.
+
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.7.
+            Please call training_type_plugin.all_gather directly
 
         Args:
             tensor: tensor of shape (batch, ...)
