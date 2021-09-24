@@ -1023,7 +1023,7 @@ def test_gradient_clipping_by_value(tmpdir, precision):
 
 
 def test_invalid_gradient_clip_value(tmpdir):
-    with pytest.raises(MisconfigurationException, match="`gradient_clip_value` should be an int or a float"):
+    with pytest.raises(MisconfigurationException, match="`gradient_clip_val` should be an int or a float"):
         Trainer(default_root_dir=tmpdir, gradient_clip_val=(1, 2))
 
 
