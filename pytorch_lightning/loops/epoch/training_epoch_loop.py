@@ -130,7 +130,7 @@ class TrainingEpochLoop(loops.Loop):
             StopIteration: When the epoch is canceled by the user returning -1
         """
         # used to jump to the validation_loop on `advance_end`.
-        if self.restarting and self._should_check_val_fx(self.batch_idx, self.is_last_batch):
+        if self.restarting and self._should_check_val_fx(self.batch_idx, self.batch_progress.is_last_batch):
             return
 
         batch_idx, (batch, is_last) = next(self.dataloader_iter)
