@@ -19,7 +19,6 @@ import torch
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
@@ -96,7 +95,6 @@ class IPUPlugin(ParallelPlugin):
         self.autoreport = autoreport
         self.autoreport_dir = autoreport_dir
         self.poptorch_models = {}
-        self._original_accumulate_grad_batches: Optional[int] = None
         self._training_opts = training_opts
         self._inference_opts = inference_opts
 
@@ -108,10 +106,10 @@ class IPUPlugin(ParallelPlugin):
                 options["autoReport.directory"] = self.autoreport_dir
             os.environ["POPLAR_ENGINE_OPTIONS"] = json.dumps(options)
 
-    def setup(self) -> None:
-        # set the `accumulate_grad_batches` property as early as possible
+        # set the `accumulate_grad_batches` property
         self._handle_gradient_accumulation_steps()
 
+    def setup(self) -> None:
         # patch the dataloader creation function with the custom `poptorch.DataLoader`.
         # this violates the intended control flow for the plugins, but since this is experimental, we have chosen
         # to use the simpler solution before adding abstractions to override the `DataLoader` class
@@ -150,7 +148,7 @@ class IPUPlugin(ParallelPlugin):
         opts = poptorch.Options()
         opts.deviceIterations(self.device_iterations)
         opts.replicationFactor(self.replication_factor)
-        gradient_accumulation = self.accumulate_grad_batches if training else 1
+        gradient_accumulation = self.lightning_module.trainer.accumulate_grad_batches if training else 1
         opts.Training.gradientAccumulation(gradient_accumulation)
 
         if os.environ.get("PL_GLOBAL_SEED"):
@@ -185,27 +183,21 @@ class IPUPlugin(ParallelPlugin):
         dataloader = poptorch.DataLoader(**dl_kwargs, options=opts)
         return dataloader
 
-    @property
-    def accumulate_grad_batches(self) -> int:
-        return self._original_accumulate_grad_batches
-
     def _handle_gradient_accumulation_steps(self) -> None:
         """Override the trainer.accumulation_scheduler to act as ``accumulate_grad_batches=1`` if gradient
         accumulation has been set.
 
         ``optimizer_step`` will be called on every batch, and the IPU will handle grad accumulation internally.
         """
-        accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
-        if not isinstance(accumulate_grad_batches, int):
+        accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
+
+        if accumulation_scheduler.epochs != [0]:
             raise MisconfigurationException(
-                "IPUs currently only support `Trainer.accumulate_grad_batches` being an integer."
-                f" Received {accumulate_grad_batches}"
+                "IPUs currently does not support different `accumulate_grad_batches` at different epoch."
             )
-        # save the original value which will be used to update the global step progress
-        self._original_accumulate_grad_batches = accumulate_grad_batches
-        if accumulate_grad_batches > 1:
-            # TODO(@tchaton): Add support for accumulate_grad_batches being a dictionary
-            self.lightning_module.trainer.accumulation_scheduler = GradientAccumulationScheduler({0: 1})
+
+        # TODO(@tchaton): Add support for accumulate_grad_batches being a dictionary
+        accumulation_scheduler.scheduling.update({0: 1})
 
     @property
     def _n_replicate(self):

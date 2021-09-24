@@ -158,6 +158,7 @@ class CallbackConnector:
             else:
                 model_summary = ModelSummary(max_depth=max_depth)
             self.trainer.callbacks.append(model_summary)
+            self.trainer.weights_summary = weights_summary
 
     def _configure_swa_callbacks(self):
         if not self.trainer._stochastic_weight_avg:
