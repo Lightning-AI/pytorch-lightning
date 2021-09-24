@@ -48,6 +48,8 @@ def test_lambda_call(tmpdir):
     )
     trainer.fit(model)
 
+    ckpt_path = trainer.checkpoint_callback.best_model_path
+
     # raises KeyboardInterrupt and loads from checkpoint
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -58,11 +60,8 @@ def test_lambda_call(tmpdir):
         limit_predict_batches=1,
         callbacks=[LambdaCallback(**hooks_args)],
     )
-    trainer.fit(model, ckpt_path=trainer.checkpoint_callback.best_model_path)
+    trainer.fit(model, ckpt_path=ckpt_path)
     trainer.test(model)
     trainer.predict(model)
 
-    # assert len(checker) == len(hooks)
-    # 47 == 48
     assert checker == hooks
-    # extra items in the right set: 'on_load_checkpoint'
