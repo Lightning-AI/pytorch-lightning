@@ -23,7 +23,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pl_examples.bug_report_model import RandomDataset
-from pytorch_lightning import Trainer
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loops import Loop, TrainingBatchLoop
 from pytorch_lightning.trainer.progress import BaseProgress
@@ -748,3 +748,158 @@ def test_fit_loop_reset(tmpdir):
     assert epoch_loop.batch_progress.current.completed == 3
 
     assert optimizer_loop.optim_progress.optimizer_position == 1
+
+
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+@RunIf(min_torch="1.7.0")
+@pytest.mark.parametrize(
+    ["train_datasets", "val_datasets"],
+    [([RandomDataset], [RandomDataset]), ([RandomDataset], [RandomDataset, RandomDataset])],
+)
+@pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
+def test_auto_restart_within_validation_loop(train_datasets, val_datasets, val_check_interval, tmpdir):
+    size, n_batches = 2, 4
+    stop_batch = 1
+    n_val_datasets = len(val_datasets)
+    stop_dataloader = n_val_datasets - 1
+    train_dataloaders = [DataLoader(cls(size, n_batches)) for cls in train_datasets]
+    val_dataloaders = [DataLoader(cls(size, n_batches)) for cls in val_datasets]
+
+    class TestModel(LightningModule):
+        def __init__(self, should_fail):
+            super().__init__()
+            self.layer = torch.nn.Linear(size, 2)
+            self.should_fail = should_fail
+
+        def step(self, batch):
+            return sum(self.layer(b).sum() for b in batch)
+
+        def training_step(self, batch, batch_idx):
+            return self.step(batch)
+
+        def validation_step(self, batch, batch_idx, dataloader_idx=0):
+            if self.should_fail and dataloader_idx == stop_dataloader and batch_idx == stop_batch:
+                raise CustomException
+            return self.step(batch)
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.layer.parameters(), lr=0.1)
+
+    model = TestModel(False)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        val_check_interval=val_check_interval,
+        num_sanity_val_steps=0,
+        progress_bar_refresh_rate=0,
+    )
+    trainer.fit(model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders)
+
+    ckpt_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+    assert not os.path.exists(ckpt_path), "Shouldn't have failed"
+    state_dict = trainer.fit_loop.state_dict()
+    expected_global_step = trainer.global_step
+
+    assert state_dict["epoch_loop.batch_progress"] == {
+        "total": {"ready": n_batches, "started": n_batches, "processed": n_batches, "completed": n_batches},
+        "current": {"ready": n_batches, "started": n_batches, "processed": n_batches, "completed": n_batches},
+        "is_last_batch": True,
+    }
+
+    val_per_epoch = int(1 // val_check_interval)
+    assert state_dict["epoch_loop.val_loop.dataloader_progress"] == {
+        "total": {"ready": n_val_datasets * val_per_epoch, "completed": n_val_datasets * val_per_epoch},
+        "current": {"ready": n_val_datasets, "completed": n_val_datasets},
+    }
+
+    assert state_dict["epoch_loop.val_loop.epoch_loop.batch_progress"] == {
+        "total": {
+            "ready": n_val_datasets * val_per_epoch * n_batches,
+            "started": n_val_datasets * val_per_epoch * n_batches,
+            "processed": n_val_datasets * val_per_epoch * n_batches,
+            "completed": n_val_datasets * val_per_epoch * n_batches,
+        },
+        "current": {"ready": n_batches, "completed": n_batches, "started": n_batches, "processed": n_batches},
+    }
+
+    model = TestModel(True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        val_check_interval=val_check_interval,
+        num_sanity_val_steps=0,
+        progress_bar_refresh_rate=0,
+    )
+    with pytest.raises(CustomException):
+        # will stop during validation
+        trainer.fit(model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders)
+
+    assert os.path.exists(ckpt_path)
+    checkpoint = torch.load(ckpt_path)["loops"]["fit_loop"]
+
+    per_val_train_batches = int(n_batches * val_check_interval)
+    assert checkpoint["epoch_loop.batch_progress"] == {
+        "total": {
+            "ready": per_val_train_batches,
+            "started": per_val_train_batches,
+            "processed": per_val_train_batches,
+            "completed": per_val_train_batches,
+        },
+        "current": {
+            "ready": per_val_train_batches,
+            "started": per_val_train_batches,
+            "processed": per_val_train_batches,
+            "completed": per_val_train_batches,
+        },
+        "is_last_batch": val_check_interval == 1,
+    }
+
+    val_batch_progress = "epoch_loop.val_loop.epoch_loop.batch_progress"
+    # "nb_": non-breaking
+    nb_total_val_batch = stop_dataloader * n_batches
+    assert checkpoint[val_batch_progress] == {
+        "total": {
+            "ready": nb_total_val_batch + stop_batch + 1,
+            "started": nb_total_val_batch + stop_batch + 1,
+            "processed": nb_total_val_batch + stop_batch,
+            "completed": nb_total_val_batch + stop_batch,
+        },
+        "current": {
+            "ready": stop_batch + 1,
+            "started": stop_batch + 1,
+            "processed": stop_batch,
+            "completed": stop_batch,
+        },
+    }
+
+    model = TestModel(False)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        val_check_interval=val_check_interval,
+        num_sanity_val_steps=0,
+        resume_from_checkpoint=ckpt_path,
+        progress_bar_refresh_rate=0,
+    )
+    trainer.fit(model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders)
+
+    # TODO: -1 because there's a bug where global step is off by one on reload
+    assert trainer.global_step - 1 == expected_global_step
+
+    state_dict_after_restart = trainer.fit_loop.state_dict()
+
+    # should get the same values as in the run that did not fail
+    # totals are increased by 1 (the failed batch which never completed)
+    expected = state_dict.copy()
+
+    # TODO: `is_last_batch` is not correct on reload, the next line should not be necessary
+    expected["epoch_loop.batch_progress"]["is_last_batch"] = val_check_interval == 1.0
+    assert state_dict_after_restart["epoch_loop.batch_progress"] == expected["epoch_loop.batch_progress"]
+
+    val_dl_progress = "epoch_loop.val_loop.dataloader_progress"
+    expected[val_dl_progress]["total"]["ready"] += 1
+    assert state_dict_after_restart[val_dl_progress] == expected[val_dl_progress]
+
+    expected[val_batch_progress]["total"]["ready"] += 1
+    expected[val_batch_progress]["total"]["started"] += 1
+    assert state_dict_after_restart[val_batch_progress] == expected[val_batch_progress]
