@@ -37,7 +37,7 @@ if _OMEGACONF_AVAILABLE:
 class CheckpointConnector:
     def __init__(self, trainer: "pl.Trainer", resume_from_checkpoint: Optional[_PATH] = None) -> None:
         self.trainer = trainer
-        self.resume_checkpoint_path = None
+        self.resume_checkpoint_path: Optional[_PATH] = None
         if resume_from_checkpoint is not None:
             rank_zero_deprecation(
                 "Setting `Trainer(resume_from_checkpoint=)` is deprecated in v1.5 and"

@@ -741,7 +741,6 @@ def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
     trainer.fit(model)
 
     trainer_fn = getattr(trainer, fn)
-    # path_attr = f"{fn}{'d' if fn == 'validate' else 'ed'}_ckpt_path"
     assert trainer.resume_checkpoint_path is None
 
     if ckpt_path == "best":
