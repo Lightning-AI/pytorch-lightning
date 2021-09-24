@@ -14,9 +14,7 @@
 
 import os
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional
-
-from torch.utils.data import DataLoader
+from typing import Any, Callable, Optional
 
 import pytorch_lightning as pl
 
@@ -41,38 +39,3 @@ class InternalDebugger:
     def __init__(self, trainer: "pl.Trainer") -> None:
         self.enabled = os.environ.get("PL_DEV_DEBUG", "0") == "1"
         self.trainer = trainer
-        self.train_dataloader_calls: List[Dict[str, Any]] = []
-        self.val_dataloader_calls: List[Dict[str, Any]] = []
-        self.test_dataloader_calls: List[Dict[str, Any]] = []
-        self.dataloader_sequence_calls: List[Dict[str, Any]] = []
-
-    @enabled_only
-    def track_load_dataloader_call(self, name: str, dataloaders: List[DataLoader]) -> None:
-        loader_counts = len(dataloaders)
-
-        lengths = []
-        for dl in dataloaders:
-            try:
-                length = len(dl)
-            # todo: specify the possible exception
-            except Exception:
-                length = -1
-            lengths.append(length)
-
-        values = {
-            "global_step": self.trainer.global_step,
-            "epoch": self.trainer.current_epoch,
-            "num_loaders": loader_counts,
-            "lengths": lengths,
-            "name": name,
-        }
-
-        # track the sequence in case we need to verify the sequence
-        self.dataloader_sequence_calls.append(values)
-
-        if "train" in name:
-            self.train_dataloader_calls.append(values)
-        elif "val" in name:
-            self.val_dataloader_calls.append(values)
-        elif "test" in name:
-            self.test_dataloader_calls.append(values)
