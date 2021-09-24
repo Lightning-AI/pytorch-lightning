@@ -137,7 +137,7 @@ class TrainingTypePlugin(ABC):
             group: the process group to gather results from
             sync_grads: flag that allows users to synchronize gradients for all_gather op
 
-        Returns: 
+        Returns:
             a tensor (torch distributed) or a list of tensor (horovod)
         """
 
