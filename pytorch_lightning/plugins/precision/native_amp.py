@@ -55,7 +55,8 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
                 " To request, please file a Github issue in PyTorch and tag @mcarilli"
             )
         result = lambda_closure()  # native amp does not support closures
-        self.scaler.unscale_(optimizer)
+        if not model.automatic_optimization:
+            self.scaler.unscale_(optimizer)
         super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
         skipped_backward = result is None
         # in manual optimization, the closure does not return a value
@@ -64,6 +65,16 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             self.scaler.step(optimizer)
             self.scaler.update()
         return False
+
+    def post_backward(
+        self, model: "pl.LightningModule", closure_loss: torch.Tensor, optimizer: Optimizer
+    ) -> torch.Tensor:
+        ret_val = super().post_backward(model, closure_loss, optimizer)
+        # unscale here to have it inside the closure before the grad tracking and clipping
+        if model.automatic_optimization and not model.trainer.fit_loop._should_accumulate():
+            self.scaler.unscale_(optimizer)
+        return ret_val
+
 
     @contextmanager
     def train_step_context(self) -> Generator[None, None, None]:

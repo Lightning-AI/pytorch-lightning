@@ -264,7 +264,7 @@ class Accelerator:
         """
         return self.training_type_plugin.validation_step_end(output)
 
-    def backward(self, closure_loss: Tensor, *args: Any, **kwargs: Any) -> Tensor:
+    def backward(self, closure_loss: Tensor, optimizer: torch.optim.Optimizer, *args: Any, **kwargs: Any) -> Tensor:
         """Forwards backward-calls to the precision plugin.
 
         Args:
@@ -273,9 +273,9 @@ class Accelerator:
         self.training_type_plugin.pre_backward(closure_loss)
         closure_loss = self.precision_plugin.pre_backward(self.lightning_module, closure_loss)
 
-        self.precision_plugin.backward(self.lightning_module, closure_loss, *args, **kwargs)
+        self.precision_plugin.backward(self.lightning_module, closure_loss, optimizer, *args, **kwargs)
 
-        closure_loss = self.precision_plugin.post_backward(self.lightning_module, closure_loss)
+        closure_loss = self.precision_plugin.post_backward(self.lightning_module, closure_loss, optimizer)
         self.training_type_plugin.post_backward(closure_loss)
 
         return closure_loss

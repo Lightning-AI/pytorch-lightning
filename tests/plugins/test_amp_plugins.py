@@ -18,7 +18,7 @@ from unittest import mock
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from tests.helpers import BoringModel
@@ -174,3 +174,40 @@ def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
     assert isinstance(trainer.precision_plugin, ApexMixedPrecisionPlugin)
     model = BoringModel()
     trainer.fit(model)
+
+
+class GradientUnscaleNativeAMPPlugin(NativeMixedPrecisionPlugin):
+    _was_scaled_finite = 0
+
+    def post_backward(self, model, closure_loss, optimizer) -> torch.Tensor:
+        norm_before = torch.nn.utils.clip_grad_norm_(model.parameters(), 2)
+        ret_val = super().post_backward(model, closure_loss, optimizer)
+        norm_after = torch.nn.utils.clip_grad_norm_(model.parameters(), 2)
+
+        # norm_after unscale should be smaller by scaling factor greater than 1
+        if not (torch.isinf(norm_before) or torch.isnan(norm_before)):
+            assert norm_after < norm_before
+            # during initial phase of finding the appropriate scaling, AMP skips optimizer steps that have
+            # non-finite gradients; we count and assert that we had at least one finite gradient here
+            self._was_scaled_finite += 1
+        return ret_val
+
+
+@RunIf(min_gpus=1, amp_native=True)
+def test_correct_native_grad_unscaling(tmpdir):
+    """Test that the gradient clipping gets applied at the appropriate place when using mixed precision plugins."""
+    seed_everything(42)
+    plugin = GradientUnscaleNativeAMPPlugin()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=4,
+        max_epochs=1,
+        precision=16,
+        amp_backend="native",
+        gpus=1,
+        plugins=plugin,
+    )
+    assert isinstance(trainer.precision_plugin, GradientUnscaleNativeAMPPlugin)
+    model = BoringModel()
+    trainer.fit(model)
+    assert plugin._was_scaled_finite
