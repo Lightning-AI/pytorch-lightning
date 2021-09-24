@@ -132,9 +132,6 @@ class TrainingTypePlugin(ABC):
             tensor: the tensor to all_gather
             group: the process group to gather results from
             sync_grads: flag that allows users to synchronize gradients for all_gather op
-
-        Returns:
-            a tensor (torch distributed) or a list of tensor (horovod)
         """
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
