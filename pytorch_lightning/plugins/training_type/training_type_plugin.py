@@ -114,7 +114,7 @@ class TrainingTypePlugin(ABC):
         """Synchronizes all processes which blocks processes until the whole group enters this function.
 
         Args:
-            name: a str pass into barrier. Only torch xla respect this param
+            name: an optional name to pass into barrier.
         """
 
     @abstractmethod
@@ -123,7 +123,7 @@ class TrainingTypePlugin(ABC):
 
         Args:
             obj: the object to broadcast
-            src: source rank.
+            src: source rank
         """
 
     @abstractmethod
@@ -137,7 +137,8 @@ class TrainingTypePlugin(ABC):
             group: the process group to gather results from
             sync_grads: flag that allows users to synchronize gradients for all_gather op
 
-        Returns: a tensor (torch distributed) or a list of tensor (horovod)
+        Returns: 
+            a tensor (torch distributed) or a list of tensor (horovod)
         """
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
