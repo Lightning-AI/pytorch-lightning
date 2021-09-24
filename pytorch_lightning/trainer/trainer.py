@@ -411,6 +411,9 @@ class Trainer(
         self.signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
+        # TODO: remove in v1.7
+        self._resume_from_checkpoint = resume_from_checkpoint
+
         # max_epochs won't default to 1000 if max_steps/max_time are specified (including being set to -1).
         fit_loop = FitLoop(
             min_epochs=(1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs),
@@ -619,6 +622,8 @@ class Trainer(
             model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
 
+        # TODO: ckpt_path only in v1.7
+        ckpt_path = ckpt_path or self._resume_from_checkpoint
         self._run(model, ckpt_path)
 
         assert self.state.stopped
@@ -1720,14 +1725,6 @@ class Trainer(
         """A list of all instances of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` found
         in the Trainer.callbacks list."""
         return [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
-
-    @property
-    def resume_from_checkpoint(self) -> Optional[Union[str, Path]]:
-        rank_zero_deprecation(
-            "`trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7."
-            " Use `trainer.resume_checkpoint_path` instead."
-        )
-        return self.resume_checkpoint_path
 
     @property
     def resume_checkpoint_path(self) -> Optional[Union[str, Path]]:

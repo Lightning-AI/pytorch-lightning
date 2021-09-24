@@ -36,7 +36,7 @@ if _OMEGACONF_AVAILABLE:
 class CheckpointConnector:
     def __init__(self, trainer: "pl.Trainer", resume_from_checkpoint: Optional[_PATH] = None) -> None:
         self.trainer = trainer
-        self.resume_checkpoint_path = resume_from_checkpoint
+        self.resume_checkpoint_path = None
         if resume_from_checkpoint is not None:
             rank_zero_deprecation(
                 "Setting `Trainer(resume_from_checkpoint=)` is deprecated in v1.5 and"
@@ -65,7 +65,7 @@ class CheckpointConnector:
         Raises:
             FileNotFoundError: If the path to the checkpoint file is provided but the file does not exist.
         """
-        self.resume_checkpoint_path = self.hpc_resume_path or self.resume_checkpoint_path or checkpoint_path
+        self.resume_checkpoint_path = self.hpc_resume_path or checkpoint_path
         checkpoint_path = self.resume_checkpoint_path
         if not checkpoint_path:
             return
@@ -111,7 +111,6 @@ class CheckpointConnector:
         Args:
             checkpoint_path: Path to a PyTorch Lightning checkpoint file.
         """
-        self.resume_checkpoint_path = checkpoint_path
         self.resume_start(checkpoint_path)
 
         # restore module states
