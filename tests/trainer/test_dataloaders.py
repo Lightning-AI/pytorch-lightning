@@ -1193,31 +1193,26 @@ def test_dataloaders_load_every_n_epochs(tmpdir, n):
         max_epochs=3,
     )
 
-    call_order = []
-    model.train_dataloader = MagicMock(
-        return_value=model.train_dataloader(), side_effect=(lambda *_, **__: call_order.append("train_dataloader"))
-    )
-    # trainer.reset_train_dataloader = Mock(
-    #    wraps=trainer.reset_train_dataloader, side_effect=(lambda *_, **__: call_order.append("train_dataloader"))
-    # )
-    trainer.reset_val_dataloader = Mock(
-        wraps=trainer.reset_val_dataloader, side_effect=(lambda *_, **__: call_order.append("val_dataloader"))
-    )
-    trainer.reset_test_dataloader = Mock(
-        wraps=trainer.reset_test_dataloader, side_effect=(lambda *_, **__: call_order.append("test_dataloader"))
-    )
+    tracker = Mock()
+    model.train_dataloader = Mock(wraps=model.train_dataloader)
+    model.val_dataloader = Mock(wraps=model.val_dataloader)
+    model.test_dataloader = Mock(wraps=model.test_dataloader)
+
+    tracker.attach_mock(model.train_dataloader, "train_dataloader")
+    tracker.attach_mock(model.val_dataloader, "val_dataloader")
+    tracker.attach_mock(model.test_dataloader, "test_dataloader")
 
     trainer.fit(model)
     trainer.test(model)
 
     # verify the sequence
-    expected_sequence = ["val_dataloader"]
+    expected_sequence = [call.val_dataloader()]
     if n == 1:
-        expected_sequence += ["train_dataloader", "val_dataloader"] * 3
+        expected_sequence += [call.train_dataloader(), call.val_dataloader()] * 3
     elif n == 2:
-        expected_sequence += ["train_dataloader", "val_dataloader"] * 2
-    expected_sequence += ["test_dataloader"]
-    assert call_order == expected_sequence
+        expected_sequence += [call.train_dataloader(), call.val_dataloader()] * 2
+    expected_sequence += [call.test_dataloader()]
+    assert tracker.mock_calls == expected_sequence
 
 
 @pytest.mark.parametrize("n", ["test", -1])
