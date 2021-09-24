@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.6.0."""
-from unittest.mock import Mock, call
+from unittest.mock import call, Mock
 
 import pytest
 

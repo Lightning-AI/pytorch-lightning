@@ -1289,18 +1289,9 @@ class Trainer(
         self.accelerator.barrier("post_setup")
 
     def _call_configure_sharded_model(self) -> None:
-        # Call configure sharded model hook if accelerator requests. In some cases
-        # we will not call the hook; the hook has initialized the sharded model for example.
-
-        # used on the model if the user re-create a trainer with resume_from_checkpoint
-        model = self.lightning_module
-        model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
-        if self.accelerator.call_configure_sharded_model_hook and not model_call_configure_sharded_model_hook:
-            with self.accelerator.model_sharded_context():
-                self.call_hook("configure_sharded_model")
-                self.call_hook("on_configure_sharded_model")
-            model.call_configure_sharded_model_hook = True
-            self.accelerator.call_configure_sharded_model_hook = False
+        with self.accelerator.model_sharded_context():
+            self.call_hook("configure_sharded_model")
+            self.call_hook("on_configure_sharded_model")
 
     def _call_teardown_hook(self) -> None:
         fn = self.state.fn._setup_fn

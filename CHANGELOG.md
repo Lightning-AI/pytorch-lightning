@@ -354,6 +354,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed `pytorch_lightning.utilities.debugging.InternalDebugger` ([#9680](https://github.com/PyTorchLightning/pytorch-lightning/pull/9680))
 
 
+- Removed `call_configure_sharded_model_hook` property from `Accelerator` and `TrainingTypePlugin` ([#9612](https://github.com/PyTorchLightning/pytorch-lightning/pull/9612))
+
+
 ### Fixed
 
 
