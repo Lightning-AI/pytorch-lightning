@@ -1275,33 +1275,40 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
     assert tracker.mock_calls == expected_calls
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_only_once_passed_loaders(tmpdir):
+    model = BoringModel()
+    train_dataloader = model.train_dataloader()
+    val_dataloader = model.val_dataloader()
+    test_dataloader = model.test_dataloader()
 
-    model = EvalModelTemplate()
-    train_loader = model.train_dataloader()
+    # delete dataloader methods on the model
     model.train_dataloader = None
-    val_loader = model.val_dataloader()
     model.val_dataloader = None
-    test_loader = model.test_dataloader()
     model.test_dataloader = None
 
-    # logger file to get meta
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=0.3, limit_val_batches=0.3, max_epochs=3)
-    trainer.fit(model, train_loader, val_loader)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
-    trainer.test(test_dataloaders=test_loader)
+    trainer.reset_train_dataloader = Mock(wraps=trainer.reset_train_dataloader)
+    trainer.reset_val_dataloader = Mock(wraps=trainer.reset_val_dataloader)
+    trainer.reset_test_dataloader = Mock(wraps=trainer.reset_test_dataloader)
 
-    assert len(trainer.dev_debugger.val_dataloader_calls) == 1
-    assert len(trainer.dev_debugger.test_dataloader_calls) == 1
-    assert len(trainer.dev_debugger.train_dataloader_calls) == 1
+    tracker = Mock()
+    tracker.attach_mock(trainer.reset_train_dataloader, "reset_train_dataloader")
+    tracker.attach_mock(trainer.reset_val_dataloader, "reset_val_dataloader")
+    tracker.attach_mock(trainer.reset_test_dataloader, "reset_test_dataloader")
 
-    # verify the sequence
-    calls = trainer.dev_debugger.dataloader_sequence_calls
-    expected_sequence = ["val_dataloader", "train_dataloader"]
-    for call, expected in zip(calls, expected_sequence):
-        assert call["name"] == expected
+    trainer.fit(model, train_dataloader, val_dataloader)
+    trainer.test(model, test_dataloaders=test_dataloader)
+
+    trainer.reset_train_dataloader.assert_called_once()
+    trainer.reset_val_dataloader.assert_called_once()
+    trainer.reset_test_dataloader.assert_called_once()
+
+    assert tracker.mock_calls == [
+        call.reset_val_dataloader(),
+        call.reset_train_dataloader(model=model),
+        call.reset_test_dataloader(),
+    ]
 
 
 def test_dataloaders_reset_and_attach(tmpdir):
