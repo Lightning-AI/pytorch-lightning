@@ -11,9 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, Union
+from typing import Union
 
-from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -27,7 +26,6 @@ class TrainingTricksConnector:
         gradient_clip_val: float,
         gradient_clip_algorithm: str,
         track_grad_norm: Union[int, float, str],
-        accumulate_grad_batches: Union[int, Dict[int, int]],
         terminate_on_nan: bool,
     ):
 
@@ -43,16 +41,3 @@ class TrainingTricksConnector:
         if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != "inf":
             raise MisconfigurationException("track_grad_norm can be an int, a float or 'inf' (infinity norm).")
         self.trainer.track_grad_norm = float(track_grad_norm)
-
-        # accumulated grads
-        self.trainer.accumulate_grad_batches = accumulate_grad_batches
-        self.configure_accumulated_gradients(accumulate_grad_batches)
-
-    def configure_accumulated_gradients(self, accumulate_grad_batches: Union[int, Dict[int, int]]) -> None:
-        if isinstance(accumulate_grad_batches, dict):
-            self.trainer.accumulation_scheduler = GradientAccumulationScheduler(accumulate_grad_batches)
-        elif isinstance(accumulate_grad_batches, int):
-            schedule = {0: accumulate_grad_batches}
-            self.trainer.accumulation_scheduler = GradientAccumulationScheduler(schedule)
-        else:
-            raise TypeError("Gradient accumulation supports only int and dict types")

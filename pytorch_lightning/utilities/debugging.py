@@ -13,12 +13,8 @@
 # limitations under the License.
 
 import os
-import time
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Union
-
-import torch
-from torch.utils.data import DataLoader
+from typing import Any, Callable, Optional
 
 import pytorch_lightning as pl
 
@@ -43,83 +39,3 @@ class InternalDebugger:
     def __init__(self, trainer: "pl.Trainer") -> None:
         self.enabled = os.environ.get("PL_DEV_DEBUG", "0") == "1"
         self.trainer = trainer
-        self.events: List[Dict[str, Any]] = []
-        self.saved_lr_scheduler_updates: List[Dict[str, Union[int, float, str, torch.Tensor, None]]] = []
-        self.train_dataloader_calls: List[Dict[str, Any]] = []
-        self.val_dataloader_calls: List[Dict[str, Any]] = []
-        self.test_dataloader_calls: List[Dict[str, Any]] = []
-        self.dataloader_sequence_calls: List[Dict[str, Any]] = []
-
-    @enabled_only
-    def track_event(
-        self,
-        evt_type: str,
-        evt_value: Any = None,
-        global_rank: Optional[int] = None,
-        local_rank: Optional[int] = None,
-        comment: str = "",
-    ) -> None:
-        self.events.append(
-            {
-                "timestamp": time.time(),
-                "event": evt_type,
-                "value": evt_value,
-                "global_rank": global_rank,
-                "local_rank": local_rank,
-                "comment": comment,
-            }
-        )
-
-    @enabled_only
-    def track_load_dataloader_call(self, name: str, dataloaders: List[DataLoader]) -> None:
-        loader_counts = len(dataloaders)
-
-        lengths = []
-        for dl in dataloaders:
-            try:
-                length = len(dl)
-            # todo: specify the possible exception
-            except Exception:
-                length = -1
-            lengths.append(length)
-
-        values = {
-            "global_step": self.trainer.global_step,
-            "epoch": self.trainer.current_epoch,
-            "num_loaders": loader_counts,
-            "lengths": lengths,
-            "name": name,
-        }
-
-        # track the sequence in case we need to verify the sequence
-        self.dataloader_sequence_calls.append(values)
-
-        if "train" in name:
-            self.train_dataloader_calls.append(values)
-        elif "val" in name:
-            self.val_dataloader_calls.append(values)
-        elif "test" in name:
-            self.test_dataloader_calls.append(values)
-
-    @enabled_only
-    def track_lr_schedulers_update(
-        self,
-        batch_idx: int,
-        interval: int,
-        scheduler_idx: int,
-        old_lr: float,
-        new_lr: float,
-        monitor_key: Optional[str] = None,
-        monitor_val: Optional[torch.Tensor] = None,
-    ) -> None:
-        loss_dict = {
-            "batch_idx": batch_idx,
-            "interval": interval,
-            "scheduler_idx": scheduler_idx,
-            "epoch": self.trainer.current_epoch,
-            "monitor_key": monitor_key,
-            "monitor_val": monitor_val,
-            "old_lr": old_lr,
-            "new_lr": new_lr,
-        }
-        self.saved_lr_scheduler_updates.append(loss_dict)
