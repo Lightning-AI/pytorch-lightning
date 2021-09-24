@@ -238,3 +238,7 @@ def test_v1_7_0_lightning_logger_base_close(tmpdir):
     ):
         logger = LoggerCollection([logger])
         logger.close()
+
+def test_v1_7_0_resume_from_checkpoint_trainer_constructor(tmpdir):
+    with pytest.deprecated_call(match=r"Setting `Trainer\(resume_from_checkpoint=\)` is deprecated in v1.5"):
+        _ = Trainer(resume_from_checkpoint="a")

@@ -37,6 +37,11 @@ class CheckpointConnector:
     def __init__(self, trainer: "pl.Trainer", resume_from_checkpoint: Optional[_PATH] = None) -> None:
         self.trainer = trainer
         self.resume_checkpoint_path = resume_from_checkpoint
+        if resume_from_checkpoint is not None:
+            rank_zero_deprecation(
+                "Setting `Trainer(resume_from_checkpoint=)` is deprecated in v1.5 and"
+                " will be removed in v1.7. Please pass `Trainer.fit(ckpt_path=)` directly instead."
+            )
         self._loaded_checkpoint: Dict[str, Any] = {}
 
     @property
@@ -50,7 +55,7 @@ class CheckpointConnector:
         """Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
 
         1. from HPC weights if found
-        2. from `resume_from_checkpoint` file if provided 
+        2. from `resume_from_checkpoint` file if provided
             .. deprecated:: v1.5
             `Trainer(resume_from_checkpoint=)` is deprecated in v1.5 and will be removed in v1.7.
             Please use `Trainer.fit(ckpt_path=)` instead.
@@ -155,20 +160,6 @@ class CheckpointConnector:
             for module in self.trainer.lightning_module.modules():
                 if isinstance(module, Metric):
                     module.reset()
-
-    def restore_model_weights(self, checkpoint_path: Optional[_PATH]) -> None:
-        """Restore only the model weights.
-
-        .. deprecated:: v1.5
-            This method is deprecated in v1.5 and will be removed in v1.7.
-            Please use `CheckpointConnector.restore_model` instead.
-        """
-        checkpoint = self._loaded_checkpoint
-        if checkpoint_path is not None:
-            checkpoint = self._load_and_validate_checkpoint(checkpoint_path)
-
-        self.trainer.lightning_module.on_load_checkpoint(checkpoint)
-        self.trainer.training_type_plugin.load_model_state_dict(checkpoint)
 
     def restore_training_state(self) -> None:
         """Restore the trainer state from the pre-loaded checkpoint.

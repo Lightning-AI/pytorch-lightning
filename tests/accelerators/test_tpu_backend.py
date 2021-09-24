@@ -62,9 +62,9 @@ def test_resume_training_on_cpu(tmpdir):
 
     # Verify that training is resumed on CPU
     trainer = Trainer(
-        resume_from_checkpoint=model_path, checkpoint_callback=True, max_epochs=1, default_root_dir=tmpdir
+        checkpoint_callback=True, max_epochs=1, default_root_dir=tmpdir
     )
-    trainer.fit(model)
+    trainer.fit(model, ckpt_path=model_path)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 

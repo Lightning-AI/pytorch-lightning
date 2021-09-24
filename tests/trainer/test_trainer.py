@@ -404,7 +404,7 @@ def test_model_freeze_unfreeze():
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
-def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
+def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Verify resuming from checkpoint runs the right number of epochs."""
     # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
     monkeypatch.setenv("TORCH_HOME", tmpdir)
@@ -455,8 +455,8 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         state = pl_load(ckpt)
 
         # Resume training
-        new_trainer = Trainer(default_root_dir=tmpdir, resume_from_checkpoint=ckpt, max_epochs=2)
-        new_trainer.fit(next_model)
+        new_trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)
+        new_trainer.fit(next_model, ckpt_path=ckpt)
         assert state["global_step"] + next_model.num_batches_seen == trainer.num_training_batches * trainer.max_epochs
         assert next_model.num_on_load_checkpoint_called == 1
 
@@ -1792,10 +1792,10 @@ def test_on_load_checkpoint_missing_callbacks(tmpdir):
     trainer.fit(model)
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=5, resume_from_checkpoint=chk.last_model_path, progress_bar_refresh_rate=1
+        default_root_dir=tmpdir, max_epochs=5, progress_bar_refresh_rate=1
     )
     with pytest.warns(UserWarning, match="CustomCallbackOnLoadCheckpoint"):
-        trainer.fit(model)
+        trainer.fit(model, ckpt_path=chk.last_model_path)
 
 
 def test_module_current_fx_attributes_reset(tmpdir):

@@ -270,7 +270,7 @@ class TrainerCallbackHookMixin(ABC):
         difference = callback_states.keys() - current_callbacks_keys
         if difference:
             rank_zero_warn(
-                "Be aware that when using `resume_from_checkpoint`,"
+                "Be aware that when using `ckpt_path`,"
                 " callbacks used to create the checkpoint need to be provided."
                 f" Please add the following callbacks: {list(difference)}.",
                 UserWarning,

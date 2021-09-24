@@ -104,7 +104,7 @@ class CustomClassificationModelDP(ClassificationModel):
         self.log("val_acc", self.valid_acc(outputs["logits"], outputs["y"]))
 
 
-def test_model_properties_resume_from_checkpoint(tmpdir):
+def test_model_properties_fit_ckpt_path(tmpdir):
     """Test that properties like `current_epoch` and `global_step` in model and trainer are always the same."""
     model = BoringModel()
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
@@ -120,17 +120,17 @@ def test_model_properties_resume_from_checkpoint(tmpdir):
     trainer.fit(model)
 
     trainer_args.update(max_epochs=2)
-    trainer = Trainer(**trainer_args, resume_from_checkpoint=str(tmpdir / "last.ckpt"))
-    trainer.fit(model)
+    trainer = Trainer(**trainer_args)
+    trainer.fit(model, ckpt_path=str(tmpdir / "last.ckpt"))
 
 
 def test_try_resume_from_non_existing_checkpoint(tmpdir):
-    """Test that trying to resume from non-existing `resume_from_checkpoint` fails with an error."""
+    """Test that trying to resume from non-existing `ckpt_path` fails with an error."""
     model = BoringModel()
-    trainer = Trainer(resume_from_checkpoint=str(tmpdir / "non_existing.ckpt"))
+    trainer = Trainer()
 
     with pytest.raises(FileNotFoundError, match="Aborting training"):
-        trainer.fit(model)
+        trainer.fit(model, ckpt_path=str(tmpdir / "non_existing.ckpt"))
 
 
 class CaptureCallbacksBeforeTraining(Callback):
@@ -140,7 +140,7 @@ class CaptureCallbacksBeforeTraining(Callback):
         self.callbacks = deepcopy(trainer.callbacks)
 
 
-def test_callbacks_state_resume_from_checkpoint(tmpdir):
+def test_callbacks_state_fit_ckpt_path(tmpdir):
     """Test that resuming from a checkpoint restores callbacks that persist state."""
     dm = ClassifDataModule()
     model = ClassificationModel()
@@ -165,8 +165,8 @@ def test_callbacks_state_resume_from_checkpoint(tmpdir):
     callbacks_before_resume = deepcopy(trainer.callbacks)
 
     # resumed training
-    trainer = Trainer(**get_trainer_args(), resume_from_checkpoint=str(tmpdir / "last.ckpt"))
-    trainer.fit(model, datamodule=dm)
+    trainer = Trainer(**get_trainer_args())
+    trainer.fit(model, datamodule=dm, ckpt_path=str(tmpdir / "last.ckpt"))
 
     assert len(callbacks_before_resume) == len(callback_capture.callbacks)
 
@@ -176,7 +176,7 @@ def test_callbacks_state_resume_from_checkpoint(tmpdir):
             assert before.best_model_score == after.best_model_score
 
 
-def test_callbacks_references_resume_from_checkpoint(tmpdir):
+def test_callbacks_references_fit_ckpt_path(tmpdir):
     """Test that resuming from a checkpoint sets references as expected."""
     dm = ClassifDataModule()
     model = ClassificationModel()
@@ -198,10 +198,10 @@ def test_callbacks_references_resume_from_checkpoint(tmpdir):
     new_checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
     # pass in a new checkpoint object, which should take
     # precedence over the one in the last.ckpt file
-    trainer = Trainer(**args, callbacks=[new_checkpoint], resume_from_checkpoint=str(tmpdir / "last.ckpt"))
+    trainer = Trainer(**args, callbacks=[new_checkpoint])
     assert checkpoint is not new_checkpoint
     assert new_checkpoint is trainer.callbacks[-1] is trainer.checkpoint_callback
-    trainer.fit(model, datamodule=dm)
+    trainer.fit(model, datamodule=dm, ckpt_path=str(tmpdir / "last.ckpt"))
 
 
 @RunIf(min_gpus=2)
