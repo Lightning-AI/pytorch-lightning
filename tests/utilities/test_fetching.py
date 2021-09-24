@@ -21,7 +21,7 @@ import torch
 from torch import tensor
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
-from pytorch_lightning import Callback, Trainer
+from pytorch_lightning import Callback, LightningDataModule, Trainer
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher, DataLoaderIterDataFetcher, InterBatchParallelDataFetcher
@@ -392,3 +392,45 @@ def test_tbptt_split_batch_overridden(tmpdir) -> None:
     m = InvalidModel()
     with pytest.raises(MisconfigurationException, match="is incompatible with `truncated_bptt_steps > 0`."):
         trainer.fit(m)
+
+
+@RunIf(min_gpus=1)
+def test_on_before_batch_transfer_with_unpacking(tmpdir):
+
+    """This test asserts the `on_before_batch_transfer` is called only once and data are properly moved to gpu."""
+
+    class RandomDictDataset(RandomDataset):
+        def __getitem__(self, index):
+            return {"x": self.data[index], "y_true": torch.ones((2,)), "other": torch.ones((1,))}
+
+    class BoringDataModule(LightningDataModule):
+
+        has_called_on_before_batch_transfer = False
+
+        def train_dataloader(self):
+            return DataLoader(RandomDictDataset(32, 2), batch_size=1)
+
+        def val_dataloader(self):
+            return DataLoader(RandomDictDataset(32, 2), batch_size=1)
+
+        def on_before_batch_transfer(self, batch, dataloader_idx: int):
+            self.has_called_on_before_batch_transfer = True
+            return batch["x"], batch["y_true"]
+
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            x, y_true = batch
+            output = self.layer(x)
+            loss = self.loss(y_true, output)
+            return {"loss": loss}
+
+        def validation_step(self, batch, batch_idx):
+            x, y_true = batch
+            output = self.layer(x)
+            loss = self.loss(y_true, output)
+            return {"x": loss}
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, num_sanity_val_steps=0, gpus=1)
+    dm = BoringDataModule()
+    trainer.fit(TestModel(), datamodule=dm)
+    assert dm.has_called_on_before_batch_transfer
