@@ -55,12 +55,8 @@ class CheckpointConnector:
         """Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
 
         1. from HPC weights if found
-        2. from `resume_from_checkpoint` file if provided
-            .. deprecated:: v1.5
-            `Trainer(resume_from_checkpoint=)` is deprecated in v1.5 and will be removed in v1.7.
-            Please use `Trainer.fit(ckpt_path=)` instead.
-        3. from `checkpoint_path` file if provided
-        4. don't restore
+        2. from `checkpoint_path` file if provided
+        3. don't restore
 
         Raises:
             FileNotFoundError: If the path to the checkpoint file is provided but the file does not exist.
