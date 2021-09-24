@@ -57,7 +57,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             )
             max_steps = -1
         elif max_steps < -1:
-            raise MisconfigurationException(f"`max_steps` must be a positive integer or -1. You passed in {max_steps}.")
+            raise MisconfigurationException(f"`max_steps` must be a non-negative integer or -1. You passed in {max_steps}.")
         self.max_steps: int = max_steps
 
         self.global_step: int = 0

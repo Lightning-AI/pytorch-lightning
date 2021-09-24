@@ -508,7 +508,7 @@ def test_trainer_max_steps_and_epochs_validation(max_epochs, max_steps, incorrec
     """Don't allow max_epochs or max_steps to be less than -1 or a float."""
     with pytest.raises(
         MisconfigurationException,
-        match=f"`{incorrect_variable}` must be a positive integer or -1. You passed in {incorrect_value}",
+        match=f"`{incorrect_variable}` must be a non-negative integer or -1. You passed in {incorrect_value}",
     ):
         Trainer(max_epochs=max_epochs, max_steps=max_steps)
 

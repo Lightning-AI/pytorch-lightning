@@ -49,7 +49,7 @@ class FitLoop(Loop):
         elif max_epochs < -1:
             # Allow max_epochs to be zero, since this will be handled by fit_loop.done
             raise MisconfigurationException(
-                f"`max_epochs` must be a positive integer or -1. You passed in {max_epochs}."
+                f"`max_epochs` must be a non-negative integer or -1. You passed in {max_epochs}."
             )
 
         self.max_epochs = max_epochs
@@ -121,7 +121,7 @@ class FitLoop(Loop):
             )
             value = -1
         elif value < -1:
-            raise MisconfigurationException(f"`max_steps` must be a positive integer or -1. You passed in {value}.")
+            raise MisconfigurationException(f"`max_steps` must be a non-negative integer or -1. You passed in {value}.")
         self.epoch_loop.max_steps = value
 
     @property
