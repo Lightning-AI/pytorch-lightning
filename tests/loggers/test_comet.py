@@ -15,6 +15,7 @@ import os
 from unittest.mock import DEFAULT, patch
 
 import pytest
+from torch import tensor
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import CometLogger
@@ -220,3 +221,14 @@ def test_comet_epoch_logging(comet, comet_experiment, tmpdir, monkeypatch):
     logger = CometLogger(project_name="test", save_dir=tmpdir)
     logger.log_metrics({"test": 1, "epoch": 1}, step=123)
     logger.experiment.log_metrics.assert_called_once_with({"test": 1}, epoch=1, step=123)
+
+
+@patch("pytorch_lightning.loggers.comet.CometExperiment")
+@patch("pytorch_lightning.loggers.comet.comet_ml")
+def test_comet_metrics_safe(comet, tmpdir, monkeypatch):
+    """Test that CometLogger.log_metrics doesn't do inplace modification of metrics."""
+    _patch_comet_atexit(monkeypatch)
+    logger = CometLogger(project_name="test", save_dir=tmpdir)
+    metrics = {"tensor": tensor([[1.0, 0.0], [0.0, 1.0]], requires_grad=True), "epoch": 1}
+    logger.log_metrics(metrics)
+    assert metrics["tensor"].requires_grad

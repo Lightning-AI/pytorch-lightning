@@ -47,7 +47,7 @@ class WeightSharingModule(BoringModel):
 @RunIf(tpu=True)
 @pl_multi_process_test
 def test_resume_training_on_cpu(tmpdir):
-    """Checks if training can be resumed from a saved checkpoint on CPU"""
+    """Checks if training can be resumed from a saved checkpoint on CPU."""
     # Train a model on TPU
     model = BoringModel()
     trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=8)
@@ -83,10 +83,7 @@ def test_if_test_works_after_train(tmpdir):
 @RunIf(tpu=True)
 @pl_multi_process_test
 def test_weight_tying_warning(tmpdir, capsys=None):
-    """
-    Ensure a warning is thrown if model parameter lengths do not match
-    post moving to device.
-    """
+    """Ensure a warning is thrown if model parameter lengths do not match post moving to device."""
 
     model = WeightSharingModule()
     trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=1)
@@ -98,8 +95,8 @@ def test_weight_tying_warning(tmpdir, capsys=None):
 @RunIf(tpu=True)
 @pl_multi_process_test
 def test_if_weights_tied(tmpdir, capsys=None):
-    """
-    Test if weights are properly tied on `on_post_move_to_device`.
+    """Test if weights are properly tied on `on_post_move_to_device`.
+
     Ensure no warning for parameter mismatch is thrown.
     """
 

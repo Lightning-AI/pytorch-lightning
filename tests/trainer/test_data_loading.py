@@ -27,7 +27,7 @@ from tests.helpers import BoringModel, RandomDataset
 @pytest.mark.skipif(
     sys.platform == "win32" and not _TORCH_GREATER_EQUAL_1_7, reason="Bad `torch.distributed` support on Windows"
 )
-@pytest.mark.parametrize("mode", (1, 2))
+@pytest.mark.parametrize("mode", (1, 2, 3))
 def test_replace_distributed_sampler(tmpdir, mode):
     class IndexedRandomDataset(RandomDataset):
         def __getitem__(self, index):
@@ -57,25 +57,31 @@ def test_replace_distributed_sampler(tmpdir, mode):
         def on_test_start(self) -> None:
             dataloader = self.trainer.test_dataloaders[0]
             assert isinstance(dataloader, CustomDataLoader)
-            assert dataloader.batch_size is None
-
             batch_sampler = dataloader.batch_sampler
-            assert isinstance(batch_sampler, CustomBatchSampler)
-            assert batch_sampler.batch_size == 1
+            if self._mode == 2:
+                assert isinstance(batch_sampler, CustomBatchSampler)
+                # the batch_size is set on the batch sampler
+                assert dataloader.batch_size is None
+            elif self._mode == 3:
+                assert type(batch_sampler) is BatchSampler
+                assert dataloader.batch_size == self._mode
+            assert batch_sampler.batch_size == self._mode
             assert batch_sampler.drop_last
+            # the sampler has been replaced
             assert isinstance(batch_sampler.sampler, DistributedSampler)
 
         def create_dataset(self):
             dataset = IndexedRandomDataset(32, 64)
-            batch_sampler = None
-            batch_size = 2
+            if self._mode == 1:
+                # this case will raise an error
+                return FailureCustomDataLoader(32, dataset)
             if self._mode == 2:
-                batch_size = 1
-                batch_sampler = CustomBatchSampler(SequentialSampler(dataset), batch_size=batch_size, drop_last=True)
-                dataloader_cls = CustomDataLoader
-            else:
-                dataloader_cls = FailureCustomDataLoader
-            return dataloader_cls(32, dataset, batch_size=batch_size, batch_sampler=batch_sampler)
+                # with a custom batch sampler
+                batch_sampler = CustomBatchSampler(SequentialSampler(dataset), batch_size=2, drop_last=True)
+                return CustomDataLoader(32, dataset, batch_sampler=batch_sampler)
+            elif self._mode == 3:
+                # with no batch sampler provided
+                return CustomDataLoader(32, dataset, batch_size=3, drop_last=True)
 
         def test_dataloader(self):
             return [self.create_dataset()] * self._numbers_test_dataloaders
@@ -185,7 +191,7 @@ def test_dataloaders_with_missing_keyword_arguments():
 
 
 def test_replace_sampler_with_multiprocessing_context():
-    """This test verifies that replace_sampler conserves multiprocessing context"""
+    """This test verifies that replace_sampler conserves multiprocessing context."""
     train = RandomDataset(32, 64)
     context = "spawn"
     train = DataLoader(train, batch_size=32, num_workers=2, multiprocessing_context=context, shuffle=True)
@@ -254,3 +260,62 @@ def test_dataloader_reinit_for_subclass():
     dataloader = CustomDataLoader(dataset, sampler=CustomSampler(dataset))
     with pytest.raises(MisconfigurationException, match="will be replaced  by `DistributedSampler`"):
         trainer.auto_add_sampler(dataloader, shuffle=True)
+
+
+def test_loader_detaching():
+    """Checks that the loader has been resetted after the entrypoint."""
+
+    class LoaderTestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            assert len(model.train_dataloader()) == 10
+            return super().training_step(batch, batch_idx)
+
+        def validation_step(self, batch, batch_idx):
+            assert len(model.val_dataloader()) == 10
+            return super().validation_step(batch, batch_idx)
+
+        def test_step(self, batch, batch_idx):
+            assert len(model.test_dataloader()) == 10
+            return super().test_step(batch, batch_idx)
+
+        def predict_step(self, batch, batch_idx, dataloader_idx=None):
+            assert len(model.predict_dataloader()) == 10
+            return super().predict_step(batch, batch_idx, dataloader_idx=dataloader_idx)
+
+    loader = DataLoader(RandomDataset(32, 10), batch_size=1)
+
+    model = LoaderTestModel()
+
+    assert len(model.train_dataloader()) == 64
+    assert len(model.val_dataloader()) == 64
+    assert len(model.predict_dataloader()) == 64
+    assert len(model.test_dataloader()) == 64
+
+    trainer = Trainer(fast_dev_run=1)
+    trainer.fit(model, loader, loader)
+
+    assert len(model.train_dataloader()) == 64
+    assert len(model.val_dataloader()) == 64
+    assert len(model.predict_dataloader()) == 64
+    assert len(model.test_dataloader()) == 64
+
+    trainer.validate(model, loader)
+
+    assert len(model.train_dataloader()) == 64
+    assert len(model.val_dataloader()) == 64
+    assert len(model.predict_dataloader()) == 64
+    assert len(model.test_dataloader()) == 64
+
+    trainer.predict(model, loader)
+
+    assert len(model.train_dataloader()) == 64
+    assert len(model.val_dataloader()) == 64
+    assert len(model.predict_dataloader()) == 64
+    assert len(model.test_dataloader()) == 64
+
+    trainer.test(model, loader)
+
+    assert len(model.train_dataloader()) == 64
+    assert len(model.val_dataloader()) == 64
+    assert len(model.predict_dataloader()) == 64
+    assert len(model.test_dataloader()) == 64

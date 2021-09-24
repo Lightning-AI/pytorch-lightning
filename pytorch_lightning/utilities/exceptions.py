@@ -14,12 +14,8 @@
 
 
 class MisconfigurationException(Exception):
-    """
-    Exception used to inform users of mis-use with PyTorch Lightning
-    """
+    """Exception used to inform users of mis-use with PyTorch Lightning."""
 
 
 class DeadlockDetectedException(Exception):
-    """
-    Exception used when a deadlock has been detected and processes are being killed
-    """
+    """Exception used when a deadlock has been detected and processes are being killed."""

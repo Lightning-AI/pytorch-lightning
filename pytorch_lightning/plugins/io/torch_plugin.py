@@ -11,23 +11,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
+import os
 from typing import Any, Callable, Dict, Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.cloud_io import atomic_save
+from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.types import _PATH
 
+log = logging.getLogger(__name__)
+
 
 class TorchCheckpointIO(CheckpointIO):
-    """
-    CheckpointIO that utilizes :func:`torch.save` and :func:`torch.load`
-     to save and load checkpoints respectively, common for most use cases.
-    """
+    """CheckpointIO that utilizes :func:`torch.save` and :func:`torch.load` to save and load checkpoints
+    respectively, common for most use cases."""
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
+        fs = get_filesystem(path)
+        fs.makedirs(os.path.dirname(path), exist_ok=True)
         try:
             # write the checkpoint dictionary on the file
             atomic_save(checkpoint, path)
@@ -42,8 +46,8 @@ class TorchCheckpointIO(CheckpointIO):
     def load_checkpoint(
         self, path: _PATH, map_location: Optional[Callable] = lambda storage, loc: storage
     ) -> Dict[str, Any]:
-        """
-        Loads checkpoint using :func:`torch.load`, with additional handling for ``fsspec`` remote loading of files.
+        """Loads checkpoint using :func:`torch.load`, with additional handling for ``fsspec`` remote loading of
+        files.
 
         Args:
             path: Path to checkpoint
@@ -51,5 +55,25 @@ class TorchCheckpointIO(CheckpointIO):
             locations.
 
         Returns: The loaded checkpoint.
+
+        Raises:
+            FileNotFoundError: If ``path`` is not found by the ``fsspec`` filesystem
         """
+
+        # Try to read the checkpoint at `path`. If not exist, do not restore checkpoint.
+        fs = get_filesystem(path)
+        if not fs.exists(path):
+            raise FileNotFoundError(f"Checkpoint at {path} not found. Aborting training.")
+
         return pl_load(path, map_location=map_location)
+
+    def remove_checkpoint(self, path: _PATH) -> None:
+        """Remove checkpoint file from the filesystem.
+
+        Args:
+            path: Path to checkpoint
+        """
+        fs = get_filesystem(path)
+        if fs.exists(path):
+            fs.rm(path, recursive=True)
+            log.debug(f"Removed checkpoint: {path}")

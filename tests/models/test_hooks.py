@@ -66,7 +66,7 @@ def test_training_epoch_end_metrics_collection(tmpdir):
     trainer = Trainer(max_epochs=num_epochs, default_root_dir=tmpdir, overfit_batches=2)
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    metrics = trainer.progress_bar_dict
+    metrics = trainer.progress_bar_callback.get_metrics(trainer, model)
 
     # metrics added in training step should be unchanged by epoch end method
     assert metrics["step_metric"] == -1
@@ -128,14 +128,14 @@ def test_apply_batch_transfer_handler(model_getter_mock):
         on_after_batch_transfer_hook_rank = None
 
         def on_before_batch_transfer(self, batch, dataloader_idx):
-            assert dataloader_idx is None
+            assert dataloader_idx == 0
             self.on_before_batch_transfer_hook_rank = self.rank
             self.rank += 1
             batch.samples += 1
             return batch
 
         def on_after_batch_transfer(self, batch, dataloader_idx):
-            assert dataloader_idx is None
+            assert dataloader_idx == 0
             assert batch.samples.device == batch.targets.device == expected_device
             self.on_after_batch_transfer_hook_rank = self.rank
             self.rank += 1
@@ -143,7 +143,7 @@ def test_apply_batch_transfer_handler(model_getter_mock):
             return batch
 
         def transfer_batch_to_device(self, batch, device, dataloader_idx):
-            assert dataloader_idx is None
+            assert dataloader_idx == 0
             self.transfer_batch_to_device_hook_rank = self.rank
             self.rank += 1
             batch.samples = batch.samples.to(device)
@@ -169,9 +169,7 @@ def test_apply_batch_transfer_handler(model_getter_mock):
 
 @RunIf(min_gpus=2, special=True)
 def test_transfer_batch_hook_ddp(tmpdir):
-    """
-    Test custom data are properly moved to the right device using ddp
-    """
+    """Test custom data are properly moved to the right device using ddp."""
 
     class CustomBatch:
         def __init__(self, data):
@@ -277,6 +275,7 @@ class HookedModel(BoringModel):
     def _auto_train_batch(trainer, model, batches, device=torch.device("cpu"), current_epoch=0, **kwargs):
         using_native_amp = kwargs.get("amp_backend") == "native"
         using_deepspeed = kwargs.get("plugins") == "deepspeed"
+        using_plugin = kwargs.get("amp_backend") or kwargs.get("plugins")
         out = []
         on_before_optimizer_step = [
             dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY, 0)),
@@ -292,10 +291,8 @@ class HookedModel(BoringModel):
                     dict(name="Callback.on_batch_start", args=(trainer, model)),
                     dict(name="Callback.on_train_batch_start", args=(trainer, model, ANY, i, 0)),
                     dict(name="on_train_batch_start", args=(ANY, i, 0)),
-                    # these are before the training step because
-                    # they are not part of the `training_step_and_backward` closure, however,
-                    # with native amp, the closure is run first and then the optimizer step.
-                    *(on_before_optimizer_step if not using_native_amp else []),
+                    # without a precision plugin, we execute the closure inside the `optimizer.step`
+                    *([] if using_plugin else on_before_optimizer_step),
                     dict(name="forward", args=(ANY,)),
                     dict(name="training_step", args=(ANY, i)),
                     dict(name="training_step_end", args=(dict(loss=ANY),)),
@@ -308,7 +305,7 @@ class HookedModel(BoringModel):
                     *([dict(name="backward", args=(ANY, ANY, 0))] if not using_deepspeed else []),
                     dict(name="Callback.on_after_backward", args=(trainer, model)),
                     dict(name="on_after_backward"),
-                    *(on_before_optimizer_step if using_native_amp else []),
+                    *(on_before_optimizer_step if using_plugin else []),
                     dict(
                         name="optimizer_step",
                         args=(current_epoch, i, ANY, 0, ANY),
@@ -324,6 +321,7 @@ class HookedModel(BoringModel):
     @staticmethod
     def _manual_train_batch(trainer, model, batches, device=torch.device("cpu"), **kwargs):
         using_deepspeed = kwargs.get("plugins") == "deepspeed"
+        using_plugin = kwargs.get("amp_backend") or kwargs.get("plugins")
         out = []
         for i in range(batches):
             out.extend(
@@ -344,8 +342,11 @@ class HookedModel(BoringModel):
                     dict(name="on_after_backward"),
                     # `manual_backward` calls the previous 3
                     dict(name="manual_backward", args=(ANY,)),
+                    *([dict(name="closure")] if using_plugin else []),
                     dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY, 0)),
                     dict(name="on_before_optimizer_step", args=(ANY, 0)),
+                    # without a precision plugin, we execute the closure inside the `optimizer.step`
+                    *([] if using_plugin else [dict(name="closure")]),
                     dict(name="training_step", args=(ANY, i)),
                     dict(name="training_step_end", args=(dict(loss=ANY),)),
                     dict(name="Callback.on_train_batch_end", args=(trainer, model, dict(loss=ANY), ANY, i, 0)),
@@ -441,7 +442,7 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
             opt = self.optimizers()
             opt.zero_grad()
             self.manual_backward(loss)
-            opt.step()
+            opt.step(lambda: called.append({"name": "closure"}))
             return {"loss": loss}
 
     model = TestModel(called)
@@ -767,9 +768,7 @@ def test_trainer_model_hook_system_predict(tmpdir):
 
 
 def test_hooks_with_different_argument_names(tmpdir):
-    """
-    Test that argument names can be anything in the hooks
-    """
+    """Test that argument names can be anything in the hooks."""
 
     class CustomBoringModel(BoringModel):
         def assert_args(self, x, batch_nb):

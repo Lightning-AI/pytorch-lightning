@@ -15,13 +15,12 @@ import torch
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.trainer.states import RunningStage
 from tests.base import EvalModelTemplate
 
 
 def test_num_training_batches(tmpdir):
-    """
-    Tests that the correct number of batches are allocated
-    """
+    """Tests that the correct number of batches are allocated."""
     # when we have fewer batches in the dataloader we should use those instead of the limit
     model = EvalModelTemplate()
     trainer = Trainer(limit_val_batches=100, limit_train_batches=100, max_epochs=1, default_root_dir=tmpdir)
@@ -107,7 +106,7 @@ def test_overfit_batch_limits(tmpdir):
     # ------------------------------------------------------
     # run tests for both val and test
     # ------------------------------------------------------
-    for split in ["val", "test"]:
+    for split in (RunningStage.VALIDATING, RunningStage.TESTING):
 
         # ------------------------------------------------------
         # test overfit_batches as percent
@@ -134,7 +133,7 @@ def test_overfit_batch_limits(tmpdir):
         # ------------------------------------------------------
         # test limit_xxx_batches as percent AND int
         # ------------------------------------------------------
-        if split == "val":
+        if split == RunningStage.VALIDATING:
             loader_num_batches, dataloaders = Trainer(limit_val_batches=0.1)._reset_eval_dataloader(split, model=model)
             assert loader_num_batches[0] == int(0.1 * len(val_loader))
 

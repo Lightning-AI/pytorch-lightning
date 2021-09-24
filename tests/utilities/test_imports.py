@@ -16,7 +16,7 @@ from pytorch_lightning.utilities import _module_available
 
 
 def test_module_exists():
-    """Test if the some 3rd party libs are available"""
+    """Test if the some 3rd party libs are available."""
     assert _module_available("torch")
     assert _module_available("torch.nn.parallel")
     assert not _module_available("torch.nn.asdf")

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Enumerated utilities"""
+"""Enumerated utilities."""
 from enum import Enum
 from typing import List, Optional, Union
 
@@ -49,8 +49,31 @@ class AMPType(LightningEnum):
     NATIVE = "native"
 
 
+class PrecisionType(LightningEnum):
+    """Type of precision used.
+
+    >>> PrecisionType.HALF == 16
+    True
+    >>> PrecisionType.HALF in (16, "16")
+    True
+    """
+
+    HALF = "16"
+    FLOAT = "32"
+    FULL = "64"
+    BFLOAT = "bf16"
+
+    @staticmethod
+    def supported_type(precision: Union[str, int]) -> bool:
+        return any(x == precision for x in PrecisionType)
+
+    @staticmethod
+    def supported_types() -> List[str]:
+        return [x.value for x in PrecisionType]
+
+
 class DistributedType(LightningEnum):
-    """Define type of ditributed computing.
+    """Define type of distributed computing.
 
     >>> # you can match the type with string
     >>> DistributedType.DDP == 'ddp'
@@ -62,7 +85,7 @@ class DistributedType(LightningEnum):
 
     @staticmethod
     def interactive_compatible_types() -> List["DistributedType"]:
-        """Returns a list containing interactive compatible DistributeTypes"""
+        """Returns a list containing interactive compatible DistributeTypes."""
         return [
             DistributedType.DP,
             DistributedType.DDP_SPAWN,
@@ -71,7 +94,7 @@ class DistributedType(LightningEnum):
         ]
 
     def is_interactive_compatible(self) -> bool:
-        """Returns whether self is interactive compatible"""
+        """Returns whether self is interactive compatible."""
         return self in DistributedType.interactive_compatible_types()
 
     DP = "dp"
@@ -121,8 +144,38 @@ class GradClipAlgorithmType(LightningEnum):
 
 
 class AutoRestartBatchKeys(LightningEnum):
-    """
-    Defines special dictionary keys used to track sampler progress with multiple workers.
+    """Defines special dictionary keys used to track captured dataset state with multiple workers."""
+
+    PL_RESTART_META = "__pl_restart_meta"
+
+
+class ModelSummaryMode(LightningEnum):
+    # TODO: remove in v1.6 (as `mode` would be deprecated for `max_depth`)
+    """Define the Model Summary mode to be used.
+
+    Can be one of
+        - `top`: only the top-level modules will be recorded (the children of the root module)
+        - `full`: summarizes all layers and their submodules in the root module
+
+    >>> # you can match the type with string
+    >>> ModelSummaryMode.TOP == 'TOP'
+    True
+    >>> # which is case invariant
+    >>> ModelSummaryMode.TOP in ('top', 'FULL')
+    True
     """
 
-    PL_SAMPLERS = "__pl_samplers"
+    TOP = "top"
+    FULL = "full"
+
+    @staticmethod
+    def get_max_depth(mode: str) -> int:
+        if mode == ModelSummaryMode.TOP:
+            return 1
+        if mode == ModelSummaryMode.FULL:
+            return -1
+        raise ValueError(f"`mode` can be {', '.join(list(ModelSummaryMode))}, got {mode}.")
+
+    @staticmethod
+    def supported_types() -> List[str]:
+        return [x.value for x in ModelSummaryMode]

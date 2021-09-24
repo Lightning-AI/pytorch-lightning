@@ -43,8 +43,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
     ):
-        """
-        Plugin for Fully Sharded Data Parallel provided by FairScale.
+        """Plugin for Fully Sharded Data Parallel provided by FairScale.
 
         Full Sharded Training shards the entire model across all available GPUs, allowing you to scale model
         size, whilst using efficient communication to reduce overhead. In practice, this means we can remain
@@ -141,17 +140,6 @@ class DDPFullyShardedPlugin(DDPPlugin):
             state_dict_device=self.state_dict_device,
         ):
             yield
-
-    def setup_environment(self) -> None:
-        super().setup_environment()
-        model_call_configure_sharded_model_hook = getattr(
-            self.lightning_module, "call_configure_sharded_model_hook", False
-        )
-        if not model_call_configure_sharded_model_hook:
-            # if model has not called configure sharded model, we reset
-            # the training type plugin's call_configure_sharded_model_hook
-            # to give trainer a chance to configure.
-            self.call_configure_sharded_model_hook = True
 
     def configure_ddp(self) -> None:
         if not self.cpu_offload:

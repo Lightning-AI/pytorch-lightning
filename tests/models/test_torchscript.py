@@ -22,7 +22,6 @@ from fsspec.implementations.local import LocalFileSystem
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import BasicGAN, ParityModuleRNN
-from tests.helpers.datamodules import MNISTDataModule
 from tests.helpers.runif import RunIf
 
 
@@ -47,7 +46,7 @@ def test_torchscript_input_output(modelclass):
 
 @pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
 def test_torchscript_example_input_output_trace(modelclass):
-    """Test that traced LightningModule forward works with example_input_array"""
+    """Test that traced LightningModule forward works with example_input_array."""
     model = modelclass()
 
     if isinstance(model, BoringModel):
@@ -65,7 +64,7 @@ def test_torchscript_example_input_output_trace(modelclass):
 
 
 def test_torchscript_input_output_trace():
-    """Test that traced LightningModule forward works with example_inputs"""
+    """Test that traced LightningModule forward works with example_inputs."""
     model = BoringModel()
     example_inputs = torch.randn(1, 32)
     script = model.to_torchscript(example_inputs=example_inputs, method="trace")
@@ -106,12 +105,10 @@ def test_torchscript_retain_training_state():
 
 
 @pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
-def test_torchscript_properties(tmpdir, modelclass):
+def test_torchscript_properties(modelclass):
     """Test that scripted LightningModule has unnecessary methods removed."""
     model = modelclass()
-    model.datamodule = MNISTDataModule(tmpdir)
     script = model.to_torchscript()
-    assert not hasattr(script, "datamodule")
     assert not hasattr(model, "batch_size") or hasattr(script, "batch_size")
     assert not hasattr(model, "learning_rate") or hasattr(script, "learning_rate")
     assert not callable(getattr(script, "training_step", None))
@@ -151,7 +148,7 @@ def test_torchscript_save_load_custom_filesystem(tmpdir, modelclass):
 
 
 def test_torchcript_invalid_method(tmpdir):
-    """Test that an error is thrown with invalid torchscript method"""
+    """Test that an error is thrown with invalid torchscript method."""
     model = BoringModel()
     model.train(True)
 
@@ -160,7 +157,7 @@ def test_torchcript_invalid_method(tmpdir):
 
 
 def test_torchscript_with_no_input(tmpdir):
-    """Test that an error is thrown when there is no input tensor"""
+    """Test that an error is thrown when there is no input tensor."""
     model = BoringModel()
     model.example_input_array = None
 

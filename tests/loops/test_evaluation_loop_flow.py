@@ -11,9 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Tests the evaluation loop
-"""
+"""Tests the evaluation loop."""
 
 import torch
 
@@ -24,9 +22,7 @@ from tests.helpers.deterministic_model import DeterministicModel
 
 
 def test__eval_step__flow(tmpdir):
-    """
-    Tests that only training_step can be used
-    """
+    """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
         def training_step(self, batch, batch_idx):
@@ -68,26 +64,25 @@ def test__eval_step__flow(tmpdir):
     # simulate training manually
     trainer.state.stage = RunningStage.TRAINING
     batch_idx, batch = 0, next(iter(model.train_dataloader()))
-    out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx, 0)
+    out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx)
     assert out.signal == 0
 
     train_step_out = out.training_step_output
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out.minimize, torch.Tensor)
-    assert train_step_out.minimize.item() == 171
+    assert isinstance(train_step_out["loss"], torch.Tensor)
+    assert train_step_out["loss"].item() == 171
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.fit_loop.epoch_loop.batch_loop.training_step_and_backward(
-        batch, batch_idx, 0, trainer.optimizers[0], hiddens=None
+    opt_closure = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._make_closure(
+        batch, batch_idx, 0, trainer.optimizers[0]
     )
-    assert opt_closure_result["loss"].item() == 171
+    opt_closure_result = opt_closure()
+    assert opt_closure_result.item() == 171
 
 
 def test__eval_step__eval_step_end__flow(tmpdir):
-    """
-    Tests that only training_step can be used
-    """
+    """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
         def training_step(self, batch, batch_idx):
@@ -134,26 +129,25 @@ def test__eval_step__eval_step_end__flow(tmpdir):
     trainer.state.stage = RunningStage.TRAINING
     # make sure training outputs what is expected
     batch_idx, batch = 0, next(iter(model.train_dataloader()))
-    out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx, 0)
+    out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx)
     assert out.signal == 0
 
     train_step_out = out.training_step_output
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out.minimize, torch.Tensor)
-    assert train_step_out.minimize.item() == 171
+    assert isinstance(train_step_out["loss"], torch.Tensor)
+    assert train_step_out["loss"].item() == 171
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.fit_loop.epoch_loop.batch_loop.training_step_and_backward(
-        batch, batch_idx, 0, trainer.optimizers[0], hiddens=None
+    opt_closure = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._make_closure(
+        batch, batch_idx, 0, trainer.optimizers[0]
     )
-    assert opt_closure_result["loss"].item() == 171
+    opt_closure_result = opt_closure()
+    assert opt_closure_result.item() == 171
 
 
 def test__eval_step__epoch_end__flow(tmpdir):
-    """
-    Tests that only training_step can be used
-    """
+    """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
         def training_step(self, batch, batch_idx):
@@ -206,9 +200,7 @@ def test__eval_step__epoch_end__flow(tmpdir):
 
 
 def test__validation_step__step_end__epoch_end__flow(tmpdir):
-    """
-    Tests that only training_step can be used
-    """
+    """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
         def training_step(self, batch, batch_idx):

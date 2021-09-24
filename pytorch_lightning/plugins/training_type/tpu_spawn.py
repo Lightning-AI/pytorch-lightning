@@ -35,7 +35,7 @@ from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_env_vars as xenv
@@ -164,7 +164,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         results = trainer.run_stage()
 
-        self.transfer_distrib_spawn_state_on_fit_end(results)
+        self.__transfer_distrib_spawn_state_on_fit_end(trainer, results)
 
         # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
         self.barrier("end-process")
@@ -184,8 +184,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.is_distributed:
             rendezvous(name)
 
-    def transfer_distrib_spawn_state_on_fit_end(self, results):
-        checkpoint_callback = self.lightning_module.trainer.checkpoint_callback
+    def __transfer_distrib_spawn_state_on_fit_end(self, trainer: "pl.Trainer", results: Any) -> None:
+        checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
         # requires to compute the state_dict on all processes in case Metrics are present
@@ -196,11 +196,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
             # save the last weights
             last_path = None
-            if (
-                self.lightning_module.trainer.state.fn == TrainerFn.FITTING
-                and best_model_path is not None
-                and len(best_model_path) > 0
-            ):
+            if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
                 self.save(state_dict, last_path)
 
@@ -211,7 +207,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 self.mp_queue.put(results)
                 self.lightning_module.add_to_queue(self.mp_queue)  # adds the `callback_metrics` to the queue
 
-    def save(self, state_dict: Dict, path: str) -> None:
+    def save(self, state_dict: Dict, path: _PATH) -> None:
         xm.save(state_dict, path)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
@@ -254,27 +250,26 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if trainer.logger is not None:
             trainer.logger.finalize("success")
 
-    @property
-    def xmp_spawn_kwargs(self):
+    def get_mp_spawn_kwargs(self, trainer: "pl.Trainer") -> dict:
         return {
-            "args": (self.lightning_module.trainer, self.mp_queue),
+            "args": (trainer, self.mp_queue),
             "nprocs": len(self.parallel_devices),
             "start_method": self.start_method,
         }
 
-    def start_training(self, trainer) -> None:
+    def start_training(self, trainer: "pl.Trainer") -> None:
         # todo: precision pluging is call in accelerator setup and should be moved
         if "XLA_USE_BF16" in os.environ:
             del os.environ["XLA_USE_BF16"]
         self._close_logger(trainer)
-        xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
+        xmp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
 
-    def start_evaluating(self, trainer) -> None:
+    def start_evaluating(self, trainer: "pl.Trainer") -> None:
         self._close_logger(trainer)
-        xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
+        xmp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
 
-    def start_predicting(self, trainer) -> None:
-        xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
+    def start_predicting(self, trainer: "pl.Trainer") -> None:
+        xmp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
 
     def training_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
@@ -308,7 +303,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.tpu_global_core_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
             print()
 
-    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: _PATH) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:

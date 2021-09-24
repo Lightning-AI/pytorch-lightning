@@ -55,7 +55,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Run before precision plugin executes backward
+        """Run before precision plugin executes backward.
 
         Args:
             model: the model to be optimized
@@ -68,7 +68,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     @staticmethod
     def reinit_scheduler_properties(optimizers: Sequence[Optimizer], schedulers: Sequence[Any]) -> None:
-        """Reinitializes schedulers with correct properties"""
+        """Reinitializes schedulers with correct properties."""
         # Reinitialize optimizer.step properties added by schedulers
         for scheduler in schedulers:
             scheduler = scheduler["scheduler"]
@@ -97,10 +97,13 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         **kwargs: Any,
     ) -> bool:
         """Hook to do something before each optimizer step."""
+        result = lambda_closure()  # APEX amp does not support closures
         super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
-        # the following should be in a `optimizer_step` hook but we don't have one in the precision plugin.
-        lambda_closure()  # APEX amp does not support closures
-        optimizer.step(**kwargs)
+        skipped_backward = result is None
+        # in manual optimization, the closure does not return a value
+        if not model.automatic_optimization or not skipped_backward:
+            # the following should be in a `optimizer_step` hook but we don't have one in the precision plugin.
+            optimizer.step(**kwargs)
         return False
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:

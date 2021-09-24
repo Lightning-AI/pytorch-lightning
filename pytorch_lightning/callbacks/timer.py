@@ -36,9 +36,8 @@ class Interval(LightningEnum):
 
 
 class Timer(Callback):
-    """
-    The Timer callback tracks the time spent in the training, validation, and test loops and interrupts the Trainer
-    if the given time limit for the training loop is reached.
+    """The Timer callback tracks the time spent in the training, validation, and test loops and interrupts the
+    Trainer if the given time limit for the training loop is reached.
 
     Args:
         duration: A string in the format DD:HH:MM:SS (days, hours, minutes seconds), or a :class:`datetime.timedelta`,
@@ -158,7 +157,9 @@ class Timer(Callback):
     ) -> Dict[str, Any]:
         return {"time_elapsed": {stage.value: self.time_elapsed(stage) for stage in list(RunningStage)}}
 
-    def on_load_checkpoint(self, callback_state: Dict[str, Any]) -> None:
+    def on_load_checkpoint(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
+    ) -> None:
         time_elapsed = callback_state.get("time_elapsed", {})
         self._offset = time_elapsed.get(RunningStage.TRAINING.value, 0)
 
