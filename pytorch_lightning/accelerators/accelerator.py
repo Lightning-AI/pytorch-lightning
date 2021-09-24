@@ -340,7 +340,7 @@ class Accelerator:
     def barrier(self, name: Optional[str] = None) -> None:
         """
         .. deprecated:: v1.5
-            This method is deprecated in v1.5 and will be removed in v1.7.
+            This method is deprecated in v1.5 and will be removed in v1.6.
             Please call training_type_plugin.barrier directly
         """
         self.training_type_plugin.barrier(name=name)
@@ -350,7 +350,7 @@ class Accelerator:
         needed.
 
         .. deprecated:: v1.5
-            This method is deprecated in v1.5 and will be removed in v1.7.
+            This method is deprecated in v1.5 and will be removed in v1.6.
             Please call training_type_plugin.broadcast directly
 
         Args:
@@ -363,7 +363,7 @@ class Accelerator:
         """Function to gather a tensor from several distributed processes.
 
         .. deprecated:: v1.5
-            This method is deprecated in v1.5 and will be removed in v1.7.
+            This method is deprecated in v1.5 and will be removed in v1.6.
             Please call training_type_plugin.all_gather directly
 
         Args:
