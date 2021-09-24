@@ -80,7 +80,8 @@ class CallbackConnector:
             rank_zero_deprecation(
                 f"Setting `Trainer(progress_bar_refresh_rate={progress_bar_refresh_rate})` is deprecated in v1.5 and"
                 " will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.ProgressBar` with"
-                " `refresh_rate` directly to the Trainer's `callbacks` argument instead."
+                " `refresh_rate` directly to the Trainer's `callbacks` argument instead. Or, to disable the progress"
+                " bar pass `enable_progress_bar = False` to the Trainer."
             )
 
         if enable_progress_bar:
