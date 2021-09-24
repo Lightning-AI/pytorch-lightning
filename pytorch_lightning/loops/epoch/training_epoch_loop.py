@@ -74,14 +74,8 @@ class TrainingEpochLoop(loops.Loop):
         signals to stop (e.g. by early stopping).
         """
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
-        # done should be True only when `batch_loop` and `val_loop` are done.
-        should_check_val = self.restarting and self._should_check_val_fx(self.batch_idx, self.is_last_batch)
-        return (
-            max_steps_reached
-            or self.trainer.should_stop
-            or self._num_training_batches_reached()
-            and not should_check_val
-        )
+        is_done = max_steps_reached or self._num_training_batches_reached()
+        return (is_done and self.val_loop.done) or self.trainer.should_stop
 
     def connect(
         self,
@@ -106,7 +100,7 @@ class TrainingEpochLoop(loops.Loop):
         # track epoch output
         self._epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
 
-        if not self.restarting or (self._num_training_batches_reached() and self._val_loop_no_progress()):
+        if not self.restarting:
             self.batch_progress.reset_on_epoch()
             self.scheduler_progress.reset_on_epoch()
             self.batch_loop.optimizer_loop.optim_progress.reset_on_epoch()
@@ -382,6 +376,3 @@ class TrainingEpochLoop(loops.Loop):
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
-
-    def _val_loop_no_progress(self) -> bool:
-        return self.val_loop.no_progress
