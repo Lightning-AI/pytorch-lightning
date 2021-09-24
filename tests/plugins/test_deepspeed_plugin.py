@@ -603,7 +603,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir):
     run_checkpoint_test(tmpdir)
 
 
-@RunIf(min_gpus=1, deepspeed=True, special=True)
+@RunIf(min_gpus=1, deepspeed=True, special=False)
 def test_deepspeed_multigpu_stage_3_warns_resume_training(tmpdir):
     """Test to ensure with Stage 3 and multiple GPUs that we can resume from training, throwing a warning that the
     optimizer state and scheduler states cannot be restored."""
