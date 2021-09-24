@@ -327,3 +327,62 @@ Finally, a loop may return an output as part of ``run()``.
 As an example, the loop could return a list containing all results produced in each iteration (advance).
 
 Loops can also be nested! That is, a loop may call another one inside of its ``advance()``.
+
+
+Showcase: Active Learning Loop in Lightning Flash
+-------------------------------------------------
+
+`Lightning Flash <https://github.com/PyTorchLightning/lightning-flash>`__ is already using custom loops to implement new tasks!
+`Active Learning <https://en.wikipedia.org/wiki/Active_learning_(machine_learning)>`__ is a machine learning practice in which the user interacts with the learner in order to provide new labels when required.
+Flash implements the :code:`ActiveLearningLoop` that you can use together with the :code:`ActiveLearningDataModule` to label new data on-the-fly.
+To run the following demo, install Flash first:
+
+.. code-block:: bash
+
+    pip install lightning-flash
+
+.. code-block:: python
+
+    import torch
+
+    import flash
+    from flash.core.classification import Probabilities
+    from flash.core.data.utils import download_data
+    from flash.image import ImageClassificationData, ImageClassifier
+    from flash.image.classification.integrations.baal import ActiveLearningDataModule, ActiveLearningLoop
+
+    # 1. Create the DataModule
+    download_data("https://pl-flash-data.s3.amazonaws.com/hymenoptera_data.zip", "./data")
+
+    # Implement the research use-case where we mask labels from labelled dataset.
+    datamodule = ActiveLearningDataModule(
+        ImageClassificationData.from_folders(train_folder="data/hymenoptera_data/train/", batch_size=2),
+        val_split=0.1,
+    )
+
+    # 2. Build the task
+    head = torch.nn.Sequential(
+        torch.nn.Dropout(p=0.1),
+        torch.nn.Linear(512, datamodule.num_classes),
+    )
+    model = ImageClassifier(backbone="resnet18", head=head, num_classes=datamodule.num_classes, serializer=Probabilities())
+
+
+    # 3.1 Create the trainer
+    trainer = flash.Trainer(max_epochs=3)
+
+    # 3.2 Create the active learning loop and connect it to the trainer
+    active_learning_loop = ActiveLearningLoop(label_epoch_frequency=1)
+    active_learning_loop.connect(trainer.fit_loop)
+    trainer.fit_loop = active_learning_loop
+
+    # 3.3 Finetune
+    trainer.finetune(model, datamodule=datamodule, strategy="freeze")
+
+    # 4. Predict what's on a few images! ants or bees?
+    predictions = model.predict("data/hymenoptera_data/val/bees/65038344_52a45d090d.jpg")
+    print(predictions)
+
+    # 5. Save the model!
+    trainer.save_checkpoint("image_classification_model.pt")
+
