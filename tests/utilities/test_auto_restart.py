@@ -973,118 +973,90 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir, dataset_classes, mult
         assert torch.allclose(w0, w1)
 
 
-class ValidationLoopTestModel(LightningModule):
-    def __init__(self, fail_on_dataloader: int = -1, val_check_interval: float = 0.5):
-        super().__init__()
-        self.layer = torch.nn.Linear(1, 2)
-        self.training_seen_batches = []
-        self.validation_seen_batches = defaultdict(list)
-        self.fail_on_dataloader = fail_on_dataloader
-        self.failing_batch_idx: Optional[int] = None
-        self.failing_dataloader_int: Optional[int] = None
-        self.val_check_interval = val_check_interval
-
-    def training_step(self, batch, batch_idx):
-        batch = batch["data"] if isinstance(batch, dict) else batch
-        self.training_seen_batches.append(torch.stack(batch) if isinstance(batch, list) else batch)
-        loss = sum(self.layer(b).sum() for b in batch)
-        return loss
-
-    def validation_step(self, batch, batch_idx, dataloader_int: int = 0):
-        loss = sum(self.layer(b).sum() for b in batch)
-
-        if self.trainer.sanity_checking:
-            return loss
-
-        # failure on first batch of dataloader_idx once global_step is 1
-        if (
-            self.fail_on_dataloader >= 0
-            and self.fail_on_dataloader == dataloader_int
-            and batch_idx == 1
-            and (self.trainer.global_step == 3 if self.val_check_interval == 1.0 else self.trainer.global_step == 1)
-        ):
-            self.failing_batch_idx = batch_idx
-            self.failing_dataloader_int = dataloader_int
-            raise CustomException
-
-        self.validation_seen_batches[dataloader_int].append(batch)
-        return loss
-
-    def configure_optimizers(self):
-        return torch.optim.SGD(self.layer.parameters(), lr=0.1)
-
-
-def _run_validation_loop_fault_tolerance(
-    dataset_classes, tmpdir, val_check_interval, should_fail: bool = False, resume=False, dimension=(1, 4)
-):
-    if not resume:
-        seed_everything(42)
-
-    train_dataset_classes, validation_dataset_classes = dataset_classes
-    num_validation_loaders = len(validation_dataset_classes)
-    train_dataloader = [
-        DataLoader(dataset_class(*dimension), batch_size=1, num_workers=0) for dataset_class in train_dataset_classes
-    ]
-    val_dataloaders = [
-        DataLoader(dataset_class(*dimension), batch_size=1, num_workers=0)
-        for dataset_class in validation_dataset_classes
-    ]
-
-    # enable `num_sanity_val_steps=2`
-    trainer_kwargs = dict(
-        default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval, num_sanity_val_steps=0
-    )
-
-    if resume:
-        trainer_kwargs["resume_from_checkpoint"] = os.path.join(tmpdir, ".pl_auto_save.ckpt")
-
-    model_kwargs = dict(val_check_interval=val_check_interval)
-    if should_fail:
-        model_kwargs["fail_on_dataloader"] = num_validation_loaders - 1
-
-    model = ValidationLoopTestModel(**model_kwargs)
-    trainer = Trainer(**trainer_kwargs)
-    with suppress(CustomException):
-        trainer.fit(model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders)
-
-    return trainer, model.training_seen_batches, model.validation_seen_batches
-
-
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(min_torch="1.7.0")
 @pytest.mark.parametrize(
-    "dataset_classes",
+    ["train_datasets", "val_datasets"],
     [
-        [[RandomGetItemDataset], [RandomGetItemDataset]],
-        [[RandomGetItemDataset], [RandomGetItemDataset, RandomGetItemDataset]],
+        ([RandomGetItemDataset], [RandomGetItemDataset]),
+        ([RandomGetItemDataset], [RandomGetItemDataset, RandomGetItemDataset]),
     ],
 )
-@pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
-def test_auto_restart_within_validation_loop(dataset_classes, val_check_interval, tmpdir):
-    num_validation_loaders = len(dataset_classes[1])
+@pytest.mark.parametrize(
+    "val_check_interval",
+    [
+        pytest.param(
+            0.5,
+            marks=pytest.mark.xfail(
+                reason=(
+                    "TODO: the `train_dataloader` random state overrides the validation state when restarting training"
+                )
+            ),
+        ),
+        1.0,
+    ],
+)
+def test_auto_restart_within_validation_loop(train_datasets, val_datasets, val_check_interval, tmpdir):
+    n_val_dataloaders = len(val_datasets)
+    stop_dataloader = n_val_dataloaders - 1
+    stop_batch = 1
 
-    _, verif_train_batches, verif_valid_batches = _run_validation_loop_fault_tolerance(
-        dataset_classes, tmpdir, val_check_interval, dimension=(4, 1)
-    )
-    _, pre_fail_train_batches, pre_fail_valid_batches = _run_validation_loop_fault_tolerance(
-        dataset_classes, tmpdir, val_check_interval, should_fail=True, dimension=(4, 1)
-    )
-    _, post_fail_train_batches, post_fail_valid_batches = _run_validation_loop_fault_tolerance(
-        dataset_classes, tmpdir, val_check_interval, resume=True, dimension=(4, 1)
-    )
+    class ValidationLoopTestModel(LightningModule):
+        def __init__(self, should_fail):
+            super().__init__()
+            self.layer = torch.nn.Linear(1, 2)
+            self.should_fail = should_fail
+            self.training_batches = []
+            self.validation_batches = defaultdict(list)
 
-    assert len(verif_train_batches) == len(pre_fail_train_batches) + len(post_fail_train_batches)
-    assert len(verif_valid_batches[0]) == len(pre_fail_valid_batches[0]) + len(post_fail_valid_batches[0])
-    if num_validation_loaders == 2:
-        assert len(verif_valid_batches[1]) == len(pre_fail_valid_batches[1]) + len(post_fail_valid_batches[1])
+        def step(self, batch):
+            return sum(self.layer(b).sum() for b in batch)
 
-    # TODO: Add support for `val_check_interval < 1`
-    # reason: the `train_dataloader` random state overrides the validation one once re-starting training.
-    if val_check_interval == 1.0:
-        t = torch.tensor
-        assert torch.equal(t(verif_train_batches), t(pre_fail_train_batches))
-        generated = torch.cat([t(pre_fail_valid_batches[0]), t(post_fail_valid_batches[0])])
-        assert torch.equal(t(verif_valid_batches[0]), generated)
-        if num_validation_loaders == 2:
-            generated = torch.cat([t(pre_fail_valid_batches[1]), t(post_fail_valid_batches[1])])
-            assert torch.equal(t(verif_valid_batches[1]), generated)
+        def training_step(self, batch, batch_idx):
+            self.training_batches.append(batch)
+            return self.step(batch)
+
+        def validation_step(self, batch, batch_idx, dataloader_idx=0):
+            if self.should_fail and stop_dataloader == dataloader_idx and batch_idx == stop_batch:
+                raise CustomException
+            self.validation_batches[dataloader_idx].append(batch)
+            return self.step(batch)
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.layer.parameters(), lr=0.1)
+
+        def train_dataloader(self):
+            return [DataLoader(cls(4, 1)) for cls in train_datasets]
+
+        def val_dataloader(self):
+            return [DataLoader(cls(4, 1)) for cls in val_datasets]
+
+    def run(should_fail, resume):
+        if not resume:
+            seed_everything(42)
+
+        model = ValidationLoopTestModel(should_fail)
+
+        resume_from_checkpoint = str(tmpdir / ".pl_auto_save.ckpt") if resume else None
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            val_check_interval=val_check_interval,
+            num_sanity_val_steps=0,
+            resume_from_checkpoint=resume_from_checkpoint,
+        )
+        if should_fail:
+            with pytest.raises(CustomException):
+                trainer.fit(model)
+        else:
+            trainer.fit(model)
+
+        return model.training_batches, model.validation_batches
+
+    total_train_batches, total_val_batches = run(should_fail=False, resume=False)
+    pre_fail_train_batches, pre_fail_val_batches = run(should_fail=True, resume=False)
+    post_fail_train_batches, post_fail_val_batches = run(should_fail=False, resume=True)
+
+    torch.testing.assert_equal(total_train_batches, pre_fail_train_batches + post_fail_train_batches)
+    for k in total_val_batches:
+        torch.testing.assert_equal(total_val_batches[k], pre_fail_val_batches[k] + post_fail_val_batches[k])
