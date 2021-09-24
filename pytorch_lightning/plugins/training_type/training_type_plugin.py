@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generator, Iterable, List, Mapping, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Union
 
 import torch
 from torch import Tensor
@@ -27,8 +27,6 @@ from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PATH, _PREDICT_OUTPUT
-
-TBroadcast = TypeVar("T")
 
 
 class TrainingTypePlugin(ABC):
@@ -127,9 +125,7 @@ class TrainingTypePlugin(ABC):
         """
 
     @abstractmethod
-    def all_gather(
-        self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False
-    ) -> Union[List[torch.Tensor], torch.Tensor]:
+    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
         """Perform a all_gather on all processes.
 
         Args:

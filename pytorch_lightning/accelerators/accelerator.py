@@ -24,7 +24,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import DataParallelPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
+from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
 from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
@@ -343,6 +343,10 @@ class Accelerator:
             This method is deprecated in v1.5 and will be removed in v1.6.
             Please call training_type_plugin.barrier directly
         """
+        rank_zero_deprecation(
+            "This method is deprecated in v1.5 and will be removed in v1.6."
+            "barrier logic is implemented directly in the :class:`TrainingTypePlugin` implementations."
+        )
         self.training_type_plugin.barrier(name=name)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
@@ -357,6 +361,10 @@ class Accelerator:
             obj: Object to broadcast to all process, usually a tensor or collection of tensors.
             src: The source rank of which the object will be broadcast from
         """
+        rank_zero_deprecation(
+            "This method is deprecated in v1.5 and will be removed in v1.6."
+            "Broadcast logic is implemented directly in the :class:`TrainingTypePlugin` implementations."
+        )
         return self.training_type_plugin.broadcast(obj, src)
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
@@ -374,6 +382,10 @@ class Accelerator:
         Return:
             A tensor of shape (world_size, batch, ...)
         """
+        rank_zero_deprecation(
+            "This method is deprecated in v1.5 and will be removed in v1.6."
+            "all_gather logic is implemented directly in the :class:`TrainingTypePlugin` implementations."
+        )
         return self.training_type_plugin.all_gather(tensor, group=group, sync_grads=sync_grads)
 
     def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
