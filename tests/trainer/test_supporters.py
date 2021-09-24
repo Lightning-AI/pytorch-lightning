@@ -341,9 +341,9 @@ def test_combined_data_loader_validation_test(
     dataloader = CombinedLoader(
         {
             "a": DataLoader(CustomDataset(range(10))),
-            "a": DataLoader(dataset, sampler=CustomSampler(dataset, "custom_sampler")),
-            "b": {"c": DataLoader(CustomDataset(range(10))), "d": DataLoader(CustomDataset(range(10)))},
-            "e": [DataLoader(CustomDataset(range(10))), DataLoader(CustomDataset(range(10)))],
+            "b": DataLoader(dataset, sampler=CustomSampler(dataset, "custom_sampler")),
+            "c": {"c": DataLoader(CustomDataset(range(10))), "d": DataLoader(CustomDataset(range(10)))},
+            "d": [DataLoader(CustomDataset(range(10))), DataLoader(CustomDataset(range(10)))],
         }
     )
 
@@ -368,7 +368,7 @@ def test_combined_data_loader_validation_test(
             assert isinstance(v, (SequentialSampler, CustomSampler))
 
     apply_to_collection(dataloader.sampler, Sampler, _assert_distributed_sampler)
-    assert _count == 5
+    assert _count == 6
     assert _has_fastforward_sampler == use_fault_tolerant
 
     def _assert_dataset(loader):
