@@ -19,6 +19,7 @@ import pytest
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from tests.helpers import BoringModel
@@ -180,6 +181,7 @@ class GradientUnscaleNativeAMPPlugin(NativeMixedPrecisionPlugin):
     _was_scaled_finite = 0
 
     def post_backward(self, model, closure_loss, optimizer) -> torch.Tensor:
+        assert not isinstance(optimizer, LightningOptimizer)
         norm_before = torch.nn.utils.clip_grad_norm_(model.parameters(), 2)
         ret_val = super().post_backward(model, closure_loss, optimizer)
         norm_after = torch.nn.utils.clip_grad_norm_(model.parameters(), 2)
