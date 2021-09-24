@@ -538,6 +538,8 @@ class DDPPlugin(ParallelPlugin):
             # clean up memory
             torch.cuda.empty_cache()
 
+        self._self_deleted_checkpoint_state_dict = False
+
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         if "state_dict" not in checkpoint and self._self_deleted_checkpoint_state_dict:
             return
