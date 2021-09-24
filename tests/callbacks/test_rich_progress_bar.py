@@ -35,7 +35,7 @@ def test_rich_progress_bar_callback():
 
 
 @RunIf(rich=True)
-def test_rich_progress_bar_refresh_rate():
+def test_rich_progress_bar_refresh_rate_enable_disable():
     progress_bar = RichProgressBar(refresh_rate_per_second=1)
     assert progress_bar.is_enabled
     assert not progress_bar.is_disabled
