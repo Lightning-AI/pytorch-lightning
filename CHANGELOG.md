@@ -398,6 +398,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `trainer.accumulate_grad_batches` to be an int on init. Default value for it is now `None` inside Trainer ([#9652](https://github.com/PyTorchLightning/pytorch-lightning/pull/9652))
 
 
+- Fixed `broadcast` in `DDPPlugin` and ``DDPSpawnPlugin` to respects the src input  ([#9691](https://github.com/PyTorchLightning/pytorch-lightning/pull/9691))
+
+
 ## [1.4.8] - 2021-09-22
 
 - Fixed error reporting in DDP process reconciliation when processes are launched by an external agent ([#9389](https://github.com/PyTorchLightning/pytorch-lightning/pull/9389))
