@@ -57,11 +57,11 @@ def test_ddp_with_2_gpus():
 class BarrierModel(BoringModel):
     def setup(self, stage=None):
         assert not isinstance(self.trainer.accelerator.model, DistributedDataParallel)
-        self.trainer.accelerator.barrier("barrier before model is wrapped")
+        self.trainer.training_type_plugin.barrier("barrier before model is wrapped")
 
     def on_train_start(self):
         assert isinstance(self.trainer.accelerator.model, DistributedDataParallel)
-        self.trainer.accelerator.barrier("barrier after model is wrapped")
+        self.trainer.training_type_plugin.barrier("barrier after model is wrapped")
 
 
 @RunIf(min_gpus=4, special=True)

@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Mapping, Optional, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -25,6 +25,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PATH, _PREDICT_OUTPUT
 
 TBroadcast = TypeVar("T")
@@ -91,26 +92,53 @@ class TrainingTypePlugin(ABC):
         """Whether the current process is the rank zero process not only on the local node, but for all nodes."""
 
     @abstractmethod
-    def reduce(self, tensor: Union[torch.Tensor, Any], *args: Any, **kwargs: Any) -> Union[torch.Tensor, Any]:
+    def reduce(
+        self,
+        tensor: Union[torch.Tensor, Any],
+        group: Optional[Any] = None,
+        reduce_op: Optional[Union[ReduceOp, str]] = "mean",
+    ) -> Union[torch.Tensor, Any]:
         """Reduces the given tensor (e.g. across GPUs/processes).
 
         Args:
             tensor: the tensor to sync and reduce
+            group: the process group to reduce
+            reduce_op: the reduction operation. Defaults to 'mean'.
+                Can also be a string 'sum' or ReduceOp.
             *args: plugin-specific positional arguments
             **kwargs: plugin-specific keyword arguments
         """
 
     @abstractmethod
     def barrier(self, name: Optional[str] = None) -> None:
-        """Forces all possibly joined processes to wait for each other."""
+        """Synchronizes all processes which blocks processes until the whole group enters this function.
+
+        Args:
+            name: a str pass into barrier. Only torch xla respect this param
+        """
 
     @abstractmethod
-    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        """Broadcasts an object to all processes."""
+    def broadcast(self, obj: object, src: int = 0) -> object:
+        """Broadcasts an object to all processes.
+
+        Args:
+            obj: the object to broadcast
+            src: source rank.
+        """
 
     @abstractmethod
-    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
-        """Perform a all_gather on all processes."""
+    def all_gather(
+        self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False
+    ) -> Union[List[torch.Tensor], torch.Tensor]:
+        """Perform a all_gather on all processes.
+
+        Args:
+            tensor: the tensor to all_gather
+            group: the process group to gather results from
+            sync_grads: flag that allows users to synchronize gradients for all_gather op
+
+        Returns: a tensor (torch distributed) or a list of tensor (horovod)
+        """
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
         """Reduce the early stopping decision across all processes."""
