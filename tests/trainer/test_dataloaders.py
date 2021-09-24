@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from unittest import mock
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock, patch, call
 
 import numpy
 import pytest
@@ -1227,7 +1227,6 @@ def test_dataloaders_load_every_n_epochs_exception(tmpdir, n):
         Trainer(default_root_dir=tmpdir, reload_dataloaders_every_n_epochs=n)
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx):
@@ -1249,21 +1248,22 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
         max_epochs=3,
         callbacks=[checkpoint_callback],
     )
+
+    tracker = Mock()
+    model.train_dataloader = Mock(wraps=model.train_dataloader)
+    model.val_dataloader = Mock(wraps=model.val_dataloader)
+    model.test_dataloader = Mock(wraps=model.test_dataloader)
+
+    tracker.attach_mock(model.train_dataloader, "train_dataloader")
+    tracker.attach_mock(model.val_dataloader, "val_dataloader")
+    tracker.attach_mock(model.test_dataloader, "test_dataloader")
+
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
+    trainer.test(model)
 
-    trainer.test()
-
-    assert len(trainer.dev_debugger.val_dataloader_calls) == 4
-    assert len(trainer.dev_debugger.train_dataloader_calls) == 3
-    assert len(trainer.dev_debugger.test_dataloader_calls) == 1
-
-    # verify the sequence
-    calls = trainer.dev_debugger.dataloader_sequence_calls
-
-    expected_sequence = [
-        "train_dataloader",
-        "val_dataloader",
+    expected_calls = [
+        call.train_dataloader(),
+        call.val_dataloader(),
         # This has subsequent calls to val_dataloader
         # because the training loop runs the evaluation loop,
         # which reloads the val dataloader again.
@@ -1272,15 +1272,14 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
         # meaning multiple passes through the validation data within a single training epoch
         # would not have the dataloader reloaded.
         # This breaks the assumption behind reload_dataloaders_every_epoch=True
-        "val_dataloader",
-        "train_dataloader",
-        "val_dataloader",
-        "train_dataloader",
-        "val_dataloader",
-        "test_dataloader",
+        call.val_dataloader(),
+        call.train_dataloader(),
+        call.val_dataloader(),
+        call.train_dataloader(),
+        call.val_dataloader(),
+        call.test_dataloader(),
     ]
-    for call, expected in zip(calls, expected_sequence):
-        assert call["name"] == expected
+    assert tracker.mock_calls == expected_calls
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
