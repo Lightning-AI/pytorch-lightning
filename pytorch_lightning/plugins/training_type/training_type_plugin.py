@@ -39,7 +39,6 @@ class TrainingTypePlugin(ABC):
         self._results: Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]] = None
         checkpoint_io = checkpoint_io if checkpoint_io is not None else TorchCheckpointIO()
         self._checkpoint_io = checkpoint_io
-        self._call_configure_sharded_model_hook = True
 
     @property
     def checkpoint_io(self) -> CheckpointIO:
@@ -280,19 +279,6 @@ class TrainingTypePlugin(ABC):
         Returns: Model parallel context.
         """
         yield
-
-    @property
-    def call_configure_sharded_model_hook(self) -> bool:
-        """Allow model parallel hook to be called in suitable environments determined by the training type plugin.
-
-        This is useful for when we want to shard the model once within fit.
-        Returns: True if we want to call the model parallel setup hook.
-        """
-        return self._call_configure_sharded_model_hook
-
-    @call_configure_sharded_model_hook.setter
-    def call_configure_sharded_model_hook(self, mode: bool) -> None:
-        self._call_configure_sharded_model_hook = mode
 
     @abstractmethod
     def teardown(self) -> None:

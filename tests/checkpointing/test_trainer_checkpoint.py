@@ -64,7 +64,7 @@ def test_finetuning_with_resume_from_checkpoint(tmpdir):
             limit_val_batches=12,
             limit_test_batches=12,
             resume_from_checkpoint=best_model_paths[-1],
-            progress_bar_refresh_rate=0,
+            enable_progress_bar=False,
         )
         trainer.fit(model)
         trainer.test()

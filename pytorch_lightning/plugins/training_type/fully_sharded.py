@@ -141,17 +141,6 @@ class DDPFullyShardedPlugin(DDPPlugin):
         ):
             yield
 
-    def setup_environment(self) -> None:
-        super().setup_environment()
-        model_call_configure_sharded_model_hook = getattr(
-            self.lightning_module, "call_configure_sharded_model_hook", False
-        )
-        if not model_call_configure_sharded_model_hook:
-            # if model has not called configure sharded model, we reset
-            # the training type plugin's call_configure_sharded_model_hook
-            # to give trainer a chance to configure.
-            self.call_configure_sharded_model_hook = True
-
     def configure_ddp(self) -> None:
         if not self.cpu_offload:
             # When using CPU Offload, FSDP will manage the CUDA movement for us.

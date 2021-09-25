@@ -136,11 +136,12 @@ class Trainer(
         ipus: Optional[int] = None,
         log_gpu_memory: Optional[str] = None,
         progress_bar_refresh_rate: Optional[int] = None,  # TODO: remove in v1.7
+        enable_progress_bar: bool = True,
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
         check_val_every_n_epoch: int = 1,
         fast_dev_run: Union[int, bool] = False,
-        accumulate_grad_batches: Union[int, Dict[int, int]] = 1,
+        accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None,
         max_epochs: Optional[int] = None,
         min_epochs: Optional[int] = None,
         max_steps: Optional[int] = None,
@@ -285,7 +286,10 @@ class Trainer(
                 .. deprecated:: v1.5
                     ``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
                     Please pass :class:`~pytorch_lightning.callbacks.progress.ProgressBar` with ``refresh_rate``
-                    directly to the Trainer's ``callbacks`` argument instead.
+                    directly to the Trainer's ``callbacks`` argument instead. To disable the progress bar,
+                    pass ``enable_progress_bar = False`` to the Trainer.
+
+            enable_progress_bar: Whether to enable to progress bar by default.
 
             profiler: To profile individual steps during training and assist in identifying bottlenecks.
 
@@ -435,8 +439,6 @@ class Trainer(
         # default .predict() loop
         self.predict_loop = PredictionLoop()
 
-        self.weights_summary = weights_summary
-
         # Needed because of LightningOptimizer
         self._lightning_optimizers = None
 
@@ -450,13 +452,15 @@ class Trainer(
         self.callback_connector.on_trainer_init(
             callbacks,
             checkpoint_callback,
+            enable_progress_bar,
             progress_bar_refresh_rate,
             process_position,
             default_root_dir,
             weights_save_path,
-            self.weights_summary,
+            weights_summary,
             stochastic_weight_avg,
             max_time,
+            accumulate_grad_batches,
         )
 
         # hook
@@ -478,7 +482,6 @@ class Trainer(
             gradient_clip_val,
             gradient_clip_algorithm,
             track_grad_norm,
-            accumulate_grad_batches,
             terminate_on_nan,
         )
         self._setup_on_init(num_sanity_val_steps)
@@ -1291,18 +1294,9 @@ class Trainer(
         self.accelerator.barrier("post_setup")
 
     def _call_configure_sharded_model(self) -> None:
-        # Call configure sharded model hook if accelerator requests. In some cases
-        # we will not call the hook; the hook has initialized the sharded model for example.
-
-        # used on the model if the user re-create a trainer with resume_from_checkpoint
-        model = self.lightning_module
-        model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
-        if self.accelerator.call_configure_sharded_model_hook and not model_call_configure_sharded_model_hook:
-            with self.accelerator.model_sharded_context():
-                self.call_hook("configure_sharded_model")
-                self.call_hook("on_configure_sharded_model")
-            model.call_configure_sharded_model_hook = True
-            self.accelerator.call_configure_sharded_model_hook = False
+        with self.accelerator.model_sharded_context():
+            self.call_hook("configure_sharded_model")
+            self.call_hook("on_configure_sharded_model")
 
     def _call_teardown_hook(self) -> None:
         fn = self.state.fn._setup_fn
