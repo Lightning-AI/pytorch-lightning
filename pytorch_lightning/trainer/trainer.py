@@ -136,6 +136,7 @@ class Trainer(
         ipus: Optional[int] = None,
         log_gpu_memory: Optional[str] = None,
         progress_bar_refresh_rate: Optional[int] = None,  # TODO: remove in v1.7
+        enable_progress_bar: bool = True,
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
         check_val_every_n_epoch: int = 1,
@@ -285,7 +286,10 @@ class Trainer(
                 .. deprecated:: v1.5
                     ``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
                     Please pass :class:`~pytorch_lightning.callbacks.progress.ProgressBar` with ``refresh_rate``
-                    directly to the Trainer's ``callbacks`` argument instead.
+                    directly to the Trainer's ``callbacks`` argument instead. To disable the progress bar,
+                    pass ``enable_progress_bar = False`` to the Trainer.
+
+            enable_progress_bar: Whether to enable to progress bar by default.
 
             profiler: To profile individual steps during training and assist in identifying bottlenecks.
 
@@ -448,6 +452,7 @@ class Trainer(
         self.callback_connector.on_trainer_init(
             callbacks,
             checkpoint_callback,
+            enable_progress_bar,
             progress_bar_refresh_rate,
             process_position,
             default_root_dir,

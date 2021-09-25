@@ -39,6 +39,7 @@ class CallbackConnector:
         self,
         callbacks: Optional[Union[List[Callback], Callback]],
         checkpoint_callback: bool,
+        enable_progress_bar: bool,
         progress_bar_refresh_rate: Optional[int],
         process_position: int,
         default_root_dir: Optional[str],
@@ -81,10 +82,16 @@ class CallbackConnector:
             rank_zero_deprecation(
                 f"Setting `Trainer(progress_bar_refresh_rate={progress_bar_refresh_rate})` is deprecated in v1.5 and"
                 " will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.ProgressBar` with"
-                " `refresh_rate` directly to the Trainer's `callbacks` argument instead."
+                " `refresh_rate` directly to the Trainer's `callbacks` argument instead. Or, to disable the progress"
+                " bar pass `enable_progress_bar = False` to the Trainer."
             )
 
-        self.trainer._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
+        if enable_progress_bar:
+            self.trainer._progress_bar_callback = self.configure_progress_bar(
+                progress_bar_refresh_rate, process_position
+            )
+        else:
+            self.trainer._progress_bar_callback = None
 
         # configure the ModelSummary callback
         self._configure_model_summary_callback(weights_summary)
