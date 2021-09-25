@@ -183,9 +183,7 @@ class HorovodPlugin(ParallelPlugin):
 
         # sync and gather all
         self.join()
-        gathered = hvd.allgather(result)
-        gathered_result = list(gathered.split(1, dim=0))
-        return gathered_result
+        return hvd.allgather(result)
 
     def post_backward(self, closure_loss: torch.Tensor) -> None:
         # synchronize all horovod optimizers.
