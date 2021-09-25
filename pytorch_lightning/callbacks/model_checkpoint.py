@@ -618,11 +618,7 @@ class ModelCheckpoint(Callback):
             self._fs.makedirs(self.dirpath, exist_ok=True)
 
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
-        if (
-            self.save_top_k != 0
-            and self._fs.isdir(dirpath)
-            and len(self._fs.ls(dirpath)) > 0
-        ):
+        if self.save_top_k != 0 and self._fs.isdir(dirpath) and len(self._fs.ls(dirpath)) > 0:
             rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
 
     def _validate_monitor_key(self, trainer: "pl.Trainer") -> None:
