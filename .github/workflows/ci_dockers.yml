@@ -99,7 +99,7 @@ jobs:
             pytorch_version: "1.6"
           - python_version: "3.8"
             pytorch_version: "1.9"
-          - python_version: "3.9"
+          - python_version: "3.8"
             pytorch_version: "1.10"
     steps:
       - name: Checkout
