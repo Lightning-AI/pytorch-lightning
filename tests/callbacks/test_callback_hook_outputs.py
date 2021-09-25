@@ -53,7 +53,7 @@ def test_train_step_no_return(tmpdir, single_cb: bool):
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
 
     assert any(isinstance(c, CB) for c in trainer.callbacks)
@@ -74,7 +74,7 @@ def test_free_memory_on_eval_outputs(tmpdir):
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
 
     trainer.fit(model)

@@ -890,8 +890,8 @@ def test_checkpoint_repeated_strategy(tmpdir):
         limit_val_batches=2,
         limit_test_batches=2,
         callbacks=[checkpoint_callback],
-        weights_summary=None,
         enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
     assert os.listdir(tmpdir) == ["epoch=00.ckpt"]
@@ -906,8 +906,8 @@ def test_checkpoint_repeated_strategy(tmpdir):
             limit_val_batches=2,
             limit_test_batches=2,
             resume_from_checkpoint=checkpoint_callback.best_model_path,
-            weights_summary=None,
             enable_progress_bar=False,
+            enable_model_summary=False,
         )
         trainer.fit(model)
         trainer.test(model, verbose=False)
@@ -1041,8 +1041,8 @@ def test_val_check_interval_checkpoint_files(tmpdir):
         limit_train_batches=10,
         callbacks=[model_checkpoint],
         logger=False,
-        weights_summary=None,
         enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
     files = {p.basename for p in tmpdir.listdir()}
@@ -1065,8 +1065,8 @@ def test_current_score(tmpdir):
         limit_val_batches=1,
         callbacks=[model_checkpoint],
         logger=False,
-        weights_summary=None,
         enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(TestModel())
     assert model_checkpoint.current_score == 0.3
@@ -1098,8 +1098,8 @@ def test_current_score_when_nan(tmpdir, mode: str):
         limit_val_batches=1,
         callbacks=[model_checkpoint],
         logger=False,
-        weights_summary=None,
         enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(TestModel())
     expected = float("inf" if mode == "min" else "-inf")
@@ -1122,8 +1122,8 @@ def test_hparams_type(tmpdir, hparams_type):
         limit_val_batches=1,
         callbacks=[model_checkpoint],
         logger=False,
-        weights_summary=None,
         enable_progress_bar=False,
+        enable_model_summary=False,
     )
     hp = {"test_hp_0": 1, "test_hp_1": 2}
     hp = OmegaConf.create(hp) if hparams_type == Container else Namespace(**hp)
@@ -1150,8 +1150,8 @@ def test_ckpt_version_after_rerun_new_trainer(tmpdir):
             default_root_dir=tmpdir,
             callbacks=[mc],
             logger=False,
-            weights_summary=None,
             enable_progress_bar=False,
+            enable_model_summary=False,
         )
         trainer.fit(BoringModel())
 
@@ -1176,8 +1176,8 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
         default_root_dir=tmpdir,
         callbacks=[mc],
         logger=False,
-        weights_summary=None,
         enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(BoringModel())
     trainer.fit_loop.max_epochs = 4
@@ -1213,7 +1213,7 @@ def test_check_val_every_n_epochs_top_k_integration(tmpdir):
         max_epochs=5,
         check_val_every_n_epoch=2,
         callbacks=mc,
-        weights_summary=None,
+        enable_model_summary=False,
         logger=False,
     )
     trainer.fit(model)
