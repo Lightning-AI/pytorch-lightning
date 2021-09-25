@@ -266,6 +266,7 @@ class ModelCheckpoint(Callback):
     def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """When pretrain routine starts we build the ckpt dir on the fly."""
         self.__resolve_ckpt_dir(trainer)
+        self.__check_if_dir_not_empty(self.dirpath, trainer)
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._last_time_checked = time.monotonic()
@@ -614,6 +615,10 @@ class ModelCheckpoint(Callback):
 
         if not trainer.fast_dev_run and trainer.should_rank_save_checkpoint:
             self._fs.makedirs(self.dirpath, exist_ok=True)
+
+    def __check_if_dir_not_empty(self, dirpath: _PATH, trainer: "pl.Trainer") -> None:
+        if trainer.is_global_zero and self.save_top_k != 0 and self._fs.isdir(dirpath) and len(self._fs.ls(dirpath)) > 0:
+            rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
 
     def _validate_monitor_key(self, trainer: "pl.Trainer") -> None:
         metrics = trainer.callback_metrics
