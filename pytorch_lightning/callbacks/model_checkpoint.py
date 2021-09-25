@@ -617,10 +617,9 @@ class ModelCheckpoint(Callback):
         if not trainer.fast_dev_run and trainer.should_rank_save_checkpoint:
             self._fs.makedirs(self.dirpath, exist_ok=True)
 
-    def __check_if_dir_not_empty(self, dirpath: _PATH, trainer: "pl.Trainer") -> None:
+    def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
         if (
-            trainer.is_global_zero
-            and self.save_top_k != 0
+            self.save_top_k != 0
             and self._fs.isdir(dirpath)
             and len(self._fs.ls(dirpath)) > 0
         ):
