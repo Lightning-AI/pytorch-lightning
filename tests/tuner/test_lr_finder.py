@@ -75,6 +75,7 @@ def test_trainer_reset_correctly(tmpdir):
         "checkpoint_callback",
         "current_epoch",
         "logger",
+        "global_step",
         "max_steps",
     ]
     expected = {ca: getattr(trainer, ca) for ca in changed_attributes}
@@ -283,3 +284,15 @@ def test_lr_finder_ends_before_num_training(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir)
     num_training = 3
     trainer.tuner.lr_find(model=model, num_training=num_training)
+
+
+def test_multiple_lr_find_calls_gives_same_results(tmpdir):
+    """Tests that lr_finder gives same results if called multiple times."""
+    dm = ClassifDataModule()
+    model = ClassificationModel()
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)
+    all_res = [trainer.tuner.lr_find(model, datamodule=dm).results for _ in range(3)]
+
+    for k in all_res[0].keys():
+        assert all(all_res[0][k] == curr_lr_finder[k] for curr_lr_finder in all_res[1:])
