@@ -264,8 +264,6 @@ class DDPPlugin(ParallelPlugin):
         # where to store ip_table
         init_ddp_connection(self.cluster_environment, self.torch_distributed_backend)
 
-        # set the ranks and devices
-
     def _check_can_spawn_children(self):
         if self.local_rank != 0:
             raise RuntimeError(
