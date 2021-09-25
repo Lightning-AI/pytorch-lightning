@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import dataclasses
-from dataclasses import InitVar
 import numbers
 from collections import namedtuple, OrderedDict
+from dataclasses import InitVar
 from typing import Any, ClassVar, List, Optional
 
 import numpy as np
@@ -58,7 +58,7 @@ def test_recursive_application_to_collection():
         dummy: Any
         override: InitVar[Optional[Any]] = torch.tensor(1)
 
-        def __post_init__(self, override : Optional[Any]):
+        def __post_init__(self, override: Optional[Any]):
             if override is not None:
                 self.dummy = override
 
@@ -150,7 +150,7 @@ def test_recursive_application_to_collection():
         reduced["h"].segment_ids, expected_result["h"].segment_ids
     ), "Reduction of a dataclass did not yield the desired result"
 
-    def _assert_nested_dataclass_reduction(actual : ModelExample, expected : ModelExample):
+    def _assert_nested_dataclass_reduction(actual: ModelExample, expected: ModelExample):
 
         assert dataclasses.is_dataclass(actual) and not isinstance(
             actual, type
@@ -192,15 +192,12 @@ def test_recursive_application_to_collection():
         reduced["l"], type
     ), "Reduction of a dataclass with class and init-only vars should result in a dataclass"
     assert torch.equal(
-        WithClassAndInitVar.class_var,
-        torch.tensor(0)
+        WithClassAndInitVar.class_var, torch.tensor(0)
     ), "Reduction of a dataclass with class and init-only vars should not change the class var"
     try:
         _assert_nested_dataclass_reduction(reduced["l"].dummy, expected_result["l"].dummy)
     except AssertionError:
-        raise AssertionError(
-            "Reduction of a dataclass with class and init-only vars did not yield the desired result"
-        )
+        raise AssertionError("Reduction of a dataclass with class and init-only vars did not yield the desired result")
 
     # mapping support
     reduced = apply_to_collection({"a": 1, "b": 2}, int, lambda x: str(x))
