@@ -273,7 +273,6 @@ class MyLightningCLI(LightningCLI):
             {
                 "trainer.max_epochs": 15,
                 "trainer.weights_summary": None,
-                "trainer.progress_bar_refresh_rate": 1,
                 "trainer.num_sanity_val_steps": 0,
             }
         )

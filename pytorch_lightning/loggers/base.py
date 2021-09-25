@@ -28,6 +28,7 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
 def rank_zero_experiment(fn: Callable) -> Callable:
@@ -310,7 +311,18 @@ class LightningLoggerBase(ABC):
         self.save()
 
     def close(self) -> None:
-        """Do any cleanup that is necessary to close an experiment."""
+        """Do any cleanup that is necessary to close an experiment.
+
+        See deprecation warning below.
+
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.7.
+            Please use `LightningLoggerBase.finalize` instead.
+        """
+        rank_zero_deprecation(
+            "`LightningLoggerBase.close` method is deprecated in v1.5 and will be removed in v1.7."
+            " Please use `LightningLoggerBase.finalize` instead."
+        )
         self.save()
 
     @property
@@ -392,6 +404,15 @@ class LoggerCollection(LightningLoggerBase):
             logger.finalize(status)
 
     def close(self) -> None:
+        """
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.7.
+            Please use `LoggerCollection.finalize` instead.
+        """
+        rank_zero_deprecation(
+            "`LoggerCollection.close` method is deprecated in v1.5 and will be removed in v1.7."
+            " Please use `LoggerCollection.finalize` instead."
+        )
         for logger in self._logger_iterable:
             logger.close()
 

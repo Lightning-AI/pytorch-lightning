@@ -527,7 +527,6 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
         limit_val_batches=2,
         limit_test_batches=2,
         max_epochs=2,
-        progress_bar_refresh_rate=1,
     )
 
     # Train the model ⚡
@@ -536,6 +535,12 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     # hp_metric + 2 steps + epoch + 2 steps + epoch
     expected_num_calls = 1 + 2 + 1 + 2 + 1
 
+    assert set(trainer.callback_metrics) == {
+        "train_loss",
+        "valid_loss_0_epoch",
+        "valid_loss_0",
+        "valid_loss_1",
+    }
     assert len(mock_log_metrics.mock_calls) == expected_num_calls
     assert mock_log_metrics.mock_calls[0] == call({"hp_metric": -1}, 0)
 
@@ -569,10 +574,6 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
 
     results = trainer.test(model)
     assert set(trainer.callback_metrics) == {
-        "train_loss",
-        "valid_loss_0_epoch",
-        "valid_loss_0",
-        "valid_loss_1",
         "test_loss",
     }
     assert set(results[0]) == {"test_loss"}
@@ -598,7 +599,6 @@ def test_logging_dict_on_validation_step(tmpdir):
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=2,
-        progress_bar_refresh_rate=1,
     )
 
     trainer.fit(model)

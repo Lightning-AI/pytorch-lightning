@@ -13,6 +13,7 @@
 # limitations under the License
 import logging
 import os
+import uuid
 from typing import Optional, Tuple
 
 import pytorch_lightning as pl
@@ -63,7 +64,7 @@ def scale_batch_size(
     __scale_batch_reset_params(trainer, model, steps_per_trial)
 
     # Save initial model, that is loaded after batch size is found
-    save_path = os.path.join(trainer.default_root_dir, "scale_batch_size_temp_model.ckpt")
+    save_path = os.path.join(trainer.default_root_dir, f"scale_batch_size_temp_model_{uuid.uuid4()}.ckpt")
     trainer.save_checkpoint(str(save_path))
 
     if trainer.progress_bar_callback:

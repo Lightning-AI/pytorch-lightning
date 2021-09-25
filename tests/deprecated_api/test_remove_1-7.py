@@ -18,11 +18,12 @@ import pytest
 import torch
 
 from pytorch_lightning import Callback, LightningDataModule, Trainer
-from pytorch_lightning.loggers import TestTubeLogger
+from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
 from tests.helpers.runif import RunIf
+from tests.loggers.test_base import CustomLogger
 
 
 def test_v1_7_0_deprecated_lightning_module_summarize(tmpdir):
@@ -181,7 +182,7 @@ def test_v1_7_0_on_interrupt(tmpdir):
         max_epochs=1,
         limit_val_batches=0.1,
         limit_train_batches=0.2,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         logger=False,
         default_root_dir=tmpdir,
     )
@@ -224,3 +225,28 @@ def test_v1_7_0_deprecate_add_get_queue(tmpdir):
 
     with pytest.deprecated_call(match=r"`LightningModule.get_from_queue` method was deprecated in v1.5"):
         trainer.fit(model)
+
+
+def test_v1_7_0_progress_bar_refresh_rate_trainer_constructor(tmpdir):
+    with pytest.deprecated_call(match=r"Setting `Trainer\(progress_bar_refresh_rate=1\)` is deprecated in v1.5"):
+        _ = Trainer(progress_bar_refresh_rate=1)
+
+
+def test_v1_7_0_lightning_logger_base_close(tmpdir):
+    logger = CustomLogger()
+    with pytest.deprecated_call(
+        match="`LightningLoggerBase.close` method is deprecated in v1.5 and will be removed in v1.7."
+    ):
+        logger.close()
+    with pytest.deprecated_call(
+        match="`LoggerCollection.close` method is deprecated in v1.5 and will be removed in v1.7."
+    ):
+        logger = LoggerCollection([logger])
+        logger.close()
+
+
+def test_v1_7_0_deprecate_lightning_distributed(tmpdir):
+    with pytest.deprecated_call(match="LightningDistributed is deprecated in v1.5 and will be removed in v1.7."):
+        from pytorch_lightning.distributed.dist import LightningDistributed
+
+        _ = LightningDistributed()
