@@ -337,7 +337,7 @@ def test_lightning_cli_args(tmpdir):
         f"--data.data_dir={tmpdir}",
         f"--trainer.default_root_dir={tmpdir}",
         "--trainer.max_epochs=1",
-        "--trainer.weights_summary=null",
+        "--trainer.enable_model_summary=False",
         "--seed_everything=1234",
     ]
 
