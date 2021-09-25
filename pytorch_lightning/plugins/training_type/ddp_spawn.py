@@ -317,7 +317,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             return obj
         obj = [obj]
         if self.global_rank != src:
-            obj = [None] * len(obj)
+            obj = [None]
         broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
