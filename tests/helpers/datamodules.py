@@ -96,6 +96,11 @@ class SklearnDataModule(LightningDataModule):
             SklearnDataset(self.x_test, self.y_test, self._x_type, self._y_type), batch_size=self.batch_size
         )
 
+    def predict_dataloader(self):
+        return DataLoader(
+            SklearnDataset(self.x_test, self.y_test, self._x_type, self._y_type), batch_size=self.batch_size
+        )
+
     @property
     def sample(self):
         return torch.tensor([self._x[0]], dtype=self._x_type)
