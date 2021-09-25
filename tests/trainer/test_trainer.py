@@ -496,7 +496,7 @@ def test_trainer_properties_restore_resume_from_checkpoint(tmpdir):
         {"max_epochs": 3, "resume_from_checkpoint": resume_ckpt, "checkpoint_callback": False, "callbacks": []}
     )
 
-    class CustomClassifModel2(CustomClassifModel):
+    class CustomClassifModel(CustomClassifModel):
         def _is_equal(self, a, b):
             if isinstance(a, torch.Tensor):
                 return torch.all(torch.eq(a, b))
@@ -551,8 +551,8 @@ def test_trainer_properties_restore_resume_from_checkpoint(tmpdir):
         def on_test_start(self):
             self._test_on_val_test_predict_tune_start()
 
-    for fn in ("predict",):
-        model = CustomClassifModel2()
+    for fn in ("tune", "fit", "validate", "test", "predict"):
+        model = CustomClassifModel()
         dm = ClassifDataModule()
         trainer_args.update(
             {
