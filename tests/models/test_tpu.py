@@ -62,7 +62,7 @@ def test_model_tpu_cores_1(tmpdir):
     tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=2,
         tpu_cores=1,
         limit_train_batches=4,
@@ -81,7 +81,7 @@ def test_model_tpu_index(tmpdir, tpu_core):
     tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=2,
         tpu_cores=[tpu_core],
         limit_train_batches=4,
@@ -100,7 +100,7 @@ def test_model_tpu_cores_8(tmpdir):
     tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=1,
         tpu_cores=8,
         limit_train_batches=4,
@@ -120,7 +120,7 @@ def test_model_16bit_tpu_cores_1(tmpdir):
     trainer_options = dict(
         default_root_dir=tmpdir,
         precision=16,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=2,
         tpu_cores=1,
         limit_train_batches=8,
@@ -141,7 +141,7 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
     trainer_options = dict(
         default_root_dir=tmpdir,
         precision=16,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=2,
         tpu_cores=[tpu_core],
         limit_train_batches=4,
@@ -162,7 +162,7 @@ def test_model_16bit_tpu_cores_8(tmpdir):
     trainer_options = dict(
         default_root_dir=tmpdir,
         precision=16,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=1,
         tpu_cores=8,
         limit_train_batches=4,
@@ -190,7 +190,7 @@ def test_model_tpu_early_stop(tmpdir):
     trainer = Trainer(
         callbacks=[EarlyStopping(monitor="val_loss")],
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=2,
         limit_train_batches=2,
         limit_val_batches=2,
@@ -207,7 +207,7 @@ def test_tpu_grad_norm(tmpdir):
     tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=4,
         tpu_cores=1,
         limit_train_batches=0.4,
@@ -226,7 +226,7 @@ def test_tpu_clip_grad_by_value(tmpdir):
     tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=4,
         tpu_cores=1,
         limit_train_batches=10,
@@ -379,7 +379,7 @@ def test_tpu_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
     tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=1,
         tpu_cores=1,
         precision=16,
@@ -437,7 +437,7 @@ def test_tpu_debug_mode(tmpdir):
     tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=4,
         tpu_cores=8,
         limit_train_batches=0.4,
@@ -464,7 +464,7 @@ def test_tpu_host_world_size(tmpdir):
     tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=4,
         tpu_cores=8,
         limit_train_batches=0.4,

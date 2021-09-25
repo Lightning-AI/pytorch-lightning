@@ -251,7 +251,7 @@ def test_lr_monitor_custom_name(tmpdir):
         limit_val_batches=0.1,
         limit_train_batches=0.5,
         callbacks=[lr_monitor],
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         weights_summary=None,
     )
     trainer.fit(TestModel())
@@ -272,7 +272,7 @@ def test_lr_monitor_custom_pg_name(tmpdir):
         limit_val_batches=2,
         limit_train_batches=2,
         callbacks=[lr_monitor],
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         weights_summary=None,
     )
     trainer.fit(TestModel())
@@ -310,7 +310,7 @@ def test_lr_monitor_duplicate_custom_pg_names(tmpdir):
         limit_val_batches=2,
         limit_train_batches=2,
         callbacks=[lr_monitor],
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         weights_summary=None,
     )
 
@@ -388,7 +388,7 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
         limit_val_batches=0,
         limit_train_batches=2,
         callbacks=[TestFinetuning(), lr_monitor, Check()],
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         weights_summary=None,
         checkpoint_callback=False,
     )
