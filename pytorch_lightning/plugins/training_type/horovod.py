@@ -172,7 +172,7 @@ class HorovodPlugin(ParallelPlugin):
         return hvd.allreduce(tensor, op=reduce_op)
 
     def all_gather(
-        self, result: Union[torch.Tensor], group: Optional[Any] = dist_group.WORLD, sync_grads: bool = False
+        self, result: torch.Tensor, group: Optional[Any] = dist_group.WORLD, sync_grads: bool = False
     ) -> torch.Tensor:
         if group is not None and group != dist_group.WORLD:
             raise ValueError("Horovod does not support allgather using a subcommunicator at this time. Unset `group`.")
