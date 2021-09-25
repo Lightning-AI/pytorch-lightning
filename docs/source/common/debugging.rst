@@ -98,6 +98,7 @@ By default it only prints the top-level modules. If you want to show all submodu
 `'max_depth'` option:
 
 .. testcode::
+    from pytorch_lightning.callbacks import ModelSummary
 
     trainer = Trainer(callbacks=[ModelSummary(max_depth=-1)])
 
