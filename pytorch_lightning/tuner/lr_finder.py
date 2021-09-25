@@ -14,6 +14,7 @@
 import importlib
 import logging
 import os
+import uuid
 from functools import wraps
 from typing import Callable, Optional, Sequence
 
@@ -208,7 +209,7 @@ def lr_find(
     if update_attr:
         lr_attr_name = _determine_lr_attr_name(trainer, model)
 
-    save_path = os.path.join(trainer.default_root_dir, "lr_find_temp_model.ckpt")
+    save_path = os.path.join(trainer.default_root_dir, f"lr_find_temp_model_{uuid.uuid4()}.ckpt")
 
     __lr_finder_dump_params(trainer, model)
 
