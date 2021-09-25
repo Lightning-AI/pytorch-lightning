@@ -78,7 +78,6 @@ def test_horovod_cpu(tmpdir):
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         accelerator="horovod",
-        deterministic=True,
     )
     _run_horovod(trainer_options)
 
@@ -170,7 +169,6 @@ def test_horovod_apex(tmpdir):
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         gpus=2,
-        deterministic=True,
         accelerator="horovod",
         amp_backend="apex",
         precision=16,
@@ -190,7 +188,6 @@ def test_horovod_amp(tmpdir):
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         gpus=2,
-        deterministic=True,
         accelerator="horovod",
         amp_backend="native",
         precision=16,
@@ -210,7 +207,6 @@ def test_horovod_gather(tmpdir):
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         gpus=2,
-        deterministic=True,
         accelerator="horovod",
     )
     _run_horovod(trainer_options, on_gpu=True)
@@ -236,7 +232,6 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         gpus=1,
-        deterministic=True,
         accelerator="horovod",
     )
     tpipes.run_model_test_without_loggers(trainer_options, model)
@@ -253,7 +248,6 @@ def test_horovod_multi_optimizer(tmpdir):
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        deterministic=True,
         accelerator="horovod",
     )
     trainer.fit(model)
