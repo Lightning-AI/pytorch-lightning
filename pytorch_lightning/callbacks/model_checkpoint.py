@@ -266,7 +266,8 @@ class ModelCheckpoint(Callback):
     def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """When pretrain routine starts we build the ckpt dir on the fly."""
         self.__resolve_ckpt_dir(trainer)
-        self.__check_if_dir_not_empty(self.dirpath, trainer)
+        if trainer.is_global_zero:
+            self.__warn_if_dir_not_empty(self.dirpath)
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._last_time_checked = time.monotonic()
