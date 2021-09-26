@@ -32,7 +32,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 log = logging.getLogger(__name__)
 
 
-def multiplicative(epoch):
+def multiplicative(_):
     return 2
 
 
@@ -208,7 +208,7 @@ class BaseFinetuning(Callback):
 
         if removed_params:
             rank_zero_warn(
-                "The provided params to be freezed already exist within another group of this optimizer."
+                "The provided params to be frozen already exist within another group of this optimizer."
                 " Those parameters will be skipped.\n"
                 "HINT: Did you init your optimizer in `configure_optimizer` as such:\n"
                 f" {type(optimizer)}(filter(lambda p: p.requires_grad, self.parameters()), ...) ",
@@ -227,22 +227,14 @@ class BaseFinetuning(Callback):
         """Unfreezes a module and adds its parameters to an optimizer.
 
         Args:
-
             modules: A module or iterable of modules to unfreeze.
                 Their parameters will be added to an optimizer as a new param group.
-
             optimizer: The provided optimizer will receive new parameters and will add them to
                 `add_param_group`
-
             lr: Learning rate for the new param group.
-
             initial_denom_lr: If no lr is provided, the learning from the first param group will be used
-                and divided by initial_denom_lr.
-
+                and divided by `initial_denom_lr`.
             train_bn: Whether to train the BatchNormalization layers.
-
-        Returns:
-            None
         """
         BaseFinetuning.make_trainable(modules)
         params_lr = optimizer.param_groups[0]["lr"] if lr is None else float(lr)
@@ -252,7 +244,7 @@ class BaseFinetuning(Callback):
         if params:
             optimizer.add_param_group({"params": params, "lr": params_lr / denom_lr})
 
-    def on_before_accelerator_backend_setup(self, trainer, pl_module):
+    def on_before_accelerator_backend_setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
         self.freeze_before_training(pl_module)
 
     @staticmethod
@@ -283,7 +275,7 @@ class BaseFinetuning(Callback):
                 self.__apply_mapping_to_param_groups(current_param_groups[num_param_groups:], mapping)
             )
 
-    def on_train_epoch_start(self, trainer, pl_module):
+    def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the epoch begins."""
         # import is here to avoid circular imports
         from pytorch_lightning.loops.utilities import _get_active_optimizers
@@ -294,44 +286,34 @@ class BaseFinetuning(Callback):
             current_param_groups = optimizer.param_groups
             self._store(pl_module, opt_idx, num_param_groups, current_param_groups)
 
-    def finetune_function(self, pl_module: "pl.LightningModule", epoch: int, optimizer: Optimizer, opt_idx: int):
+    def finetune_function(self, pl_module: "pl.LightningModule", epoch: int, optimizer: Optimizer, opt_idx: int) -> None:
         """Override to add your unfreeze logic."""
         raise NotImplementedError
 
-    def freeze_before_training(self, pl_module: "pl.LightningModule"):
+    def freeze_before_training(self, pl_module: "pl.LightningModule") -> None:
         """Override to add your freeze logic."""
         raise NotImplementedError
 
 
 class BackboneFinetuning(BaseFinetuning):
-    r"""
+    r"""Finetune a backbone model based on a learning rate user-defined scheduling.
 
-    Finetune a backbone model based on a learning rate user-defined scheduling.
     When the backbone learning rate reaches the current model learning rate
     and ``should_align`` is set to True, it will align with it for the rest of the training.
 
     Args:
-
         unfreeze_backbone_at_epoch: Epoch at which the backbone will be unfreezed.
-
         lambda_func: Scheduling function for increasing backbone learning rate.
-
         backbone_initial_ratio_lr:
             Used to scale down the backbone learning rate compared to rest of model
-
         backbone_initial_lr: Optional, Inital learning rate for the backbone.
-            By default, we will use current_learning /  backbone_initial_ratio_lr
-
+            By default, we will use ``current_learning /  backbone_initial_ratio_lr``
         should_align: Wheter to align with current learning rate when backbone learning
             reaches it.
-
         initial_denom_lr: When unfreezing the backbone, the intial learning rate will
-            current_learning_rate /  initial_denom_lr.
-
+            ``current_learning_rate /  initial_denom_lr``.
         train_bn: Wheter to make Batch Normalization trainable.
-
         verbose: Display current learning rate for model and backbone
-
         rounding: Precision for displaying learning rate
 
     Example::
@@ -355,7 +337,7 @@ class BackboneFinetuning(BaseFinetuning):
         train_bn: bool = True,
         verbose: bool = False,
         rounding: int = 12,
-    ):
+    ) -> None:
         super().__init__()
 
         self.unfreeze_backbone_at_epoch: int = unfreeze_backbone_at_epoch
@@ -383,7 +365,7 @@ class BackboneFinetuning(BaseFinetuning):
         self.previous_backbone_lr = callback_state["previous_backbone_lr"]
         super().on_load_checkpoint(trainer, pl_module, callback_state["internal_optimizer_metadata"])
 
-    def on_fit_start(self, trainer, pl_module):
+    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """
         Raises:
             MisconfigurationException:
@@ -393,10 +375,10 @@ class BackboneFinetuning(BaseFinetuning):
             return super().on_fit_start(trainer, pl_module)
         raise MisconfigurationException("The LightningModule should have a nn.Module `backbone` attribute")
 
-    def freeze_before_training(self, pl_module: "pl.LightningModule"):
+    def freeze_before_training(self, pl_module: "pl.LightningModule") -> None:
         self.freeze(pl_module.backbone)
 
-    def finetune_function(self, pl_module: "pl.LightningModule", epoch: int, optimizer: Optimizer, opt_idx: int):
+    def finetune_function(self, pl_module: "pl.LightningModule", epoch: int, optimizer: Optimizer, opt_idx: int) -> None:
         """Called when the epoch begins."""
         if epoch == self.unfreeze_backbone_at_epoch:
             current_lr = optimizer.param_groups[0]["lr"]
