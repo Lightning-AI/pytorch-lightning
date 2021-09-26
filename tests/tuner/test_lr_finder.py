@@ -288,11 +288,10 @@ def test_lr_finder_ends_before_num_training(tmpdir):
 
 def test_multiple_lr_find_calls_gives_same_results(tmpdir):
     """Tests that lr_finder gives same results if called multiple times."""
-    dm = ClassifDataModule()
-    model = ClassificationModel()
+    model = BoringModel()
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)
-    all_res = [trainer.tuner.lr_find(model, datamodule=dm).results for _ in range(3)]
+    all_res = [trainer.tuner.lr_find(model).results for _ in range(3)]
 
-    for k in all_res[0].keys():
-        assert all(all_res[0][k] == curr_lr_finder[k] for curr_lr_finder in all_res[1:])
+    assert all(len(res["lr"]) > 10 for res in all_res)
+    assert all(all_res[0][k] == curr_lr_finder[k] for curr_lr_finder in all_res[1:] for k in all_res[0].keys())
