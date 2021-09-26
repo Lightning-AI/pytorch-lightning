@@ -457,9 +457,9 @@ class Trainer(
 
         fit_loop = FitLoop(
             min_epochs=(1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs),
-            max_epochs=max_epochs,
-            max_steps=max_steps,
-            max_time=max_time,
+            max_epochs=(
+                max_epochs if max_epochs is not None else (1000 if (max_steps == -1 and max_time is None) else -1)
+            ),
         )
         training_epoch_loop = TrainingEpochLoop(min_steps, max_steps)
         training_batch_loop = TrainingBatchLoop()
