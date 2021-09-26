@@ -106,12 +106,12 @@ class FitLoop(Loop):
         return self.epoch_loop.max_steps
 
     @max_steps.setter
-    def max_steps(self, value: int) -> None:
+    def max_steps(self, value: Optional[int]) -> None:
         """Sets the maximum number of steps (forwards to epoch_loop)"""
         # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
         if value is None:
             rank_zero_deprecation(
-                "Setting `max_steps = None` is deprecated in v1.5 and will be removed in v1.7."
+                "Setting `max_steps = None` is deprecated in v1.5 and will no longer be supported in v1.7."
                 " Use `max_steps = -1` instead."
             )
             value = -1
