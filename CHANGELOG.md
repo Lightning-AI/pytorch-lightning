@@ -368,6 +368,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed an issue that will cause non-default value of `Trainer`'s attributes `limit_train_batches`, `limit_val_batches` and `limit_test_batches` will be covered by another attribute `overfit_batches` when `overfit_batches` is larger than zero ([#9709](https://github.com/PyTorchLightning/pytorch-lightning/pull/9709))
 
 - Fixed an issue with logger outputs not being finalized correctly after prediction runs ([#8685](https://github.com/PyTorchLightning/pytorch-lightning/pull/8685))
 
