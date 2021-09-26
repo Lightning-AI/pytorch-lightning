@@ -909,8 +909,10 @@ def test_disabled_validation(tmpdir):
 
 
 def test_irrevelance_between_non_default_overfit_batches_and_non_default_batch_limitation(tmpdir):
-    """Verify that when `overfit_batches` > 0,  `limit_train/val/test_batches` won't be resetted to `overfit_batches` unless they are of default value."""
+    """Verify that when `overfit_batches` > 0,  `limit_train/val/test_batches` won't be resetted to
+    `overfit_batches` unless they are of default value."""
     """Assure that non-default value of `limit_train/val/test_batches` won't be reset by `DebuggingConnector` when `overfit_batches` > 0"""
+
     class CurrentModel(EvalModelTemplate):
 
         validation_step_invoked = False
@@ -947,12 +949,12 @@ def test_irrevelance_between_non_default_overfit_batches_and_non_default_batch_l
     assert trainer.limit_val_batches == 0.0
     assert not model.validation_step_invoked, "`validation_step` should not run when `limit_val_batches=0`"
     assert not model.validation_epoch_end_invoked, "`validation_epoch_end` should not run when `limit_val_batches=0`"
-    
+
     # check that limit_xxx_batches will be reset when they are default value and overfit_batches > 0
     model = CurrentModel(**hparams)
-    trainer_options.update(overfit_batches = 2)
-    trainer_options.update(limit_train_batches = 1.)
-    trainer_options.update(limit_val_batches = 1.)
+    trainer_options.update(overfit_batches=2)
+    trainer_options.update(limit_train_batches=1.0)
+    trainer_options.update(limit_val_batches=1.0)
     trainer = Trainer(**trainer_options)
     trainer.fit(model)
 
