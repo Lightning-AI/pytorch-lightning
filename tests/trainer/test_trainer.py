@@ -884,6 +884,18 @@ def test_disabled_validation(tmpdir):
     assert not model.validation_step_invoked, "`validation_step` should not run when `limit_val_batches=0`"
     assert not model.validation_epoch_end_invoked, "`validation_epoch_end` should not run when `limit_val_batches=0`"
 
+    # check that limit_val_batches=0 turns off validation even when overfit_batches > 0
+    model = CurrentModel(**hparams)
+    trainer_options.update(overfit_batches=1)
+    trainer = Trainer(**trainer_options)
+    trainer.fit(model)
+
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
+    assert trainer.current_epoch == 1
+    assert trainer.limit_val_batches == 0.0
+    assert not model.validation_step_invoked, "`validation_step` should not run when `limit_val_batches=0`"
+    assert not model.validation_epoch_end_invoked, "`validation_epoch_end` should not run when `limit_val_batches=0`"
+
     # check that limit_val_batches has no influence when fast_dev_run is turned on
     model = CurrentModel(**hparams)
     trainer_options.update(fast_dev_run=True)
@@ -892,6 +904,62 @@ def test_disabled_validation(tmpdir):
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.current_epoch == 0
+    assert model.validation_step_invoked, "did not run `validation_step` with `fast_dev_run=True`"
+    assert model.validation_epoch_end_invoked, "did not run `validation_epoch_end` with `fast_dev_run=True`"
+
+
+def test_irrevelance_between_non_default_overfit_batches_and_non_default_batch_limitation(tmpdir):
+    """Verify that when `overfit_batches` > 0,  `limit_train/val/test_batches` won't be resetted to `overfit_batches` unless they are of default value."""
+    """Assure that non-default value of `limit_train/val/test_batches` won't be reset by `DebuggingConnector` when `overfit_batches` > 0"""
+    class CurrentModel(EvalModelTemplate):
+
+        validation_step_invoked = False
+        validation_epoch_end_invoked = False
+
+        def validation_step(self, *args, **kwargs):
+            self.validation_step_invoked = True
+            return super().validation_step(*args, **kwargs)
+
+        def validation_epoch_end(self, *args, **kwargs):
+            self.validation_epoch_end_invoked = True
+            return super().validation_epoch_end(*args, **kwargs)
+
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = CurrentModel(**hparams)
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        max_epochs=2,
+        limit_train_batches=0.4,
+        limit_val_batches=0.0,
+        overfit_batches=1,
+        fast_dev_run=False,
+    )
+
+    trainer = Trainer(**trainer_options)
+    trainer.fit(model)
+
+    # check that limit_xxx_batches won't be reset when they are non-default value and overfit_batches > 0
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
+    assert trainer.current_epoch == 1
+    assert trainer.limit_train_batches == 0.4
+    assert trainer.limit_val_batches == 0.0
+    assert not model.validation_step_invoked, "`validation_step` should not run when `limit_val_batches=0`"
+    assert not model.validation_epoch_end_invoked, "`validation_epoch_end` should not run when `limit_val_batches=0`"
+    
+    # check that limit_xxx_batches will be reset when they are default value and overfit_batches > 0
+    model = CurrentModel(**hparams)
+    trainer_options.update(overfit_batches = 2)
+    trainer_options.update(limit_train_batches = 1.)
+    trainer_options.update(limit_val_batches = 1.)
+    trainer = Trainer(**trainer_options)
+    trainer.fit(model)
+
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
+    assert trainer.current_epoch == 1
+    assert trainer.limit_train_batches == 2
+    assert trainer.limit_val_batches == 2
     assert model.validation_step_invoked, "did not run `validation_step` with `fast_dev_run=True`"
     assert model.validation_epoch_end_invoked, "did not run `validation_epoch_end` with `fast_dev_run=True`"
 
