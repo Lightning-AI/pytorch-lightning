@@ -24,6 +24,7 @@ from pytorch_lightning.loops.utilities import _get_active_optimizers, _update_da
 from pytorch_lightning.loops.optimization.closure import ClosureResult, OutputResult
 from pytorch_lightning.loops.optimization.closure import OutputResult
 from pytorch_lightning.loops.utilities import _is_max_limit_reached, _prepare_dataloader_iter
+from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached, _prepare_dataloader_iter
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -57,7 +58,9 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             )
             max_steps = -1
         elif max_steps < -1:
-            raise MisconfigurationException(f"`max_steps` must be a non-negative integer or -1. You passed in {max_steps}.")
+            raise MisconfigurationException(
+                f"`max_steps` must be a non-negative integer or -1. You passed in {max_steps}."
+            )
         self.max_steps: int = max_steps
 
         self.global_step: int = 0
