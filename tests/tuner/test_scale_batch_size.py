@@ -108,6 +108,7 @@ def test_trainer_reset_correctly(tmpdir):
         "limit_train_batches",
         "logger",
         "max_steps",
+        "global_step",
         "weights_summary",
     ]
     expected = {ca: getattr(trainer, ca) for ca in changed_attributes}

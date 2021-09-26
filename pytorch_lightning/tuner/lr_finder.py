@@ -284,6 +284,7 @@ def __lr_finder_dump_params(trainer, model):
         "auto_lr_find": trainer.auto_lr_find,
         "callbacks": trainer.callbacks,
         "logger": trainer.logger,
+        "global_step": trainer.global_step,
         "max_steps": trainer.max_steps,
         "checkpoint_callback": trainer.checkpoint_callback,
         "current_epoch": trainer.current_epoch,
@@ -295,6 +296,7 @@ def __lr_finder_restore_params(trainer, model):
     trainer.auto_lr_find = trainer.__dumped_params["auto_lr_find"]
     trainer.logger = trainer.__dumped_params["logger"]
     trainer.callbacks = trainer.__dumped_params["callbacks"]
+    trainer.fit_loop.global_step = trainer.__dumped_params["global_step"]
     trainer.fit_loop.max_steps = trainer.__dumped_params["max_steps"]
     trainer.fit_loop.current_epoch = trainer.__dumped_params["current_epoch"]
     model.configure_optimizers = trainer.__dumped_params["configure_optimizers"]
