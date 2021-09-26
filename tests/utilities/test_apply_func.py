@@ -32,16 +32,38 @@ def test_recursive_application_to_collection():
         input_ids: torch.Tensor
         segment_ids: np.ndarray
 
+        def __eq__(self, o: object) -> bool:
+            if not isinstance(o, Feature):
+                return NotImplemented
+            else:
+                return torch.equal(self.input_ids, o.input_ids) and np.equal(self.segment_ids, o.segment_ids).all()
+
     @dataclasses.dataclass
     class ModelExample:
         example_ids: List[str]
         feature: Feature
         label: torch.Tensor
 
+        def __eq__(self, o: object) -> bool:
+            if not isinstance(o, ModelExample):
+                return NotImplemented
+            else:
+                return (
+                    self.example_ids == o.example_ids and self.feature == o.feature and torch.equal(self.label, o.label)
+                )
+
     @dataclasses.dataclass
     class WithClassVar:
         class_var: ClassVar[int] = 0
         dummy: Any
+
+        def __eq__(self, o: object) -> bool:
+            if not isinstance(o, WithClassVar):
+                return NotImplemented
+            elif isinstance(self.dummy, torch.Tensor):
+                return torch.equal(self.dummy, o.dummy)
+            else:
+                return self.dummy == o.dummy
 
     @dataclasses.dataclass
     class WithInitVar:
@@ -52,6 +74,14 @@ def test_recursive_application_to_collection():
             if override is not None:
                 self.dummy = override
 
+        def __eq__(self, o: object) -> bool:
+            if not isinstance(o, WithInitVar):
+                return NotImplemented
+            elif isinstance(self.dummy, torch.Tensor):
+                return torch.equal(self.dummy, o.dummy)
+            else:
+                return self.dummy == o.dummy
+
     @dataclasses.dataclass
     class WithClassAndInitVar:
         class_var: ClassVar[torch.Tensor] = torch.tensor(0)
@@ -61,6 +91,14 @@ def test_recursive_application_to_collection():
         def __post_init__(self, override: Optional[Any]):
             if override is not None:
                 self.dummy = override
+
+        def __eq__(self, o: object) -> bool:
+            if not isinstance(o, WithClassAndInitVar):
+                return NotImplemented
+            elif isinstance(self.dummy, torch.Tensor):
+                return torch.equal(self.dummy, o.dummy)
+            else:
+                return self.dummy == o.dummy
 
     model_example = ModelExample(
         example_ids=["i-1", "i-2", "i-3"],
@@ -140,64 +178,30 @@ def test_recursive_application_to_collection():
     assert isinstance(reduced["g"], numbers.Number), "Reduction of a number should result in a number"
     assert reduced["g"] == expected_result["g"], "Reduction of a number did not yield the desired result"
 
-    assert dataclasses.is_dataclass(reduced["h"]) and not isinstance(
-        reduced["h"], type
-    ), "Reduction of a dataclass should result in a dataclass"
-    assert torch.allclose(
-        reduced["h"].input_ids, expected_result["h"].input_ids
-    ), "Reduction of a dataclass did not yield the desired result"
-    assert np.allclose(
-        reduced["h"].segment_ids, expected_result["h"].segment_ids
-    ), "Reduction of a dataclass did not yield the desired result"
-
-    def _assert_nested_dataclass_reduction(actual: ModelExample, expected: ModelExample):
-
+    def _assert_dataclass_reduction(actual, expected, dataclass_type: str = ""):
         assert dataclasses.is_dataclass(actual) and not isinstance(
             actual, type
-        ), "Reduction of a dataclass should result in a dataclass"
-        assert dataclasses.is_dataclass(actual.feature) and not isinstance(
-            actual.feature, type
-        ), "Reduction of a nested dataclass should result in a nested dataclass"
-        assert (
-            actual.example_ids == expected.example_ids
-        ), "Reduction of a nested dataclass did not yield the desired result"
-        assert torch.allclose(
-            actual.label, expected.label
-        ), "Reduction of a nested dataclass did not yield the desired result"
-        assert torch.allclose(
-            actual.feature.input_ids, expected.feature.input_ids
-        ), "Reduction of a nested dataclass did not yield the desired result"
-        assert np.allclose(
-            actual.feature.segment_ids, expected.feature.segment_ids
-        ), "Reduction of a nested dataclass did not yield the desired result"
+        ), f"Reduction of a {dataclass_type} dataclass should result in a dataclass"
+        for field in dataclasses.fields(actual):
+            if dataclasses.is_dataclass(field.type):
+                _assert_dataclass_reduction(getattr(actual, field.name), getattr(expected, field.name), "nested")
+        assert actual == expected, f"Reduction of a {dataclass_type} dataclass did not yield the desired result"
 
-    _assert_nested_dataclass_reduction(reduced["i"], expected_result["i"])
+    _assert_dataclass_reduction(reduced["h"], expected_result["h"])
 
-    assert dataclasses.is_dataclass(reduced["j"]) and not isinstance(
-        reduced["j"], type
-    ), "Reduction of a dataclass with a class var should result in a dataclass"
-    assert WithClassVar.class_var == 0, "Reduction of a dataclass with a class var should not change the class var"
-    assert torch.allclose(
-        reduced["j"].dummy, expected_result["j"].dummy
-    ), "Reduction of a dataclass with a class var did not yield the desired result"
+    _assert_dataclass_reduction(reduced["i"], expected_result["i"])
 
-    assert dataclasses.is_dataclass(reduced["k"]) and not isinstance(
-        reduced["k"], type
-    ), "Reduction of a dataclass with an init-only var should result in a dataclass"
-    assert torch.allclose(
-        reduced["k"].dummy, expected_result["k"].dummy
-    ), "Reduction of a dataclass with an init-only var did not yield the desired result"
+    dataclass_type = "ClassVar-containing"
+    _assert_dataclass_reduction(reduced["j"], expected_result["j"], dataclass_type)
+    assert WithClassVar.class_var == 0, f"Reduction of a {dataclass_type} dataclass should not change the class var"
 
-    assert dataclasses.is_dataclass(reduced["l"]) and not isinstance(
-        reduced["l"], type
-    ), "Reduction of a dataclass with class and init-only vars should result in a dataclass"
+    _assert_dataclass_reduction(reduced["k"], expected_result["k"], "InitVar-containing")
+
+    dataclass_type = "Class-and-InitVar-containing"
+    _assert_dataclass_reduction(reduced["l"], expected_result["l"], dataclass_type)
     assert torch.equal(
         WithClassAndInitVar.class_var, torch.tensor(0)
-    ), "Reduction of a dataclass with class and init-only vars should not change the class var"
-    try:
-        _assert_nested_dataclass_reduction(reduced["l"].dummy, expected_result["l"].dummy)
-    except AssertionError:
-        raise AssertionError("Reduction of a dataclass with class and init-only vars did not yield the desired result")
+    ), f"Reduction of a {dataclass_type} dataclass should not change the class var"
 
     # mapping support
     reduced = apply_to_collection({"a": 1, "b": 2}, int, lambda x: str(x))
