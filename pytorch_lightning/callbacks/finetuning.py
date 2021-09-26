@@ -332,7 +332,7 @@ class BackboneFinetuning(BaseFinetuning):
 
         verbose: Display current learning rate for model and backbone
 
-        round: Precision for displaying learning rate
+        rounding: Precision for displaying learning rate
 
     Example::
 
@@ -354,7 +354,7 @@ class BackboneFinetuning(BaseFinetuning):
         initial_denom_lr: float = 10.0,
         train_bn: bool = True,
         verbose: bool = False,
-        round: int = 12,
+        rounding: int = 12,
     ):
         super().__init__()
 
@@ -366,7 +366,7 @@ class BackboneFinetuning(BaseFinetuning):
         self.initial_denom_lr: float = initial_denom_lr
         self.train_bn: bool = train_bn
         self.verbose: bool = verbose
-        self.round: int = round
+        self.rounding: int = rounding
         self.previous_backbone_lr: Optional[float] = None
 
     def on_save_checkpoint(
@@ -415,8 +415,8 @@ class BackboneFinetuning(BaseFinetuning):
             )
             if self.verbose:
                 log.info(
-                    f"Current lr: {round(current_lr, self.round)}, "
-                    f"Backbone lr: {round(initial_backbone_lr, self.round)}"
+                    f"Current lr: {round(current_lr, self.rounding)}, "
+                    f"Backbone lr: {round(initial_backbone_lr, self.rounding)}"
                 )
 
         elif epoch > self.unfreeze_backbone_at_epoch:
@@ -431,6 +431,6 @@ class BackboneFinetuning(BaseFinetuning):
             self.previous_backbone_lr = next_current_backbone_lr
             if self.verbose:
                 log.info(
-                    f"Current lr: {round(current_lr, self.round)}, "
-                    f"Backbone lr: {round(next_current_backbone_lr, self.round)}"
+                    f"Current lr: {round(current_lr, self.rounding)}, "
+                    f"Backbone lr: {round(next_current_backbone_lr, self.rounding)}"
                 )
