@@ -105,10 +105,7 @@ class CustomClassificationModelDP(ClassificationModel):
 
 
 def test_model_properties_resume_from_checkpoint(tmpdir):
-    """
-    Test that properties like `current_epoch` and `global_step`
-    in model and trainer are always the same.
-    """
+    """Test that properties like `current_epoch` and `global_step` in model and trainer are always the same."""
     model = BoringModel()
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
     trainer_args = dict(
@@ -223,7 +220,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
     checkpoint = tutils.init_checkpoint_callback(logger)
 
     trainer_options = dict(
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=2,
         limit_train_batches=5,
         limit_val_batches=5,
@@ -269,7 +266,7 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
     checkpoint = tutils.init_checkpoint_callback(logger)
 
     trainer_options = dict(
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=2,
         limit_train_batches=2,
         limit_val_batches=2,
@@ -316,7 +313,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
     checkpoint = tutils.init_checkpoint_callback(logger)
 
     trainer_options = dict(
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=2,
         limit_train_batches=2,
         limit_val_batches=2,
@@ -348,7 +345,7 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
     model = model_template()
 
     trainer_options = dict(
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=2,
         limit_train_batches=2,
         limit_val_batches=2,

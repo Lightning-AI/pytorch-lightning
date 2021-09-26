@@ -907,6 +907,9 @@ Stop training once this number of epochs is reached
     # default used by the Trainer
     trainer = Trainer(max_epochs=1000)
 
+If both ``max_epochs`` and ``max_steps`` aren't specified, ``max_epochs`` will default to ``1000``.
+To enable infinite training, set ``max_epochs = -1``.
+
 min_epochs
 ^^^^^^^^^^
 
@@ -946,6 +949,9 @@ Training will stop if max_steps or max_epochs have reached (earliest).
 
     # Stop after 100 steps
     trainer = Trainer(max_steps=100)
+
+If ``max_steps`` is not specified, ``max_epochs`` will be used instead (and ``max_epochs`` defaults to
+``1000`` if ``max_epochs`` is not specified). To disable this default, set ``max_steps = -1``.
 
 min_steps
 ^^^^^^^^^
@@ -1275,6 +1281,10 @@ See the :doc:`profiler documentation <../advanced/profiler>`. for more details.
 
 progress_bar_refresh_rate
 ^^^^^^^^^^^^^^^^^^^^^^^^^
+``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
+Please pass :class:`~pytorch_lightning.callbacks.progress.ProgressBar` with ``refresh_rate``
+directly to the Trainer's ``callbacks`` argument instead. To disable the progress bar,
+pass ``enable_progress_bar = False`` to the Trainer.
 
 .. raw:: html
 
@@ -1298,6 +1308,19 @@ Note:
     - In Google Colab notebooks, faster refresh rates (lower number) is known to crash them because of their screen refresh rates.
       Lightning will set it to 20 in these environments if the user does not provide a value.
     - This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
+
+enable_progress_bar
+^^^^^^^^^^^^^^^^^^^
+
+Whether to enable or disable the progress bar. Defaults to True.
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(enable_progress_bar=True)
+
+    # disable progress bar
+    trainer = Trainer(enable_progress_bar=False)
 
 reload_dataloaders_every_n_epochs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -1,6 +1,6 @@
 import io
 from argparse import ArgumentParser, Namespace
-from typing import List
+from typing import Generic, List, TypeVar
 from unittest.mock import MagicMock
 
 import pytest
@@ -137,6 +137,16 @@ class AddArgparseArgsExampleClassNoDoc:
         pass
 
 
+class AddArgparseArgsExampleClassGeneric:
+    T = TypeVar("T")
+
+    class SomeClass(Generic[T]):
+        pass
+
+    def __init__(self, invalid_class: SomeClass):
+        pass
+
+
 def extract_help_text(parser):
     help_str_buffer = io.StringIO()
     parser.print_help(file=help_str_buffer)
@@ -153,10 +163,7 @@ def extract_help_text(parser):
     ],
 )
 def test_add_argparse_args(cls, name):
-    """
-    Tests that ``add_argparse_args`` handles argument groups correctly, and
-    can be parsed.
-    """
+    """Tests that ``add_argparse_args`` handles argument groups correctly, and can be parsed."""
     parser = ArgumentParser()
     parser_main = parser.add_argument_group("main")
     parser_main.add_argument("--main_arg", type=str, default="")
@@ -186,10 +193,8 @@ def test_negative_add_argparse_args():
 
 
 def test_add_argparse_args_no_argument_group():
-    """
-    Tests that ``add_argparse_args(..., use_argument_group=False)`` (old
-    workflow) handles argument groups correctly, and can be parsed.
-    """
+    """Tests that ``add_argparse_args(..., use_argument_group=False)`` (old workflow) handles argument groups
+    correctly, and can be parsed."""
     parser = ArgumentParser()
     parser.add_argument("--main_arg", type=str, default="")
     parser_old = parser  # For testing.
@@ -208,6 +213,12 @@ def test_add_argparse_args_no_argument_group():
     assert args.my_parameter == 2
 
 
+def test_add_argparse_args_invalid():
+    """Test that `add_argparse_args` doesn't raise `TypeError` when a class has args typed as `typing.Generic` in
+    Python 3.6."""
+    add_argparse_args(AddArgparseArgsExampleClassGeneric, ArgumentParser())
+
+
 def test_gpus_allowed_type():
     assert _gpus_allowed_type("1,2") == "1,2"
     assert _gpus_allowed_type("1") == 1
@@ -220,9 +231,7 @@ def test_int_or_float_type():
 
 @pytest.mark.parametrize(["arg", "expected"], [["--precision=16", 16], ["--precision=bf16", "bf16"]])
 def test_precision_parsed_correctly(arg, expected):
-    """
-    Test to ensure that the precision flag is passed correctly when adding argparse args.
-    """
+    """Test to ensure that the precision flag is passed correctly when adding argparse args."""
     parser = ArgumentParser()
     parser = Trainer.add_argparse_args(parser)
     fake_argv = [arg]

@@ -26,7 +26,7 @@ from tests.helpers.simple_models import ClassificationModel
 
 
 def test_error_on_more_than_1_optimizer(tmpdir):
-    """Check that error is thrown when more than 1 optimizer is passed"""
+    """Check that error is thrown when more than 1 optimizer is passed."""
 
     model = EvalModelTemplate()
     model.configure_optimizers = model.configure_optimizers__multiple_schedulers
@@ -57,7 +57,7 @@ def test_model_reset_correctly(tmpdir):
             torch.eq(before_state_dict[key], after_state_dict[key])
         ), "Model was not reset correctly after learning rate finder"
 
-    assert not os.path.exists(tmpdir / "lr_find_temp_model.ckpt")
+    assert not any(f for f in os.listdir(tmpdir) if f.startswith("lr_find_temp_model"))
 
 
 def test_trainer_reset_correctly(tmpdir):
@@ -87,7 +87,7 @@ def test_trainer_reset_correctly(tmpdir):
 
 @pytest.mark.parametrize("use_hparams", [False, True])
 def test_trainer_arg_bool(tmpdir, use_hparams):
-    """Test that setting trainer arg to bool works"""
+    """Test that setting trainer arg to bool works."""
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
     before_lr = hparams.get("learning_rate")
@@ -109,7 +109,7 @@ def test_trainer_arg_bool(tmpdir, use_hparams):
 
 @pytest.mark.parametrize("use_hparams", [False, True])
 def test_trainer_arg_str(tmpdir, use_hparams):
-    """Test that setting trainer arg to string works"""
+    """Test that setting trainer arg to string works."""
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
     model.my_fancy_lr = 1.0  # update with non-standard field
@@ -133,7 +133,7 @@ def test_trainer_arg_str(tmpdir, use_hparams):
 
 @pytest.mark.parametrize("optimizer", ["Adam", "Adagrad"])
 def test_call_to_trainer_method(tmpdir, optimizer):
-    """Test that directly calling the trainer method works"""
+    """Test that directly calling the trainer method works."""
 
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
@@ -153,7 +153,7 @@ def test_call_to_trainer_method(tmpdir, optimizer):
 
 
 def test_datamodule_parameter(tmpdir):
-    """Test that the datamodule parameter works"""
+    """Test that the datamodule parameter works."""
     seed_everything(1)
 
     dm = ClassifDataModule()
@@ -171,7 +171,8 @@ def test_datamodule_parameter(tmpdir):
 
 
 def test_accumulation_and_early_stopping(tmpdir):
-    """Test that early stopping of learning rate finder works, and that accumulation also works for this feature"""
+    """Test that early stopping of learning rate finder works, and that accumulation also works for this
+    feature."""
 
     class TestModel(BoringModel):
         def __init__(self):
@@ -188,7 +189,7 @@ def test_accumulation_and_early_stopping(tmpdir):
 
 
 def test_suggestion_parameters_work(tmpdir):
-    """Test that default skipping does not alter results in basic case"""
+    """Test that default skipping does not alter results in basic case."""
 
     dm = ClassifDataModule()
     model = ClassificationModel()
@@ -204,7 +205,7 @@ def test_suggestion_parameters_work(tmpdir):
 
 
 def test_suggestion_with_non_finite_values(tmpdir):
-    """Test that non-finite values does not alter results"""
+    """Test that non-finite values does not alter results."""
 
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
@@ -221,14 +222,14 @@ def test_suggestion_with_non_finite_values(tmpdir):
 
 
 def test_lr_finder_fails_fast_on_bad_config(tmpdir):
-    """Test that tune fails if the model does not have a lr BEFORE running lr find"""
+    """Test that tune fails if the model does not have a lr BEFORE running lr find."""
     trainer = Trainer(default_root_dir=tmpdir, max_steps=2, auto_lr_find=True)
     with pytest.raises(MisconfigurationException, match="should have one of these fields"):
         trainer.tune(BoringModel())
 
 
 def test_lr_find_with_bs_scale(tmpdir):
-    """Test that lr_find runs with batch_size_scaling"""
+    """Test that lr_find runs with batch_size_scaling."""
 
     class BoringModelTune(BoringModel):
         def __init__(self, learning_rate=0.1, batch_size=2):

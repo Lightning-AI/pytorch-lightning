@@ -23,9 +23,7 @@ from tests.helpers import BoringModel
 
 
 def test_finetuning_with_resume_from_checkpoint(tmpdir):
-    """
-    This test validates that generated ModelCheckpoint is pointing to the right best_model_path during test
-    """
+    """This test validates that generated ModelCheckpoint is pointing to the right best_model_path during test."""
 
     checkpoint_callback = ModelCheckpoint(monitor="val_loss", dirpath=tmpdir, filename="{epoch:02d}", save_top_k=-1)
 
@@ -66,7 +64,7 @@ def test_finetuning_with_resume_from_checkpoint(tmpdir):
             limit_val_batches=12,
             limit_test_batches=12,
             resume_from_checkpoint=best_model_paths[-1],
-            progress_bar_refresh_rate=0,
+            enable_progress_bar=False,
         )
         trainer.fit(model)
         trainer.test()
@@ -81,9 +79,7 @@ def test_finetuning_with_resume_from_checkpoint(tmpdir):
 
 
 def test_accumulated_gradient_batches_with_resume_from_checkpoint(tmpdir):
-    """
-    This test validates that accumulated gradient is properly recomputed and reset on the trainer.
-    """
+    """This test validates that accumulated gradient is properly recomputed and reset on the trainer."""
 
     ckpt = ModelCheckpoint(dirpath=tmpdir, save_last=True)
     model = BoringModel()

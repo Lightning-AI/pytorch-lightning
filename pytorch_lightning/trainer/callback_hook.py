@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from abc import ABC
 from copy import deepcopy
 from typing import Any, Dict, List, Optional, Type, Union
 
 import torch
+from packaging.version import Version
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
@@ -232,9 +232,19 @@ class TrainerCallbackHookMixin(ABC):
             callback.on_predict_end(self, self.lightning_module)
 
     def on_keyboard_interrupt(self):
-        """Called when the training is interrupted by KeyboardInterrupt."""
+        r"""
+        .. deprecated:: v1.5
+            This callback hook was deprecated in v1.5 in favor of `on_exception` and will be removed in v1.7.
+
+        Called when any trainer execution is interrupted by KeyboardInterrupt.
+        """
         for callback in self.callbacks:
             callback.on_keyboard_interrupt(self, self.lightning_module)
+
+    def on_exception(self, exception: BaseException) -> None:
+        """Called when any trainer execution is interrupted by an exception."""
+        for callback in self.callbacks:
+            callback.on_exception(self, self.lightning_module, exception)
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[str, dict]:
         """Called when saving a model checkpoint."""
@@ -255,14 +265,14 @@ class TrainerCallbackHookMixin(ABC):
         if callback_states is None:
             return
 
-        current_callbacks_type = {type(cb) for cb in self.callbacks}
-        saved_callbacks_type = set(callback_states.keys())
-        difference = saved_callbacks_type.difference(current_callbacks_type)
+        is_legacy_ckpt = Version(checkpoint["pytorch-lightning_version"]) < Version("1.5.0dev")
+        current_callbacks_keys = {cb._legacy_state_key if is_legacy_ckpt else cb.state_key for cb in self.callbacks}
+        difference = callback_states.keys() - current_callbacks_keys
         if difference:
             rank_zero_warn(
-                "Be aware that when using ``resume_from_checkpoint``, "
-                "callbacks used to create the checkpoint need to be provided. "
-                f"Please, add the following callbacks: {list(difference)}. ",
+                "Be aware that when using `resume_from_checkpoint`,"
+                " callbacks used to create the checkpoint need to be provided."
+                f" Please add the following callbacks: {list(difference)}.",
                 UserWarning,
             )
 
@@ -278,22 +288,16 @@ class TrainerCallbackHookMixin(ABC):
             callback.on_before_backward(self, self.lightning_module, loss)
 
     def on_after_backward(self):
-        """
-        Called after loss.backward() and before optimizers do anything.
-        """
+        """Called after loss.backward() and before optimizers do anything."""
         for callback in self.callbacks:
             callback.on_after_backward(self, self.lightning_module)
 
     def on_before_optimizer_step(self, optimizer, optimizer_idx):
-        """
-        Called after on_after_backward() once the gradient is accumulated and before optimizer.step().
-        """
+        """Called after on_after_backward() once the gradient is accumulated and before optimizer.step()."""
         for callback in self.callbacks:
             callback.on_before_optimizer_step(self, self.lightning_module, optimizer, optimizer_idx)
 
     def on_before_zero_grad(self, optimizer):
-        """
-        Called after optimizer.step() and before optimizer.zero_grad().
-        """
+        """Called after optimizer.step() and before optimizer.zero_grad()."""
         for callback in self.callbacks:
             callback.on_before_zero_grad(self, self.lightning_module, optimizer)

@@ -39,7 +39,7 @@ class EarlyStopping(Callback):
     Args:
         monitor: quantity to be monitored.
         min_delta: minimum change in the monitored quantity to qualify as an improvement, i.e. an absolute
-            change of less than `min_delta`, will count as no improvement.
+            change of less than or equal to `min_delta`, will count as no improvement.
         patience: number of checks with no improvement
             after which training will be stopped. Under the default configuration, one check happens after
             every training epoch. However, the frequency of validation can be modified by setting various parameters on
@@ -131,11 +131,11 @@ class EarlyStopping(Callback):
     def state_key(self) -> str:
         return self._generate_state_key(monitor=self.monitor, mode=self.mode)
 
-    def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_init_end(self, trainer: "pl.Trainer") -> None:
         if self._check_on_train_epoch_end is None:
-            # if the user runs validation multiple times per training epoch, we try to check after
-            # validation instead of on train epoch end
-            self._check_on_train_epoch_end = trainer.val_check_interval == 1.0
+            # if the user runs validation multiple times per training epoch or multiple training epochs without
+            # validation, then we run after validation instead of on train epoch end
+            self._check_on_train_epoch_end = trainer.val_check_interval == 1.0 and trainer.check_val_every_n_epoch == 1
 
     def _validate_condition_metric(self, logs):
         monitor_val = logs.get(self.monitor)
@@ -194,10 +194,7 @@ class EarlyStopping(Callback):
         self._run_early_stopping_check(trainer)
 
     def _run_early_stopping_check(self, trainer: "pl.Trainer") -> None:
-        """
-        Checks whether the early stopping condition is met
-        and if so tells the trainer to stop the training.
-        """
+        """Checks whether the early stopping condition is met and if so tells the trainer to stop the training."""
         logs = trainer.callback_metrics
 
         if trainer.fast_dev_run or not self._validate_condition_metric(  # disable early_stopping with fast_dev_run
@@ -206,10 +203,6 @@ class EarlyStopping(Callback):
             return
 
         current = logs.get(self.monitor)
-
-        # when in dev debugging
-        trainer.dev_debugger.track_early_stopping_history(self, current)
-
         should_stop, reason = self._evaluate_stopping_criteria(current)
 
         # stop every ddp process if any world process decides to stop

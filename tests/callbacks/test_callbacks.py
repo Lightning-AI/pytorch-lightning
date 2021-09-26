@@ -12,17 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pathlib import Path
+from re import escape
 from unittest.mock import call, Mock
 
+import pytest
+
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from tests.helpers import BoringModel
+from tests.helpers.utils import no_warning_call
 
 
 def test_callbacks_configured_in_model(tmpdir):
     """Test the callback system with callbacks added through the model hook."""
 
-    model_callback_mock = Mock()
-    trainer_callback_mock = Mock()
+    model_callback_mock = Mock(spec=Callback, model=Callback())
+    trainer_callback_mock = Mock(spec=Callback, model=Callback())
 
     class TestModel(BoringModel):
         def configure_callbacks(self):
@@ -30,7 +35,7 @@ def test_callbacks_configured_in_model(tmpdir):
 
     model = TestModel()
     trainer_options = dict(
-        default_root_dir=tmpdir, checkpoint_callback=False, fast_dev_run=True, progress_bar_refresh_rate=0
+        default_root_dir=tmpdir, checkpoint_callback=False, fast_dev_run=True, enable_progress_bar=False
     )
 
     def assert_expected_calls(_trainer, model_callback, trainer_callback):
@@ -74,16 +79,14 @@ def test_callbacks_configured_in_model(tmpdir):
 
 def test_configure_callbacks_hook_multiple_calls(tmpdir):
     """Test that subsequent calls to `configure_callbacks` do not change the callbacks list."""
-    model_callback_mock = Mock()
+    model_callback_mock = Mock(spec=Callback, model=Callback())
 
     class TestModel(BoringModel):
         def configure_callbacks(self):
             return [model_callback_mock]
 
     model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=True, checkpoint_callback=False, progress_bar_refresh_rate=1
-    )
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, checkpoint_callback=False)
 
     callbacks_before_fit = trainer.callbacks.copy()
     assert callbacks_before_fit
@@ -132,3 +135,34 @@ def test_resume_callback_state_saved_by_type(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback], resume_from_checkpoint=ckpt_path)
     trainer.fit(model)
     assert callback.state == 111
+
+
+def test_resume_incomplete_callbacks_list_warning(tmpdir):
+    model = BoringModel()
+    callback0 = ModelCheckpoint(monitor="epoch")
+    callback1 = ModelCheckpoint(monitor="global_step")
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        callbacks=[callback0, callback1],
+    )
+    trainer.fit(model)
+    ckpt_path = trainer.checkpoint_callback.best_model_path
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        callbacks=[callback1],  # one callback is missing!
+        resume_from_checkpoint=ckpt_path,
+    )
+    with pytest.warns(UserWarning, match=escape(f"Please add the following callbacks: [{repr(callback0.state_key)}]")):
+        trainer.fit(model)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        callbacks=[callback1, callback0],  # all callbacks here, order switched
+        resume_from_checkpoint=ckpt_path,
+    )
+    with no_warning_call(UserWarning, match="Please add the following callbacks:"):
+        trainer.fit(model)

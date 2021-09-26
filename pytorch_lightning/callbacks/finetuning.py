@@ -109,9 +109,8 @@ class BaseFinetuning(Callback):
 
     @staticmethod
     def flatten_modules(modules: Union[Module, Iterable[Union[Module, Iterable]]]) -> List[Module]:
-        """
-        This function is used to flatten a module or an iterable of modules into a list of its leaf modules (modules
-        with no children) and parent modules that have parameters directly themselves.
+        """This function is used to flatten a module or an iterable of modules into a list of its leaf modules
+        (modules with no children) and parent modules that have parameters directly themselves.
 
         Args:
             modules: A given module or an iterable of modules
@@ -157,8 +156,7 @@ class BaseFinetuning(Callback):
 
     @staticmethod
     def make_trainable(modules: Union[Module, Iterable[Union[Module, Iterable]]]) -> None:
-        """
-        Unfreezes the parameters of the provided modules
+        """Unfreezes the parameters of the provided modules.
 
         Args:
             modules: A given module or an iterable of modules
@@ -171,8 +169,7 @@ class BaseFinetuning(Callback):
 
     @staticmethod
     def freeze(modules: Union[Module, Iterable[Union[Module, Iterable]]], train_bn: bool = True) -> None:
-        """
-        Freezes the parameters of the provided modules
+        """Freezes the parameters of the provided modules.
 
         Args:
             modules: A given module or an iterable of modules
@@ -192,9 +189,7 @@ class BaseFinetuning(Callback):
 
     @staticmethod
     def filter_on_optimizer(optimizer: Optimizer, params: Iterable) -> List:
-        """
-        This function is used to exclude any parameter which already exists in
-        this optimizer
+        """This function is used to exclude any parameter which already exists in this optimizer.
 
         Args:
             optimizer: Optimizer used for parameter exclusion
@@ -229,8 +224,7 @@ class BaseFinetuning(Callback):
         initial_denom_lr: float = 10.0,
         train_bn: bool = True,
     ) -> None:
-        """
-        Unfreezes a module and adds its parameters to an optimizer.
+        """Unfreezes a module and adds its parameters to an optimizer.
 
         Args:
 
@@ -291,22 +285,21 @@ class BaseFinetuning(Callback):
 
     def on_train_epoch_start(self, trainer, pl_module):
         """Called when the epoch begins."""
-        for opt_idx, optimizer in trainer.fit_loop.epoch_loop.batch_loop.get_active_optimizers():
+        # import is here to avoid circular imports
+        from pytorch_lightning.loops.utilities import _get_active_optimizers
+
+        for opt_idx, optimizer in _get_active_optimizers(trainer.optimizers, trainer.optimizer_frequencies):
             num_param_groups = len(optimizer.param_groups)
             self.finetune_function(pl_module, trainer.current_epoch, optimizer, opt_idx)
             current_param_groups = optimizer.param_groups
             self._store(pl_module, opt_idx, num_param_groups, current_param_groups)
 
     def finetune_function(self, pl_module: "pl.LightningModule", epoch: int, optimizer: Optimizer, opt_idx: int):
-        """
-        Override to add your unfreeze logic
-        """
+        """Override to add your unfreeze logic."""
         raise NotImplementedError
 
     def freeze_before_training(self, pl_module: "pl.LightningModule"):
-        """
-        Override to add your freeze logic
-        """
+        """Override to add your freeze logic."""
         raise NotImplementedError
 
 

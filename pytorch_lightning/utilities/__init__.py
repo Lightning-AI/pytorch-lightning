@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""General utilities"""
+"""General utilities."""
 
 import numpy
 
@@ -23,6 +23,7 @@ from pytorch_lightning.utilities.enums import (  # noqa: F401
     DistributedType,
     GradClipAlgorithmType,
     LightningEnum,
+    ModelSummaryMode,
 )
 from pytorch_lightning.utilities.grads import grad_norm  # noqa: F401
 from pytorch_lightning.utilities.imports import (  # noqa: F401

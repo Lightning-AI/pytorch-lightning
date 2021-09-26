@@ -71,7 +71,7 @@ You can customize the checkpointing behavior to monitor any quantity of your tra
     # 4. Add your callback to the callbacks list
     trainer = Trainer(callbacks=[checkpoint_callback])
 
-You can also control more advanced options, like `save_top_k`, to save the best k models and the `mode` of the monitored quantity (min/max), `save_weights_only` or `period` to set the interval of epochs between checkpoints, to avoid slowdowns.
+You can also control more advanced options, like `save_top_k`, to save the best k models and the `mode` of the monitored quantity (min/max), `save_weights_only` or `every_n_epochs` to set the interval of epochs between checkpoints, to avoid slowdowns.
 
 .. testcode::
 

@@ -26,7 +26,7 @@ from tests.helpers.runif import RunIf
 
 @mock.patch("argparse.ArgumentParser.parse_args")
 def test_default_args(mock_argparse, tmpdir):
-    """Tests default argument parser for Trainer"""
+    """Tests default argument parser for Trainer."""
     mock_argparse.return_value = Namespace(**Trainer.default_attributes())
 
     # logger file to get meta
@@ -45,9 +45,7 @@ def test_default_args(mock_argparse, tmpdir):
 
 @pytest.mark.parametrize("cli_args", [["--accumulate_grad_batches=22"], ["--weights_save_path=./"], []])
 def test_add_argparse_args_redefined(cli_args: list):
-    """Redefines some default Trainer arguments via the cli and
-    tests the Trainer initialization correctness.
-    """
+    """Redefines some default Trainer arguments via the cli and tests the Trainer initialization correctness."""
     parser = ArgumentParser(add_help=False)
     parser = Trainer.add_argparse_args(parent_parser=parser)
 

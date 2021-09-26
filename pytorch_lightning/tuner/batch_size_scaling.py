@@ -13,6 +13,7 @@
 # limitations under the License
 import logging
 import os
+import uuid
 from typing import Optional, Tuple
 
 import pytorch_lightning as pl
@@ -63,7 +64,7 @@ def scale_batch_size(
     __scale_batch_reset_params(trainer, model, steps_per_trial)
 
     # Save initial model, that is loaded after batch size is found
-    save_path = os.path.join(trainer.default_root_dir, "scale_batch_size_temp_model.ckpt")
+    save_path = os.path.join(trainer.default_root_dir, f"scale_batch_size_temp_model_{uuid.uuid4()}.ckpt")
     trainer.save_checkpoint(str(save_path))
 
     if trainer.progress_bar_callback:
@@ -171,9 +172,11 @@ def _run_power_scaling(
 def _run_binsearch_scaling(
     trainer: "pl.Trainer", model: "pl.LightningModule", new_size: int, batch_arg_name: str, max_trials: int
 ) -> int:
-    """Batch scaling mode where the size is initially is doubled at each iteration
-    until an OOM error is encountered. Hereafter, the batch size is further
-    refined using a binary search"""
+    """Batch scaling mode where the size is initially is doubled at each iteration until an OOM error is
+    encountered.
+
+    Hereafter, the batch size is further refined using a binary search
+    """
     low = 1
     high = None
     count = 0

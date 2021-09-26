@@ -201,6 +201,11 @@ class TrainerDataLoadingMixin(ABC):
 
         # get the dataloader instance `__init__` parameters
         params = dict(inspect.signature(dataloader.__init__).parameters)
+        has_variadic_kwargs = any(p.kind is p.VAR_KEYWORD for p in params.values())
+        if has_variadic_kwargs:
+            # if the signature takes **kwargs, assume they will be passed down with `super().__init__(**kwargs)`
+            params.update(inspect.signature(DataLoader.__init__).parameters)
+            del params["self"]
 
         # keep only the params whose default is different to the current attr value
         non_defaults = {name for name, p in params.items() if name in attrs and p.default != attrs[name]}
@@ -231,7 +236,6 @@ class TrainerDataLoadingMixin(ABC):
                 f"`{dataloader_cls_name}(dataset, sampler=DistributedSampler(dataset))`."
             )
 
-        has_variadic_kwargs = any(p.kind is p.VAR_KEYWORD for p in params.values())
         if not has_variadic_kwargs:
             # the dataloader signature does not allow keyword arguments that need to be passed
             missing_kwargs = dl_kwargs.keys() - params.keys()
@@ -282,8 +286,8 @@ class TrainerDataLoadingMixin(ABC):
         return sampler
 
     def reset_train_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
-        """Resets the train dataloader and initialises required variables
-        (number of batches, when to validate, etc.).
+        """Resets the train dataloader and initialises required variables (number of batches, when to validate,
+        etc.).
 
         Args:
             model: The `LightningModule` if calling this outside of the trainer scope.
@@ -299,9 +303,6 @@ class TrainerDataLoadingMixin(ABC):
                 self.train_dataloader = self.replace_sampler(
                     self.train_dataloader, SequentialSampler(self.train_dataloader.dataset), mode=RunningStage.TRAINING
                 )
-
-        # debugging
-        self.dev_debugger.track_load_dataloader_call("train_dataloader", dataloaders=[self.train_dataloader])
 
         # automatically add samplers
         self.train_dataloader = apply_to_collection(
@@ -381,7 +382,6 @@ class TrainerDataLoadingMixin(ABC):
         assert mode.evaluating or mode == RunningStage.PREDICTING
 
         # always get the loaders first so we can count how many there are
-        loader_name = f"{mode.dataloader_prefix}_dataloader"
         dataloaders = self.request_dataloader(mode, model=model)
 
         if not isinstance(dataloaders, list):
@@ -392,8 +392,6 @@ class TrainerDataLoadingMixin(ABC):
         if self.overfit_batches > 0:
             train_dataloader = self.request_dataloader(RunningStage.TRAINING, model=model)
             dataloaders = [deepcopy(train_dataloader) for _ in range(len(dataloaders))]
-
-        self.dev_debugger.track_load_dataloader_call(loader_name, dataloaders=dataloaders)
 
         for loader_i in range(len(dataloaders)):
             loader = dataloaders[loader_i]
@@ -501,8 +499,7 @@ class TrainerDataLoadingMixin(ABC):
             )
 
     def reset_train_val_dataloaders(self, model: Optional["pl.LightningModule"] = None) -> None:
-        """
-        Resets train and val dataloaders if none are attached to the trainer.
+        """Resets train and val dataloaders if none are attached to the trainer.
 
         The val dataloader must be initialized before training loop starts, as the training loop
         inspects the val dataloader to determine whether to run the evaluation loop.
@@ -533,9 +530,8 @@ class TrainerDataLoadingMixin(ABC):
 
     @staticmethod
     def _add_sampler_metadata_collate(dataloader: DataLoader) -> None:
-        """
-        Wrap default collate function to retrive ``FastForwardSampler`` state dict when fault tolerant is enabled.
-        """
+        """Wrap default collate function to retrive ``FastForwardSampler`` state dict when fault tolerant is
+        enabled."""
         dataloader.collate_fn = partial(
             _capture_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
         )

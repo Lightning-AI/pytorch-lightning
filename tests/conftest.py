@@ -47,9 +47,30 @@ def restore_env_variables():
     """Ensures that environment variables set during the test do not leak out."""
     env_backup = os.environ.copy()
     yield
+    leaked_vars = os.environ.keys() - env_backup.keys()
     # restore environment as it was before running the test
     os.environ.clear()
     os.environ.update(env_backup)
+    # these are currently known leakers - ideally these would not be allowed
+    allowlist = {
+        "CUDA_DEVICE_ORDER",
+        "LOCAL_RANK",
+        "NODE_RANK",
+        "WORLD_SIZE",
+        "MASTER_ADDR",
+        "MASTER_PORT",
+        "PL_GLOBAL_SEED",
+        "PL_SEED_WORKERS",
+        "WANDB_MODE",
+        "HOROVOD_FUSION_THRESHOLD",
+        "RANK",  # set by DeepSpeed
+        "POPLAR_ENGINE_OPTIONS",  # set by IPUPlugin
+        # set by XLA
+        "XRT_MESH_SERVICE_ADDRESS",
+        "XRT_TORCH_DIST_ROOT",
+    }
+    leaked_vars.difference_update(allowlist)
+    assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -111,10 +132,9 @@ def tmpdir_server(tmpdir):
 
 @pytest.fixture
 def single_process_pg():
-    """
-    Initialize the default process group with only the current process for
-    testing purposes. The process group is destroyed when the with block is
-    exited.
+    """Initialize the default process group with only the current process for testing purposes.
+
+    The process group is destroyed when the with block is exited.
     """
     if torch.distributed.is_initialized():
         raise RuntimeError("Can't use `single_process_pg` when the default process group is already initialized.")
