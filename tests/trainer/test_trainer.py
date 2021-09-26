@@ -518,10 +518,9 @@ def test_trainer_max_steps_and_epochs_validation(max_epochs, max_steps, incorrec
     [
         (None, -1, False, 1000),
         (-1, -1, False, -1),
-        (None, -1, False, None),
         (5, -1, False, 5),
         (-1, 10, False, -1),
-        (None, 0, True, None),
+        (None, 0, True, -1),
         (0, -1, True, 0),
         (-1, 0, True, -1),
         (0, -1, True, 0),
