@@ -59,7 +59,6 @@ class BaseFinetuning(Callback):
         ...         return Adam(filter(lambda p: p.requires_grad, self.parameters))
         ...
         >>> class FeatureExtractorFreezeUnfreeze(BaseFinetuning):
-        ...
         ...     def __init__(self, unfreeze_at_epoch=10):
         ...         self._unfreeze_at_epoch = unfreeze_at_epoch
         ...
@@ -352,7 +351,7 @@ class BackboneFinetuning(BaseFinetuning):
 
     def on_save_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
-    ) -> Dict[int, Any]:
+    ) -> Dict[str, Any]:
         return {
             "internal_optimizer_metadata": self._internal_optimizer_metadata,
             "previous_backbone_lr": self.previous_backbone_lr,
