@@ -86,7 +86,6 @@ from pytorch_lightning.utilities.argparse import (
     parse_env_variables,
 )
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
@@ -387,7 +386,6 @@ class Trainer(
         gpu_ids, tpu_cores = self._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
         # init connectors
-        self.dev_debugger = InternalDebugger(self)
         self.config_validator = ConfigValidator(self)
         self.data_connector = DataConnector(self, multiple_trainloader_mode)
         self.optimizer_connector = OptimizerConnector(self)
@@ -965,7 +963,7 @@ class Trainer(
         # only one process running at this point for TPUs, as spawn isn't triggered yet
         # todo: move this logic internally within the barrier.
         if not self._device_type == DeviceType.TPU:
-            self.accelerator.barrier()
+            self.training_type_plugin.barrier()
         rank_zero_info(f"Loading model weights from checkpoint at {self._ckpt_path}")
         self.checkpoint_connector.restore_model_weights(self._ckpt_path)
 
@@ -1148,7 +1146,7 @@ class Trainer(
 
     def _pre_training_routine(self):
         # wait for all to join if on distributed
-        self.accelerator.barrier("setup_training")
+        self.training_type_plugin.barrier("setup_training")
 
         # register signals
         self.signal_connector.register_signal_handlers()
@@ -1289,13 +1287,13 @@ class Trainer(
     def _call_setup_hook(self) -> None:
         fn = self.state.fn._setup_fn
 
-        self.accelerator.barrier("pre_setup")
+        self.training_type_plugin.barrier("pre_setup")
 
         if self.datamodule is not None:
             self.datamodule.setup(stage=fn)
         self.call_hook("setup", stage=fn)
 
-        self.accelerator.barrier("post_setup")
+        self.training_type_plugin.barrier("post_setup")
 
     def _call_configure_sharded_model(self) -> None:
         with self.accelerator.model_sharded_context():
@@ -1604,7 +1602,7 @@ class Trainer(
         else:
             dirpath = self.logger.save_dir
 
-        dirpath = self.accelerator.broadcast(dirpath)
+        dirpath = self.training_type_plugin.broadcast(dirpath)
         return dirpath
 
     @property
