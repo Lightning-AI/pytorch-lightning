@@ -41,14 +41,28 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     trainer = Trainer(callbacks=[checkpoint1, progress_bar, lr_monitor, model_summary, checkpoint2])
     cb_connector = CallbackConnector(trainer)
     cb_connector._attach_model_callbacks()
-    assert trainer.callbacks == [progress_bar, lr_monitor, model_summary, checkpoint1, checkpoint2]
+    assert trainer.callbacks == [
+        progress_bar,
+        lr_monitor,
+        model_summary,
+        trainer.accumulation_scheduler,
+        checkpoint1,
+        checkpoint2,
+    ]
 
     # no model callbacks
     model = LightningModule()
     model.configure_callbacks = lambda: []
     trainer.model = model
     cb_connector._attach_model_callbacks()
-    assert trainer.callbacks == [progress_bar, lr_monitor, model_summary, checkpoint1, checkpoint2]
+    assert trainer.callbacks == [
+        progress_bar,
+        lr_monitor,
+        model_summary,
+        trainer.accumulation_scheduler,
+        checkpoint1,
+        checkpoint2,
+    ]
 
     # with model-specific callbacks that substitute ones in Trainer
     model = LightningModule()
@@ -57,7 +71,15 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     trainer.model = model
     cb_connector = CallbackConnector(trainer)
     cb_connector._attach_model_callbacks()
-    assert trainer.callbacks == [progress_bar, lr_monitor, early_stopping, model_summary, checkpoint1, checkpoint2]
+    assert trainer.callbacks == [
+        progress_bar,
+        lr_monitor,
+        trainer.accumulation_scheduler,
+        early_stopping,
+        model_summary,
+        checkpoint1,
+        checkpoint2,
+    ]
 
 
 class StatefulCallback0(Callback):
@@ -118,16 +140,16 @@ def test_all_callback_states_saved_before_checkpoint_callback(tmpdir):
 def test_attach_model_callbacks():
     """Test that the callbacks defined in the model and through Trainer get merged correctly."""
 
-    def assert_composition(trainer_callbacks, model_callbacks, expected):
+    def _attach_callbacks(trainer_callbacks, model_callbacks):
         model = LightningModule()
         model.configure_callbacks = lambda: model_callbacks
         trainer = Trainer(
-            checkpoint_callback=False, progress_bar_refresh_rate=0, weights_summary=None, callbacks=trainer_callbacks
+            checkpoint_callback=False, enable_progress_bar=False, weights_summary=None, callbacks=trainer_callbacks
         )
         trainer.model = model
         cb_connector = CallbackConnector(trainer)
         cb_connector._attach_model_callbacks()
-        assert trainer.callbacks == expected
+        return trainer
 
     early_stopping = EarlyStopping()
     progress_bar = ProgressBar()
@@ -135,29 +157,29 @@ def test_attach_model_callbacks():
     grad_accumulation = GradientAccumulationScheduler({1: 1})
 
     # no callbacks
-    assert_composition(trainer_callbacks=[], model_callbacks=[], expected=[])
+    trainer = _attach_callbacks(trainer_callbacks=[], model_callbacks=[])
+    assert trainer.callbacks == [trainer.accumulation_scheduler]
 
     # callbacks of different types
-    assert_composition(
-        trainer_callbacks=[early_stopping], model_callbacks=[progress_bar], expected=[early_stopping, progress_bar]
-    )
+    trainer = _attach_callbacks(trainer_callbacks=[early_stopping], model_callbacks=[progress_bar])
+    assert trainer.callbacks == [early_stopping, trainer.accumulation_scheduler, progress_bar]
 
     # same callback type twice, different instance
-    assert_composition(
+    trainer = _attach_callbacks(
         trainer_callbacks=[progress_bar, EarlyStopping()],
         model_callbacks=[early_stopping],
-        expected=[progress_bar, early_stopping],
     )
+    assert trainer.callbacks == [progress_bar, trainer.accumulation_scheduler, early_stopping]
 
     # multiple callbacks of the same type in trainer
-    assert_composition(
+    trainer = _attach_callbacks(
         trainer_callbacks=[LearningRateMonitor(), EarlyStopping(), LearningRateMonitor(), EarlyStopping()],
         model_callbacks=[early_stopping, lr_monitor],
-        expected=[early_stopping, lr_monitor],
     )
+    assert trainer.callbacks == [trainer.accumulation_scheduler, early_stopping, lr_monitor]
 
     # multiple callbacks of the same type, in both trainer and model
-    assert_composition(
+    trainer = _attach_callbacks(
         trainer_callbacks=[
             LearningRateMonitor(),
             progress_bar,
@@ -166,8 +188,8 @@ def test_attach_model_callbacks():
             EarlyStopping(),
         ],
         model_callbacks=[early_stopping, lr_monitor, grad_accumulation, early_stopping],
-        expected=[progress_bar, early_stopping, lr_monitor, grad_accumulation, early_stopping],
     )
+    assert trainer.callbacks == [progress_bar, early_stopping, lr_monitor, grad_accumulation, early_stopping]
 
 
 def test_attach_model_callbacks_override_info(caplog):
