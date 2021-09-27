@@ -154,13 +154,6 @@ class TrainerDataLoadingMixin(ABC):
 
         return dataloader
 
-    @staticmethod
-    def _prepare_dataloader(dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None) -> DataLoader:
-        dl_kwargs = TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler, mode=mode)
-        dl_cls = type(dataloader)
-        dataloader = dl_cls(**dl_kwargs)
-        return dataloader
-
     def _determine_sampler(self, dataloader: DataLoader, shuffle: bool, mode: Optional[RunningStage] = None) -> Sampler:
         if self._requires_distributed_sampler(dataloader):
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
@@ -216,22 +209,6 @@ class TrainerDataLoadingMixin(ABC):
             fast_forward_sampler.setup(dataloader_batch_size=dataloader.batch_size)
 
         return {"sampler": sampler, "shuffle": False, "batch_sampler": None}
-
-    @staticmethod
-    def _get_distributed_sampler(
-        dataloader: DataLoader,
-        shuffle: bool,
-        overfit_batches: Union[int, float],
-        mode: Optional[RunningStage] = None,
-        **distributed_sampler_kwargs,
-    ) -> DistributedSampler:
-        """This function is used to created the distributed sampler injected within the user DataLoader."""
-        kwargs = distributed_sampler_kwargs
-        kwargs["shuffle"] = shuffle and not overfit_batches
-        kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
-        cls = UnrepeatedDistributedSampler if mode == RunningStage.PREDICTING else DistributedSampler
-        sampler = cls(dataloader.dataset, **kwargs)
-        return sampler
 
     @staticmethod
     def _resolve_batch_sampler(
@@ -347,6 +324,29 @@ class TrainerDataLoadingMixin(ABC):
                 )
 
         return dl_kwargs
+
+    @staticmethod
+    def _prepare_dataloader(dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None) -> DataLoader:
+        dl_kwargs = TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler, mode=mode)
+        dl_cls = type(dataloader)
+        dataloader = dl_cls(**dl_kwargs)
+        return dataloader
+
+    @staticmethod
+    def _get_distributed_sampler(
+        dataloader: DataLoader,
+        shuffle: bool,
+        overfit_batches: Union[int, float],
+        mode: Optional[RunningStage] = None,
+        **distributed_sampler_kwargs,
+    ) -> DistributedSampler:
+        """This function is used to created the distributed sampler injected within the user DataLoader."""
+        kwargs = distributed_sampler_kwargs
+        kwargs["shuffle"] = shuffle and not overfit_batches
+        kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
+        cls = UnrepeatedDistributedSampler if mode == RunningStage.PREDICTING else DistributedSampler
+        sampler = cls(dataloader.dataset, **kwargs)
+        return sampler
 
     def reset_train_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the train dataloader and initialises required variables (number of batches, when to validate,
