@@ -342,7 +342,7 @@ class Accelerator:
         """
         .. deprecated:: v1.5
             This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call ``training_type_plugin.barrier`` directly
+            Please call ``training_type_plugin.barrier`` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.barrier` is deprecated in v1.5 and will be removed in v1.6. "
@@ -356,7 +356,7 @@ class Accelerator:
 
         .. deprecated:: v1.5
             This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call training_type_plugin.broadcast directly
+            Please call ``training_type_plugin.broadcast`` directly.
 
         Args:
             obj: Object to broadcast to all process, usually a tensor or collection of tensors.
@@ -373,7 +373,7 @@ class Accelerator:
 
         .. deprecated:: v1.5
             This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call training_type_plugin.all_gather directly
+            Please call ``training_type_plugin.all_gather`` directly.
 
         Args:
             tensor: tensor of shape (batch, ...)

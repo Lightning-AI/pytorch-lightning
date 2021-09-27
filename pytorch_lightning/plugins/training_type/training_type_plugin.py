@@ -102,8 +102,6 @@ class TrainingTypePlugin(ABC):
             group: the process group to reduce
             reduce_op: the reduction operation. Defaults to 'mean'.
                 Can also be a string 'sum' or ReduceOp.
-            *args: plugin-specific positional arguments
-            **kwargs: plugin-specific keyword arguments
         """
 
     @abstractmethod
@@ -125,7 +123,7 @@ class TrainingTypePlugin(ABC):
 
     @abstractmethod
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
-        """Perform a all_gather on all processes.
+        """Perform an all_gather on all processes.
 
         Args:
             tensor: the tensor to all_gather
