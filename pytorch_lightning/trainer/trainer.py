@@ -1054,6 +1054,8 @@ class Trainer(
         if self.state.fn == TrainerFn.FITTING:
             self.checkpoint_connector.restore_training_state()
 
+        self.checkpoint_connector.resume_end()
+
         # dispatch `start_training` or `start_evaluating` or `start_predicting`
         self._dispatch()
 
@@ -1152,8 +1154,6 @@ class Trainer(
 
         # register signals
         self.signal_connector.register_signal_handlers()
-
-        self.checkpoint_connector.resume_end()
 
         # --------------------------
         # Pre-train
@@ -1740,10 +1740,6 @@ class Trainer(
         """A list of all instances of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` found
         in the Trainer.callbacks list."""
         return [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
-
-    @property
-    def resume_checkpoint_path(self) -> Optional[Union[str, Path]]:
-        return self.checkpoint_connector.resume_checkpoint_path
 
     def save_checkpoint(self, filepath: _PATH, weights_only: bool = False) -> None:
         self.checkpoint_connector.save_checkpoint(filepath, weights_only)

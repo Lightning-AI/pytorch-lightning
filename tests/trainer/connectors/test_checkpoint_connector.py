@@ -60,7 +60,6 @@ def test_preloaded_checkpoint_lifecycle(tmpdir):
 
     connector = trainer.checkpoint_connector
 
-    assert not trainer.resume_checkpoint_path
     assert not connector.resume_checkpoint_path
     assert not connector._loaded_checkpoint
 
