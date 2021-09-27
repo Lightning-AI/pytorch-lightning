@@ -319,7 +319,7 @@ class RichProgressBar(ProgressBarBase):
                 train_description += " "
         return train_description
 
-    def teardown(self, trainer, pl_module, stage: Optional[str] = None) -> None:
+    def _stop_progress(self) -> None:
         if self.progress is not None:
             self.progress.stop()
             # # signals for progress to be re-initialized for next stages
@@ -331,9 +331,11 @@ class RichProgressBar(ProgressBarBase):
         self.test_progress_bar_id: Optional[int] = None
         self.predict_progress_bar_id: Optional[int] = None
 
+    def teardown(self, trainer, pl_module, stage: Optional[str] = None) -> None:
+        self._stop_progress()
+
     def on_exception(self, trainer, pl_module, exception: BaseException) -> None:
-        if self.progress is not None:
-            self.progress.stop()
+        self._stop_progress()
 
     @property
     def val_progress_bar(self) -> Task:
