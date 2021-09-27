@@ -306,14 +306,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         array = array.squeeze()
         array = array.tolist()
         array = _recursive_unpad(array)
-
-        # FIXME: see test test_callback_hook_outputs.py::test_train_step_no_return
-        #   We don't pass in a list so squeezing to a single dict would be ok here?
-
-        # in case we squeezed from 1-element array to a 0-dim array
-        # array = array if isinstance(array, list) else [array]
-        # remove residual empty lists
-        # array = [item for item in array if not isinstance(item, list) or len(item)]
         return array
 
     @staticmethod
