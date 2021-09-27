@@ -394,10 +394,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
 
-    def _num_active_optimizers(self, batch_idx: Optional[int] = None) -> int:
-        """Gets the number of active optimizers based on their frequency."""
-        return len(_get_active_optimizers(self.trainer.optimizers, self.trainer.optimizer_frequencies, batch_idx))
-
 
 def _convert_optim_dict(outs: Dict[int, Dict[str, Any]], num_optimizers: int) -> List[Dict[str, Any]]:
     """Converts an optimizer dict to a list in which the key of the dict determines the position of the element.
