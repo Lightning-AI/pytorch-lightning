@@ -342,9 +342,6 @@ class DeepSpeedPlugin(DDPPlugin):
 
         self._init_deepspeed_distributed()
 
-        # set the ranks and devices
-        self.dist.rank = self.global_rank
-        self.dist.device = self.root_device
         if not self._config_initialized:
             self._format_config()
             self._config_initialized = True

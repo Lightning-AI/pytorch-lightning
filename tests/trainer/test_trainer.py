@@ -315,7 +315,7 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_bat
         limit_train_batches=limit_train_batches,
         limit_val_batches=0,
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
 
     trainer.fit(model)
@@ -489,7 +489,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_top_k=-1)],
         default_root_dir=tmpdir,
         val_check_interval=1.0,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         logger=False,
         weights_summary=None,
     )
@@ -531,7 +531,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
         "max_steps": num_train_samples + 10,
         "logger": False,
         "weights_summary": None,
-        "progress_bar_refresh_rate": 0,
+        "enable_progress_bar": False,
     }
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
@@ -618,7 +618,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
         "min_steps": num_train_samples // 2,
         "logger": False,
         "weights_summary": None,
-        "progress_bar_refresh_rate": 0,
+        "enable_progress_bar": False,
     }
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
@@ -656,7 +656,7 @@ def test_trainer_min_steps_and_min_epochs_not_reached(tmpdir, caplog):
     min_epochs = 5
     trainer = Trainer(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         min_epochs=min_epochs,
         limit_val_batches=0,
         limit_train_batches=2,
@@ -684,7 +684,7 @@ def test_trainer_max_steps_accumulate_batches(tmpdir):
         accumulate_grad_batches=10,
         logger=False,
         weights_summary=None,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
     trainer.fit(model)
 
@@ -734,7 +734,7 @@ def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
         limit_val_batches=1,
         limit_test_batches=1,
         limit_predict_batches=1,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         default_root_dir=tmpdir,
         callbacks=[ModelCheckpoint(monitor="foo", save_top_k=save_top_k)],
     )
@@ -805,7 +805,7 @@ def test_disabled_training(tmpdir):
 
     trainer_options = dict(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=2,
         limit_train_batches=0.0,
         limit_val_batches=0.2,
@@ -868,7 +868,7 @@ def test_disabled_validation(tmpdir):
 
     trainer_options = dict(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=2,
         limit_train_batches=0.4,
         limit_val_batches=0.0,
@@ -922,6 +922,16 @@ def test_nan_loss_detection(backward_mock, tmpdir):
 
     for param in model.parameters():
         assert torch.isfinite(param).all()
+
+
+def test_invalid_terminate_on_nan(tmpdir):
+    with pytest.raises(TypeError, match="`terminate_on_nan` should be a bool"):
+        Trainer(default_root_dir=tmpdir, terminate_on_nan="False")
+
+
+def test_invalid_track_grad_norm(tmpdir):
+    with pytest.raises(MisconfigurationException, match="`track_grad_norm` should be an int, a float"):
+        Trainer(default_root_dir=tmpdir, track_grad_norm="nan")
 
 
 @mock.patch("torch.Tensor.backward")
@@ -982,7 +992,7 @@ def test_on_exception_hook(tmpdir):
         max_epochs=1,
         limit_val_batches=0.1,
         limit_train_batches=0.2,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         logger=False,
         default_root_dir=tmpdir,
     )
@@ -1068,6 +1078,16 @@ def test_gradient_clipping_by_value(tmpdir, precision):
 
     trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward = backward
     trainer.fit(model)
+
+
+def test_invalid_gradient_clip_value(tmpdir):
+    with pytest.raises(TypeError, match="`gradient_clip_val` should be an int or a float"):
+        Trainer(default_root_dir=tmpdir, gradient_clip_val=(1, 2))
+
+
+def test_invalid_gradient_clip_algo(tmpdir):
+    with pytest.raises(MisconfigurationException, match="`gradient_clip_algorithm` norm2 is invalid"):
+        Trainer(default_root_dir=tmpdir, gradient_clip_algorithm="norm2")
 
 
 def test_gpu_choice(tmpdir):
@@ -1365,7 +1385,15 @@ class CustomPredictionWriter(BasePredictionWriter):
 
 
 def predict(
-    tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, datamodule=True, pbrr=None, use_callbacks=True
+    tmpdir,
+    accelerator,
+    gpus,
+    num_processes,
+    model=None,
+    plugins=None,
+    datamodule=True,
+    enable_progress_bar=True,
+    use_callbacks=True,
 ):
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)), torch.utils.data.DataLoader(RandomDataset(32, 2))]
 
@@ -1384,7 +1412,7 @@ def predict(
         gpus=gpus,
         num_processes=num_processes,
         plugins=plugins,
-        progress_bar_refresh_rate=pbrr,
+        enable_progress_bar=enable_progress_bar,
         callbacks=[cb, cb_1] if use_callbacks else [],
     )
     if accelerator == "ddp_spawn":
@@ -1436,10 +1464,10 @@ def test_trainer_predict_grad(tmpdir):
     assert x.expand_as(x).grad_fn is not None
 
 
-@pytest.mark.parametrize("progress_bar_refresh_rate", [0, 5, None])
+@pytest.mark.parametrize("enable_progress_bar", [False, True])
 @pytest.mark.parametrize("datamodule", [False, True])
-def test_trainer_predict_cpu(tmpdir, datamodule, progress_bar_refresh_rate):
-    predict(tmpdir, None, None, 1, datamodule=datamodule, pbrr=progress_bar_refresh_rate)
+def test_trainer_predict_cpu(tmpdir, datamodule, enable_progress_bar):
+    predict(tmpdir, None, None, 1, datamodule=datamodule, enable_progress_bar=enable_progress_bar)
 
 
 @RunIf(min_gpus=2, special=True)
@@ -1649,7 +1677,7 @@ def test_train_loop_system(tmpdir):
         limit_train_batches=5,
         limit_val_batches=1,
         limit_test_batches=1,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
 
     class TestOptimizer(SGD):
@@ -1848,9 +1876,7 @@ def test_on_load_checkpoint_missing_callbacks(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, callbacks=[chk, CustomCallbackOnLoadCheckpoint()])
     trainer.fit(model)
 
-    trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=5, resume_from_checkpoint=chk.last_model_path, progress_bar_refresh_rate=1
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=5, resume_from_checkpoint=chk.last_model_path)
     with pytest.warns(UserWarning, match="CustomCallbackOnLoadCheckpoint"):
         trainer.fit(model)
 
@@ -1937,7 +1963,7 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
         fast_dev_run=True,
         gpus=1,
         accelerator="ddp",
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         callbacks=Check(),
     )
     trainer = Trainer(**trainer_kwargs)

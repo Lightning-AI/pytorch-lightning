@@ -13,12 +13,16 @@
 # limitations under the License.
 import logging
 import os
+import shutil
+import subprocess
+from typing import Any, Dict, List, Union
 
 import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 
 _log = logging.getLogger(__name__)
 
@@ -53,6 +57,83 @@ class GPUAccelerator(Accelerator):
         devices = os.getenv("CUDA_VISIBLE_DEVICES", all_gpu_ids)
         _log.info(f"LOCAL_RANK: {local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]")
 
+    def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
+        """Gets stats for the given GPU device.
+
+        Args:
+            device: GPU device for which to get stats
+
+        Returns:
+            A dictionary mapping the metrics to their values.
+
+        Raises:
+            FileNotFoundError:
+                If nvidia-smi installation not found
+        """
+        if _TORCH_GREATER_EQUAL_1_8:
+            return torch.cuda.memory_stats(device)
+        return _get_nvidia_gpu_stats(device)
+
     def teardown(self) -> None:
         super().teardown()
         self._move_optimizer_state(torch.device("cpu"))
+
+
+def _get_nvidia_gpu_stats(device: torch.device) -> Dict[str, float]:
+    """Get GPU stats including memory, fan speed, and temperature from nvidia-smi.
+
+    Args:
+        device: GPU device for which to get stats
+
+    Returns:
+        A dictionary mapping the metrics to their values.
+
+    Raises:
+        FileNotFoundError:
+            If nvidia-smi installation not found
+    """
+    gpu_stat_metrics = [
+        ("utilization.gpu", "%"),
+        ("memory.used", "MB"),
+        ("memory.free", "MB"),
+        ("utilization.memory", "%"),
+        ("fan.speed", "%"),
+        ("temperature.gpu", "°C"),
+        ("temperature.memory", "°C"),
+    ]
+    gpu_stat_keys = [k for k, _ in gpu_stat_metrics]
+    gpu_query = ",".join(gpu_stat_keys)
+
+    gpu_id = _get_gpu_id(device.index)
+    nvidia_smi_path = shutil.which("nvidia-smi")
+    if nvidia_smi_path is None:
+        raise FileNotFoundError("nvidia-smi: command not found")
+    result = subprocess.run(
+        [nvidia_smi_path, f"--query-gpu={gpu_query}", "--format=csv,nounits,noheader", f"--id={gpu_id}"],
+        encoding="utf-8",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
+        check=True,
+    )
+
+    def _to_float(x: str) -> float:
+        try:
+            return float(x)
+        except ValueError:
+            return 0.0
+
+    s = result.stdout.strip()
+    stats = [_to_float(x) for x in s.split(", ")]
+
+    gpu_stats = {}
+    for i, (x, unit) in enumerate(gpu_stat_metrics):
+        gpu_stats[f"{x} ({unit})"] = stats[i]
+    return gpu_stats
+
+
+def _get_gpu_id(device_id: int) -> str:
+    """Get the unmasked real GPU IDs."""
+    # All devices if `CUDA_VISIBLE_DEVICES` unset
+    default = ",".join(str(i) for i in range(torch.cuda.device_count()))
+    cuda_visible_devices: List[str] = os.getenv("CUDA_VISIBLE_DEVICES", default=default).split(",")
+    return cuda_visible_devices[device_id].strip()

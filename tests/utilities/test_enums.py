@@ -13,7 +13,7 @@
 # limitations under the License.
 import pytest
 
-from pytorch_lightning.utilities.enums import DeviceType, ModelSummaryMode, PrecisionType
+from pytorch_lightning.utilities.enums import DeviceType, GradClipAlgorithmType, ModelSummaryMode, PrecisionType
 
 
 def test_consistency():
@@ -42,3 +42,10 @@ def test_model_summary_mode():
 
     with pytest.raises(ValueError, match=f"`mode` can be {', '.join(list(ModelSummaryMode))}, got invalid."):
         ModelSummaryMode.get_max_depth("invalid")
+
+
+def test_gradient_clip_algorithms():
+    assert GradClipAlgorithmType.supported_types() == ["value", "norm"]
+    assert GradClipAlgorithmType.supported_type("norm")
+    assert GradClipAlgorithmType.supported_type("value")
+    assert not GradClipAlgorithmType.supported_type("norm2")

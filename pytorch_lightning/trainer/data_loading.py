@@ -38,7 +38,6 @@ from pytorch_lightning.utilities.auto_restart import (
     FastForwardSampler,
 )
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
-from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -64,7 +63,6 @@ class TrainerDataLoadingMixin(ABC):
     distributed_sampler_kwargs: dict
     accelerator: Accelerator
     accelerator_connector: AcceleratorConnector
-    dev_debugger: InternalDebugger
     call_hook: Callable
 
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
@@ -525,7 +523,7 @@ class TrainerDataLoadingMixin(ABC):
         dataloader = self.call_hook(hook, pl_module=model)
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
-        self.accelerator.barrier("get_dataloaders")
+        self.training_type_plugin.barrier("get_dataloaders")
         return dataloader
 
     @staticmethod

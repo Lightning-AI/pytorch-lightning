@@ -86,7 +86,6 @@ from pytorch_lightning.utilities.argparse import (
     parse_env_variables,
 )
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
@@ -124,7 +123,7 @@ class Trainer(
         checkpoint_callback: bool = True,
         callbacks: Optional[Union[List[Callback], Callback]] = None,
         default_root_dir: Optional[str] = None,
-        gradient_clip_val: float = 0.0,
+        gradient_clip_val: Union[int, float] = 0.0,
         gradient_clip_algorithm: str = "norm",
         process_position: int = 0,
         num_nodes: int = 1,
@@ -136,6 +135,7 @@ class Trainer(
         ipus: Optional[int] = None,
         log_gpu_memory: Optional[str] = None,
         progress_bar_refresh_rate: Optional[int] = None,  # TODO: remove in v1.7
+        enable_progress_bar: bool = True,
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
         check_val_every_n_epoch: int = 1,
@@ -285,7 +285,10 @@ class Trainer(
                 .. deprecated:: v1.5
                     ``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
                     Please pass :class:`~pytorch_lightning.callbacks.progress.ProgressBar` with ``refresh_rate``
-                    directly to the Trainer's ``callbacks`` argument instead.
+                    directly to the Trainer's ``callbacks`` argument instead. To disable the progress bar,
+                    pass ``enable_progress_bar = False`` to the Trainer.
+
+            enable_progress_bar: Whether to enable to progress bar by default.
 
             profiler: To profile individual steps during training and assist in identifying bottlenecks.
 
@@ -371,6 +374,10 @@ class Trainer(
             stochastic_weight_avg: Whether to use `Stochastic Weight Averaging (SWA)
                 <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>`_.
 
+                .. deprecated:: v1.5
+                    ``stochastic_weight_avg`` has been deprecated in v1.5 and will be removed in v1.7.
+                    Please pass :class:`~pytorch_lightning.callbacks.stochastic_weight_avg.StochasticWeightAveraging`
+                    directly to the Trainer's ``callbacks`` argument instead.
         """
         super().__init__()
         Trainer._log_api_event("init")
@@ -379,7 +386,6 @@ class Trainer(
         gpu_ids, tpu_cores = self._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
         # init connectors
-        self.dev_debugger = InternalDebugger(self)
         self.config_validator = ConfigValidator(self)
         self.data_connector = DataConnector(self, multiple_trainloader_mode)
         self.optimizer_connector = OptimizerConnector(self)
@@ -448,6 +454,7 @@ class Trainer(
         self.callback_connector.on_trainer_init(
             callbacks,
             checkpoint_callback,
+            enable_progress_bar,
             progress_bar_refresh_rate,
             process_position,
             default_root_dir,
@@ -956,7 +963,7 @@ class Trainer(
         # only one process running at this point for TPUs, as spawn isn't triggered yet
         # todo: move this logic internally within the barrier.
         if not self._device_type == DeviceType.TPU:
-            self.accelerator.barrier()
+            self.training_type_plugin.barrier()
         rank_zero_info(f"Loading model weights from checkpoint at {self._ckpt_path}")
         self.checkpoint_connector.restore_model_weights(self._ckpt_path)
 
@@ -1138,7 +1145,7 @@ class Trainer(
 
     def _pre_training_routine(self):
         # wait for all to join if on distributed
-        self.accelerator.barrier("setup_training")
+        self.training_type_plugin.barrier("setup_training")
 
         # register signals
         self.signal_connector.register_signal_handlers()
@@ -1279,13 +1286,13 @@ class Trainer(
     def _call_setup_hook(self) -> None:
         fn = self.state.fn._setup_fn
 
-        self.accelerator.barrier("pre_setup")
+        self.training_type_plugin.barrier("pre_setup")
 
         if self.datamodule is not None:
             self.datamodule.setup(stage=fn)
         self.call_hook("setup", stage=fn)
 
-        self.accelerator.barrier("post_setup")
+        self.training_type_plugin.barrier("post_setup")
 
     def _call_configure_sharded_model(self) -> None:
         with self.accelerator.model_sharded_context():
@@ -1594,7 +1601,7 @@ class Trainer(
         else:
             dirpath = self.logger.save_dir
 
-        dirpath = self.accelerator.broadcast(dirpath)
+        dirpath = self.training_type_plugin.broadcast(dirpath)
         return dirpath
 
     @property

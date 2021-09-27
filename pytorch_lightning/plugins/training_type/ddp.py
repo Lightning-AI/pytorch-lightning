@@ -31,9 +31,9 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
+from pytorch_lightning.overrides.torch_distributed import broadcast_object_list
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
@@ -48,14 +48,9 @@ from pytorch_lightning.utilities import (
     rank_zero_deprecation,
     rank_zero_warn,
 )
-from pytorch_lightning.utilities.distributed import (
-    distributed_available,
-    init_ddp_connection,
-    rank_zero_info,
-    rank_zero_only,
-    ReduceOp,
-    sync_ddp_if_available,
-)
+from pytorch_lightning.utilities.distributed import distributed_available
+from pytorch_lightning.utilities.distributed import group as _group
+from pytorch_lightning.utilities.distributed import init_ddp_connection, rank_zero_info, rank_zero_only, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
@@ -117,7 +112,6 @@ class DDPPlugin(ParallelPlugin):
                 " Notice that it will be overriden by the trainer setting."
             )
         self._sync_batchnorm = sync_batchnorm or False
-        self.dist = LightningDistributed()
         self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
         self._ddp_kwargs = kwargs
         self._task_idx = None
@@ -271,10 +265,6 @@ class DDPPlugin(ParallelPlugin):
         # where to store ip_table
         init_ddp_connection(self.cluster_environment, self.torch_distributed_backend)
 
-        # set the ranks and devices
-        self.dist.rank = self.global_rank
-        self.dist.device = self.root_device
-
     def _check_can_spawn_children(self):
         if self.local_rank != 0:
             raise RuntimeError(
@@ -405,7 +395,11 @@ class DDPPlugin(ParallelPlugin):
             torch.distributed.barrier()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
-        return self.dist.broadcast(obj)
+        obj = [obj]
+        if self.global_rank != src:
+            obj = [None]
+        broadcast_object_list(obj, src, group=_group.WORLD)
+        return obj[0]
 
     def pre_backward(self, closure_loss: torch.Tensor) -> None:
         """Run before precision plugin executes backward."""

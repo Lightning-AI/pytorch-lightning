@@ -31,9 +31,9 @@ def test_deepspeed_collate_checkpoint(tmpdir):
     )
     trainer.fit(model)
     checkpoint_path = os.path.join(tmpdir, "model.pt")
-    checkpoint_path = trainer.accelerator.broadcast(checkpoint_path)
+    checkpoint_path = trainer.training_type_plugin.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
-    trainer.accelerator.barrier()
+    trainer.training_type_plugin.barrier()
     if trainer.is_global_zero:
         # ensure function call works
         output_path = os.path.join(tmpdir, "single_model.pt")
