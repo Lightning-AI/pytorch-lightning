@@ -204,6 +204,8 @@ class RichProgressBar(ProgressBarBase):
                 disable=self.is_disabled,
             )
             self.progress.start()
+            # progress has started
+            self._progress_stopped = False
 
     def on_train_start(self, trainer, pl_module):
         super().on_train_start(trainer, pl_module)
