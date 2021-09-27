@@ -155,7 +155,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if self._num_training_batches_reached():
             self.update_lr_schedulers("epoch", update_plateau_schedulers=False)
 
-        # if is_overridden("on_train_batch_end", self.trainer.lightning_module):
         batch_end_outputs = self._prepare_outputs_training_batch_end(
             batch_output.outputs,
             automatic=self.trainer.lightning_module.trainer.lightning_module.automatic_optimization,
