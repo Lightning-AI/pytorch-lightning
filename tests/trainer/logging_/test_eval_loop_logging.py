@@ -604,8 +604,25 @@ def test_logging_dict_on_validation_step(tmpdir):
     trainer.fit(model)
 
 
-def test_multiple_dataloader_reset(tmpdir):
+@pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
+def test_multiple_dataloader_reset(val_check_interval, tmpdir):
     class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            out = super().training_step(batch, batch_idx)
+            value = 1 + batch_idx
+            if self.current_epoch != 0:
+                value *= 10
+            self.log("batch_idx", value, on_step=True, on_epoch=True, prog_bar=True)
+            return out
+
+        def training_epoch_end(self, outputs):
+            if val_check_interval == 1.0:
+                metrics = self.trainer.progress_bar_metrics
+                if self.current_epoch == 0:
+                    assert metrics["batch_idx_epoch"] == (15 / 5.0)
+                else:
+                    assert metrics["batch_idx_epoch"] == (150 / 5.0)
+
         def validation_step(self, batch, batch_idx, dataloader_idx):
             value = (1 + batch_idx) * (2 if dataloader_idx == 1 else 1)
             if self.current_epoch != 0:
@@ -631,6 +648,7 @@ def test_multiple_dataloader_reset(tmpdir):
                 assert tot_loss == (30 + 60) / 2
             self.log("tot_val_loss", tot_loss, prog_bar=True, logger=True)
             assert self.trainer._results["validation_step.val_loss.0"].cumulated_batch_size == 5
+            assert self.trainer._results["validation_step.val_loss.1"].cumulated_batch_size == 5
 
         def configure_optimizers(self):
             return torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -641,9 +659,10 @@ def test_multiple_dataloader_reset(tmpdir):
     model = TestModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        limit_train_batches=1,
+        limit_train_batches=5,
         limit_val_batches=5,
         num_sanity_val_steps=0,
+        val_check_interval=val_check_interval,
         max_epochs=3,
         log_every_n_steps=1,
         weights_summary=None,
