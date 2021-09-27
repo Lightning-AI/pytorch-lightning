@@ -205,19 +205,17 @@ But such a mechanism does not exist in Lightning, therefore we need to build a c
     class YieldLoop(OptimizerLoop):
         def __init__(self):
             super().__init__()
-            self._training_step_generator = None
+            self._generator = None
 
         def on_run_start(self, batch, optimizers, batch_idx):
             super().on_run_start(batch, optimizers, batch_idx)
             assert self.trainer.lightning_module.automatic_optimization
 
-            # We request the generator once and save it for later so we can call next() on it.
-            self._training_step_generator = self._get_training_step_generator(batch, batch_idx, opt_idx=0)
+            # We request the generator once and save it for later
+            # so we can call next() on it.
+            self._generator = self._get_generator(batch, batch_idx, opt_idx=0)
 
-        def _make_step_fn(self, batch, batch_idx, opt_idx):
-            return partial(self._training_step, self._training_step_generator)
-
-        def _get_training_step_generator(self, batch, batch_idx, opt_idx):
+        def _get_generator(self, batch, batch_idx, opt_idx):
             step_kwargs = _build_training_step_kwargs(
                 self.trainer.lightning_module,
                 self.trainer.optimizers,
@@ -233,16 +231,23 @@ But such a mechanism does not exist in Lightning, therefore we need to build a c
             generator = self.trainer.accelerator.training_step(step_kwargs)
             return generator
 
-        def _training_step(self, training_step_generator):
+        def _make_step_fn(self, batch, batch_idx, opt_idx):
+            return partial(self._training_step, self._generator)
+
+        def _training_step(self, generator):
             lightning_module = self.trainer.lightning_module
 
             # Here, instead of calling lightning_module.training_step()
             # we call next() on the generator!
-            training_step_output = next(training_step_generator)
+            training_step_output = next(generator)
 
             self.trainer.accelerator.post_training_step()
-            training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
-            result = ClosureResult.from_training_step_output(training_step_output, self.trainer.accumulate_grad_batches)
+            training_step_output = self.trainer.call_hook(
+                "training_step_end", training_step_output
+            )
+            result = ClosureResult.from_training_step_output(
+                training_step_output, self.trainer.accumulate_grad_batches
+            )
             return result
 
 
