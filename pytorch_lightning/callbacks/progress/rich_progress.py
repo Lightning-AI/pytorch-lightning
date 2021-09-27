@@ -20,7 +20,7 @@ from pytorch_lightning.utilities import _RICH_AVAILABLE
 
 Task, Style = None, None
 if _RICH_AVAILABLE:
-    from rich.console import RenderableType
+    from rich.console import Console, RenderableType
     from rich.progress import BarColumn, Progress, ProgressColumn, Task, TextColumn
     from rich.style import Style
     from rich.text import Text
@@ -148,6 +148,7 @@ class RichProgressBar(ProgressBarBase):
         self._reset_progress_bar_ids()
         self._progress_stopped: bool = False
         self.theme = theme
+        self._console: Console = Console()
 
     @property
     def refresh_rate_per_second(self) -> float:
@@ -191,6 +192,7 @@ class RichProgressBar(ProgressBarBase):
     def _init_progress(self, trainer, pl_module):
         if self.progress is None or self._progress_stopped:
             self._reset_progress_bar_ids()
+            self._console.clear_live()
             self.progress = Progress(
                 TextColumn("[progress.description]{task.description}"),
                 BarColumn(
@@ -202,6 +204,7 @@ class RichProgressBar(ProgressBarBase):
                 MetricsTextColumn(trainer, pl_module),
                 refresh_per_second=self.refresh_rate_per_second,
                 disable=self.is_disabled,
+                console=self._console,
             )
             self.progress.start()
             # progress has started
