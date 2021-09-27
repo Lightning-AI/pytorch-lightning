@@ -7,6 +7,9 @@ Loop customization is an experimental feature introduced in Lightning 1.5 that e
 Until now, Lightning did not support well some training paradigms like recommendation engine optimization or active learning.
 The loop customization feature will not only enable researchers to customize Lightning down to its very core, but also allow one to build new functionalities on top of it.
 
+.. image:: ../_static/images/extensions/loops/epoch-loop-steps.gif
+
+
 The training loop in Lightning
 ------------------------------
 
