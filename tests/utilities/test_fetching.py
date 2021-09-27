@@ -435,7 +435,7 @@ def test_transfer_hooks_with_unpacking(tmpdir):
             x, _ = batch
             return super().validation_step(x, batch_idx)
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, num_sanity_val_steps=0, gpus=1)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, num_sanity_val_steps=0)
     dm = BoringDataModule()
     trainer.fit(TestModel(), datamodule=dm)
     assert dm.count_called_on_before_batch_transfer == 4
