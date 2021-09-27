@@ -166,9 +166,9 @@ class TrainerDataLoadingMixin(ABC):
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
                 raise MisconfigurationException(
                     "You seem to have configured a sampler in your DataLoader. This will be replaced "
-                    " by `DistributedSampler` since `_prepare_dataloader_ddp` is True and you are using"
+                    " by `DistributedSampler` since `replace_sampler_ddp` is True and you are using"
                     " distributed training. Either remove the sampler from your DataLoader or set"
-                    " `_prepare_dataloader_ddp`=False if you want to use your custom sampler."
+                    " `replace_sampler_ddp=False` if you want to use your custom sampler."
                 )
             return self._get_distributed_sampler(
                 dataloader, shuffle, mode=mode, overfit_batches=self.overfit_batches, **self.distributed_sampler_kwargs
