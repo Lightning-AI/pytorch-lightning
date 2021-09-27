@@ -33,7 +33,7 @@ if _NATIVE_AMP_AVAILABLE:
     from torch.cuda.amp import GradScaler
 
 
-class Accelerator():
+class Accelerator:
     """The Accelerator Base Class. An Accelerator is meant to deal with one type of Hardware.
 
     Currently there are accelerators for:
