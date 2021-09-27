@@ -341,11 +341,11 @@ class Accelerator:
         """
         .. deprecated:: v1.5
             This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call training_type_plugin.barrier directly
+            Please call ``training_type_plugin.barrier`` directly
         """
         rank_zero_deprecation(
-            "Accelerator barrier is deprecated in v1.5 and will be removed in v1.6. "
-            "barrier logic is implemented directly in the :class:`TrainingTypePlugin` implementations."
+            "`Accelerator.barrier` is deprecated in v1.5 and will be removed in v1.6. "
+            "Barrier logic is implemented directly in the `TrainingTypePlugin` implementations."
         )
         self.training_type_plugin.barrier(name=name)
 
@@ -362,8 +362,8 @@ class Accelerator:
             src: The source rank of which the object will be broadcast from
         """
         rank_zero_deprecation(
-            "Accelerator broadcast is deprecated in v1.5 and will be removed in v1.6. "
-            "Broadcast logic is implemented directly in the :class:`TrainingTypePlugin` implementations."
+            "`Accelerator.broadcast` is deprecated in v1.5 and will be removed in v1.6. "
+            "Broadcast logic is implemented directly in the `TrainingTypePlugin` implementations."
         )
         return self.training_type_plugin.broadcast(obj, src)
 
@@ -383,8 +383,8 @@ class Accelerator:
             A tensor of shape (world_size, batch, ...)
         """
         rank_zero_deprecation(
-            "Accelerator all_gather is deprecated in v1.5 and will be removed in v1.6. "
-            "all_gather logic is implemented directly in the :class:`TrainingTypePlugin` implementations."
+            "`Accelerator.all_gather` is deprecated in v1.5 and will be removed in v1.6. "
+            "All-gather logic is implemented directly in the `TrainingTypePlugin` implementations."
         )
         return self.training_type_plugin.all_gather(tensor, group=group, sync_grads=sync_grads)
 

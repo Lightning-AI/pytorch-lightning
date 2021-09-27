@@ -348,6 +348,6 @@ def test_v1_7_0_deprecated_accelerator_collective():
         tensor = torch.rand(
             2,
             2,
-            requires_grad=True,
+            requires_grad=True
         )
         accelerator.all_gather(tensor)
