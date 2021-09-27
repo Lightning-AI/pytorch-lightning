@@ -86,7 +86,6 @@ from pytorch_lightning.utilities.argparse import (
     parse_env_variables,
 )
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
@@ -387,7 +386,6 @@ class Trainer(
         gpu_ids, tpu_cores = self._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
         # init connectors
-        self.dev_debugger = InternalDebugger(self)
         self.config_validator = ConfigValidator(self)
         self.data_connector = DataConnector(self, multiple_trainloader_mode)
         self.optimizer_connector = OptimizerConnector(self)
