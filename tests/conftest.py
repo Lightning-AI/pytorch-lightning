@@ -68,6 +68,7 @@ def restore_env_variables():
         # set by XLA
         "XRT_MESH_SERVICE_ADDRESS",
         "XRT_TORCH_DIST_ROOT",
+        "TF2_BEHAVIOR",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"

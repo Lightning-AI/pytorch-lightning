@@ -123,6 +123,6 @@ def test_hpc_max_ckpt_version(tmpdir):
     trainer.save_checkpoint(tmpdir / "hpc_ckpt_3.ckpt")
     trainer.save_checkpoint(tmpdir / "hpc_ckpt_33.ckpt")
 
-    assert trainer.checkpoint_connector.hpc_resume_path == str(tmpdir / "hpc_ckpt_33.ckpt")
+    assert trainer.checkpoint_connector.auto_restart_path == str(tmpdir / "hpc_ckpt_33.ckpt")
     assert trainer.checkpoint_connector.max_ckpt_version_in_folder(tmpdir) == 33
     assert trainer.checkpoint_connector.max_ckpt_version_in_folder(tmpdir / "not" / "existing") is None
