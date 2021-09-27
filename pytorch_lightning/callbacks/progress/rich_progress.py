@@ -18,10 +18,10 @@ from typing import Optional, Union
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
 from pytorch_lightning.utilities import _RICH_AVAILABLE
 
-Style = None
+Task, Style = None, None
 if _RICH_AVAILABLE:
     from rich.console import RenderableType
-    from rich.progress import BarColumn, Progress, ProgressColumn, TextColumn
+    from rich.progress import BarColumn, Progress, ProgressColumn, Task, TextColumn
     from rich.style import Style
     from rich.text import Text
 
@@ -143,13 +143,10 @@ class RichProgressBar(ProgressBarBase):
         super().__init__()
         self._refresh_rate_per_second: int = refresh_rate_per_second
         self._enabled: bool = True
-        self._total_val_batches: int = 0
         self.progress: Optional[Progress] = None
         self.val_sanity_progress_bar_id: Optional[int] = None
-        self.main_progress_bar_id: Optional[int] = None
-        self.val_progress_bar_id: Optional[int] = None
-        self.test_progress_bar_id: Optional[int] = None
-        self.predict_progress_bar_id: Optional[int] = None
+        self._reset_progress_bar_ids()
+        self._progress_stopped: bool = False
         self.theme = theme
 
     @property
@@ -191,8 +188,9 @@ class RichProgressBar(ProgressBarBase):
     def predict_description(self) -> str:
         return "Predicting"
 
-    def _init_progress(self, trainer, pl_module, stage: Optional[str] = None):
-        if self.progress is None:
+    def _init_progress(self, trainer, pl_module):
+        if self.progress is None or self._progress_stopped:
+            self._reset_progress_bar_ids()
             self.progress = Progress(
                 TextColumn("[progress.description]{task.description}"),
                 BarColumn(
@@ -241,13 +239,13 @@ class RichProgressBar(ProgressBarBase):
     def on_train_epoch_start(self, trainer, pl_module):
         super().on_train_epoch_start(trainer, pl_module)
         total_train_batches = self.total_train_batches
-        self._total_val_batches = self.total_val_batches
+        total_val_batches = self.total_val_batches
         if total_train_batches != float("inf"):
             # val can be checked multiple times per epoch
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
-            self._total_val_batches = self._total_val_batches * val_checks_per_epoch
+            total_val_batches = total_val_batches * val_checks_per_epoch
 
-        total_batches = total_train_batches + self._total_val_batches
+        total_batches = total_train_batches + total_val_batches
 
         train_description = self._get_train_description(trainer.current_epoch)
         self.main_progress_bar_id = self._add_task(total_batches, train_description)
@@ -265,8 +263,13 @@ class RichProgressBar(ProgressBarBase):
 
     def on_validation_epoch_start(self, trainer, pl_module):
         super().on_validation_epoch_start(trainer, pl_module)
-        if self._total_val_batches > 0:
-            self.val_progress_bar_id = self._add_task(self._total_val_batches, self.validation_description)
+        if self.total_val_batches > 0:
+            total_val_batches = self.total_val_batches
+            if self.total_train_batches != float("inf") and hasattr(trainer, "val_check_batch"):
+                # val can be checked multiple times per epoch
+                val_checks_per_epoch = self.total_train_batches // trainer.val_check_batch
+                total_val_batches = self.total_val_batches * val_checks_per_epoch
+            self.val_progress_bar_id = self._add_task(total_val_batches, self.validation_description)
 
     def on_validation_epoch_end(self, trainer, pl_module):
         super().on_validation_epoch_end(trainer, pl_module)
@@ -289,8 +292,10 @@ class RichProgressBar(ProgressBarBase):
         super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         if trainer.sanity_checking:
             self._update(self.val_sanity_progress_bar_id)
-        elif self.val_progress_bar_id:
-            self._update(self.main_progress_bar_id)
+        elif self.val_progress_bar_id is not None:
+            # check to see if we should update the main training progress bar
+            if self.main_progress_bar_id is not None:
+                self._update(self.main_progress_bar_id)
             self._update(self.val_progress_bar_id)
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
@@ -315,9 +320,31 @@ class RichProgressBar(ProgressBarBase):
     def teardown(self, trainer, pl_module, stage: Optional[str] = None) -> None:
         if self.progress is not None:
             self.progress.stop()
-            # reset progress for next stages
-            self.progress = None
+            # # signals for progress to be re-initialized for next stages
+            self._progress_stopped = True
+
+    def _reset_progress_bar_ids(self):
+        self.main_progress_bar_id: Optional[int] = None
+        self.val_progress_bar_id: Optional[int] = None
+        self.test_progress_bar_id: Optional[int] = None
+        self.predict_progress_bar_id: Optional[int] = None
 
     def on_exception(self, trainer, pl_module, exception: BaseException) -> None:
         if self.progress is not None:
             self.progress.stop()
+
+    @property
+    def val_progress_bar(self) -> Task:
+        return self.progress.tasks[self.val_progress_bar_id]
+
+    @property
+    def val_sanity_check_bar(self) -> Task:
+        return self.progress.tasks[self.val_sanity_progress_bar_id]
+
+    @property
+    def main_progress_bar(self) -> Task:
+        return self.progress.tasks[self.main_progress_bar_id]
+
+    @property
+    def test_progress_bar(self) -> Task:
+        return self.progress.tasks[self.test_progress_bar_id]

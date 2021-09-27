@@ -23,9 +23,10 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBar, ProgressBarBase
+from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBar, ProgressBarBase, RichProgressBar
 from pytorch_lightning.callbacks.progress.tqdm_progress import Tqdm
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.utilities import _RICH_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -65,7 +66,7 @@ def test_progress_bar_off(tmpdir, callbacks: list, refresh_rate: Union[bool, int
 
     trainer = Trainer(default_root_dir=tmpdir, callbacks=callbacks, progress_bar_refresh_rate=refresh_rate)
 
-    progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBar)]
+    progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBarBase)]
     assert 0 == len(progress_bars)
     assert not trainer.progress_bar_callback
 
@@ -82,7 +83,7 @@ def test_progress_bar_totals(tmpdir):
 
     model = BoringModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, progress_bar_refresh_rate=1, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmpdir, progress_bar_refresh_rate=1, max_epochs=1, callbacks=ProgressBar())
     bar = trainer.progress_bar_callback
     assert 0 == bar.total_train_batches
     assert 0 == bar.total_val_batches
@@ -137,32 +138,34 @@ def test_progress_bar_fast_dev_run(tmpdir):
 
     trainer.fit(model)
 
-    progress_bar = trainer.progress_bar_callback
-    assert 1 == progress_bar.total_train_batches
+    bar = trainer.progress_bar_callback
+
+    train_bar, val_bar = bar.progress.tasks[bar.main_progress_bar_id], bar.progress.tasks[bar.val_progress_bar_id]
+
+    assert 1 == bar.total_train_batches
     # total val batches are known only after val dataloaders have reloaded
 
-    assert 1 == progress_bar.total_val_batches
-    assert 1 == progress_bar.train_batch_idx
-    assert 1 == progress_bar.val_batch_idx
-    assert 0 == progress_bar.test_batch_idx
+    assert 1 == bar.total_val_batches
+    assert 1 == bar.train_batch_idx
+    assert 1 == bar.val_batch_idx
+    assert 0 == bar.test_batch_idx
 
     # the main progress bar should display 2 batches (1 train, 1 val)
-    assert 2 == progress_bar.main_progress_bar.total
-    assert 2 == progress_bar.main_progress_bar.n
+    assert 2 == train_bar.total
 
     trainer.validate(model)
 
     # the validation progress bar should display 1 batch
-    assert 1 == progress_bar.val_batch_idx
-    assert 1 == progress_bar.val_progress_bar.total
-    assert 1 == progress_bar.val_progress_bar.n
+    assert 1 == bar.val_batch_idx
+    assert 1 == val_bar.total
 
     trainer.test(model)
 
+    test_bar = bar.progress.tasks[bar.test_progress_bar_id]
+
     # the test progress bar should display 1 batch
-    assert 1 == progress_bar.test_batch_idx
-    assert 1 == progress_bar.test_progress_bar.total
-    assert 1 == progress_bar.test_progress_bar.n
+    assert 1 == bar.test_batch_idx
+    assert 1 == test_bar.total
 
 
 @pytest.mark.parametrize("refresh_rate", [0, 1, 50])
@@ -171,7 +174,7 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
 
     model = BoringModel()
 
-    class CurrentProgressBar(ProgressBar):
+    class CurrentTQDMProgressBar(ProgressBar):
 
         train_batches_seen = 0
         val_batches_seen = 0
@@ -200,7 +203,7 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
                 assert self.test_progress_bar.n == self.test_batch_idx
             self.test_batches_seen += 1
 
-    progress_bar = CurrentProgressBar(refresh_rate=refresh_rate)
+    progress_bar = CurrentTQDMProgressBar(refresh_rate=refresh_rate)
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[progress_bar],
@@ -228,7 +231,7 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
 
 
 @pytest.mark.parametrize("limit_val_batches", (0, 5))
-def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches: int):
+def test_num_sanity_val_steps_tqdm_progress_bar(tmpdir, limit_val_batches: int):
     """Test val_progress_bar total with 'num_sanity_val_steps' Trainer argument."""
 
     class CurrentProgressBar(ProgressBar):
@@ -263,6 +266,7 @@ def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches: int):
     assert progress_bar.val_pbar_total == limit_val_batches
 
 
+@pytest.mark.skipif(_RICH_AVAILABLE, reason="Test requires TQDM progress bar as default.")
 def test_progress_bar_default_value(tmpdir):
     """Test that a value of None defaults to refresh rate 1."""
     trainer = Trainer(default_root_dir=tmpdir)
@@ -272,6 +276,7 @@ def test_progress_bar_default_value(tmpdir):
     assert trainer.progress_bar_callback.refresh_rate == 1
 
 
+@pytest.mark.skipif(_RICH_AVAILABLE, reason="Test requires TQDM progress bar as default.")
 @mock.patch.dict(os.environ, {"COLAB_GPU": "1"})
 def test_progress_bar_value_on_colab(tmpdir):
     """Test that Trainer will override the default in Google COLAB."""
@@ -360,7 +365,8 @@ def test_test_progress_bar_update_amount(tmpdir, test_batches: int, refresh_rate
     progress_bar.test_progress_bar.update.assert_has_calls([call(delta) for delta in test_deltas])
 
 
-def test_tensor_to_float_conversion(tmpdir):
+@pytest.mark.parametrize("progress_bar_cls", (ProgressBar, pytest.param(RichProgressBar, marks=RunIf(rich=True))))
+def test_tensor_to_float_conversion(progress_bar_cls, tmpdir):
     """Check tensor gets converted to float."""
 
     class TestModel(BoringModel):
@@ -371,7 +377,12 @@ def test_tensor_to_float_conversion(tmpdir):
             return super().training_step(batch, batch_idx)
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, logger=False, checkpoint_callback=False
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=2,
+        logger=False,
+        checkpoint_callback=False,
+        callbacks=progress_bar_cls(),
     )
     trainer.fit(TestModel())
 
@@ -379,8 +390,9 @@ def test_tensor_to_float_conversion(tmpdir):
     assert trainer.progress_bar_metrics["b"] == {"b1": 1.0}
     assert trainer.progress_bar_metrics["c"] == {"c1": 2.0}
     pbar = trainer.progress_bar_callback.main_progress_bar
-    actual = str(pbar.postfix)
-    assert actual.endswith("a=0.123, b={'b1': 1.0}, c={'c1': 2.0}"), actual
+    if progress_bar_cls != RichProgressBar:
+        actual = str(pbar.postfix)
+        assert actual.endswith("a=0.123, b={'b1': 1.0}, c={'c1': 2.0}"), actual
 
 
 @pytest.mark.parametrize(
@@ -420,7 +432,7 @@ class PrintModel(BoringModel):
 
 
 @mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm.write")
-def test_progress_bar_print(tqdm_write, tmpdir):
+def test_tqdm_progress_bar_print(tqdm_write, tmpdir):
     """Test that printing in the LightningModule redirects arguments to the progress bar."""
     model = PrintModel()
     bar = ProgressBar()
@@ -447,7 +459,7 @@ def test_progress_bar_print(tqdm_write, tmpdir):
 
 
 @mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm.write")
-def test_progress_bar_print_no_train(tqdm_write, tmpdir):
+def test_tqdm_progress_bar_print_no_train(tqdm_write, tmpdir):
     """Test that printing in the LightningModule redirects arguments to the progress bar without training."""
     model = PrintModel()
     bar = ProgressBar()
@@ -474,7 +486,7 @@ def test_progress_bar_print_no_train(tqdm_write, tmpdir):
 
 @mock.patch("builtins.print")
 @mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm.write")
-def test_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
+def test_tqdm_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
     """Test that printing in LightningModule goes through built-in print function when progress bar is disabled."""
     model = PrintModel()
     bar = ProgressBar()
@@ -558,8 +570,9 @@ def _test_progress_bar_max_val_check_interval(
         assert trainer.progress_bar_callback.main_progress_bar.total == total_train_batches + total_val_batches
 
 
-def test_get_progress_bar_metrics(tmpdir: str):
-    class TestProgressBar(ProgressBar):
+@pytest.mark.parametrize("cls", (ProgressBar, pytest.param(RichProgressBar, marks=RunIf(rich=True))))
+def test_get_progress_bar_metrics(cls, tmpdir: str):
+    class TestProgressBar(cls):
         def get_metrics(self, trainer: Trainer, model: LightningModule):
             items = super().get_metrics(trainer, model)
             items.pop("v_num", None)
@@ -580,9 +593,10 @@ def test_get_progress_bar_metrics(tmpdir: str):
     assert "v_num" not in standard_metrics.keys()
 
 
-def test_progress_bar_main_bar_resume():
+@pytest.mark.parametrize("cls", (ProgressBar, pytest.param(RichProgressBar, marks=RunIf(rich=True))))
+def test_progress_bar_main_bar_resume(cls):
     """Test that the progress bar can resume its counters based on the Trainer state."""
-    bar = ProgressBar()
+    bar = cls()
     trainer = Mock()
     model = Mock()
 
@@ -598,7 +612,8 @@ def test_progress_bar_main_bar_resume():
     bar.on_train_start(trainer, model)
     bar.on_train_epoch_start(trainer, model)
 
-    assert bar.main_progress_bar.n == 3
+    if not isinstance(bar, RichProgressBar):
+        assert bar.main_progress_bar.n == 3
     assert bar.main_progress_bar.total == 8
 
     # bar.on_train_epoch_end(trainer, model)
@@ -606,5 +621,6 @@ def test_progress_bar_main_bar_resume():
     bar.on_validation_epoch_start(trainer, model)
 
     # restarting mid validation epoch is not currently supported
-    assert bar.val_progress_bar.n == 0
+    if not isinstance(bar, RichProgressBar):
+        assert bar.val_progress_bar.n == 0
     assert bar.val_progress_bar.total == 3
