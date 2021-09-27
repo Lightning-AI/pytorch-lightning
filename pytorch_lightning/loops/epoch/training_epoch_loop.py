@@ -222,7 +222,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                 num_optimizers=len(self.trainer.optimizers),
             )
             # check that the dataloader/iterator produced a batch
-            # FIXME: still necessary?
             if epoch_end_outputs:
                 # run training_epoch_end
                 # refresh the result for custom logging at the epoch level
