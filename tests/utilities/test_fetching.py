@@ -395,9 +395,10 @@ def test_tbptt_split_batch_overridden(tmpdir) -> None:
 
 
 @RunIf(min_gpus=1)
-def test_on_before_batch_transfer_with_unpacking(tmpdir):
+def test_transfer_hooks_with_unpacking(tmpdir):
 
-    """This test asserts the `on_before_batch_transfer` is called only once and data are properly moved to gpu."""
+    """This test asserts the `transfer_batch` hooks are called only once per batch and data are properly moved to
+    gpu."""
 
     class RandomDictDataset(RandomDataset):
         def __getitem__(self, index):
@@ -405,7 +406,9 @@ def test_on_before_batch_transfer_with_unpacking(tmpdir):
 
     class BoringDataModule(LightningDataModule):
 
-        has_called_on_before_batch_transfer = False
+        count_called_on_before_batch_transfer = 0
+        count_called_transfer_batch_to_device = 0
+        count_called_on_after_batch_transfer = 0
 
         def train_dataloader(self):
             return DataLoader(RandomDictDataset(32, 2), batch_size=1)
@@ -414,8 +417,16 @@ def test_on_before_batch_transfer_with_unpacking(tmpdir):
             return DataLoader(RandomDictDataset(32, 2), batch_size=1)
 
         def on_before_batch_transfer(self, batch, dataloader_idx: int):
-            self.has_called_on_before_batch_transfer = True
+            self.count_called_on_before_batch_transfer += 1
             return batch["x"], batch["y_true"]
+
+        def transfer_batch_to_device(self, *args, **kwargs):
+            self.count_called_transfer_batch_to_device += 1
+            return super().transfer_batch_to_device(*args, **kwargs)
+
+        def on_after_batch_transfer(self, batch, dataloader_idx: int):
+            self.count_called_on_after_batch_transfer += 1
+            return super().on_after_batch_transfer(batch, dataloader_idx)
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -433,4 +444,6 @@ def test_on_before_batch_transfer_with_unpacking(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, num_sanity_val_steps=0, gpus=1)
     dm = BoringDataModule()
     trainer.fit(TestModel(), datamodule=dm)
-    assert dm.has_called_on_before_batch_transfer
+    assert dm.count_called_on_before_batch_transfer == 4
+    assert dm.count_called_transfer_batch_to_device == 4
+    assert dm.count_called_on_after_batch_transfer == 4
