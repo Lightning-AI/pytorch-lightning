@@ -15,6 +15,7 @@
 from unittest.mock import call, Mock
 
 import pytest
+import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -327,3 +328,22 @@ def test_v1_6_0_deprecated_device_dtype_mixin_import():
     _soft_unimport_module("pytorch_lightning.utilities.device_dtype_mixin")
     with pytest.deprecated_call(match="will be removed in v1.6"):
         from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin  # noqa: F401
+
+
+def test_v1_7_0_deprecated_accelerator_collective():
+    from pytorch_lightning.plugins.precision import PrecisionPlugin
+    from pytorch_lightning.plugins.training_type import SingleDevicePlugin
+
+    plugin = SingleDevicePlugin(torch.device("cpu"))
+    from pytorch_lightning.accelerators.accelerator import Accelerator
+
+    accelerator = Accelerator(training_type_plugin=plugin, precision_plugin=PrecisionPlugin())
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        accelerator.barrier()
+
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        accelerator.broadcast(1)
+
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        tensor = torch.rand(2, 2, requires_grad=True)
+        accelerator.all_gather(tensor)

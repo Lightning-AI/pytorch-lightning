@@ -144,7 +144,7 @@ def test_attach_model_callbacks():
         model = LightningModule()
         model.configure_callbacks = lambda: model_callbacks
         trainer = Trainer(
-            checkpoint_callback=False, progress_bar_refresh_rate=0, weights_summary=None, callbacks=trainer_callbacks
+            checkpoint_callback=False, enable_progress_bar=False, weights_summary=None, callbacks=trainer_callbacks
         )
         trainer.model = model
         cb_connector = CallbackConnector(trainer)

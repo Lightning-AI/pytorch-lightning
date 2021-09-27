@@ -371,7 +371,7 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_co
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=1,
         plugins=[DeepSpeedPlugin(config=deepspeed_zero_config)],
         precision=16,
@@ -721,7 +721,7 @@ def _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimiz
     verification_callback = VerificationCallback()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         # TODO: this test fails with max_epochs >1 as there are leftover batches per epoch.
         # there's divergence in how Lightning handles the last batch of the epoch with how DeepSpeed does it.
         # we step the optimizers on the last batch but DeepSpeed keeps the accumulation for the next epoch
@@ -828,9 +828,9 @@ def test_deepspeed_plugin_env_variables(mock_deepspeed_distributed, tmpdir, plat
 
 def _assert_save_model_is_equal(model, tmpdir, trainer):
     checkpoint_path = os.path.join(tmpdir, "model.pt")
-    checkpoint_path = trainer.accelerator.broadcast(checkpoint_path)
+    checkpoint_path = trainer.training_type_plugin.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
-    trainer.accelerator.barrier()
+    trainer.training_type_plugin.barrier()
 
     # carry out the check only on rank 0
     if trainer.is_global_zero:

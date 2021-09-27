@@ -291,9 +291,9 @@ class LoggerConnector:
         self._logged_metrics = {}
         self._callback_metrics = {}
 
-    def reset_results(self, metrics: Optional[bool] = None) -> None:
+    def reset_results(self) -> None:
         if self.trainer._results is not None:
-            self.trainer._results.reset(metrics=metrics)
+            self.trainer._results.reset()
 
         self._batch_idx = None
         self._split_idx = None

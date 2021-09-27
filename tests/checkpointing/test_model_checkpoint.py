@@ -148,7 +148,7 @@ def test_model_checkpoint_score_and_ckpt(
         limit_train_batches=limit_train_batches,
         limit_val_batches=limit_val_batches,
         max_epochs=max_epochs,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
     calls = mock_optimizer_connector(trainer)
     trainer.fit(model)
@@ -245,7 +245,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         limit_val_batches=limit_val_batches,
         max_epochs=max_epochs,
         val_check_interval=val_check_interval,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         num_sanity_val_steps=0,
     )
     calls = mock_optimizer_connector(trainer)
@@ -641,7 +641,7 @@ def test_ckpt_every_n_train_steps(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         callbacks=[checkpoint_callback],
         logger=False,
     )
@@ -668,7 +668,7 @@ def test_model_checkpoint_train_time_interval(mock_datetime, tmpdir) -> None:
         default_root_dir=tmpdir,
         min_epochs=num_epochs,
         max_epochs=num_epochs,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         callbacks=[
             ModelCheckpoint(
                 filename="{epoch}-{step}",
@@ -739,7 +739,7 @@ def test_ckpt_metric_names(tmpdir):
         max_epochs=1,
         gradient_clip_val=1.0,
         overfit_batches=0.20,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         limit_train_batches=0.01,
         limit_val_batches=0.01,
         callbacks=[ModelCheckpoint(monitor="early_stop_on", dirpath=tmpdir, filename="{val_loss:.2f}")],
@@ -760,7 +760,7 @@ def test_default_checkpoint_behavior(tmpdir):
 
     model = LogInTwoMethods()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=3, progress_bar_refresh_rate=0, limit_train_batches=5, limit_val_batches=5
+        default_root_dir=tmpdir, max_epochs=3, enable_progress_bar=False, limit_train_batches=5, limit_val_batches=5
     )
 
     with patch.object(trainer, "save_checkpoint", wraps=trainer.save_checkpoint) as save_mock:
@@ -891,7 +891,7 @@ def test_checkpoint_repeated_strategy(tmpdir):
         limit_test_batches=2,
         callbacks=[checkpoint_callback],
         weights_summary=None,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
     trainer.fit(model)
     assert os.listdir(tmpdir) == ["epoch=00.ckpt"]
@@ -906,7 +906,7 @@ def test_checkpoint_repeated_strategy(tmpdir):
             limit_val_batches=2,
             limit_test_batches=2,
             weights_summary=None,
-            progress_bar_refresh_rate=0,
+            enable_progress_bar=False,
         )
         trainer.fit(model, ckpt_path=checkpoint_callback.best_model_path)
         trainer.test(model, verbose=False)
@@ -1041,7 +1041,7 @@ def test_val_check_interval_checkpoint_files(tmpdir):
         callbacks=[model_checkpoint],
         logger=False,
         weights_summary=None,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
     trainer.fit(model)
     files = {p.basename for p in tmpdir.listdir()}
@@ -1065,7 +1065,7 @@ def test_current_score(tmpdir):
         callbacks=[model_checkpoint],
         logger=False,
         weights_summary=None,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
     trainer.fit(TestModel())
     assert model_checkpoint.current_score == 0.3
@@ -1098,7 +1098,7 @@ def test_current_score_when_nan(tmpdir, mode: str):
         callbacks=[model_checkpoint],
         logger=False,
         weights_summary=None,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
     trainer.fit(TestModel())
     expected = float("inf" if mode == "min" else "-inf")
@@ -1122,7 +1122,7 @@ def test_hparams_type(tmpdir, hparams_type):
         callbacks=[model_checkpoint],
         logger=False,
         weights_summary=None,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
     hp = {"test_hp_0": 1, "test_hp_1": 2}
     hp = OmegaConf.create(hp) if hparams_type == Container else Namespace(**hp)
@@ -1150,7 +1150,7 @@ def test_ckpt_version_after_rerun_new_trainer(tmpdir):
             callbacks=[mc],
             logger=False,
             weights_summary=None,
-            progress_bar_refresh_rate=0,
+            enable_progress_bar=False,
         )
         trainer.fit(BoringModel())
 
@@ -1176,7 +1176,7 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
         callbacks=[mc],
         logger=False,
         weights_summary=None,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
     trainer.fit(BoringModel())
     trainer.fit_loop.max_epochs = 4

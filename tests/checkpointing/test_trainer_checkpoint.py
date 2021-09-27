@@ -63,7 +63,7 @@ def test_finetuning_with_ckpt_path(tmpdir):
             limit_train_batches=12,
             limit_val_batches=12,
             limit_test_batches=12,
-            progress_bar_refresh_rate=0,
+            enable_progress_bar=False,
         )
         trainer.fit(model, ckpt_path=best_model_paths[-1])
         trainer.test()
