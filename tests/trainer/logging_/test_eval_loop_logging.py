@@ -602,3 +602,50 @@ def test_logging_dict_on_validation_step(tmpdir):
     )
 
     trainer.fit(model)
+
+
+def test_multiple_dataloader_reset(tmpdir):
+    class TestModel(BoringModel):
+        def validation_step(self, batch, batch_idx, dataloader_idx):
+            value = (1 + batch_idx) * (2 if dataloader_idx == 1 else 1)
+            if self.current_epoch != 0:
+                value *= 10
+            self.log("val_loss", value, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+            return value
+
+        def validation_epoch_end(self, outputs):
+            if self.current_epoch == 0:
+                assert sum(outputs[0]) / 5 == 3
+                assert sum(outputs[1]) / 5 == 6
+            else:
+                assert sum(outputs[0]) / 5 == 30
+                assert sum(outputs[1]) / 5 == 60
+
+            tot_loss = torch.tensor(0.0)
+            for loss in outputs:
+                tot_loss += sum(loss) / len(loss)
+            tot_loss = tot_loss / len(outputs)
+            if self.current_epoch == 0:
+                assert tot_loss == (3 + 6) / 2
+            else:
+                assert tot_loss == (30 + 60) / 2
+            self.log("tot_val_loss", tot_loss, prog_bar=True, logger=True)
+            assert self.trainer._results["validation_step.val_loss.0"].cumulated_batch_size == 5
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.layer.parameters(), lr=0.1)
+
+        def val_dataloader(self):
+            return [super().val_dataloader(), super().val_dataloader()]
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=5,
+        num_sanity_val_steps=0,
+        max_epochs=3,
+        log_every_n_steps=1,
+        weights_summary=None,
+    )
+    trainer.fit(model)
