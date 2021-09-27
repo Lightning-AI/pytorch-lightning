@@ -302,7 +302,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if array.ndim == 1:
             array = np.expand_dims(array, 1)
 
-        array = array.transpose((0, 1))
+        array = array.transpose((1, 0))
         array = array.squeeze()
         array = array.tolist()
         array = _recursive_unpad(array)
