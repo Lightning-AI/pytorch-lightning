@@ -440,7 +440,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [1.4.7] - 2021-09-14
 
 - Fixed logging of nan parameters ([#9364](https://github.com/PyTorchLightning/pytorch-lightning/pull/9364))
-- Fixed `replace_sampler` missing the batch size under specific conditions ([#9367](https://github.com/PyTorchLightning/pytorch-lightning/pull/9367))
+- Fixed `_prepare_dataloader` missing the batch size under specific conditions ([#9367](https://github.com/PyTorchLightning/pytorch-lightning/pull/9367))
 - Pass init args to ShardedDataParallel ([#9483](https://github.com/PyTorchLightning/pytorch-lightning/pull/9483))
 - Fixed collision of user argument when using ShardedDDP ([#9512](https://github.com/PyTorchLightning/pytorch-lightning/pull/9512))
 - Fixed DeepSpeed crash for RNNs ([#9489](https://github.com/PyTorchLightning/pytorch-lightning/pull/9489))
@@ -654,7 +654,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - `Trainer(resume_from_checkpoint=...)` now restores the model directly after `LightningModule.setup()`, which is before `LightningModule.configure_sharded_model()` ([#7652](https://github.com/PyTorchLightning/pytorch-lightning/pull/7652))
 - Moved `torch.cuda.set_device()` to enable collective calls earlier in setup ([#8312](https://github.com/PyTorchLightning/pytorch-lightning/pull/8312))
 - Used XLA utility API to move data to CPU (Single TPU core) ([#8078](https://github.com/PyTorchLightning/pytorch-lightning/pull/8078))
-- Improved error messages in `replace_sampler` when the `DataLoader` attributes are not included in the signature or the signature is missing optional arguments ([#8519](https://github.com/PyTorchLightning/pytorch-lightning/pull/8519))
+- Improved error messages in `_prepare_dataloader` when the `DataLoader` attributes are not included in the signature or the signature is missing optional arguments ([#8519](https://github.com/PyTorchLightning/pytorch-lightning/pull/8519))
 - Moved `DeviceDtypeModuleMixin` and `HyperparametersMixin` mixin to `core` ([#8396](https://github.com/PyTorchLightning/pytorch-lightning/pull/8396))
 - Return the `default_root_dir` as the `log_dir` when the logger is a `LoggerCollection` ([#8187](https://github.com/PyTorchLightning/pytorch-lightning/pull/8187))
 
@@ -1717,7 +1717,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Improved error messages for invalid `configure_optimizers` returns ([#3587](https://github.com/PyTorchLightning/pytorch-lightning/pull/3587))
 - Allow changing the logged step value in `validation_step` ([#4130](https://github.com/PyTorchLightning/pytorch-lightning/pull/4130))
-- Allow setting `replace_sampler_ddp=True` with a distributed sampler already added ([#4273](https://github.com/PyTorchLightning/pytorch-lightning/pull/4273))
+- Allow setting `_prepare_dataloader_ddp=True` with a distributed sampler already added ([#4273](https://github.com/PyTorchLightning/pytorch-lightning/pull/4273))
 - Fixed santized parameters for `WandbLogger.log_hyperparams` ([#4320](https://github.com/PyTorchLightning/pytorch-lightning/pull/4320))
 
 ### Deprecated
@@ -2442,7 +2442,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added flag `replace_sampler_ddp` to manually disable sampler replacement in DDP  ([#1513](https://github.com/PyTorchLightning/pytorch-lightning/pull/1513))
+- Added flag `_prepare_dataloader_ddp` to manually disable sampler replacement in DDP  ([#1513](https://github.com/PyTorchLightning/pytorch-lightning/pull/1513))
 - Added `auto_select_gpus` flag to trainer that enables automatic selection of available GPUs on exclusive mode systems.
 - Added learning rate finder ([#1347](https://github.com/PyTorchLightning/pytorch-lightning/pull/1347))
 - Added support for DDP mode in clusters without SLURM ([#1387](https://github.com/PyTorchLightning/pytorch-lightning/pull/1387))

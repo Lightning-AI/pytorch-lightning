@@ -119,7 +119,7 @@ def test_sync_batchnorm_ddp(tmpdir):
         max_steps=3,
         sync_batchnorm=True,
         num_sanity_val_steps=0,
-        replace_sampler_ddp=False,
+        _prepare_dataloader_ddp=False,
         plugins=[ddp],
     )
 

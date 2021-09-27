@@ -959,7 +959,7 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
         default_root_dir=tmpdir,
         max_steps=100,
         callbacks=[DistribSamplerCallback(expected_seeds=(11, 123, 0))],
-        replace_sampler_ddp=True,
+        _prepare_dataloader_ddp=True,
     )
     trainer.fit(model)
     assert trainer.state.finished, "DDP Training failed"

@@ -120,10 +120,10 @@ def test_dataloader_warnings(num_workers):
         trainer.fit(TestModel(), dl)
 
 
-def test_replace_sampler_raises():
+def test__prepare_dataloader_raises():
     trainer = Trainer()
     with pytest.raises(ValueError, match="needs to subclass `torch.utils.data.DataLoader"):
-        trainer.replace_sampler(object(), object(), mode="fit")
+        trainer._prepare_dataloader(object(), object(), mode="fit")
 
 
 def test_dataloaders_with_missing_keyword_arguments():
@@ -138,10 +138,10 @@ def test_dataloaders_with_missing_keyword_arguments():
     sampler = SequentialSampler(ds)
     match = escape("missing arguments are ['batch_sampler', 'sampler', 'shuffle']")
     with pytest.raises(MisconfigurationException, match=match):
-        trainer.replace_sampler(loader, sampler, mode="fit")
+        trainer._prepare_dataloader(loader, sampler, mode="fit")
     match = escape("missing arguments are ['batch_sampler', 'batch_size', 'drop_last', 'sampler', 'shuffle']")
     with pytest.raises(MisconfigurationException, match=match):
-        trainer.replace_sampler(loader, sampler, mode="predict")
+        trainer._prepare_dataloader(loader, sampler, mode="predict")
 
     class TestDataLoader(DataLoader):
         def __init__(self, dataset, *args, **kwargs):
@@ -149,8 +149,8 @@ def test_dataloaders_with_missing_keyword_arguments():
 
     loader = TestDataLoader(ds)
     sampler = SequentialSampler(ds)
-    trainer.replace_sampler(loader, sampler, mode="fit")
-    trainer.replace_sampler(loader, sampler, mode="predict")
+    trainer._prepare_dataloader(loader, sampler, mode="fit")
+    trainer._prepare_dataloader(loader, sampler, mode="predict")
 
     class TestDataLoader(DataLoader):
         def __init__(self, *foo, **bar):
@@ -158,8 +158,8 @@ def test_dataloaders_with_missing_keyword_arguments():
 
     loader = TestDataLoader(ds)
     sampler = SequentialSampler(ds)
-    trainer.replace_sampler(loader, sampler, mode="fit")
-    trainer.replace_sampler(loader, sampler, mode="predict")
+    trainer._prepare_dataloader(loader, sampler, mode="fit")
+    trainer._prepare_dataloader(loader, sampler, mode="predict")
 
     class TestDataLoader(DataLoader):
         def __init__(self, num_feat, dataset, *args, shuffle=False):
@@ -170,10 +170,10 @@ def test_dataloaders_with_missing_keyword_arguments():
     sampler = SequentialSampler(ds)
     match = escape("missing arguments are ['batch_sampler', 'sampler']")
     with pytest.raises(MisconfigurationException, match=match):
-        trainer.replace_sampler(loader, sampler, mode="fit")
+        trainer._prepare_dataloader(loader, sampler, mode="fit")
     match = escape("missing arguments are ['batch_sampler', 'batch_size', 'drop_last', 'sampler']")
     with pytest.raises(MisconfigurationException, match=match):
-        trainer.replace_sampler(loader, sampler, mode="predict")
+        trainer._prepare_dataloader(loader, sampler, mode="predict")
 
     class TestDataLoader(DataLoader):
         def __init__(self, num_feat, dataset, **kwargs):
@@ -184,19 +184,19 @@ def test_dataloaders_with_missing_keyword_arguments():
     sampler = SequentialSampler(ds)
     match = escape("missing attributes are ['num_feat']")
     with pytest.raises(MisconfigurationException, match=match):
-        trainer.replace_sampler(loader, sampler, mode="fit")
+        trainer._prepare_dataloader(loader, sampler, mode="fit")
     match = escape("missing attributes are ['num_feat']")
     with pytest.raises(MisconfigurationException, match=match):
-        trainer.replace_sampler(loader, sampler, mode="predict")
+        trainer._prepare_dataloader(loader, sampler, mode="predict")
 
 
-def test_replace_sampler_with_multiprocessing_context():
-    """This test verifies that replace_sampler conserves multiprocessing context."""
+def test__prepare_dataloader_with_multiprocessing_context():
+    """This test verifies that _prepare_dataloader conserves multiprocessing context."""
     train = RandomDataset(32, 64)
     context = "spawn"
     train = DataLoader(train, batch_size=32, num_workers=2, multiprocessing_context=context, shuffle=True)
     trainer = Trainer()
-    new_data_loader = trainer.replace_sampler(train, SequentialSampler(train.dataset))
+    new_data_loader = trainer._prepare_dataloader(train, SequentialSampler(train.dataset))
     assert new_data_loader.multiprocessing_context == train.multiprocessing_context
 
 
@@ -238,17 +238,17 @@ def test_dataloader_reinit_for_subclass():
     class CustomDummyObj:
         sampler = None
 
-    result = trainer.auto_add_sampler(CustomDummyObj(), shuffle=True)
+    result = trainer.prepare_dataloader(CustomDummyObj(), shuffle=True)
     assert isinstance(result, CustomDummyObj), "Wrongly reinstantiated data loader"
 
     dataset = list(range(10))
-    result = trainer.auto_add_sampler(CustomDataLoader(dataset), shuffle=True)
+    result = trainer.prepare_dataloader(CustomDataLoader(dataset), shuffle=True)
     assert isinstance(result, DataLoader)
     assert isinstance(result, CustomDataLoader)
     assert result.dummy_kwarg is None
 
     # Shuffled DataLoader should also work
-    result = trainer.auto_add_sampler(CustomDataLoader(dataset, shuffle=True), shuffle=True)
+    result = trainer.prepare_dataloader(CustomDataLoader(dataset, shuffle=True), shuffle=True)
     assert isinstance(result, DataLoader)
     assert isinstance(result, CustomDataLoader)
     assert result.dummy_kwarg is None
@@ -259,7 +259,7 @@ def test_dataloader_reinit_for_subclass():
     # Should raise an error if existing sampler is being replaced
     dataloader = CustomDataLoader(dataset, sampler=CustomSampler(dataset))
     with pytest.raises(MisconfigurationException, match="will be replaced  by `DistributedSampler`"):
-        trainer.auto_add_sampler(dataloader, shuffle=True)
+        trainer.prepare_dataloader(dataloader, shuffle=True)
 
 
 def test_loader_detaching():

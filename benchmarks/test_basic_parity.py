@@ -163,7 +163,7 @@ def lightning_loop(cls_model, idx, device_type: str = "cuda", num_epochs=10):
         checkpoint_callback=False,
         deterministic=True,
         logger=False,
-        replace_sampler_ddp=False,
+        _prepare_dataloader_ddp=False,
     )
     trainer.fit(model)
 

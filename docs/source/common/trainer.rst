@@ -1352,28 +1352,28 @@ Set to a postive integer to reload dataloaders every n epochs.
 
 .. _replace-sampler-ddp:
 
-replace_sampler_ddp
+_prepare_dataloader_ddp
 ^^^^^^^^^^^^^^^^^^^
 
 .. raw:: html
 
     <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/replace_sampler_ddp.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/replace_sampler_ddp.mp4"></video>
+    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/_prepare_dataloader_ddp.jpg"
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/_prepare_dataloader_ddp.mp4"></video>
 
 |
 
 Enables auto adding of :class:`~torch.utils.data.distributed.DistributedSampler`. In PyTorch, you must use it in
 distributed settings such as TPUs or multi-node. The sampler makes sure each GPU sees the appropriate part of your data.
 By default it will add ``shuffle=True`` for train sampler and ``shuffle=False`` for val/test sampler.
-If you want to customize it, you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
-If ``replace_sampler_ddp=True`` and a distributed sampler was already added,
+If you want to customize it, you can set ``_prepare_dataloader_ddp=False`` and add your own distributed sampler.
+If ``_prepare_dataloader_ddp=True`` and a distributed sampler was already added,
 Lightning will not replace the existing one.
 
 .. testcode::
 
     # default used by the Trainer
-    trainer = Trainer(replace_sampler_ddp=True)
+    trainer = Trainer(_prepare_dataloader_ddp=True)
 
 By setting to False, you have to add your own distributed sampler:
 

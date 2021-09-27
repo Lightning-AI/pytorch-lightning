@@ -96,7 +96,7 @@ class AcceleratorConnector:
         num_nodes,
         sync_batchnorm,
         benchmark,
-        replace_sampler_ddp,
+        _prepare_dataloader_ddp,
         deterministic,
         precision,
         amp_type,
@@ -126,7 +126,7 @@ class AcceleratorConnector:
         self.num_nodes = num_nodes
         self.sync_batchnorm = sync_batchnorm
         self.benchmark = benchmark
-        self.replace_sampler_ddp = replace_sampler_ddp
+        self._prepare_dataloader_ddp = _prepare_dataloader_ddp
         self.deterministic = deterministic
         self.precision = precision
         self.amp_type = amp_type.lower() if isinstance(amp_type, str) else None
@@ -186,7 +186,7 @@ class AcceleratorConnector:
             # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
             os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
 
-        self.replace_sampler_ddp = replace_sampler_ddp
+        self._prepare_dataloader_ddp = _prepare_dataloader_ddp
 
     def select_accelerator_type(self) -> None:
         if self.distributed_backend == "auto":

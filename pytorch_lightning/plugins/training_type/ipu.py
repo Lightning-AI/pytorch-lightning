@@ -113,7 +113,7 @@ class IPUPlugin(ParallelPlugin):
         # patch the dataloader creation function with the custom `poptorch.DataLoader`.
         # this violates the intended control flow for the plugins, but since this is experimental, we have chosen
         # to use the simpler solution before adding abstractions to override the `DataLoader` class
-        self.lightning_module.trainer.replace_sampler = self._convert_to_poptorch_loader
+        self.lightning_module.trainer._prepare_dataloader = self._convert_to_poptorch_loader
 
     def pre_dispatch(self) -> None:
         precision = self.lightning_module.trainer.precision
@@ -236,7 +236,9 @@ class IPUPlugin(ParallelPlugin):
 
     def teardown(self) -> None:
         # undo dataloader patching
-        self.lightning_module.trainer.replace_sampler = pl.trainer.trainer.TrainerDataLoadingMixin.replace_sampler
+        self.lightning_module.trainer._prepare_dataloader = (
+            pl.trainer.trainer.TrainerDataLoadingMixin._prepare_dataloader
+        )
         for model in self.poptorch_models.values():
             model.destroy()
 
