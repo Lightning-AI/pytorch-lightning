@@ -409,10 +409,10 @@ def test_transfer_hooks_with_unpacking(tmpdir):
         count_called_on_after_batch_transfer = 0
 
         def train_dataloader(self):
-            return DataLoader(RandomDictDataset(32, 2), batch_size=1)
+            return DataLoader(RandomDictDataset(32, 2))
 
         def val_dataloader(self):
-            return DataLoader(RandomDictDataset(32, 2), batch_size=1)
+            return DataLoader(RandomDictDataset(32, 2))
 
         def on_before_batch_transfer(self, batch, dataloader_idx: int):
             self.count_called_on_before_batch_transfer += 1
