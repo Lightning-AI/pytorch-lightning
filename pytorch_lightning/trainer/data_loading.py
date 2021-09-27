@@ -211,40 +211,6 @@ class TrainerDataLoadingMixin(ABC):
         return {"sampler": sampler, "shuffle": False, "batch_sampler": None}
 
     @staticmethod
-    def _resolve_batch_sampler(
-        dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
-    ) -> Dict[str, Any]:
-        batch_sampler = getattr(dataloader, "batch_sampler")
-        is_predicting = mode == RunningStage.PREDICTING
-        # checking the batch sampler type is different than PyTorch default.
-        if (batch_sampler is not None and type(batch_sampler) is not BatchSampler) or is_predicting:
-            batch_sampler = type(batch_sampler)(
-                sampler,
-                batch_size=batch_sampler.batch_size,
-                drop_last=(False if is_predicting else batch_sampler.drop_last),
-            )
-            if is_predicting:
-                batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
-
-            if _fault_tolerant_training():
-                fast_forward_sampler = batch_sampler = FastForwardSampler(batch_sampler)
-                fast_forward_sampler.setup(dataloader_batch_size=1)
-
-            return {
-                "sampler": None,
-                "shuffle": False,
-                "batch_sampler": batch_sampler,
-                "batch_size": 1,
-                "drop_last": False,
-            }
-
-        if _fault_tolerant_training():
-            fast_forward_sampler = sampler = FastForwardSampler(sampler)
-            fast_forward_sampler.setup(dataloader_batch_size=dataloader.batch_size)
-
-        return {"sampler": sampler, "shuffle": False, "batch_sampler": None}
-
-    @staticmethod
     def _get_dataloader_init_kwargs(
         dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
     ) -> Dict[str, Any]:
@@ -271,7 +237,7 @@ class TrainerDataLoadingMixin(ABC):
 
         # kwargs to re-construct the dataloader
         dl_kwargs = {k: v for k, v in attrs.items() if k in non_defaults}
-        dl_kwargs.update(TrainerDataLoadingMixin._resolve_batch_sampler(dataloader, sampler, mode=mode))
+        dl_kwargs.update(TrainerDataLoadingMixin._resolve_sampler(dataloader, sampler, mode=mode))
 
         required_args = {
             p.name
