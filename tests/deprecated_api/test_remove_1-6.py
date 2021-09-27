@@ -345,9 +345,5 @@ def test_v1_7_0_deprecated_accelerator_collective():
         accelerator.broadcast(1)
 
     with pytest.deprecated_call(match="will be removed in v1.6"):
-        tensor = torch.rand(
-            2,
-            2,
-            requires_grad=True
-        )
+        tensor = torch.rand(2, 2, requires_grad=True)
         accelerator.all_gather(tensor)
