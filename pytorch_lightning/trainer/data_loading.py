@@ -525,7 +525,7 @@ class TrainerDataLoadingMixin(ABC):
         dataloader = self.call_hook(hook, pl_module=model)
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
-        self.accelerator.barrier("get_dataloaders")
+        self.training_type_plugin.barrier("get_dataloaders")
         return dataloader
 
     @staticmethod

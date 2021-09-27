@@ -233,7 +233,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - `seed_everything` now fails when an invalid seed value is passed instead of selecting a random seed ([#8787](https://github.com/PyTorchLightning/pytorch-lightning/pull/8787))
 
 
-- Use a unique filename to save temp ckpt in tuner ([#96827](https://github.com/PyTorchLightning/pytorch-lightning/pull/9682))
+- Directly call `TrainingTypePlugin` collective APIs instead of going through the Accelerator ([#9677](https://github.com/PyTorchLightning/pytorch-lightning/pull/9677))
+
+
+- Use a unique filename to save temp ckpt in tuner ([#9682](https://github.com/PyTorchLightning/pytorch-lightning/pull/9682))
 
 
 ### Deprecated
@@ -281,6 +284,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Deprecated passing `stochastic_weight_avg` from the `Trainer` constructor in favor of adding the `StochasticWeightAveraging` callback directly to the list of callbacks ([#8989](https://github.com/PyTorchLightning/pytorch-lightning/pull/8989))
+
+
+- Deprecated Accelerator collective API `barrier`, `broadcast`, and `all_gather`, call `TrainingTypePlugin` collective API directly ([#9677](https://github.com/PyTorchLightning/pytorch-lightning/pull/9677))
 
 
 ### Removed

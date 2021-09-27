@@ -830,9 +830,9 @@ def test_deepspeed_plugin_env_variables(mock_deepspeed_distributed, tmpdir, plat
 
 def _assert_save_model_is_equal(model, tmpdir, trainer):
     checkpoint_path = os.path.join(tmpdir, "model.pt")
-    checkpoint_path = trainer.accelerator.broadcast(checkpoint_path)
+    checkpoint_path = trainer.training_type_plugin.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
-    trainer.accelerator.barrier()
+    trainer.training_type_plugin.barrier()
 
     # carry out the check only on rank 0
     if trainer.is_global_zero:
