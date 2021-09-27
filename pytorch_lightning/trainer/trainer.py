@@ -124,7 +124,7 @@ class Trainer(
         checkpoint_callback: bool = True,
         callbacks: Optional[Union[List[Callback], Callback]] = None,
         default_root_dir: Optional[str] = None,
-        gradient_clip_val: float = 0.0,
+        gradient_clip_val: Union[int, float] = 0.0,
         gradient_clip_algorithm: str = "norm",
         process_position: int = 0,
         num_nodes: int = 1,
@@ -375,6 +375,10 @@ class Trainer(
             stochastic_weight_avg: Whether to use `Stochastic Weight Averaging (SWA)
                 <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>`_.
 
+                .. deprecated:: v1.5
+                    ``stochastic_weight_avg`` has been deprecated in v1.5 and will be removed in v1.7.
+                    Please pass :class:`~pytorch_lightning.callbacks.stochastic_weight_avg.StochasticWeightAveraging`
+                    directly to the Trainer's ``callbacks`` argument instead.
         """
         super().__init__()
         Trainer._log_api_event("init")

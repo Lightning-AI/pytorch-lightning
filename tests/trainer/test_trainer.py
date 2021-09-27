@@ -924,6 +924,16 @@ def test_nan_loss_detection(backward_mock, tmpdir):
         assert torch.isfinite(param).all()
 
 
+def test_invalid_terminate_on_nan(tmpdir):
+    with pytest.raises(TypeError, match="`terminate_on_nan` should be a bool"):
+        Trainer(default_root_dir=tmpdir, terminate_on_nan="False")
+
+
+def test_invalid_track_grad_norm(tmpdir):
+    with pytest.raises(MisconfigurationException, match="`track_grad_norm` should be an int, a float"):
+        Trainer(default_root_dir=tmpdir, track_grad_norm="nan")
+
+
 @mock.patch("torch.Tensor.backward")
 def test_nan_params_detection(backward_mock, tmpdir):
     class CurrentModel(BoringModel):
@@ -1068,6 +1078,16 @@ def test_gradient_clipping_by_value(tmpdir, precision):
 
     trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward = backward
     trainer.fit(model)
+
+
+def test_invalid_gradient_clip_value(tmpdir):
+    with pytest.raises(TypeError, match="`gradient_clip_val` should be an int or a float"):
+        Trainer(default_root_dir=tmpdir, gradient_clip_val=(1, 2))
+
+
+def test_invalid_gradient_clip_algo(tmpdir):
+    with pytest.raises(MisconfigurationException, match="`gradient_clip_algorithm` norm2 is invalid"):
+        Trainer(default_root_dir=tmpdir, gradient_clip_algorithm="norm2")
 
 
 def test_gpu_choice(tmpdir):
