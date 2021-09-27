@@ -616,10 +616,9 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
             return out
 
         def training_epoch_end(self, outputs):
-            if val_check_interval == 1.0:
-                metrics = self.trainer.progress_bar_metrics
-                v = 15 if self.current_epoch == 0 else 150
-                assert metrics["batch_idx_epoch"] == (v / 5.0)
+            metrics = self.trainer.progress_bar_metrics
+            v = 15 if self.current_epoch == 0 else 150
+            assert metrics["batch_idx_epoch"] == (v / 5.0)
 
         def validation_step(self, batch, batch_idx, dataloader_idx):
             value = (1 + batch_idx) * (1 + dataloader_idx)
