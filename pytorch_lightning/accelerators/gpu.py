@@ -73,6 +73,12 @@ class GPUAccelerator(Accelerator):
         if _TORCH_GREATER_EQUAL_1_8:
             return torch.cuda.memory_stats(device)
         return _get_nvidia_gpu_stats(device)
+
+    def teardown(self) -> None:
+        super().teardown()
+        self._move_optimizer_state(torch.device("cpu"))
+
+        
 def _get_nvidia_gpu_stats(device: torch.device) -> Dict[str, float]:
     """Get GPU stats including memory, fan speed, and temperature from nvidia-smi.
 
