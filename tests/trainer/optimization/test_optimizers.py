@@ -272,7 +272,6 @@ def test_step_scheduling_for_multiple_optimizers_with_frequency(
             return super().training_step(batch, batch_idx)
 
         def training_epoch_end(self, outputs) -> None:
-            # TODO: add an assertion here, what the heck???
             pass
 
         def configure_optimizers(self):
