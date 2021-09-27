@@ -278,7 +278,7 @@ Finally, we can rewrite the GAN training step using the new yield mechanism:
     def training_step(self, batch, batch_idx):
         real, _ = batch
 
-        # this gets computed in both cases:
+        # this gets computed only once!
         fake = self.generator(noise)
 
         # train discriminator, then yield
