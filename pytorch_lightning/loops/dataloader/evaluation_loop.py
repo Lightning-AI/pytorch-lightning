@@ -213,7 +213,7 @@ class EvaluationLoop(DataLoaderLoop):
         else:
             self.trainer.call_hook("on_validation_end", *args, **kwargs)
 
-        # reset any `torchmetrics.Metric` and the logger connector state
+        # reset the logger connector state
         self.trainer.logger_connector.reset_results()
 
     def _on_evaluation_epoch_start(self, *args: Any, **kwargs: Any) -> None:

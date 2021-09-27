@@ -605,7 +605,7 @@ def test_logging_dict_on_validation_step(tmpdir):
 
 
 @pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
-def test_multiple_dataloader_reset(val_check_interval, tmpdir):
+def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             out = super().training_step(batch, batch_idx)
@@ -618,13 +618,11 @@ def test_multiple_dataloader_reset(val_check_interval, tmpdir):
         def training_epoch_end(self, outputs):
             if val_check_interval == 1.0:
                 metrics = self.trainer.progress_bar_metrics
-                if self.current_epoch == 0:
-                    assert metrics["batch_idx_epoch"] == (15 / 5.0)
-                else:
-                    assert metrics["batch_idx_epoch"] == (150 / 5.0)
+                v = 15 if self.current_epoch == 0 else 150
+                assert metrics["batch_idx_epoch"] == (v / 5.0)
 
         def validation_step(self, batch, batch_idx, dataloader_idx):
-            value = (1 + batch_idx) * (2 if dataloader_idx == 1 else 1)
+            value = (1 + batch_idx) * (1 + dataloader_idx)
             if self.current_epoch != 0:
                 value *= 10
             self.log("val_loss", value, on_step=False, on_epoch=True, prog_bar=True, logger=True)
@@ -638,20 +636,13 @@ def test_multiple_dataloader_reset(val_check_interval, tmpdir):
                 assert sum(outputs[0]) / 5 == 30
                 assert sum(outputs[1]) / 5 == 60
 
-            tot_loss = torch.tensor(0.0)
-            for loss in outputs:
-                tot_loss += sum(loss) / len(loss)
-            tot_loss = tot_loss / len(outputs)
+            tot_loss = torch.mean(torch.tensor(outputs, dtype=torch.float))
             if self.current_epoch == 0:
                 assert tot_loss == (3 + 6) / 2
             else:
                 assert tot_loss == (30 + 60) / 2
-            self.log("tot_val_loss", tot_loss, prog_bar=True, logger=True)
             assert self.trainer._results["validation_step.val_loss.0"].cumulated_batch_size == 5
             assert self.trainer._results["validation_step.val_loss.1"].cumulated_batch_size == 5
-
-        def configure_optimizers(self):
-            return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 
         def val_dataloader(self):
             return [super().val_dataloader(), super().val_dataloader()]
