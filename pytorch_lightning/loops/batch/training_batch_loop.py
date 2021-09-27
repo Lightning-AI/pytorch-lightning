@@ -13,16 +13,15 @@
 # limitations under the License.
 from typing import Any, List, Optional, Tuple, Union
 
-import numpy as np
 from deprecate import void
 from torch import Tensor
-from torch.optim import Optimizer
 
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.optimization.manual_loop import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
 from pytorch_lightning.loops.optimization.manual_loop import ManualOptimization
 from pytorch_lightning.loops.optimization.optimizer_loop import _OUTPUTS_TYPE as _OPTIMIZER_LOOP_OUTPUTS_TYPE
 from pytorch_lightning.loops.optimization.optimizer_loop import OptimizerLoop
+from pytorch_lightning.loops.utilities import _get_active_optimizers
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -44,20 +43,12 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
 
         self._outputs: _OUTPUTS_TYPE = []
         self._warning_cache: WarningCache = WarningCache()
-        self._optimizer_freq_cumsum: Optional[int] = None
         self._remaining_splits: Optional[List[Any]] = None
 
     @property
     def done(self) -> bool:
         """Returns if all batch splits have been processed already."""
         return len(self._remaining_splits) == 0
-
-    @property
-    def optimizer_freq_cumsum(self) -> int:
-        """Returns the cumulated sum of optimizer frequencies."""
-        if self._optimizer_freq_cumsum is None:
-            self._optimizer_freq_cumsum = np.cumsum(self.trainer.optimizer_frequencies)
-        return self._optimizer_freq_cumsum
 
     def connect(
         self, optimizer_loop: Optional["Loop"] = None, manual_loop: Optional[ManualOptimization] = None
@@ -126,7 +117,8 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
 
         # choose which loop will run the optimization
         if self.trainer.lightning_module.automatic_optimization:
-            outputs = self.optimizer_loop.run(split_batch, self.get_active_optimizers(batch_idx), batch_idx)
+            optimizers = _get_active_optimizers(self.trainer.optimizers, self.trainer.optimizer_frequencies, batch_idx)
+            outputs = self.optimizer_loop.run(split_batch, optimizers, batch_idx)
         else:
             outputs = self.manual_loop.run(split_batch, batch_idx)
         if outputs:
@@ -143,10 +135,6 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
     def teardown(self) -> None:
         # release memory
         self._remaining_splits = None
-
-    def num_active_optimizers(self, batch_idx: Optional[int] = None) -> int:
-        """Gets the number of active optimizers based on their frequency."""
-        return len(self.get_active_optimizers(batch_idx))
 
     def _tbptt_split_batch(self, batch: Any) -> List[Any]:
         """Splits a single batch into a list of sequence steps for tbptt.
@@ -177,21 +165,3 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
 
         # reset for next set of accumulated grads
         self.accumulated_loss.reset()
-
-    def get_active_optimizers(self, batch_idx: Optional[int] = None) -> List[Tuple[int, Optimizer]]:
-        """Returns the currently active optimizers. When multiple optimizers are used with different frequencies,
-        only one of the optimizers is active at a time.
-
-        Returns:
-            A list of tuples (opt_idx, optimizer) of currently active optimizers.
-        """
-        if not self.trainer.optimizer_frequencies:
-            # call training_step once per optimizer
-            return list(enumerate(self.trainer.optimizers))
-
-        optimizers_loop_length = self.optimizer_freq_cumsum[-1]
-        current_place_in_loop = batch_idx % optimizers_loop_length
-
-        # find optimizer index by looking for the first {item > current_place} in the cumsum list
-        opt_idx = int(np.argmax(self.optimizer_freq_cumsum > current_place_in_loop))
-        return [(opt_idx, self.trainer.optimizers[opt_idx])]

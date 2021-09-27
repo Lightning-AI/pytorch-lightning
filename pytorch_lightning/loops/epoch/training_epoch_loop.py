@@ -20,7 +20,7 @@ import torch
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.loops.batch.training_batch_loop import _OUTPUTS_TYPE as _BATCH_OUTPUTS_TYPE
-from pytorch_lightning.loops.utilities import _prepare_dataloader_iter
+from pytorch_lightning.loops.utilities import _get_active_optimizers, _prepare_dataloader_iter
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -78,7 +78,10 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         signals to stop (e.g. by early stopping).
         """
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
-        return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached()
+        is_done = max_steps_reached or self._num_training_batches_reached()
+        # when we are restarting we want to check whether the val loop has finished
+        val_loop_done = not self.restarting or self.val_loop.done
+        return (is_done and val_loop_done) or self.trainer.should_stop
 
     def connect(
         self,
@@ -97,8 +100,12 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         assert self.batch_loop.optimizer_loop is not None
         if self.restarting:
             self.batch_progress.reset_on_restart()
-            self.scheduler_progress.current.reset_on_restart()
+            self.scheduler_progress.reset_on_restart()
             self.batch_loop.optimizer_loop.optim_progress.reset_on_restart()
+        else:
+            self.batch_progress.reset_on_run()
+            self.scheduler_progress.reset_on_run()
+            self.batch_loop.optimizer_loop.optim_progress.reset_on_run()
 
         self._outputs = []
         if not self.restarting or self._num_training_batches_reached():
@@ -126,6 +133,10 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         Raises:
             StopIteration: When the epoch is canceled by the user returning -1
         """
+        if self.restarting and self._should_check_val_fx(self.batch_idx, self.batch_progress.is_last_batch):
+            # skip training and run validation in `on_advance_end`
+            return
+
         batch_idx, (batch, is_last) = next(self.dataloader_iter)
         self.batch_progress.is_last_batch = is_last
 
@@ -350,10 +361,13 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         """updates the lr schedulers based on the given interval."""
         if interval == "step" and self._should_accumulate():
             return
+        active_optimizers = _get_active_optimizers(
+            self.trainer.optimizers, self.trainer.optimizer_frequencies, self.total_batch_idx
+        )
         self.trainer.optimizer_connector.update_learning_rates(
             interval=interval,
             update_plateau_schedulers=update_plateau_schedulers,
-            opt_indices=[opt_idx for opt_idx, _ in self.batch_loop.get_active_optimizers(self.total_batch_idx)],
+            opt_indices=[opt_idx for opt_idx, _ in active_optimizers],
         )
 
     def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:
@@ -387,6 +401,10 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
+
+    def _num_active_optimizers(self, batch_idx: Optional[int] = None) -> int:
+        """Gets the number of active optimizers based on their frequency."""
+        return len(_get_active_optimizers(self.trainer.optimizers, self.trainer.optimizer_frequencies, batch_idx))
 
 
 def _convert_optim_dict(outs: Dict[int, Dict[str, Any]], num_optimizers: int) -> List[Dict[str, Any]]:

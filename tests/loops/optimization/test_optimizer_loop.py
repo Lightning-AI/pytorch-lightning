@@ -124,7 +124,7 @@ def test_optimizer_frequencies(tmpdir, frequencies, expected):
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=10,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
     trainer.fit(model)
 
