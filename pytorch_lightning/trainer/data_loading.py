@@ -304,10 +304,9 @@ class TrainerDataLoadingMixin(ABC):
         shuffle: bool,
         overfit_batches: Union[int, float],
         mode: Optional[RunningStage] = None,
-        **distributed_sampler_kwargs,
+        **kwargs: Any,
     ) -> DistributedSampler:
         """This function is used to created the distributed sampler injected within the user DataLoader."""
-        kwargs = distributed_sampler_kwargs
         kwargs["shuffle"] = shuffle and not overfit_batches
         kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
         cls = UnrepeatedDistributedSampler if mode == RunningStage.PREDICTING else DistributedSampler
