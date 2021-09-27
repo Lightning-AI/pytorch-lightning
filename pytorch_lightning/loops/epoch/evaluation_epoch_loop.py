@@ -132,6 +132,9 @@ class EvaluationEpochLoop(Loop):
             if output is not None:
                 self.outputs.append(output)
 
+        # if fault tolerant is enabled and process has been notified, exit.
+        self.trainer.should_exit_gracefully()
+
     def on_run_end(self) -> EPOCH_OUTPUT:
         """Returns the outputs of the whole run."""
         outputs = self.outputs

@@ -87,7 +87,7 @@ from pytorch_lightning.utilities.argparse import (
 )
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
@@ -2003,6 +2003,10 @@ class Trainer(
         active_loop = self._active_loop
         if active_loop is not None:
             return active_loop._results
+
+    def should_exit_gracefully(self) -> bool:
+        if _fault_tolerant_training() and self._terminate_gracefully:
+            raise ExitGracefullyException
 
     """
     Other

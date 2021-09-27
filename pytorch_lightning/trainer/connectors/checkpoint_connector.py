@@ -41,11 +41,14 @@ class CheckpointConnector:
         self._loaded_checkpoint: Dict[str, Any] = {}
 
     @property
-    def hpc_resume_path(self) -> Optional[str]:
+    def auto_restart_path(self) -> Optional[str]:
         dir_path_hpc = str(self.trainer.weights_save_path)
         max_version = self.max_ckpt_version_in_folder(dir_path_hpc, "hpc_ckpt_")
         if max_version is not None:
             return os.path.join(dir_path_hpc, f"hpc_ckpt_{max_version}.ckpt")
+        if ".pl_auto_save.ckpt" in os.listdir(dir_path_hpc):
+            auto_save_checkpoint = os.path.join(dir_path_hpc, ".pl_auto_save.ckpt")
+            return auto_save_checkpoint
 
     def resume_start(self) -> None:
         """Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
@@ -57,7 +60,7 @@ class CheckpointConnector:
         Raises:
             FileNotFoundError: If the path to the checkpoint file is provided but the file does not exist.
         """
-        self.resume_checkpoint_path = self.hpc_resume_path or self.resume_checkpoint_path
+        self.resume_checkpoint_path = self.auto_restart_path or self.resume_checkpoint_path
         checkpoint_path = self.resume_checkpoint_path
         if not checkpoint_path:
             return
@@ -142,7 +145,7 @@ class CheckpointConnector:
         model.on_load_checkpoint(self._loaded_checkpoint)
 
         # call hpc specific hook
-        if self.hpc_resume_path is not None:
+        if self.auto_restart_path is not None:
             model.on_hpc_load(self._loaded_checkpoint)
 
         # restore model state_dict

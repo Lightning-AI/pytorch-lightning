@@ -19,3 +19,7 @@ class MisconfigurationException(Exception):
 
 class DeadlockDetectedException(Exception):
     """Exception used when a deadlock has been detected and processes are being killed."""
+
+
+class ExitGracefullyException(Exception):
+    """Exception used when a SIGUSR1 was sent the processes and received by Lightning."""

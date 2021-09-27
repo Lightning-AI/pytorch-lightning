@@ -197,6 +197,9 @@ class TrainingEpochLoop(loops.Loop):
             # progress global step according to grads progress
             self.global_step += 1
 
+        # if fault tolerant is enabled and process has been notified, exit.
+        self.trainer.should_exit_gracefully()
+
     def on_run_end(self) -> None:
         """Calls the on_epoch_end hook.
 
