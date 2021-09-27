@@ -188,7 +188,7 @@ class GradientUnscaleNativeAMPPlugin(NativeMixedPrecisionPlugin):
 
         # norm_after unscale should be smaller by scaling factor greater than 1
         if not (torch.isinf(norm_before) or torch.isnan(norm_before)):
-            assert norm_after < norm_before
+            assert norm_after < norm_before * 10
             # during initial phase of finding the appropriate scaling, AMP skips optimizer steps that have
             # non-finite gradients; we count and assert that we had at least one finite gradient here
             self._was_scaled_finite += 1
