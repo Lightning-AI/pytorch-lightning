@@ -119,3 +119,25 @@ def test_prepare_outputs_training_batch_end_automatic(num_optimizers, batch_end_
         num_optimizers=num_optimizers,
     )
     assert prepared == expected
+
+
+@pytest.mark.parametrize(
+    "batch_end_outputs,expected",
+    [
+        ([], []),
+        ([[]], []),
+        # skipped outputs
+        ([_out00, None, _out02], [_out00, _out02]),
+        # tbptt with 3 splits, skipped output
+        ([_out00, _out01, None, _out03], [_out00, _out01, _out03]),
+    ],
+)
+def test_prepare_outputs_training_batch_end_manual(batch_end_outputs, expected):
+    """Test that the loop converts the nested lists of outputs to the format that the `on_train_batch_end` hook
+    currently expects in the case of manual optimization."""
+    prepared = TrainingEpochLoop._prepare_outputs_training_batch_end(
+        batch_end_outputs,
+        automatic=False,
+        num_optimizers=-1,  # does not matter for manual optimization
+    )
+    assert prepared == expected
