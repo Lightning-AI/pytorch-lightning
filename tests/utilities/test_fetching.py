@@ -394,11 +394,9 @@ def test_tbptt_split_batch_overridden(tmpdir) -> None:
         trainer.fit(m)
 
 
-@RunIf(min_gpus=1)
 def test_transfer_hooks_with_unpacking(tmpdir):
 
-    """This test asserts the `transfer_batch` hooks are called only once per batch and data are properly moved to
-    gpu."""
+    """This test asserts the `transfer_batch` hooks are called only once per batch."""
 
     class RandomDictDataset(RandomDataset):
         def __getitem__(self, index):
@@ -430,16 +428,12 @@ def test_transfer_hooks_with_unpacking(tmpdir):
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
-            x, y_true = batch
-            output = self.layer(x)
-            loss = self.loss(y_true, output)
-            return {"loss": loss}
+            x, _ = batch
+            return super().training_step(x, batch_idx)
 
         def validation_step(self, batch, batch_idx):
-            x, y_true = batch
-            output = self.layer(x)
-            loss = self.loss(y_true, output)
-            return {"x": loss}
+            x, _ = batch
+            return super().validation_step(x, batch_idx)
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, num_sanity_val_steps=0, gpus=1)
     dm = BoringDataModule()
