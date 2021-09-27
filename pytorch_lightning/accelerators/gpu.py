@@ -59,9 +59,12 @@ class GPUAccelerator(Accelerator):
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """Gets stats for the given GPU device.
-        
+
+        Args:
+            device: GPU device for which to get stats
+
         Returns:
-        A dictionary mapping the metrics to their values.
+            A dictionary mapping the metrics to their values.
 
         Raises:
             FileNotFoundError:
@@ -69,16 +72,12 @@ class GPUAccelerator(Accelerator):
         """
         if _TORCH_GREATER_EQUAL_1_8:
             return torch.cuda.memory_stats(device)
-        else:
-            return _get_nvidia_gpu_stats(device)
-
-    def teardown(self) -> None:
-        super().teardown()
-        self._move_optimizer_state(torch.device("cpu"))
-
-
+        return _get_nvidia_gpu_stats(device)
 def _get_nvidia_gpu_stats(device: torch.device) -> Dict[str, float]:
     """Get GPU stats including memory, fan speed, and temperature from nvidia-smi.
+
+    Args:
+        device: GPU device for which to get stats
 
     Returns:
         A dictionary mapping the metrics to their values.
@@ -126,7 +125,7 @@ def _get_nvidia_gpu_stats(device: torch.device) -> Dict[str, float]:
     return gpu_stats
 
 
-def _get_gpu_id(device_id: int) -> List[str]:
+def _get_gpu_id(device_id: int) -> str:
     """Get the unmasked real GPU IDs."""
     # All devices if `CUDA_VISIBLE_DEVICES` unset
     default = ",".join(str(i) for i in range(torch.cuda.device_count()))

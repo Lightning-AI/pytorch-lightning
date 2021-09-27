@@ -49,19 +49,21 @@ def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
 
 
 class TestFSDPModel(BoringModel):
-    def setup(self, stage: str) -> None:
-        if stage != "fit":
-            # when running stages like test, validate, and predict, we will skip setting up,
-            # will directly use the module itself unless we load from checkpoint
-            return
-        # resetting call_configure_sharded_model_hook attribute so that we could call
-        # configure sharded model
-        self.call_configure_sharded_model_hook = False
-        # for loading full state dict, we first need to create a new unwrapped model
-        # to load state dict and then wrapping
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.layer: Optional[torch.nn.Module] = None
+
+    def _init_model(self) -> None:
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
 
+    def setup(self, stage: str) -> None:
+        if self.layer is None:
+            self._init_model()
+
     def configure_sharded_model(self) -> None:
+        # the model is already wrapped with FSDP: no need to wrap again!
+        if isinstance(self.layer, FullyShardedDataParallel):
+            return
         for i, layer in enumerate(self.layer):
             if i % 2 == 0:
                 self.layer[i] = wrap(layer)
@@ -69,7 +71,7 @@ class TestFSDPModel(BoringModel):
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         # when loading full state dict, we first need to create a new unwrapped model
-        self.setup("fit")
+        self._init_model()
 
     def configure_optimizers(self):
         return torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -131,13 +133,8 @@ def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
 def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
     trainer.fit(model)
 
-    model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
-    trainer_accelerator_call_configure_sharded_model_hook = trainer.accelerator.call_configure_sharded_model_hook
-
     model_path = model_path if model_path else trainer.checkpoint_callback.last_model_path
 
-    assert model_call_configure_sharded_model_hook
-    assert not trainer_accelerator_call_configure_sharded_model_hook
     trainer.save_checkpoint(model_path, weights_only=True)
 
     _assert_save_equality(trainer, model_path, cls=TestFSDPModel)

@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.6.0."""
+from unittest.mock import call, Mock
+
 import pytest
 
 from pytorch_lightning import Trainer
@@ -89,8 +91,16 @@ def test_v1_6_0_ddp_spawn_sync_batchnorm():
 
 
 def test_v1_6_0_reload_dataloaders_every_epoch(tmpdir):
-
     model = BoringModel()
+
+    tracker = Mock()
+    model.train_dataloader = Mock(wraps=model.train_dataloader)
+    model.val_dataloader = Mock(wraps=model.val_dataloader)
+    model.test_dataloader = Mock(wraps=model.test_dataloader)
+
+    tracker.attach_mock(model.train_dataloader, "train_dataloader")
+    tracker.attach_mock(model.val_dataloader, "val_dataloader")
+    tracker.attach_mock(model.test_dataloader, "test_dataloader")
 
     with pytest.deprecated_call(match="`reload_dataloaders_every_epoch` is deprecated in v1.4 and will be removed"):
         trainer = Trainer(
@@ -103,11 +113,10 @@ def test_v1_6_0_reload_dataloaders_every_epoch(tmpdir):
     trainer.fit(model)
     trainer.test()
 
-    # verify the sequence
-    calls = trainer.dev_debugger.dataloader_sequence_calls
-    expected_sequence = ["val_dataloader"] + ["train_dataloader", "val_dataloader"] * 3 + ["test_dataloader"]
-    for call, expected in zip(calls, expected_sequence):
-        assert call["name"] == expected
+    expected_sequence = (
+        [call.val_dataloader()] + [call.train_dataloader(), call.val_dataloader()] * 3 + [call.test_dataloader()]
+    )
+    assert tracker.mock_calls == expected_sequence
 
 
 def test_v1_6_0_tbptt_reduce_fx(tmpdir):

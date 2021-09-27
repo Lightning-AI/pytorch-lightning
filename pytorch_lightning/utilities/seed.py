@@ -46,13 +46,19 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
     max_seed_value = np.iinfo(np.uint32).max
     min_seed_value = np.iinfo(np.uint32).min
 
-    try:
-        if seed is None:
-            seed = os.environ.get("PL_GLOBAL_SEED")
+    if seed is None:
+        env_seed = os.environ.get("PL_GLOBAL_SEED")
+        if env_seed is None:
+            seed = _select_seed_randomly(min_seed_value, max_seed_value)
+            rank_zero_warn(f"No seed found, seed set to {seed}")
+        else:
+            try:
+                seed = int(env_seed)
+            except ValueError:
+                seed = _select_seed_randomly(min_seed_value, max_seed_value)
+                rank_zero_warn(f"Invalid seed found: {repr(env_seed)}, seed set to {seed}")
+    elif not isinstance(seed, int):
         seed = int(seed)
-    except (TypeError, ValueError):
-        seed = _select_seed_randomly(min_seed_value, max_seed_value)
-        rank_zero_warn(f"No correct seed found, seed set to {seed}")
 
     if not (min_seed_value <= seed <= max_seed_value):
         rank_zero_warn(f"{seed} is not in bounds, numpy accepts from {min_seed_value} to {max_seed_value}")
@@ -87,7 +93,7 @@ def reset_seed() -> None:
         seed_everything(int(seed), workers=bool(workers))
 
 
-def pl_worker_init_function(worker_id: int, rank: Optional = None) -> None:  # pragma: no cover
+def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:  # pragma: no cover
     """The worker_init_fn that Lightning automatically adds to your dataloader if you previously set set the seed
     with ``seed_everything(seed, workers=True)``.
 

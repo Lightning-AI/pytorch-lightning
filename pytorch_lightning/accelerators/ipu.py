@@ -25,6 +25,11 @@ class IPUAccelerator(Accelerator):
     """Accelerator for IPUs."""
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
+        """
+        Raises:
+            MisconfigurationException:
+                If multiple optimizers are provided.
+        """
         super().setup_optimizers(trainer)
 
         if len(self.optimizers) > 1:

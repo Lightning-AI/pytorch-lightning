@@ -361,7 +361,7 @@ def test_can_return_tensor_with_more_than_one_element(tmpdir):
             assert all(torch.equal(d["test"], torch.tensor([0, 1])) for d in outputs)  # check values
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2, progress_bar_refresh_rate=0)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2, enable_progress_bar=False)
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)
@@ -510,7 +510,7 @@ def test_metrics_reset(tmpdir):
         limit_val_batches=2,
         limit_test_batches=2,
         max_epochs=1,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         num_sanity_val_steps=2,
         checkpoint_callback=False,
     )
