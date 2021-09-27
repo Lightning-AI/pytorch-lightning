@@ -92,7 +92,8 @@ def test_rich_progress_bar_import_error():
 
 
 @RunIf(rich=True)
-def test_rich_progress_bar_custom_theme(tmpdir):
+@mock.patch("pytorch_lightning.callbacks.progress.rich_progress.Progress")
+def test_rich_progress_bar_custom_theme(mock_progress, tmpdir):
     """Test to ensure that custom theme styles are used."""
     with mock.patch.multiple(
         "pytorch_lightning.callbacks.progress.rich_progress",
@@ -143,6 +144,7 @@ def test_rich_progress_bar_keyboard_interrupt(tmpdir):
 
         trainer.fit(model)
     mock_progress_stop.assert_called_once()
+    trainer.progress_bar_callback.teardown(trainer, model)
 
 
 @RunIf(rich=True)
