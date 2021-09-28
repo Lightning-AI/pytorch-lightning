@@ -3,7 +3,9 @@
 Loops
 =====
 
-Loop customization is an experimental feature introduced in Lightning 1.5 that enables users to swap the built-in Lightning loops with custom ones, providing a unprecedented level of flexibility.
+The Lightning Trainer automates the optimization loop to save you from writing boilerplate. Need more control over the optimization scheme to try different training paradigms such as recommendation engine optimization or active learning? You can now customize the built-in Lightning training loop, providing an unprecedented level of flexibility.
+
+With customized loops, you can not only customize Lightning down to its very core, but also build new functionalities on top of it.
 Until now, Lightning did not support well some training paradigms like recommendation engine optimization or active learning.
 The loop customization feature will not only enable researchers to customize Lightning down to its very core, but also allow one to build new functionalities on top of it.
 
@@ -11,7 +13,7 @@ The loop customization feature will not only enable researchers to customize Lig
     :alt: Animation showing how to convert a standard training loop to a Lightning loop
 
 
-The training loop in Lightning
+The Built-in Training Loop
 ------------------------------
 
 Every PyTorch user is familiar with the basic training loop for gradient descent optimization:
@@ -37,7 +39,7 @@ It implements the same loop as shown above except that the research code stays i
         loss.backward()
         optimizer.step()
 
-What remains in the Trainer is the loop, :code:`zero_grad()`, :code:`backward()` and :code:`optimizer.step()` calls.
+The other operations are automated by the Lightning Trainer: :code:`zero_grad()`, :code:`backward()` and :code:`optimizer.step()` calls.
 These are considered *boilerplate* and get automated by Lightning.
 
 This optimization scheme is very general and applies to the vast majority of deep learning research today.
@@ -67,10 +69,10 @@ Here is how the above training loop can be defined using the new Loop API:
 
 Defining a loop with a class interface instead of hard-coding a raw Python for/while loop has several benefits:
 
-1. you can have full control over the data flow through loops
-2. you can add new loops and nest as many of them as they want
-3. if needed, the state of a loop can be saved and resumed
-4. new hooks can be injected at any point
+1. You can have full control over the data flow through loops
+2. You can add new loops and nest as many of them as you want
+3. If needed, the state of a loop can be saved and resumed
+4. New hooks can be injected at any point
 
 Which loops does Lightning have and how can they be changed?
 ------------------------------------------------------------
@@ -105,9 +107,9 @@ The Trainer has four entry points for training, testing and inference, and each 
 When the user calls :code:`Trainer.<entry-point>`, it redirects to the corresponding :code:`Trainer.loop.run()` which implements the main logic of that particular Lightning loop.
 The :meth:`~pytorch_lightning.loops.base.Loop.run` method is part of the base :class:`~pytorch_lightning.loops.base.Loop` class that every loop inherits from (like every model inherits from LightningModule).
 
-Adding a custom loop for any of these entry points is straightforward.
+Customizing any of these entry point loops is simple:
 
-**Step 1:** Subclass one of the above loop classes.
+**Step 1:** Subclass one of the above loop classes (or inherit `Loop` to start from scratch)
 
 .. code-block:: python
 
@@ -146,7 +148,7 @@ Practical example: the training step as a generator
 ---------------------------------------------------
 
 Lightning supports multiple optimizers and offers a special :code:`training_step` flavor for it, where an extra argument with the current optimizer being used is passed in.
-Take as an example the following training step of a DCGAN from the Lightning Bolts repository:
+Take as an example the following training step of a DCGAN from the `Lightning Bolts <https://github.com/PyTorchLightning/lightning-bolts/>`_ repository:
 
 .. code-block:: python
 
@@ -380,3 +382,5 @@ To run the following demo, install Flash and `BaaL <https://github.com/ElementAI
 
     # 5. Save the model!
     trainer.save_checkpoint("image_classification_model.pt")
+    
+Here is the `runnable example <https://github.com/PyTorchLightning/lightning-flash/blob/master/flash_examples/integrations/baal/image_classification_active_learning.py>`_ and the`code for the active learning loop <https://github.com/PyTorchLightning/lightning-flash/blob/master/flash/image/classification/integrations/baal/loop.py#L31>`_.  
