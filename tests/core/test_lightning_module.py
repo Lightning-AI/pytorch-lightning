@@ -335,3 +335,34 @@ def test_sharded_tensor_state_dict(tmpdir, single_process_pg):
     assert torch.allclose(
         m_1.sharded_tensor.local_shards()[0].tensor, m_0.sharded_tensor.local_shards()[0].tensor
     ), "Expect the shards to be same after `m_1` loading `m_0`'s state dict"
+
+
+def test_lightning_module_configure_gradient_clipping(tmpdir):
+    class TestModel(BoringModel):
+
+        has_validated_gradients = False
+        custom_gradient_clip_val = 1e-2
+
+        def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
+            assert gradient_clip_val == self.trainer.gradient_clip_val
+            assert gradient_clip_algorithm == self.trainer.gradient_clip_algorithm
+
+            for pg in optimizer.param_groups:
+                for p in pg["params"]:
+                    p.grad[p.grad > self.custom_gradient_clip_val] = self.custom_gradient_clip_val
+                    p.grad[p.grad <= 0] = 0
+
+        def on_before_optimizer_step(self, optimizer, optimizer_idx):
+            for pg in optimizer.param_groups:
+                for p in pg["params"]:
+                    if p.grad is not None and p.grad.abs().sum() > 0:
+                        self.has_validated_gradients = True
+                        assert p.grad.min() >= 0
+                        assert p.grad.max() <= self.custom_gradient_clip_val
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, limit_val_batches=0, gradient_clip_val=1e-4
+    )
+    trainer.fit(model)
+    assert model.has_validated_gradients
