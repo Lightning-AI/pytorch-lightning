@@ -71,6 +71,8 @@ class FastForwardSampler(Sampler):
 
     def __iter__(self) -> Iterator[Any]:
         self.sampler_iter = iter(self._sampler)
+        self._current_iteration = 0
+        self._counter = 0
         return self
 
     def __next__(self):
