@@ -102,7 +102,7 @@ def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):
     test_model = TestModel()
     with pytest.deprecated_call(match=r"`LightningModule.get_progress_bar_dict` method was deprecated in v1.5"):
         trainer.fit(test_model)
-    standard_metrics_postfix = trainer.progress_bar_callback.main_progress_bar.postfix
+    standard_metrics_postfix = trainer.progress_bar_callback.get_metrics(trainer, test_model)
     assert "loss" in standard_metrics_postfix
     assert "v_num" not in standard_metrics_postfix
 

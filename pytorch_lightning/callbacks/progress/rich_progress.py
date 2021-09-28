@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import math
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Optional, Union
@@ -36,7 +37,7 @@ if _RICH_AVAILABLE:
                 total=max(0, task.total),
                 completed=max(0, task.completed),
                 width=None if self.bar_width is None else max(1, self.bar_width),
-                pulse=not task.started or task.remaining == float("inf"),
+                pulse=not task.started or math.isfinite(task.remaining),
                 animation_time=task.get_time(),
                 style=self.style,
                 complete_style=self.complete_style,
@@ -67,7 +68,7 @@ if _RICH_AVAILABLE:
             visible: bool = True,
             **fields: Any,
         ) -> TaskID:
-            if total == float("inf"):
+            if not math.isfinite(total):
                 task = CustomInfiniteTask(
                     self._task_index,
                     description,
