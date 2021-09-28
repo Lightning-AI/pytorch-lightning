@@ -24,7 +24,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import DataParallelPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
+from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
 from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
@@ -41,6 +41,7 @@ class Accelerator:
     - CPU
     - GPU
     - TPU
+    - IPU
 
     Each Accelerator gets two plugins upon initialization:
     One to handle differences from the training routine and one to handle different precisions.
@@ -338,20 +339,41 @@ class Accelerator:
         return self.training_type_plugin.lightning_module_state_dict()
 
     def barrier(self, name: Optional[str] = None) -> None:
+        """
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.6.
+            Please call ``training_type_plugin.barrier`` directly.
+        """
+        rank_zero_deprecation(
+            "`Accelerator.barrier` is deprecated in v1.5 and will be removed in v1.6. "
+            "Barrier logic is implemented directly in the `TrainingTypePlugin` implementations."
+        )
         self.training_type_plugin.barrier(name=name)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         """Broadcasts an object to all processes, such that the src object is broadcast to all other ranks if
         needed.
 
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.6.
+            Please call ``training_type_plugin.broadcast`` directly.
+
         Args:
             obj: Object to broadcast to all process, usually a tensor or collection of tensors.
             src: The source rank of which the object will be broadcast from
         """
+        rank_zero_deprecation(
+            "`Accelerator.broadcast` is deprecated in v1.5 and will be removed in v1.6. "
+            "Broadcast logic is implemented directly in the `TrainingTypePlugin` implementations."
+        )
         return self.training_type_plugin.broadcast(obj, src)
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Function to gather a tensor from several distributed processes.
+
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.6.
+            Please call ``training_type_plugin.all_gather`` directly.
 
         Args:
             tensor: tensor of shape (batch, ...)
@@ -361,6 +383,10 @@ class Accelerator:
         Return:
             A tensor of shape (world_size, batch, ...)
         """
+        rank_zero_deprecation(
+            "`Accelerator.all_gather` is deprecated in v1.5 and will be removed in v1.6. "
+            "All-gather logic is implemented directly in the `TrainingTypePlugin` implementations."
+        )
         return self.training_type_plugin.all_gather(tensor, group=group, sync_grads=sync_grads)
 
     def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
@@ -402,20 +428,6 @@ class Accelerator:
         self.training_type_plugin.save_checkpoint(checkpoint, filepath)
 
     @property
-    def call_configure_sharded_model_hook(self) -> bool:
-        """Allow model parallel hook to be called in suitable environments determined by the training type plugin.
-        This is useful for when we want to shard the model once within fit.
-
-        Returns:
-            True if we want to call the model parallel setup hook.
-        """
-        return self.training_type_plugin.call_configure_sharded_model_hook
-
-    @call_configure_sharded_model_hook.setter
-    def call_configure_sharded_model_hook(self, mode: bool) -> None:
-        self.training_type_plugin.call_configure_sharded_model_hook = mode
-
-    @property
     def setup_optimizers_in_pre_dispatch(self) -> bool:
         """Override to delay setting optimizers and schedulers till after dispatch. This is useful when the
         `TrainingTypePlugin` requires operating on the wrapped accelerator model. However this may break certain
@@ -435,6 +447,17 @@ class Accelerator:
             If true, restore checkpoint after pre_dispatch.
         """
         return self.training_type_plugin.restore_checkpoint_after_pre_dispatch
+
+    def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
+        """Gets stats for a given device.
+
+        Args:
+            device: device for which to get stats
+
+        Returns:
+            Dictionary of device stats
+        """
+        raise NotImplementedError
 
     def on_train_start(self) -> None:
         """Called when train begins."""
