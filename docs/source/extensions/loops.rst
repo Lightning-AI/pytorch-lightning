@@ -50,7 +50,6 @@ Here is how the above training loop can be defined using the new Loop API:
 .. code-block:: python
 
     class EpochLoop(Loop):
-
         def advance(self):
             i, batch = next(self.iterator)
             loss = lightning_module.training_step(batch, i)
@@ -228,12 +227,8 @@ But such a mechanism does not exist in Lightning, therefore we need to build a c
             training_step_output = next(generator)
 
             self.trainer.accelerator.post_training_step()
-            training_step_output = self.trainer.call_hook(
-                "training_step_end", training_step_output
-            )
-            result = ClosureResult.from_training_step_output(
-                training_step_output, self.trainer.accumulate_grad_batches
-            )
+            training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
+            result = ClosureResult.from_training_step_output(training_step_output, self.trainer.accumulate_grad_batches)
             return result
 
 
