@@ -20,7 +20,7 @@ import torch
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.loops.batch.training_batch_loop import _OUTPUTS_TYPE as _BATCH_OUTPUTS_TYPE
-from pytorch_lightning.loops.utilities import _get_active_optimizers, _prepare_dataloader_iter
+from pytorch_lightning.loops.utilities import _get_active_optimizers, _update_dataloader_iter
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -116,7 +116,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.trainer.call_hook("on_train_epoch_start")
         self.trainer.fit_loop.epoch_progress.increment_started()
 
-        self.dataloader_iter = _prepare_dataloader_iter(dataloader_iter, self.batch_idx + 1)
+        self.dataloader_iter = _update_dataloader_iter(dataloader_iter, self.batch_idx + 1)
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Runs a single training batch.

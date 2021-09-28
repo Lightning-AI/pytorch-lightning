@@ -17,9 +17,11 @@ from unittest.mock import call, Mock, patch
 import numpy
 import pytest
 import torch
+from torch.utils.data import RandomSampler
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset, IterableDataset, Subset
 from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data.sampler import SequentialSampler
 
 import tests.helpers.pipelines as tpipes
 from pytorch_lightning import Callback, seed_everything, Trainer
@@ -1501,3 +1503,24 @@ def test_request_dataloader(tmpdir):
     assert model.on_train_batch_start_called
     assert model.on_val_dataloader_called
     assert model.on_val_batch_start_called
+
+
+@pytest.mark.parametrize("num_loaders", [1, 2])
+def test_multiple_dataloaders_with_random_sampler_overfit_batches(num_loaders, tmpdir):
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            for idx in range(num_loaders):
+                assert isinstance(self.trainer.train_dataloader.loaders[idx].loader.sampler, SequentialSampler)
+            return super().training_step(batch[0], batch_idx)
+
+        def _create_dataloader(self):
+            ds = RandomDataset(32, 64)
+            return DataLoader(ds, sampler=RandomSampler(ds))
+
+        def train_dataloader(self):
+            return [self._create_dataloader() for _ in range(num_loaders)]
+
+        validation_step = None
+
+    trainer = Trainer(default_root_dir=tmpdir, overfit_batches=1.0, max_epochs=1)
+    trainer.fit(TestModel())
