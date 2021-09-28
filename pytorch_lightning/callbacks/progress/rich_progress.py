@@ -13,7 +13,7 @@
 # limitations under the License.
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
 from pytorch_lightning.utilities import _RICH_AVAILABLE
@@ -21,9 +21,75 @@ from pytorch_lightning.utilities import _RICH_AVAILABLE
 Task, Style = None, None
 if _RICH_AVAILABLE:
     from rich.console import Console, RenderableType
-    from rich.progress import BarColumn, Progress, ProgressColumn, Task, TextColumn
+    from rich.progress import BarColumn, Progress, ProgressColumn, Task, TaskID, TextColumn
+    from rich.progress_bar import ProgressBar
     from rich.style import Style
     from rich.text import Text
+
+    class CustomBarColumn(BarColumn):
+        """Overrides ``BarColumn`` to provide support for dataloaders that do not define a size (infinite size)
+        such as ``IterableDatasets``."""
+
+        def render(self, task: "Task") -> ProgressBar:
+            """Gets a progress bar widget for a task."""
+            return ProgressBar(
+                total=max(0, task.total),
+                completed=max(0, task.completed),
+                width=None if self.bar_width is None else max(1, self.bar_width),
+                pulse=not task.started or task.remaining == float("inf"),
+                animation_time=task.get_time(),
+                style=self.style,
+                complete_style=self.complete_style,
+                finished_style=self.finished_style,
+                pulse_style=self.pulse_style,
+            )
+
+    @dataclass
+    class CustomInfiniteTask(Task):
+        """Overrides ``Task`` to define an infinite task.
+
+        This is useful for datasets that do not define a size (infinite size) such as ``IterableDatasets``.
+        """
+
+        @property
+        def time_remaining(self) -> Optional[float]:
+            return None
+
+    class CustomProgress(Progress):
+        """Overrides ``Progress`` to support adding tasks that have an infinite total size."""
+
+        def add_task(
+            self,
+            description: str,
+            start: bool = True,
+            total: float = 100.0,
+            completed: int = 0,
+            visible: bool = True,
+            **fields: Any,
+        ) -> TaskID:
+            if total == float("inf"):
+                task = CustomInfiniteTask(
+                    self._task_index,
+                    description,
+                    total,
+                    completed,
+                    visible=visible,
+                    fields=fields,
+                    _get_time=self.get_time,
+                    _lock=self._lock,
+                )
+                return self.add_custom_task(task)
+            return super().add_task(description, start, total, completed, visible, **fields)
+
+        def add_custom_task(self, task: CustomInfiniteTask, start: bool = True):
+            with self._lock:
+                self._tasks[self._task_index] = task
+                if start:
+                    self.start_task(self._task_index)
+                new_task_index = self._task_index
+                self._task_index = TaskID(int(self._task_index) + 1)
+            self.refresh()
+            return new_task_index
 
     class CustomTimeColumn(ProgressColumn):
 
@@ -101,6 +167,7 @@ class RichProgressBarTheme:
     text_color: str = "white"
     progress_bar_complete: Union[str, Style] = "#6206E0"
     progress_bar_finished: Union[str, Style] = "#6206E0"
+    progress_bar_pulse: Union[str, Style] = "#6206E0"
     batch_process: str = "white"
     time: str = "grey54"
     processing_speed: str = "grey70"
@@ -193,10 +260,12 @@ class RichProgressBar(ProgressBarBase):
         if self.progress is None or self._progress_stopped:
             self._reset_progress_bar_ids()
             self._console.clear_live()
-            self.progress = Progress(
+            self.progress = CustomProgress(
                 TextColumn("[progress.description]{task.description}"),
-                BarColumn(
-                    complete_style=self.theme.progress_bar_complete, finished_style=self.theme.progress_bar_finished
+                CustomBarColumn(
+                    complete_style=self.theme.progress_bar_complete,
+                    finished_style=self.theme.progress_bar_finished,
+                    pulse_style=self.theme.progress_bar_pulse,
                 ),
                 BatchesProcessedColumn(style=self.theme.batch_process),
                 CustomTimeColumn(style=self.theme.time),
@@ -258,18 +327,9 @@ class RichProgressBar(ProgressBarBase):
         total_batches = total_train_batches + total_val_batches
 
         train_description = self._get_train_description(trainer.current_epoch)
-        self.main_progress_bar_id = self._add_task(total_batches, train_description)
-
-    def _add_task(self, total_batches: int, description: str) -> Optional[int]:
-        if self.progress is not None:
-            return self.progress.add_task(
-                f"[{self.theme.text_color}]{description}",
-                total=total_batches,
-            )
-
-    def _update(self, progress_bar_id: int, visible: bool = True) -> None:
-        if self.progress is not None:
-            self.progress.update(progress_bar_id, advance=1.0, visible=visible)
+        if self.main_progress_bar_id is None:
+            self.main_progress_bar_id = self._add_task(total_batches, train_description)
+        self.progress.reset(self.main_progress_bar_id, total=total_batches, description=train_description)
 
     def on_validation_epoch_start(self, trainer, pl_module):
         super().on_validation_epoch_start(trainer, pl_module)
@@ -279,7 +339,17 @@ class RichProgressBar(ProgressBarBase):
                 # val can be checked multiple times per epoch
                 val_checks_per_epoch = self.total_train_batches // trainer.val_check_batch
                 total_val_batches = self.total_val_batches * val_checks_per_epoch
-            self.val_progress_bar_id = self._add_task(total_val_batches, self.validation_description)
+            self.val_progress_bar_id = self._add_task(total_val_batches, self.validation_description, visible=False)
+
+    def _add_task(self, total_batches: int, description: str, visible: bool = True) -> Optional[int]:
+        if self.progress is not None:
+            return self.progress.add_task(
+                f"[{self.theme.text_color}]{description}", total=total_batches, visible=visible
+            )
+
+    def _update(self, progress_bar_id: int, visible: bool = True) -> None:
+        if self.progress is not None:
+            self.progress.update(progress_bar_id, advance=1.0, visible=visible)
 
     def on_validation_epoch_end(self, trainer, pl_module):
         super().on_validation_epoch_end(trainer, pl_module)
