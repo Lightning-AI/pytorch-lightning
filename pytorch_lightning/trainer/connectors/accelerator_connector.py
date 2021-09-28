@@ -534,20 +534,6 @@ class AcceleratorConnector:
     def is_training_type_in_plugins(self) -> bool:
         return any(isinstance(plug, str) and plug in TrainingTypePluginsRegistry for plug in self.plugins)
 
-    @property
-    def is_using_torchelastic(self) -> bool:
-        """
-        .. deprecated:: v1.3
-            Will be removed in v1.5.0.
-        Returns:
-            ``True`` if the current process was launched using the torchelastic command.
-        """
-        rank_zero_deprecation(
-            "The property `AcceleratorConnector.is_using_torchelastic` was deprecated in v1.3"
-            " and will be removed in 1.5. Use `TorchElasticEnvironment.is_using_torchelastic()` instead."
-        )
-        return TorchElasticEnvironment.is_using_torchelastic()
-
     def select_precision_plugin(self) -> PrecisionPlugin:
         # set precision type
         self.amp_type = AMPType.from_str(self.amp_type)
