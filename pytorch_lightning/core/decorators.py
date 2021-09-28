@@ -16,6 +16,9 @@
 from functools import wraps
 from typing import Callable, Dict, Optional
 
+from torch.nn import Parameter
+
+import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -56,7 +59,7 @@ def auto_weight_tying(model_to_device: Callable) -> Callable:
     return inner_fn
 
 
-def find_shared_parameters(module, tied_parameters: Optional[Dict] = None, prefix: str = ""):
+def find_shared_parameters(module: "pl.LightningModule", tied_parameters: Optional[Dict] = None, prefix: str = ""):
     if tied_parameters is None:
         first_call = True
         tied_parameters = {}
@@ -78,7 +81,7 @@ def find_shared_parameters(module, tied_parameters: Optional[Dict] = None, prefi
         return [x for x in tied_parameters.values() if len(x) > 1]
 
 
-def apply_weight_tying(module, shared_params):
+def apply_weight_tying(module: "pl.LightningModule", shared_params: list):
     for shared_param in shared_params:
         ref = _get_module_by_path(module, shared_param[0])
         for path in shared_param[1:]:
@@ -86,14 +89,14 @@ def apply_weight_tying(module, shared_params):
     return module
 
 
-def _get_module_by_path(module, path):
+def _get_module_by_path(module: "pl.LightningModule", path: str):
     path = path.split(".")
     for name in path:
         module = getattr(module, name)
     return module
 
 
-def _set_module_by_path(module, path, value):
+def _set_module_by_path(module: "pl.LightningModule", path: str, value: Parameter):
     path = path.split(".")
     for name in path[:-1]:
         module = getattr(module, name)
