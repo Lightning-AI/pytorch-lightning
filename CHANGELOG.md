@@ -351,6 +351,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated properties `DeepSpeedPlugin.cpu_offload*` in favor of `offload_optimizer`, `offload_parameters` and `pin_memory` ([#9244](https://github.com/PyTorchLightning/pytorch-lightning/pull/9244))
 
 
+- Removed deprecated property `is_using_torchelastic` from AcceleratorConnector in favor of `TorchElasticEnvironment.is_using_torchelastic()`
+
 ### Fixed
 
 
