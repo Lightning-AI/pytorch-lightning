@@ -1077,7 +1077,9 @@ class TestAutoRestartModelUnderSignal(BoringModel):
         if self.should_signal:
             print(message)
             os.kill(os.getpid(), signal.SIGUSR1)
-            sleep(0.1)
+            # small optimization to skip as soon as async signal as being triggered.
+            while not self.trainer._terminate_gracefully:
+                sleep(0.0000001)
 
     def training_step(self, batch, batch_idx):
         self.seen_train_batches.append(batch)
@@ -1168,6 +1170,7 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
         if val_check_interval == 1.0:
             status = "TrainingEpochLoop:on_run_end"
         else:
+            # `training_epoch_end` happens after `validation_epoch_end` since Lightning v1.4
             status = "TrainingEpochLoop:on_run_end" if failure_on_training else "TrainingEpochLoop:on_advance_end"
 
     model_signaled = _fit_model(
