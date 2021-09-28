@@ -182,8 +182,8 @@ class Trainer(
 
         Args:
 
-            accelerator: Previously known as distributed_backend (dp, ddp, ddp2, etc...).
-                Can also take in an accelerator object for custom hardware.
+            accelerator: (dp, ddp, ddp2, etc...). Can also take in an accelerator object
+                for custom hardware.
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
 
@@ -1437,11 +1437,6 @@ class Trainer(
     @property
     def accelerator(self) -> Accelerator:
         return self.accelerator_connector.accelerator
-
-    @property
-    def distributed_backend(self) -> Optional[str]:
-        # for backward compatibility
-        return self.accelerator_connector.distributed_backend
 
     @property
     def training_type_plugin(self) -> TrainingTypePlugin:

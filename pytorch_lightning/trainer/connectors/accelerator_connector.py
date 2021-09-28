@@ -69,7 +69,6 @@ from pytorch_lightning.utilities import (
     device_parser,
     DeviceType,
     DistributedType,
-    rank_zero_deprecation,
     rank_zero_info,
     rank_zero_warn,
 )
