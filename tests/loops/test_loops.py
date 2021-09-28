@@ -23,7 +23,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pl_examples.bug_report_model import RandomDataset
-from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loops import Loop, TrainingBatchLoop
 from pytorch_lightning.trainer.progress import BaseProgress
@@ -757,7 +757,7 @@ def test_fit_loop_reset(tmpdir):
     ["train_datasets", "val_datasets"],
     [([RandomDataset], [RandomDataset]), ([RandomDataset], [RandomDataset, RandomDataset])],
 )
-@pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
+@pytest.mark.parametrize("val_check_interval", [0.5])
 def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_interval, tmpdir):
     size, n_batches = 2, 4
     stop_batch = 1
@@ -790,6 +790,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         def val_dataloader(self):
             return [DataLoader(cls(size, n_batches)) for cls in val_datasets]
 
+    seed_everything(42)
     model = TestModel(False)
     trainer = Trainer(
         default_root_dir=tmpdir,

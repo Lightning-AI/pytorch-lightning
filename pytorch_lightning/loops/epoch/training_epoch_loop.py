@@ -48,6 +48,7 @@ class TrainingEpochLoop(loops.Loop):
 
         self.batch_loop: Optional[TrainingBatchLoop] = None
         self.val_loop: Optional["loops.EvaluationLoop"] = None
+        self.dataloader_iter: Optional[Iterator] = None
 
         self._results = ResultCollection(training=True)
         self._epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
