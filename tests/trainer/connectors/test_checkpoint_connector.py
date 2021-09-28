@@ -12,12 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from typing import Mapping
+from unittest import mock
 from unittest.mock import Mock
 
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.trainer.states import TrainerFn
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
 class HPCHookdedModel(BoringModel):
@@ -126,3 +131,56 @@ def test_hpc_max_ckpt_version(tmpdir):
     assert trainer.checkpoint_connector.hpc_resume_path == str(tmpdir / "hpc_ckpt_33.ckpt")
     assert trainer.checkpoint_connector.max_ckpt_version_in_folder(tmpdir) == 33
     assert trainer.checkpoint_connector.max_ckpt_version_in_folder(tmpdir / "not" / "existing") is None
+
+
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+@RunIf(min_torch="1.7.0")
+def test_loops_restore(tmpdir):
+    """Test that required loop state_dict is loaded correctly by checkpoint connector."""
+    model = BoringModel()
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    trainer_args = dict(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        logger=False,
+        callbacks=[checkpoint_callback],
+        num_sanity_val_steps=0,
+    )
+    trainer = Trainer(**trainer_args)
+    trainer.validate(model)
+    trainer.test(model)
+    trainer.predict(model)
+    trainer.fit(model)
+
+    resume_ckpt = str(tmpdir / "last.ckpt")
+    state_dict = torch.load(resume_ckpt)
+    trainer_args.update(
+        {"max_epochs": 3, "resume_from_checkpoint": resume_ckpt, "checkpoint_callback": False, "callbacks": []}
+    )
+
+    def _is_equal(a, b):
+        if isinstance(a, torch.Tensor):
+            return torch.all(torch.eq(a, b))
+
+        if isinstance(a, Mapping):
+            return all(_is_equal(a.get(k, None), b.get(k, None)) for k in b.keys() if k != "device")
+
+        return a == b
+
+    for fn in TrainerFn:
+        if fn == TrainerFn.TUNING:
+            continue
+
+        trainer = Trainer(**trainer_args)
+        trainer.state.fn = fn
+        trainer.checkpoint_connector.resume_start()
+        trainer.checkpoint_connector.restore_loops()
+        fn_loop = f"{fn}_loop"
+        assert _is_equal(state_dict["loops"][fn_loop], getattr(trainer, fn_loop).state_dict())
+
+        for fn2 in TrainerFn:
+            if fn2 != fn and fn2 != TrainerFn.TUNING:
+                fn2_loop = f"{fn2}_loop"
+                assert not _is_equal(state_dict["loops"][fn2_loop], getattr(trainer, fn2_loop).state_dict())

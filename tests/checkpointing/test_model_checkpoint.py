@@ -987,18 +987,17 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
         model = ExtendedBoringModel()
 
         trainer.test(model)
-        # resume_from_checkpoint is resumed when calling `.fit`
-        assert trainer.global_step == 4
-        assert trainer.current_epoch == 2
+        assert trainer.global_step == epochs * limit_train_batches
+        assert trainer.current_epoch == epochs
+
+        trainer.validate(model)
+        assert trainer.global_step == epochs * limit_train_batches
+        assert trainer.current_epoch == epochs
 
         trainer.fit(model)
         assert trainer.global_step == epochs * limit_train_batches
         assert trainer.current_epoch == epochs
         assert_checkpoint_log_dir(idx)
-
-        trainer.validate(model)
-        assert trainer.global_step == epochs * limit_train_batches
-        assert trainer.current_epoch == epochs
 
 
 def test_configure_model_checkpoint(tmpdir):
