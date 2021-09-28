@@ -21,6 +21,7 @@ from torchmetrics import Metric
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
@@ -204,8 +205,9 @@ class CheckpointConnector:
         assert self.trainer.state.fn is not None
         state_dict = self._loaded_checkpoint.get("loops")
         if state_dict is not None and self.trainer.state.fn != TrainerFn.TUNING:
-            state_fn_loop = f"{self.trainer.state.fn}_loop"
-            getattr(self.trainer, state_fn_loop).load_state_dict(state_dict[state_fn_loop])
+            loop_name = f"{self.trainer.state.fn}_loop"
+            loop_attr: Loop = getattr(self.trainer, loop_name)
+            loop_attr.load_state_dict(state_dict[loop_name])
 
         if self.trainer.state.fn != TrainerFn.FITTING:
             return
