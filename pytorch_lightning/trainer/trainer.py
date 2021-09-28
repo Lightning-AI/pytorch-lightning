@@ -573,9 +573,9 @@ class Trainer(
         model: "pl.LightningModule",
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        ckpt_path: Optional[str] = None,
         datamodule: Optional[LightningDataModule] = None,
         train_dataloader=None,  # TODO: remove with 1.6
+        ckpt_path: Optional[str] = None,
     ) -> None:
         r"""
         Runs the full optimization routine.
@@ -602,7 +602,7 @@ class Trainer(
             )
             train_dataloaders = train_dataloader
         self._call_and_handle_interrupt(
-            self._fit_impl, model, train_dataloaders, val_dataloaders, ckpt_path, datamodule
+            self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path
         )
 
     def _fit_impl(
@@ -610,8 +610,8 @@ class Trainer(
         model: "pl.LightningModule",
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        ckpt_path: Optional[str] = None,
         datamodule: Optional[LightningDataModule] = None,
+        ckpt_path: Optional[str] = None,
     ) -> None:
         Trainer._log_api_event("fit")
 
