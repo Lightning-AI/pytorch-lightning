@@ -22,6 +22,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.core.decorators import find_shared_parameters
 from pytorch_lightning.plugins import TPUSpawnPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
@@ -226,6 +227,20 @@ def test_ddp_cpu_not_supported_on_tpus():
 
     with pytest.raises(MisconfigurationException, match="`accelerator='ddp_cpu'` is not supported on TPU machines"):
         Trainer(accelerator="ddp_cpu")
+
+
+@RunIf(tpu=True)
+def test_auto_weight_tying_tpus(tmpdir):
+
+    model = WeightSharingModule()
+    shared_params = find_shared_parameters(model)
+
+    assert shared_params[0] == ["layer_1.weight", "layer_3.weight"]
+
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, tpu_cores=1, max_epochs=1)
+    trainer.fit(model)
+
+    assert torch.all(torch.eq(model.layer_1.weight, model.layer_3.weight))
 
 
 @RunIf(tpu=True)

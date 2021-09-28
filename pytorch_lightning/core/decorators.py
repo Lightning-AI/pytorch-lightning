@@ -34,6 +34,9 @@ def auto_weight_tying(model_to_device: Callable) -> Callable:
 
     See Also:
         - `XLA Documentation <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#xla-tensor-quirks>`_
+
+    Reference:
+        https://github.com/pytorch/fairseq/blob/1f7ef9ed1e1061f8c7f88f8b94c7186834398690/fairseq/trainer.py#L110-L118
     """
 
     @wraps(model_to_device)
