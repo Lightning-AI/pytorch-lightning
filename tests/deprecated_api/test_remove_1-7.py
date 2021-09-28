@@ -117,6 +117,11 @@ def test_v1_7_0_trainer_prepare_data_per_node(tmpdir):
         _ = Trainer(prepare_data_per_node=False)
 
 
+def test_v1_7_0_stochastic_weight_avg_trainer_constructor(tmpdir):
+    with pytest.deprecated_call(match=r"Setting `Trainer\(stochastic_weight_avg=True\)` is deprecated in v1.5"):
+        _ = Trainer(stochastic_weight_avg=True)
+
+
 def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
     class CustomBoringModel(BoringModel):
         def on_train_dataloader(self):
