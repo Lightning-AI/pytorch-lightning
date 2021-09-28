@@ -20,7 +20,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import suppress
 from copy import deepcopy
-from time import sleep
+from time import time
 from typing import List, Optional
 from unittest import mock
 from unittest.mock import ANY
@@ -1078,8 +1078,11 @@ class TestAutoRestartModelUnderSignal(BoringModel):
             print(message)
             os.kill(os.getpid(), signal.SIGUSR1)
             # small optimization to skip as soon as async signal as being triggered.
+            t0 = time()
             while not self.trainer._terminate_gracefully:
-                sleep(0.0000001)
+                t1 = time()
+                if (t1 - t0) > 0.1:
+                    self.trainer._terminate_gracefully = True
 
     def training_step(self, batch, batch_idx):
         self.seen_train_batches.append(batch)
