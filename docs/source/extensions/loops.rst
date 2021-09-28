@@ -17,28 +17,26 @@ Every PyTorch user is familiar with the basic training loop for gradient descent
 
 .. code-block:: python
 
-    for epoch in range(max_epochs):
-        for i, batch in enumerate(dataloader):
-            x, y = batch
-            y_hat = model(x)
-            loss = loss_function(y_hat, y)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+    for i, batch in enumerate(dataloader):
+        x, y = batch
+        y_hat = model(x)
+        loss = loss_function(y_hat, y)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
 At its core, the Lightning Trainer does not do anything different here.
 It implements the same loop as shown above except that the research code stays in the LightningModule:
 
 .. code-block:: python
 
-    for epoch in range(max_epochs):
-        for i, batch in enumerate(dataloader):
-            loss = lightning_module.training_step(batch, i)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+    for i, batch in enumerate(dataloader):
+        loss = lightning_module.training_step(batch, i)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
-What remains in the Trainer is the loop, zero_grad, backward and optimizer step calls.
+What remains in the Trainer is the loop, :code:`zero_grad()`, :code:`backward()` and :code:`optimizer.step()` calls.
 These are considered *boilerplate* and get automated by Lightning.
 
 This optimization scheme is very general and applies to the vast majority of deep learning research today.
@@ -50,21 +48,14 @@ Here is how the above training loop can be defined using the new Loop API:
 
 .. code-block:: python
 
-    class FitLoop(Loop):
-
-        def __init__(self):
-            self.epoch_loop = EpochLoop()
-
-        def run(self):
-            for epoch in range(self.trainer.max_epochs)
-                self.advance()
+    class EpochLoop(Loop):
 
         def advance(self):
-            dataloader = lightning_module.train_dataloader()
-            self.epoch_loop.run(dataloader)
-
-
-    class EpochLoop(Loop):
+            i, batch = next(self.iterator)
+            loss = lightning_module.training_step(batch, i)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
         def run(self, dataloader):
             self.iterator = enumerate(dataloader)
@@ -74,22 +65,12 @@ Here is how the above training loop can be defined using the new Loop API:
                 except StopIteration:
                     break
 
-        def advance(self):
-            i, batch = next(self.iterator)
-            loss = lightning_module.training_step(batch, i)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-
 Defining a loop with a class interface instead of hard-coding a raw Python for/while loop has several benefits:
 
 1. you can have full control over the data flow through loops
 2. you can add new loops and nest as many of them as they want
 3. if needed, the state of a loop can be saved and resumed
 4. new hooks can be injected at any point
-
-and much more.
 
 Which loops does Lightning have and how can they be changed?
 ------------------------------------------------------------
