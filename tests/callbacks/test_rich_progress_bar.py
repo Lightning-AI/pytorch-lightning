@@ -94,7 +94,7 @@ def test_rich_progress_bar_custom_theme(tmpdir):
     """Test to ensure that custom theme styles are used."""
     with mock.patch.multiple(
         "pytorch_lightning.callbacks.progress.rich_progress",
-        BarColumn=DEFAULT,
+        CustomBarColumn=DEFAULT,
         BatchesProcessedColumn=DEFAULT,
         CustomTimeColumn=DEFAULT,
         ProcessingSpeedColumn=DEFAULT,
@@ -102,10 +102,10 @@ def test_rich_progress_bar_custom_theme(tmpdir):
         theme = RichProgressBarTheme()
 
         progress_bar = RichProgressBar(theme=theme)
-        progress_bar.setup(Trainer(tmpdir), BoringModel(), stage=None)
+        progress_bar.on_train_start(Trainer(tmpdir), BoringModel())
 
         assert progress_bar.theme == theme
-        args, kwargs = mocks["BarColumn"].call_args
+        args, kwargs = mocks["CustomBarColumn"].call_args
         assert kwargs["complete_style"] == theme.progress_bar_complete
         assert kwargs["finished_style"] == theme.progress_bar_finished
 
