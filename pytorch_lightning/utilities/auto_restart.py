@@ -46,6 +46,7 @@ class FastForwardSampler(Sampler):
         self._sampler = sampler
         self.restarting: bool = False
         self._current_iteration = 0
+        self._counter = 0
         self._dataloader_batch_size: Optional[int] = None
         self._cached_state_dict: Optional[Dict[int, Any]] = None
         self._attr_name = attr_name
@@ -69,8 +70,6 @@ class FastForwardSampler(Sampler):
         return worker_info.id if worker_info else 0
 
     def __iter__(self) -> Iterator[Any]:
-        self._current_iteration = 0
-        self.i = 0
         self.sampler_iter = iter(self._sampler)
         return self
 
@@ -79,9 +78,9 @@ class FastForwardSampler(Sampler):
         if self._cached_state_dict is not None:
             self._load_non_random_state(self._cached_state_dict)
 
-        while self.i < self._current_iteration:
+        while self._counter < self._current_iteration:
             next(self.sampler_iter)
-            self.i += 1
+            self._counter += 1
 
         # here: i == self._current_iteration
         if self._cached_state_dict is not None:
@@ -89,7 +88,7 @@ class FastForwardSampler(Sampler):
 
         # recreate iterator to be sure loading is reflected there as well
         self._current_iteration += 1
-        self.i += 1
+        self._counter += 1
         has_raised = False
         try:
             return next(self.sampler_iter)
@@ -97,6 +96,7 @@ class FastForwardSampler(Sampler):
             has_raised = True
 
         self._current_iteration = 0
+        self._counter = 0
         self._cached_state_dict = None
         self.restarting = False
         if has_raised:

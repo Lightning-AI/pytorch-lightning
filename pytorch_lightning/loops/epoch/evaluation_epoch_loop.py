@@ -134,7 +134,7 @@ class EvaluationEpochLoop(Loop):
 
         if not self.batch_progress.is_last_batch:
             # if fault tolerant is enabled and process has been notified, exit.
-            self.trainer.should_exit_gracefully("EvaluationEpochLoop:advance")
+            self.trainer._exit_gracefully_on_signal("EvaluationEpochLoop:advance")
 
     def on_run_end(self) -> EPOCH_OUTPUT:
         """Returns the outputs of the whole run."""

@@ -22,4 +22,5 @@ class DeadlockDetectedException(Exception):
 
 
 class ExitGracefullyException(Exception):
-    """Exception used when a SIGUSR1 was sent the processes and received by Lightning."""
+    """Exception used when a ``signal.SIGUSR1` is sent to the process which triggers Lightning to create fault
+    tolerant checkpoint once reached the next reproducible part of the codebase and then exits."""

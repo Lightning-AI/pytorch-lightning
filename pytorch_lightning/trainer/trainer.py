@@ -2004,7 +2004,7 @@ class Trainer(
         if active_loop is not None:
             return active_loop._results
 
-    def should_exit_gracefully(self, status: str) -> None:
+    def _exit_gracefully_on_signal(self, status: str) -> None:
         if _fault_tolerant_training() and self._terminate_gracefully:
             raise ExitGracefullyException(f"Exiting on {status}")
 

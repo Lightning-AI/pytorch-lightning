@@ -1077,7 +1077,7 @@ class TestAutoRestartModelUnderSignal(BoringModel):
         if self.should_signal:
             print(message)
             os.kill(os.getpid(), signal.SIGUSR1)
-            # small optimization to skip as soon as async signal as being triggered.
+            # small optimization to skip as soon as async signal has being triggered.
             t0 = time()
             while not self.trainer._terminate_gracefully:
                 t1 = time()
@@ -1149,7 +1149,6 @@ def _fit_model(
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(min_torch="1.7.0", skip_windows=True)
 def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on_training, failure_on_step, tmpdir):
-
     """This test asserts that if a signal is being sent during the training / validation phase, the model should
     restart in a reproducible way."""
 

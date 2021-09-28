@@ -757,7 +757,7 @@ def test_fit_loop_reset(tmpdir):
     ["train_datasets", "val_datasets"],
     [([RandomDataset], [RandomDataset]), ([RandomDataset], [RandomDataset, RandomDataset])],
 )
-@pytest.mark.parametrize("val_check_interval", [0.5])
+@pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
 def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_interval, tmpdir):
     size, n_batches = 2, 4
     stop_batch = 1
