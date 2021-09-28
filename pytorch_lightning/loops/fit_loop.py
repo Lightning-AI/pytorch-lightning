@@ -253,11 +253,12 @@ class FitLoop(Loop):
         if not epoch_loop:
             return state_dict
 
-        # TODO: update has_completed to its proper value
-        should_skip = epoch_loop.batch_progress.is_last_batch and epoch_loop.has_completed_training_batch
-        if self.trainer.train_dataloader is not None and not should_skip:
+        should_save_dataloader_dict = not (
+            epoch_loop.batch_progress.is_last_batch and epoch_loop._has_completed_training_batch
+        )
+        if self.trainer.train_dataloader is not None and should_save_dataloader_dict:
             state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(
-                has_completed=epoch_loop.has_completed_training_batch
+                has_completed=epoch_loop._has_completed_training_batch
             )
         return state_dict
 

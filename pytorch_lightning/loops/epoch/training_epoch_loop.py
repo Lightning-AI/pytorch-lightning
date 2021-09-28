@@ -53,7 +53,7 @@ class TrainingEpochLoop(loops.Loop):
         self._epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
 
     @property
-    def has_completed_training_batch(self) -> bool:
+    def _has_completed_training_batch(self) -> bool:
         return self.batch_progress.current.ready == self.batch_progress.current.completed
 
     @property
