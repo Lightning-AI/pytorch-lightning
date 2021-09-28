@@ -242,6 +242,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Use a unique filename to save temp ckpt in tuner ([#9682](https://github.com/PyTorchLightning/pytorch-lightning/pull/9682))
 
 
+- Changed `HorovodPlugin.all_gather` to return a `torch.Tensor` instead of a list ([#9696](https://github.com/PyTorchLightning/pytorch-lightning/pull/9696))
+
+
 ### Deprecated
 
 - Deprecated `LightningModule.summarize()` in favor of `pytorch_lightning.utilities.model_summary.summarize()`
@@ -378,6 +381,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated properties `DeepSpeedPlugin.cpu_offload*` in favor of `offload_optimizer`, `offload_parameters` and `pin_memory` ([#9244](https://github.com/PyTorchLightning/pytorch-lightning/pull/9244))
 
 
+- Removed deprecated property `AcceleratorConnector.is_using_torchelastic` in favor of `TorchElasticEnvironment.is_using_torchelastic()` ([#9729](https://github.com/PyTorchLightning/pytorch-lightning/pull/9729))
+
+
 - Removed `pytorch_lightning.utilities.debugging.InternalDebugger` ([#9680](https://github.com/PyTorchLightning/pytorch-lightning/pull/9680))
 
 
@@ -427,6 +433,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed `lr_find` to generate same results on multiple calls ([#9704](https://github.com/PyTorchLightning/pytorch-lightning/pull/9704))
+
+
+- Fixed `reset` metrics on validation epoch end ([#9717](https://github.com/PyTorchLightning/pytorch-lightning/pull/9717))
+
 
 
 ## [1.4.8] - 2021-09-22
