@@ -221,19 +221,15 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                 automatic=model.automatic_optimization,
                 num_optimizers=len(self.trainer.optimizers),
             )
-            # check that the dataloader/iterator produced a batch
-            if epoch_end_outputs:
-                # run training_epoch_end
-                # refresh the result for custom logging at the epoch level
-                model._current_fx_name = "training_epoch_end"
-
-                # lightning module hook
-                epoch_end_outputs = model.training_epoch_end(epoch_end_outputs)
-                if epoch_end_outputs is not None:
-                    raise MisconfigurationException(
-                        "training_epoch_end expects a return of None. "
-                        "HINT: remove the return statement in training_epoch_end"
-                    )
+            # run lightning module hook training_epoch_end
+            # refresh the result for custom logging at the epoch level
+            model._current_fx_name = "training_epoch_end"
+            epoch_end_outputs = model.training_epoch_end(epoch_end_outputs)
+            if epoch_end_outputs is not None:
+                raise MisconfigurationException(
+                    "`training_epoch_end` expects a return of None. "
+                    "HINT: remove the return statement in `training_epoch_end`."
+                )
         # free memory
         self._outputs = []
 
