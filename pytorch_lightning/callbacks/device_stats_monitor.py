@@ -45,6 +45,9 @@ class DeviceStatsMonitor(Callback):
     def on_train_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
+        if not self._should_log(trainer):
+            return
+
         device_stats = trainer.accelerator.get_device_stats(pl_module.device)
         trainer.logger.log_metrics(device_stats, step=trainer.global_step)
 
@@ -57,6 +60,12 @@ class DeviceStatsMonitor(Callback):
         batch_idx: int,
         dataloader_idx: int,
     ) -> None:
+        if not self._should_log(trainer):
+            return
 
         device_stats = trainer.accelerator.get_device_stats(pl_module.device)
         trainer.logger.log_metrics(device_stats, step=trainer.global_step)
+
+    @staticmethod
+    def _should_log(trainer) -> bool:
+        return (trainer.global_step + 1) % trainer.log_every_n_steps == 0 or trainer.should_stop

@@ -35,5 +35,5 @@ class CPUAccelerator(Accelerator):
         return super().setup(trainer)
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
-        """Returns dummy implementation for now."""
+        """Returns dummy implementation."""
         return {}

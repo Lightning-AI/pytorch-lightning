@@ -36,7 +36,8 @@ local tputests = base.BaseTest {
           tests/profiler/test_xla_profiler.py \
           pytorch_lightning/utilities/xla_device.py \
           tests/accelerators/test_tpu_backend.py \
-          tests/models/test_tpu.py
+          tests/models/test_tpu.py \ 
+          tests/callbacks/test_device_stats_monitor.py
       test_exit_code=$?
       echo "\n||| END PYTEST LOGS |||\n"
       coverage xml
