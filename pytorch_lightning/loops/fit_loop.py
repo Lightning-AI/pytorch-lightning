@@ -248,10 +248,16 @@ class FitLoop(Loop):
 
     def on_save_checkpoint(self) -> Dict:
         state_dict = super().on_save_checkpoint()
+
+        epoch_loop = getattr(self, "epoch_loop", None)
+        if not epoch_loop:
+            return state_dict
+
         # TODO: update has_completed to its proper value
-        if self.trainer.train_dataloader is not None and not self.epoch_loop._is_training_done:
+        should_skip = epoch_loop.batch_progress.is_last_batch and epoch_loop.has_completed_training_batch
+        if self.trainer.train_dataloader is not None and not should_skip:
             state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(
-                has_completed=self.epoch_loop.has_completed_training_batch
+                has_completed=epoch_loop.has_completed_training_batch
             )
         return state_dict
 

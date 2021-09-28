@@ -73,8 +73,7 @@ class TrainingEpochLoop(loops.Loop):
     @property
     def _is_training_done(self) -> bool:
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
-        is_done = max_steps_reached or self._num_training_batches_reached()
-        return is_done
+        return max_steps_reached or self._num_training_batches_reached()
 
     @property
     def _is_validation_done(self) -> bool:

@@ -79,6 +79,7 @@ def test_loops_state_dict_structure():
             "epoch_loop.val_loop.epoch_loop.batch_progress": {
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "is_last_batch": False,
             },
             "epoch_loop.val_loop._results": {
                 "training": False,
@@ -104,6 +105,7 @@ def test_loops_state_dict_structure():
             "epoch_loop.batch_progress": {
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "is_last_batch": False,
             },
             "_results": {
                 "training": False,
@@ -119,6 +121,7 @@ def test_loops_state_dict_structure():
             "epoch_loop.batch_progress": {
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "is_last_batch": False,
             },
             "_results": {
                 "training": False,

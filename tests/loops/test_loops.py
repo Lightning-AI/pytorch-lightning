@@ -318,6 +318,7 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
             "processed": stop_batch,
             "completed": stop_batch,
         },
+        "is_last_batch": False,
     }
     assert trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.state_dict() == expected
 
@@ -492,10 +493,10 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
 
     # need to remove these elements for comparison; comparing with `fit_loop.state_dict()` would require the
     # fit loop to have an iterator, which is only available during training
-    checkpoint["loops"]["fit_loop"]["state_dict"]["dataloader_state_dict"] = ANY
-    assert state_dict == checkpoint["loops"]["fit_loop"]
-
     trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"])
+
+    checkpoint["loops"]["fit_loop"]["state_dict"] = ANY
+    assert state_dict == checkpoint["loops"]["fit_loop"]
     # test resetting manually, we expect all `ready` counters to be reset to `completed`
     trainer.fit_loop.reset()
     trainer.fit_loop.epoch_loop.reset()
@@ -824,6 +825,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
             "completed": n_val_dataloaders * val_per_epoch * n_batches,
         },
         "current": {"ready": n_batches, "completed": n_batches, "started": n_batches, "processed": n_batches},
+        "is_last_batch": True,
     }
 
     model = TestModel(True)
@@ -874,6 +876,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
             "processed": stop_batch,
             "completed": stop_batch,
         },
+        "is_last_batch": False,
     }
 
     model = TestModel(False)
