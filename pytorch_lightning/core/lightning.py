@@ -594,7 +594,7 @@ class LightningModule(
             the output will also be a collection with tensors of this shape.
         """
         group = group if group is not None else torch.distributed.group.WORLD
-        all_gather = self.trainer.accelerator.all_gather
+        all_gather = self.trainer.training_type_plugin.all_gather
         data = convert_to_tensors(data, device=self.device)
         return apply_to_collection(data, torch.Tensor, all_gather, group=group, sync_grads=sync_grads)
 

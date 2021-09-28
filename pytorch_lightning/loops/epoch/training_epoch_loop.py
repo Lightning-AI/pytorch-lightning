@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import defaultdict
-from typing import Any, Dict, Generator, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Generator, Iterator, List, Optional, overload, Tuple, Union
 
 import numpy as np
 import torch
@@ -401,7 +401,17 @@ def _convert_optim_dict(outs: Dict[int, Dict[str, Any]], num_optimizers: int) ->
     return [outs[opt_idx] if opt_idx in outs else None for opt_idx in range(num_optimizers)]
 
 
-def _recursive_unpad(nested: List[Any], value: Optional[Any] = None) -> List:
+@overload
+def _recursive_unpad(nested: Any, value: Optional[Any] = None) -> Any:
+    ...
+
+
+@overload
+def _recursive_unpad(nested: List[Any], value: Optional[Any] = None) -> List[Any]:
+    ...
+
+
+def _recursive_unpad(nested: Union[Any, List[Any]], value: Optional[Any] = None) -> Union[Any, List[Any]]:
     """Removes the given pad value from the nested list. Not strictly the reverse operation of
     :func:`_recursive_pad` because it removes the padding element everywhere, not just from the end of a list.
 
