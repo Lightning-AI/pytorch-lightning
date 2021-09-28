@@ -227,8 +227,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             epoch_end_outputs = model.training_epoch_end(epoch_end_outputs)
             if epoch_end_outputs is not None:
                 raise MisconfigurationException(
-                    "training_epoch_end expects a return of None. "
-                    "HINT: remove the return statement in training_epoch_end"
+                    "`training_epoch_end` expects a return of None. "
+                    "HINT: remove the return statement in `training_epoch_end`."
                 )
         # free memory
         self._outputs = []
