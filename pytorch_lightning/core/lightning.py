@@ -1486,9 +1486,6 @@ class LightningModule(
             Do not override this method. If you want to customize gradient clipping, consider
             using :meth:`configure_gradient_clipping`.
         """
-        gradient_clip_val = gradient_clip_val or self.trainer.gradient_clip_val
-        gradient_clip_algorithm = gradient_clip_algorithm or self.trainer.gradient_clip_algorithm
-
         # gradient clipping
         if not isinstance(gradient_clip_val, (int, float)):
             raise TypeError(f"`gradient_clip_val` should be an int or a float. Got {gradient_clip_val}.")
@@ -1521,7 +1518,7 @@ class LightningModule(
 
         Example::
 
-            # Perform gradient clipping on discriminator (optimizer_idx=1)
+            # Perform gradient clipping on discriminator (optimizer_idx=1) in GAN
             def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
                 if optimizer_idx == 1:
                     # lightning will handle the gradient clipping
@@ -1529,7 +1526,7 @@ class LightningModule(
                         optimizer, gradient_clip_val=gradient_clip_val, gradient_clip_algorithm=gradient_clip_algorithm
                     )
                 else:
-                    # implement your own logic
+                    # implement your own custom logic to clip gradients for generator (optimizer_idx=0)
         """
         self.clip_gradients(
             optimizer, gradient_clip_val=gradient_clip_val, gradient_clip_algorithm=gradient_clip_algorithm

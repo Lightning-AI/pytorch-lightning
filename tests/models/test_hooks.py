@@ -306,7 +306,16 @@ class HookedModel(BoringModel):
                     dict(name="Callback.on_after_backward", args=(trainer, model)),
                     dict(name="on_after_backward"),
                     *(on_before_optimizer_step if using_plugin else []),
-                    dict(name="clip_gradients", args=(ANY, 0)),
+                    dict(
+                        name="clip_gradients",
+                        args=(ANY,),
+                        kwargs=dict(gradient_clip_val=0.0, gradient_clip_algorithm="norm"),
+                    ),
+                    dict(
+                        name="configure_gradient_clipping",
+                        args=(ANY, 0),
+                        kwargs=dict(gradient_clip_val=0.0, gradient_clip_algorithm="norm"),
+                    ),
                     dict(
                         name="optimizer_step",
                         args=(current_epoch, i, ANY, 0, ANY),
