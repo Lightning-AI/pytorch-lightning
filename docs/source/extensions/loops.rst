@@ -8,6 +8,7 @@ Until now, Lightning did not support well some training paradigms like recommend
 The loop customization feature will not only enable researchers to customize Lightning down to its very core, but also allow one to build new functionalities on top of it.
 
 .. image:: ../_static/images/extensions/loops/epoch-loop-steps.gif
+    :alt: Animation showing how to convert a standard training loop to a Lightning loop
 
 
 The training loop in Lightning
@@ -75,6 +76,10 @@ Defining a loop with a class interface instead of hard-coding a raw Python for/w
 Which loops does Lightning have and how can they be changed?
 ------------------------------------------------------------
 
+.. image:: ../_static/images/extensions/loops/replace-fit-loop.gif
+    :alt: Animation showing how to replace a loop on the Trainer
+
+
 The Trainer has four entry points for training, testing and inference, and each method corresponds to a main loop:
 
 .. list-table:: Trainer entry points and associated loops
@@ -110,7 +115,7 @@ Adding a custom loop for any of these entry points is straightforward.
     from pytorch_lightning.loops import FitLoop
 
 
-    class CustomLoop(FitLoop):
+    class MyLoop(FitLoop):
         ...
 
 Alternatively, more advanced users can also implement a complete loop from scratch by inheriting directly from the base loop interface as explained later.
@@ -119,7 +124,7 @@ Alternatively, more advanced users can also implement a complete loop from scrat
 
 .. code-block:: python
 
-    loop = CustomLoop()
+    loop = MyLoop()
     trainer = Trainer()
 
     trainer.fit_loop = loop
