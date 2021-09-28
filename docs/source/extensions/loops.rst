@@ -229,10 +229,12 @@ But such a mechanism does not exist in Lightning, therefore we need to build a c
 
             self.trainer.accelerator.post_training_step()
             training_step_output = self.trainer.call_hook(
-                "training_step_end", training_step_output
+                "training_step_end",
+                training_step_output,
             )
             result = ClosureResult.from_training_step_output(
-                training_step_output, self.trainer.accumulate_grad_batches
+                training_step_output,
+                self.trainer.accumulate_grad_batches,
             )
             return result
 
