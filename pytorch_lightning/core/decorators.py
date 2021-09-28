@@ -40,14 +40,14 @@ def auto_weight_tying(model_to_device: Callable) -> Callable:
     def inner_fn(self, *args, **kwargs):
         shared_params = find_shared_parameters(self.model)
         model_to_device(self, *args, **kwargs)
+        module = self.model.module if isinstance(self.model, LightningDistributedModule) else self.model
         if is_overridden("on_post_move_to_device", self.lightning_module):
             rank_zero_deprecation(
                 "Method `on_post_move_to_device` has been deprecated and will be removed in v1.7.0."
                 " We perform auto parameters tying without the need of implementing `on_post_move_to_device`"
             )
-            self.model.on_post_move_to_device()
+            module.on_post_move_to_device()
         else:
-            module = self.model.module if isinstance(self.model, LightningDistributedModule) else self.model
             apply_weight_tying(module, shared_params)
 
     return inner_fn

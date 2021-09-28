@@ -81,37 +81,6 @@ def test_if_test_works_after_train(tmpdir):
 
 
 @RunIf(tpu=True)
-@pl_multi_process_test
-def test_weight_tying_warning(tmpdir, capsys=None):
-    """Ensure a warning is thrown if model parameter lengths do not match post moving to device."""
-
-    model = WeightSharingModule()
-    trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=1)
-
-    with pytest.warns(UserWarning, match=r"The model layers do not match after moving to the target device."):
-        trainer.fit(model)
-
-
-@RunIf(tpu=True)
-@pl_multi_process_test
-def test_if_weights_tied(tmpdir, capsys=None):
-    """Test if weights are properly tied on `on_post_move_to_device`.
-
-    Ensure no warning for parameter mismatch is thrown.
-    """
-
-    class Model(WeightSharingModule):
-        def on_post_move_to_device(self):
-            self.layer_3.weight = self.layer_1.weight
-
-    model = Model()
-    trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=1)
-
-    with pytest.warns(UserWarning, match="The model layers do not match"):
-        trainer.fit(model)
-
-
-@RunIf(tpu=True)
 def test_accelerator_tpu():
 
     trainer = Trainer(accelerator="tpu", tpu_cores=8)
@@ -257,3 +226,18 @@ def test_ddp_cpu_not_supported_on_tpus():
 
     with pytest.raises(MisconfigurationException, match="`accelerator='ddp_cpu'` is not supported on TPU machines"):
         Trainer(accelerator="ddp_cpu")
+
+
+@RunIf(tpu=True)
+def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir):
+    class Model(WeightSharingModule):
+        def on_post_move_to_device(self):
+            self.layer_3.weight = self.layer_1.weight
+
+    model = Model()
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, tpu_cores=1, max_epochs=1)
+
+    with pytest.deprecated_call(
+        match=r"Method `on_post_move_to_device` has been deprecated and will be removed in v1.7.0."
+    ):
+        trainer.fit(model)
