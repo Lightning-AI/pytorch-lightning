@@ -45,7 +45,7 @@ These are considered *boilerplate* and get automated by Lightning.
 This optimization scheme is very general and applies to the vast majority of deep learning research today.
 However, the loops and optimizer calls here remain predetermined in their order and are fully controlled by the Trainer.
 
-Loop customization now enables a new level of control where also the two remaining `for` loops and more can be fully changed or replaced.
+With the new :class:`~pytorch_lightning.loops.base.Loop` class, you can now fully customize the optimization scheme for any use case.
 
 Here is how the above training loop can be defined using the new Loop API:
 
