@@ -14,7 +14,7 @@
 """Decorator for LightningModule methods."""
 
 from functools import wraps
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, List, Optional
 
 from torch.nn import Parameter
 
@@ -59,7 +59,11 @@ def auto_weight_tying(model_to_device: Callable) -> Callable:
     return inner_fn
 
 
-def find_shared_parameters(module: "pl.LightningModule", tied_parameters: Optional[Dict] = None, prefix: str = ""):
+def find_shared_parameters(
+    module: "pl.LightningModule", tied_parameters: Optional[Dict] = None, prefix: str = ""
+) -> List[str]:
+    """Returns a list of names of shared parameters set in the module."""
+
     if tied_parameters is None:
         first_call = True
         tied_parameters = {}

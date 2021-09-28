@@ -244,6 +244,38 @@ def test_auto_weight_tying_tpus(tmpdir):
 
 
 @RunIf(tpu=True)
+def test_auto_weight_tying_tpus_nested_module(tmpdir):
+    class SubModule(nn.Module):
+        def __init__(self, layer):
+            super().__init__()
+            self.layer = layer
+
+        def forward(self, x):
+            return self.layer(x)
+
+    class NestedModule(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.layer = nn.Linear(32, 10, bias=False)
+            self.net_a = SubModule(self.layer)
+            self.layer_2 = nn.Linear(10, 32, bias=False)
+            self.net_b = SubModule(self.layer)
+
+        def forward(self, x):
+            x = self.net_a(x)
+            x = self.layer_2(x)
+            x = self.net_b(x)
+            return x
+
+    model = NestedModule()
+
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, tpu_cores=1, max_epochs=1)
+    trainer.fit(model)
+
+    assert torch.all(torch.eq(model.net_a.layer.weight, model.net_b.layer.weight))
+
+
+@RunIf(tpu=True)
 def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir):
     class Model(WeightSharingModule):
         def on_post_move_to_device(self):
