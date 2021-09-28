@@ -1477,7 +1477,7 @@ class LightningModule(
         """Handles Gradient Clipping internally.
 
         Args:
-            optimizer: Current optimizer being used. ``None`` if using manual optimization.
+            optimizer: Current optimizer being used.
             gradient_clip_val: The value at which to clip gradients.
             gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
                 for clip_by_value, and ``gradient_clip_algorithm="norm"`` for clip_by_norm.
@@ -1508,12 +1508,11 @@ class LightningModule(
         """Perform Gradient Clipping for the optimizer parameters. Called before :meth:`optimizer_step`.
 
         Args:
-            optimizer: Current optimizer being used. ``None`` if using manual optimization.
-            optimizer_idx: Index of the current optimizer being used. ``None`` if using manual optimization.
+            optimizer: Current optimizer being used.
+            optimizer_idx: Index of the current optimizer being used.
             gradient_clip_val: The value at which to clip gradients. By default value passed in Trainer
                 will be available here.
-            gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
-                for clip_by_value, and ``gradient_clip_algorithm="norm"`` for clip_by_norm. By default value
+            gradient_clip_algorithm: The gradient clipping algorithm to use. By default value
                 passed in Trainer will be available here.
 
         Example::
