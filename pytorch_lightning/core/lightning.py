@@ -1473,42 +1473,67 @@ class LightningModule(
         # save memory
         self._param_requires_grad_state = {}
 
-    def clip_gradients(
+    def clip_gradients(self, optimizer: Optimizer, gradient_clip_val: Union[int, float], gradient_clip_algorithm: str):
+        """Handles Gradient Clipping internally.
+
+        Args:
+            optimizer: Current optimizer being used. ``None`` if using manual optimization.
+            gradient_clip_val: The value at which to clip gradients.
+            gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
+                for clip_by_value, and ``gradient_clip_algorithm="norm"`` for clip_by_norm.
+
+        Note:
+            Do not override this method. If you want to customize gradient clipping, consider
+            using :meth:`configure_gradient_clipping`.
+        """
+        gradient_clip_val = gradient_clip_val or self.trainer.gradient_clip_val
+        gradient_clip_algorithm = gradient_clip_algorithm or self.trainer.gradient_clip_algorithm
+
+        # gradient clipping
+        if not isinstance(gradient_clip_val, (int, float)):
+            raise TypeError(f"`gradient_clip_val` should be an int or a float. Got {gradient_clip_val}.")
+
+        if not GradClipAlgorithmType.supported_type(gradient_clip_algorithm.lower()):
+            raise MisconfigurationException(
+                f"`gradient_clip_algorithm` {gradient_clip_algorithm} is invalid. "
+                f"Allowed algorithms: {GradClipAlgorithmType.supported_types()}."
+            )
+
+        self.trainer.accelerator.clip_gradients(optimizer, gradient_clip_val, gradient_clip_algorithm)
+
+    def configure_gradient_clipping(
         self,
         optimizer: Optimizer,
         optimizer_idx: int,
-        gradient_clip_val: Union[int, float] = 0.0,
-        gradient_clip_algorithm: str = "norm",
+        gradient_clip_val: Union[int, float],
+        gradient_clip_algorithm: str,
     ):
         """Perform Gradient Clipping for the optimizer parameters. Called before :meth:`optimizer_step`.
 
         Args:
             optimizer: Current optimizer being used. ``None`` if using manual optimization.
             optimizer_idx: Index of the current optimizer being used. ``None`` if using manual optimization.
-            gradient_clip_val: The value at which to clip gradients. Passing ``gradient_clip_val=0`` disables gradient
-                clipping.
+            gradient_clip_val: The value at which to clip gradients. By default value passed in Trainer
+                will be available here.
             gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
-                for clip_by_value, and ``gradient_clip_algorithm="norm"`` for clip_by_norm.
+                for clip_by_value, and ``gradient_clip_algorithm="norm"`` for clip_by_norm. By default value
+                passed in Trainer will be available here.
 
         Example::
 
             # Perform gradient clipping on discriminator (optimizer_idx=1)
-            def clip_gradients(self, optimizer, optimizer_idx, gradient_clip_val=0.0, gradient_clip_algorithm="norm"):
+            def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
                 if optimizer_idx == 1:
-                    super().clip_gradients(
-                        optimizer, optimizer_idx, gradient_clip_val=1e-7, gradient_clip_algorithm="value"
+                    # lightning will handle the gradient clipping
+                    self.clip_gradients(
+                        optimizer, gradient_clip_val=gradient_clip_val, gradient_clip_algorithm=gradient_clip_algorithm
                     )
+                else:
+                    # implement your own logic
         """
-        gradient_clip_val = gradient_clip_val or self.trainer.gradient_clip_val
-        gradient_clip_algorithm = gradient_clip_algorithm or self.trainer.gradient_clip_algorithm
-
-        if not isinstance(gradient_clip_val, (int, float)):
-            raise MisconfigurationException("`gradient_clip_val` should be either an int or a float")
-
-        if gradient_clip_algorithm not in list(GradClipAlgorithmType):
-            raise MisconfigurationException(f"`gradient_clip_algorithm` should be in {list(GradClipAlgorithmType)}")
-
-        self.trainer.accelerator.clip_gradients(optimizer, gradient_clip_val, gradient_clip_algorithm)
+        self.clip_gradients(
+            optimizer, gradient_clip_val=gradient_clip_val, gradient_clip_algorithm=gradient_clip_algorithm
+        )
 
     def optimizer_step(
         self,
