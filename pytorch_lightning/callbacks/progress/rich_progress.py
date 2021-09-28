@@ -113,7 +113,8 @@ if _RICH_AVAILABLE:
             super().__init__()
 
         def render(self, task) -> RenderableType:
-            return Text(f"{int(task.completed)}/{task.total}", style=self.style)
+            total = task.total if task.total != float("inf") else "--"
+            return Text(f"{int(task.completed)}/{total}", style=self.style)
 
     class ProcessingSpeedColumn(ProgressColumn):
         def __init__(self, style: Union[str, Style]):
