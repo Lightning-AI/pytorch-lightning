@@ -43,14 +43,12 @@ class CheckpointConnector:
     @property
     def auto_restart_path(self) -> Optional[str]:
         dir_path_hpc = str(self.trainer.weights_save_path)
+        if dir_path_hpc is None or not os.path.isdir(dir_path_hpc):
+            return
         max_version = self.max_ckpt_version_in_folder(dir_path_hpc, "hpc_ckpt_")
         if max_version is not None:
             return os.path.join(dir_path_hpc, f"hpc_ckpt_{max_version}.ckpt")
-        if (
-            dir_path_hpc is not None
-            and os.path.isdir(dir_path_hpc)
-            and ".pl_auto_save.ckpt" in os.listdir(dir_path_hpc)
-        ):
+        if ".pl_auto_save.ckpt" in os.listdir(dir_path_hpc):
             auto_save_checkpoint = os.path.join(dir_path_hpc, ".pl_auto_save.ckpt")
             return auto_save_checkpoint
 

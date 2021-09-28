@@ -53,6 +53,10 @@ class TrainingEpochLoop(loops.Loop):
         self._epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
 
     @property
+    def has_completed_training_batch(self) -> bool:
+        return self.batch_progress.current.ready == self.batch_progress.current.completed
+
+    @property
     def total_batch_idx(self) -> int:
         """Returns the current batch index (across epochs)"""
         # use `ready` instead of `completed` in case this is accessed after `completed` has been increased
@@ -67,17 +71,24 @@ class TrainingEpochLoop(loops.Loop):
         return self.batch_progress.current.ready - 1
 
     @property
+    def _is_training_done(self) -> bool:
+        max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
+        is_done = max_steps_reached or self._num_training_batches_reached()
+        return is_done
+
+    @property
+    def _is_validation_done(self) -> bool:
+        # when we are restarting we want to check whether the val loop has finished
+        return not self.restarting or self.val_loop.done
+
+    @property
     def done(self) -> bool:
         """Returns whether the training should be stopped.
 
         The criteria are that the number of steps reached the max steps, the last batch is reached or the trainer
         signals to stop (e.g. by early stopping).
         """
-        max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
-        is_done = max_steps_reached or self._num_training_batches_reached()
-        # when we are restarting we want to check whether the val loop has finished
-        val_loop_done = not self.restarting or self.val_loop.done
-        return (is_done and val_loop_done) or self.trainer.should_stop
+        return (self._is_training_done and self._is_validation_done) or self.trainer.should_stop
 
     def connect(
         self,
@@ -128,8 +139,7 @@ class TrainingEpochLoop(loops.Loop):
             # skip training and run validation in `on_advance_end`
             return
 
-        batch_idx, (batch, is_last) = next(self.dataloader_iter)
-        self.batch_progress.is_last_batch = is_last
+        batch_idx, (batch, self.batch_progress.is_last_batch) = next(self.dataloader_iter)
 
         if not self.trainer.data_connector.train_data_fetcher.store_on_device:
             with self.trainer.profiler.profile("training_batch_to_device"):
@@ -197,8 +207,9 @@ class TrainingEpochLoop(loops.Loop):
             # progress global step according to grads progress
             self.global_step += 1
 
-        # if fault tolerant is enabled and process has been notified, exit.
-        self.trainer.should_exit_gracefully()
+        if not self._is_training_done:
+            # if fault tolerant is enabled and process has been notified, exit.
+            self.trainer.should_exit_gracefully("TrainingEpochLoop:on_advance_end")
 
     def on_run_end(self) -> None:
         """Calls the on_epoch_end hook.
@@ -244,6 +255,9 @@ class TrainingEpochLoop(loops.Loop):
             self.update_lr_schedulers("epoch", update_plateau_schedulers=True)
 
         self.dataloader_iter = None
+
+        # if fault tolerant is enabled and process has been notified, exit.
+        self.trainer.should_exit_gracefully("TrainingEpochLoop:on_run_end")
 
     def teardown(self) -> None:
         self._results.cpu()

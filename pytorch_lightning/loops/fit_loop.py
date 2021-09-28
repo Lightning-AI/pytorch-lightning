@@ -249,8 +249,10 @@ class FitLoop(Loop):
     def on_save_checkpoint(self) -> Dict:
         state_dict = super().on_save_checkpoint()
         # TODO: update has_completed to its proper value
-        if self.trainer.train_dataloader is not None:
-            state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(has_completed=False)
+        if self.trainer.train_dataloader is not None and not self.epoch_loop._is_training_done:
+            state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(
+                has_completed=self.epoch_loop.has_completed_training_batch
+            )
         return state_dict
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:

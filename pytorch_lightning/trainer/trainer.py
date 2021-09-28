@@ -2004,9 +2004,9 @@ class Trainer(
         if active_loop is not None:
             return active_loop._results
 
-    def should_exit_gracefully(self) -> bool:
+    def should_exit_gracefully(self, status: str) -> None:
         if _fault_tolerant_training() and self._terminate_gracefully:
-            raise ExitGracefullyException
+            raise ExitGracefullyException(f"Exiting on {status}")
 
     """
     Other

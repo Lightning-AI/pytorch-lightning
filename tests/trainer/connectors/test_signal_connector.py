@@ -18,7 +18,6 @@ from time import sleep
 from unittest import mock
 
 import pytest
-import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException
@@ -56,13 +55,3 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
         with suppress(ExitGracefullyException):
             trainer.fit(model)
         assert trainer._terminate_gracefully == (False if register_handler else terminate_gracefully)
-
-        if terminate_gracefully and not register_handler:
-            checkpoint = str(tmpdir / ".pl_auto_save.ckpt")
-            assert os.path.exists(checkpoint)
-
-            model_2 = TestModel()
-            trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=0, limit_val_batches=1)
-            trainer.fit(model_2)
-            # assert the weights properly reloaded automatically.
-            assert torch.equal(model_2.layer.weight, model.layer.weight)

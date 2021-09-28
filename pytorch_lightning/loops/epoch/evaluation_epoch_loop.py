@@ -20,7 +20,7 @@ from deprecate import void
 
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.utilities import _prepare_dataloader_iter
-from pytorch_lightning.trainer.progress import Progress
+from pytorch_lightning.trainer.progress import BatchProgress
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -40,8 +40,16 @@ class EvaluationEpochLoop(Loop):
         self._dl_max_batches: Optional[int] = None
         self._num_dataloaders: Optional[int] = None
         self.outputs: EPOCH_OUTPUT = []
-        self.batch_progress = Progress()
+        self.batch_progress = BatchProgress()
         self.dataloader_iter: Optional[Iterator] = None
+
+    @property
+    def has_completed_validation_batch(self) -> bool:
+        return self.batch_progress.current.ready == self.batch_progress.current.completed
+
+    @property
+    def has_completed_dataloader(self) -> bool:
+        return self.has_completed_validation_batch and self.batch_progress.is_last_batch
 
     @property
     def done(self) -> bool:
@@ -95,7 +103,7 @@ class EvaluationEpochLoop(Loop):
         """
         void(data_fetcher, dl_max_batches, num_dataloaders)
 
-        batch_idx, (batch, _) = next(self.dataloader_iter)
+        batch_idx, (batch, self.batch_progress.is_last_batch) = next(self.dataloader_iter)
 
         if batch is None:
             raise StopIteration
@@ -132,8 +140,9 @@ class EvaluationEpochLoop(Loop):
             if output is not None:
                 self.outputs.append(output)
 
-        # if fault tolerant is enabled and process has been notified, exit.
-        self.trainer.should_exit_gracefully()
+        if not self.batch_progress.is_last_batch:
+            # if fault tolerant is enabled and process has been notified, exit.
+            self.trainer.should_exit_gracefully("EvaluationEpochLoop:advance")
 
     def on_run_end(self) -> EPOCH_OUTPUT:
         """Returns the outputs of the whole run."""
