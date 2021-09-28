@@ -1064,6 +1064,79 @@ def test_auto_restart_within_validation_loop(train_datasets, val_datasets, val_c
         torch.testing.assert_allclose(total_val_batches[k], pre_fail_val_batches[k] + post_fail_val_batches[k])
 
 
+class TestAutoRestartModelUnderSignal(BoringModel):
+    def __init__(self, should_signal: bool, failure_on_step: bool, failure_on_training: bool, on_last_batch: bool):
+        super().__init__()
+        self.should_signal = should_signal
+        self.failure_on_step = failure_on_step
+        self.failure_on_training = failure_on_training
+        self.on_last_batch = on_last_batch
+        self.seen_train_batches = []
+
+    def _signal(self, message):
+        if self.should_signal:
+            print(message)
+            os.kill(os.getpid(), signal.SIGUSR1)
+            sleep(0.1)
+
+    def training_step(self, batch, batch_idx):
+        self.seen_train_batches.append(batch)
+        should_signal = self.trainer.fit_loop.epoch_loop._is_training_done if self.on_last_batch else batch_idx == 2
+        if self.failure_on_step and self.failure_on_training and should_signal:
+            self._signal("training_step")
+        return super().training_step(batch, batch_idx)
+
+    def validation_step(self, batch, batch_idx):
+        should_signal = (
+            self.trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.is_last_batch
+            if self.on_last_batch
+            else batch_idx == 2
+        )
+        if self.failure_on_step and not self.failure_on_training and should_signal:
+            self._signal("validation_step")
+        return super().validation_step(batch, batch_idx)
+
+    def training_epoch_end(self, outputs) -> None:
+        if not self.failure_on_step and self.failure_on_training:
+            self._signal("training_epoch_end")
+
+    def validation_epoch_end(self, outputs) -> None:
+        if not self.failure_on_step and not self.failure_on_training:
+            self._signal("validation_epoch_end")
+
+    def train_dataloader(self):
+        return DataLoader(RandomDataset(32, 4))
+
+    def val_dataloader(self):
+        return DataLoader(RandomDataset(32, 4))
+
+
+def _fit_model(
+    tmpdir, should_signal, val_check_interval, failure_on_step, failure_on_training, on_last_batch, status=None
+):
+    seed_everything(42)
+    model = TestAutoRestartModelUnderSignal(should_signal, failure_on_step, failure_on_training, on_last_batch)
+
+    trainer_kwargs = dict(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=4,
+        limit_val_batches=4,
+        val_check_interval=val_check_interval,
+        num_sanity_val_steps=0,
+    )
+
+    trainer = Trainer(**trainer_kwargs)
+    if should_signal:
+        with pytest.raises(ExitGracefullyException, match=status):
+            trainer.fit(model)
+    else:
+        trainer.fit(model)
+    assert trainer._terminate_gracefully == should_signal
+
+    return model
+
+
 @pytest.mark.parametrize("on_last_batch", [False, True])
 @pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
 @pytest.mark.parametrize("failure_on_training", [False, True])
@@ -1075,84 +1148,20 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
     """This test asserts that if a signal is being sent during the training / validation phase, the model should
     restart in a reproducible way."""
 
-    class TestModel(BoringModel):
-        def __init__(self, should_signal: bool):
-            super().__init__()
-            self.should_signal = should_signal
-            self.seen_train_batches = []
-
-        def _signal(self, message):
-            if self.should_signal:
-                print(message)
-                os.kill(os.getpid(), signal.SIGUSR1)
-                sleep(0.1)
-
-        def training_step(self, batch, batch_idx):
-            self.seen_train_batches.append(batch)
-            should_signal = self.trainer.fit_loop.epoch_loop._is_training_done if on_last_batch else batch_idx == 2
-            if failure_on_step and failure_on_training and should_signal:
-                self._signal("training_step")
-            return super().training_step(batch, batch_idx)
-
-        def validation_step(self, batch, batch_idx):
-            should_signal = (
-                self.trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.is_last_batch
-                if on_last_batch
-                else batch_idx == 2
-            )
-            if failure_on_step and not failure_on_training and should_signal:
-                self._signal("validation_step")
-            return super().validation_step(batch, batch_idx)
-
-        def training_epoch_end(self, outputs) -> None:
-            if not failure_on_step and failure_on_training:
-                self._signal("training_epoch_end")
-
-        def validation_epoch_end(self, outputs) -> None:
-            if not failure_on_step and not failure_on_training:
-                self._signal("validation_epoch_end")
-
-        def train_dataloader(self):
-            return DataLoader(RandomDataset(32, 4))
-
-        def val_dataloader(self):
-            return DataLoader(RandomDataset(32, 4))
-
-    def fit_model(should_signal, status=None):
-        seed_everything(42)
-        model = TestModel(should_signal)
-
-        trainer_kwargs = dict(
-            default_root_dir=tmpdir,
-            max_epochs=1,
-            limit_train_batches=4,
-            limit_val_batches=4,
-            val_check_interval=val_check_interval,
-            num_sanity_val_steps=0,
-        )
-
-        trainer = Trainer(**trainer_kwargs)
-        if should_signal:
-            with pytest.raises(ExitGracefullyException, match=status):
-                trainer.fit(model)
-        else:
-            trainer.fit(model)
-        assert trainer._terminate_gracefully == should_signal
-
-        return model
-
-    model_total = fit_model(False)
+    model_total = _fit_model(tmpdir, False, val_check_interval, failure_on_step, failure_on_training, on_last_batch)
     expected = model_total.seen_train_batches
 
     if failure_on_step:
         if on_last_batch:
-            status = (
-                "EvaluationEpochLoop:advance"
-                if failure_on_training
-                else (
+            if failure_on_training:
+                # Breaking on first validation batch.
+                # This is done to capture the random state of the validation dataloader.
+                status = "EvaluationEpochLoop:advance"
+            else:
+                # when breaking on last batch of validation, we should exist on `run_end` val_check_interval == 1.0
+                status = (
                     "TrainingEpochLoop:on_run_end" if val_check_interval == 1.0 else "TrainingEpochLoop:on_advance_end"
                 )
-            )
         else:
             status = "TrainingEpochLoop:on_advance_end" if failure_on_training else "EvaluationEpochLoop:advance"
     else:
@@ -1161,10 +1170,12 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
         else:
             status = "TrainingEpochLoop:on_run_end" if failure_on_training else "TrainingEpochLoop:on_advance_end"
 
-    model_signaled = fit_model(True, status)
+    model_signaled = _fit_model(
+        tmpdir, True, val_check_interval, failure_on_step, failure_on_training, on_last_batch, status=status
+    )
     checkpoint_path = str(tmpdir / ".pl_auto_save.ckpt")
     assert os.path.exists(checkpoint_path)
-    model_restarted = fit_model(False)
+    model_restarted = _fit_model(tmpdir, False, val_check_interval, failure_on_step, failure_on_training, on_last_batch)
 
     generated = model_signaled.seen_train_batches
     generated.extend(model_restarted.seen_train_batches)
