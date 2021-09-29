@@ -174,7 +174,7 @@ def test_loops_restore(tmpdir):
             trainer_loop.load_state_dict.reset_mock()
 
         for fn2 in TrainerFn:
-            if fn2 != fn and fn2 != TrainerFn.TUNING:
+            if fn2 not in (fn, TrainerFn.TUNING):
                 trainer_loop2 = getattr(trainer, f"{fn2}_loop")
                 trainer_loop2.load_state_dict.assert_not_called()
                 trainer_loop2.load_state_dict.reset_mock()
