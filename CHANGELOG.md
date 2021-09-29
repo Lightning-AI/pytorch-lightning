@@ -125,6 +125,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     * Rich Progress Bar ([#8929](https://github.com/PyTorchLightning/pytorch-lightning/pull/8929))
     * Improvements for rich progress bar ([#9559](https://github.com/PyTorchLightning/pytorch-lightning/pull/9559))
     * Support for Iterable Datasets ([#9734](https://github.com/PyTorchLightning/pytorch-lightning/pull/9734))
+    * Enable RichProgressBar by default if Rich is available ([#9647](https://github.com/PyTorchLightning/pytorch-lightning/pull/9647))
 
 
 - Added validate logic for precision ([#9080](https://github.com/PyTorchLightning/pytorch-lightning/pull/9080))
@@ -232,9 +233,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Reset metrics before each task starts ([#9410](https://github.com/PyTorchLightning/pytorch-lightning/pull/9410))
-
-
-- Enable RichProgressBar by default if Rich is available ([#9647](https://github.com/PyTorchLightning/pytorch-lightning/pull/9647))
 
 
 - `seed_everything` now fails when an invalid seed value is passed instead of selecting a random seed ([#8787](https://github.com/PyTorchLightning/pytorch-lightning/pull/8787))

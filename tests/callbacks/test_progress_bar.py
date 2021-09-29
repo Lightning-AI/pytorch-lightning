@@ -146,17 +146,20 @@ def test_progress_bar_fast_dev_run(tmpdir):
 
     trainer.fit(model)
 
-    bar = trainer.progress_bar_callback
+    progress_bar = trainer.progress_bar_callback
 
-    train_bar, val_bar = bar.progress.tasks[bar.main_progress_bar_id], bar.progress.tasks[bar.val_progress_bar_id]
+    train_bar, val_bar = (
+        progress_bar.progress.tasks[progress_bar.main_progress_bar_id],
+        progress_bar.progress.tasks[progress_bar.val_progress_bar_id],
+    )
 
-    assert 1 == bar.total_train_batches
+    assert 1 == progress_bar.total_train_batches
     # total val batches are known only after val dataloaders have reloaded
 
-    assert 1 == bar.total_val_batches
-    assert 1 == bar.train_batch_idx
-    assert 1 == bar.val_batch_idx
-    assert 0 == bar.test_batch_idx
+    assert 1 == progress_bar.total_val_batches
+    assert 1 == progress_bar.train_batch_idx
+    assert 1 == progress_bar.val_batch_idx
+    assert 0 == progress_bar.test_batch_idx
 
     # the main progress bar should display 2 batches (1 train, 1 val)
     assert 2 == train_bar.total
@@ -164,15 +167,15 @@ def test_progress_bar_fast_dev_run(tmpdir):
     trainer.validate(model)
 
     # the validation progress bar should display 1 batch
-    assert 1 == bar.val_batch_idx
+    assert 1 == progress_bar.val_batch_idx
     assert 1 == val_bar.total
 
     trainer.test(model)
 
-    test_bar = bar.progress.tasks[bar.test_progress_bar_id]
+    test_bar = progress_bar.progress.tasks[progress_bar.test_progress_bar_id]
 
     # the test progress bar should display 1 batch
-    assert 1 == bar.test_batch_idx
+    assert 1 == progress_bar.test_batch_idx
     assert 1 == test_bar.total
 
 
