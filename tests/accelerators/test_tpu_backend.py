@@ -273,4 +273,3 @@ def test_auto_weight_tying_tpus_nested_module(tmpdir):
     trainer.fit(model)
 
     assert torch.all(torch.eq(model.net_a.layer.weight, model.net_b.layer.weight))
-

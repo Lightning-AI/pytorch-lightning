@@ -259,7 +259,6 @@ def test_v1_7_0_deprecate_lightning_distributed(tmpdir):
 
 
 def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir):
-
     class WeightSharingModule(BoringModel):
         def __init__(self):
             super().__init__()

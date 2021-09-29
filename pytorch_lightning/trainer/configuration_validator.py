@@ -135,7 +135,7 @@ class ConfigValidator:
 
         Args:
             model: The model to check the `on_post_move_to_device` method.
-        """  
+        """
         if is_overridden("on_post_move_to_device", model):
             rank_zero_deprecation(
                 "Method `on_post_move_to_device` has been deprecated in v1.5 and will be removed in v1.7. "
