@@ -49,8 +49,8 @@ def auto_weight_tying(model_to_device: Callable) -> Callable:
         module = self.model.module if isinstance(self.model, LightningDistributedModule) else self.model
         if is_overridden("on_post_move_to_device", self.lightning_module):
             rank_zero_deprecation(
-                "Method `on_post_move_to_device` has been deprecated and will be removed in v1.7.0."
-                " We perform auto parameters tying without the need of implementing `on_post_move_to_device`"
+                "Method `on_post_move_to_device` has been deprecated in v1.5 and will be removed in v1.7. "
+                "We perform auto parameters tying without the need of implementing `on_post_move_to_device`"
             )
             module.on_post_move_to_device()
         else:
