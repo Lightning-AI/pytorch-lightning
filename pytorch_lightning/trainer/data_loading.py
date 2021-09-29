@@ -64,7 +64,6 @@ class TrainerDataLoadingMixin(ABC):
     accelerator: Accelerator
     accelerator_connector: AcceleratorConnector
     call_hook: Callable
-    use_ipu: bool
 
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
         if not isinstance(dataloader, DataLoader):
@@ -147,7 +146,7 @@ class TrainerDataLoadingMixin(ABC):
             _fault_tolerant_training()  # injects components to track the state
             or self._requires_distributed_sampler(dataloader)  # sets the distributed sampler
             or mode == RunningStage.PREDICTING  # to track indices for the predictions
-            or self.use_ipu  # IPUs use a custom `DataLoader`
+            or self.accelerator_connector.use_ipu  # IPUs use a custom `DataLoader`
         ):
             sampler = self._resolve_sampler(dataloader, shuffle=shuffle, mode=mode)
             dataloader = self._update_dataloader(dataloader, sampler, mode=mode)
