@@ -1481,7 +1481,6 @@ class LightningModule(
         on_tpu: bool,
         using_native_amp: bool,
         using_lbfgs: bool,
-        **kwargs: Any,
     ) -> None:
         r"""
         Override this method to adjust the default way the :class:`~pytorch_lightning.trainer.trainer.Trainer`
@@ -1501,7 +1500,6 @@ class LightningModule(
             on_tpu: ``True`` if TPU backward is required
             using_native_amp: ``True`` if using native amp
             using_lbfgs: True if the matching optimizer is :class:`torch.optim.LBFGS`
-            kwargs: Any additional arguments to the ``optimizer.step()`` call.
 
         Examples::
 
