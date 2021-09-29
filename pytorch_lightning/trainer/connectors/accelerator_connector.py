@@ -63,7 +63,6 @@ from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _IPU_AVAILABLE,
-    _NATIVE_AMP_AVAILABLE,
     _TPU_AVAILABLE,
     AMPType,
     device_parser,
@@ -559,24 +558,13 @@ class AcceleratorConnector:
                         "with amp_backend='native'."
                     )
 
-                if not _NATIVE_AMP_AVAILABLE:
-                    msg = (
-                        "You have asked for native AMP but your PyTorch version does not support it."
-                        " Consider upgrading with `pip install torch>=1.6`."
-                    )
-                    if _APEX_AVAILABLE:
-                        self.amp_type = AMPType.APEX
-                        msg += " We will attempt to use NVIDIA Apex for this session."
-                        rank_zero_warn(msg)
-                    else:
-                        raise MisconfigurationException(msg)
-                else:
-                    log.info(f"Using native {self.precision} bit Automatic Mixed Precision")
-                    if self._is_sharded_training_type:
-                        return ShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
-                    if self._is_fully_sharded_training_type:
-                        return FullyShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
-                    return NativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+                log.info(f"Using native {self.precision} bit Automatic Mixed Precision")
+                if self._is_sharded_training_type:
+                    return ShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+                if self._is_fully_sharded_training_type:
+                    return FullyShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+
+                return NativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
 
             if self.amp_type == AMPType.APEX:
                 if not _APEX_AVAILABLE:
