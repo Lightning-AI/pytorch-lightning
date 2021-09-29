@@ -93,6 +93,7 @@ class EvaluationLoop(DataLoaderLoop):
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs the ``on_evaluation_model_eval``, ``on_evaluation_start`` and ``on_evaluation_epoch_start`` hooks"""
         void(*args, **kwargs)
+
         # hook
         self.on_evaluation_model_eval()
         self.trainer.lightning_module.zero_grad()
@@ -208,7 +209,7 @@ class EvaluationLoop(DataLoaderLoop):
             self.trainer.profiler.describe()
 
         # reset any `torchmetrics.Metric` and the logger connector state
-        self.trainer.logger_connector.reset(metrics=True)
+        self.trainer.logger_connector.reset_results(metrics=True)
 
     def on_evaluation_epoch_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_epoch_start`` and ``on_{validation/test}_epoch_start`` hooks"""
