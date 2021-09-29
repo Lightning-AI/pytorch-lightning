@@ -18,7 +18,7 @@ import os
 import platform
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import torch
 from torch.optim import Optimizer
@@ -526,11 +526,6 @@ class DeepSpeedPlugin(DDPPlugin):
         # User may have specified config options instead in configure_optimizers, but this is handled
         # via `_initialize_deepspeed_train`
         return [], [], []  # empty optimizers, schedulers and frequencies
-
-    def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
-        # note: We rely on the deepspeed engine to carry out the step rather than the optimizer.
-        # internally, the engine has a reference to the optimizer already.
-        self.model.step(**kwargs)
 
     @property
     def handles_gradient_accumulation(self) -> bool:

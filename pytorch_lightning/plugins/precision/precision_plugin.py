@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
-from typing import Any, Callable, Generator, List, Optional, Tuple, Union
+from typing import Any, Generator, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -90,22 +90,30 @@ class PrecisionPlugin(CheckpointHooks):
         model.trainer.call_hook("on_after_backward")
         return closure_loss
 
-    def pre_optimizer_step(
-        self,
-        model: "pl.LightningModule",
-        optimizer: Optimizer,
-        optimizer_idx: int,
-        lambda_closure: Callable,
-        **kwargs: Any,
-    ) -> bool:
-        """Hook to do something before each optimizer step."""
+    def pre_optimizer_step(self, model: "pl.LightningModule", optimizer: Optimizer, optimizer_idx: int) -> None:
+        """Hook to do something before each optimizer step.
+
+        Returns:
+            The output of the optimizer closure execution.
+        """
         trainer = model.trainer
-        self._track_grad_norm(trainer)
+        if optimizer_idx == 0:
+            # FIXME: perhaps this shouldn't be here as we need to do it only once
+            self._track_grad_norm(trainer)
         self.clip_gradients(
             optimizer, trainer.gradient_clip_val, gradient_clip_algorithm=trainer.gradient_clip_algorithm, model=model
         )
-        model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
-        return True
+        trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
+
+    def optimizer_step(
+        self, model: "pl.LightningModule", optimizer: Optimizer, optimizer_idx: int, closure_result: Any, **kwargs: Any
+    ) -> None:
+        """Hook to run the optimizer step."""
+        skipped_backward = closure_result is None
+        # in manual optimization, the closure does not return a value
+        if not model.automatic_optimization or not skipped_backward:
+            # FIXME: LBFGS broken
+            optimizer.step(**kwargs)
 
     def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
         """Tracks the model's gradient norms."""
@@ -117,9 +125,6 @@ class PrecisionPlugin(CheckpointHooks):
             trainer.lightning_module._current_fx_name = "on_before_optimizer_step"
             trainer.lightning_module.log_grad_norm(grad_norm_dict)
             trainer.lightning_module._current_fx_name = prev_fx
-
-    def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int) -> None:
-        """Hook to do something after each optimizer step."""
 
     def clip_gradients(
         self,

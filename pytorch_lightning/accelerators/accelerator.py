@@ -26,7 +26,7 @@ from pytorch_lightning.plugins.training_type import DataParallelPlugin, Training
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
-from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
+from pytorch_lightning.utilities.enums import AMPType, LightningEnum
 from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
 
 if _NATIVE_AMP_AVAILABLE:
@@ -245,7 +245,9 @@ class Accelerator:
 
         return closure_loss
 
-    def optimizer_step(self, optimizer: Optimizer, opt_idx: int, lambda_closure: Callable, **kwargs: Any) -> None:
+    def optimizer_step(
+        self, optimizer: Optimizer, opt_idx: int, lambda_closure: Callable[[], Any], **kwargs: Any
+    ) -> None:
         """performs the actual optimizer step.
 
         Args:
@@ -253,18 +255,9 @@ class Accelerator:
             opt_idx: index of the current optimizer
             lambda_closure: closure calculating the loss value
         """
-        make_optimizer_step = self.precision_plugin.pre_optimizer_step(
-            self.lightning_module, optimizer, opt_idx, lambda_closure, **kwargs
-        )
-        if make_optimizer_step:
-            self.run_optimizer_step(optimizer, opt_idx, lambda_closure, **kwargs)
-        self.precision_plugin.post_optimizer_step(optimizer, opt_idx)
-        self.training_type_plugin.post_optimizer_step(optimizer, opt_idx, **kwargs)
-
-    def run_optimizer_step(
-        self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs: Any
-    ) -> None:
-        self.training_type_plugin.optimizer_step(optimizer, lambda_closure=lambda_closure, **kwargs)
+        result = lambda_closure()
+        self.precision_plugin.pre_optimizer_step(self.lightning_module, optimizer, opt_idx)
+        self.precision_plugin.optimizer_step(self.lightning_module, optimizer, opt_idx, result, **kwargs)
 
     def optimizer_zero_grad(self, current_epoch: int, batch_idx: int, optimizer: Optimizer, opt_idx: int) -> None:
         """Zeros all model parameter's gradients."""

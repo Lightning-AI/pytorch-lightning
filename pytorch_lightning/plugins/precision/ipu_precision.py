@@ -14,7 +14,7 @@
 from typing import Any, Optional, Union
 
 from torch.nn import Module
-from torch.optim import Optimizer
+from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
@@ -38,6 +38,23 @@ class IPUPrecisionPlugin(PrecisionPlugin):
                 " the backward logic internally."
             )
 
+    def optimizer_step(
+        self, model: "pl.LightningModule", optimizer: Optimizer, optimizer_idx: int, closure_result: Any, **kwargs: Any
+    ) -> None:
+        """IPUs handle the optimizer step internally."""
+        if isinstance(optimizer, LBFGS):
+            # IPU does not support closures
+            raise MisconfigurationException(
+                f"IPUs and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
+            )
+        # FIXME: ask this to Sean or the Graphcore people
+        skipped_backward = closure_result is None
+        # in manual optimization, the closure does not return a value
+        if model.automatic_optimization and skipped_backward:
+            raise MisconfigurationException(
+                "Skipping backward by returning `None` from your `training_step` is not supported by IPUs"
+            )
+
     def clip_gradients(
         self,
         optimizer: Optimizer,
@@ -46,11 +63,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
         model: Optional[Module] = None,
     ) -> None:
         """Clips the gradients."""
-        if clip_val is None:
-            return
-
-        clip_val = float(clip_val)
-        if clip_val <= 0:
+        if clip_val is None or float(clip_val) <= 0:
             return
 
         raise MisconfigurationException("IPUs currently do not support clipping gradients.")

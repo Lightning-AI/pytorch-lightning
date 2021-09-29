@@ -30,7 +30,7 @@ from pytorch_lightning.loops.utilities import (
 )
 from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler
 from pytorch_lightning.trainer.progress import OptimizationProgress
-from pytorch_lightning.utilities import AMPType, DeviceType, grad_norm
+from pytorch_lightning.utilities import AMPType, DeviceType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
@@ -141,17 +141,19 @@ class Closure(AbstractClosure[ClosureResult]):
         with self._profiler.profile("training_step_and_backward"):
             step_output = self._step_fn()
 
-            if step_output.closure_loss is None:
-                self.warning_cache.warn(
-                    "`training_step` returned `None`. If this was on purpose, ignore this warning..."
-                )
-
             if self._zero_grad_fn is not None:
                 with self._profiler.profile("zero_grad"):
                     self._zero_grad_fn()
 
-            if self._backward_fn is not None and step_output.closure_loss is not None:
+            if step_output.closure_loss is None:
+                self.warning_cache.warn(
+                    "`training_step` returned `None`. If this was on purpose, ignore this warning..."
+                )
+                return step_output
+
+            if self._backward_fn is not None:
                 with self._profiler.profile("backward"):
+                    # FIXME: what is the point of this returning the loss? if modified, step_output.loss becomes stale
                     step_output.closure_loss = self._backward_fn(step_output.closure_loss)
 
         return step_output
@@ -351,7 +353,11 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             model.untoggle_optimizer(opt_idx)
 
     def _optimizer_step(
-        self, optimizer: torch.optim.Optimizer, opt_idx: int, batch_idx: int, train_step_and_backward_closure: Callable
+        self,
+        optimizer: Optimizer,
+        opt_idx: int,
+        batch_idx: int,
+        train_step_and_backward_closure: Callable[[], Optional[Tensor]],
     ) -> None:
         """Performs the optimizer step and some sanity checking.
 
@@ -365,15 +371,6 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         lightning_module = self.trainer.lightning_module
 
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-        using_native_amp = self.trainer.amp_backend is not None and self.trainer.amp_backend == AMPType.NATIVE
-
-        # native amp + lbfgs is a no go right now
-        if using_native_amp and is_lbfgs:
-            raise MisconfigurationException(
-                "native PyTorch amp and lbfgs are not compatible."
-                " To request, please file a Github issue in PyTorch and tag @mcarilli"
-            )
-
         # wraps into LightningOptimizer only for running step
         optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, opt_idx)
 
@@ -387,7 +384,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             opt_idx,
             train_step_and_backward_closure,
             on_tpu=(self.trainer._device_type == DeviceType.TPU and _TPU_AVAILABLE),
-            using_native_amp=using_native_amp,
+            using_native_amp=(self.trainer.amp_backend is not None and self.trainer.amp_backend == AMPType.NATIVE),
             using_lbfgs=is_lbfgs,
         )
 

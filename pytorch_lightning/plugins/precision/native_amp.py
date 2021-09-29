@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Generator, Union
+from typing import Any, Dict, Generator, Union
 
 import torch
 from torch.optim import LBFGS, Optimizer
@@ -79,32 +79,27 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         closure_loss = self.scaler.scale(closure_loss)
         return super().pre_backward(model, closure_loss)
 
-    def pre_optimizer_step(
+    def optimizer_step(
         self,
         model: "pl.LightningModule",
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Callable,
+        closure_result: Any,
         **kwargs: Any,
-    ) -> bool:
+    ) -> None:
         if self.is_bfloat16:
             # skip scaler logic, as bfloat16 does not require scaler
-            return super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
+            return super().optimizer_step(model, optimizer, optimizer_idx, closure_result, **kwargs)
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
-                f"native PyTorch amp and lbfgs are not compatible (optimizer {optimizer_idx})."
-                " To request, please file a Github issue in PyTorch and tag @mcarilli"
+                f"Native AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
-        result = lambda_closure()  # native amp does not support closures
-        self.scaler.unscale_(optimizer)
-        super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
-        skipped_backward = result is None
+        skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if not model.automatic_optimization or not skipped_backward:
             # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
             self.scaler.step(optimizer)
             self.scaler.update()
-        return False
 
     def autocast_context_manager(self) -> torch.cuda.amp.autocast:
         if self.use_cpu:

@@ -11,15 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Dict, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
 
 import torch
 from torch import Tensor
-from torch.optim import Optimizer
+from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _PARAMETERS
 
 if _APEX_AVAILABLE:
@@ -88,23 +89,20 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
                 if state is not None:
                     break
 
-    def pre_optimizer_step(
+    def optimizer_step(
         self,
         model: "pl.LightningModule",
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Callable,
+        closure_result: Any,
         **kwargs: Any,
-    ) -> bool:
-        """Hook to do something before each optimizer step."""
-        result = lambda_closure()  # APEX amp does not support closures
-        super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
-        skipped_backward = result is None
-        # in manual optimization, the closure does not return a value
-        if not model.automatic_optimization or not skipped_backward:
-            # the following should be in a `optimizer_step` hook but we don't have one in the precision plugin.
-            optimizer.step(**kwargs)
-        return False
+    ) -> None:
+        if isinstance(optimizer, LBFGS):
+            # APEX AMP does not support closures
+            raise MisconfigurationException(
+                f"APEX AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
+            )
+        super().optimizer_step(model, optimizer, optimizer_idx, closure_result, kwargs)
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         if "amp_scaling_state" in checkpoint:

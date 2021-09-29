@@ -21,7 +21,7 @@ import os
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Literal, Mapping, Optional, overload, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -114,6 +114,14 @@ class LightningModule(
 
         # deprecated, will be removed in 1.6
         self._loaded_optimizer_states_dict = {}
+
+    @overload
+    def optimizers(self, use_pl_optimizer: Literal[True] = True) -> Union[LightningOptimizer, List[LightningOptimizer]]:
+        ...
+
+    @overload
+    def optimizers(self, use_pl_optimizer: Literal[False]) -> Union[Optimizer, List[Optimizer]]:
+        ...
 
     def optimizers(
         self, use_pl_optimizer: bool = True
@@ -630,7 +638,7 @@ class LightningModule(
             - :class:`~torch.Tensor` - The loss tensor
             - ``dict`` - A dictionary. Can include any keys, but must include the key ``'loss'``
             - ``None`` - Training will skip to the next batch. This is only for automatic optimization.
-                This is not supported for multi-GPU or TPU, or using ``DeepSpeed``.
+                This is not supported for multi-GPU, TPU, IPU, or using ``DeepSpeed``.
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
         You can also do fancier things like multiple forward passes or something model specific.
@@ -1465,25 +1473,23 @@ class LightningModule(
 
     def optimizer_step(
         self,
-        epoch: int = None,
-        batch_idx: int = None,
-        optimizer: Optimizer = None,
-        optimizer_idx: int = None,
-        optimizer_closure: Optional[Callable] = None,
-        on_tpu: bool = None,
-        using_native_amp: bool = None,
-        using_lbfgs: bool = None,
+        epoch: int,
+        batch_idx: int,
+        optimizer: Optional[LightningOptimizer],
+        optimizer_idx: Optional[int],
+        optimizer_closure: Optional[Callable[[], Any]],
+        on_tpu: bool,
+        using_native_amp: bool,
+        using_lbfgs: bool,
+        **kwargs: Any,
     ) -> None:
         r"""
-        Override this method to adjust the default way the
-        :class:`~pytorch_lightning.trainer.trainer.Trainer` calls each optimizer.
+        Override this method to adjust the default way the :class:`~pytorch_lightning.trainer.trainer.Trainer`
+        calls each optimizer.
+
         By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example
         once per optimizer. This method (and ``zero_grad()``) won't be called during the
         accumulation phase when ``Trainer(accumulate_grad_batches != 1)``.
-
-        Warning:
-            If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter
-            to ``optimizer.step()`` function as shown in the examples.
 
         Args:
             epoch: Current epoch
@@ -1495,6 +1501,7 @@ class LightningModule(
             on_tpu: ``True`` if TPU backward is required
             using_native_amp: ``True`` if using native amp
             using_lbfgs: True if the matching optimizer is :class:`torch.optim.LBFGS`
+            kwargs: Any additional arguments to the ``optimizer.step()`` call.
 
         Examples::
 

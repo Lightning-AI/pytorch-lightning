@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Optional, Union
+from typing import Any, Optional, Union
 
 from torch import Tensor
 from torch.nn import Module
-from torch.optim import Optimizer
+from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
@@ -34,36 +34,37 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         super().__init__()
         self.precision = precision
 
-    def pre_optimizer_step(
-        self,
-        model: "pl.LightningModule",
-        optimizer: Optimizer,
-        optimizer_idx: int,
-        lambda_closure: Callable,
-        **kwargs: Any,
-    ) -> bool:
-        """Hook to do something before each optimizer step."""
-        result = lambda_closure()  # DeepSpeed does not support closures
-        super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
-        # in manual optimization, the closure does not return a value
-        if model.automatic_optimization and result is None:
-            raise MisconfigurationException(
-                "Skipping backward by returning `None` from your `training_step` is not supported by `DeepSpeed`"
-            )
-        # the following should be in a `optimizer_step` hook but we don't have one in the precision plugin.
-        deepspeed_engine = model.trainer.model
-        deepspeed_engine.step()
-        return False
-
     def backward(self, model: "pl.LightningModule", closure_loss: Tensor, *args: Any, **kwargs: Any) -> None:
         if is_overridden("backward", model):
             warning_cache.warn(
                 "You have overridden the `LightningModule.backward` hook but it will be ignored since DeepSpeed handles"
                 " the backward logic internally."
             )
-        # todo: hack around for deepspeed engine to call backward
         deepspeed_engine = model.trainer.model
         deepspeed_engine.backward(closure_loss, *args, **kwargs)
+
+    def optimizer_step(
+        self,
+        model: "pl.LightningModule",
+        optimizer: Optimizer,
+        optimizer_idx: int,
+        closure_result: Any,
+        **kwargs: Any,
+    ) -> None:
+        if isinstance(optimizer, LBFGS):
+            # DeepSpeed does not support closures
+            raise MisconfigurationException(
+                f"DeepSpeed and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
+            )
+        skipped_backward = closure_result is None
+        # in manual optimization, the closure does not return a value
+        if model.automatic_optimization and skipped_backward:
+            raise MisconfigurationException(
+                "Skipping backward by returning `None` from your `training_step` is not supported by `DeepSpeed`"
+            )
+        # DeepSpeed handles the optimizer step internally
+        deepspeed_engine = model.trainer.model
+        deepspeed_engine.step(**kwargs)
 
     def clip_gradients(
         self,
@@ -72,5 +73,4 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
         model: Optional[Module] = None,
     ) -> None:
-        """DeepSpeed handles clipping gradients internally via the training type plugin."""
-        pass
+        """DeepSpeed handles gradient clipping internally."""

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 from weakref import proxy
 
 from torch.optim import Optimizer
@@ -21,7 +21,7 @@ from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-def do_nothing_closure():
+def do_nothing_closure() -> None:
     return
 
 
@@ -46,7 +46,6 @@ class LightningOptimizer:
         self._optimizer = optimizer
         self._trainer = None
         self._optimizer_idx = None
-        self._total_optimizer_step_calls = 0
 
     @property
     def optimizer(self):
@@ -121,29 +120,16 @@ class LightningOptimizer:
             yield
             self._untoggle_model()
 
-    def __optimizer_step(self, closure: Callable, profiler_name: str = None, **kwargs):
-        trainer = self._trainer
-
-        with trainer.profiler.profile(profiler_name):
-            trainer.accelerator.optimizer_step(self._optimizer, self._optimizer_idx, lambda_closure=closure, **kwargs)
-
-    def step(self, closure: Optional[Callable] = None, **kwargs):
-        """Call this directly from your training_step when doing optimizations manually. By using this we can
-        ensure that all the proper scaling when using 16-bit, accelerator etc is been done properly for you.
-
-        .. note:: In Manual Optimization, the user is expected to know when to call zero_grad,
-            perform accumulated_grad_batches, etc ... Lightning will only take care of precision and accelerators
+    def step(self, closure: Optional[Callable[[], Any]] = None, **kwargs: Any) -> None:
+        """Performs a single optimization step (parameter update).
 
         Args:
-
-            closure: One could provide its own optimizer_closure. Set to None by default.
-
-            kwargs: Any parameters provided to wrapped optimizer.step()
+            closure: An optional optimizer_closure.
+            kwargs: Any additional arguments to the ``optimizer.step()`` call.
 
         Example::
 
-            # Scenario for a GAN.
-
+            # Scenario for a GAN using manual optimization
             def training_step(...):
                 opt_gen, opt_dis = self.optimizers()
 
@@ -165,8 +151,7 @@ class LightningOptimizer:
                 opt_dis.step()
 
 
-            # Scenario for a GAN advanced
-
+            # A more advanced example
             def training_step(self, batch, batch_idx, ...):
                 opt_gen, opt_dis = self.optimizers()
 
@@ -200,8 +185,9 @@ class LightningOptimizer:
                 raise MisconfigurationException("When closure is provided, it should be a function")
             profiler_name = f"optimizer_step_and_closure_{self._optimizer_idx}"
 
-        self.__optimizer_step(closure=closure, profiler_name=profiler_name, **kwargs)
-        self._total_optimizer_step_calls += 1
+        trainer = self._trainer
+        with trainer.profiler.profile(profiler_name):
+            trainer.accelerator.optimizer_step(self._optimizer, self._optimizer_idx, lambda_closure=closure, **kwargs)
 
     def __repr__(self):
         groups = [

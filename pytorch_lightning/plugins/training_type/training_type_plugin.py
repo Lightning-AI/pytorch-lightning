@@ -13,12 +13,11 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Union
+from typing import Any, Dict, Generator, Iterable, Mapping, Optional, Union
 
 import torch
 from torch import Tensor
 from torch.nn import Module
-from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
@@ -141,9 +140,6 @@ class TrainingTypePlugin(ABC):
     def post_backward(self, closure_loss: torch.Tensor) -> None:
         """Run after precision plugin executes backward."""
 
-    def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int, **kwargs) -> None:
-        """Hook to do something after each optimizer step."""
-
     @property
     def model(self) -> Optional[Module]:
         """Returns the potentially wrapped LightningModule."""
@@ -228,9 +224,6 @@ class TrainingTypePlugin(ABC):
 
     def init_optimizers(self, trainer: "pl.Trainer", model: "pl.LightningModule"):
         return trainer.init_optimizers(model)
-
-    def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
-        optimizer.step(closure=lambda_closure, **kwargs)
 
     @property
     def setup_optimizers_in_pre_dispatch(self) -> bool:
