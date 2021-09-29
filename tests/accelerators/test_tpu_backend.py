@@ -230,7 +230,7 @@ def test_ddp_cpu_not_supported_on_tpus():
 
 
 @RunIf(tpu=True)
-def test_auto_weight_tying_tpus(tmpdir):
+def test_auto_parameters_tying_tpus(tmpdir):
 
     model = WeightSharingModule()
     shared_params = find_shared_parameters(model)
@@ -244,7 +244,7 @@ def test_auto_weight_tying_tpus(tmpdir):
 
 
 @RunIf(tpu=True)
-def test_auto_weight_tying_tpus_nested_module(tmpdir):
+def test_auto_parameters_tying_tpus_nested_module(tmpdir):
     class SubModule(nn.Module):
         def __init__(self, layer):
             super().__init__()
