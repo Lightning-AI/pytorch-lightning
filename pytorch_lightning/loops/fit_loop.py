@@ -20,6 +20,7 @@ from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 log = logging.getLogger(__name__)
@@ -159,6 +160,14 @@ class FitLoop(Loop):
                     f" ({self.min_epochs}) or minimum steps ({self.min_steps}) has"
                     " not been met. Training will continue..."
                 )
+        else:
+            if stop_steps or stop_epochs:
+                rank_zero_warn(
+                    f"Trainer not signaled to stop but met maximum number of steps ({self.max_steps}) or"
+                    f" epochs ({self.max_epochs}). If this was on purpose, ignore this warning... Otherwise,"
+                    " please increase maximum number of epochs or steps."
+                )
+
         self.trainer.should_stop = should_stop
 
         return stop_steps or should_stop or stop_epochs
