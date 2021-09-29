@@ -93,24 +93,12 @@ class LightningOptimizer:
             lightning_optimizer = trainer.lightning_optimizers[opt_idx]
         return lightning_optimizer
 
-    def _toggle_model(self) -> None:
-        assert self._trainer is not None
-        model_ref = self._trainer.lightning_module
-        model_ref.toggle_optimizer(self, self._optimizer_idx)
-
-    def _untoggle_model(self) -> None:
-        assert self._trainer is not None
-        model_ref = self._trainer.lightning_module
-        # FIXME: what?
-        model_ref.untoggle_optimizer(self)
-
     @contextmanager
     def toggle_model(self, sync_grad: bool = True) -> Generator[None, None, None]:
         """This function is just a helper for advanced users.
 
         Considering the current optimizer as A and all other optimizers as B.
         Toggling means all parameters from B exclusive to A will have ``requires_grad`` set to False.
-
 
         When performing gradient accumulation, there is no need to perform grad synchronization
         during the accumulation phase.
@@ -120,10 +108,12 @@ class LightningOptimizer:
         from pytorch_lightning.loops.utilities import _block_parallel_sync_behavior
 
         assert self._trainer is not None
+        lightning_module = self._trainer.lightning_module
+
         with _block_parallel_sync_behavior(self._trainer, block=(not sync_grad)):
-            self._toggle_model()
+            lightning_module.toggle_optimizer(self, self._optimizer_idx)
             yield
-            self._untoggle_model()
+            lightning_module.untoggle_optimizer(self._optimizer_idx)
 
     def step(self, closure: Optional[Callable[[], Any]] = None, **kwargs: Any) -> None:
         """Performs a single optimization step (parameter update).

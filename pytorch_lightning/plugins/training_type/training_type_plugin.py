@@ -156,7 +156,6 @@ class TrainingTypePlugin(ABC):
     @property
     def lightning_module(self) -> "pl.LightningModule":
         """Returns the pure LightningModule without potential wrappers."""
-        assert self._model is not None
         return unwrap_lightning_module(self._model)
 
     @property
