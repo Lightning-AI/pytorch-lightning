@@ -488,10 +488,10 @@ class TrainerDataLoadingMixin(ABC):
         Args:
             model: The `LightningModule` if called outside of the trainer scope.
         """
+        source = self.data_connector._val_dataloader_source
         pl_module = self.lightning_module or model
-        has_loader = is_overridden("val_dataloader", pl_module)
         has_step = is_overridden("validation_step", pl_module)
-        if has_loader and has_step:
+        if source.is_available and has_step:
             self.num_val_batches, self.val_dataloaders = self._reset_eval_dataloader(
                 RunningStage.VALIDATING, model=pl_module
             )
@@ -502,10 +502,10 @@ class TrainerDataLoadingMixin(ABC):
         Args:
             model: The `LightningModule` if called outside of the trainer scope.
         """
+        source = self.data_connector._test_dataloader_source
         pl_module = self.lightning_module or model
-        has_loader = is_overridden("test_dataloader", pl_module)
         has_step = is_overridden("test_step", pl_module)
-        if has_loader and has_step:
+        if source.is_available and has_step:
             self.num_test_batches, self.test_dataloaders = self._reset_eval_dataloader(
                 RunningStage.TESTING, model=pl_module
             )
