@@ -16,12 +16,13 @@ from unittest import mock
 from unittest.mock import DEFAULT
 
 import pytest
+from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ProgressBar, ProgressBarBase, RichProgressBar
 from pytorch_lightning.callbacks.progress.rich_progress import RichProgressBarTheme
 from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
-from tests.helpers.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.runif import RunIf
 
 
@@ -64,8 +65,22 @@ def test_rich_progress_bar_refresh_rate(tmpdir):
 
 @RunIf(rich=True)
 @mock.patch("pytorch_lightning.callbacks.progress.rich_progress.Progress.update")
-def test_rich_progress_bar(progress_update, tmpdir):
-    model = BoringModel()
+@pytest.mark.parametrize("dataset", [RandomDataset(32, 64), RandomIterableDataset(32, 64)])
+def test_rich_progress_bar(progress_update, tmpdir, dataset):
+    class TestModel(BoringModel):
+        def train_dataloader(self):
+            return DataLoader(dataset=dataset)
+
+        def val_dataloader(self):
+            return DataLoader(dataset=dataset)
+
+        def test_dataloader(self):
+            return DataLoader(dataset=dataset)
+
+        def predict_dataloader(self):
+            return DataLoader(dataset=dataset)
+
+    model = TestModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -79,10 +94,11 @@ def test_rich_progress_bar(progress_update, tmpdir):
     )
 
     trainer.fit(model)
+    trainer.validate(model)
     trainer.test(model)
     trainer.predict(model)
 
-    assert progress_update.call_count == 6
+    assert progress_update.call_count == 8
 
 
 def test_rich_progress_bar_import_error():

@@ -66,6 +66,7 @@ def restore_env_variables():
         "RANK",  # set by DeepSpeed
         "POPLAR_ENGINE_OPTIONS",  # set by IPUPlugin
         # set by XLA
+        "TF2_BEHAVIOR",
         "XRT_MESH_SERVICE_ADDRESS",
         "XRT_TORCH_DIST_ROOT",
     }

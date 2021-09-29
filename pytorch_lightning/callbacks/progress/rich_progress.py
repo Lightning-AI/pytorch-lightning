@@ -29,7 +29,7 @@ if _RICH_AVAILABLE:
 
     class CustomBarColumn(BarColumn):
         """Overrides ``BarColumn`` to provide support for dataloaders that do not define a size (infinite size)
-        such as ``IterableDatasets``."""
+        such as ``IterableDataset``."""
 
         def render(self, task: "Task") -> ProgressBar:
             """Gets a progress bar widget for a task."""
@@ -49,7 +49,7 @@ if _RICH_AVAILABLE:
     class CustomInfiniteTask(Task):
         """Overrides ``Task`` to define an infinite task.
 
-        This is useful for datasets that do not define a size (infinite size) such as ``IterableDatasets``.
+        This is useful for datasets that do not define a size (infinite size) such as ``IterableDataset``.
         """
 
         @property
@@ -137,7 +137,9 @@ if _RICH_AVAILABLE:
             super().__init__()
 
         def render(self, task) -> Text:
-            if self._trainer.state.fn != "fit" or self._trainer.sanity_checking:
+            from pytorch_lightning.trainer.states import TrainerFn
+
+            if self._trainer.state.fn != TrainerFn.FITTING or self._trainer.sanity_checking:
                 return Text("")
             if self._trainer.training and task.id not in self._tasks:
                 self._tasks[task.id] = "None"
@@ -306,6 +308,7 @@ class RichProgressBar(ProgressBarBase):
 
     def __setstate__(self, state):
         self.__dict__ = state
+        # reset console reference after loading progress
         self._console = Console()
 
     def on_sanity_check_start(self, trainer, pl_module):
