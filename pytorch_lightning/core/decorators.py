@@ -11,93 +11,52 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Decorator for LightningModule methods."""
-
-from functools import wraps
-from typing import Callable, Dict, List, Optional
-
-from torch.nn import Parameter
-
-import pytorch_lightning as pl
-from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.utilities import rank_zero_deprecation
-from pytorch_lightning.utilities.model_helpers import is_overridden
+
+rank_zero_deprecation(
+    "Using ``pytorch_lightning.core.decorators.parameter_validation`` is deprecated in v1.5, "
+    "and will be removed in v1.7. It has been replaced by automatic parameters tying with "
+    "``pytorch_lightning.utilities.params_tying.set_shared_parameters``"
+)
+
+from functools import wraps  # noqa: E402
+from typing import Callable  # noqa: E402
+
+from pytorch_lightning.utilities import rank_zero_warn  # noqa: E402
 
 
-def auto_weight_tying(model_to_device: Callable) -> Callable:
-    """Enables auto parameters tying on TPUs.
+def parameter_validation(fn: Callable) -> Callable:
+    """Validates that the module parameter lengths match after moving to the device. It is useful when tying
+    weights on TPU's.
 
     Args:
-        model_to_device: ``TrainingTypePlugin.model_to_device`` method
+        fn: ``model_to_device`` method
 
     Note:
         TPU's require weights to be tied/shared after moving the module to the device.
         Failure to do this results in the initialization of new weights which are not tied.
-        We apply auto parameters tying after the module has been moved to the device.
+        To overcome this issue, weights should be tied using the ``on_post_move_to_device`` model hook
+        which is called after the module has been moved to the device.
 
     See Also:
         - `XLA Documentation <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#xla-tensor-quirks>`_
-
-    Reference:
-        https://github.com/pytorch/fairseq/blob/1f7ef9ed1e1061f8c7f88f8b94c7186834398690/fairseq/trainer.py#L110-L118
     """
 
-    @wraps(model_to_device)
+    @wraps(fn)
     def inner_fn(self, *args, **kwargs):
-        shared_params = find_shared_parameters(self.model)
-        model_to_device(self, *args, **kwargs)
-        module = self.model.module if isinstance(self.model, LightningDistributedModule) else self.model
-        if is_overridden("on_post_move_to_device", self.lightning_module):
-            module.on_post_move_to_device()
-        else:
-            apply_weight_tying(module, shared_params)
+        pre_layer_count = len(list(self.model.parameters()))
+        module = fn(self, *args, **kwargs)
+        self.model.on_post_move_to_device()
+        post_layer_count = len(list(self.model.parameters()))
+
+        if not pre_layer_count == post_layer_count:
+            rank_zero_warn(
+                "The model layers do not match after moving to the target device."
+                " If your model employs weight sharing on TPU,"
+                " please tie your weights using the `on_post_move_to_device` model hook.\n"
+                f"Layer count: [Before: {pre_layer_count} After: {post_layer_count}]"
+            )
+
+        return module
 
     return inner_fn
-
-
-def find_shared_parameters(
-    module: "pl.LightningModule", tied_parameters: Optional[Dict] = None, prefix: str = ""
-) -> List[str]:
-    """Returns a list of names of shared parameters set in the module."""
-
-    if tied_parameters is None:
-        first_call = True
-        tied_parameters = {}
-    else:
-        first_call = False
-    for name, param in module._parameters.items():
-        param_prefix = prefix + ("." if prefix else "") + name
-        if param is None:
-            continue
-        if param not in tied_parameters:
-            tied_parameters[param] = []
-        tied_parameters[param].append(param_prefix)
-    for name, m in module._modules.items():
-        if m is None:
-            continue
-        submodule_prefix = prefix + ("." if prefix else "") + name
-        find_shared_parameters(m, tied_parameters, submodule_prefix)
-    if first_call:
-        return [x for x in tied_parameters.values() if len(x) > 1]
-
-
-def apply_weight_tying(module: "pl.LightningModule", shared_params: list):
-    for shared_param in shared_params:
-        ref = _get_module_by_path(module, shared_param[0])
-        for path in shared_param[1:]:
-            _set_module_by_path(module, path, ref)
-    return module
-
-
-def _get_module_by_path(module: "pl.LightningModule", path: str):
-    path = path.split(".")
-    for name in path:
-        module = getattr(module, name)
-    return module
-
-
-def _set_module_by_path(module: "pl.LightningModule", path: str, value: Parameter):
-    path = path.split(".")
-    for name in path[:-1]:
-        module = getattr(module, name)
-    setattr(module, path[-1], value)
