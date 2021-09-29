@@ -64,6 +64,7 @@ class TrainerDataLoadingMixin(ABC):
     accelerator: Accelerator
     accelerator_connector: AcceleratorConnector
     call_hook: Callable
+    use_ipu: bool
 
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
         if not isinstance(dataloader, DataLoader):
@@ -142,12 +143,11 @@ class TrainerDataLoadingMixin(ABC):
         if not isinstance(dataloader, DataLoader):
             return dataloader
 
-        # the DataLoader should be re-created only if we need to inject
-        # the fault tolerant components or the distributed sampler or we need to track indices for predictions.
         if (
-            _fault_tolerant_training()
-            or self._requires_distributed_sampler(dataloader)
-            or mode == RunningStage.PREDICTING
+            _fault_tolerant_training()  # injects components to track the state
+            or self._requires_distributed_sampler(dataloader)  # sets the distributed sampler
+            or mode == RunningStage.PREDICTING  # to track indices for the predictions
+            or self.use_ipu  # IPUs use a custom `DataLoader`
         ):
             sampler = self._resolve_sampler(dataloader, shuffle=shuffle, mode=mode)
             dataloader = self._update_dataloader(dataloader, sampler, mode=mode)
