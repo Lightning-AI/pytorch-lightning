@@ -74,7 +74,6 @@ from pytorch_lightning.utilities.imports import (
     _APEX_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _IPU_AVAILABLE,
-    _NATIVE_AMP_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_7,
     _TORCH_GREATER_EQUAL_1_8,
     _TPU_AVAILABLE,
