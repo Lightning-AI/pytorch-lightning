@@ -274,17 +274,3 @@ def test_auto_weight_tying_tpus_nested_module(tmpdir):
 
     assert torch.all(torch.eq(model.net_a.layer.weight, model.net_b.layer.weight))
 
-
-@RunIf(tpu=True)
-def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir):
-    class Model(WeightSharingModule):
-        def on_post_move_to_device(self):
-            self.layer_3.weight = self.layer_1.weight
-
-    model = Model()
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, tpu_cores=1, max_epochs=1)
-
-    with pytest.deprecated_call(
-        match=r"Method `on_post_move_to_device` has been deprecated in v1.5 and will be removed in v1.7"
-    ):
-        trainer.fit(model)
