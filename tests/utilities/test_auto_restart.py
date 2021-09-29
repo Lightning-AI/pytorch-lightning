@@ -1075,7 +1075,6 @@ class TestAutoRestartModelUnderSignal(BoringModel):
 
     def _signal(self, message):
         if self.should_signal:
-            print(message)
             os.kill(os.getpid(), signal.SIGUSR1)
             # small optimization to skip as soon as async signal has being triggered.
             t0 = time()
