@@ -83,7 +83,7 @@ def test_submodules_multi_gpu_ddp_spawn(tmpdir):
 
 
 @pytest.mark.parametrize(
-    ["device"],
+    "device",
     [
         None,  # explicitly call without an index to see if the returning device contains an index
         0,
