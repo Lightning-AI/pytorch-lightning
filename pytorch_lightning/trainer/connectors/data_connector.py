@@ -14,7 +14,7 @@
 import os
 from dataclasses import dataclass
 from functools import partial
-from typing import Iterable, Optional, Union, List, Dict
+from typing import Dict, Iterable, List, Optional, Union
 
 from torch.utils.data import DataLoader
 
