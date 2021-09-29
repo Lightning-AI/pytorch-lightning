@@ -35,6 +35,7 @@ def test_loops_state_dict():
 
     new_fit_loop = FitLoop()
     new_fit_loop.trainer = trainer
+    new_fit_loop.connect(Mock())
 
     new_fit_loop.load_state_dict(state_dict)
     assert fit_loop.state_dict() == new_fit_loop.state_dict()
