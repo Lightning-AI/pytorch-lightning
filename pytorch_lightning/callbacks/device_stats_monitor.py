@@ -18,11 +18,12 @@ Device Stats Monitor
 Monitors and logs device stats during training.
 
 """
-from typing import Optional
+from typing import Any, Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 class DeviceStatsMonitor(Callback):
@@ -45,7 +46,9 @@ class DeviceStatsMonitor(Callback):
         if not trainer.logger:
             raise MisconfigurationException("Cannot use DeviceStatsMonitor callback with Trainer that has no logger.")
 
-    def on_batch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_train_batch_start(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+    ) -> None:
         if not self._should_log(trainer):
             return
 
@@ -53,10 +56,14 @@ class DeviceStatsMonitor(Callback):
         device_stats = trainer.accelerator.get_device_stats(device)
         trainer.logger.log_metrics(device_stats, step=trainer.global_step)
 
-    def on_batch_end(
+    def on_train_batch_end(
         self,
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
+        outputs: STEP_OUTPUT,
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int,
     ) -> None:
         if not self._should_log(trainer):
             return
@@ -66,5 +73,5 @@ class DeviceStatsMonitor(Callback):
         trainer.logger.log_metrics(device_stats, step=trainer.global_step)
 
     @staticmethod
-    def _should_log(trainer) -> bool:
+    def _should_log(trainer: "pl.Trainer") -> bool:
         return (trainer.global_step + 1) % trainer.log_every_n_steps == 0 or trainer.should_stop

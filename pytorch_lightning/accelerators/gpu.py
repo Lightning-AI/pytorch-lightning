@@ -15,7 +15,7 @@ import logging
 import os
 import shutil
 import subprocess
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List
 
 import torch
 
@@ -57,7 +57,7 @@ class GPUAccelerator(Accelerator):
         devices = os.getenv("CUDA_VISIBLE_DEVICES", all_gpu_ids)
         _log.info(f"LOCAL_RANK: {local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]")
 
-    def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
+    def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
         """Gets stats for the given GPU device.
 
         Args:

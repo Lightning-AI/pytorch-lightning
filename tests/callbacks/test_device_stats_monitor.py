@@ -48,7 +48,7 @@ def test_device_stats_gpu_from_torch(tmpdir):
     # See https://github.com/pytorch/pytorch/issues/65793
     _ = torch.randn(1, device="cuda")
     with patch.object(CSVLogger, "log_metrics") as mock_log_method:
-        device_stats.on_batch_start(trainer, model)
+        device_stats.on_train_batch_start(trainer, model, None, None, None)
 
     metrics_dict = mock_log_method.call_args.args[0]
 
@@ -80,7 +80,7 @@ def test_device_stats_gpu_from_nvidia(tmpdir):
     )
 
     with patch.object(CSVLogger, "log_metrics") as mock_log_method:
-        device_stats.on_batch_start(trainer, model)
+        device_stats.on_train_batch_start(trainer, model, None, None, None)
 
     metrics_dict = mock_log_method.call_args.args[0]
 
@@ -110,7 +110,7 @@ def test_device_stats_monitor_tpu(tmpdir):
     )
 
     with patch.object(CSVLogger, "log_metrics") as mock_log_method:
-        device_stats.on_batch_start(trainer, model)
+        device_stats.on_train_batch_start(trainer, model, None, None, None)
 
     metrics_dict = mock_log_method.call_args.args[0]
 

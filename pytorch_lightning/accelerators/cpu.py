@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Union
+from typing import Any, Dict
 
 import torch
 
@@ -34,6 +34,6 @@ class CPUAccelerator(Accelerator):
 
         return super().setup(trainer)
 
-    def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
+    def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
         """Returns dummy implementation."""
         return {}
