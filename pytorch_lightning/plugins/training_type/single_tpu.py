@@ -14,12 +14,17 @@
 import os
 from typing import Any, Dict
 
-from pytorch_lightning.core.decorators import auto_weight_tying
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
-from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE
+from pytorch_lightning.utilities import (
+    _OMEGACONF_AVAILABLE,
+    _TPU_AVAILABLE,
+    find_shared_parameters,
+    set_shared_parameters,
+)
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import _PATH
 
 if _TPU_AVAILABLE:
@@ -49,7 +54,14 @@ class SingleTPUPlugin(SingleDevicePlugin):
     def is_distributed(self) -> bool:
         return False
 
-    @auto_weight_tying
+    def setup(self) -> None:
+        shared_params = find_shared_parameters(self.model)
+        self.model_to_device()
+        if is_overridden("on_post_move_to_device", self.lightning_module):
+            self.model.on_post_move_to_device()
+        else:
+            set_shared_parameters(self.model, shared_params)
+
     def model_to_device(self) -> None:
         self.model.to(self.root_device)
 
