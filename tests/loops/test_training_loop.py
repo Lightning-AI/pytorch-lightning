@@ -14,6 +14,7 @@
 
 import pytest
 import torch
+
 from pytorch_lightning import seed_everything, Trainer
 from tests.helpers import BoringModel
 from tests.helpers.utils import no_warning_call
@@ -126,7 +127,8 @@ def test_should_stop_mid_epoch(tmpdir):
     assert trainer.global_step == 5
     assert model.validation_called_at == (0, 4)
 
-@pytest.mark.parametrize(["max_epochs", "current_epoch"],[(1, 0), (1, 1), (1, 2)])
+
+@pytest.mark.parametrize(["max_epochs", "current_epoch"], [(1, 0), (1, 1), (1, 2)])
 def test_warning_no_early_stoppoing_and_max_epochs(tmpdir, max_epochs, current_epoch):
     """Test that training stops early with max epoch being reached."""
     model = BoringModel()
@@ -139,7 +141,8 @@ def test_warning_no_early_stoppoing_and_max_epochs(tmpdir, max_epochs, current_e
         with pytest.warns(UserWarning, match=r"Trainer not signaled to stop but met maximum number of steps "):
             trainer.fit(model)
 
-@pytest.mark.parametrize(["max_steps", "global_steps"],[(1, 0), (1, 1), (1, 2)])
+
+@pytest.mark.parametrize(["max_steps", "global_steps"], [(1, 0), (1, 1), (1, 2)])
 def test_warning_no_early_stoppoing_and_max_steps(tmpdir, max_steps, global_steps):
     """Test that training stops early with max steps being reached."""
     model = BoringModel()
@@ -151,7 +154,8 @@ def test_warning_no_early_stoppoing_and_max_steps(tmpdir, max_steps, global_step
     else:
         with pytest.warns(UserWarning, match=r"Trainer not signaled to stop but met maximum number of steps "):
             trainer.fit(model)
-    
+
+
 def test_warning_valid_train_step_end(tmpdir):
     class ValidTrainStepEndModel(BoringModel):
         def training_step(self, batch, batch_idx):
