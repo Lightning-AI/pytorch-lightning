@@ -277,13 +277,15 @@ class LoggerConnector:
             is_first_batch = self._batch_idx + self._split_idx == 0
         return is_different_fx and is_first_batch
 
-    def reset(self, metrics: Optional[bool] = None) -> None:
-        if self.trainer.sanity_checking:
-            # reset metrics
-            self._progress_bar_metrics = {}
-            self._logged_metrics = {}
-            self._callback_metrics = {}
-        self.trainer._results.reset(metrics=metrics)
+    def reset_metrics(self) -> None:
+        self._progress_bar_metrics = {}
+        self._logged_metrics = {}
+        self._callback_metrics = {}
+
+    def reset_results(self, metrics: Optional[bool] = None) -> None:
+        if self.trainer._results is not None:
+            self.trainer._results.reset(metrics=metrics)
+
         self._batch_idx = None
         self._split_idx = None
         self._current_fx = None

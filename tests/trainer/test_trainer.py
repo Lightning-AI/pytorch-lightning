@@ -1897,3 +1897,49 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
     trainer_2.fit(model)
 
     assert current_memory() <= initial
+
+
+def test_trainer_metrics_reset_before_each_task(tmpdir):
+    """Test that callback, logged and progress bar metrics are reset before each task starts."""
+
+    class TestMetricRestartCallback(Callback):
+        def _make_assertions(self, trainer):
+            assert trainer.callback_metrics == {}
+            assert trainer.progress_bar_metrics == {}
+            assert trainer.logged_metrics == {}
+
+        def on_train_start(self, trainer, *args, **kwargs):
+            self._make_assertions(trainer)
+
+        def on_validation_start(self, trainer, *args, **kwargs):
+            if trainer.state.fn == TrainerFn.VALIDATING:
+                self._make_assertions(trainer)
+
+        def on_test_start(self, trainer, *args, **kwargs):
+            self._make_assertions(trainer)
+
+        def on_predict_start(self, trainer, *args, **kwargs):
+            self._make_assertions(trainer)
+
+    class CustomBoringModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+
+        def training_step(self, *args, **kwargs):
+            self.log("train/metric", 7.0)
+            return super().training_step(*args, **kwargs)
+
+        def validation_step(self, *args, **kwargs):
+            self.log("val/metric", 14.0)
+            return super().validation_step(*args, **kwargs)
+
+        def test_step(self, *args, **kwargs):
+            self.log("test/metric", 21.0)
+            return super().test_step(*args, **kwargs)
+
+    model = CustomBoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=4, callbacks=[TestMetricRestartCallback()])
+    trainer.fit(model)
+    trainer.validate(model)
+    trainer.test(model)
+    trainer.predict(model)
