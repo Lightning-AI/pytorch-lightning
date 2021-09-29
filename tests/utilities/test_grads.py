@@ -59,6 +59,8 @@ from pytorch_lightning.utilities import grad_norm
     ],
 )
 def test_grad_norm(norm_type, expected):
+    """Test utility function for computing the p-norm of individual parameter groups and norm in total."""
+
     class Model(nn.Module):
         def __init__(self):
             super().__init__()
