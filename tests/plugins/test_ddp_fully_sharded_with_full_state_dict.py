@@ -40,7 +40,7 @@ def test_invalid_apex_sharded(device_count_mock, mock_cuda_available, tmpdir):
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
 @mock.patch("torch.cuda.device_count", return_value=1)
 @mock.patch("torch.cuda.is_available", return_value=True)
-@RunIf(amp_native=True, fairscale_fully_sharded=True)
+@RunIf(fairscale_fully_sharded=True)
 def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, plugins="fsdp", gpus=1, precision=16)
@@ -99,7 +99,7 @@ class TestFSDPModel(BoringModel):
         assert self.layer.module[2].reshard_after_forward is True
 
 
-@RunIf(min_gpus=1, skip_windows=True, fairscale_fully_sharded=True, amp_native=True, special=True)
+@RunIf(min_gpus=1, skip_windows=True, fairscale_fully_sharded=True, special=True)
 def test_fully_sharded_plugin_checkpoint(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
 
@@ -108,7 +108,7 @@ def test_fully_sharded_plugin_checkpoint(tmpdir):
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
-@RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True, amp_native=True, special=True)
+@RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True, special=True)
 def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run."""
 
