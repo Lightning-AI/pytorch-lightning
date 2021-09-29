@@ -88,6 +88,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                     " HINT: You can mock the length on your dataset to bypass this MisconfigurationException."
                 )
 
+    # TODO: what to do here?
     @staticmethod
     def _validate_patched_dataloaders(model: Module) -> None:
         """Validate and fail fast if the dataloaders were passed directly to fit."""

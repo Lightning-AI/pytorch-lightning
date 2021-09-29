@@ -516,9 +516,9 @@ class TrainerDataLoadingMixin(ABC):
         Args:
             model: The `LightningModule` if called outside of the trainer scope.
         """
+        source = self.data_connector._predict_dataloader_source
         pl_module = self.lightning_module or model
-        has_loader = is_overridden("predict_dataloader", pl_module)
-        if has_loader:
+        if source.is_available:
             self.num_predict_batches, self.predict_dataloaders = self._reset_eval_dataloader(
                 RunningStage.PREDICTING, model=pl_module
             )

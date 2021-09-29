@@ -1306,8 +1306,6 @@ class Trainer(
         if self.datamodule is not None:
             self.datamodule.teardown(stage=fn)
 
-        self.data_connector.detach_data(self.lightning_module)
-
         self.call_hook("teardown", stage=fn)
 
         self.lightning_module._current_fx_name = None

@@ -78,6 +78,7 @@ def test_is_overridden():
     model.training_step = partial(model.training_step)
     assert is_overridden("training_step", model)
 
+    # TODO: remove
     # `_PatchDataLoader.patch_loader_code` support
     class TestModel(BoringModel):
         def on_fit_start(self):
