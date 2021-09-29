@@ -371,7 +371,11 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             model.untoggle_optimizer(opt_idx)
 
     def _optimizer_step(
-        self, optimizer: torch.optim.Optimizer, opt_idx: int, batch_idx: int, train_step_and_backward_closure: Callable
+        self,
+        optimizer: Optimizer,
+        opt_idx: int,
+        batch_idx: int,
+        train_step_and_backward_closure: Callable[[], Optional[Tensor]],
     ) -> None:
         """Performs the optimizer step and some sanity checking.
 
@@ -385,15 +389,6 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         lightning_module = self.trainer.lightning_module
 
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-        using_native_amp = self.trainer.amp_backend is not None and self.trainer.amp_backend == AMPType.NATIVE
-
-        # native amp + lbfgs is a no go right now
-        if using_native_amp and is_lbfgs:
-            raise MisconfigurationException(
-                "native PyTorch amp and lbfgs are not compatible."
-                " To request, please file a Github issue in PyTorch and tag @mcarilli"
-            )
-
         # wraps into LightningOptimizer only for running step
         optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, opt_idx)
 
@@ -407,7 +402,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             opt_idx,
             train_step_and_backward_closure,
             on_tpu=(self.trainer._device_type == DeviceType.TPU and _TPU_AVAILABLE),
-            using_native_amp=using_native_amp,
+            using_native_amp=(self.trainer.amp_backend is not None and self.trainer.amp_backend == AMPType.NATIVE),
             using_lbfgs=is_lbfgs,
         )
 

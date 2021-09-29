@@ -92,8 +92,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             return super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
-                f"native PyTorch amp and lbfgs are not compatible (optimizer {optimizer_idx})."
-                " To request, please file a Github issue in PyTorch and tag @mcarilli"
+                f"Native AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
         result = lambda_closure()  # native amp does not support closures
         self.scaler.unscale_(optimizer)
