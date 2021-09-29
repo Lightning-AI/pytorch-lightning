@@ -258,8 +258,6 @@ class Accelerator:
         )
         if make_optimizer_step:
             self.run_optimizer_step(optimizer, opt_idx, lambda_closure, **kwargs)
-        self.precision_plugin.post_optimizer_step(optimizer, opt_idx)
-        self.training_type_plugin.post_optimizer_step(optimizer, opt_idx, **kwargs)
 
     def run_optimizer_step(
         self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs: Any
