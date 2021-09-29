@@ -118,6 +118,14 @@ class GradClipAlgorithmType(LightningEnum):
     VALUE = "value"
     NORM = "norm"
 
+    @staticmethod
+    def supported_type(val: str) -> bool:
+        return any(x.value == val for x in GradClipAlgorithmType)
+
+    @staticmethod
+    def supported_types() -> List[str]:
+        return [x.value for x in GradClipAlgorithmType]
+
 
 class AutoRestartBatchKeys(LightningEnum):
     """
