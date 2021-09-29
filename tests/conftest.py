@@ -14,13 +14,12 @@
 import os
 import sys
 import threading
-from functools import partial, wraps
+from functools import partial
 from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
 
 import pytest
 import torch.distributed
-import torch.multiprocessing as mp
 
 from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
 from tests import _PATH_DATASETS
@@ -86,21 +85,6 @@ def teardown_process_group():
     yield
     if torch.distributed.is_available() and torch.distributed.is_initialized():
         torch.distributed.destroy_process_group()
-
-
-def pytest_configure(config):
-    config.addinivalue_line("markers", "spawn: spawn test in a separate process using torch.multiprocessing.spawn")
-
-
-@pytest.mark.tryfirst
-def pytest_pyfunc_call(pyfuncitem):
-    if pyfuncitem.get_closest_marker("spawn"):
-        testfunction = pyfuncitem.obj
-        funcargs = pyfuncitem.funcargs
-        testargs = tuple(funcargs[arg] for arg in pyfuncitem._fixtureinfo.argnames)
-
-        mp.spawn(wraps, (testfunction, testargs))
-        return True
 
 
 @pytest.fixture
