@@ -56,6 +56,8 @@ def test_rich_summary_tuples(mock_table_add_row, mock_console):
     summary_data = summary._get_summary_data()
 
     model_summary.summarize(summary_data=summary_data, total_parameters=1, trainable_parameters=1, model_size=1)
+
+    # ensure that summary was logged + the breakdown of model parameters
     assert mock_console.call_count == 2
     # assert that the input summary data was converted correctly
     args, kwargs = mock_table_add_row.call_args_list[0]
