@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Any
+
 import pytest
 import torch
 import torch.nn as nn
@@ -352,3 +354,18 @@ def test_max_depth_param(max_depth):
 def test_raise_invalid_max_depth_value(max_depth):
     with pytest.raises(ValueError, match=f"`max_depth` can be -1, 0 or > 0, got {max_depth}"):
         summarize(DeepNestedModel(), max_depth=max_depth)
+
+
+@pytest.mark.parametrize("example_input", [None, torch.randn(4, 32)])
+def test_summary_data_output(example_input):
+    """Ensure all items are converted to strings when getting summary data."""
+
+    class TestModel(BoringModel):
+        @property
+        def example_input_array(self) -> Any:
+            return example_input
+
+    summary = summarize(TestModel())
+    summary_data = summary._get_summary_data()
+    for column_name, entries in summary_data:
+        assert all(isinstance(entry, str) for entry in entries)
