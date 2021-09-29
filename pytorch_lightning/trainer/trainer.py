@@ -246,7 +246,7 @@ class Trainer(
                 clipping.
 
             gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
-                for clip_by_value, and ``gradient_clip_algorithm="norm"`` for clip_by_norm.
+                to clip by value, and ``gradient_clip_algorithm="norm"`` to clip by norm.
 
             limit_train_batches: How much of training dataset to check (float = fraction, int = num_batches).
 

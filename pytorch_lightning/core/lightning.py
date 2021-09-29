@@ -1462,7 +1462,7 @@ class LightningModule(
             optimizer_idx: Current optimizer idx in the training loop
 
         Note:
-            Only called when using multiple optimizers
+            Only called when using multiple_optimizers
         """
         for opt_idx, opt in enumerate(self.optimizers(use_pl_optimizer=False)):
             if optimizer_idx != opt_idx:
@@ -1474,17 +1474,17 @@ class LightningModule(
         self._param_requires_grad_state = {}
 
     def clip_gradients(self, optimizer: Optimizer, gradient_clip_val: Union[int, float], gradient_clip_algorithm: str):
-        """Handles Gradient Clipping internally.
+        """Handles gradient clipping internally.
+
+        Note:
+            Do not override this method. If you want to customize gradient clipping, consider
+            using :meth:`configure_gradient_clipping`.
 
         Args:
             optimizer: Current optimizer being used.
             gradient_clip_val: The value at which to clip gradients.
             gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
-                for clip_by_value, and ``gradient_clip_algorithm="norm"`` for clip_by_norm.
-
-        Note:
-            Do not override this method. If you want to customize gradient clipping, consider
-            using :meth:`configure_gradient_clipping`.
+                to clip by value, and ``gradient_clip_algorithm="norm"`` to clip by norm.
         """
         # gradient clipping
         if not isinstance(gradient_clip_val, (int, float)):
@@ -1505,7 +1505,7 @@ class LightningModule(
         gradient_clip_val: Union[int, float],
         gradient_clip_algorithm: str,
     ):
-        """Perform Gradient Clipping for the optimizer parameters. Called before :meth:`optimizer_step`.
+        """Perform gradient clipping for the optimizer parameters. Called before :meth:`optimizer_step`.
 
         Args:
             optimizer: Current optimizer being used.
@@ -1520,9 +1520,11 @@ class LightningModule(
             # Perform gradient clipping on discriminator (optimizer_idx=1) in GAN
             def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
                 if optimizer_idx == 1:
-                    # lightning will handle the gradient clipping
+                    # Lightning will handle the gradient clipping
                     self.clip_gradients(
-                        optimizer, gradient_clip_val=gradient_clip_val, gradient_clip_algorithm=gradient_clip_algorithm
+                        optimizer,
+                        gradient_clip_val=gradient_clip_val,
+                        gradient_clip_algorithm=gradient_clip_algorithm
                     )
                 else:
                     # implement your own custom logic to clip gradients for generator (optimizer_idx=0)
