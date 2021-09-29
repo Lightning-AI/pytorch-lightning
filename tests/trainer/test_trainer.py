@@ -613,12 +613,13 @@ def test_trainer_properties_restore_resume_from_checkpoint(tmpdir):
         dm = ClassifDataModule()
         trainer_args.update(
             {
-                "auto_scale_batch_size": True if fn == "tune" else False,
+                "auto_scale_batch_size": fn == "tune",
             }
         )
 
         trainer = Trainer(**trainer_args)
-        getattr(trainer, fn)(model, datamodule=dm)
+        trainer_fn = getattr(trainer, fn)
+        trainer_fn(model, datamodule=dm)
 
 
 def test_trainer_max_steps_and_epochs(tmpdir):

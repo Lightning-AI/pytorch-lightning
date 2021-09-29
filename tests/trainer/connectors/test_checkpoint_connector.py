@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Mapping
 from unittest import mock
 from unittest.mock import Mock
 
@@ -155,32 +154,27 @@ def test_loops_restore(tmpdir):
     trainer.fit(model)
 
     resume_ckpt = str(tmpdir / "last.ckpt")
-    state_dict = torch.load(resume_ckpt)
     trainer_args.update(
         {"max_epochs": 3, "resume_from_checkpoint": resume_ckpt, "checkpoint_callback": False, "callbacks": []}
     )
-
-    def _is_equal(a, b):
-        if isinstance(a, torch.Tensor):
-            return torch.all(torch.eq(a, b))
-
-        if isinstance(a, Mapping):
-            return all(_is_equal(a.get(k, None), b.get(k, None)) for k in b.keys() if k != "device")
-
-        return a == b
+    trainer = Trainer(**trainer_args)
+    for fn in TrainerFn:
+        if fn != TrainerFn.TUNING:
+            trainer_fn = getattr(trainer, f"{fn}_loop")
+            trainer_fn.load_state_dict = Mock(side_effect=trainer_fn.load_state_dict)
 
     for fn in TrainerFn:
-        if fn == TrainerFn.TUNING:
-            continue
+        if fn != TrainerFn.TUNING:
+            trainer.state.fn = fn
+            trainer.checkpoint_connector.resume_start()
+            trainer.checkpoint_connector.restore_loops()
 
-        trainer = Trainer(**trainer_args)
-        trainer.state.fn = fn
-        trainer.checkpoint_connector.resume_start()
-        trainer.checkpoint_connector.restore_loops()
-        fn_loop = f"{fn}_loop"
-        assert _is_equal(state_dict["loops"][fn_loop], getattr(trainer, fn_loop).state_dict())
+            trainer_loop = getattr(trainer, f"{fn}_loop")
+            trainer_loop.load_state_dict.assert_called()
+            trainer_loop.load_state_dict.reset_mock()
 
         for fn2 in TrainerFn:
             if fn2 != fn and fn2 != TrainerFn.TUNING:
-                fn2_loop = f"{fn2}_loop"
-                assert not _is_equal(state_dict["loops"][fn2_loop], getattr(trainer, fn2_loop).state_dict())
+                trainer_loop2 = getattr(trainer, f"{fn2}_loop")
+                trainer_loop2.load_state_dict.assert_not_called()
+                trainer_loop2.load_state_dict.reset_mock()
