@@ -491,7 +491,7 @@ class TrainerDataLoadingMixin(ABC):
         source = self.data_connector._val_dataloader_source
         pl_module = self.lightning_module or model
         has_step = is_overridden("validation_step", pl_module)
-        if source.is_available and has_step:
+        if source.available and has_step:
             self.num_val_batches, self.val_dataloaders = self._reset_eval_dataloader(
                 RunningStage.VALIDATING, model=pl_module
             )
@@ -505,7 +505,7 @@ class TrainerDataLoadingMixin(ABC):
         source = self.data_connector._test_dataloader_source
         pl_module = self.lightning_module or model
         has_step = is_overridden("test_step", pl_module)
-        if source.is_available and has_step:
+        if source.available and has_step:
             self.num_test_batches, self.test_dataloaders = self._reset_eval_dataloader(
                 RunningStage.TESTING, model=pl_module
             )
@@ -518,7 +518,7 @@ class TrainerDataLoadingMixin(ABC):
         """
         source = self.data_connector._predict_dataloader_source
         pl_module = self.lightning_module or model
-        if source.is_available:
+        if source.available:
             self.num_predict_batches, self.predict_dataloaders = self._reset_eval_dataloader(
                 RunningStage.PREDICTING, model=pl_module
             )

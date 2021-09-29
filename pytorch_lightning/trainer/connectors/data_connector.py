@@ -269,8 +269,8 @@ class DataLoaderSource:
             return getattr(self.instance, self.name)()
         return self.instance
 
-    # TODO: needed in config validator?
-    def is_available(self) -> bool:
+    @property
+    def available(self) -> bool:
         from pytorch_lightning import LightningDataModule, LightningModule
 
         return not isinstance(self.instance, (LightningModule, LightningDataModule)) or is_overridden(
