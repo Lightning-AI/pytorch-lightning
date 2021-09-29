@@ -27,7 +27,6 @@ from pytorch_lightning.core.decorators import parameter_validation
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
-from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
