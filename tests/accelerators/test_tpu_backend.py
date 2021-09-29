@@ -285,6 +285,6 @@ def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, tpu_cores=1, max_epochs=1)
 
     with pytest.deprecated_call(
-        match=r"Method `on_post_move_to_device` has been deprecated and will be removed in v1.7.0."
+        match=r"Method `on_post_move_to_device` has been deprecated in v1.5 and will be removed in v1.7"
     ):
         trainer.fit(model)
