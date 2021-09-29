@@ -158,10 +158,7 @@ def test_empty_model_summary_shapes(mode: str):
 
 @RunIf(min_gpus=1)
 @pytest.mark.parametrize("mode", ["full", "top"])
-@pytest.mark.parametrize(
-    ["device"],
-    [torch.device("cpu"), torch.device("cuda", 0)],
-)
+@pytest.mark.parametrize("device", [torch.device("cpu"), torch.device("cuda", 0)])
 def test_linear_model_summary_shapes(device, mode):
     """Test that the model summary correctly computes the input- and output shapes."""
     model = UnorderedModel().to(device)
