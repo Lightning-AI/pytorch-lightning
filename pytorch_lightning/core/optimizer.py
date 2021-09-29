@@ -12,16 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Callable, Optional
+from typing import Any, Callable, Generator, List, Optional
 from weakref import proxy
 
 from torch.optim import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-def do_nothing_closure():
+def do_nothing_closure() -> None:
     return
 
 
@@ -44,39 +45,38 @@ class LightningOptimizer:
             self.__class__ = type("Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
 
         self._optimizer = optimizer
-        self._trainer = None
-        self._optimizer_idx = None
-        self._total_optimizer_step_calls = 0
+        self._trainer: Optional["pl.Trainer"] = None
+        self._optimizer_idx = 0
 
     @property
-    def optimizer(self):
+    def optimizer(self) -> Optimizer:
         return self._optimizer
 
     @property
-    def defaults(self):
+    def defaults(self) -> dict:
         return self._optimizer.defaults
 
     @defaults.setter
-    def defaults(self, defaults):
+    def defaults(self, defaults: dict) -> None:
         self._optimizer.defaults = defaults
 
     @property
-    def state(self):
+    def state(self) -> dict:
         return self._optimizer.state
 
     @state.setter
-    def state(self, state):
+    def state(self, state: dict) -> None:
         self._optimizer.state = state
 
     @property
-    def param_groups(self):
+    def param_groups(self) -> List[dict]:
         return self._optimizer.param_groups
 
     @param_groups.setter
-    def param_groups(self, param_groups):
+    def param_groups(self, param_groups: List[dict]) -> None:
         self._optimizer.param_groups = param_groups
 
-    def _on_trainer_init(self, trainer):
+    def _on_trainer_init(self, trainer: "pl.Trainer") -> None:
         self._trainer = proxy(trainer)
         for opt_idx, opt in enumerate(trainer.optimizers):
             if opt == self._optimizer:
@@ -84,25 +84,28 @@ class LightningOptimizer:
                 break
 
     @classmethod
-    def _to_lightning_optimizer(cls, optimizer, trainer, opt_idx):
+    def _to_lightning_optimizer(cls, optimizer: Optimizer, trainer: "pl.Trainer", opt_idx: int) -> "LightningOptimizer":
         # apex overrides .step function and need to be wrapped on each step
-        if trainer.amp_backend == AMPType.APEX:
-            optimizer = cls(optimizer)
-            optimizer._on_trainer_init(trainer)
+        if trainer.amp_backend is not None and trainer.amp_backend == AMPType.APEX:
+            lightning_optimizer = cls(optimizer)
+            lightning_optimizer._on_trainer_init(trainer)
         else:
-            optimizer = trainer.lightning_optimizers[opt_idx]
-        return optimizer
+            lightning_optimizer = trainer.lightning_optimizers[opt_idx]
+        return lightning_optimizer
 
-    def _toggle_model(self):
+    def _toggle_model(self) -> None:
+        assert self._trainer is not None
         model_ref = self._trainer.lightning_module
         model_ref.toggle_optimizer(self, self._optimizer_idx)
 
-    def _untoggle_model(self):
+    def _untoggle_model(self) -> None:
+        assert self._trainer is not None
         model_ref = self._trainer.lightning_module
+        # FIXME: what?
         model_ref.untoggle_optimizer(self)
 
     @contextmanager
-    def toggle_model(self, sync_grad: bool = True):
+    def toggle_model(self, sync_grad: bool = True) -> Generator[None, None, None]:
         """This function is just a helper for advanced users.
 
         Considering the current optimizer as A and all other optimizers as B.
@@ -116,34 +119,22 @@ class LightningOptimizer:
         # local import here to avoid circular import
         from pytorch_lightning.loops.utilities import _block_parallel_sync_behavior
 
+        assert self._trainer is not None
         with _block_parallel_sync_behavior(self._trainer, block=(not sync_grad)):
             self._toggle_model()
             yield
             self._untoggle_model()
 
-    def __optimizer_step(self, closure: Callable, profiler_name: str = None, **kwargs):
-        trainer = self._trainer
-
-        with trainer.profiler.profile(profiler_name):
-            trainer.accelerator.optimizer_step(self._optimizer, self._optimizer_idx, lambda_closure=closure, **kwargs)
-
-    def step(self, closure: Optional[Callable] = None, **kwargs):
-        """Call this directly from your training_step when doing optimizations manually. By using this we can
-        ensure that all the proper scaling when using 16-bit, accelerator etc is been done properly for you.
-
-        .. note:: In Manual Optimization, the user is expected to know when to call zero_grad,
-            perform accumulated_grad_batches, etc ... Lightning will only take care of precision and accelerators
+    def step(self, closure: Optional[Callable[[], Any]] = None, **kwargs: Any) -> None:
+        """Performs a single optimization step (parameter update).
 
         Args:
-
-            closure: One could provide its own optimizer_closure. Set to None by default.
-
-            kwargs: Any parameters provided to wrapped optimizer.step()
+            closure: An optional optimizer_closure.
+            kwargs: Any additional arguments to the ``optimizer.step()`` call.
 
         Example::
 
-            # Scenario for a GAN.
-
+            # Scenario for a GAN using manual optimization
             def training_step(...):
                 opt_gen, opt_dis = self.optimizers()
 
@@ -165,8 +156,7 @@ class LightningOptimizer:
                 opt_dis.step()
 
 
-            # Scenario for a GAN advanced
-
+            # A more advanced example
             def training_step(self, batch, batch_idx, ...):
                 opt_gen, opt_dis = self.optimizers()
 
@@ -192,18 +182,15 @@ class LightningOptimizer:
                 with opt_dis.toggle_model(sync_grad=accumulated_grad_batches):
                     opt_dis.step(closure=closure_dis)
         """
-        if closure is None:
-            profiler_name = f"closure_{self._optimizer_idx}"
-            closure = do_nothing_closure
-        else:
-            if not callable(closure):
-                raise MisconfigurationException("When closure is provided, it should be a function")
-            profiler_name = f"optimizer_step_and_closure_{self._optimizer_idx}"
+        closure = closure or do_nothing_closure
+        if not callable(closure):
+            raise MisconfigurationException("When closure is provided, it should be a function")
+        trainer = self._trainer
+        assert trainer is not None
+        with trainer.profiler.profile(f"optimizer_step_and_closure_{self._optimizer_idx}"):
+            trainer.accelerator.optimizer_step(self._optimizer, self._optimizer_idx, lambda_closure=closure, **kwargs)
 
-        self.__optimizer_step(closure=closure, profiler_name=profiler_name, **kwargs)
-        self._total_optimizer_step_calls += 1
-
-    def __repr__(self):
+    def __repr__(self) -> str:
         groups = [
             {k: round(v, 12) if isinstance(v, float) else v for k, v in sorted(group.items()) if k != "params"}
             for group in self.param_groups
