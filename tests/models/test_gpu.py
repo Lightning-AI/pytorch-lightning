@@ -207,10 +207,7 @@ def test_parse_gpu_ids(mocked_device_count, gpus, expected_gpu_ids):
 
 
 @pytest.mark.gpus_param_tests
-@pytest.mark.parametrize(
-    ["gpus"],
-    [0.1, -2, False, [], [-1], [None], ["0"], [0, 0]],
-)
+@pytest.mark.parametrize("gpus", [0.1, -2, False, [], [-1], [None], ["0"], [0, 0]])
 def test_parse_gpu_fail_on_unsupported_inputs(mocked_device_count, gpus):
     with pytest.raises(MisconfigurationException):
         device_parser.parse_gpu_ids(gpus)
