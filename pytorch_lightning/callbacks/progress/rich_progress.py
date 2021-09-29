@@ -209,7 +209,8 @@ class RichProgressBar(ProgressBarBase):
     ) -> None:
         if not _RICH_AVAILABLE:
             raise ImportError(
-                "`RichProgressBar` requires `rich` to be installed. Install it by running `pip install rich`."
+                "`RichModelSummary` requires `rich>=10.2.2` to be installed. "
+                "Install it by running `pip install rich` or upgrade by running `pip install rich -U."
             )
         super().__init__()
         self._refresh_rate_per_second: int = refresh_rate_per_second
