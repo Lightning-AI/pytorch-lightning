@@ -537,6 +537,7 @@ class TrainerDataLoadingMixin(ABC):
         if self.val_dataloaders is None:
             self.reset_val_dataloader(model=model)
 
+    # FIXME: wrong docstring
     def request_dataloader(
         self, stage: RunningStage, model: Optional["pl.LightningModule"] = None
     ) -> Union[DataLoader, List[DataLoader]]:
@@ -545,9 +546,12 @@ class TrainerDataLoadingMixin(ABC):
         Returns:
             The dataloader
         """
+        source = getattr(self.data_connector, f"_{stage.dataloader_prefix}_dataloader_source")
+
         hook = f"{stage.dataloader_prefix}_dataloader"
         self.call_hook("on_" + hook, pl_module=model)
-        dataloader = self.call_hook(hook, pl_module=model)
+        # dataloader = self.call_hook(hook, pl_module=model)
+        dataloader = source.request()
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
         self.training_type_plugin.barrier("get_dataloaders")

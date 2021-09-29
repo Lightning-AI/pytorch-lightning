@@ -12,8 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from dataclasses import dataclass
 from functools import partial
-from typing import Callable, Iterable, Optional, Union
+from typing import Callable, Iterable, Optional, Union, List, Dict
+
+from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_deprecation
@@ -35,6 +38,7 @@ class DataConnector:
         self,
         trainer: "pl.Trainer",
         multiple_trainloader_mode: str = "max_size_cycle",
+        # TODO: remove these args
         train_data_fetcher: Optional[AbstractDataFetcher] = None,
         validate_data_fetcher: Optional[AbstractDataFetcher] = None,
         test_data_fetcher: Optional[AbstractDataFetcher] = None,
@@ -46,6 +50,15 @@ class DataConnector:
         self.validate_data_fetcher = validate_data_fetcher
         self.test_data_fetcher = test_data_fetcher
         self.sanity_check_data_fetcher: Optional[AbstractDataFetcher] = None
+
+        self._train_dataloader_source = DataLoaderSource()
+        self._val_dataloader_source = DataLoaderSource()
+        self._test_dataloader_source = DataLoaderSource()
+        self._predict_dataloader_source = DataLoaderSource()
+
+    # @property
+    # def train_dataloader(self):
+    #     pass
 
     @property
     def evaluation_data_fetcher(self) -> Optional[AbstractDataFetcher]:
@@ -190,27 +203,33 @@ class DataConnector:
         test_dataloaders: Optional[EVAL_DATALOADERS] = None,
         predict_dataloaders: Optional[EVAL_DATALOADERS] = None,
     ) -> None:
-        # when dataloader is passed via fit, patch the train_dataloader
-        # functions to overwrite with these implementations
-        if train_dataloaders is not None:
-            self.trainer.train_dataloader = None
-            train_dataloader = _PatchDataLoader(train_dataloaders, "train")
-            train_dataloader.patch(model)
+        self._train_dataloader_source = DataLoaderSource(
+            train_dataloaders if train_dataloaders is not None else model, "train_dataloader"
+        )
+        self._val_dataloader_source = DataLoaderSource(
+            val_dataloaders if val_dataloaders is not None else model, "val_dataloader"
+        )
+        self._test_dataloader_source = DataLoaderSource(
+            test_dataloaders if test_dataloaders is not None else model, "test_dataloader"
+        )
+        self._predict_dataloader_source = DataLoaderSource(
+            predict_dataloaders if predict_dataloaders is not None else model, "predict_dataloader"
+        )
 
-        if val_dataloaders is not None:
-            self.trainer.val_dataloaders = None
-            val_dataloader = _PatchDataLoader(val_dataloaders, "val")
-            val_dataloader.patch(model)
+        # if val_dataloaders is not None:
+        #     self.trainer.val_dataloaders = val_dataloaders
+        # val_dataloader = _PatchDataLoader(val_dataloaders, "val")
+        # val_dataloader.patch(model)
 
-        if test_dataloaders is not None:
-            self.trainer.test_dataloaders = None
-            test_dataloader = _PatchDataLoader(test_dataloaders, "test")
-            test_dataloader.patch(model)
+        # if test_dataloaders is not None:
+        #     self.trainer.test_dataloaders = test_dataloaders
+        # test_dataloader = _PatchDataLoader(test_dataloaders, "test")
+        # test_dataloader.patch(model)
 
-        if predict_dataloaders is not None:
-            self.trainer.predict_dataloaders = None
-            predict_dataloader = _PatchDataLoader(predict_dataloaders, "predict")
-            predict_dataloader.patch(model)
+        # if predict_dataloaders is not None:
+        #     self.trainer.predict_dataloaders = predict_dataloaders
+        # predict_dataloader = _PatchDataLoader(predict_dataloaders, "predict")
+        # predict_dataloader.patch(model)
 
     def attach_datamodule(
         self, model: "pl.LightningModule", datamodule: Optional["pl.LightningDataModule"] = None
@@ -258,6 +277,49 @@ class DataConnector:
         if self.sanity_check_data_fetcher:
             self.sanity_check_data_fetcher.teardown()
             self.sanity_check_data_fetcher = None
+
+        # self._train_dataloader_source = DataLoaderSource()
+        # self._val_dataloader_source = DataLoaderSource()
+        # self._test_dataloader_source = DataLoaderSource()
+        # self._predict_dataloader_source = DataLoaderSource()
+
+
+# TODO: type for list/dict of dataloaders
+@dataclass
+class DataLoaderSource_old:
+    source: Union[DataLoader, Callable[[], DataLoader]] = None
+
+    def request(self) -> Union[DataLoader]:
+        return self.source() if callable(self.source) else self.source
+
+    # TODO: necessary?
+    def __bool__(self):
+        return self.source is not None
+
+
+_DATALOADERS = Union[DataLoader, List[DataLoader], Dict[str, DataLoader]]
+
+# TODO: type for list/dict of dataloaders
+@dataclass
+class DataLoaderSource:
+
+    instance: Optional[Union[_DATALOADERS, "pl.LightningModule", "pl.LightningDataModule"]] = None
+    name: str = ""
+
+    def request(self) -> _DATALOADERS:
+        from pytorch_lightning import LightningDataModule, LightningModule
+
+        if isinstance(self.instance, (LightningModule, LightningDataModule)) and self.name:
+            return getattr(self.instance, self.name)()
+        return self.instance
+
+    # TODO: needed in config validator?
+    def is_available(self) -> bool:
+        from pytorch_lightning import LightningDataModule, LightningModule
+
+        return not isinstance(self.instance, (LightningModule, LightningDataModule)) or is_overridden(
+            self.name, self.instance
+        )
 
 
 class _PatchDataLoader:
