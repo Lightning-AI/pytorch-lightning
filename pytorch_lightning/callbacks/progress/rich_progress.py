@@ -137,7 +137,9 @@ if _RICH_AVAILABLE:
             super().__init__()
 
         def render(self, task) -> Text:
-            if self._trainer.state.fn != "fit" or self._trainer.sanity_checking:
+            from pytorch_lightning.trainer.states import TrainerFn
+
+            if self._trainer.state.fn != TrainerFn.FITTING or self._trainer.sanity_checking:
                 return Text("")
             if self._trainer.training and task.id not in self._tasks:
                 self._tasks[task.id] = "None"
