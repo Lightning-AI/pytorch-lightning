@@ -95,7 +95,6 @@ def test_horovod_cpu_clip_grad_by_value(tmpdir):
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         accelerator="horovod",
-        deterministic=True,
     )
     _run_horovod(trainer_options)
 
@@ -111,7 +110,6 @@ def test_horovod_cpu_implicit(tmpdir):
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        deterministic=True,
     )
     _run_horovod(trainer_options)
 
@@ -128,7 +126,6 @@ def test_horovod_multi_gpu(tmpdir):
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         gpus=2,
-        deterministic=True,
         accelerator="horovod",
     )
     _run_horovod(trainer_options, on_gpu=True)
@@ -147,7 +144,6 @@ def test_horovod_multi_gpu_grad_by_value(tmpdir):
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         gpus=2,
-        deterministic=True,
         accelerator="horovod",
     )
     _run_horovod(trainer_options, on_gpu=True)
