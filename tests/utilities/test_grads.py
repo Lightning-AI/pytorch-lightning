@@ -23,10 +23,10 @@ from pytorch_lightning.utilities import grad_norm
 @pytest.mark.parametrize(
     "norm_type,expected",
     [
-        # bug in for L0 "norm"? total norm should be 5
+        # bug for L0 "norm"! total norm should be 5 here
         (
             0,
-            {"grad_0.0_norm_param0": 3, "grad_0.0_norm_param1": 2, "grad_0.0_norm_total": 2},
+            {"grad_0.0_norm_param0": 3, "grad_0.0_norm_param1": 2, "grad_0.0_norm_total": 5},
         ),
         (
             1,
@@ -68,6 +68,8 @@ def test_grad_norm(norm_type, expected):
             self.param1 = nn.Parameter(torch.rand(2, 1))
             self.param0.grad = torch.tensor([-1.0, 2.0, -3.0])
             self.param1.grad = torch.tensor([[-4.0], [5.0]])
+            # param without grad should not contribute to norm
+            self.param2 = nn.Parameter(torch.rand(1))
 
     model = Model()
     norms = grad_norm(model, norm_type)
