@@ -43,7 +43,7 @@ def test_multi_gpu_none_backend(tmpdir):
     tutils.set_random_master_port()
     trainer_options = dict(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=1,
         limit_train_batches=0.2,
         limit_val_batches=0.2,
@@ -61,7 +61,7 @@ def test_single_gpu_model(tmpdir, gpus):
     """Make sure single GPU works (DP mode)."""
     trainer_options = dict(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=1,
         limit_train_batches=0.1,
         limit_val_batches=0.1,

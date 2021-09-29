@@ -51,9 +51,9 @@ def test_logger_collection():
     mock1.agg_and_log_metrics.assert_called_once_with({"test": 2.0}, 4)
     mock2.agg_and_log_metrics.assert_called_once_with({"test": 2.0}, 4)
 
-    logger.close()
-    mock1.close.assert_called_once()
-    mock2.close.assert_called_once()
+    logger.finalize("success")
+    mock1.finalize.assert_called_once()
+    mock2.finalize.assert_called_once()
 
 
 class CustomLogger(LightningLoggerBase):
@@ -211,7 +211,7 @@ def test_with_accumulate_grad_batches():
         logger.agg_and_log_metrics({"loss": loss}, step=int(i / 5))
 
     assert logger.history == {0: {"loss": 0.5623850983416314}}
-    logger.close()
+    logger.save()
     assert logger.history == {0: {"loss": 0.5623850983416314}, 1: {"loss": 0.4778883735637184}}
 
 
@@ -319,7 +319,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         limit_val_batches=0.1,
         num_sanity_val_steps=0,
         checkpoint_callback=False,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         weights_summary=None,
     )
     # there should be no exceptions raised for the same key/value pair in the hparams of both
@@ -343,7 +343,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         limit_val_batches=0.1,
         num_sanity_val_steps=0,
         checkpoint_callback=False,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         weights_summary=None,
     )
     with pytest.raises(MisconfigurationException, match="Error while merging hparams"):
@@ -360,7 +360,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         limit_val_batches=0.1,
         num_sanity_val_steps=0,
         checkpoint_callback=False,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         weights_summary=None,
     )
     with pytest.raises(MisconfigurationException, match="Error while merging hparams"):
