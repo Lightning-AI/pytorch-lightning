@@ -289,7 +289,7 @@ def test_empty_model_size(mode):
     assert 0.0 == summary.model_size
 
 
-@RunIf(min_gpus=1, amp_native=True)
+@RunIf(min_gpus=1)
 def test_model_size_precision(tmpdir):
     """Test model size for half and full precision."""
     model = PreCalculatedModel()

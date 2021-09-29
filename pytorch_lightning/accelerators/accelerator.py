@@ -16,6 +16,7 @@ from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Uni
 
 import torch
 from torch import Tensor
+from torch.cuda.amp import GradScaler
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
@@ -24,13 +25,10 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import DataParallelPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, rank_zero_deprecation
+from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
 from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
-
-if _NATIVE_AMP_AVAILABLE:
-    from torch.cuda.amp import GradScaler
 
 
 class Accelerator:
