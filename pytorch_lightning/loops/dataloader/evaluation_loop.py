@@ -208,8 +208,8 @@ class EvaluationLoop(DataLoaderLoop):
             # summarize profile results
             self.trainer.profiler.describe()
 
-        # reset any `torchmetrics.Metric` and the logger connector state
-        self.trainer.logger_connector.reset_results(metrics=True)
+        # reset the logger connector state
+        self.trainer.logger_connector.reset_results()
 
     def on_evaluation_epoch_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_epoch_start`` and ``on_{validation/test}_epoch_start`` hooks"""
