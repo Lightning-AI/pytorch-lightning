@@ -553,6 +553,12 @@ class AcceleratorConnector:
                 return TPUHalfPrecisionPlugin()
 
             if self.amp_type == AMPType.NATIVE:
+                if self.amp_level is not None:
+                    raise MisconfigurationException(
+                        f"You have asked for amp_level={self.amp_level} which is not supported "
+                        "with amp_backend='native'."
+                    )
+
                 if not _NATIVE_AMP_AVAILABLE:
                     msg = (
                         "You have asked for native AMP but your PyTorch version does not support it."
@@ -583,6 +589,10 @@ class AcceleratorConnector:
                         "Sharded Plugin is not supported with Apex AMP, please using native AMP for 16-bit precision."
                     )
                 log.info("Using APEX 16bit precision.")
+
+                if self.amp_level is None:
+                    self.amp_level = "O2"
+
                 return ApexMixedPrecisionPlugin(self.amp_level)
 
         raise MisconfigurationException(
