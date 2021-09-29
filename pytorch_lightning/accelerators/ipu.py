@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable
+from typing import Any, Callable, Dict
 
+import torch
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -37,3 +38,7 @@ class IPUAccelerator(Accelerator):
     def optimizer_step(self, optimizer: Optimizer, opt_idx: int, lambda_closure: Callable, **kwargs: Any) -> None:
         # Optimizer step is handled by the IPU accelerator.
         lambda_closure()
+
+    def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
+        """Returns dummy implementation."""
+        return {}

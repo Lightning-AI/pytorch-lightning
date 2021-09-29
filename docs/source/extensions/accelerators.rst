@@ -14,6 +14,7 @@ Currently there are accelerators for:
 - CPU
 - GPU
 - TPU
+- IPU
 
 Each Accelerator gets two plugins upon initialization:
 One to handle differences from the training routine and one to handle different precisions.
