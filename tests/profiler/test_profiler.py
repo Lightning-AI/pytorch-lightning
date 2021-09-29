@@ -52,9 +52,7 @@ def simple_profiler():
     return SimpleProfiler()
 
 
-@pytest.mark.parametrize(
-    ["action", "expected"], [pytest.param("a", [3, 1]), pytest.param("b", [2]), pytest.param("c", [1])]
-)
+@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_simple_profiler_durations(simple_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
 
@@ -67,9 +65,7 @@ def test_simple_profiler_durations(simple_profiler, action: str, expected: list)
     np.testing.assert_allclose(simple_profiler.recorded_durations[action], expected, rtol=0.2)
 
 
-@pytest.mark.parametrize(
-    ["action", "expected"], [pytest.param("a", [3, 1]), pytest.param("b", [2]), pytest.param("c", [1])]
-)
+@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_simple_profiler_iterable_durations(simple_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
     iterable = _sleep_generator(expected)
@@ -163,9 +159,7 @@ def advanced_profiler(tmpdir):
     return AdvancedProfiler(dirpath=tmpdir, filename="profiler")
 
 
-@pytest.mark.parametrize(
-    ["action", "expected"], [pytest.param("a", [3, 1]), pytest.param("b", [2]), pytest.param("c", [1])]
-)
+@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_advanced_profiler_durations(advanced_profiler, action: str, expected: list):
 
     for duration in expected:
@@ -179,9 +173,7 @@ def test_advanced_profiler_durations(advanced_profiler, action: str, expected: l
     np.testing.assert_allclose(recored_total_duration, expected_total_duration, rtol=0.2)
 
 
-@pytest.mark.parametrize(
-    ["action", "expected"], [pytest.param("a", [3, 1]), pytest.param("b", [2]), pytest.param("c", [1])]
-)
+@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_advanced_profiler_iterable_durations(advanced_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
     iterable = _sleep_generator(expected)

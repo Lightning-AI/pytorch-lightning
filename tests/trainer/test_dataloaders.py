@@ -1012,7 +1012,7 @@ def test_batch_size_smaller_than_num_gpus(tmpdir):
 
 @pytest.mark.parametrize(
     ["multiple_trainloader_mode", "num_training_batches"],
-    [pytest.param("min_size", 5), pytest.param("max_size_cycle", 10)],
+    [("min_size", 5), ("max_size_cycle", 10)],
 )
 def test_fit_multiple_train_loaders(tmpdir, multiple_trainloader_mode, num_training_batches):
     """Integration test for multple train loaders."""

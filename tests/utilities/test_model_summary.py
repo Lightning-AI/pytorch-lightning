@@ -160,7 +160,7 @@ def test_empty_model_summary_shapes(mode: str):
 @pytest.mark.parametrize("mode", ["full", "top"])
 @pytest.mark.parametrize(
     ["device"],
-    [pytest.param(torch.device("cpu")), pytest.param(torch.device("cuda", 0)), pytest.param(torch.device("cuda", 0))],
+    [torch.device("cpu"), torch.device("cuda", 0)],
 )
 def test_linear_model_summary_shapes(device, mode):
     """Test that the model summary correctly computes the input- and output shapes."""
@@ -245,13 +245,13 @@ def test_summary_with_scripted_modules(mode):
 @pytest.mark.parametrize(
     ["example_input", "expected_size"],
     [
-        pytest.param([], UNKNOWN_SIZE),
-        pytest.param((1, 2, 3), [UNKNOWN_SIZE] * 3),
-        pytest.param(torch.tensor(0), UNKNOWN_SIZE),
-        pytest.param(dict(tensor=torch.zeros(1, 2, 3)), UNKNOWN_SIZE),
-        pytest.param(torch.zeros(2, 3, 4), [2, 3, 4]),
-        pytest.param([torch.zeros(2, 3), torch.zeros(4, 5)], [[2, 3], [4, 5]]),
-        pytest.param((torch.zeros(2, 3), torch.zeros(4, 5)), [[2, 3], [4, 5]]),
+        ([], UNKNOWN_SIZE),
+        ((1, 2, 3), [UNKNOWN_SIZE] * 3),
+        (torch.tensor(0), UNKNOWN_SIZE),
+        (dict(tensor=torch.zeros(1, 2, 3)), UNKNOWN_SIZE),
+        (torch.zeros(2, 3, 4), [2, 3, 4]),
+        ([torch.zeros(2, 3), torch.zeros(4, 5)], [[2, 3], [4, 5]]),
+        ((torch.zeros(2, 3), torch.zeros(4, 5)), [[2, 3], [4, 5]]),
     ],
 )
 def test_example_input_array_types(example_input, expected_size, mode):
