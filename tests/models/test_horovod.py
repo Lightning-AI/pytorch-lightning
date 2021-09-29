@@ -178,7 +178,7 @@ def test_horovod_apex(tmpdir):
     _run_horovod(trainer_options, on_gpu=True)
 
 
-@RunIf(min_gpus=2, skip_windows=True, amp_native=True, horovod_nccl=True)
+@RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
 def test_horovod_amp(tmpdir):
     """Test Horovod with multi-GPU support using native amp."""
     trainer_options = dict(

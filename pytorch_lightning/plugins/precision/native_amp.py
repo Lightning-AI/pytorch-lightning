@@ -19,12 +19,7 @@ from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
-from pytorch_lightning.utilities import (
-    _NATIVE_AMP_AVAILABLE,
-    _TORCH_BFLOAT_AVAILABLE,
-    _TORCH_CPU_AMP_AVAILABLE,
-    AMPType,
-)
+from pytorch_lightning.utilities import _TORCH_BFLOAT_AVAILABLE, _TORCH_CPU_AMP_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -37,12 +32,6 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def __init__(self, precision: Union[int, str] = 16, use_cpu: bool = False) -> None:
         super().__init__()
-
-        if not _NATIVE_AMP_AVAILABLE:
-            raise MisconfigurationException(
-                "You have asked for native AMP but your PyTorch version does not support it."
-                " Consider upgrading with `pip install torch>=1.6`."
-            )
 
         if use_cpu and not _TORCH_CPU_AMP_AVAILABLE:
             raise MisconfigurationException(
