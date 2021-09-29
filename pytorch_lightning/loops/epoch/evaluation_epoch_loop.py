@@ -245,10 +245,3 @@ class EvaluationEpochLoop(Loop):
         if self.trainer.testing:
             return is_overridden("test_epoch_end", model)
         return is_overridden("validation_epoch_end", model)
-
-    @property
-    def _has_completed_validation_batch(self) -> bool:
-        return self.batch_progress.current.ready == self.batch_progress.current.completed
-
-    def _num_val_batches_reached(self) -> bool:
-        return self._has_completed_validation_batch and self.batch_progress.is_last_batch

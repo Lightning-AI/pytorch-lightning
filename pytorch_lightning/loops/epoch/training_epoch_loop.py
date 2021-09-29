@@ -58,10 +58,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self._outputs: _OUTPUTS_TYPE = []
 
     @property
-    def _has_completed_training_batch(self) -> bool:
-        return self.batch_progress.current.ready == self.batch_progress.current.completed
-
-    @property
     def total_batch_idx(self) -> int:
         """Returns the current batch index (across epochs)"""
         # use `ready` instead of `completed` in case this is accessed after `completed` has been increased
