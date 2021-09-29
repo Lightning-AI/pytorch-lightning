@@ -89,38 +89,49 @@ def test_trainer_reset_correctly(tmpdir):
 @pytest.mark.parametrize("use_hparams", [False, True])
 def test_trainer_arg_bool(tmpdir, use_hparams):
     """Test that setting trainer arg to bool works."""
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
-    before_lr = hparams.get("learning_rate")
-    if use_hparams:
-        del model.learning_rate
-        model.configure_optimizers = model.configure_optimizers__lr_from_hparams
 
-    # logger file to get meta
+    class CustomBoringModel(BoringModel):
+        def __init__(self, lr):
+            super().__init__()
+            self.save_hyperparameters()
+            self.lr = lr
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=self.hparams.lr if use_hparams else self.lr)
+            return optimizer
+
+    before_lr = 1e-2
+    model = CustomBoringModel(lr=before_lr)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, auto_lr_find=True)
 
     trainer.tune(model)
     if use_hparams:
-        after_lr = model.hparams.learning_rate
+        after_lr = model.hparams.lr
     else:
-        after_lr = model.learning_rate
+        after_lr = model.lr
 
+    assert after_lr is not None
     assert before_lr != after_lr, "Learning rate was not altered after running learning rate finder"
 
 
 @pytest.mark.parametrize("use_hparams", [False, True])
 def test_trainer_arg_str(tmpdir, use_hparams):
     """Test that setting trainer arg to string works."""
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
-    model.my_fancy_lr = 1.0  # update with non-standard field
-    model.hparams["my_fancy_lr"] = 1.0
-    before_lr = model.my_fancy_lr
-    if use_hparams:
-        del model.my_fancy_lr
-        model.configure_optimizers = model.configure_optimizers__lr_from_hparams
 
-    # logger file to get meta
+    class CustomBoringModel(BoringModel):
+        def __init__(self, my_fancy_lr):
+            super().__init__()
+            self.save_hyperparameters()
+            self.my_fancy_lr = my_fancy_lr
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(
+                self.layer.parameters(), lr=self.hparams.my_fancy_lr if use_hparams else self.my_fancy_lr
+            )
+            return optimizer
+
+    before_lr = 1e-2
+    model = CustomBoringModel(my_fancy_lr=before_lr)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, auto_lr_find="my_fancy_lr")
 
     trainer.tune(model)
@@ -129,6 +140,7 @@ def test_trainer_arg_str(tmpdir, use_hparams):
     else:
         after_lr = model.my_fancy_lr
 
+    assert after_lr is not None
     assert before_lr != after_lr, "Learning rate was not altered after running learning rate finder"
 
 
