@@ -75,9 +75,6 @@ def test_finetuning_with_resume_from_checkpoint(tmpdir):
         results.append(deepcopy(trainer.callback_metrics))
         best_model_paths.append(trainer.checkpoint_callback.best_model_path)
 
-    for idx in range(len(results) - 1):
-        assert results[idx]["val_loss"] > results[idx + 1]["val_loss"]
-
     for idx, best_model_path in enumerate(best_model_paths):
         if idx == 0:
             assert best_model_path.endswith(f"epoch=0{idx}.ckpt")

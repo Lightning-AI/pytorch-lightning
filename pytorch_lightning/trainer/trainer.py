@@ -1112,7 +1112,7 @@ class Trainer(
             self.logger_connector.reset_results()
             self.logger_connector.reset_metrics()
 
-            self.call_hook("on_sanity_check_start")
+            self.on_sanity_check_start()
 
             # reload dataloaders
             self._evaluation_loop.reload_evaluation_dataloaders()
