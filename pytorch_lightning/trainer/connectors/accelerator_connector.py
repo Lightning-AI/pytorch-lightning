@@ -47,6 +47,7 @@ from pytorch_lightning.plugins import (
     SingleDevicePlugin,
     SingleTPUPlugin,
     TPUHalfPrecisionPlugin,
+    TPUPrecisionPlugin,
     TPUSpawnPlugin,
     TrainingTypePlugin,
     TrainingTypePluginsRegistry,
@@ -539,7 +540,22 @@ class AcceleratorConnector:
         self.amp_type = AMPType.from_str(self.amp_type)
 
         if self.use_ipu:
+            # FIXME: what about bfloat here?
             return IPUPrecisionPlugin(self.precision)
+        if self.use_tpu:
+            if self.precision == 32:
+                return TPUPrecisionPlugin()
+            elif self.precision == 64:
+                # FIXME: this is really bad because we need both a `TPUPrecisionPlugin` and a `DoublePrecisionPlugin`
+                pass
+            elif self.precision in (16, "bf16"):
+                return TPUHalfPrecisionPlugin()
+            else:
+                # FIXME: this validation should be done before, same below
+                raise MisconfigurationException(
+                    f"Precision {self.precision} is invalid."
+                    f" Allowed precision values: {PrecisionType.supported_types()}"
+                )
 
         if self._distrib_type == DistributedType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedPlugin):
             return DeepSpeedPrecisionPlugin(self.precision)
@@ -549,9 +565,6 @@ class AcceleratorConnector:
         if self.precision == 64:
             return DoublePrecisionPlugin()
         if self.precision in (16, "bf16"):
-            if self.use_tpu:
-                return TPUHalfPrecisionPlugin()
-
             if self.amp_type == AMPType.NATIVE:
                 if not _NATIVE_AMP_AVAILABLE:
                     msg = (

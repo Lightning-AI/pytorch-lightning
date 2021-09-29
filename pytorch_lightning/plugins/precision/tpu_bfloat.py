@@ -17,11 +17,11 @@ from typing import Any, List, Tuple
 import torch.nn as nn
 from torch.optim import Optimizer
 
-from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
+from pytorch_lightning.plugins.precision import TPUPrecisionPlugin
 
 
-class TPUHalfPrecisionPlugin(PrecisionPlugin):
-    """Plugin that enables bfloats on TPUs."""
+class TPUHalfPrecisionPlugin(TPUPrecisionPlugin):
+    """Plugin that enables bfloat on TPUs."""
 
     precision: int = 16
 
