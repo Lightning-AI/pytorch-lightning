@@ -16,6 +16,7 @@ import torch
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.utilities.seed import seed_everything
 from tests.accelerators.test_dp import CustomClassificationModelDP
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -32,16 +33,11 @@ from tests.helpers.runif import RunIf
 )
 def test_evaluate(tmpdir, trainer_kwargs):
     tutils.set_random_master_port()
-
+    seed_everything(1)
     dm = ClassifDataModule()
     model = CustomClassificationModelDP()
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        limit_train_batches=10,
-        limit_val_batches=10,
-        deterministic=True,
-        **trainer_kwargs
+        default_root_dir=tmpdir, max_epochs=2, limit_train_batches=10, limit_val_batches=10, **trainer_kwargs
     )
 
     trainer.fit(model, datamodule=dm)
