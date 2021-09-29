@@ -127,6 +127,10 @@ class AcceleratorConnector:
         self.benchmark = benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
         self.deterministic = deterministic
+        if not PrecisionType.supported_type(precision):
+            raise MisconfigurationException(
+                f"Precision {repr(precision)} is invalid. Allowed precision values: {PrecisionType.supported_types()}"
+            )
         self.precision = precision
         self.amp_type = amp_type.lower() if isinstance(amp_type, str) else None
         self.amp_level = amp_level
@@ -571,10 +575,6 @@ class AcceleratorConnector:
                     )
                 log.info("Using APEX 16bit precision.")
                 return ApexMixedPrecisionPlugin(self.amp_level)
-
-        raise MisconfigurationException(
-            f"Precision {self.precision} is invalid. Allowed precision values: {PrecisionType.supported_types()}"
-        )
 
     def select_training_type_plugin(self) -> TrainingTypePlugin:
         if (
