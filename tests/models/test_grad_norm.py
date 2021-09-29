@@ -105,6 +105,6 @@ def test_grad_tracking_interval(tmpdir, log_every_n_steps):
         # logging on n steps + 1 epochs
         assert len(grad_norm_dicts) == expected + 1
         # check all metrics derived from steps have the same keys
-        assert all(grad_norm_dicts[0].keys() == g.keys() for g in grad_norm_dicts[:-1])
+        assert all(grad_norm_dicts[0].keys() == g.keys() for g in grad_norm_dicts[1:-1])
         epoch_end_keys = [k.replace("step", "epoch") for k in grad_norm_dicts[0]]
         assert epoch_end_keys == list(grad_norm_dicts[-1])
