@@ -83,5 +83,6 @@ module = [
     "pytorch_lightning.utilities.parsing",
     "pytorch_lightning.utilities.seed",
     "pytorch_lightning.utilities.xla_device",
+    "pytorch_lightning.callbacks.device_stats_monitor",
 ]
 ignore_errors = "False"

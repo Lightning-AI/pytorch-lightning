@@ -13,24 +13,27 @@
 # limitations under the License.
 """
 Device Stats Monitor
-=================
+====================
+
 Monitors and logs device stats during training.
+
 """
-from typing import Any, Optional
+from typing import Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 class DeviceStatsMonitor(Callback):
     r"""
     Automatically monitors and logs device stats during training stage. ``DeviceStatsMonitor``
     is a callback and in order to use it you need to assign a logger in the ``Trainer``.
+
     Raises:
         MisconfigurationException:
             If ``Trainer`` has no logger.
+
     Example::
         >>> from pytorch_lightning import Trainer
         >>> from pytorch_lightning.callbacks import DeviceStatsMonitor
@@ -42,28 +45,24 @@ class DeviceStatsMonitor(Callback):
         if not trainer.logger:
             raise MisconfigurationException("Cannot use DeviceStatsMonitor callback with Trainer that has no logger.")
 
-    def on_train_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_batch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if not self._should_log(trainer):
             return
 
-        device_stats = trainer.accelerator.get_device_stats(pl_module.device)
+        device = trainer.training_type_plugin.root_device
+        device_stats = trainer.accelerator.get_device_stats(device)
         trainer.logger.log_metrics(device_stats, step=trainer.global_step)
 
-    def on_train_batch_end(
+    def on_batch_end(
         self,
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
-        outputs: STEP_OUTPUT,
-        batch: Any,
-        batch_idx: int,
-        dataloader_idx: int,
     ) -> None:
         if not self._should_log(trainer):
             return
 
-        device_stats = trainer.accelerator.get_device_stats(pl_module.device)
+        device = trainer.training_type_plugin.root_device
+        device_stats = trainer.accelerator.get_device_stats(device)
         trainer.logger.log_metrics(device_stats, step=trainer.global_step)
 
     @staticmethod
