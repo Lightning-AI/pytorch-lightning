@@ -456,7 +456,7 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         max_epochs=1,
         limit_train_batches=train_batches,
         limit_val_batches=val_batches,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         weights_summary=None,
         callbacks=[callback],
         track_grad_norm=1,
@@ -568,7 +568,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         default_root_dir=tmpdir,
         max_steps=1,
         limit_val_batches=0,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         weights_summary=None,
         callbacks=[HookedCallback([])],
     )
@@ -585,7 +585,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         # already performed 1 step, now resuming to do an additional 2
         max_steps=(1 + train_batches),
         limit_val_batches=0,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         weights_summary=None,
         resume_from_checkpoint=best_model_path,
         callbacks=[callback],
@@ -680,7 +680,7 @@ def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader,
         max_epochs=1,
         limit_val_batches=batches,
         limit_test_batches=batches,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         weights_summary=None,
         callbacks=[callback],
     )
@@ -727,7 +727,7 @@ def test_trainer_model_hook_system_predict(tmpdir):
     callback = HookedCallback(called)
     batches = 2
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_predict_batches=batches, progress_bar_refresh_rate=0, callbacks=[callback]
+        default_root_dir=tmpdir, limit_predict_batches=batches, enable_progress_bar=False, callbacks=[callback]
     )
     assert called == [
         dict(name="Callback.on_init_start", args=(trainer,)),
@@ -847,7 +847,7 @@ def test_trainer_datamodule_hook_system(tmpdir):
         limit_val_batches=batches,
         limit_test_batches=batches,
         limit_predict_batches=batches,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         weights_summary=None,
         reload_dataloaders_every_epoch=True,
     )

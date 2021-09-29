@@ -89,7 +89,8 @@ class ClosureResult(OutputResult):
 
         if closure_loss is not None:
             # accumulate the loss. If ``accumulate_grad_batches == 1``, no effect
-            closure_loss /= normalize
+            # note: avoid in-place operation `x /= y` here on purpose
+            closure_loss = closure_loss / normalize
 
         return cls(closure_loss, extra=extra)
 
@@ -160,10 +161,10 @@ class Closure(AbstractClosure[ClosureResult]):
         return self._result.loss
 
 
-_OUTPUTS_TYPE = List[List[Dict[str, Any]]]
+_OUTPUTS_TYPE = Dict[int, Dict[str, Any]]
 
 
-class OptimizerLoop(Loop):
+class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
     """Runs over a sequence of optimizers.
 
     This loop implements what is known in Lightning as Automatic Optimization.
@@ -171,10 +172,9 @@ class OptimizerLoop(Loop):
 
     def __init__(self) -> None:
         super().__init__()
-        # TODO: use default dict here to simplify logic in loop
-        self.outputs: _OUTPUTS_TYPE = []
         self.optim_progress: OptimizationProgress = OptimizationProgress()
 
+        self._outputs: _OUTPUTS_TYPE = {}
         self._skip_backward: bool = False
         self._batch_idx: int = 0
         self._optimizers: List[Optimizer] = []
@@ -199,7 +199,7 @@ class OptimizerLoop(Loop):
             self.optim_progress.optimizer_position = 0
         else:
             self.optim_progress.reset_on_restart()
-        self.outputs = [[] for _ in range(len(self.trainer.optimizers))]
+        self._outputs = {}
 
     def on_run_start(  # type: ignore[override]
         self, batch: Any, optimizers: List[Tuple[int, Optimizer]], batch_idx: int
@@ -219,11 +219,11 @@ class OptimizerLoop(Loop):
         if result.loss is not None:
             # automatic optimization assumes a loss needs to be returned for extras to be considered as the batch
             # would be skipped otherwise
-            self.outputs[self.optimizer_idx].append(result.asdict())
+            self._outputs[self.optimizer_idx] = result.asdict()
         self.optim_progress.optimizer_position += 1
 
     def on_run_end(self) -> _OUTPUTS_TYPE:
-        outputs, self.outputs = self.outputs, []  # free memory
+        outputs, self._outputs = self._outputs, {}  # free memory
         return outputs
 
     def _run_optimization(

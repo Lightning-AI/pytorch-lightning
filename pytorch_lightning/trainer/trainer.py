@@ -62,7 +62,6 @@ from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerCo
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.deprecated_api import DeprecatedTrainerAttributes
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
@@ -87,7 +86,6 @@ from pytorch_lightning.utilities.argparse import (
     parse_env_variables,
 )
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
@@ -114,7 +112,6 @@ class Trainer(
     TrainerModelHooksMixin,
     TrainerOptimizersMixin,
     TrainerDataLoadingMixin,
-    DeprecatedTrainerAttributes,
 ):
     # Needed because of LightningOptimizer
     _lightning_optimizers = None
@@ -126,7 +123,7 @@ class Trainer(
         checkpoint_callback: bool = True,
         callbacks: Optional[Union[List[Callback], Callback]] = None,
         default_root_dir: Optional[str] = None,
-        gradient_clip_val: float = 0.0,
+        gradient_clip_val: Union[int, float] = 0.0,
         gradient_clip_algorithm: str = "norm",
         process_position: int = 0,
         num_nodes: int = 1,
@@ -137,12 +134,13 @@ class Trainer(
         tpu_cores: Optional[Union[List[int], str, int]] = None,
         ipus: Optional[int] = None,
         log_gpu_memory: Optional[str] = None,
-        progress_bar_refresh_rate: Optional[int] = None,
+        progress_bar_refresh_rate: Optional[int] = None,  # TODO: remove in v1.7
+        enable_progress_bar: bool = True,
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
         check_val_every_n_epoch: int = 1,
         fast_dev_run: Union[int, bool] = False,
-        accumulate_grad_batches: Union[int, Dict[int, int]] = 1,
+        accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None,
         max_epochs: Optional[int] = None,
         min_epochs: Optional[int] = None,
         max_steps: Optional[int] = None,
@@ -284,6 +282,14 @@ class Trainer(
                 Ignored when a custom progress bar is passed to :paramref:`~Trainer.callbacks`. Default: None, means
                 a suitable value will be chosen based on the environment (terminal, Google COLAB, etc.).
 
+                .. deprecated:: v1.5
+                    ``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
+                    Please pass :class:`~pytorch_lightning.callbacks.progress.ProgressBar` with ``refresh_rate``
+                    directly to the Trainer's ``callbacks`` argument instead. To disable the progress bar,
+                    pass ``enable_progress_bar = False`` to the Trainer.
+
+            enable_progress_bar: Whether to enable to progress bar by default.
+
             profiler: To profile individual steps during training and assist in identifying bottlenecks.
 
             overfit_batches: Overfit a fraction of training data (float) or a set number of batches (int).
@@ -368,6 +374,10 @@ class Trainer(
             stochastic_weight_avg: Whether to use `Stochastic Weight Averaging (SWA)
                 <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>`_.
 
+                .. deprecated:: v1.5
+                    ``stochastic_weight_avg`` has been deprecated in v1.5 and will be removed in v1.7.
+                    Please pass :class:`~pytorch_lightning.callbacks.stochastic_weight_avg.StochasticWeightAveraging`
+                    directly to the Trainer's ``callbacks`` argument instead.
         """
         super().__init__()
         Trainer._log_api_event("init")
@@ -376,7 +386,6 @@ class Trainer(
         gpu_ids, tpu_cores = self._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
         # init connectors
-        self.dev_debugger = InternalDebugger(self)
         self.config_validator = ConfigValidator(self)
         self.data_connector = DataConnector(self, multiple_trainloader_mode)
         self.optimizer_connector = OptimizerConnector(self)
@@ -432,8 +441,6 @@ class Trainer(
         # default .predict() loop
         self.predict_loop = PredictionLoop()
 
-        self.weights_summary = weights_summary
-
         # Needed because of LightningOptimizer
         self._lightning_optimizers = None
 
@@ -447,13 +454,15 @@ class Trainer(
         self.callback_connector.on_trainer_init(
             callbacks,
             checkpoint_callback,
+            enable_progress_bar,
             progress_bar_refresh_rate,
             process_position,
             default_root_dir,
             weights_save_path,
-            self.weights_summary,
+            weights_summary,
             stochastic_weight_avg,
             max_time,
+            accumulate_grad_batches,
         )
 
         # hook
@@ -475,7 +484,6 @@ class Trainer(
             gradient_clip_val,
             gradient_clip_algorithm,
             track_grad_norm,
-            accumulate_grad_batches,
             terminate_on_nan,
         )
         self._setup_on_init(num_sanity_val_steps)
@@ -955,7 +963,7 @@ class Trainer(
         # only one process running at this point for TPUs, as spawn isn't triggered yet
         # todo: move this logic internally within the barrier.
         if not self._device_type == DeviceType.TPU:
-            self.accelerator.barrier()
+            self.training_type_plugin.barrier()
         rank_zero_info(f"Loading model weights from checkpoint at {self._ckpt_path}")
         self.checkpoint_connector.restore_model_weights(self._ckpt_path)
 
@@ -1024,6 +1032,11 @@ class Trainer(
         # ----------------------------
         # TRAIN
         # ----------------------------
+
+        # reset logger connector
+        self.logger_connector.reset_results()
+        self.logger_connector.reset_metrics()
+
         # hook
         if self.state.fn == TrainerFn.FITTING:
             self.call_hook("on_fit_start")
@@ -1133,7 +1146,7 @@ class Trainer(
 
     def _pre_training_routine(self):
         # wait for all to join if on distributed
-        self.accelerator.barrier("setup_training")
+        self.training_type_plugin.barrier("setup_training")
 
         # register signals
         self.signal_connector.register_signal_handlers()
@@ -1208,6 +1221,10 @@ class Trainer(
             stage = self.state.stage
             self.sanity_checking = True
 
+            # reset logger connector
+            self.logger_connector.reset_results()
+            self.logger_connector.reset_metrics()
+
             self.call_hook("on_sanity_check_start")
 
             # reload dataloaders
@@ -1219,8 +1236,9 @@ class Trainer(
 
             self.call_hook("on_sanity_check_end")
 
-            # reset validation metrics
-            self.logger_connector.reset()
+            # reset logger connector
+            self.logger_connector.reset_results()
+            self.logger_connector.reset_metrics()
 
             # reset the seed to what it was before sanity check
             # prevents sanity check to affect random sampling in training
@@ -1269,27 +1287,18 @@ class Trainer(
     def _call_setup_hook(self) -> None:
         fn = self.state.fn._setup_fn
 
-        self.accelerator.barrier("pre_setup")
+        self.training_type_plugin.barrier("pre_setup")
 
         if self.datamodule is not None:
             self.datamodule.setup(stage=fn)
         self.call_hook("setup", stage=fn)
 
-        self.accelerator.barrier("post_setup")
+        self.training_type_plugin.barrier("post_setup")
 
     def _call_configure_sharded_model(self) -> None:
-        # Call configure sharded model hook if accelerator requests. In some cases
-        # we will not call the hook; the hook has initialized the sharded model for example.
-
-        # used on the model if the user re-create a trainer with resume_from_checkpoint
-        model = self.lightning_module
-        model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
-        if self.accelerator.call_configure_sharded_model_hook and not model_call_configure_sharded_model_hook:
-            with self.accelerator.model_sharded_context():
-                self.call_hook("configure_sharded_model")
-                self.call_hook("on_configure_sharded_model")
-            model.call_configure_sharded_model_hook = True
-            self.accelerator.call_configure_sharded_model_hook = False
+        with self.accelerator.model_sharded_context():
+            self.call_hook("configure_sharded_model")
+            self.call_hook("on_configure_sharded_model")
 
     def _call_teardown_hook(self) -> None:
         fn = self.state.fn._setup_fn
@@ -1593,7 +1602,7 @@ class Trainer(
         else:
             dirpath = self.logger.save_dir
 
-        dirpath = self.accelerator.broadcast(dirpath)
+        dirpath = self.training_type_plugin.broadcast(dirpath)
         return dirpath
 
     @property
@@ -1879,7 +1888,7 @@ class Trainer(
 
     @property
     def is_last_batch(self) -> bool:
-        return self.fit_loop.epoch_loop.is_last_batch
+        return self.fit_loop.epoch_loop.batch_progress.is_last_batch
 
     @property
     def fit_loop(self) -> FitLoop:
@@ -1956,6 +1965,13 @@ class Trainer(
             return self._evaluation_loop
         if self.predicting:
             return self.predict_loop
+
+    @property
+    def train_loop(self) -> FitLoop:
+        rank_zero_deprecation(
+            "`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
+        )
+        return self.fit_loop
 
     @property
     def _ckpt_path(self) -> Optional[str]:

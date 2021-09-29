@@ -53,7 +53,7 @@ def test_outputs_format(tmpdir):
         limit_val_batches=1,
         limit_train_batches=2,
         limit_test_batches=1,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         weights_summary=None,
     )
     trainer.fit(model)

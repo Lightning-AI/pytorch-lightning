@@ -594,7 +594,7 @@ class LightningModule(
             the output will also be a collection with tensors of this shape.
         """
         group = group if group is not None else torch.distributed.group.WORLD
-        all_gather = self.trainer.accelerator.all_gather
+        all_gather = self.trainer.training_type_plugin.all_gather
         data = convert_to_tensors(data, device=self.device)
         return apply_to_collection(data, torch.Tensor, all_gather, group=group, sync_grads=sync_grads)
 
@@ -751,8 +751,10 @@ class LightningModule(
             training_epoch_end(train_outs)
 
         Args:
-            outputs: List of outputs you defined in :meth:`training_step`, or if there are
-                multiple dataloaders, a list containing a list of outputs for each dataloader.
+            outputs: List of outputs you defined in :meth:`training_step`.
+                If there are multiple optimizers, it is a list containing a list of outputs for each optimizer.
+                If using ``truncated_bptt_steps > 1``, each element is a list of outputs corresponding to the outputs
+                of each processed split batch.
 
         Return:
             None
@@ -760,19 +762,10 @@ class LightningModule(
         Note:
             If this method is not overridden, this won't be called.
 
-        Example::
-
-            def training_epoch_end(self, training_step_outputs):
-                # do something with all training_step outputs
-                return result
-
-        With multiple dataloaders, ``outputs`` will be a list of lists. The outer list contains
-        one entry per dataloader, while the inner list contains the individual outputs of
-        each training step for that dataloader.
-
         .. code-block:: python
 
             def training_epoch_end(self, training_step_outputs):
+                # do something with all training_step outputs
                 for out in training_step_outputs:
                     ...
         """
