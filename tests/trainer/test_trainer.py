@@ -1307,7 +1307,7 @@ def test_trainer_setup_call(tmpdir, stage):
 
     model = CurrentModel()
     callback = CurrentCallback()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, callbacks=[callback])
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_checkpointing=False, callbacks=[callback])
 
     if stage == "fit":
         trainer.fit(model)
@@ -1884,7 +1884,7 @@ def test_on_load_checkpoint_missing_callbacks(tmpdir):
 def test_module_current_fx_attributes_reset(tmpdir):
     """Ensure that lightning module's attributes related to current fx are reset at the end of execution."""
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1, checkpoint_callback=False, logger=False)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1, enable_checkpointing=False, logger=False)
 
     trainer.fit(model)
     assert model._current_fx_name is None

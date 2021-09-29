@@ -144,7 +144,7 @@ def test_attach_model_callbacks():
         model = LightningModule()
         model.configure_callbacks = lambda: model_callbacks
         trainer = Trainer(
-            checkpoint_callback=False, enable_progress_bar=False, weights_summary=None, callbacks=trainer_callbacks
+            enable_checkpointing=False, enable_progress_bar=False, weights_summary=None, callbacks=trainer_callbacks
         )
         trainer.model = model
         cb_connector = CallbackConnector(trainer)
@@ -196,7 +196,7 @@ def test_attach_model_callbacks_override_info(caplog):
     """Test that the logs contain the info about overriding callbacks returned by configure_callbacks."""
     model = LightningModule()
     model.configure_callbacks = lambda: [LearningRateMonitor(), EarlyStopping()]
-    trainer = Trainer(checkpoint_callback=False, callbacks=[EarlyStopping(), LearningRateMonitor(), ProgressBar()])
+    trainer = Trainer(enable_checkpointing=False, callbacks=[EarlyStopping(), LearningRateMonitor(), ProgressBar()])
     trainer.model = model
     cb_connector = CallbackConnector(trainer)
     with caplog.at_level(logging.INFO):

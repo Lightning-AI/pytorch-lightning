@@ -318,7 +318,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         limit_train_batches=0.1,
         limit_val_batches=0.1,
         num_sanity_val_steps=0,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
         enable_progress_bar=False,
         weights_summary=None,
     )
@@ -342,7 +342,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         limit_train_batches=0.1,
         limit_val_batches=0.1,
         num_sanity_val_steps=0,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
         enable_progress_bar=False,
         weights_summary=None,
     )
@@ -359,7 +359,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         limit_train_batches=0.1,
         limit_val_batches=0.1,
         num_sanity_val_steps=0,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
         enable_progress_bar=False,
         weights_summary=None,
     )

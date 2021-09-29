@@ -333,11 +333,11 @@ def test_dataloaders_with_limit_val_batches(tmpdir, dataset, limit_val_batches):
 
     epoch_cb = Counter()
     callbacks = [epoch_cb]
-    checkpoint_callback = True
+    enable_checkpointing = False
     if limit_val_batches > 0:
         callbacks.append(ModelCheckpoint(monitor="val_log", save_top_k=1, mode="max", verbose=False))
-    else:
-        checkpoint_callback = False
+        enable_checkpointing = True
+
     epochs = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -345,7 +345,7 @@ def test_dataloaders_with_limit_val_batches(tmpdir, dataset, limit_val_batches):
         max_epochs=epochs,
         callbacks=callbacks,
         limit_val_batches=limit_val_batches,
-        checkpoint_callback=checkpoint_callback,
+        enable_checkpointing=enable_checkpointing,
     )
     model = DummyModel()
 

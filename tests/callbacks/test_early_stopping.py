@@ -111,7 +111,7 @@ def test_early_stopping_no_extraneous_invocations(tmpdir):
         limit_train_batches=4,
         limit_val_batches=4,
         max_epochs=expected_count,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model, datamodule=dm)
 

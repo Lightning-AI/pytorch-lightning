@@ -198,7 +198,7 @@ def test_argparse_args_parsing_gpus(cli_args, expected_parsed, expected_device_i
         pytest.param({}, {}),
         pytest.param({"logger": False}, {}),
         pytest.param({"logger": False}, {"logger": True}),
-        pytest.param({"logger": False}, {"checkpoint_callback": True}),
+        pytest.param({"logger": False}, {"enable_checkpointing": True}),
     ],
 )
 def test_init_from_argparse_args(cli_args, extra_args):

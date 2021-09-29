@@ -194,7 +194,7 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         limit_val_batches=0,
         num_sanity_val_steps=0,
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
     weights_complete = model.parameters()
@@ -213,7 +213,7 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         limit_val_batches=0,
         num_sanity_val_steps=0,
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
     with pytest.raises(CustomException):
         trainer.fit(model)
@@ -234,7 +234,7 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         limit_val_batches=0,
         num_sanity_val_steps=0,
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
     weights_resumed = model.parameters()

@@ -481,7 +481,7 @@ def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmpdir: str):
         max_epochs=2,
         limit_train_batches=1,
         limit_val_batches=0,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
         logger=False,
         weights_summary=None,
     )

@@ -143,7 +143,7 @@ class CallbackConnector:
 
     def _configure_checkpoint_callbacks(self, checkpoint_callback: Optional[bool], enable_checkpointing: bool) -> None:
         if checkpoint_callback is not None:
-            rank_zero_deprecation(
+            raise MisconfigurationException(
                 f"Setting `Trainer(checkpoint_callback={checkpoint_callback})` is deprecated in v1.5 and will "
                 f"be removed in v1.7. Please consider using `Trainer(enable_checkpointing={checkpoint_callback})`."
             )

@@ -22,9 +22,9 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
-def test_checkpoint_callback_disabled(tmpdir):
+def test_disabled_checkpointing(tmpdir):
     # no callback
-    trainer = Trainer(max_epochs=3, checkpoint_callback=False)
+    trainer = Trainer(max_epochs=3, enable_checkpointing=False)
     assert not trainer.checkpoint_callbacks
     trainer.fit(BoringModel())
     assert not trainer.checkpoint_callbacks
