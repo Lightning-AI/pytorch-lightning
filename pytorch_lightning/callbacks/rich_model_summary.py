@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 from pytorch_lightning.callbacks import ModelSummary
 from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
@@ -67,7 +67,7 @@ class RichModelSummary(ModelSummary):
 
     @staticmethod
     def summarize(
-        summary_data: List[Tuple[str, List[str]]],
+        summary_data: List[Tuple[str, List[Union[str, Tuple]]]],
         total_parameters: int,
         trainable_parameters: int,
         model_size: float,
@@ -88,6 +88,8 @@ class RichModelSummary(ModelSummary):
                 table.add_column(column_name, justify="right", style="white")
 
         rows = list(zip(*(arr[1] for arr in summary_data)))
+        # convert all elements to str for Rich
+        rows = list(list(str(x) for x in row) for row in rows)
         for row in rows:
             table.add_row(*row)
 
