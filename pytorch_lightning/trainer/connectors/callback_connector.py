@@ -38,7 +38,8 @@ class CallbackConnector:
     def on_trainer_init(
         self,
         callbacks: Optional[Union[List[Callback], Callback]],
-        checkpoint_callback: bool,
+        checkpoint_callback: Optional[bool],
+        enable_checkpointing: bool,
         enable_progress_bar: bool,
         progress_bar_refresh_rate: Optional[int],
         process_position: int,
@@ -67,7 +68,7 @@ class CallbackConnector:
 
         # configure checkpoint callback
         # pass through the required args to figure out defaults
-        self._configure_checkpoint_callbacks(checkpoint_callback)
+        self._configure_checkpoint_callbacks(checkpoint_callback, enable_checkpointing)
 
         # configure swa callback
         self._configure_swa_callbacks()
@@ -140,22 +141,30 @@ class CallbackConnector:
         self.trainer.accumulate_grad_batches = grad_accum_callback.get_accumulate_grad_batches(0)
         self.trainer.accumulation_scheduler = grad_accum_callback
 
-    def _configure_checkpoint_callbacks(self, checkpoint_callback: bool) -> None:
-        # TODO: Remove this error in v1.5 so we rely purely on the type signature
-        if not isinstance(checkpoint_callback, bool):
-            error_msg = (
-                "Invalid type provided for checkpoint_callback:"
-                f" Expected bool but received {type(checkpoint_callback)}."
+    def _configure_checkpoint_callbacks(self, checkpoint_callback: Optional[bool], enable_checkpointing: bool) -> None:
+        if checkpoint_callback is not None:
+            rank_zero_deprecation(
+                f"Setting `Trainer(checkpoint_callback={checkpoint_callback})` is deprecated in v1.5 and will "
+                f"be removed in v1.7. Please consider using `Trainer(enable_checkpointing={checkpoint_callback})`."
             )
-            if isinstance(checkpoint_callback, Callback):
+            # if both are set, look whether anyone is True
+            enable_checkpointing = checkpoint_callback or enable_checkpointing
+
+        # TODO: Remove this error in v1.5 so we rely purely on the type signature
+        if not isinstance(enable_checkpointing, bool):
+            error_msg = (
+                "Invalid type provided for enable_checkpointing: "
+                f"Expected bool but received {type(enable_checkpointing)}."
+            )
+            if isinstance(enable_checkpointing, Callback):
                 error_msg += " Pass callback instances to the `callbacks` argument in the Trainer constructor instead."
             raise MisconfigurationException(error_msg)
-        if self._trainer_has_checkpoint_callbacks() and checkpoint_callback is False:
+        if self._trainer_has_checkpoint_callbacks() and enable_checkpointing is False:
             raise MisconfigurationException(
-                "Trainer was configured with checkpoint_callback=False but found ModelCheckpoint in callbacks list."
+                "Trainer was configured with enable_checkpointing=False but found ModelCheckpoint in callbacks list."
             )
 
-        if not self._trainer_has_checkpoint_callbacks() and checkpoint_callback is True:
+        if not self._trainer_has_checkpoint_callbacks() and enable_checkpointing is True:
             self.trainer.callbacks.append(ModelCheckpoint())
 
     def _configure_model_summary_callback(self, weights_summary: Optional[str] = None) -> None:

@@ -255,3 +255,8 @@ def test_v1_7_0_deprecate_lightning_distributed(tmpdir):
         from pytorch_lightning.distributed.dist import LightningDistributed
 
         _ = LightningDistributed()
+
+
+def test_v1_7_0_checkpoint_callback_trainer_constructor(tmpdir):
+    with pytest.deprecated_call(match=r"Setting `Trainer\(checkpoint_callback\)` is deprecated in v1.5"):
+        _ = Trainer(checkpoint_callback=True)

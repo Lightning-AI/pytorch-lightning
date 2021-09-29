@@ -528,45 +528,7 @@ Example::
 checkpoint_callback
 ^^^^^^^^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/checkpoint_callback.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/checkpoint_callback.mp4"></video>
-
-|
-
-By default Lightning saves a checkpoint for you in your current working directory, with the state of your last training epoch,
-Checkpoints capture the exact value of all parameters used by a model.
-To disable automatic checkpointing, set this to `False`.
-
-.. code-block:: python
-
-    # default used by Trainer
-    trainer = Trainer(checkpoint_callback=True)
-
-    # turn off automatic checkpointing
-    trainer = Trainer(checkpoint_callback=False)
-
-
-You can override the default behavior by initializing the :class:`~pytorch_lightning.callbacks.ModelCheckpoint`
-callback, and adding it to the :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks` list.
-See :doc:`Saving and Loading Weights <../common/weights_loading>` for how to customize checkpointing.
-
-.. testcode::
-
-    from pytorch_lightning.callbacks import ModelCheckpoint
-
-    # Init ModelCheckpoint callback, monitoring 'val_loss'
-    checkpoint_callback = ModelCheckpoint(monitor="val_loss")
-
-    # Add your callback to the callbacks list
-    trainer = Trainer(callbacks=[checkpoint_callback])
-
-
-.. warning:: Passing a ModelCheckpoint instance to this argument is deprecated since
-    v1.1 and will be unsupported from v1.3. Use `callbacks` argument instead.
-
+Deprecated: This has been renamed ``enable_checkpointing``.
 
 default_root_dir
 ^^^^^^^^^^^^^^^^
@@ -594,6 +556,44 @@ will need to be set up to use remote filepaths.
 distributed_backend
 ^^^^^^^^^^^^^^^^^^^
 Deprecated: This has been renamed ``accelerator``.
+
+enable_checkpointing
+^^^^^^^^^^^^^^^^^^^^
+
+.. raw:: html
+
+    <video width="50%" max-width="400px" controls
+    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/checkpoint_callback.jpg"
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/checkpoint_callback.mp4"></video>
+
+|
+
+By default Lightning saves a checkpoint for you in your current working directory, with the state of your last training epoch,
+Checkpoints capture the exact value of all parameters used by a model.
+To disable automatic checkpointing, set this to `False`.
+
+.. code-block:: python
+
+    # default used by Trainer
+    trainer = Trainer(enable_checkpointing=True)
+
+    # turn off automatic checkpointing
+    trainer = Trainer(enable_checkpointing=False)
+
+
+You can override the default behavior by initializing the :class:`~pytorch_lightning.callbacks.ModelCheckpoint`
+callback, and adding it to the :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks` list.
+See :doc:`Saving and Loading Weights <../common/weights_loading>` for how to customize checkpointing.
+
+.. testcode::
+
+    from pytorch_lightning.callbacks import ModelCheckpoint
+
+    # Init ModelCheckpoint callback, monitoring 'val_loss'
+    checkpoint_callback = ModelCheckpoint(monitor="val_loss")
+
+    # Add your callback to the callbacks list
+    trainer = Trainer(callbacks=[checkpoint_callback])
 
 fast_dev_run
 ^^^^^^^^^^^^
