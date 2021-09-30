@@ -85,7 +85,7 @@ def test_lightning_parallel_module_unsqueeze_scalar():
             return {"loss": loss}
 
     model = TestModel()
-    model.trainer = Mock()
+    model.trainer = Mock(deterministic=False)
     model.trainer.state.stage = RunningStage.TRAINING
     model.trainer.accelerator_connector._init_deterministic(False)
 
@@ -125,7 +125,7 @@ def test_lightning_parallel_module_python_scalar_conversion(device):
             return output
 
     model = TestModel().to(device)
-    model.trainer = Mock()
+    model.trainer = Mock(deterministic=False)
     model.trainer.state.stage = RunningStage.TRAINING
     model.trainer.accelerator_connector._init_deterministic(False)
     batch = torch.rand(2, 32).to(device)
