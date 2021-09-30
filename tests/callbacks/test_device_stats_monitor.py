@@ -90,6 +90,7 @@ def test_device_stats_gpu_from_nvidia(tmpdir):
 
 
 @RunIf(tpu=True)
+@patch("pytorch_lightning.plugins.training_type.tpu_spawn.xm")
 def test_device_stats_monitor_tpu(tmpdir):
     """Test TPU stats are logged using a logger."""
 

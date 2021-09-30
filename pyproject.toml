@@ -61,6 +61,7 @@ ignore_errors = "True"
 
 [[tool.mypy.overrides]]
 module = [
+    "pytorch_lightning.callbacks.device_stats_monitor",
     "pytorch_lightning.callbacks.model_summary",
     "pytorch_lightning.callbacks.pruning",
     "pytorch_lightning.callbacks.rich_model_summary",
@@ -83,6 +84,5 @@ module = [
     "pytorch_lightning.utilities.parsing",
     "pytorch_lightning.utilities.seed",
     "pytorch_lightning.utilities.xla_device",
-    "pytorch_lightning.callbacks.device_stats_monitor",
 ]
 ignore_errors = "False"
