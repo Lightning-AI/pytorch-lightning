@@ -199,6 +199,11 @@ class DataConnector:
         test_dataloaders: Optional[EVAL_DATALOADERS] = None,
         predict_dataloaders: Optional[EVAL_DATALOADERS] = None,
     ) -> None:
+        self.trainer.train_dataloader = None
+        self.trainer.val_dataloaders = None
+        self.trainer.test_dataloaders = None
+        self.trainer.predict_dataloaders = None
+
         self._train_dataloader_source = DataLoaderSource(
             train_dataloaders if train_dataloaders is not None else model, "train_dataloader"
         )
