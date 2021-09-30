@@ -22,6 +22,7 @@ import pytest
 import torch.distributed
 
 from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7, _TORCH_GREATER_EQUAL_1_8
 from tests import _PATH_DATASETS
 
 
@@ -85,6 +86,18 @@ def teardown_process_group():
     yield
     if torch.distributed.is_available() and torch.distributed.is_initialized():
         torch.distributed.destroy_process_group()
+
+
+@pytest.fixture(scope="function", autouse=True)
+def reset_deterministic_algorithm():
+    """Ensures that torch determinism settings are reset before the next test runs."""
+    yield
+    if _TORCH_GREATER_EQUAL_1_8:
+        torch.use_deterministic_algorithms(False)
+    elif _TORCH_GREATER_EQUAL_1_7:
+        torch.set_deterministic(False)
+    else:  # the minimum version Lightning supports is PyTorch 1.6
+        torch._set_deterministic(False)
 
 
 @pytest.fixture
