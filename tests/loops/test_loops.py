@@ -493,6 +493,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
 
     # need to remove these elements for comparison; comparing with `fit_loop.state_dict()` would require the
     # fit loop to have an iterator, which is only available during training
+    state_dict["state_dict"]["dataloader_state_dict"] = ANY
     checkpoint["loops"]["fit_loop"]["state_dict"]["dataloader_state_dict"] = ANY
     assert state_dict == checkpoint["loops"]["fit_loop"]
 

@@ -259,7 +259,6 @@ class EvaluationLoop(DataLoaderLoop):
         if self._data_fetcher is None or self._data_fetcher.dataloader_iter is None:
             return state_dict
         if self.epoch_loop._num_evaluation_batches_reached():
-            # `has_completed` and `is_last_batch` can be not `True` at the same time with flags like `limit_val_batches`
             state = self._data_fetcher.dataloader_iter.state
         else:
             # the loop did not complete and we need to save the previous state
