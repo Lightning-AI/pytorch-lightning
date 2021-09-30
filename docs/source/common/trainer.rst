@@ -1616,7 +1616,7 @@ directly to the Trainer's ``callbacks`` argument instead. To disable the model s
 pass ``enable_model_summary = False`` to the Trainer.
 
 enable_model_summary
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 Whether to enable or disable the model summarization. Defaults to True.
 
