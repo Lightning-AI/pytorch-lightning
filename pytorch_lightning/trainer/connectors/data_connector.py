@@ -267,18 +267,16 @@ class DataLoaderSource:
     instance: Optional[Union[_DATALOADERS, "pl.LightningModule", "pl.LightningDataModule"]] = None
     name: str = ""
 
-    def request(self) -> _DATALOADERS:
-        from pytorch_lightning import LightningDataModule, LightningModule
+    @property
+    def available(self) -> bool:
+        return not self.is_module() or is_overridden(self.name, self.instance)
 
-        if isinstance(self.instance, (LightningModule, LightningDataModule)) and self.name:
+    def request(self) -> _DATALOADERS:
+        if self.is_module() and self.name:
             return getattr(self.instance, self.name)()
         return self.instance
 
-    # TODO: move is_overridden check back to config validator?
-    @property
-    def available(self) -> bool:
+    def is_module(self) -> bool:
         from pytorch_lightning import LightningDataModule, LightningModule
 
-        return not isinstance(self.instance, (LightningModule, LightningDataModule)) or is_overridden(
-            self.name, self.instance
-        )
+        return isinstance(self.instance, (LightningModule, LightningDataModule))
