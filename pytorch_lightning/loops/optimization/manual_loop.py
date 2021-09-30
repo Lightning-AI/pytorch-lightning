@@ -40,9 +40,7 @@ class ManualResult(OutputResult):
         self.extra = self._check_extra_detach_deprecation(self.extra)
 
     @classmethod
-    def from_training_step_output(
-        cls, training_step_output: Optional[STEP_OUTPUT], normalize: int = 1
-    ) -> "ManualResult":
+    def from_training_step_output(cls, training_step_output: Optional[STEP_OUTPUT]) -> "ManualResult":
         extra = {}
         if isinstance(training_step_output, dict):
             extra = {k: v for k, v in training_step_output.items() if k != "hiddens"}
@@ -56,7 +54,7 @@ class ManualResult(OutputResult):
 
         if "loss" in extra:
             # we detach manually as it's expected that it will have a `grad_fn`
-            extra["loss"] = extra["loss"].detach().div(normalize)
+            extra["loss"] = extra["loss"].detach()
 
         return cls(extra=extra)
 
