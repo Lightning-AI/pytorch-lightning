@@ -65,13 +65,12 @@ def test_device_stats_gpu_from_nvidia(tmpdir):
     model = BoringModel()
     device_stats = DeviceStatsMonitor()
     logger = CSVLogger(tmpdir)
-    log_every_n_steps = 2
 
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
         limit_train_batches=7,
-        log_every_n_steps=log_every_n_steps,
+        log_every_n_steps=1,
         gpus=1,
         callbacks=[device_stats],
         logger=logger,
@@ -103,6 +102,7 @@ def test_device_stats_monitor_tpu(tmpdir):
         max_epochs=2,
         limit_train_batches=5,
         tpu_cores=8,
+        log_every_n_steps=1,
         callbacks=[device_stats],
         logger=logger,
         checkpoint_callback=False,
