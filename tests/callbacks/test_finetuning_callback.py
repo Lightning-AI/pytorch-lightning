@@ -186,7 +186,7 @@ def test_unfreeze_and_add_param_group_function(tmpdir):
     model = FreezeModel()
     optimizer = SGD(model.backbone[0].parameters(), lr=0.01)
 
-    with pytest.warns(UserWarning, match="The provided params to be freezed already"):
+    with pytest.warns(UserWarning, match="The provided params to be frozen already"):
         BaseFinetuning.unfreeze_and_add_param_group(model.backbone[0], optimizer=optimizer)
     assert optimizer.param_groups[0]["lr"] == 0.01
 
@@ -197,7 +197,7 @@ def test_unfreeze_and_add_param_group_function(tmpdir):
     assert torch.equal(optimizer.param_groups[1]["params"][0], model.backbone[1].weight)
     assert model.backbone[1].weight.requires_grad
 
-    with pytest.warns(UserWarning, match="The provided params to be freezed already"):
+    with pytest.warns(UserWarning, match="The provided params to be frozen already"):
         BaseFinetuning.unfreeze_and_add_param_group(model, optimizer=optimizer, lr=100, train_bn=False)
     assert len(optimizer.param_groups) == 3
     assert optimizer.param_groups[2]["lr"] == 100
