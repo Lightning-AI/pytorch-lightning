@@ -148,9 +148,10 @@ class EvaluationEpochLoop(Loop):
         # in case the model changes
         self._should_track_batch_outputs_for_epoch_end.cache_clear()
 
-    @property
-    def has_completed(self) -> bool:
-        return self.batch_progress.current.ready == self.batch_progress.current.completed
+    def _num_evaluation_batches_reached(self) -> bool:
+        """Checks if we are in the last batch or if there are more batches to follow."""
+        batches = self.trainer.num_val_batches if self.trainer.validating else self.trainer.num_test_batches
+        return self.batch_progress.current.ready == batches or self.batch_progress.is_last_batch
 
     def _evaluation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Optional[STEP_OUTPUT]:
         """The evaluation step (validation_step or test_step depending on the trainer's state).

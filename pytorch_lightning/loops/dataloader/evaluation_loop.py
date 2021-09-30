@@ -258,8 +258,7 @@ class EvaluationLoop(DataLoaderLoop):
         state_dict = super().on_save_checkpoint()
         if self._data_fetcher is None or self._data_fetcher.dataloader_iter is None:
             return state_dict
-        # FIXME: should is last batch be part of has completed?
-        if self.epoch_loop.has_completed or self.epoch_loop.batch_progress.is_last_batch:
+        if self.epoch_loop._num_evaluation_batches_reached():
             # `has_completed` and `is_last_batch` can be not `True` at the same time with flags like `limit_val_batches`
             state = self._data_fetcher.dataloader_iter.state
         else:
