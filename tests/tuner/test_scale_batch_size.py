@@ -217,8 +217,9 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
         limit_train_batches=0.2,
         auto_scale_batch_size="power",
     )
-    fit_options = dict(train_dataloader=model.dataloader(train=True))
+    fit_options = dict(train_dataloaders=model.dataloader(train=True))
 
+    # TODO: specify error message
     with pytest.raises(MisconfigurationException):
         trainer.tune(model, **fit_options)
 
