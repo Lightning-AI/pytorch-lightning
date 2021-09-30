@@ -127,11 +127,7 @@ def is_register_plugins_overridden(plugin: type) -> bool:
     else:
         return False
 
-    if hasattr(plugin_attr, "patch_loader_code"):
-        is_overridden = plugin_attr.patch_loader_code != str(super_attr.__code__)
-    else:
-        is_overridden = plugin_attr.__code__ is not super_attr.__code__
-    return is_overridden
+    return plugin_attr.__code__ is not super_attr.__code__
 
 
 def call_training_type_register_plugins(root: Path, base_module: str) -> None:
