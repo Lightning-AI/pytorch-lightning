@@ -1612,8 +1612,9 @@ Options: 'full', 'top', None.
     trainer = Trainer(weights_summary=None)
 
 .. warning:: `weights_summary` is deprecated in v1.5 and will be removed in v1.7. Please pass :class:`~pytorch_lightning.callbacks.model_summary.ModelSummary`
-directly to the Trainer's ``callbacks`` argument instead. To disable the model summary,
-pass ``enable_model_summary = False`` to the Trainer.
+    directly to the Trainer's ``callbacks`` argument instead. To disable the model summary,
+    pass ``enable_model_summary = False`` to the Trainer.
+
 
 enable_model_summary
 ^^^^^^^^^^^^^^^^^^^^
