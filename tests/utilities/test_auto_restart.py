@@ -1152,7 +1152,6 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
     restart in a reproducible way."""
 
     model_total = _fit_model(tmpdir, False, val_check_interval, failure_on_step, failure_on_training, on_last_batch)
-    expected = model_total.seen_train_batches
 
     if failure_on_step:
         if on_last_batch:
@@ -1181,11 +1180,14 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
     assert os.path.exists(checkpoint_path)
     model_restarted = _fit_model(tmpdir, False, val_check_interval, failure_on_step, failure_on_training, on_last_batch)
 
-    generated = model_signaled.seen_train_batches
-    generated.extend(model_restarted.seen_train_batches)
+    # check the batches
+    actual = torch.cat(model_signaled.seen_train_batches + model_restarted.seen_train_batches)
+    expected = torch.cat(model_total.seen_train_batches)
+    assert torch.equal(actual, expected)
 
-    assert torch.equal(torch.cat(expected), torch.cat(generated))
-    assert torch.equal(model_total.layer.weight, model_restarted.layer.weight)
+    # check the weights
+    # assert not torch.equal(model_signaled.layer.weight, model_total.layer.weight)
+    assert torch.equal(model_restarted.layer.weight, model_total.layer.weight)
 
     checkpoint = torch.load(checkpoint_path)["loops"]["fit_loop"]
     if checkpoint["epoch_loop.batch_progress"]["is_last_batch"]:
