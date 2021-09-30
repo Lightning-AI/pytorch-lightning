@@ -20,7 +20,6 @@ from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import suppress
 from copy import deepcopy
-from time import time
 from typing import List, Optional
 from unittest import mock
 from unittest.mock import ANY
@@ -1073,21 +1072,15 @@ class TestAutoRestartModelUnderSignal(BoringModel):
         self.on_last_batch = on_last_batch
         self.seen_train_batches = []
 
-    def _signal(self, message):
+    def _signal(self):
         if self.should_signal:
             os.kill(os.getpid(), signal.SIGUSR1)
-            # small optimization to skip as soon as async signal has being triggered.
-            t0 = time()
-            while not self.trainer._terminate_gracefully:
-                t1 = time()
-                if (t1 - t0) > 0.1:
-                    self.trainer._terminate_gracefully = True
 
     def training_step(self, batch, batch_idx):
         self.seen_train_batches.append(batch)
         should_signal = self.trainer.fit_loop.epoch_loop._is_training_done if self.on_last_batch else batch_idx == 2
         if self.failure_on_step and self.failure_on_training and should_signal:
-            self._signal("training_step")
+            self._signal()
         return super().training_step(batch, batch_idx)
 
     def validation_step(self, batch, batch_idx):
@@ -1097,16 +1090,16 @@ class TestAutoRestartModelUnderSignal(BoringModel):
             else batch_idx == 2
         )
         if self.failure_on_step and not self.failure_on_training and should_signal:
-            self._signal("validation_step")
+            self._signal()
         return super().validation_step(batch, batch_idx)
 
     def training_epoch_end(self, outputs) -> None:
         if not self.failure_on_step and self.failure_on_training:
-            self._signal("training_epoch_end")
+            self._signal()
 
     def validation_epoch_end(self, outputs) -> None:
         if not self.failure_on_step and not self.failure_on_training:
-            self._signal("validation_epoch_end")
+            self._signal()
 
     def train_dataloader(self):
         return DataLoader(RandomDataset(32, 4))
@@ -1186,6 +1179,7 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
     assert torch.equal(actual, expected)
 
     # check the weights
+    # FIXME
     # assert not torch.equal(model_signaled.layer.weight, model_total.layer.weight)
     assert torch.equal(model_restarted.layer.weight, model_total.layer.weight)
 
