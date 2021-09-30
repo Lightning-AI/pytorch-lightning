@@ -124,6 +124,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added Rich Progress Bar:
     * Rich Progress Bar ([#8929](https://github.com/PyTorchLightning/pytorch-lightning/pull/8929))
     * Improvements for rich progress bar ([#9559](https://github.com/PyTorchLightning/pytorch-lightning/pull/9559))
+    * Support for Iterable Datasets ([#9734](https://github.com/PyTorchLightning/pytorch-lightning/pull/9734))
 
 
 - Added validate logic for precision ([#9080](https://github.com/PyTorchLightning/pytorch-lightning/pull/9080))
@@ -204,6 +205,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Improve coverage of `self.log`-ing in any `LightningModule` or `Callback` hook ([#8498](https://github.com/PyTorchLightning/pytorch-lightning/pull/8498))
+
+
+- `self.log`-ing without a `Trainer` reference now raises a warning instead of an exception ([#9733](https://github.com/PyTorchLightning/pytorch-lightning/pull/9733))
 
 
 - Removed restrictions in the trainer that loggers can only log from rank 0. Existing logger behavior has not changed. ([#8608](https://github.com/PyTorchLightning/pytorch-lightning/pull/8608))
@@ -337,6 +341,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Removed `TrainingTypePlugin.on_save` and `Accelerator.on_save` ([#9023](https://github.com/PyTorchLightning/pytorch-lightning/pull/9023))
+
+
+- Removed `{Accelerator,TrainingTypePlugin,PrecisionPlugin}.post_optimizer_step` ([#9746](https://github.com/PyTorchLightning/pytorch-lightning/pull/9746))
 
 
 - Removed deprecated `connect_precision_plugin` and `connect_training_type_plugin` from `Accelerator` ([#9019](https://github.com/PyTorchLightning/pytorch-lightning/pull/9019))

@@ -369,7 +369,6 @@ from torch import nn
 import pytorch_lightning as pl
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.utilities import (
-    _NATIVE_AMP_AVAILABLE,
     _APEX_AVAILABLE,
     _XLA_AVAILABLE,
     _TPU_AVAILABLE,

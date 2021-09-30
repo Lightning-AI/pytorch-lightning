@@ -1172,7 +1172,7 @@ Lightning supports either double precision (64), full precision (32), or half pr
 Half precision, or mixed precision, is the combined use of 32 and 16 bit floating points to reduce memory footprint during model training. This can result in improved performance, achieving +3X speedups on modern GPUs.
 
 .. testcode::
-    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
+    :skipif: not torch.cuda.is_available()
 
     # default used by the Trainer
     trainer = Trainer(precision=32, gpus=1)
@@ -1221,7 +1221,7 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
     2. Set the `precision` trainer flag to 16. You can customize the `Apex optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`_ by setting the `amp_level` flag.
 
     .. testcode::
-        :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
+        :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
 
         # turn on 16-bit
         trainer = Trainer(amp_backend="apex", amp_level="O2", precision=16)
