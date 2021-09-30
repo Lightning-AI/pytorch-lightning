@@ -98,9 +98,7 @@ By default it only prints the top-level modules. If you want to show all submodu
 `'max_depth'` option:
 
 .. testcode::
-    from pytorch_lightning.callbacks import ModelSummary
-
-    trainer = Trainer(callbacks=[ModelSummary(max_depth=-1)])
+    trainer = Trainer(weights_summary="full")
 
 You can also display the intermediate input- and output sizes of all your layers by setting the
 ``example_input_array`` attribute in your LightningModule. It will print a table like this
