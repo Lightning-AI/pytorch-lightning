@@ -184,7 +184,7 @@ class ConfigValidator:
     def __verify_manual_optimization_support(self, model: "pl.LightningModule") -> None:
         if model.automatic_optimization:
             return
-        if self.trainer.gradient_clip_val > 0:
+        if self.trainer.gradient_clip_val is not None and self.trainer.gradient_clip_val > 0:
             raise MisconfigurationException(
                 "Automatic gradient clipping is not supported for manual optimization."
                 f" Remove `Trainer(gradient_clip_val={self.trainer.gradient_clip_val})`"

@@ -22,6 +22,7 @@ from torch.optim import Adam, SGD
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities import _TORCH_SHARDED_TENSOR_AVAILABLE
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -338,6 +339,8 @@ def test_sharded_tensor_state_dict(tmpdir, single_process_pg):
 
 
 def test_lightning_module_configure_gradient_clipping(tmpdir):
+    """Test custom gradient clipping inside `configure_gradient_clipping` hook."""
+
     class TestModel(BoringModel):
 
         has_validated_gradients = False
@@ -366,3 +369,40 @@ def test_lightning_module_configure_gradient_clipping(tmpdir):
     )
     trainer.fit(model)
     assert model.has_validated_gradients
+
+
+def test_lightning_module_configure_gradient_clipping_different_argument_values(tmpdir):
+    """Test that setting gradient clipping arguments in `Trainer` and cusotmizing gradient clipping inside
+    `configure_gradient_clipping` with different values raises an exception."""
+
+    class TestModel(BoringModel):
+        custom_gradient_clip_val = 1e-2
+
+        def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
+            self.clip_gradients(optimizer, gradient_clip_val=self.custom_gradient_clip_val)
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, limit_val_batches=0, gradient_clip_val=1e-4
+    )
+    with pytest.raises(MisconfigurationException, match=r".*have set `Trainer\(gradient_clip_val\)` and have passed.*"):
+        trainer.fit(model)
+
+    class TestModel(BoringModel):
+        custom_gradient_clip_algorithm = "value"
+
+        def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
+            self.clip_gradients(optimizer, gradient_clip_algorithm=self.custom_gradient_clip_algorithm)
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=0,
+        gradient_clip_algorithm="norm",
+    )
+    with pytest.raises(
+        MisconfigurationException, match=r".*have set `Trainer\(gradient_clip_algorithm\)` and have passed.*"
+    ):
+        trainer.fit(model)

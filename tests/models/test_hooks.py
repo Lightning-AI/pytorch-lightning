@@ -309,12 +309,12 @@ class HookedModel(BoringModel):
                     dict(
                         name="clip_gradients",
                         args=(ANY,),
-                        kwargs=dict(gradient_clip_val=0.0, gradient_clip_algorithm="norm"),
+                        kwargs=dict(gradient_clip_val=None, gradient_clip_algorithm=None),
                     ),
                     dict(
                         name="configure_gradient_clipping",
                         args=(ANY, 0),
-                        kwargs=dict(gradient_clip_val=0.0, gradient_clip_algorithm="norm"),
+                        kwargs=dict(gradient_clip_val=None, gradient_clip_algorithm=None),
                     ),
                     dict(
                         name="optimizer_step",

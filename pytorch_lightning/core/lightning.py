@@ -1473,7 +1473,12 @@ class LightningModule(
         # save memory
         self._param_requires_grad_state = {}
 
-    def clip_gradients(self, optimizer: Optimizer, gradient_clip_val: Union[int, float], gradient_clip_algorithm: str):
+    def clip_gradients(
+        self,
+        optimizer: Optimizer,
+        gradient_clip_val: Optional[Union[int, float]] = None,
+        gradient_clip_algorithm: Optional[Union[str, GradClipAlgorithmType]] = None,
+    ):
         """Handles gradient clipping internally.
 
         Note:
@@ -1486,24 +1491,45 @@ class LightningModule(
             gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
                 to clip by value, and ``gradient_clip_algorithm="norm"`` to clip by norm.
         """
-        # gradient clipping
+        if gradient_clip_val is None:
+            gradient_clip_val = self.trainer.gradient_clip_val or 0.0
+        elif self.trainer.gradient_clip_val is not None and self.trainer.gradient_clip_val != gradient_clip_val:
+            raise MisconfigurationException(
+                "You have set `Trainer(gradient_clip_val)` and have passed"
+                " `gradient_clip_val` inside `clip_gradients`. Please use only one of them."
+            )
+
+        if gradient_clip_algorithm is None:
+            gradient_clip_algorithm = self.trainer.gradient_clip_algorithm or "norm"
+        else:
+            gradient_clip_algorithm = gradient_clip_algorithm.lower()
+            if (
+                self.trainer.gradient_clip_algorithm is not None
+                and self.trainer.gradient_clip_algorithm != gradient_clip_algorithm
+            ):
+                raise MisconfigurationException(
+                    "You have set `Trainer(gradient_clip_algorithm)` and have passed"
+                    " `gradient_clip_algorithm` inside `clip_gradients`. Please use only one of them."
+                )
+
         if not isinstance(gradient_clip_val, (int, float)):
             raise TypeError(f"`gradient_clip_val` should be an int or a float. Got {gradient_clip_val}.")
 
         if not GradClipAlgorithmType.supported_type(gradient_clip_algorithm.lower()):
             raise MisconfigurationException(
-                f"`gradient_clip_algorithm` {gradient_clip_algorithm} is invalid. "
-                f"Allowed algorithms: {GradClipAlgorithmType.supported_types()}."
+                f"`gradient_clip_algorithm` {gradient_clip_algorithm} is invalid."
+                f" Allowed algorithms: {GradClipAlgorithmType.supported_types()}."
             )
 
+        gradient_clip_algorithm = GradClipAlgorithmType(gradient_clip_algorithm)
         self.trainer.accelerator.clip_gradients(optimizer, gradient_clip_val, gradient_clip_algorithm)
 
     def configure_gradient_clipping(
         self,
         optimizer: Optimizer,
         optimizer_idx: int,
-        gradient_clip_val: Union[int, float],
-        gradient_clip_algorithm: str,
+        gradient_clip_val: Optional[Union[int, float]] = None,
+        gradient_clip_algorithm: Optional[str] = None,
     ):
         """Perform gradient clipping for the optimizer parameters. Called before :meth:`optimizer_step`.
 

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Union
+from typing import Optional, Union
 
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -23,8 +23,8 @@ class TrainingTricksConnector:
 
     def on_trainer_init(
         self,
-        gradient_clip_val: Union[int, float],
-        gradient_clip_algorithm: str,
+        gradient_clip_val: Optional[Union[int, float]],
+        gradient_clip_algorithm: Optional[str],
         track_grad_norm: Union[int, float, str],
         terminate_on_nan: bool,
     ):
@@ -32,10 +32,12 @@ class TrainingTricksConnector:
             raise TypeError(f"`terminate_on_nan` should be a bool, got {terminate_on_nan}.")
 
         # gradient clipping
-        if not isinstance(gradient_clip_val, (int, float)):
+        if gradient_clip_val is not None and not isinstance(gradient_clip_val, (int, float)):
             raise TypeError(f"`gradient_clip_val` should be an int or a float. Got {gradient_clip_val}.")
 
-        if not GradClipAlgorithmType.supported_type(gradient_clip_algorithm.lower()):
+        if gradient_clip_algorithm is not None and not GradClipAlgorithmType.supported_type(
+            gradient_clip_algorithm.lower()
+        ):
             raise MisconfigurationException(
                 f"`gradient_clip_algorithm` {gradient_clip_algorithm} is invalid. "
                 f"Allowed algorithms: {GradClipAlgorithmType.supported_types()}."
@@ -49,5 +51,9 @@ class TrainingTricksConnector:
 
         self.trainer.terminate_on_nan = terminate_on_nan
         self.trainer.gradient_clip_val = gradient_clip_val
-        self.trainer.gradient_clip_algorithm = GradClipAlgorithmType(gradient_clip_algorithm.lower())
+        self.trainer.gradient_clip_algorithm = (
+            GradClipAlgorithmType(gradient_clip_algorithm.lower())
+            if gradient_clip_algorithm is not None
+            else gradient_clip_algorithm
+        )
         self.trainer.track_grad_norm = float(track_grad_norm)
