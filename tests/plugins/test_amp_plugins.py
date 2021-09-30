@@ -224,9 +224,3 @@ def test_cpu_amp_precision_16_throws_error(tmpdir):
             default_root_dir=tmpdir,
             precision=16,
         )
-
-
-@RunIf(min_gpus=1, amp_native=True)
-def test_amp_level_raises_error_with_native(tmpdir):
-    with pytest.raises(MisconfigurationException, match="not supported with amp_backend='native'"):
-        _ = Trainer(default_root_dir=tmpdir, gpus=1, amp_level="O2", amp_backend="native", precision=16)

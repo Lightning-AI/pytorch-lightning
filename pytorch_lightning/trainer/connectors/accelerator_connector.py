@@ -565,8 +565,8 @@ class AcceleratorConnector:
             if self.amp_type == AMPType.NATIVE:
                 if self.amp_level is not None:
                     raise MisconfigurationException(
-                        f"You have asked for amp_level={self.amp_level} which is not supported "
-                        "with amp_backend='native'."
+                        f"You have asked for `amp_level={repr(self.amp_level)}` which is not supported"
+                        " with `amp_backend='native'`."
                     )
 
                 log.info(f"Using native {self.precision} bit Automatic Mixed Precision")
@@ -589,8 +589,7 @@ class AcceleratorConnector:
                     )
                 log.info("Using APEX 16bit precision.")
 
-                if self.amp_level is None:
-                    self.amp_level = "O2"
+                self.amp_level = self.amp_level or "O2"
 
                 return ApexMixedPrecisionPlugin(self.amp_level)
 
