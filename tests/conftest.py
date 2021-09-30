@@ -53,6 +53,7 @@ def restore_env_variables():
     os.environ.update(env_backup)
     # these are currently known leakers - ideally these would not be allowed
     allowlist = {
+        "CUBLAS_WORKSPACE_CONFIG",  # enabled with deterministic flag
         "CUDA_DEVICE_ORDER",
         "LOCAL_RANK",
         "NODE_RANK",
