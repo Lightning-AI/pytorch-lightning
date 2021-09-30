@@ -1589,6 +1589,11 @@ Example::
 weights_summary
 ^^^^^^^^^^^^^^^
 
+.. warning:: `weights_summary` is deprecated in v1.5 and will be removed in v1.7. Please pass :class:`~pytorch_lightning.callbacks.model_summary.ModelSummary`
+    directly to the Trainer's ``callbacks`` argument instead. To disable the model summary,
+    pass ``enable_model_summary = False`` to the Trainer.
+
+
 .. raw:: html
 
     <video width="50%" max-width="400px" controls
@@ -1611,10 +1616,6 @@ Options: 'full', 'top', None.
     # don't print a summary
     trainer = Trainer(weights_summary=None)
 
-.. warning:: `weights_summary` is deprecated in v1.5 and will be removed in v1.7. Please pass :class:`~pytorch_lightning.callbacks.model_summary.ModelSummary`
-    directly to the Trainer's ``callbacks`` argument instead. To disable the model summary,
-    pass ``enable_model_summary = False`` to the Trainer.
-
 
 enable_model_summary
 ^^^^^^^^^^^^^^^^^^^^
@@ -1628,6 +1629,11 @@ Whether to enable or disable the model summarization. Defaults to True.
 
     # disable summarization
     trainer = Trainer(enable_model_summary=False)
+
+    # enable custom summarization
+    from pytorch_lightning.callbacks import ModelSummary
+
+    trainer = Trainer(enable_model_summary=True, callbacks=[ModelSummary(max_depth=-1)])
 
 -----
 
