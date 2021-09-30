@@ -546,7 +546,7 @@ class DDPPlugin(ParallelPlugin):
         self.lightning_module.load_state_dict(checkpoint["state_dict"])
 
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
-        rank_zero_info(f"DistributedDataParallel has {self.num_processes} processes. Serializing to avoid CPU OOMs.")
+        rank_zero_info(f"DistributedDataParallel has {self.num_processes} processes. Serializing checkpoint loading to avoid CPU OOMs.")
         for current_worker in range(self.num_processes):
             if self.local_rank == current_worker:
                 checkpoint = super().load_checkpoint(checkpoint_path)
