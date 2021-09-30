@@ -167,7 +167,7 @@ class MergedIteratorState:
 
     def update(self, generator_name: Optional[str], new_state: IteratorState) -> None:
         # a map based dataset doesn't own a generator and therefore `generator_name` should be None.
-        if generator_name is None:  # <=> if self.represent_map_dataset (which is not recognized by mypy)
+        if generator_name is None:
             self.represent_map_dataset = True
             state = self.state
         else:
