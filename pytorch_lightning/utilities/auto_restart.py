@@ -161,7 +161,7 @@ class MergedIteratorState:
     worker states in this merged iterator state.
     """
 
-    state: Union[Dict[Union[int, str], Union[Dict[str, IteratorState], IteratorState]]] = field(default_factory=dict)
+    state: Dict[Union[int, str], Union[Dict[str, IteratorState], IteratorState]] = field(default_factory=dict)
     latest_worker_id: int = 0
     represent_map_dataset: Optional[bool] = None
 
@@ -568,14 +568,20 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
 
         # reload sampler state
         ff_sampler = _find_fast_forward_samplers(dataloader)
-        ff_sampler.load_state_dict(iterator_state.sampler_state)
+        if ff_sampler is not None:
+            ff_sampler.load_state_dict(iterator_state.sampler_state)
 
-        # reload dataset state
-        dataset.load_state_dict(
-            iterator_state.dataset_state,
-            latest_worker_id=state_dict["latest_worker_id"],
-            num_workers=iterator_state.num_workers,
-        )
+            # reload dataset state
+            dataset.load_state_dict(
+                iterator_state.dataset_state,
+                latest_worker_id=state_dict["latest_worker_id"],
+                num_workers=iterator_state.num_workers,
+            )
+        else:
+            raise MisconfigurationException(
+                "Fast forwad sampler not found. This shouldn't happen. Please, open an issue on PyTorch Lightning "
+                "Github."
+            )
 
     elif isinstance(dataset, CaptureIterableDataset):
         dataset.load_state_dict(
