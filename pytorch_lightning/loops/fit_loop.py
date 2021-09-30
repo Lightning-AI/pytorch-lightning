@@ -247,13 +247,13 @@ class FitLoop(Loop):
 
     def on_save_checkpoint(self) -> Dict:
         state_dict = super().on_save_checkpoint()
-
-        if self.epoch_loop is None or self.trainer.train_dataloader is None or self._num_training_batches_reached():
-            return state_dict
-
-        state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(
-            has_completed=self._has_completed_training_batch()
-        )
+        if (
+            self.epoch_loop is not None
+            and self.trainer.train_dataloader is not None
+            and not self.epoch_loop._num_training_batches_reached()
+        ):
+            # FIXME: need the flag?
+            state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(has_completed=False)
         return state_dict
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
@@ -276,9 +276,3 @@ class FitLoop(Loop):
             whether the limit for this value should be enabled
         """
         return max_value not in (None, -1)
-
-    def _has_completed_training_batch(self) -> bool:
-        return self.epoch_loop.batch_progress.current.ready == self.epoch_loop.batch_progress.current.completed
-
-    def _num_training_batches_reached(self) -> bool:
-        return self._has_completed_training_batch() and self.epoch_loop.batch_progress.is_last_batch
