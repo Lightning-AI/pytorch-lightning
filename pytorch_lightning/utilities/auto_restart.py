@@ -27,6 +27,7 @@ from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoad
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
 class FastForwardSampler(Sampler):
@@ -231,9 +232,7 @@ class CaptureMapDataset(Dataset):
                 set_rng_states(self._cached_state_dict[self.worker_id]["rng_states"])
             self._cached_state_dict = None
 
-        data = self.dataset[item]
-        state_dict = self._state_dict()
-        return data, state_dict
+        return self.dataset[item]
 
     def __len__(self) -> int:
         return len(self.dataset)
@@ -251,7 +250,7 @@ class CaptureMapDataset(Dataset):
             }
         self._cached_state_dict = state_dict
 
-    def _state_dict(self) -> Dict[int, Dict[str, Any]]:
+    def state_dict(self) -> Dict[int, Dict[str, Any]]:
         return {self.worker_id: {"rng_states": collect_rng_states()}}
 
 
@@ -468,17 +467,10 @@ def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: 
             "__pl_restart_meta": {"sampler_name0": state_dict0, "sampler_name1": state_dict1},
         }
     """
-    if isinstance(dataset, CaptureIterableDataset):
-        data = default_collate(samples)
-        metadata = dataset.state_dict()
-
-    elif isinstance(dataset, CaptureMapDataset):
-        samples, states = zip(*samples)
-        data = default_collate(samples)
-        metadata = states[-1]
-    else:
-        return default_collate(samples)
-
+    data = default_collate(samples)
+    if not isinstance(dataset, (CaptureIterableDataset, CaptureMapDataset)):
+        return data
+    metadata = dataset.state_dict()
     return {"data": data, AutoRestartBatchKeys.PL_RESTART_META: metadata}
 
 
@@ -558,3 +550,37 @@ def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
     dataloader.collate_fn = partial(
         _capture_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
     )
+
+
+def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, Any]) -> None:
+    """Utility to reload state_dict within dataloader for fault tolerance."""
+
+    if not _fault_tolerant_training():
+        return
+
+    dataset = dataloader.dataset
+
+    if isinstance(dataset, CaptureMapDataset):
+        iterator_state = state_dict["state"][0]
+
+        if not isinstance(iterator_state, IteratorState):
+            iterator_state = IteratorState.from_state_dict(iterator_state)
+
+        # reload sampler state
+        ff_sampler = _find_fast_forward_samplers(dataloader)
+        ff_sampler.load_state_dict(iterator_state.sampler_state)
+
+        # reload dataset state
+        dataset.load_state_dict(
+            iterator_state.dataset_state,
+            latest_worker_id=state_dict["latest_worker_id"],
+            num_workers=iterator_state.num_workers,
+        )
+
+    elif isinstance(dataset, CaptureIterableDataset):
+        dataset.load_state_dict(
+            {sampler_name: state[0]["sampler_state"] for sampler_name, state in state_dict["state"].items()}
+        )
+
+    else:
+        raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")

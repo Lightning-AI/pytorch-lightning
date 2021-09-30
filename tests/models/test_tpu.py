@@ -62,7 +62,7 @@ def test_model_tpu_cores_1(tmpdir):
     tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=2,
         tpu_cores=1,
         limit_train_batches=4,
@@ -81,7 +81,7 @@ def test_model_tpu_index(tmpdir, tpu_core):
     tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=2,
         tpu_cores=[tpu_core],
         limit_train_batches=4,
@@ -100,7 +100,7 @@ def test_model_tpu_cores_8(tmpdir):
     tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=1,
         tpu_cores=8,
         limit_train_batches=4,
@@ -120,7 +120,7 @@ def test_model_16bit_tpu_cores_1(tmpdir):
     trainer_options = dict(
         default_root_dir=tmpdir,
         precision=16,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=2,
         tpu_cores=1,
         limit_train_batches=8,
@@ -141,7 +141,7 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
     trainer_options = dict(
         default_root_dir=tmpdir,
         precision=16,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=2,
         tpu_cores=[tpu_core],
         limit_train_batches=4,
@@ -162,7 +162,7 @@ def test_model_16bit_tpu_cores_8(tmpdir):
     trainer_options = dict(
         default_root_dir=tmpdir,
         precision=16,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=1,
         tpu_cores=8,
         limit_train_batches=4,
@@ -190,7 +190,7 @@ def test_model_tpu_early_stop(tmpdir):
     trainer = Trainer(
         callbacks=[EarlyStopping(monitor="val_loss")],
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=2,
         limit_train_batches=2,
         limit_val_batches=2,
@@ -207,7 +207,7 @@ def test_tpu_grad_norm(tmpdir):
     tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=4,
         tpu_cores=1,
         limit_train_batches=0.4,
@@ -226,7 +226,7 @@ def test_tpu_clip_grad_by_value(tmpdir):
     tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=4,
         tpu_cores=1,
         limit_train_batches=10,
@@ -253,7 +253,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
 
 @pytest.mark.parametrize(
     ["tpu_cores", "expected_tpu_id"],
-    [pytest.param(1, None), pytest.param(8, None), pytest.param([1], 1), pytest.param([8], 8)],
+    [(1, None), (8, None), ([1], 1), ([8], 8)],
 )
 @RunIf(tpu=True)
 def test_tpu_id_to_be_as_expected(tpu_cores, expected_tpu_id):
@@ -301,17 +301,17 @@ def test_broadcast_on_tpu():
 @pytest.mark.parametrize(
     ["tpu_cores", "expected_tpu_id", "error_expected"],
     [
-        pytest.param(1, None, False),
-        pytest.param(8, None, False),
-        pytest.param([1], 1, False),
-        pytest.param([8], 8, False),
-        pytest.param("1,", 1, False),
-        pytest.param("1", None, False),
-        pytest.param("9, ", 9, True),
-        pytest.param([9], 9, True),
-        pytest.param([0], 0, True),
-        pytest.param(2, None, True),
-        pytest.param(10, None, True),
+        (1, None, False),
+        (8, None, False),
+        ([1], 1, False),
+        ([8], 8, False),
+        ("1,", 1, False),
+        ("1", None, False),
+        ("9, ", 9, True),
+        ([9], 9, True),
+        ([0], 0, True),
+        (2, None, True),
+        (10, None, True),
     ],
 )
 @RunIf(tpu=True)
@@ -327,7 +327,7 @@ def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
 
 @pytest.mark.parametrize(
     ["cli_args", "expected"],
-    [pytest.param("--tpu_cores=8", {"tpu_cores": 8}), pytest.param("--tpu_cores=1,", {"tpu_cores": "1,"})],
+    [("--tpu_cores=8", {"tpu_cores": 8}), ("--tpu_cores=1,", {"tpu_cores": "1,"})],
 )
 @RunIf(tpu=True)
 @pl_multi_process_test
@@ -379,7 +379,7 @@ def test_tpu_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
     tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=1,
         tpu_cores=1,
         precision=16,
@@ -437,7 +437,7 @@ def test_tpu_debug_mode(tmpdir):
     tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=4,
         tpu_cores=8,
         limit_train_batches=0.4,
@@ -464,7 +464,7 @@ def test_tpu_host_world_size(tmpdir):
     tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=4,
         tpu_cores=8,
         limit_train_batches=0.4,

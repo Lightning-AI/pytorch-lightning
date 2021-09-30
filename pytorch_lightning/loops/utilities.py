@@ -13,8 +13,10 @@
 # limitations under the License.
 from collections import OrderedDict
 from contextlib import contextmanager
-from typing import Any, Dict, Generator, Iterator, Mapping, Optional, Sequence
+from functools import lru_cache
+from typing import Any, Dict, Generator, Iterator, List, Optional, Sequence, Tuple
 
+import numpy as np
 import torch
 from torch.optim import Optimizer
 
@@ -35,31 +37,6 @@ def check_finite_loss(loss: Optional[torch.Tensor]) -> None:
     """
     if loss is not None and not torch.isfinite(loss).all():
         raise ValueError(f"The loss returned in `training_step` is {loss}.")
-
-
-def _check_training_step_output(model: "pl.LightningModule", training_step_output: STEP_OUTPUT) -> None:
-    """Sanity checks that training produced a valid output.
-
-    Args:
-        model: a reference to the trainer
-        training_step_output: the output of the training step (before wrapping in an AttributeDict)
-    """
-    if (
-        isinstance(training_step_output, torch.Tensor)
-        and not model.automatic_optimization
-        and training_step_output.grad_fn is None
-    ):
-        # TODO: in manual optimization, anything returned should be considered an `extra`
-        raise MisconfigurationException("In manual optimization, `training_step` should not return a Tensor")
-    if model.automatic_optimization and not (
-        isinstance(training_step_output, torch.Tensor)
-        or (isinstance(training_step_output, Mapping) and "loss" in training_step_output)
-        or training_step_output is None
-    ):
-        raise MisconfigurationException(
-            "In automatic optimization, `training_step` must either return a Tensor, "
-            "a dict with key 'loss' or None (where the step will be skipped)."
-        )
 
 
 def _extract_hiddens(training_step_output: STEP_OUTPUT, truncated_bptt_steps: int) -> Optional[Any]:
@@ -137,7 +114,7 @@ def _build_training_step_kwargs(
     return step_kwargs
 
 
-def _prepare_dataloader_iter(data_fetcher: AbstractDataFetcher, batch_idx: int) -> Iterator:
+def _update_dataloader_iter(data_fetcher: AbstractDataFetcher, batch_idx: int) -> Iterator:
     """Attach the dataloader."""
     if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
         # restore iteration
@@ -164,3 +141,30 @@ def _block_parallel_sync_behavior(trainer: "pl.Trainer", block: bool = True) -> 
             yield None
     else:
         yield None
+
+
+@lru_cache(1)
+def _cumulative_optimizer_frequencies(frequencies: Tuple[int]):
+    return np.cumsum(frequencies)
+
+
+def _get_active_optimizers(
+    optimizers: List[Optimizer], frequencies: List[int], batch_idx: Optional[int] = None
+) -> List[Tuple[int, Optimizer]]:
+    """Returns the currently active optimizers. When multiple optimizers are used with different frequencies, only
+    one of the optimizers is active at a time.
+
+    Returns:
+        A list of tuples (opt_idx, optimizer) of currently active optimizers.
+    """
+    if not frequencies:
+        # call training_step once per optimizer
+        return list(enumerate(optimizers))
+
+    freq_cumsum = _cumulative_optimizer_frequencies(tuple(frequencies))
+    optimizers_loop_length = freq_cumsum[-1]
+    current_place_in_loop = batch_idx % optimizers_loop_length
+
+    # find optimizer index by looking for the first {item > current_place} in the cumsum list
+    opt_idx = np.searchsorted(freq_cumsum, current_place_in_loop, side="right")
+    return [(opt_idx, optimizers[opt_idx])]

@@ -31,9 +31,9 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
+from pytorch_lightning.overrides.torch_distributed import broadcast_object_list
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
@@ -48,13 +48,9 @@ from pytorch_lightning.utilities import (
     rank_zero_deprecation,
     rank_zero_warn,
 )
-from pytorch_lightning.utilities.distributed import (
-    distributed_available,
-    init_ddp_connection,
-    rank_zero_only,
-    ReduceOp,
-    sync_ddp_if_available,
-)
+from pytorch_lightning.utilities.distributed import distributed_available
+from pytorch_lightning.utilities.distributed import group as _group
+from pytorch_lightning.utilities.distributed import init_ddp_connection, rank_zero_only, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -116,7 +112,6 @@ class DDPPlugin(ParallelPlugin):
                 " Notice that it will be overriden by the trainer setting."
             )
         self._sync_batchnorm = sync_batchnorm or False
-        self.dist = LightningDistributed()
         self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
         self._ddp_kwargs = kwargs
         self._task_idx = None
@@ -126,6 +121,7 @@ class DDPPlugin(ParallelPlugin):
         self._model_averaging_period = model_averaging_period
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
+        self._rank_0_has_called_call_children_scripts: bool = False
         self.set_world_ranks()
 
     @property
@@ -252,6 +248,8 @@ class DDPPlugin(ParallelPlugin):
             delay = np.random.uniform(1, 5, 1)[0]
             sleep(delay)
 
+        self._rank_0_has_called_call_children_scripts = True
+
     def setup_distributed(self):
         reset_seed()
 
@@ -265,10 +263,6 @@ class DDPPlugin(ParallelPlugin):
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
         init_ddp_connection(self.cluster_environment, self.torch_distributed_backend)
-
-        # set the ranks and devices
-        self.dist.rank = self.global_rank
-        self.dist.device = self.root_device
 
     def _check_can_spawn_children(self):
         if self.local_rank != 0:
@@ -373,7 +367,9 @@ class DDPPlugin(ParallelPlugin):
 
     def pre_dispatch(self):
         # share ddp pids to all processes
-        self._share_information_to_prevent_deadlock()
+        self._rank_0_has_called_call_children_scripts = self.broadcast(self._rank_0_has_called_call_children_scripts)
+        if self._should_run_deadlock_detection():
+            self._share_information_to_prevent_deadlock()
 
         # move the model to the correct device
         self.model_to_device()
@@ -398,7 +394,11 @@ class DDPPlugin(ParallelPlugin):
             torch.distributed.barrier()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
-        return self.dist.broadcast(obj)
+        obj = [obj]
+        if self.global_rank != src:
+            obj = [None]
+        broadcast_object_list(obj, src, group=_group.WORLD)
+        return obj[0]
 
     def pre_backward(self, closure_loss: torch.Tensor) -> None:
         """Run before precision plugin executes backward."""
@@ -454,7 +454,16 @@ class DDPPlugin(ParallelPlugin):
             find_unused_parameters=False,
         )
 
-    def _share_information_to_prevent_deadlock(self):
+    def _should_run_deadlock_detection(self) -> bool:
+        """Determines whether the plugin will perform process reconciliation in case of errors.
+
+        If the environment variable `PL_RECONCILE_PROCESS` is set, run detection regardless of the cluster environment.
+        By default this is disabled. Otherwise, if the cluster environment creates the processes, allow the scheduler /
+        parent process to perform the process termination, external to Lightning.
+        """
+        return os.getenv("PL_RECONCILE_PROCESS", "0") == "1" or self._rank_0_has_called_call_children_scripts
+
+    def _share_information_to_prevent_deadlock(self) -> None:
         self._share_pids()
 
         # there should be a unique sync_dir per nodes.
@@ -470,15 +479,18 @@ class DDPPlugin(ParallelPlugin):
 
         self._sync_dir = sync_dirs[self.node_rank]
 
-    def _share_pids(self):
+    def _share_pids(self) -> None:
         """Make all DDP processes aware of all processes pids."""
         self.barrier()
         pids = self.all_gather(torch.tensor(os.getpid(), device=self.root_device))
         pids = pids.cpu().numpy().tolist()
         self._pids = pids if isinstance(pids, list) else [pids]
 
-    def reconciliate_processes(self, trace: str):
+    def reconciliate_processes(self, trace: str) -> None:
         if self.world_size < 2:
+            return
+
+        if not self._should_run_deadlock_detection():
             return
 
         sync_dir = self._sync_dir

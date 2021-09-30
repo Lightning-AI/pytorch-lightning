@@ -68,7 +68,7 @@ class ManualOptModel(BoringModel):
     "kwargs",
     [
         {},
-        pytest.param({"gpus": 1, "precision": 16, "amp_backend": "native"}, marks=RunIf(amp_native=True, min_gpus=1)),
+        pytest.param({"gpus": 1, "precision": 16, "amp_backend": "native"}, marks=RunIf(min_gpus=1)),
         pytest.param(
             {"gpus": 1, "precision": 16, "amp_backend": "apex", "amp_level": "O2"},
             marks=RunIf(amp_apex=True, min_gpus=1),
@@ -300,32 +300,6 @@ def test_manual_optimization_and_return_tensor(tmpdir):
         gpus=2,
     )
     trainer.fit(model)
-
-
-@RunIf(min_gpus=2)
-def test_manual_optimization_and_return_detached_tensor(tmpdir):
-    """This test verify that in `manual_optimization` we don't add gradient when the user return loss in
-    `training_step` When the tensor is detached, return MisConfiguration Error."""
-
-    model = ManualOptimizationExtendedModel()
-    model.detach = True
-    model.training_step_end = None
-    model.training_epoch_end = None
-
-    trainer = Trainer(
-        max_epochs=1,
-        default_root_dir=tmpdir,
-        limit_train_batches=10,
-        limit_test_batches=0,
-        limit_val_batches=0,
-        precision=16,
-        amp_backend="native",
-        accelerator="ddp_spawn",
-        gpus=2,
-    )
-    expected_message = "In manual optimization, `training_step` should not return a Tensor"
-    with pytest.raises(Exception, match=expected_message):
-        trainer.fit(model)
 
 
 @RunIf(min_gpus=1)
@@ -585,7 +559,7 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
             opt.step(closure=optimizer_closure)
 
             weight_after = self.layer.weight.clone()
-            if not self.trainer.fit_loop.should_accumulate():
+            if not self.trainer.fit_loop._should_accumulate():
                 assert not torch.equal(weight_before, weight_after)
             else:
                 assert self.layer.weight.grad is not None

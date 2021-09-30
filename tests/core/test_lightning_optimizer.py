@@ -20,7 +20,7 @@ from torch.optim import Adam, Optimizer, SGD
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.loops.optimization.closure import Closure
+from pytorch_lightning.loops.optimization.optimizer_loop import Closure
 from tests.helpers.boring_model import BoringModel
 
 

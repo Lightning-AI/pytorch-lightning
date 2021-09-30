@@ -40,7 +40,7 @@ def test_invalid_apex_sharded(device_count_mock, mock_cuda_available, tmpdir):
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
 @mock.patch("torch.cuda.device_count", return_value=1)
 @mock.patch("torch.cuda.is_available", return_value=True)
-@RunIf(amp_native=True, fairscale_fully_sharded=True)
+@RunIf(fairscale_fully_sharded=True)
 def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, plugins="fsdp", gpus=1, precision=16)
@@ -49,19 +49,21 @@ def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
 
 
 class TestFSDPModel(BoringModel):
-    def setup(self, stage: str) -> None:
-        if stage != "fit":
-            # when running stages like test, validate, and predict, we will skip setting up,
-            # will directly use the module itself unless we load from checkpoint
-            return
-        # resetting call_configure_sharded_model_hook attribute so that we could call
-        # configure sharded model
-        self.call_configure_sharded_model_hook = False
-        # for loading full state dict, we first need to create a new unwrapped model
-        # to load state dict and then wrapping
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.layer: Optional[torch.nn.Module] = None
+
+    def _init_model(self) -> None:
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
 
+    def setup(self, stage: str) -> None:
+        if self.layer is None:
+            self._init_model()
+
     def configure_sharded_model(self) -> None:
+        # the model is already wrapped with FSDP: no need to wrap again!
+        if isinstance(self.layer, FullyShardedDataParallel):
+            return
         for i, layer in enumerate(self.layer):
             if i % 2 == 0:
                 self.layer[i] = wrap(layer)
@@ -69,7 +71,7 @@ class TestFSDPModel(BoringModel):
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         # when loading full state dict, we first need to create a new unwrapped model
-        self.setup("fit")
+        self._init_model()
 
     def configure_optimizers(self):
         return torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -97,7 +99,7 @@ class TestFSDPModel(BoringModel):
         assert self.layer.module[2].reshard_after_forward is True
 
 
-@RunIf(min_gpus=1, skip_windows=True, fairscale_fully_sharded=True, amp_native=True, special=True)
+@RunIf(min_gpus=1, skip_windows=True, fairscale_fully_sharded=True, special=True)
 def test_fully_sharded_plugin_checkpoint(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
 
@@ -106,7 +108,7 @@ def test_fully_sharded_plugin_checkpoint(tmpdir):
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
-@RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True, amp_native=True, special=True)
+@RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True, special=True)
 def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run."""
 
@@ -131,13 +133,8 @@ def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
 def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
     trainer.fit(model)
 
-    model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
-    trainer_accelerator_call_configure_sharded_model_hook = trainer.accelerator.call_configure_sharded_model_hook
-
     model_path = model_path if model_path else trainer.checkpoint_callback.last_model_path
 
-    assert model_call_configure_sharded_model_hook
-    assert not trainer_accelerator_call_configure_sharded_model_hook
     trainer.save_checkpoint(model_path, weights_only=True)
 
     _assert_save_equality(trainer, model_path, cls=TestFSDPModel)

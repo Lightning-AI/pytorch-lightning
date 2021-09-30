@@ -65,14 +65,14 @@ class LayerSummary:
         module: A module to summarize
     """
 
-    def __init__(self, module: nn.Module):
+    def __init__(self, module: nn.Module) -> None:
         super().__init__()
         self._module = module
         self._hook_handle = self._register_hook()
-        self._in_size = None
-        self._out_size = None
+        self._in_size: Optional[Union[str, List]] = None
+        self._out_size: Optional[Union[str, List]] = None
 
-    def __del__(self):
+    def __del__(self) -> None:
         self.detach_hook()
 
     def _register_hook(self) -> Optional[RemovableHandle]:
@@ -85,11 +85,12 @@ class LayerSummary:
             A handle for the installed hook, or ``None`` if registering the hook is not possible.
         """
 
-        def hook(module, inp, out):
+        def hook(_: nn.Module, inp: Any, out: Any) -> None:
             if len(inp) == 1:
                 inp = inp[0]
             self._in_size = parse_batch_shape(inp)
             self._out_size = parse_batch_shape(out)
+            assert self._hook_handle is not None
             self._hook_handle.remove()
 
         handle = None
@@ -97,7 +98,7 @@ class LayerSummary:
             handle = self._module.register_forward_hook(hook)
         return handle
 
-    def detach_hook(self):
+    def detach_hook(self) -> None:
         """Removes the forward hook if it was not already removed in the forward pass.
 
         Will be called after the summary is created.
@@ -185,10 +186,10 @@ class ModelSummary:
         0.530     Total estimated model params size (MB)
     """
 
-    def __init__(self, model, mode: Optional[str] = None, max_depth: Optional[int] = 1):
+    def __init__(self, model: "pl.LightningModule", mode: Optional[str] = None, max_depth: Optional[int] = 1) -> None:
         self._model = model
 
-        #  temporary mapping from mode to max_depth
+        # temporary mapping from mode to max_depth
         if max_depth is None or mode is not None:
             if mode in ModelSummaryMode.supported_types():
                 max_depth = ModelSummaryMode.get_max_depth(mode)
@@ -207,21 +208,22 @@ class ModelSummary:
         self._max_depth = max_depth
         self._layer_summary = self.summarize()
         # 1 byte -> 8 bits
-        # TODO: how do we compute precisin_megabytes in case of mixed precision?
+        # TODO: how do we compute precision_megabytes in case of mixed precision?
         precision = self._model.precision if isinstance(self._model.precision, int) else 32
         self._precision_megabytes = (precision / 8.0) * 1e-6
 
     @property
     def named_modules(self) -> List[Tuple[str, nn.Module]]:
+        mods: List[Tuple[str, nn.Module]]
         if self._max_depth == 0:
             mods = []
         elif self._max_depth == 1:
             # the children are the top-level modules
-            mods = self._model.named_children()
+            mods = list(self._model.named_children())
         else:
             mods = self._model.named_modules()
             mods = list(mods)[1:]  # do not include root module (LightningModule)
-        return list(mods)
+        return mods
 
     @property
     def layer_names(self) -> List[str]:
@@ -295,24 +297,24 @@ class ModelSummary:
                 model(input_)
         model.train(mode)  # restore mode of module
 
-    def _get_summary_data(self):
+    def _get_summary_data(self) -> List[Tuple[str, List[str]]]:
         """Makes a summary listing with:
 
         Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes, Model Size
         """
         arrays = [
-            [" ", list(map(str, range(len(self._layer_summary))))],
-            ["Name", self.layer_names],
-            ["Type", self.layer_types],
-            ["Params", list(map(get_human_readable_count, self.param_nums))],
+            (" ", list(map(str, range(len(self._layer_summary))))),
+            ("Name", self.layer_names),
+            ("Type", self.layer_types),
+            ("Params", list(map(get_human_readable_count, self.param_nums))),
         ]
         if self._model.example_input_array is not None:
-            arrays.append(["In sizes", self.in_sizes])
-            arrays.append(["Out sizes", self.out_sizes])
+            arrays.append(("In sizes", [str(x) for x in self.in_sizes]))
+            arrays.append(("Out sizes", [str(x) for x in self.out_sizes]))
 
         return arrays
 
-    def __str__(self):
+    def __str__(self) -> str:
         arrays = self._get_summary_data()
 
         total_parameters = self.total_parameters
@@ -321,7 +323,7 @@ class ModelSummary:
 
         return _format_summary_table(total_parameters, trainable_parameters, model_size, *arrays)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
 
@@ -336,7 +338,12 @@ def parse_batch_shape(batch: Any) -> Union[str, List]:
     return UNKNOWN_SIZE
 
 
-def _format_summary_table(total_parameters: int, trainable_parameters: int, model_size: float, *cols) -> str:
+def _format_summary_table(
+    total_parameters: int,
+    trainable_parameters: int,
+    model_size: float,
+    *cols: Tuple[str, List[str]],
+) -> str:
     """Takes in a number of arrays, each specifying a column in the summary table, and combines them all into one
     big string defining the summary table that are nicely formatted."""
     n_rows = len(cols[0][1])
@@ -375,7 +382,7 @@ def _format_summary_table(total_parameters: int, trainable_parameters: int, mode
     return summary
 
 
-def get_formatted_model_size(total_model_size: float) -> float:
+def get_formatted_model_size(total_model_size: float) -> str:
     return f"{total_model_size:,.3f}"
 
 
@@ -430,8 +437,8 @@ def _is_lazy_weight_tensor(p: Tensor) -> bool:
 
 
 def summarize(
-    lightning_module: "pl.LightningModule", mode: Optional[str] = "top", max_depth: Optional[int] = None
-) -> Optional[ModelSummary]:
+    lightning_module: "pl.LightningModule", mode: Optional[str] = None, max_depth: Optional[int] = None
+) -> ModelSummary:
     """Summarize the LightningModule specified by `lightning_module`.
 
     Args:
@@ -450,14 +457,16 @@ def summarize(
 
     # temporary mapping from mode to max_depth
     if max_depth is None:
-        if mode in ModelSummaryMode.supported_types():
+        if mode is None:
+            model_summary = ModelSummary(lightning_module, max_depth=1)
+        elif mode in ModelSummaryMode.supported_types():
             max_depth = ModelSummaryMode.get_max_depth(mode)
             rank_zero_deprecation(
                 "Argument `mode` in `LightningModule.summarize` is deprecated in v1.4"
                 f" and will be removed in v1.6. Use `max_depth={max_depth}` to replicate `mode={mode}` behavior."
             )
             model_summary = ModelSummary(lightning_module, max_depth=max_depth)
-        elif mode is not None:
+        else:
             raise MisconfigurationException(
                 f"`mode` can be None, {', '.join(ModelSummaryMode.supported_types())}, got {mode}"
             )

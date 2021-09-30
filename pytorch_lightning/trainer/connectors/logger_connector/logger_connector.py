@@ -23,6 +23,7 @@ from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import DeviceType, memory
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
 class LoggerConnector:
@@ -44,11 +45,18 @@ class LoggerConnector:
     def on_trainer_init(
         self,
         logger: Union[bool, LightningLoggerBase, Iterable[LightningLoggerBase]],
-        flush_logs_every_n_steps: int,
+        flush_logs_every_n_steps: Optional[int],
         log_every_n_steps: int,
         move_metrics_to_cpu: bool,
     ) -> None:
         self.configure_logger(logger)
+        if flush_logs_every_n_steps is not None:
+            rank_zero_deprecation(
+                f"Setting `Trainer(flush_logs_every_n_steps={flush_logs_every_n_steps})` is deprecated in v1.5 "
+                "and will be removed in v1.7. Please configure flushing in the logger instead."
+            )
+        else:
+            flush_logs_every_n_steps = 100  # original default parameter
         self.trainer.flush_logs_every_n_steps = flush_logs_every_n_steps
         self.trainer.log_every_n_steps = log_every_n_steps
         self.trainer.move_metrics_to_cpu = move_metrics_to_cpu
@@ -210,7 +218,7 @@ class LoggerConnector:
         self._split_idx = split_idx
 
     def update_train_step_metrics(self) -> None:
-        if self.trainer.fit_loop.should_accumulate() and self.trainer.lightning_module.automatic_optimization:
+        if self.trainer.fit_loop._should_accumulate() and self.trainer.lightning_module.automatic_optimization:
             return
 
         self._log_gpus_metrics()
@@ -278,14 +286,15 @@ class LoggerConnector:
             is_first_batch = bool(self._batch_idx) + self._split_idx == 0
         return is_different_fx and is_first_batch
 
-    def reset(self, metrics: Optional[bool] = None) -> None:
-        if self.trainer.sanity_checking:
-            # reset metrics
-            self._progress_bar_metrics = {}
-            self._logged_metrics = {}
-            self._callback_metrics = {}
-        assert self.trainer._results is not None
-        self.trainer._results.reset(metrics=metrics)
+    def reset_metrics(self) -> None:
+        self._progress_bar_metrics = {}
+        self._logged_metrics = {}
+        self._callback_metrics = {}
+
+    def reset_results(self) -> None:
+        if self.trainer._results is not None:
+            self.trainer._results.reset()
+
         self._batch_idx = None
         self._split_idx = None
         self._current_fx = None
