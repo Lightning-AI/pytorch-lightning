@@ -149,13 +149,13 @@ def test_root_gpu_property_0_passing(mocked_device_count_0, gpus, expected_root_
 @pytest.mark.parametrize(
     ["gpus", "expected_root_gpu", "distributed_backend"],
     [
-        pytest.param(1, None, "ddp"),
-        pytest.param(3, None, "ddp"),
-        pytest.param(3, None, "ddp"),
-        pytest.param([1, 2], None, "ddp"),
-        pytest.param([0, 1], None, "ddp"),
-        pytest.param(-1, None, "ddp"),
-        pytest.param("-1", None, "ddp"),
+        (1, None, "ddp"),
+        (3, None, "ddp"),
+        (3, None, "ddp"),
+        ([1, 2], None, "ddp"),
+        ([0, 1], None, "ddp"),
+        (-1, None, "ddp"),
+        ("-1", None, "ddp"),
     ],
 )
 def test_root_gpu_property_0_raising(mocked_device_count_0, gpus, expected_root_gpu, distributed_backend):
@@ -180,18 +180,18 @@ def test_determine_root_gpu_device(gpus, expected_root_gpu):
 @pytest.mark.parametrize(
     ["gpus", "expected_gpu_ids"],
     [
-        pytest.param(None, None),
-        pytest.param(0, None),
-        pytest.param(1, [0]),
-        pytest.param(3, [0, 1, 2]),
+        (None, None),
+        (0, None),
+        (1, [0]),
+        (3, [0, 1, 2]),
         pytest.param(-1, list(range(PRETEND_N_OF_GPUS)), id="-1 - use all gpus"),
-        pytest.param([0], [0]),
-        pytest.param([1, 3], [1, 3]),
-        pytest.param((1, 3), [1, 3]),
-        pytest.param("0", None),
-        pytest.param("3", [0, 1, 2]),
-        pytest.param("1, 3", [1, 3]),
-        pytest.param("2,", [2]),
+        ([0], [0]),
+        ([1, 3], [1, 3]),
+        ((1, 3), [1, 3]),
+        ("0", None),
+        ("3", [0, 1, 2]),
+        ("1, 3", [1, 3]),
+        ("2,", [2]),
         pytest.param("-1", list(range(PRETEND_N_OF_GPUS)), id="'-1' - use all gpus"),
     ],
 )
@@ -199,19 +199,7 @@ def test_parse_gpu_ids(mocked_device_count, gpus, expected_gpu_ids):
     assert device_parser.parse_gpu_ids(gpus) == expected_gpu_ids
 
 
-@pytest.mark.parametrize(
-    ["gpus"],
-    [
-        pytest.param(0.1),
-        pytest.param(-2),
-        pytest.param(False),
-        pytest.param([]),
-        pytest.param([-1]),
-        pytest.param([None]),
-        pytest.param(["0"]),
-        pytest.param([0, 0]),
-    ],
-)
+@pytest.mark.parametrize("gpus", [0.1, -2, False, [], [-1], [None], ["0"], [0, 0]])
 def test_parse_gpu_fail_on_unsupported_inputs(mocked_device_count, gpus):
     with pytest.raises(MisconfigurationException):
         device_parser.parse_gpu_ids(gpus)
