@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest import mock
 from unittest.mock import MagicMock, Mock
 
 import pytest
@@ -85,7 +86,7 @@ def test_lightning_parallel_module_unsqueeze_scalar():
             return {"loss": loss}
 
     model = TestModel()
-    model.trainer = Mock(deterministic=False)
+    model.trainer = Mock()
     model.trainer.state.stage = RunningStage.TRAINING
     model.trainer.accelerator_connector._init_deterministic(False)
 
@@ -113,8 +114,9 @@ def test_python_scalar_to_tensor(inp, expected):
 
 
 @RunIf(min_gpus=1)
+@mock.patch("pytorch_lightning.trainer.Trainer", autospec=True)
 @pytest.mark.parametrize("device", [torch.device("cpu"), torch.device("cuda", 0)])
-def test_lightning_parallel_module_python_scalar_conversion(device):
+def test_lightning_parallel_module_python_scalar_conversion(mock_trainer, device):
     """Test that LightningParallelModule can convert Python scalars to tensors."""
 
     class TestModel(BoringModel):
@@ -125,9 +127,9 @@ def test_lightning_parallel_module_python_scalar_conversion(device):
             return output
 
     model = TestModel().to(device)
-    model.trainer = Mock(deterministic=False)
+    model.trainer = mock_trainer.return_value
     model.trainer.state.stage = RunningStage.TRAINING
-    model.trainer.accelerator_connector._init_deterministic(False)
+    # model.trainer.accelerator_connector._init_deterministic(False)
     batch = torch.rand(2, 32).to(device)
     batch_idx = 0
 
