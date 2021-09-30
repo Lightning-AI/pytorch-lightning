@@ -102,9 +102,6 @@ class PrecisionPlugin(CheckpointHooks):
         model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         return True
 
-    def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int) -> None:
-        """Hook to do something after each optimizer step."""
-
     def clip_gradients(
         self,
         optimizer: Optimizer,
