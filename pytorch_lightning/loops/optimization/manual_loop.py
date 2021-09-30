@@ -118,7 +118,7 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
 
             self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
 
-            result = ManualResult.from_training_step_output(training_step_output, self.trainer.accumulate_grad_batches)
+            result = ManualResult.from_training_step_output(training_step_output)
 
             if self.trainer.move_metrics_to_cpu:
                 # hiddens and the training step output are not moved as they are not considered "metrics"
