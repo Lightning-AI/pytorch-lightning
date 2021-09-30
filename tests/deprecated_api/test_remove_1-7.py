@@ -16,12 +16,11 @@ from unittest import mock
 
 import pytest
 import torch
-from torch import nn
 
 from pytorch_lightning import Callback, LightningDataModule, Trainer
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
 from tests.deprecated_api import _soft_unimport_module
-from tests.helpers import BoringModel
+from tests.helpers import BoringModel, ParameterSharingModule
 from tests.helpers.datamodules import MNISTDataModule
 from tests.helpers.runif import RunIf
 from tests.loggers.test_base import CustomLogger
@@ -259,21 +258,6 @@ def test_v1_7_0_deprecate_lightning_distributed(tmpdir):
 
 
 def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir):
-    class ParameterSharingModule(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.layer_1 = nn.Linear(32, 10, bias=False)
-            self.layer_2 = nn.Linear(10, 32, bias=False)
-            self.layer_3 = nn.Linear(32, 10, bias=False)
-
-        def on_post_move_to_device(self):
-            self.layer_3.weight = self.layer_1.weight
-
-        def forward(self, x):
-            x = self.layer_1(x)
-            x = self.layer_2(x)
-            x = self.layer_3(x)
-            return x
 
     model = ParameterSharingModule()
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, max_epochs=1)
