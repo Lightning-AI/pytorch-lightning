@@ -78,7 +78,7 @@ def test_simple_profiler_iterable_durations(simple_profiler, action: str, expect
         pass
 
     # we exclude the last item in the recorded durations since that's when StopIteration is raised
-    np.testing.assert_allclose(simple_profiler.recorded_durations[action][:-1], expected, rtol=0.25)
+    np.testing.assert_allclose(simple_profiler.recorded_durations[action][:-1], expected, rtol=0.2)
 
 
 def test_simple_profiler_overhead(simple_profiler, n_iter=5):

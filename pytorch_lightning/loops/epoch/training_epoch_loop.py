@@ -211,7 +211,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # TODO: @tchaton verify this assumption is True.
         if not self._is_training_done:
             # if fault tolerant is enabled and process has been notified, exit.
-            self.trainer._exit_gracefully_on_signal("TrainingEpochLoop:on_advance_end")
+            self.trainer._exit_gracefully_on_signal()
 
     def on_run_end(self) -> None:
         """Calls the on_epoch_end hook.
@@ -258,7 +258,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.dataloader_iter = None
 
         # if fault tolerant is enabled and process has been notified, exit.
-        self.trainer._exit_gracefully_on_signal("TrainingEpochLoop:on_run_end")
+        self.trainer._exit_gracefully_on_signal()
 
     def teardown(self) -> None:
         self._results.cpu()

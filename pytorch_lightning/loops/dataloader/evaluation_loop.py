@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from dataclasses import asdict, is_dataclass
+from dataclasses import asdict
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 from deprecate.utils import void
@@ -261,8 +261,8 @@ class EvaluationLoop(DataLoaderLoop):
         if self._has_completed_validation_batch():
             state = self._data_fetcher.dataloader_iter.state
         else:
-            state = getattr(self._data_fetcher.dataloader_iter, "previous_state", {})
-        state_dict["dataloader_state_dict"] = asdict(state) if is_dataclass(state) else state
+            state = getattr(self._data_fetcher.dataloader_iter, "previous_state", None)
+        state_dict["dataloader_state_dict"] = asdict(state) if state else {}
         return state_dict
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
@@ -273,4 +273,4 @@ class EvaluationLoop(DataLoaderLoop):
         return self.epoch_loop.batch_progress.current.ready == self.epoch_loop.batch_progress.current.completed
 
     def _num_val_batches_reached(self) -> bool:
-        return self._has_completed_validation_batch and self.epoch_loop.batch_progress.is_last_batch
+        return self._has_completed_validation_batch() and self.epoch_loop.batch_progress.is_last_batch

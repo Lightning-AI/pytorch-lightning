@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 import signal
-from contextlib import suppress
 from time import sleep
 from unittest import mock
 
@@ -52,6 +51,6 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": str(int(terminate_gracefully))}):
 
         trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, limit_val_batches=0)
-        with suppress(ExitGracefullyException):
+        with pytest.raises(ExitGracefullyException):
             trainer.fit(model)
         assert trainer._terminate_gracefully == (False if register_handler else terminate_gracefully)
