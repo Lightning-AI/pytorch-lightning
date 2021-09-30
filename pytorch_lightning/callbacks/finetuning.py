@@ -32,7 +32,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 log = logging.getLogger(__name__)
 
 
-def multiplicative(_):
+def multiplicative(epoch):
     return 2
 
 
