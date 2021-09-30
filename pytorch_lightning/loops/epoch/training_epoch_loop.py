@@ -207,7 +207,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             # progress global step according to grads progress
             self.global_step += 1
 
-        # we check this as we should have enough time to finish ``on_run_end``.
+        # if training finished, try to exit in `on_run_end` instead as we should have enough time
         # TODO: @tchaton verify this assumption is True.
         if not self._is_training_done:
             # if fault tolerant is enabled and process has been notified, exit.
