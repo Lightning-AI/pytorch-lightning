@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
+import torch
 from torch import nn
 
-from pytorch_lightning.utilities import find_shared_parameters
+from pytorch_lightning.utilities import find_shared_parameters, set_shared_parameters
 from tests.helpers import BoringModel
 
 
@@ -34,8 +35,43 @@ class WeightSharingModule(BoringModel):
 
 
 @pytest.mark.parametrize(
-    ["model", "shared_parameters"], [(BoringModel, []), (WeightSharingModule, [["layer_1.weight", "layer_3.weight"]])]
+    ["model", "expected_shared_params"],
+    [(BoringModel, []), (WeightSharingModule, [["layer_1.weight", "layer_3.weight"]])],
 )
-def test_find_shared_parameters(model, shared_parameters):
+def test_find_shared_parameters(model, expected_shared_params):
 
-    assert shared_parameters == find_shared_parameters(model())
+    assert expected_shared_params == find_shared_parameters(model())
+
+
+def test_set_shared_parameters():
+    model = WeightSharingModule()
+    set_shared_parameters(model, [["layer_1.weight", "layer_3.weight"]])
+
+    assert torch.all(torch.eq(model.layer_1.weight, model.layer_3.weight))
+
+    class SubModule(nn.Module):
+        def __init__(self, layer):
+            super().__init__()
+            self.layer = layer
+
+        def forward(self, x):
+            return self.layer(x)
+
+    class NestedModule(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.layer = nn.Linear(32, 10, bias=False)
+            self.net_a = SubModule(self.layer)
+            self.layer_2 = nn.Linear(10, 32, bias=False)
+            self.net_b = SubModule(self.layer)
+
+        def forward(self, x):
+            x = self.net_a(x)
+            x = self.layer_2(x)
+            x = self.net_b(x)
+            return x
+
+    model = NestedModule()
+    set_shared_parameters(model, [["layer.weight", "net_a.layer.weight", "net_b.layer.weight"]])
+
+    assert torch.all(torch.eq(model.net_a.layer.weight, model.net_b.layer.weight))

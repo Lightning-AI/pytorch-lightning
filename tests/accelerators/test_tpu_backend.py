@@ -22,8 +22,8 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.core.decorators import find_shared_parameters
 from pytorch_lightning.plugins import TPUSpawnPlugin
+from pytorch_lightning.utilities import find_shared_parameters
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
