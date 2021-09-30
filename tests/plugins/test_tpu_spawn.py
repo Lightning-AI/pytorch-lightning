@@ -61,10 +61,11 @@ _loader_no_len = CustomNotImplementedErrorDataloader(_loader)
 def test_error_patched_iterable_dataloaders(
     _, tmpdir, train_dataloaders, val_dataloaders, test_dataloaders, predict_dataloaders
 ):
+    trainer = Trainer()
     model = BoringModelNoDataloaders()
-    connector = DataConnector(MagicMock())
+    model.trainer = trainer
 
-    connector.attach_dataloaders(
+    trainer.data_connector.attach_dataloaders(
         model,
         train_dataloaders=train_dataloaders,
         val_dataloaders=val_dataloaders,

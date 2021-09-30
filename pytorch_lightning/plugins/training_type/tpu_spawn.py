@@ -87,21 +87,21 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                     " HINT: You can mock the length on your dataset to bypass this MisconfigurationException."
                 )
 
-    # TODO: what to do here?
     @staticmethod
-    def _validate_patched_dataloaders(model: Module) -> None:
+    def _validate_patched_dataloaders(model: "pl.LightningModule") -> None:
         """Validate and fail fast if the dataloaders were passed directly to fit."""
-        if hasattr(model, "train_dataloader") and isinstance(model.train_dataloader, _PatchDataLoader):
-            TPUSpawnPlugin._validate_dataloader(model.train_dataloader.dataloader)
+        connector = model.trainer.data_connector
+        if connector._train_dataloader_source.instance is not model:
+            TPUSpawnPlugin._validate_dataloader(connector._train_dataloader_source.instance)
 
-        if hasattr(model, "val_dataloader") and isinstance(model.val_dataloader, _PatchDataLoader):
-            TPUSpawnPlugin._validate_dataloader(model.val_dataloader.dataloader)
+        if connector._val_dataloader_source.instance is not model:
+            TPUSpawnPlugin._validate_dataloader(connector._val_dataloader_source.instance)
 
-        if hasattr(model, "test_dataloader") and isinstance(model.test_dataloader, _PatchDataLoader):
-            TPUSpawnPlugin._validate_dataloader(model.test_dataloader.dataloader)
+        if connector._test_dataloader_source.instance is not model:
+            TPUSpawnPlugin._validate_dataloader(connector._test_dataloader_source.instance)
 
-        if hasattr(model, "predict_dataloader") and isinstance(model.predict_dataloader, _PatchDataLoader):
-            TPUSpawnPlugin._validate_dataloader(model.predict_dataloader.dataloader)
+        if connector._predict_dataloader_source.instance is not model:
+            TPUSpawnPlugin._validate_dataloader(connector._predict_dataloader_source.instance)
 
     def connect(self, model: "pl.LightningModule") -> None:
         TPUSpawnPlugin._validate_patched_dataloaders(model)
