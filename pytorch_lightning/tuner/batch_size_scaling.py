@@ -51,7 +51,7 @@ def scale_batch_size(
             " If this is not the intended behavior, please remove either one."
         )
 
-    if hasattr(model.train_dataloader, "patch_loader_code"):
+    if trainer.data_connector._train_dataloader_source.available:
         raise MisconfigurationException(
             "The batch scaling feature cannot be used with dataloaders passed directly to `.fit()`."
             " Please disable the feature or incorporate the dataloader into the model."

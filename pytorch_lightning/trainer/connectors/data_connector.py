@@ -274,6 +274,7 @@ class DataLoaderSource:
             return getattr(self.instance, self.name)()
         return self.instance
 
+    # TODO: move is_overridden check back to config validator?
     @property
     def available(self) -> bool:
         from pytorch_lightning import LightningDataModule, LightningModule
