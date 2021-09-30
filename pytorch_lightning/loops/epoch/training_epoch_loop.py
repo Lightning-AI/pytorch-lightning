@@ -123,7 +123,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.trainer.call_hook("on_train_epoch_start")
         self.trainer.fit_loop.epoch_progress.increment_started()
 
-        # reload stae
         self.dataloader_iter = _update_dataloader_iter(dataloader_iter, self.batch_idx + 1)
 
     def advance(self, *args: Any, **kwargs: Any) -> None:

@@ -256,9 +256,16 @@ class EvaluationLoop(DataLoaderLoop):
 
     def on_save_checkpoint(self) -> Dict:
         state_dict = super().on_save_checkpoint()
-        if self._data_fetcher is None or self._data_fetcher.dataloader_iter is None:
+        # FIXME: move this to `epoch_loop`
+        if (
+            self._data_fetcher is None
+            or self._data_fetcher.dataloader_iter is None
+            or self.epoch_loop._num_completed_batches_reached()  # did not finish
+            # TODO: faul-tolerance requires a minimum number of batches so probably should be >0
+            or self.epoch_loop.batch_progress.current.ready == 0  # did not start
+        ):
             return state_dict
-        if self.epoch_loop._num_evaluation_batches_reached():
+        if self.epoch_loop._has_completed():
             state = self._data_fetcher.dataloader_iter.state
         else:
             # the loop did not complete and we need to save the previous state
