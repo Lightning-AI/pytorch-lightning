@@ -260,5 +260,7 @@ def test_v1_7_0_deprecate_lightning_distributed(tmpdir):
 def test_v1_7_0_resume_from_checkpoint_trainer_constructor(tmpdir):
     with pytest.deprecated_call(match=r"Setting `Trainer\(resume_from_checkpoint=\)` is deprecated in v1.5"):
         trainer = Trainer(resume_from_checkpoint="a")
-    with pytest.deprecated_call(match=r"trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7."):
+    with pytest.deprecated_call(
+        match=r"trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7."
+    ):
         _ = trainer.resume_from_checkpoint
