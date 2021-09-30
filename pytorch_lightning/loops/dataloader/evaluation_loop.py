@@ -256,13 +256,16 @@ class EvaluationLoop(DataLoaderLoop):
 
     def on_save_checkpoint(self) -> Dict:
         state_dict = super().on_save_checkpoint()
-        if self._data_fetcher is None or self._num_val_batches_reached():
+        if self._data_fetcher is None:
             return state_dict
-        if self._has_completed_evaluation_batch():
+        if self._has_completed_evaluation_batch() or self.epoch_loop.batch_progress.is_last_batch:
+            # has_completed and `is_last_batch` can be not `True` at the same time with flags like `limit_val_batches`
             state = self._data_fetcher.dataloader_iter.state
         else:
+            # the loop did not complete and we need to save the previous state
             state = getattr(self._data_fetcher.dataloader_iter, "previous_state", None)
-        state_dict["dataloader_state_dict"] = asdict(state) if state else {}
+        if state:
+            state_dict["dataloader_state_dict"] = asdict(state)
         return state_dict
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
@@ -271,6 +274,3 @@ class EvaluationLoop(DataLoaderLoop):
 
     def _has_completed_evaluation_batch(self) -> bool:
         return self.epoch_loop.batch_progress.current.ready == self.epoch_loop.batch_progress.current.completed
-
-    def _num_val_batches_reached(self) -> bool:
-        return self._has_completed_validation_batch() and self.epoch_loop.batch_progress.is_last_batch
