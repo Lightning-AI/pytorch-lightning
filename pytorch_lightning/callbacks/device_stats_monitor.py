@@ -35,7 +35,7 @@ class DeviceStatsMonitor(Callback):
         MisconfigurationException:
             If ``Trainer`` has no logger.
 
-    Example::
+    Example:
         >>> from pytorch_lightning import Trainer
         >>> from pytorch_lightning.callbacks import DeviceStatsMonitor
         >>> device_stats = DeviceStatsMonitor() # doctest: +SKIP
