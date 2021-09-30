@@ -27,6 +27,7 @@ from pytorch_lightning.core.decorators import parameter_validation
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
+from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -90,17 +91,17 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     @staticmethod
     def _validate_patched_dataloaders(model: "pl.LightningModule") -> None:
         """Validate and fail fast if the dataloaders were passed directly to fit."""
-        connector = model.trainer.data_connector
-        if connector._train_dataloader_source.instance is not model:
+        connector: DataConnector = model.trainer.data_connector
+        if not connector._train_dataloader_source.is_module():
             TPUSpawnPlugin._validate_dataloader(connector._train_dataloader_source.instance)
 
-        if connector._val_dataloader_source.instance is not model:
+        if not connector._val_dataloader_source.is_module():
             TPUSpawnPlugin._validate_dataloader(connector._val_dataloader_source.instance)
 
-        if connector._test_dataloader_source.instance is not model:
+        if not connector._test_dataloader_source.is_module():
             TPUSpawnPlugin._validate_dataloader(connector._test_dataloader_source.instance)
 
-        if connector._predict_dataloader_source.instance is not model:
+        if not connector._predict_dataloader_source.is_module():
             TPUSpawnPlugin._validate_dataloader(connector._predict_dataloader_source.instance)
 
     def connect(self, model: "pl.LightningModule") -> None:

@@ -58,9 +58,10 @@ _loader_no_len = CustomNotImplementedErrorDataloader(_loader)
     ],
 )
 @mock.patch("pytorch_lightning.plugins.training_type.tpu_spawn.xm")
-def test_error_patched_iterable_dataloaders(
+def test_error_iterable_dataloaders_passed_to_fit(
     _, tmpdir, train_dataloaders, val_dataloaders, test_dataloaders, predict_dataloaders
 ):
+    """Test that the TPUSpawnPlugin identifies dataloaders with iterable datasets and fails early."""
     trainer = Trainer()
     model = BoringModelNoDataloaders()
     model.trainer = trainer

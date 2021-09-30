@@ -195,10 +195,10 @@ def test_dataloaders_passed_to_fn(tmpdir, ckpt_path, n):
         ckpt_path = trainer.checkpoint_callback.best_model_path
 
     trainer.test(test_dataloaders=dataloaders, ckpt_path=ckpt_path)
-    trainer.validate(val_dataloaders=dataloaders, ckpt_path=ckpt_path)
-
-    assert len(trainer.val_dataloaders) == n
     assert len(trainer.test_dataloaders) == n
+
+    trainer.validate(val_dataloaders=dataloaders, ckpt_path=ckpt_path)
+    assert len(trainer.val_dataloaders) == n
 
 
 class DummyModel(BoringModel):
@@ -551,17 +551,15 @@ def test_mixing_of_dataloader_options(tmpdir, ckpt_path):
     # fit model
     trainer = Trainer(**trainer_options)
     trainer.fit(model, val_dataloaders=model.dataloader(train=False))
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # fit model
     trainer = Trainer(**trainer_options)
     trainer.fit(model, val_dataloaders=model.dataloader(train=False))
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
+    assert len(trainer.val_dataloaders) == 1, f"`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}"
+
     if ckpt_path == "specific":
         ckpt_path = trainer.checkpoint_callback.best_model_path
     trainer.test(test_dataloaders=model.dataloader(train=False), ckpt_path=ckpt_path)
-
-    assert len(trainer.val_dataloaders) == 1, f"`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}"
     assert (
         len(trainer.test_dataloaders) == 1
     ), f"`test_dataloaders` not initiated properly, got {trainer.test_dataloaders}"
