@@ -35,6 +35,8 @@ def grad_norm(module: Module, norm_type: Union[float, int, str]) -> Dict[str, fl
             as a single vector.
     """
     norm_type = float(norm_type)
+    if norm_type <= 0:
+        raise ValueError(f"`norm_type` must be a positive number or 'inf' (infinity norm). Got {norm_type}")
 
     norms, all_norms = {}, []
     for name, p in module.named_parameters():

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from math import isclose, sqrt
+from unittest.mock import Mock
 
 import pytest
 import torch
@@ -23,11 +23,6 @@ from pytorch_lightning.utilities import grad_norm
 @pytest.mark.parametrize(
     "norm_type,expected",
     [
-        # bug for L0 "norm"! total norm should be 5 here
-        (
-            0,
-            {"grad_0.0_norm_param0": 3, "grad_0.0_norm_param1": 2, "grad_0.0_norm_total": 5},
-        ),
         (
             1,
             {"grad_1.0_norm_param0": 1 + 2 + 3, "grad_1.0_norm_param1": 4 + 5, "grad_1.0_norm_total": 15},
@@ -75,3 +70,9 @@ def test_grad_norm(norm_type, expected):
     norms = grad_norm(model, norm_type)
     expected = {k: round(v, 4) for k, v in expected.items()}
     assert norms == expected
+
+
+@pytest.mark.parametrize("norm_type", [-1, 0])
+def test_grad_norm_invalid_norm_type(norm_type):
+    with pytest.raises(ValueError, match="`norm_type` must be a positive number or 'inf'"):
+        grad_norm(Mock(), norm_type)

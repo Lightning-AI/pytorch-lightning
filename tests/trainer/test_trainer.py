@@ -929,9 +929,10 @@ def test_invalid_terminate_on_nan(tmpdir):
         Trainer(default_root_dir=tmpdir, terminate_on_nan="False")
 
 
-def test_invalid_track_grad_norm(tmpdir):
-    with pytest.raises(MisconfigurationException, match="`track_grad_norm` should be an int, a float"):
-        Trainer(default_root_dir=tmpdir, track_grad_norm="nan")
+@pytest.mark.parametrize("track_grad_norm", [0, torch.tensor(1), "nan"])
+def test_invalid_track_grad_norm(tmpdir, track_grad_norm):
+    with pytest.raises(MisconfigurationException, match="`track_grad_norm` must be a positive number or 'inf'"):
+        Trainer(default_root_dir=tmpdir, track_grad_norm=track_grad_norm)
 
 
 @mock.patch("torch.Tensor.backward")

@@ -42,9 +42,11 @@ class TrainingTricksConnector:
             )
 
         # gradient norm tracking
-        if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != "inf":
+        if track_grad_norm != -1 and not (
+            (isinstance(track_grad_norm, (int, float)) or track_grad_norm == "inf") and float(track_grad_norm) > 0
+        ):
             raise MisconfigurationException(
-                f"`track_grad_norm` should be an int, a float or 'inf' (infinity norm). Got {track_grad_norm}."
+                f"`track_grad_norm` must be a positive number or 'inf' (infinity norm). Got {track_grad_norm}."
             )
 
         self.trainer.terminate_on_nan = terminate_on_nan
