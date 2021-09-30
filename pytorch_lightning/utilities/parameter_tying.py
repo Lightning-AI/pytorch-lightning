@@ -48,7 +48,7 @@ def _find_shared_parameters(module: nn.Module, tied_parameters: Optional[Dict] =
         return [x for x in tied_parameters.values() if len(x) > 1]
 
 
-def set_shared_parameters(module: nn.Module, shared_params: list):
+def set_shared_parameters(module: nn.Module, shared_params: list) -> nn.Module:
     for shared_param in shared_params:
         ref = _get_module_by_path(module, shared_param[0])
         for path in shared_param[1:]:
@@ -56,14 +56,14 @@ def set_shared_parameters(module: nn.Module, shared_params: list):
     return module
 
 
-def _get_module_by_path(module: nn.Module, path: str):
+def _get_module_by_path(module: nn.Module, path: str) -> nn.Module:
     path = path.split(".")
     for name in path:
         module = getattr(module, name)
     return module
 
 
-def _set_module_by_path(module: nn.Module, path: str, value: Parameter):
+def _set_module_by_path(module: nn.Module, path: str, value: Parameter) -> None:
     path = path.split(".")
     for name in path[:-1]:
         module = getattr(module, name)

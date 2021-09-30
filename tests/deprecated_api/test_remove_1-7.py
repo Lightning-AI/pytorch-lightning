@@ -258,8 +258,12 @@ def test_v1_7_0_deprecate_lightning_distributed(tmpdir):
 
 
 def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir):
+    class TestModel(ParameterSharingModule):
+        def on_post_move_to_device(self):
+            print("on_post_move_to_device")
 
-    model = ParameterSharingModule()
+    model = TestModel()
+
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, max_epochs=1)
 
     with pytest.deprecated_call(
