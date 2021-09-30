@@ -55,7 +55,6 @@ class ManualResult(OutputResult):
             )
 
         if "loss" in extra:
-            # accumulate the loss. If `accumulate_grad_batches == 1`, no effect.
             # we detach manually as it's expected that it will have a `grad_fn`
             extra["loss"] = extra["loss"].detach().div(normalize)
 
