@@ -64,10 +64,7 @@ def is_overridden(
     if parent_attr is None:
         raise ValueError("The parent should define the method")
 
-    # cannot pickle `__code__` so cannot verify if `PatchDataloader`
-    # exists which shows dataloader methods have been overwritten.
-    # so, we hack it by using the string representation
-    instance_code = getattr(instance_attr, "patch_loader_code", None) or instance_attr.__code__
+    instance_code = instance_attr.__code__
     parent_code = parent_attr.__code__
 
     return instance_code != parent_code
