@@ -14,15 +14,15 @@
 import os
 import sys
 import threading
-from functools import partial, wraps
+from functools import partial
 from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
 
 import pytest
 import torch.distributed
-import torch.multiprocessing as mp
 
 from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7, _TORCH_GREATER_EQUAL_1_8
 from tests import _PATH_DATASETS
 
 
@@ -53,6 +53,7 @@ def restore_env_variables():
     os.environ.update(env_backup)
     # these are currently known leakers - ideally these would not be allowed
     allowlist = {
+        "CUBLAS_WORKSPACE_CONFIG",  # enabled with deterministic flag
         "CUDA_DEVICE_ORDER",
         "LOCAL_RANK",
         "NODE_RANK",
@@ -88,19 +89,16 @@ def teardown_process_group():
         torch.distributed.destroy_process_group()
 
 
-def pytest_configure(config):
-    config.addinivalue_line("markers", "spawn: spawn test in a separate process using torch.multiprocessing.spawn")
-
-
-@pytest.mark.tryfirst
-def pytest_pyfunc_call(pyfuncitem):
-    if pyfuncitem.get_closest_marker("spawn"):
-        testfunction = pyfuncitem.obj
-        funcargs = pyfuncitem.funcargs
-        testargs = tuple(funcargs[arg] for arg in pyfuncitem._fixtureinfo.argnames)
-
-        mp.spawn(wraps, (testfunction, testargs))
-        return True
+@pytest.fixture(scope="function", autouse=True)
+def reset_deterministic_algorithm():
+    """Ensures that torch determinism settings are reset before the next test runs."""
+    yield
+    if _TORCH_GREATER_EQUAL_1_8:
+        torch.use_deterministic_algorithms(False)
+    elif _TORCH_GREATER_EQUAL_1_7:
+        torch.set_deterministic(False)
+    else:  # the minimum version Lightning supports is PyTorch 1.6
+        torch._set_deterministic(False)
 
 
 @pytest.fixture
