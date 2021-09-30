@@ -423,9 +423,6 @@ class Trainer(
         self.signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
-        # TODO: remove in v1.7
-        self._resume_from_checkpoint = resume_from_checkpoint
-
         # max_epochs won't default to 1000 if max_steps/max_time are specified (including being set to -1).
         fit_loop = FitLoop(
             min_epochs=(1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs),
@@ -451,6 +448,11 @@ class Trainer(
 
         # Needed because of LightningOptimizer
         self._lightning_optimizers = None
+
+        # .validate() and .test() set this when they load a checkpoint
+        self.validated_ckpt_path: Optional[str] = None
+        self.tested_ckpt_path: Optional[str] = None
+        self.predicted_ckpt_path: Optional[str] = None
 
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init
@@ -636,7 +638,7 @@ class Trainer(
         )
 
         # TODO: ckpt_path only in v1.7
-        ckpt_path = ckpt_path or self._resume_from_checkpoint
+        ckpt_path = ckpt_path or self.resume_from_checkpoint
         self._run(model, ckpt_path)
 
         assert self.state.stopped
@@ -718,12 +720,12 @@ class Trainer(
         # links data to the trainer
         self.data_connector.attach_data(model, val_dataloaders=dataloaders, datamodule=datamodule)
 
-        ckpt_path = self.__set_ckpt_path(
+        self.validated_ckpt_path = self.__set_ckpt_path(
             ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
 
         # run validate
-        results = self._run(model, ckpt_path)
+        results = self._run(model, self.validated_ckpt_path)
 
         assert self.state.stopped
         self.validating = False
@@ -807,12 +809,12 @@ class Trainer(
         # links data to the trainer
         self.data_connector.attach_data(model, test_dataloaders=dataloaders, datamodule=datamodule)
 
-        ckpt_path = self.__set_ckpt_path(
+        self.tested_ckpt_path = self.__set_ckpt_path(
             ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
 
         # run test
-        results = self._run(model, ckpt_path)
+        results = self._run(model, self.tested_ckpt_path)
 
         assert self.state.stopped
         self.testing = False
@@ -890,11 +892,11 @@ class Trainer(
         # links data to the trainer
         self.data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
 
-        ckpt_path = self.__set_ckpt_path(
+        self.predicted_ckpt_path = self.__set_ckpt_path(
             ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
 
-        results = self._run(model, ckpt_path)
+        results = self._run(model, self.predicted_ckpt_path)
 
         assert self.state.stopped
         self.predicting = False
@@ -1741,6 +1743,14 @@ class Trainer(
         """A list of all instances of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` found
         in the Trainer.callbacks list."""
         return [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
+
+    @property
+    def resume_from_checkpoint(self) -> Optional[Union[str, Path]]:
+        rank_zero_deprecation(
+            "`trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7."
+            " Specify fit ckpt_path with `trainer.fit(ckpt_path=)` instead."
+        )
+        return self.checkpoint_connector.resume_checkpoint_path
 
     def save_checkpoint(self, filepath: _PATH, weights_only: bool = False) -> None:
         self.checkpoint_connector.save_checkpoint(filepath, weights_only)
