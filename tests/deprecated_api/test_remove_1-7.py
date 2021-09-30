@@ -274,6 +274,7 @@ def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir):
 
 def test_v1_7_0_deprecate_parameter_validation():
 
+    _soft_unimport_module("pytorch_lightning.core.decorators")
     with pytest.deprecated_call(
         match="Using ``pytorch_lightning.core.decorators.parameter_validation`` is deprecated in v1.5"
     ):
