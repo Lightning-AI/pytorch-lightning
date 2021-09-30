@@ -50,7 +50,7 @@ def test_resume_training_on_cpu(tmpdir):
     """Checks if training can be resumed from a saved checkpoint on CPU."""
     # Train a model on TPU
     model = BoringModel()
-    trainer = Trainer(enable_checkpointing=True, max_epochs=1, tpu_cores=8)
+    trainer = Trainer(max_epochs=1, tpu_cores=8)
     trainer.fit(model)
 
     model_path = trainer.checkpoint_callback.best_model_path
@@ -62,7 +62,7 @@ def test_resume_training_on_cpu(tmpdir):
 
     # Verify that training is resumed on CPU
     trainer = Trainer(
-        resume_from_checkpoint=model_path, enable_checkpointing=True, max_epochs=1, default_root_dir=tmpdir
+        resume_from_checkpoint=model_path, max_epochs=1, default_root_dir=tmpdir
     )
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -86,7 +86,7 @@ def test_weight_tying_warning(tmpdir, capsys=None):
     """Ensure a warning is thrown if model parameter lengths do not match post moving to device."""
 
     model = WeightSharingModule()
-    trainer = Trainer(enable_checkpointing=True, max_epochs=1, tpu_cores=1)
+    trainer = Trainer(max_epochs=1, tpu_cores=1)
 
     with pytest.warns(UserWarning, match=r"The model layers do not match after moving to the target device."):
         trainer.fit(model)
@@ -105,7 +105,7 @@ def test_if_weights_tied(tmpdir, capsys=None):
             self.layer_3.weight = self.layer_1.weight
 
     model = Model()
-    trainer = Trainer(enable_checkpointing=True, max_epochs=1, tpu_cores=1)
+    trainer = Trainer(max_epochs=1, tpu_cores=1)
 
     with pytest.warns(UserWarning, match="The model layers do not match"):
         trainer.fit(model)

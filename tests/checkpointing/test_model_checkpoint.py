@@ -1013,7 +1013,7 @@ def test_configure_model_checkpoint(tmpdir):
     assert trainer.checkpoint_callback is None
 
     # default configuration
-    trainer = Trainer(enable_checkpointing=True, callbacks=[], **kwargs)
+    trainer = Trainer(callbacks=[], **kwargs)
     assert sum(1 for c in trainer.callbacks if isinstance(c, ModelCheckpoint)) == 1
     assert isinstance(trainer.checkpoint_callback, ModelCheckpoint)
 

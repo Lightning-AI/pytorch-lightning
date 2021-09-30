@@ -79,7 +79,6 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
             default_root_dir=str(tmpdir),
             gpus=int(torch.cuda.is_available()),
             precision=(16 if torch.cuda.is_available() else 32),
-            enable_checkpointing=True,
             callbacks=[es, stop],
             max_epochs=21,
             accumulate_grad_batches=2,
