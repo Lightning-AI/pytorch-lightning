@@ -167,7 +167,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if is_overridden("on_post_move_to_device", self.lightning_module):
             self.model.module.on_post_move_to_device()
         else:
-            set_shared_parameters(self.model, shared_params)
+            set_shared_parameters(self.model.module, shared_params)
 
         trainer.accelerator.setup_optimizers(trainer)
         trainer.precision_plugin.connect(self._model, None, None)
