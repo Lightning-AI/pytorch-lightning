@@ -17,16 +17,16 @@ Reference:
 """
 from typing import Dict, List, Optional
 
+from torch import nn
 from torch.nn import Parameter
 
-import pytorch_lightning as pl
 
-
-def find_shared_parameters(
-    module: "pl.LightningModule", tied_parameters: Optional[Dict] = None, prefix: str = ""
-) -> List[str]:
+def find_shared_parameters(module: nn.Module) -> List[str]:
     """Returns a list of names of shared parameters set in the module."""
+    return _find_shared_parameters(module)
 
+
+def _find_shared_parameters(module: nn.Module, tied_parameters: Optional[Dict] = None, prefix: str = "") -> List[str]:
     if tied_parameters is None:
         first_call = True
         tied_parameters = {}
@@ -43,12 +43,12 @@ def find_shared_parameters(
         if m is None:
             continue
         submodule_prefix = prefix + ("." if prefix else "") + name
-        find_shared_parameters(m, tied_parameters, submodule_prefix)
+        _find_shared_parameters(m, tied_parameters, submodule_prefix)
     if first_call:
         return [x for x in tied_parameters.values() if len(x) > 1]
 
 
-def set_shared_parameters(module: "pl.LightningModule", shared_params: list):
+def set_shared_parameters(module: nn.Module, shared_params: list):
     for shared_param in shared_params:
         ref = _get_module_by_path(module, shared_param[0])
         for path in shared_param[1:]:
@@ -56,14 +56,14 @@ def set_shared_parameters(module: "pl.LightningModule", shared_params: list):
     return module
 
 
-def _get_module_by_path(module: "pl.LightningModule", path: str):
+def _get_module_by_path(module: nn.Module, path: str):
     path = path.split(".")
     for name in path:
         module = getattr(module, name)
     return module
 
 
-def _set_module_by_path(module: "pl.LightningModule", path: str, value: Parameter):
+def _set_module_by_path(module: nn.Module, path: str, value: Parameter):
     path = path.split(".")
     for name in path[:-1]:
         module = getattr(module, name)

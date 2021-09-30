@@ -58,7 +58,7 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _TPU_AVAILABLE,
     _XLA_AVAILABLE,
 )
-from pytorch_lightning.utilities.params_tying import find_shared_parameters, set_shared_parameters  # noqa: F401
+from pytorch_lightning.utilities.parameter_tying import find_shared_parameters, set_shared_parameters  # noqa: F401
 from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable  # noqa: F401
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn  # noqa: F401
 

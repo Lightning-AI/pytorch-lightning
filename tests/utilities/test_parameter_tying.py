@@ -19,7 +19,7 @@ from pytorch_lightning.utilities import find_shared_parameters, set_shared_param
 from tests.helpers import BoringModel
 
 
-class WeightSharingModule(BoringModel):
+class ParameterSharingModule(BoringModel):
     def __init__(self):
         super().__init__()
         self.layer_1 = nn.Linear(32, 10, bias=False)
@@ -36,7 +36,7 @@ class WeightSharingModule(BoringModel):
 
 @pytest.mark.parametrize(
     ["model", "expected_shared_params"],
-    [(BoringModel, []), (WeightSharingModule, [["layer_1.weight", "layer_3.weight"]])],
+    [(BoringModel, []), (ParameterSharingModule, [["layer_1.weight", "layer_3.weight"]])],
 )
 def test_find_shared_parameters(model, expected_shared_params):
 
@@ -44,7 +44,7 @@ def test_find_shared_parameters(model, expected_shared_params):
 
 
 def test_set_shared_parameters():
-    model = WeightSharingModule()
+    model = ParameterSharingModule()
     set_shared_parameters(model, [["layer_1.weight", "layer_3.weight"]])
 
     assert torch.all(torch.eq(model.layer_1.weight, model.layer_3.weight))

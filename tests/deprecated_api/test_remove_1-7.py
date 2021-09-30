@@ -259,7 +259,7 @@ def test_v1_7_0_deprecate_lightning_distributed(tmpdir):
 
 
 def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir):
-    class WeightSharingModule(BoringModel):
+    class ParameterSharingModule(BoringModel):
         def __init__(self):
             super().__init__()
             self.layer_1 = nn.Linear(32, 10, bias=False)
@@ -275,7 +275,7 @@ def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir):
             x = self.layer_3(x)
             return x
 
-    model = WeightSharingModule()
+    model = ParameterSharingModule()
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, max_epochs=1)
 
     with pytest.deprecated_call(
