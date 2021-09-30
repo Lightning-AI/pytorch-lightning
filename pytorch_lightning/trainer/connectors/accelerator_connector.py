@@ -60,11 +60,6 @@ from pytorch_lightning.plugins.environments import (
     TorchElasticEnvironment,
 )
 from pytorch_lightning.utilities import (
-    _APEX_AVAILABLE,
-    _HOROVOD_AVAILABLE,
-    _IPU_AVAILABLE,
-    _NATIVE_AMP_AVAILABLE,
-    _TPU_AVAILABLE,
     AMPType,
     device_parser,
     DeviceType,
@@ -75,6 +70,14 @@ from pytorch_lightning.utilities import (
 )
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import (
+    _APEX_AVAILABLE,
+    _HOROVOD_AVAILABLE,
+    _IPU_AVAILABLE,
+    _TORCH_GREATER_EQUAL_1_7,
+    _TORCH_GREATER_EQUAL_1_8,
+    _TPU_AVAILABLE,
+)
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
@@ -97,7 +100,7 @@ class AcceleratorConnector:
         sync_batchnorm,
         benchmark,
         replace_sampler_ddp,
-        deterministic,
+        deterministic: bool,
         precision,
         amp_type,
         amp_level,
@@ -114,6 +117,7 @@ class AcceleratorConnector:
                 f" Use `Trainer(accelerator={distributed_backend})` instead."
             )
         distributed_backend = distributed_backend or accelerator
+        self._init_deterministic(deterministic)
 
         self.num_processes = num_processes
         self.devices = devices
@@ -127,7 +131,6 @@ class AcceleratorConnector:
         self.sync_batchnorm = sync_batchnorm
         self.benchmark = benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
-        self.deterministic = deterministic
         self.precision = precision
         self.amp_type = amp_type.lower() if isinstance(amp_type, str) else None
         self.amp_level = amp_level
@@ -178,15 +181,22 @@ class AcceleratorConnector:
         # TODO: should this be moved to GPU accelerator?
         torch.backends.cudnn.benchmark = self.benchmark
 
-        # determinism for cudnn
-        # TODO: should this be moved to GPU accelerator?
-        torch.backends.cudnn.deterministic = deterministic
+        self.replace_sampler_ddp = replace_sampler_ddp
+
+    def _init_deterministic(self, deterministic: bool) -> None:
+        self.deterministic = deterministic
+        if _TORCH_GREATER_EQUAL_1_8:
+            torch.use_deterministic_algorithms(deterministic)
+        elif _TORCH_GREATER_EQUAL_1_7:
+            torch.set_deterministic(deterministic)
+        else:  # the minimum version Lightning supports is PyTorch 1.6
+            torch._set_deterministic(deterministic)
         if deterministic:
             # fixing non-deterministic part of horovod
             # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
             os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
-
-        self.replace_sampler_ddp = replace_sampler_ddp
+            # https://docs.nvidia.com/cuda/cublas/index.html#cublasApi_reproducibility
+            os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
     def select_accelerator_type(self) -> None:
         if self.distributed_backend == "auto":
@@ -553,24 +563,12 @@ class AcceleratorConnector:
                 return TPUHalfPrecisionPlugin()
 
             if self.amp_type == AMPType.NATIVE:
-                if not _NATIVE_AMP_AVAILABLE:
-                    msg = (
-                        "You have asked for native AMP but your PyTorch version does not support it."
-                        " Consider upgrading with `pip install torch>=1.6`."
-                    )
-                    if _APEX_AVAILABLE:
-                        self.amp_type = AMPType.APEX
-                        msg += " We will attempt to use NVIDIA Apex for this session."
-                        rank_zero_warn(msg)
-                    else:
-                        raise MisconfigurationException(msg)
-                else:
-                    log.info(f"Using native {self.precision} bit Automatic Mixed Precision")
-                    if self._is_sharded_training_type:
-                        return ShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
-                    if self._is_fully_sharded_training_type:
-                        return FullyShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
-                    return NativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+                log.info(f"Using native {self.precision} bit Automatic Mixed Precision")
+                if self._is_sharded_training_type:
+                    return ShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+                if self._is_fully_sharded_training_type:
+                    return FullyShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+                return NativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
 
             if self.amp_type == AMPType.APEX:
                 if not _APEX_AVAILABLE:

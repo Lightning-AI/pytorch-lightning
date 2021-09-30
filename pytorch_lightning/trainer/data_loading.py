@@ -17,7 +17,7 @@ import os
 from abc import ABC
 from copy import deepcopy
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Collection, Dict, List, Optional, Tuple, Union
 
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, Sampler, SequentialSampler
 from torch.utils.data.dataset import IterableDataset
@@ -117,11 +117,24 @@ class TrainerDataLoadingMixin(ABC):
         if int(os.environ.get("PL_SEED_WORKERS", 0)) and dataloader.worker_init_fn is None:
             dataloader.worker_init_fn = partial(pl_worker_init_function, rank=self.global_rank)
 
-    def auto_add_sampler(self, dataloader: Any, shuffle: bool, mode: Optional[RunningStage] = None) -> Any:
+    def _requires_distributed_sampler(self, dataloader) -> bool:
+        return (
+            self.accelerator_connector.replace_sampler_ddp
+            and self.accelerator_connector.is_distributed
+            and not isinstance(dataloader.sampler, DistributedSampler)
+            and not has_iterable_dataset(dataloader)
+        )
+
+    def prepare_dataloader(self, dataloader: Any, shuffle: bool, mode: Optional[RunningStage] = None) -> Any:
+        """This function handles to following functionalities:
+
+        - Injecting a `DistributedDataSampler` into the `DataLoader` if on a distributed environment
+        - Wrapping the datasets and samplers into fault-tolerant components
+        """
         if isinstance(dataloader, CombinedLoader):
-            # apply `auto_add_sampler` on all the collection of loaders
+            # apply `prepare_dataloader` on all the collection of loaders
             dataloader.loaders = apply_to_collection(
-                dataloader.loaders, DataLoader, self.auto_add_sampler, shuffle, mode=mode
+                dataloader.loaders, DataLoader, self.prepare_dataloader, shuffle, mode=mode
             )
             return dataloader
 
@@ -130,31 +143,42 @@ class TrainerDataLoadingMixin(ABC):
             return dataloader
 
         if (
-            self.accelerator_connector.replace_sampler_ddp
-            and self.accelerator_connector.is_distributed
-            and not isinstance(dataloader.sampler, DistributedSampler)
-            and not has_iterable_dataset(dataloader)
+            _fault_tolerant_training()  # injects components to track the state
+            or self._requires_distributed_sampler(dataloader)  # sets the distributed sampler
+            or mode == RunningStage.PREDICTING  # to track indices for the predictions
+            or self.accelerator_connector.use_ipu  # IPUs use a custom `DataLoader`
         ):
+            sampler = self._resolve_sampler(dataloader, shuffle=shuffle, mode=mode)
+            dataloader = self._update_dataloader(dataloader, sampler, mode=mode)
+
+        return dataloader
+
+    def _resolve_sampler(self, dataloader: DataLoader, shuffle: bool, mode: Optional[RunningStage] = None) -> Sampler:
+        if self._requires_distributed_sampler(dataloader):
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
                 raise MisconfigurationException(
                     "You seem to have configured a sampler in your DataLoader. This will be replaced "
                     " by `DistributedSampler` since `replace_sampler_ddp` is True and you are using"
                     " distributed training. Either remove the sampler from your DataLoader or set"
-                    " `replace_sampler_ddp`=False if you want to use your custom sampler."
+                    " `replace_sampler_ddp=False` if you want to use your custom sampler."
                 )
-            sampler = self._get_distributed_sampler(dataloader, shuffle, mode=mode)
-        else:
-            # use current sampler
-            sampler = dataloader.sampler
+            return self._get_distributed_sampler(
+                dataloader, shuffle, mode=mode, overfit_batches=self.overfit_batches, **self.distributed_sampler_kwargs
+            )
 
-        dataloader = self.replace_sampler(dataloader, sampler, mode=mode)
-
-        return dataloader
+        return dataloader.sampler
 
     @staticmethod
-    def _resolve_batch_sampler(
+    def _dataloader_init_kwargs_resolve_sampler(
         dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
     ) -> Dict[str, Any]:
+        """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for
+        its re-instantiation.
+
+        If the dataloader is being used for prediction, the sampler will be wrapped into an `IndexBatchSamplerWrapper`,
+        so Lightning can keep track of its indices. If fault tolerant training is enabled, the sampler will be wrapped
+        into a `FastForwardSampler`.
+        """
         batch_sampler = getattr(dataloader, "batch_sampler")
         is_predicting = mode == RunningStage.PREDICTING
         # checking the batch sampler type is different than PyTorch default.
@@ -212,7 +236,9 @@ class TrainerDataLoadingMixin(ABC):
 
         # kwargs to re-construct the dataloader
         dl_kwargs = {k: v for k, v in attrs.items() if k in non_defaults}
-        dl_kwargs.update(TrainerDataLoadingMixin._resolve_batch_sampler(dataloader, sampler, mode=mode))
+        dl_kwargs.update(
+            TrainerDataLoadingMixin._dataloader_init_kwargs_resolve_sampler(dataloader, sampler, mode=mode)
+        )
 
         required_args = {
             p.name
@@ -267,17 +293,22 @@ class TrainerDataLoadingMixin(ABC):
         return dl_kwargs
 
     @staticmethod
-    def replace_sampler(dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None) -> DataLoader:
+    def _update_dataloader(dataloader: DataLoader, sampler: Sampler, mode: Optional[RunningStage] = None) -> DataLoader:
         dl_kwargs = TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler, mode=mode)
         dl_cls = type(dataloader)
         dataloader = dl_cls(**dl_kwargs)
         return dataloader
 
+    @staticmethod
     def _get_distributed_sampler(
-        self, dataloader: DataLoader, shuffle: bool, mode: Optional[RunningStage] = None
+        dataloader: DataLoader,
+        shuffle: bool,
+        overfit_batches: Union[int, float],
+        mode: Optional[RunningStage] = None,
+        **kwargs: Any,
     ) -> DistributedSampler:
-        kwargs = self.distributed_sampler_kwargs
-        kwargs["shuffle"] = shuffle and not self.overfit_batches
+        """This function is used to created the distributed sampler injected within the user DataLoader."""
+        kwargs["shuffle"] = shuffle and not overfit_batches
         kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
         cls = UnrepeatedDistributedSampler if mode == RunningStage.PREDICTING else DistributedSampler
         sampler = cls(dataloader.dataset, **kwargs)
@@ -293,18 +324,11 @@ class TrainerDataLoadingMixin(ABC):
         self.train_dataloader = self.request_dataloader(RunningStage.TRAINING, model=model)
 
         if self.overfit_batches > 0:
-            if hasattr(self.train_dataloader, "sampler") and isinstance(self.train_dataloader.sampler, RandomSampler):
-                rank_zero_warn(
-                    "You requested to overfit but enabled training dataloader shuffling."
-                    " We are turning off the training dataloader shuffling for you."
-                )
-                self.train_dataloader = self.replace_sampler(
-                    self.train_dataloader, SequentialSampler(self.train_dataloader.dataset), mode=RunningStage.TRAINING
-                )
+            self.train_dataloader = self._resolve_overfit_batches(self.train_dataloader)
 
         # automatically add samplers
         self.train_dataloader = apply_to_collection(
-            self.train_dataloader, DataLoader, self.auto_add_sampler, shuffle=True, mode=RunningStage.TRAINING
+            self.train_dataloader, DataLoader, self.prepare_dataloader, shuffle=True, mode=RunningStage.TRAINING
         )
 
         # check the workers recursively
@@ -402,7 +426,9 @@ class TrainerDataLoadingMixin(ABC):
                         "You requested to overfit but enabled val/test dataloader shuffling."
                         " We are turning it off for you."
                     )
-                    dataloaders[loader_i] = self.replace_sampler(loader, SequentialSampler(loader.dataset), mode=mode)
+                    dataloaders[loader_i] = self._update_dataloader(
+                        loader, SequentialSampler(loader.dataset), mode=mode
+                    )
                 else:
                     rank_zero_warn(
                         f"Your `{mode.dataloader_prefix}_dataloader` has `shuffle=True`,"
@@ -413,7 +439,7 @@ class TrainerDataLoadingMixin(ABC):
             rank_zero_warn("One of given dataloaders is None and it will be skipped.")
 
         # add samplers
-        dataloaders = [self.auto_add_sampler(dl, False, mode=mode) for dl in dataloaders if dl is not None]
+        dataloaders = [self.prepare_dataloader(dl, False, mode=mode) for dl in dataloaders if dl is not None]
 
         # add worker_init_fn for correct seeding in worker processes
         apply_to_collection(dataloaders, dtype=DataLoader, function=self.auto_add_worker_init_fn)
@@ -533,3 +559,29 @@ class TrainerDataLoadingMixin(ABC):
         dataloader.collate_fn = partial(
             _capture_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
         )
+
+    @staticmethod
+    def _resolve_overfit_batches(dataloader: Collection[DataLoader]) -> Collection[DataLoader]:
+        has_random_sampler = False
+
+        def resolve_had_random_sampler(dataloader: DataLoader):
+            nonlocal has_random_sampler
+            if not has_random_sampler:
+                has_random_sampler = isinstance(dataloader.sampler, RandomSampler)
+
+        apply_to_collection(dataloader, DataLoader, resolve_had_random_sampler)
+
+        if has_random_sampler:
+            rank_zero_warn(
+                "You requested to overfit but enabled training dataloader shuffling."
+                " We are turning off the training dataloader shuffling for you."
+            )
+
+            def replace_sampler(dataloader: DataLoader) -> DataLoader:
+                return TrainerDataLoadingMixin._update_dataloader(
+                    dataloader, SequentialSampler(dataloader.dataset), mode=RunningStage.TRAINING
+                )
+
+            dataloader = apply_to_collection(dataloader, DataLoader, replace_sampler)
+
+        return dataloader

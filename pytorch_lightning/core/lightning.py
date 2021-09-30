@@ -391,10 +391,12 @@ class LightningModule(
         on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
         if self.trainer is None:
-            raise MisconfigurationException(
+            # not an error to support testing the `*_step` methods without a `Trainer` reference
+            rank_zero_warn(
                 "You are trying to `self.log()` but the `self.trainer` reference is not registered on the model yet."
                 " This is most likely because the model hasn't been passed to the `Trainer`"
             )
+            return
         results = self.trainer._results
         if results is None:
             raise MisconfigurationException(

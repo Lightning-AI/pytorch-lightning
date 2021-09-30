@@ -229,7 +229,8 @@ class Trainer(
                 Default: ``os.getcwd()``.
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
 
-            deterministic: If true enables cudnn.deterministic.
+            deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
+                Default: ``False``.
 
             devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,
                 based on the accelerator type.
