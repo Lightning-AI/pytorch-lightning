@@ -565,7 +565,6 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
         accumulate_grad_batches=accumulate_grad_batches,
         enable_progress_bar=False,
         logger=False,
-        enable_checkpointing=True,
     )
     trainer.fit(model)
 
