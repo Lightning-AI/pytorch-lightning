@@ -449,6 +449,8 @@ class Trainer(
         self.tested_ckpt_path: Optional[str] = None
         self.predicted_ckpt_path: Optional[str] = None
 
+        logger: LightningLoggerBase
+
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init
         self.callback_connector.on_trainer_init(
