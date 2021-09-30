@@ -149,11 +149,11 @@ def test_deepspeed_plugin_env(tmpdir, monkeypatch, deepspeed_config):
     assert plugin.config == deepspeed_config
 
 
-@RunIf(amp_native=True, deepspeed=True)
+@RunIf(deepspeed=True)
 @pytest.mark.parametrize("precision", [16, "mixed"])
 @pytest.mark.parametrize(
     "amp_backend",
-    [pytest.param("native", marks=RunIf(amp_native=True)), pytest.param("apex", marks=RunIf(amp_apex=True))],
+    ["native", pytest.param("apex", marks=RunIf(amp_apex=True))],
 )
 def test_deepspeed_precision_choice(amp_backend, precision, tmpdir):
     """Test to ensure precision plugin is also correctly chosen.
