@@ -258,7 +258,7 @@ class EvaluationLoop(DataLoaderLoop):
         state_dict = super().on_save_checkpoint()
         if self._data_fetcher is None or self._num_val_batches_reached():
             return state_dict
-        if self._has_completed_validation_batch():
+        if self._has_completed_evaluation_batch():
             state = self._data_fetcher.dataloader_iter.state
         else:
             state = getattr(self._data_fetcher.dataloader_iter, "previous_state", {})
@@ -269,8 +269,8 @@ class EvaluationLoop(DataLoaderLoop):
         # cache the dataloader state dict until the dataloader objects are available
         self._dataloader_state_dict = state_dict.get("dataloader_state_dict", {})
 
-    def _has_completed_validation_batch(self) -> bool:
+    def _has_completed_evaluation_batch(self) -> bool:
         return self.epoch_loop.batch_progress.current.ready == self.epoch_loop.batch_progress.current.completed
 
     def _num_val_batches_reached(self) -> bool:
-        return self._has_completed_validation_batch and self.epoch_loop.batch_progress.is_last_batch
+        return self._has_completed_evaluation_batch and self.epoch_loop.batch_progress.is_last_batch
