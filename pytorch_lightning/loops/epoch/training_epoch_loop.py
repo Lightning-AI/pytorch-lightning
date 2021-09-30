@@ -123,6 +123,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.trainer.call_hook("on_train_epoch_start")
         self.trainer.fit_loop.epoch_progress.increment_started()
 
+        # reload stae
         self.dataloader_iter = _update_dataloader_iter(dataloader_iter, self.batch_idx + 1)
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
@@ -158,7 +159,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # update non-plateau LR schedulers
         # update epoch-interval ones only when we are at the end of training epoch
         self.update_lr_schedulers("step", update_plateau_schedulers=False)
-        if self._num_training_batches_reached():
+        if self._num_ready_batches_reached():
             self.update_lr_schedulers("epoch", update_plateau_schedulers=False)
 
         batch_end_outputs = self._prepare_outputs_training_batch_end(
@@ -252,7 +253,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.trainer.call_hook("on_epoch_end")
         self.trainer.logger_connector.on_epoch_end()
 
-        if self._num_training_batches_reached():
+        if self._num_ready_batches_reached():
             self.update_lr_schedulers("epoch", update_plateau_schedulers=True)
 
         self.dataloader_iter = None
@@ -276,18 +277,27 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         """Determine if accumulation will be finished by the end of the current batch."""
         return self.batch_progress.current.ready % self.trainer.accumulate_grad_batches == 0
 
-    def _num_training_batches_reached(self) -> bool:
+    def _num_ready_batches_reached(self) -> bool:
         """Checks if we are in the last batch or if there are more batches to follow."""
         return (
             self.batch_progress.current.ready == self.trainer.num_training_batches or self.batch_progress.is_last_batch
         )
+
+    def _num_completed_batches_reached(self) -> bool:
+        return self.batch_progress.current.completed == self.trainer.num_training_batches or (  # epoch is finished
+            self.batch_progress.is_last_batch  # the dataloder is consumed
+            and self._has_completed()  # the batch is finished
+        )
+
+    def _has_completed(self) -> bool:
+        return self.batch_progress.current.ready == self.batch_progress.current.completed
 
     def _should_accumulate(self) -> bool:
         """Checks if the optimizer step should be performed or gradients should be accumulated for the current
         step."""
         accumulation_done = self._accumulated_batches_reached()
         # Lightning steps on the final batch
-        is_final_batch = self._num_training_batches_reached()
+        is_final_batch = self._num_ready_batches_reached()
         # but the TTP might not
         ttp_accumulates_on_final_batch = (
             self.trainer.training_type_plugin.handles_gradient_accumulation or not is_final_batch

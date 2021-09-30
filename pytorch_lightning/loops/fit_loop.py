@@ -247,13 +247,18 @@ class FitLoop(Loop):
 
     def on_save_checkpoint(self) -> Dict:
         state_dict = super().on_save_checkpoint()
+        # FIXME: move this to `epoch_loop`
         if (
-            self.epoch_loop is not None
-            and self.trainer.train_dataloader is not None
-            and not self.epoch_loop._num_training_batches_reached()
+            self.epoch_loop is None
+            or self.trainer.train_dataloader is None
+            or self.epoch_loop._num_completed_batches_reached()  # did not finish
+            # TODO: faul-tolerance requires a minimum number of batches so probably should be >0
+            or self.epoch_loop.batch_progress.current.ready == 0  # did not start
         ):
-            # FIXME: need the flag?
-            state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(has_completed=False)
+            return state_dict
+        state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(
+            has_completed=self.epoch_loop._has_completed()
+        )
         return state_dict
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
