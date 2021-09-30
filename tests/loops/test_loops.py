@@ -23,7 +23,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pl_examples.bug_report_model import RandomDataset
-from pytorch_lightning import LightningModule, seed_everything, Trainer
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loops import Loop, TrainingBatchLoop
 from pytorch_lightning.trainer.progress import BaseProgress
@@ -493,10 +493,10 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
 
     # need to remove these elements for comparison; comparing with `fit_loop.state_dict()` would require the
     # fit loop to have an iterator, which is only available during training
-    trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"])
-
-    checkpoint["loops"]["fit_loop"]["state_dict"] = ANY
+    checkpoint["loops"]["fit_loop"]["state_dict"]["dataloader_state_dict"] = ANY
     assert state_dict == checkpoint["loops"]["fit_loop"]
+
+    trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"])
     # test resetting manually, we expect all `ready` counters to be reset to `completed`
     trainer.fit_loop.reset()
     trainer.fit_loop.epoch_loop.reset()
@@ -790,7 +790,6 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         def val_dataloader(self):
             return [DataLoader(cls(size, n_batches)) for cls in val_datasets]
 
-    seed_everything(42)
     model = TestModel(False)
     trainer = Trainer(
         default_root_dir=tmpdir,
