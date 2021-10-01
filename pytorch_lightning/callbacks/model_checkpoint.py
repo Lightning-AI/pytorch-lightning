@@ -346,6 +346,10 @@ class ModelCheckpoint(Callback):
         self._save_last_checkpoint(trainer, monitor_candidates)
         trainer.fit_loop.global_step += 1
 
+        # notify loggers
+        if trainer.is_global_zero and trainer.logger:
+            trainer.logger.after_save_checkpoint(proxy(self))
+
     def on_save_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
     ) -> Dict[str, Any]:
@@ -429,11 +433,6 @@ class ModelCheckpoint(Callback):
                 raise MisconfigurationException(
                     f"ModelCheckpoint(save_top_k={self.save_top_k}, monitor=None) is not a valid"
                     " configuration. No quantity for top_k to track."
-                )
-            if self.save_last:
-                rank_zero_warn(
-                    "ModelCheckpoint(save_last=True, save_top_k=None, monitor=None) is a redundant configuration."
-                    " You can save the last checkpoint with ModelCheckpoint(save_top_k=None, monitor=None)."
                 )
             if self.save_top_k == -1 and self.save_last:
                 rank_zero_info(
