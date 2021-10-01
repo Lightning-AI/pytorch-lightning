@@ -551,11 +551,10 @@ class ResultCollection(dict):
         apply_to_collection(self, ResultMetric, fn)
 
     def extract_batch_size(self, batch: Any) -> int:
-        batch_size = 1
         try:
             batch_size = extract_batch_size(batch)
         except RecursionError:
-            pass
+            batch_size = 1
         self.batch_size = batch_size  # the setter converts it to `Tensor`
         return batch_size
 
