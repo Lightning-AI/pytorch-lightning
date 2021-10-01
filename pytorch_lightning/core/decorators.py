@@ -14,9 +14,9 @@
 from pytorch_lightning.utilities import rank_zero_deprecation
 
 rank_zero_deprecation(
-    "Using ``pytorch_lightning.core.decorators.parameter_validation`` is deprecated in v1.5, "
+    "Using `pytorch_lightning.core.decorators.parameter_validation` is deprecated in v1.5, "
     "and will be removed in v1.7. It has been replaced by automatic parameters tying with "
-    "``pytorch_lightning.utilities.params_tying.set_shared_parameters``"
+    "`pytorch_lightning.utilities.params_tying.set_shared_parameters`"
 )
 
 from functools import wraps  # noqa: E402
