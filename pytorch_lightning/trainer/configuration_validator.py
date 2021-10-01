@@ -139,7 +139,7 @@ class ConfigValidator:
         if is_overridden("on_post_move_to_device", model):
             rank_zero_deprecation(
                 "Method `on_post_move_to_device` has been deprecated in v1.5 and will be removed in v1.7. "
-                "We perform automatic parameters tying without the need of implementing `on_post_move_to_device`"
+                "We perform automatic parameters tying without the need of implementing `on_post_move_to_device`."
             )
 
     def __verify_eval_loop_configuration(self, model: "pl.LightningModule", stage: str) -> None:
