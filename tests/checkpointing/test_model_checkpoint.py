@@ -36,11 +36,12 @@ import pytorch_lightning as pl
 import tests.helpers.utils as tutils
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers import TensorBoardLogger, CSVLogger
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
+from pytorch_lightning.utilities.types import _PATH
 
 
 def test_model_checkpoint_state_key():
@@ -75,6 +76,68 @@ def mock_optimizer_connector(trainer):
 
     trainer.optimizer_connector._get_monitor_value = mock
     return calls
+
+
+@pytest.mark.parametrize("save_last", [False, True])  # problem with save_last = True
+@pytest.mark.parametrize("save_on_train_epoch_end", [True, False])
+@pytest.mark.parametrize("max_epochs, every_n_epochs", [(9, 5), (9, 0), (9, 9)])
+def test_model_checkpoint_connection_to_logger(
+    tmpdir, save_last: bool, save_on_train_epoch_end: bool, max_epochs: int, every_n_epochs: int):
+    """Test that when a model checkpoint is saved, it triggers the logger.after_save_checkpoint """
+
+    # I use a global flag which is raise when ckpt is written and lowered when logger is called
+    # I check that the model is never acting when the flag is raised
+    # This means that ckpt writing and logger action are in tight sequence
+
+    global ckpt_flag_raised  # this flag
+    ckpt_flag_raised = False
+
+    class CustomBoringModel(BoringModel):
+        def forward(self, x):
+            global ckpt_flag_raised
+            assert not ckpt_flag_raised
+            return self.layer(x)
+
+    class CustomLogger(CSVLogger):
+        def __init__(self, **kargs):
+            super(CustomLogger, self).__init__(**kargs)
+
+        def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
+            print("called after new ckpt is saved")
+            global ckpt_flag_raised
+            ckpt_flag_raised = False
+
+    class CustomTrainer(Trainer):
+        def __init__(self, **kargs):
+            super(CustomTrainer, self).__init__(**kargs)
+
+        def save_checkpoint(self, filepath: _PATH, weights_only: bool = False) -> None:
+            super(CustomTrainer, self).save_checkpoint(filepath, weights_only)
+            global ckpt_flag_raised
+            ckpt_flag_raised = True
+
+    ckpt_callback = ModelCheckpoint(
+        filename="my_checkpoint",
+        save_on_train_epoch_end=save_on_train_epoch_end,
+        save_last=save_last,
+        every_n_epochs=every_n_epochs,
+    )
+
+    model = CustomBoringModel()
+
+    trainer = CustomTrainer(
+        default_root_dir=tmpdir,
+        callbacks=[ckpt_callback],
+        logger=CustomLogger(save_dir=tmpdir, flush_logs_every_n_steps=1),
+        check_val_every_n_epoch=1,
+        max_epochs=9,
+        weights_save_path=tmpdir,
+    )
+
+    calls = mock_optimizer_connector(trainer)
+    trainer.fit(model=model, train_dataloaders=model.train_dataloader(), val_dataloaders=model.val_dataloader())
+    assert not ckpt_flag_raised
+    del ckpt_flag_raised
 
 
 @pytest.mark.parametrize(
