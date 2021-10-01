@@ -36,12 +36,12 @@ import pytorch_lightning as pl
 import tests.helpers.utils as tutils
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import TensorBoardLogger, CSVLogger
+from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import _PATH
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
-from pytorch_lightning.utilities.types import _PATH
 
 
 def test_model_checkpoint_state_key():
@@ -82,8 +82,9 @@ def mock_optimizer_connector(trainer):
 @pytest.mark.parametrize("save_on_train_epoch_end", [True, False])
 @pytest.mark.parametrize("max_epochs, every_n_epochs", [(9, 5), (9, 0), (9, 9)])
 def test_model_checkpoint_connection_to_logger(
-    tmpdir, save_last: bool, save_on_train_epoch_end: bool, max_epochs: int, every_n_epochs: int):
-    """Test that when a model checkpoint is saved, it triggers the logger.after_save_checkpoint """
+    tmpdir, save_last: bool, save_on_train_epoch_end: bool, max_epochs: int, every_n_epochs: int
+):
+    """Test that when a model checkpoint is saved, it triggers the logger.after_save_checkpoint."""
 
     # I use a global flag which is raise when ckpt is written and lowered when logger is called
     # I check that the model is never acting when the flag is raised
@@ -100,7 +101,7 @@ def test_model_checkpoint_connection_to_logger(
 
     class CustomLogger(CSVLogger):
         def __init__(self, **kargs):
-            super(CustomLogger, self).__init__(**kargs)
+            super().__init__(**kargs)
 
         def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
             print("called after new ckpt is saved")
@@ -109,10 +110,10 @@ def test_model_checkpoint_connection_to_logger(
 
     class CustomTrainer(Trainer):
         def __init__(self, **kargs):
-            super(CustomTrainer, self).__init__(**kargs)
+            super().__init__(**kargs)
 
         def save_checkpoint(self, filepath: _PATH, weights_only: bool = False) -> None:
-            super(CustomTrainer, self).save_checkpoint(filepath, weights_only)
+            super().save_checkpoint(filepath, weights_only)
             global ckpt_flag_raised
             ckpt_flag_raised = True
 
