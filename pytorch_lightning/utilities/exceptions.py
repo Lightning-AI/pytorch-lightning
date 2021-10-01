@@ -24,6 +24,6 @@ class DeadlockDetectedException(Exception):
 class ExitGracefullyException(Exception):
     """Exception used when a ``signal.SIGUSR1`` is sent to the process.
 
-    This signals Lightning to try to create a fault-tolerance checkpoint when a spot that supports this is reached. The
-    process then proceeds to exit after the checkpoint is saved.
+    This signals Lightning to try to create a fault-tolerance checkpoint once the current batch or epoch is reached
+    (assuming it can be done under 30 sec). After the checkpoint is saved, Lightning will exit.
     """
