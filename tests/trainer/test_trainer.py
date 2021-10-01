@@ -1115,7 +1115,7 @@ def test_on_exception_hook(tmpdir):
 
 @pytest.mark.parametrize(
     "precision",
-    [32, pytest.param(16, marks=RunIf(min_gpus=1, amp_native=True))],
+    [32, pytest.param(16, marks=RunIf(min_gpus=1))],
 )
 def test_gradient_clipping_by_norm(tmpdir, precision):
     """Test gradient clipping by norm."""
@@ -1148,7 +1148,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
 
 @pytest.mark.parametrize(
     "precision",
-    [32, pytest.param(16, marks=RunIf(min_gpus=1, amp_native=True))],
+    [32, pytest.param(16, marks=RunIf(min_gpus=1))],
 )
 def test_gradient_clipping_by_value(tmpdir, precision):
     """Test gradient clipping by value."""

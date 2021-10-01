@@ -18,7 +18,6 @@ from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, 
 import torch
 from torch import Tensor
 from torch.nn import Module
-from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
@@ -140,9 +139,6 @@ class TrainingTypePlugin(ABC):
 
     def post_backward(self, closure_loss: torch.Tensor) -> None:
         """Run after precision plugin executes backward."""
-
-    def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int, **kwargs) -> None:
-        """Hook to do something after each optimizer step."""
 
     @property
     def model(self) -> Optional[Module]:
