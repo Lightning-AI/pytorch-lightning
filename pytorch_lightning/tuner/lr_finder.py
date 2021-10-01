@@ -16,11 +16,10 @@ import logging
 import os
 import uuid
 from functools import wraps
-from typing import Callable, Optional, Sequence
+from typing import Optional, Sequence
 
 import numpy as np
 import torch
-from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl
@@ -98,25 +97,16 @@ class _LRFinder:
         self.results = {}
         self._total_batch_idx = 0  # for debug purpose
 
-    def _exchange_scheduler(self, configure_optimizers: Callable):
+    def _exchange_scheduler(self, trainer: "pl.Trainer", model: "pl.LightningModule"):
         """Decorate configure_optimizers methods such that it returns the users originally specified optimizer
         together with a new scheduler that that takes care of the learning rate search."""
+        configure_optimizers = model.configure_optimizers
 
         @wraps(configure_optimizers)
         def func():
             # Decide the structure of the output from configure_optimizers
-            # Same logic as method `init_optimizers` in trainer/optimizers.py
             optim_conf = configure_optimizers()
-            if isinstance(optim_conf, Optimizer):
-                optimizers = [optim_conf]
-            elif isinstance(optim_conf, (list, tuple)) and len(optim_conf) == 2 and isinstance(optim_conf[0], list):
-                optimizers, _ = optim_conf
-            elif isinstance(optim_conf, dict):
-                optimizers = [optim_conf["optimizer"]]
-            elif isinstance(optim_conf, (list, tuple)) and isinstance(optim_conf[0], dict):
-                optimizers = [opt_dict["optimizer"] for opt_dict in optim_conf]
-            elif isinstance(optim_conf, (list, tuple)) and all(isinstance(opt, Optimizer) for opt in optim_conf):
-                optimizers = list(optim_conf)
+            optimizers, _, _ = trainer._configure_optim_config(optim_conf, model)
 
             if len(optimizers) != 1:
                 raise MisconfigurationException(
@@ -240,7 +230,7 @@ def lr_find(
     trainer.save_checkpoint(str(save_path))
 
     # Configure optimizer and scheduler
-    model.configure_optimizers = lr_finder._exchange_scheduler(model.configure_optimizers)
+    model.configure_optimizers = lr_finder._exchange_scheduler(trainer, model)
 
     # Fit, lr & loss logged in callback
     trainer.tuner._run(model)
