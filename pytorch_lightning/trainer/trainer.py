@@ -37,7 +37,7 @@ from pytorch_lightning.loggers.base import LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop, TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
-from pytorch_lightning.loops.fit_loop import FitLoop
+from pytorch_lightning.loops.fit_loop import FitLoop, Loop
 from pytorch_lightning.plugins import DDPSpawnPlugin, ParallelPlugin, PLUGIN_INPUT, PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
@@ -177,6 +177,7 @@ class Trainer(
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         stochastic_weight_avg: bool = False,
+        fit_loop: Optional[Loop] = None,
     ):
         r"""
         Customize every aspect of training via flags.
@@ -380,6 +381,8 @@ class Trainer(
                     ``stochastic_weight_avg`` has been deprecated in v1.5 and will be removed in v1.7.
                     Please pass :class:`~pytorch_lightning.callbacks.stochastic_weight_avg.StochasticWeightAveraging`
                     directly to the Trainer's ``callbacks`` argument instead.
+
+            fit_loop: Optional custom fit loop to use during training
         """
         super().__init__()
         Trainer._log_api_event("init")
@@ -420,11 +423,12 @@ class Trainer(
         self.signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
-        # max_epochs won't default to 1000 if max_steps/max_time are specified (including being set to -1).
-        fit_loop = FitLoop(
-            min_epochs=(1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs),
-            max_epochs=(1000 if (max_epochs is None and max_steps is None and max_time is None) else max_epochs),
-        )
+        if fit_loop is None:
+            # max_epochs won't default to 1000 if max_steps/max_time are specified (including being set to -1).
+            fit_loop = FitLoop(
+                min_epochs=(1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs),
+                max_epochs=(1000 if (max_epochs is None and max_steps is None and max_time is None) else max_epochs),
+            )
         training_epoch_loop = TrainingEpochLoop(min_steps, max_steps)
         training_batch_loop = TrainingBatchLoop()
         training_validation_loop = EvaluationLoop()
