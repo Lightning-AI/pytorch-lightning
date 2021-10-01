@@ -26,6 +26,7 @@ from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.warnings import WarningCache
 
 _OUTPUTS_TYPE = List[_BATCH_OUTPUTS_TYPE]
 
@@ -55,6 +56,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         self._results = ResultCollection(training=True)
         self._outputs: _OUTPUTS_TYPE = []
+        self._warning_cache = WarningCache()
 
     @property
     def total_batch_idx(self) -> int:
@@ -134,20 +136,33 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         batch_idx, (batch, is_last) = next(self.dataloader_iter)
         self.batch_progress.is_last_batch = is_last
 
+        if batch is None:
+            self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
+            raise StopIteration
+
         if not self.trainer.data_connector.train_data_fetcher.store_on_device:
             with self.trainer.profiler.profile("training_batch_to_device"):
                 batch = self.trainer.accelerator.batch_to_device(batch)
 
         self.batch_progress.increment_ready()
 
+        # hook
+        self.trainer.logger_connector.on_batch_start(batch_idx)
+        response = self.trainer.call_hook("on_batch_start")
+        if response == -1:
+            raise StopIteration
+
+        # hook
+        response = self.trainer.call_hook("on_train_batch_start", batch, batch_idx, 0)
+        if response == -1:
+            raise StopIteration
+
+        self.batch_progress.increment_started()
+
         with self.trainer.profiler.profile("run_training_batch"):
             batch_output = self.batch_loop.run(batch, batch_idx)
 
         self.batch_progress.increment_processed()
-
-        # when returning -1 from train_step, we end epoch early
-        if batch_output.signal == -1:
-            raise StopIteration
 
         # update non-plateau LR schedulers
         # update epoch-interval ones only when we are at the end of training epoch
@@ -156,7 +171,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             self.update_lr_schedulers("epoch", update_plateau_schedulers=False)
 
         batch_end_outputs = self._prepare_outputs_training_batch_end(
-            batch_output.outputs,
+            batch_output,
             automatic=self.trainer.lightning_module.trainer.lightning_module.automatic_optimization,
             num_optimizers=len(self.trainer.optimizers),
         )
@@ -167,7 +182,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.batch_progress.increment_completed()
 
         if is_overridden("training_epoch_end", self.trainer.lightning_module):
-            self._outputs.append(batch_output.outputs)
+            self._outputs.append(batch_output)
 
         # -----------------------------------------
         # SAVE METRICS TO LOGGERS AND PROGRESS_BAR

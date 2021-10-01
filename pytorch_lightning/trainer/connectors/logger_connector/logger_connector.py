@@ -132,7 +132,7 @@ class LoggerConnector:
         elif self.trainer.state.stage is RunningStage.TESTING:
             self._test_log_step += 1
 
-    def on_evaluation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int, num_dataloaders: int) -> None:
+    def on_evaluation_batch_start(self, batch: Any, dataloader_idx: int, num_dataloaders: int) -> None:
         model = self.trainer.lightning_module
         # set dataloader_idx only if multiple ones
         model._current_dataloader_idx = dataloader_idx if num_dataloaders > 1 else None
@@ -140,7 +140,6 @@ class LoggerConnector:
         # track batch_size
         assert self.trainer._results is not None
         self.trainer._results.extract_batch_size(batch)
-        self._batch_idx = batch_idx
 
     def update_eval_step_metrics(self) -> None:
         if self.trainer.sanity_checking:
@@ -207,14 +206,12 @@ class LoggerConnector:
     Train metric updates
     """
 
-    def on_train_split_start(self, batch_idx: int, split_idx: int, split_batch: Any) -> None:
+    def on_train_split_start(self, split_idx: int, split_batch: Any) -> None:
         assert self.trainer._results is not None
         # when the user requests `dataloader_iter`, we can't track the batch_size
         # and this is left to user responsibility.
         if isinstance(split_batch, pl.utilities.fetching.DataLoaderIterDataFetcher):
             self.trainer._results.extract_batch_size(split_batch)
-
-        self._batch_idx = batch_idx
         self._split_idx = split_idx
 
     def update_train_step_metrics(self) -> None:
@@ -255,7 +252,8 @@ class LoggerConnector:
     def on_epoch_start(self) -> None:
         self._epoch_end_reached = False
 
-    def on_batch_start(self) -> None:
+    def on_batch_start(self, batch_idx: int) -> None:
+        self._batch_idx = batch_idx
         self._epoch_end_reached = False
 
     def epoch_end_reached(self) -> None:

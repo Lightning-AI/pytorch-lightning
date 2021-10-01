@@ -23,8 +23,6 @@ from pytorch_lightning.loops.optimization.optimizer_loop import _OUTPUTS_TYPE as
 from pytorch_lightning.loops.optimization.optimizer_loop import OptimizerLoop
 from pytorch_lightning.loops.utilities import _get_active_optimizers
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
-from pytorch_lightning.utilities import AttributeDict
-from pytorch_lightning.utilities.warnings import WarningCache
 
 _OUTPUTS_TYPE = List[Union[_OPTIMIZER_LOOP_OUTPUTS_TYPE, _MANUAL_LOOP_OUTPUTS_TYPE]]
 
@@ -42,9 +40,7 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
         self.manual_loop = ManualOptimization()
 
         self._outputs: _OUTPUTS_TYPE = []
-        self._warning_cache: WarningCache = WarningCache()
         self._remaining_splits: Optional[List[Any]] = None
-        self._exit_signal: int = 0
 
     @property
     def done(self) -> bool:
@@ -80,30 +76,10 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
             batch: the current batch to run the training on (this is not the split!)
             batch_idx: the index of the current batch
         """
-        if batch is None:
-            self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
-            raise StopIteration
-
-        split_idx, split_batch = self._remaining_splits.pop(0)
-        self.split_idx = split_idx
+        self.split_idx, split_batch = self._remaining_splits.pop(0)
 
         # let logger connector extract current batch size
-        self.trainer.logger_connector.on_train_split_start(batch_idx, split_idx, split_batch)
-
-        # hook
-        self.trainer.logger_connector.on_batch_start()
-        response = self.trainer.call_hook("on_batch_start")
-        if response == -1:
-            self._exit_signal = -1
-            raise StopIteration
-
-        # hook
-        response = self.trainer.call_hook("on_train_batch_start", batch, batch_idx, 0)
-        if response == -1:
-            self._exit_signal = -1
-            raise StopIteration
-
-        self.trainer.fit_loop.epoch_loop.batch_progress.increment_started()
+        self.trainer.logger_connector.on_train_split_start(self.split_idx, split_batch)
 
         # choose which loop will run the optimization
         if self.trainer.lightning_module.automatic_optimization:
@@ -117,12 +93,11 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
             # then `advance` doesn't finish and an empty dict is returned
             self._outputs.append(outputs)
 
-    def on_run_end(self) -> None:
+    def on_run_end(self) -> _OUTPUTS_TYPE:
         self.optimizer_loop._hiddens = None
         # this is not necessary as the manual loop runs for only 1 iteration, but just in case
         self.manual_loop._hiddens = None
-        output, self._outputs = AttributeDict(signal=self._exit_signal, outputs=self._outputs), None  # free memory
-        self._exit_signal = 0
+        output, self._outputs = self._outputs, None  # free memory
         return output
 
     def teardown(self) -> None:
