@@ -265,8 +265,6 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
             assert isinstance(trainer.lr_schedulers[0]["scheduler"], torch.optim.lr_scheduler.StepLR)
             # check that the lr_scheduler config was preserved
             assert trainer.lr_schedulers[0]["name"] == "Sean"
-            # Ensure DeepSpeed engine has initialized with our lr_scheduler
-            assert isinstance(trainer.model.lr_scheduler, torch.optim.lr_scheduler.StepLR)
 
     class TestModel(BoringModel):
         def configure_optimizers(self):
@@ -303,8 +301,6 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
             assert isinstance(trainer.optimizers[0], FP16_DeepSpeedZeroOptimizer)
             assert isinstance(trainer.optimizers[0].optimizer, torch.optim.SGD)
             assert isinstance(trainer.lr_schedulers[0]["scheduler"], WarmupLR)
-            # Ensure DeepSpeed engine has initialized with our lr_scheduler
-            assert isinstance(trainer.model.lr_scheduler, WarmupLR)
 
     model = BoringModel()
     trainer = Trainer(
