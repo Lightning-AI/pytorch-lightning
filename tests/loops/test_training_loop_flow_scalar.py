@@ -316,7 +316,6 @@ def test_training_step_none_batches(tmpdir):
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
-
             self.counter = 0
 
         def collate_none_when_even(self, batch):
@@ -328,27 +327,24 @@ def test_training_step_none_batches(tmpdir):
             return result
 
         def train_dataloader(self):
-            return DataLoader(RandomDataset(32, 64), collate_fn=self.collate_none_when_even)
+            return DataLoader(RandomDataset(32, 4), collate_fn=self.collate_none_when_even)
+
+        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+            if batch_idx % 2 == 0:
+                assert outputs == []
+            else:
+                assert outputs
 
     model = TestModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        limit_train_batches=4,
         limit_val_batches=1,
         max_epochs=4,
         weights_summary=None,
         logger=False,
         checkpoint_callback=False,
+        progress_bar_refresh_rate=0,
     )
 
     with pytest.warns(UserWarning, match=r".*train_dataloader yielded None.*"):
         trainer.fit(model)
-
-    trainer.state.stage = RunningStage.TRAINING
-
-    # manually check a few batches
-    for batch_idx, batch in enumerate(model.train_dataloader()):
-        out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx)
-        if not batch_idx % 2:
-            assert out.outputs == []
-        assert out.signal == 0

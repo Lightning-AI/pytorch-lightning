@@ -136,31 +136,33 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         batch_idx, (batch, is_last) = next(self.dataloader_iter)
         self.batch_progress.is_last_batch = is_last
 
-        if batch is None:
-            self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
-            raise StopIteration
-
         if not self.trainer.data_connector.train_data_fetcher.store_on_device:
             with self.trainer.profiler.profile("training_batch_to_device"):
                 batch = self.trainer.accelerator.batch_to_device(batch)
 
         self.batch_progress.increment_ready()
 
-        # hook
-        self.trainer.logger_connector.on_batch_start(batch_idx)
-        response = self.trainer.call_hook("on_batch_start")
-        if response == -1:
-            raise StopIteration
+        if batch is None:
+            self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
+            batch_output = []
+        else:
+            # hook
+            self.trainer.logger_connector.on_batch_start(batch_idx)
+            response = self.trainer.call_hook("on_batch_start")
+            if response == -1:
+                self.batch_progress.increment_processed()
+                raise StopIteration
 
-        # hook
-        response = self.trainer.call_hook("on_train_batch_start", batch, batch_idx, 0)
-        if response == -1:
-            raise StopIteration
+            # hook
+            response = self.trainer.call_hook("on_train_batch_start", batch, batch_idx, 0)
+            if response == -1:
+                self.batch_progress.increment_processed()
+                raise StopIteration
 
-        self.batch_progress.increment_started()
+            self.batch_progress.increment_started()
 
-        with self.trainer.profiler.profile("run_training_batch"):
-            batch_output = self.batch_loop.run(batch, batch_idx)
+            with self.trainer.profiler.profile("run_training_batch"):
+                batch_output = self.batch_loop.run(batch, batch_idx)
 
         self.batch_progress.increment_processed()
 

@@ -76,6 +76,7 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
             batch: the current batch to run the training on (this is not the split!)
             batch_idx: the index of the current batch
         """
+        void(batch)
         self.split_idx, split_batch = self._remaining_splits.pop(0)
 
         # let logger connector extract current batch size
