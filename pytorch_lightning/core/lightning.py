@@ -1483,7 +1483,7 @@ class LightningModule(
 
         Note:
             Do not override this method. If you want to customize gradient clipping, consider
-            using :meth:`configure_gradient_clipping`.
+            using :meth:`configure_gradient_clipping` method.
 
         Args:
             optimizer: Current optimizer being used.
@@ -1543,7 +1543,7 @@ class LightningModule(
 
         Example::
 
-            # Perform gradient clipping on discriminator (optimizer_idx=1) in GAN
+            # Perform gradient clipping on gradients associated with discriminator (optimizer_idx=1) in GAN
             def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
                 if optimizer_idx == 1:
                     # Lightning will handle the gradient clipping

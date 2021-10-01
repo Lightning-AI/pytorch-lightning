@@ -69,7 +69,7 @@ Here is a minimal example of manual optimization.
 Gradient accumulation
 ---------------------
 You can accumulate gradients over batches similarly to
-:attr:`~pytorch_lightning.trainer.Trainer.accumulate_grad_batches` of automatic optimization.
+:attr:`~pytorch_lightning.trainer.trainer.Trainer.accumulate_grad_batches` of automatic optimization.
 To perform gradient accumulation with one optimizer, you can do as such.
 
 .. testcode:: python
@@ -519,23 +519,23 @@ to perform a step, Lightning won't be able to support accelerators and precision
 
 -----
 
-Configure Gradient Clipping
+Configure gradient clipping
 ---------------------------
 To configure custom gradient clipping, consider overriding
-the :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_gradient_clipping` function.
-By default it will get arguments :attr:`~pytorch_lightning.trainer.Trainer.gradient_clip_val` and
-:attr:`~pytorch_lightning.trainer.Trainer.gradient_clip_algorithm` from ``Trainer`` in their respective
-fields and lightning will handle gradient clipping on its own. In case you want to set different values
-for your arguments of your choice and let Lightning handle the gradient clipping, you can use the inbuilt
-:meth:`~pytorch_lightning.core.lightning.LightningModule.clip_gradients` function and pass the arguments
-along with your optimizer.
+the :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_gradient_clipping` method.
+Attributes :attr:`~pytorch_lightning.trainer.trainer.Trainer.gradient_clip_val` and
+:attr:`~pytorch_lightning.trainer.trainer.Trainer.gradient_clip_algorithm` will be passed in the respective
+arguments here and Lightning will handle gradient clipping for you. In case you want to set
+different values for your arguments of your choice and let Lightning handle the gradient clipping, you can
+use the inbuilt :meth:`~pytorch_lightning.core.lightning.LightningModule.clip_gradients` method and pass
+the arguments along with your optimizer.
 
 .. note::
     Make sure to not override :meth:`~pytorch_lightning.core.lightning.LightningModule.clip_gradients`
-    function. If you want to customize gradient clipping, consider using
-    :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_gradient_clipping` function.
+    method. If you want to customize gradient clipping, consider using
+    :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_gradient_clipping` method.
 
-For example, here we will apply gradient clipping only to optimizer A.
+For example, here we will apply gradient clipping only to the gradients associated with optimizer A.
 
 .. testcode:: python
 
@@ -557,8 +557,6 @@ Here we configure gradient clipping differently for optimizer B.
                 optimizer, gradient_clip_val=gradient_clip_val, gradient_clip_algorithm=gradient_clip_algorithm
             )
         elif optimizer_idx == 1:
-            custom_gradient_clip_val = 1e-2
-            for pg in optimizer.param_groups:
-                for p in pg["params"]:
-                    p.grad[p.grad > custom_gradient_clip_val] = custom_gradient_clip_val
-                    p.grad[p.grad <= 0] = 0
+            self.clip_gradients(
+                optimizer, gradient_clip_val=gradient_clip_val * 2, gradient_clip_algorithm=gradient_clip_algorithm
+            )
