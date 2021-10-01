@@ -15,8 +15,6 @@ import math
 import os
 import random
 import random as python_random
-import signal
-import time
 from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import suppress
@@ -1075,14 +1073,8 @@ class TestAutoRestartModelUnderSignal(BoringModel):
 
     def _signal(self):
         if self.should_signal:
-            os.kill(os.getpid(), signal.SIGUSR1)
-            # CI needs the following
-            i = 0  # mechanism to avoid getting stuck
-            while not self.trainer._terminate_gracefully:
-                time.sleep(0.1)
-                i += 1
-                if i > 10:
-                    pytest.fail("Failed to receive the signal")
+            # simulate `os.kill(os.getpid(), signal.SIGUSR1)`
+            self.trainer._terminate_gracefully = True
 
     def training_step(self, batch, batch_idx):
         self.seen_train_batches.append(batch)
