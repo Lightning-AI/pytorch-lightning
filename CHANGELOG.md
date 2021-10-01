@@ -302,7 +302,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated the `LightningModule.on_post_move_to_device` method ([#9525](https://github.com/PyTorchLightning/pytorch-lightning/pull/9525))
 
 
-- Deprecated `pytorch_lightning.core.decorators.parameter_validation` ([#9525](https://github.com/PyTorchLightning/pytorch-lightning/pull/9525))
+- Deprecated `pytorch_lightning.core.decorators.parameter_validation` in favor of `pytorch_lightning.utilities.parameter_tying.set_shared_parameters` ([#9525](https://github.com/PyTorchLightning/pytorch-lightning/pull/9525))
 
 
 ### Removed
