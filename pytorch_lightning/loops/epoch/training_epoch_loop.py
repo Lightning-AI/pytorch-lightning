@@ -142,12 +142,15 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         self.batch_progress.increment_ready()
 
+        # cache the batch size value to avoid extracting it again after the batch loop runs as the value will be
+        # different if tbptt is enabled
+        batch_size = self.trainer.logger_connector.on_batch_start(batch_idx, batch)
+
         if batch is None:
             self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
             batch_output = []
         else:
             # hook
-            self.trainer.logger_connector.on_batch_start(batch_idx)
             response = self.trainer.call_hook("on_batch_start")
             if response == -1:
                 self.batch_progress.increment_processed()
@@ -163,6 +166,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
             with self.trainer.profiler.profile("run_training_batch"):
                 batch_output = self.batch_loop.run(batch, batch_idx)
+
+        self.trainer._results.batch_size = batch_size
 
         self.batch_progress.increment_processed()
 

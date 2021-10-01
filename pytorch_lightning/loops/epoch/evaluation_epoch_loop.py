@@ -186,10 +186,10 @@ class EvaluationEpochLoop(Loop):
         Raises:
             AssertionError: If the number of dataloaders is None (has not yet been set).
         """
-        self.trainer.logger_connector.on_batch_start(batch_idx)
+        self.trainer.logger_connector.on_batch_start(batch_idx, batch)
 
         assert self._num_dataloaders is not None
-        self.trainer.logger_connector.on_evaluation_batch_start(batch, dataloader_idx, self._num_dataloaders)
+        self.trainer.logger_connector.on_evaluation_batch_start(dataloader_idx, self._num_dataloaders)
 
         if self.trainer.testing:
             self.trainer.call_hook("on_test_batch_start", batch, batch_idx, dataloader_idx)

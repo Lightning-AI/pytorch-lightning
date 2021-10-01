@@ -204,7 +204,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             elif self.meta.is_max_reduction or self.meta.is_min_reduction:
                 self.value = self.meta.reduce_fx(self.value, value.mean())
             elif self.meta.is_sum_reduction:
-                self.value += value.mean() * batch_size
+                self.value += value.mean()
         else:
             self.value = value
             self._forward_cache = value._forward_cache
@@ -550,11 +550,14 @@ class ResultCollection(dict):
 
         apply_to_collection(self, ResultMetric, fn)
 
-    def extract_batch_size(self, batch: Any) -> None:
+    def extract_batch_size(self, batch: Any) -> int:
+        batch_size = 1
         try:
-            self.batch_size = extract_batch_size(batch)
+            batch_size = extract_batch_size(batch)
         except RecursionError:
-            self.batch_size = 1
+            pass
+        self.batch_size = batch_size  # the setter converts it to `Tensor`
+        return batch_size
 
     def to(self, *args: Any, **kwargs: Any) -> "ResultCollection":
         """Move all data to the given device."""
