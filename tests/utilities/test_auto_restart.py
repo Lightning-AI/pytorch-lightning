@@ -1178,20 +1178,21 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
     expected = torch.cat(model_total.seen_train_batches)
     assert torch.equal(actual, expected)
 
-    # check the weights
-    # FIXME
-    # assert not torch.equal(model_signaled.layer.weight, model_total.layer.weight)
+    # FIXME: why `on_last_batch` doesn't work ?
+    if failure_on_step and failure_on_training and not on_last_batch:
+        assert not torch.equal(model_total.layer.weight, model_signaled.layer.weight)
     assert torch.equal(model_restarted.layer.weight, model_total.layer.weight)
 
     checkpoint = torch.load(checkpoint_path)["loops"]["fit_loop"]
-    if checkpoint["epoch_loop.batch_progress"]["is_last_batch"]:
-        assert "dataloader_state_dict" not in checkpoint["state_dict"]
+    p = checkpoint["epoch_loop.batch_progress"]
+    if p["is_last_batch"] and p["current"]["completed"] == 4:
+        assert "dataloader_state_dict" not in checkpoint["epoch_loop.state_dict"]
     else:
-        assert "dataloader_state_dict" in checkpoint["state_dict"]
+        assert "dataloader_state_dict" in checkpoint["epoch_loop.state_dict"]
 
-    state_dict = checkpoint["epoch_loop.val_loop.state_dict"]
+    state_dict = checkpoint["epoch_loop.val_loop.epoch_loop.state_dict"]
     p = checkpoint["epoch_loop.val_loop.epoch_loop.batch_progress"]
-    if p["is_last_batch"] or p["total"]["ready"] == 0:
+    if (p["is_last_batch"] and p["current"]["completed"] == 4) or p["current"]["ready"] == 0:
         assert "dataloader_state_dict" not in state_dict
     else:
         assert "dataloader_state_dict" in state_dict

@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from dataclasses import asdict
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, List, Optional, Sequence, Union
 
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
@@ -20,8 +19,6 @@ from torch.utils.data.dataloader import DataLoader
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, ResultCollection
-from pytorch_lightning.utilities.auto_restart import reload_dataloader_state_dict
-from pytorch_lightning.utilities.fetching import AbstractDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
@@ -37,8 +34,6 @@ class EvaluationLoop(DataLoaderLoop):
         self._results = ResultCollection(training=False)
         self._max_batches: Optional[Union[int, Sequence[int]]] = None
         self._has_run: bool = False
-        self._data_fetcher: Optional[AbstractDataFetcher] = None
-        self._dataloader_state_dict: Dict[str, Any] = None
 
     @property
     def num_dataloaders(self) -> int:
@@ -106,10 +101,7 @@ class EvaluationLoop(DataLoaderLoop):
 
         dataloader_idx: int = self.current_dataloader_idx
         dataloader = self.trainer.accelerator.process_dataloader(self.current_dataloader)
-        self._data_fetcher = dataloader = self.trainer.data_connector.get_profiled_dataloader(
-            dataloader, dataloader_idx=dataloader_idx
-        )
-
+        dataloader = self.trainer.data_connector.get_profiled_dataloader(dataloader, dataloader_idx=dataloader_idx)
         dl_max_batches = self._max_batches[dataloader_idx]
 
         dl_outputs = self.epoch_loop.run(dataloader, dataloader_idx, dl_max_batches, self.num_dataloaders)
@@ -127,9 +119,6 @@ class EvaluationLoop(DataLoaderLoop):
 
         # free memory
         self.outputs = []
-
-        # drop reference to iterator.
-        self._data_fetcher = None
 
         # with a single dataloader don't pass a 2D list
         if len(outputs) > 0 and self.num_dataloaders == 1:
@@ -176,10 +165,6 @@ class EvaluationLoop(DataLoaderLoop):
             self.trainer.reset_test_dataloader()
         elif self.trainer.val_dataloaders is None or self.trainer._should_reload_dl_epoch:
             self.trainer.reset_val_dataloader()
-
-        if not self.trainer.sanity_checking and self._dataloader_state_dict:
-            reload_dataloader_state_dict(self.dataloaders[self.current_dataloader_idx], self._dataloader_state_dict)
-            self._dataloader_state_dict = None
 
     def _on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_{validation/test}_start`` hooks."""
@@ -253,27 +238,3 @@ class EvaluationLoop(DataLoaderLoop):
         self.trainer.call_hook(hook_name)
         self.trainer.call_hook("on_epoch_end")
         self.trainer.logger_connector.on_epoch_end()
-
-    def on_save_checkpoint(self) -> Dict:
-        state_dict = super().on_save_checkpoint()
-        # FIXME: move this to `epoch_loop`
-        if (
-            self._data_fetcher is None
-            or self._data_fetcher.dataloader_iter is None
-            or self.epoch_loop._num_completed_batches_reached()  # did not finish
-            # TODO: faul-tolerance requires a minimum number of batches so probably should be >0
-            or self.epoch_loop.batch_progress.current.ready == 0  # did not start
-        ):
-            return state_dict
-        if self.epoch_loop._has_completed():
-            state = self._data_fetcher.dataloader_iter.state
-        else:
-            # the loop did not complete and we need to save the previous state
-            state = getattr(self._data_fetcher.dataloader_iter, "previous_state", None)
-        if state:
-            state_dict["dataloader_state_dict"] = asdict(state)
-        return state_dict
-
-    def on_load_checkpoint(self, state_dict: Dict) -> None:
-        # cache the dataloader state dict until the dataloader objects are available
-        self._dataloader_state_dict = state_dict.get("dataloader_state_dict", {})

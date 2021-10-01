@@ -56,6 +56,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         self._results = ResultCollection(training=True)
         self._outputs: _OUTPUTS_TYPE = []
+        # caches the loaded dataloader state until dataloader objects are available
+        self._dataloader_state_dict: Dict[str, Any] = {}
 
     @property
     def total_batch_idx(self) -> int:
@@ -123,6 +125,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.trainer.call_hook("on_train_epoch_start")
         self.trainer.fit_loop.epoch_progress.increment_started()
 
+        self._reload_dataloader_state_dict(self._dataloader_state_dict)
         self.dataloader_iter = _update_dataloader_iter(dataloader_iter, self.batch_idx + 1)
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
@@ -265,6 +268,25 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.batch_loop.teardown()
         self.val_loop.teardown()
 
+    def on_save_checkpoint(self) -> Dict:
+        state_dict = super().on_save_checkpoint()
+        # TODO: fault-tolerance requires a minimum number of batches so probably should be > 0
+
+        if (
+            self.trainer.train_dataloader is None
+            or self._num_completed_batches_reached()  # did not finish
+            or self.batch_progress.current.ready == 0  # did not start
+        ):
+            return state_dict
+        state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(
+            has_completed=self._has_completed()
+        )
+        return state_dict
+
+    def on_load_checkpoint(self, state_dict: Dict) -> None:
+        # cache the dataloader state dict until the dataloader objects are available
+        self._dataloader_state_dict = state_dict.get("dataloader_state_dict", {})
+
     def _run_validation(self):
         # reload dataloaders
         self.val_loop._reload_evaluation_dataloaders()
@@ -278,15 +300,13 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def _num_ready_batches_reached(self) -> bool:
         """Checks if we are in the last batch or if there are more batches to follow."""
-        return (
-            self.batch_progress.current.ready == self.trainer.num_training_batches or self.batch_progress.is_last_batch
-        )
+        epoch_finished_on_ready = self.batch_progress.current.ready == self.trainer.num_training_batches
+        return epoch_finished_on_ready or self.batch_progress.is_last_batch
 
     def _num_completed_batches_reached(self) -> bool:
-        return self.batch_progress.current.completed == self.trainer.num_training_batches or (  # epoch is finished
-            self.batch_progress.is_last_batch  # the dataloder is consumed
-            and self._has_completed()  # the batch is finished
-        )
+        epoch_finished_on_completed = self.batch_progress.current.completed == self.trainer.num_training_batches
+        dataloader_consumed_successfully = self.batch_progress.is_last_batch and self._has_completed()
+        return epoch_finished_on_completed or dataloader_consumed_successfully
 
     def _has_completed(self) -> bool:
         return self.batch_progress.current.ready == self.batch_progress.current.completed
@@ -413,6 +433,11 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
+
+    def _reload_dataloader_state_dict(self, dataloader_iter):
+        if self._dataloader_state_dict:
+            self.trainer.train_dataloader.load_state_dict(self._dataloader_state_dict)
+            self._dataloader_state_dict = {}
 
 
 def _convert_optim_dict(outs: Dict[int, Dict[str, Any]], num_optimizers: int) -> List[Dict[str, Any]]:
