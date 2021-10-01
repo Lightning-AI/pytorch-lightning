@@ -127,7 +127,7 @@ class Closure(AbstractClosure[ClosureResult]):
     def __init__(
         self,
         step_fn: Callable[[], ClosureResult],
-        backward_fn: Optional[Callable[[Tensor], Tensor]] = None,
+        backward_fn: Optional[Callable[[Tensor], None]] = None,
         zero_grad_fn: Optional[Callable[[], None]] = None,
         profiler: Optional[BaseProfiler] = None,
     ):
@@ -152,7 +152,7 @@ class Closure(AbstractClosure[ClosureResult]):
 
             if self._backward_fn is not None and step_output.closure_loss is not None:
                 with self._profiler.profile("backward"):
-                    step_output.closure_loss = self._backward_fn(step_output.closure_loss)
+                    self._backward_fn(step_output.closure_loss)
 
         return step_output
 
@@ -228,7 +228,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
 
     def _backward(
         self, loss: Tensor, optimizer: torch.optim.Optimizer, opt_idx: int, *args: Any, **kwargs: Any
-    ) -> Tensor:
+    ) -> None:
         """Performs the backward step.
 
         Args:
@@ -244,7 +244,6 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             if grad_norm_dict:
                 self.trainer.lightning_module._current_fx_name = "on_after_backward"
                 self.trainer.lightning_module.log_grad_norm(grad_norm_dict)
-        return loss
 
     def _run_optimization(
         self, split_batch: Any, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int
@@ -332,7 +331,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
 
         return zero_grad_fn
 
-    def _make_backward_fn(self, optimizer: Optimizer, opt_idx: int) -> Optional[Callable[[Tensor], Tensor]]:
+    def _make_backward_fn(self, optimizer: Optimizer, opt_idx: int) -> Optional[Callable[[Tensor], None]]:
         """Build a `backward` function that handles back-propagation through the output produced by the
         `training_step` function.
 
@@ -341,14 +340,12 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         if self._skip_backward:
             return None
 
-        def backward_fn(loss: Tensor) -> Tensor:
+        def backward_fn(loss: Tensor) -> None:
             self._backward(loss, optimizer, opt_idx)
 
             # check if model weights are nan
             if self.trainer.terminate_on_nan:
                 detect_nan_parameters(self.trainer.lightning_module)
-
-            return loss
 
         return backward_fn
 

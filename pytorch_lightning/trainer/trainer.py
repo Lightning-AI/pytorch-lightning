@@ -172,7 +172,7 @@ class Trainer(
         prepare_data_per_node: Optional[bool] = None,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         amp_backend: str = "native",
-        amp_level: str = "O2",
+        amp_level: Optional[str] = None,
         distributed_backend: Optional[str] = None,
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
@@ -190,7 +190,8 @@ class Trainer(
 
             amp_backend: The mixed precision backend to use ("native" or "apex").
 
-            amp_level: The optimization level to use (O1, O2, etc...).
+            amp_level: The optimization level to use (O1, O2, etc...). By default it will be set to "O2"
+                if ``amp_backend`` is set to "apex".
 
             auto_lr_find: If set to True, will make trainer.tune() run a learning rate finder,
                 trying to optimize initial learning for faster convergence. trainer.tune() method will
@@ -203,7 +204,7 @@ class Trainer(
                 Additionally, can be set to either `power` that estimates the batch size through
                 a power search or `binsearch` that estimates the batch size through a binary search.
 
-            auto_select_gpus: If enabled and `gpus` is an integer, pick available
+            auto_select_gpus: If enabled and ``gpus`` is an integer, pick available
                 gpus automatically. This is especially useful when
                 GPUs are configured to be in "exclusive mode", such
                 that only one process at a time can access them.
@@ -228,7 +229,7 @@ class Trainer(
             devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,
                 based on the accelerator type.
 
-            distributed_backend: Deprecated. Please use 'accelerator'.
+            distributed_backend: Deprecated. Please use ``accelerator``.
 
             fast_dev_run: Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
                 of train, val and test to find any bugs (ie: a sort of unit test).
