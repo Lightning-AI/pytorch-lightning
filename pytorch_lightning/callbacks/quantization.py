@@ -188,7 +188,7 @@ class QuantizationAwareTraining(Callback):
             if self._observer_type == "histogram":
                 pl_module.qconfig = torch.quantization.get_default_qconfig(self._qconfig)
             elif self._observer_type == "average":
-                pl_module.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig)
+                pl_module.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig, None)
         elif isinstance(self._qconfig, QConfig):
             pl_module.qconfig = self._qconfig
 
