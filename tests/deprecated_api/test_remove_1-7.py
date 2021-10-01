@@ -20,7 +20,7 @@ import torch
 from pytorch_lightning import Callback, LightningDataModule, Trainer
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
 from tests.deprecated_api import _soft_unimport_module
-from tests.helpers import BoringModel, ParameterSharingModule
+from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
 from tests.helpers.runif import RunIf
 from tests.loggers.test_base import CustomLogger
@@ -258,7 +258,7 @@ def test_v1_7_0_deprecate_lightning_distributed(tmpdir):
 
 
 def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir):
-    class TestModel(ParameterSharingModule):
+    class TestModel(BoringModel):
         def on_post_move_to_device(self):
             print("on_post_move_to_device")
 
