@@ -148,8 +148,9 @@ def test_lr_monitor_no_lr_scheduler_single_lr(tmpdir):
     ), "Number of learning rates logged does not match number of optimizers"
     assert lr_monitor.lr_sch_names == ["lr-SGD"], "Names of learning rates not set correctly"
 
+
 @pytest.mark.parametrize("opt", ["SGD", "Adam"])
-def test_lr_monitor_no_lr_scheduler_single_lr_with_momentum(tmpdir, opt : str):
+def test_lr_monitor_no_lr_scheduler_single_lr_with_momentum(tmpdir, opt: str):
     """Test that learning rates and momentum are extracted and logged for no lr scheduler."""
 
     class LogMomentumModel(BoringModel):
@@ -218,6 +219,7 @@ def test_log_momentum_no_momentum_optimizer_no_lr_scheduler(tmpdir):
         k == "lr-ASGD-momentum" for k in lr_monitor.last_momentum_values.keys()
     ), "Names of momentum values not set correctly"
 
+
 def test_lr_monitor_no_logger(tmpdir):
     tutils.reset_seed()
 
@@ -228,6 +230,7 @@ def test_lr_monitor_no_logger(tmpdir):
 
     with pytest.raises(MisconfigurationException, match="`Trainer` that has no logger"):
         trainer.fit(model)
+
 
 @pytest.mark.parametrize("logging_interval", ["step", "epoch"])
 def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
@@ -277,6 +280,7 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
     assert all(
         len(lr) == expected_number_logged for lr in lr_monitor.lrs.values()
     ), "Length of logged learning rates do not match the expected number"
+
 
 @pytest.mark.parametrize("logging_interval", ["step", "epoch"])
 def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):

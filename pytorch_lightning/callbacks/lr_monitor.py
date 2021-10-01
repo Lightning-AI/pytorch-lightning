@@ -114,7 +114,6 @@ class LearningRateMonitor(Callback):
                 else:
                     return any(key not in optimizer.defaults for optimizer in trainer.optimizers)
 
-
             if _check_no_key("momentum") and _check_no_key("betas"):
                 rank_zero_warn(
                     "You have set log_momentum=True, but some optimizers do not"
@@ -123,7 +122,11 @@ class LearningRateMonitor(Callback):
                 )
 
         # Find names for schedulers
-        names = self._find_names(trainer.lr_schedulers) if trainer.lr_schedulers else self._find_names_from_optimizer(trainer)
+        names = (
+            self._find_names(trainer.lr_schedulers)
+            if trainer.lr_schedulers
+            else self._find_names_from_optimizer(trainer)
+        )
 
         # Initialize for storing values
         self.lrs = {name: [] for name in names}
