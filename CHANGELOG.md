@@ -436,6 +436,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `broadcast` in `DDPPlugin` and ``DDPSpawnPlugin` to respect the `src` input  ([#9691](https://github.com/PyTorchLightning/pytorch-lightning/pull/9691))
 
 
+- Fixed `self.log(on_epoch=True)` for the `on_batch_start` and `on_train_batch_start` hooks ([#9780](https://github.com/PyTorchLightning/pytorch-lightning/pull/9780))
+
+
 ## [1.4.9] - 2021-09-30
 
 - Fixed `lr_find` to generate same results on multiple calls ([#9704](https://github.com/PyTorchLightning/pytorch-lightning/pull/9704))
