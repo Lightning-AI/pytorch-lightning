@@ -44,6 +44,7 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
         self._outputs: _OUTPUTS_TYPE = []
         self._warning_cache: WarningCache = WarningCache()
         self._remaining_splits: Optional[List[Any]] = None
+        self._exit_signal: int = 0
 
     @property
     def done(self) -> bool:
@@ -57,35 +58,6 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
             self.optimizer_loop = optimizer_loop
         if manual_loop is not None:
             self.manual_loop = manual_loop
-
-    def run(self, batch: Any, batch_idx: int) -> AttributeDict:
-        """Runs all the data splits and the ``on_batch_start`` and ``on_train_batch_start`` hooks.
-
-        Args:
-            batch: the current batch to run the train step on
-            batch_idx: the index of the current batch
-        """
-        if batch is None:
-            self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
-            return AttributeDict(signal=0, outputs=[])
-
-        # hook
-        self.trainer.logger_connector.on_batch_start()
-        response = self.trainer.call_hook("on_batch_start")
-        if response == -1:
-            return AttributeDict(signal=-1)
-
-        # hook
-        response = self.trainer.call_hook("on_train_batch_start", batch, batch_idx, 0)
-        if response == -1:
-            return AttributeDict(signal=-1)
-
-        self.trainer.fit_loop.epoch_loop.batch_progress.increment_started()
-
-        super().run(batch, batch_idx)
-
-        output, self._outputs = AttributeDict(signal=0, outputs=self._outputs), None  # free memory
-        return output
 
     def reset(self) -> None:
         """Resets the loop state."""
@@ -108,12 +80,30 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
             batch: the current batch to run the training on (this is not the split!)
             batch_idx: the index of the current batch
         """
-        void(batch)
+        if batch is None:
+            self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
+            raise StopIteration
+
         split_idx, split_batch = self._remaining_splits.pop(0)
         self.split_idx = split_idx
 
         # let logger connector extract current batch size
         self.trainer.logger_connector.on_train_split_start(batch_idx, split_idx, split_batch)
+
+        # hook
+        self.trainer.logger_connector.on_batch_start()
+        response = self.trainer.call_hook("on_batch_start")
+        if response == -1:
+            self._exit_signal = -1
+            raise StopIteration
+
+        # hook
+        response = self.trainer.call_hook("on_train_batch_start", batch, batch_idx, 0)
+        if response == -1:
+            self._exit_signal = -1
+            raise StopIteration
+
+        self.trainer.fit_loop.epoch_loop.batch_progress.increment_started()
 
         # choose which loop will run the optimization
         if self.trainer.lightning_module.automatic_optimization:
@@ -131,6 +121,9 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
         self.optimizer_loop._hiddens = None
         # this is not necessary as the manual loop runs for only 1 iteration, but just in case
         self.manual_loop._hiddens = None
+        output, self._outputs = AttributeDict(signal=self._exit_signal, outputs=self._outputs), None  # free memory
+        self._exit_signal = 0
+        return output
 
     def teardown(self) -> None:
         # release memory
