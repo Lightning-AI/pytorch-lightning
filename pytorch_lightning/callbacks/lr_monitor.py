@@ -111,8 +111,8 @@ class LearningRateMonitor(Callback):
             def _check_no_key(key):
                 if trainer.lr_schedulers:
                     return any(key not in sch["scheduler"].optimizer.defaults for sch in trainer.lr_schedulers)
-                else:
-                    return any(key not in optimizer.defaults for optimizer in trainer.optimizers)
+                    
+                return any(key not in optimizer.defaults for optimizer in trainer.optimizers)
 
 
             if _check_no_key("momentum") and _check_no_key("betas"):
@@ -156,7 +156,7 @@ class LearningRateMonitor(Callback):
             self._remap_keys(names)
 
             for name, scheduler in zip(self.lr_sch_names, trainer.lr_schedulers):
-                if scheduler["interval"] == interval or interval == "any":
+                if interval in [scheduler["interval"],"any"]:
                     opt = scheduler["scheduler"].optimizer
                     param_groups = opt.param_groups
                     use_betas = "betas" in opt.defaults
