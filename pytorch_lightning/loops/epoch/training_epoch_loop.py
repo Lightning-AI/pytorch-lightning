@@ -25,6 +25,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import ResultC
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.fetching import AbstractDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 
 _OUTPUTS_TYPE = List[_BATCH_OUTPUTS_TYPE]
@@ -118,15 +119,15 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         self._outputs = []
 
-    def on_run_start(self, dataloader_iter: Iterator, **kwargs: Any) -> None:
+    def on_run_start(self, data_fetcher: AbstractDataFetcher, **kwargs: Any) -> None:
         # hook
         self.trainer.logger_connector.on_epoch_start()
         self.trainer.call_hook("on_epoch_start")
         self.trainer.call_hook("on_train_epoch_start")
         self.trainer.fit_loop.epoch_progress.increment_started()
 
-        self._reload_dataloader_state_dict(self._dataloader_state_dict)
-        self.dataloader_iter = _update_dataloader_iter(dataloader_iter, self.batch_idx + 1)
+        self._reload_dataloader_state_dict(data_fetcher)
+        self.dataloader_iter = _update_dataloader_iter(data_fetcher, self.batch_idx + 1)
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Runs a single training batch.
@@ -434,9 +435,9 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
 
-    def _reload_dataloader_state_dict(self, dataloader_iter):
+    def _reload_dataloader_state_dict(self, data_fetcher: AbstractDataFetcher):
         if self._dataloader_state_dict:
-            self.trainer.train_dataloader.load_state_dict(self._dataloader_state_dict)
+            data_fetcher.dataloader.load_state_dict(self._dataloader_state_dict)
             self._dataloader_state_dict = {}
 
 
