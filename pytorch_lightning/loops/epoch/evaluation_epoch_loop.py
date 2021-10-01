@@ -38,11 +38,11 @@ class EvaluationEpochLoop(Loop):
 
     def __init__(self) -> None:
         super().__init__()
-        self.dataloader: Optional[Iterator] = None
-        self._dl_max_batches: Optional[int] = None
-        self._num_dataloaders: Optional[int] = None
         self.outputs: EPOCH_OUTPUT = []
         self.batch_progress = BatchProgress()
+
+        self._dl_max_batches: Optional[int] = None
+        self._num_dataloaders: Optional[int] = None
         self._dataloader_iter: Optional[Iterator] = None
         self._data_fetcher: Optional[DataFetcher] = None
         self._dataloader_state_dict: Dict[str, Any] = None
@@ -59,6 +59,7 @@ class EvaluationEpochLoop(Loop):
         """Resets the loop's internal state."""
         self._dl_max_batches = None
         self._num_dataloaders = None
+        self._data_fetcher = None
         self.outputs = []
 
         if not self.restarting:
@@ -91,7 +92,7 @@ class EvaluationEpochLoop(Loop):
         """Calls the evaluation step with the corresponding hooks and updates the logger connector.
 
         Args:
-            dataloader_iter: iterator over the dataloader
+            data_fetcher: iterator over the dataloader
             dataloader_idx: index of the current dataloader
             dl_max_batches: maximum number of batches the dataloader can produce
             num_dataloaders: the total number of dataloaders
@@ -157,23 +158,16 @@ class EvaluationEpochLoop(Loop):
 
     def on_save_checkpoint(self) -> Dict:
         state_dict = super().on_save_checkpoint()
-        # TODO: fault-tolerance requires a minimum number of batches so probably should be > 0
 
         if (
             self._data_fetcher is None
             or self._num_completed_batches_reached()  # did not finish
+            # TODO: fault-tolerance requires a minimum number of batches so probably should be > 0
             or self.batch_progress.current.ready == 0  # did not start
         ):
             return state_dict
 
-        # There is currently 2 state being tracked.
-        # (batch_n-1, previous_state), (batch_n, state)
-        # state is state of the current batch. If the batch was successfully processed,
-        # it should be saved to reproduce the next batch
-        # Otherwise, we want to get the state of the previous batch, so we can reproduce the current batch
-        # the state is stored directly on the Iterator as an attribute by the DataFetcher for simplicity of
-        # accessibility
-
+        # TODO: this should use `pytorch_lightning/trainer/supporters.py::CombinedLoader._state_dict_fn`
         state_to_save = "state" if self._has_completed() else "previous_state"
         state: Optional[MergedIteratorState] = getattr(self._data_fetcher.dataloader_iter, state_to_save, None)
         if state:
@@ -182,7 +176,7 @@ class EvaluationEpochLoop(Loop):
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         # cache the dataloader state dict until the dataloader objects are available
-        self._dataloader_state_dict = state_dict.get("dataloader_state_dict", {})
+        self._dataloader_state_dict = state_dict.get("dataloader_state_dict")
 
     def _reload_dataloader_state_dict(self, data_fetcher: AbstractDataFetcher):
         if not self.trainer.sanity_checking and self._dataloader_state_dict:

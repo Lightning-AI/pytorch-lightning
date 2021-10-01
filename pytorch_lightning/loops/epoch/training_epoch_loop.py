@@ -53,10 +53,10 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         self.batch_loop: Optional[TrainingBatchLoop] = None
         self.val_loop: Optional["loops.EvaluationLoop"] = None
-        self.dataloader_iter: Optional[Iterator] = None
 
         self._results = ResultCollection(training=True)
         self._outputs: _OUTPUTS_TYPE = []
+        self._dataloader_iter: Optional[Iterator] = None
         # caches the loaded dataloader state until dataloader objects are available
         self._dataloader_state_dict: Dict[str, Any] = {}
 
@@ -127,7 +127,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.trainer.fit_loop.epoch_progress.increment_started()
 
         self._reload_dataloader_state_dict(data_fetcher)
-        self.dataloader_iter = _update_dataloader_iter(data_fetcher, self.batch_idx + 1)
+        self._dataloader_iter = _update_dataloader_iter(data_fetcher, self.batch_idx + 1)
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Runs a single training batch.
@@ -142,7 +142,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             # skip training and run validation in `on_advance_end`
             return
 
-        batch_idx, (batch, self.batch_progress.is_last_batch) = next(self.dataloader_iter)
+        batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
 
         if not self.trainer.data_connector.train_data_fetcher.store_on_device:
             with self.trainer.profiler.profile("training_batch_to_device"):
@@ -259,7 +259,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if self._num_ready_batches_reached():
             self.update_lr_schedulers("epoch", update_plateau_schedulers=True)
 
-        self.dataloader_iter = None
+        self._dataloader_iter = None
 
         # if fault tolerant is enabled and process has been notified, exit.
         self.trainer._exit_gracefully_on_signal()
@@ -271,11 +271,11 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def on_save_checkpoint(self) -> Dict:
         state_dict = super().on_save_checkpoint()
-        # TODO: fault-tolerance requires a minimum number of batches so probably should be > 0
 
         if (
             self.trainer.train_dataloader is None
             or self._num_completed_batches_reached()  # did not finish
+            # TODO: fault-tolerance requires a minimum number of batches so probably should be > 0
             or self.batch_progress.current.ready == 0  # did not start
         ):
             return state_dict
@@ -286,7 +286,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         # cache the dataloader state dict until the dataloader objects are available
-        self._dataloader_state_dict = state_dict.get("dataloader_state_dict", {})
+        self._dataloader_state_dict = state_dict.get("dataloader_state_dict")
 
     def _run_validation(self):
         # reload dataloaders
@@ -438,7 +438,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     def _reload_dataloader_state_dict(self, data_fetcher: AbstractDataFetcher):
         if self._dataloader_state_dict:
             data_fetcher.dataloader.load_state_dict(self._dataloader_state_dict)
-            self._dataloader_state_dict = {}
+            self._dataloader_state_dict = None
 
 
 def _convert_optim_dict(outs: Dict[int, Dict[str, Any]], num_optimizers: int) -> List[Dict[str, Any]]:
