@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Log `learning rate` using `LearningRateMonitor` callback even when no scheduler is used ([#7468](https://github.com/PyTorchLightning/pytorch-lightning/issues/7468))
+
 
 - Register `ShardedTensor` state dict hooks in `LightningModule.__init__` if the pytorch version supports `ShardedTensor` ([#8944](https://github.com/PyTorchLightning/pytorch-lightning/pull/8944))
 
