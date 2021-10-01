@@ -276,6 +276,6 @@ def test_v1_7_0_deprecate_parameter_validation():
 
     _soft_unimport_module("pytorch_lightning.core.decorators")
     with pytest.deprecated_call(
-        match="Using ``pytorch_lightning.core.decorators.parameter_validation`` is deprecated in v1.5"
+        match="Using `pytorch_lightning.core.decorators.parameter_validation` is deprecated in v1.5"
     ):
         from pytorch_lightning.core.decorators import parameter_validation  # noqa: F401
