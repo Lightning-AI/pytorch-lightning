@@ -11,9 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import logging
-from typing import Any, Dict, Optional
+from typing import Optional
 
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
@@ -45,8 +44,6 @@ class FitLoop(Loop):
         self.min_epochs = min_epochs
         self.epoch_loop: Optional[TrainingEpochLoop] = None
         self.epoch_progress = Progress()
-        # caches the loaded dataloader state until dataloader objects are available
-        self._dataloader_state_dict: Dict[str, Any] = {}
 
     @property
     def current_epoch(self) -> int:
@@ -191,10 +188,6 @@ class FitLoop(Loop):
         if self.current_epoch != 0 and self.trainer._should_reload_dl_epoch:
             self.trainer.reset_train_dataloader(model)
 
-        if self._dataloader_state_dict:
-            self.trainer.train_dataloader.load_state_dict(self._dataloader_state_dict)
-            self._dataloader_state_dict = {}
-
         if callable(getattr(self.trainer.train_dataloader.sampler, "set_epoch", None)):
             # set seed for distributed sampler (enables shuffling for each epoch)
             self.trainer.train_dataloader.sampler.set_epoch(self.current_epoch)
@@ -245,17 +238,6 @@ class FitLoop(Loop):
 
     def teardown(self) -> None:
         self.epoch_loop.teardown()
-
-    def on_save_checkpoint(self) -> Dict:
-        state_dict = super().on_save_checkpoint()
-        # TODO: update has_completed to its proper value
-        if self.trainer.train_dataloader is not None:
-            state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(has_completed=False)
-        return state_dict
-
-    def on_load_checkpoint(self, state_dict: Dict) -> None:
-        # cache the dataloader state dict until the dataloader objects are available
-        self._dataloader_state_dict = state_dict.get("dataloader_state_dict", {})
 
     def _should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated."""

@@ -563,11 +563,18 @@ class AcceleratorConnector:
                 return TPUHalfPrecisionPlugin()
 
             if self.amp_type == AMPType.NATIVE:
+                if self.amp_level is not None:
+                    raise MisconfigurationException(
+                        f"You have asked for `amp_level={repr(self.amp_level)}` which is not supported"
+                        " with `amp_backend='native'`."
+                    )
+
                 log.info(f"Using native {self.precision} bit Automatic Mixed Precision")
                 if self._is_sharded_training_type:
                     return ShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
                 if self._is_fully_sharded_training_type:
                     return FullyShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+
                 return NativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
 
             if self.amp_type == AMPType.APEX:
@@ -581,6 +588,9 @@ class AcceleratorConnector:
                         "Sharded Plugin is not supported with Apex AMP, please using native AMP for 16-bit precision."
                     )
                 log.info("Using APEX 16bit precision.")
+
+                self.amp_level = self.amp_level or "O2"
+
                 return ApexMixedPrecisionPlugin(self.amp_level)
 
         raise MisconfigurationException(
