@@ -304,7 +304,7 @@ def test_collect_init_arguments(tmpdir, cls):
     model = cls(batch_size=179, **extra_args)
     assert model.hparams.batch_size == 179
 
-    if isinstance(model, SubClassBoringModel) or isinstance(model, NonSavingSubClassBoringModel):
+    if isinstance(model, (SubClassBoringModel, NonSavingSubClassBoringModel)):
         assert model.hparams.subclass_arg == 1200
 
     if isinstance(model, AggSubClassBoringModel):
