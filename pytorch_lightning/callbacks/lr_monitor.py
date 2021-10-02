@@ -251,7 +251,9 @@ class LearningRateMonitor(Callback):
             else:
                 name = "lr-" + sch.optimizer.__class__.__name__
 
-            updated_name = self._check_duplicates_and_update_name(sch.optimizer, name, seen_optimizers, seen_optimizer_types, scheduler, add_lr_sch_names)
+            updated_name = self._check_duplicates_and_update_name(
+                sch.optimizer, name, seen_optimizers, seen_optimizer_types, scheduler, add_lr_sch_names
+            )
             names.extend(updated_name)
         return names
 
@@ -261,11 +263,21 @@ class LearningRateMonitor(Callback):
         seen_optimizer_types = defaultdict(int)
         for optimizer in trainer.optimizers:
             name = "lr-" + optimizer.__class__.__name__
-            updated_name = self._check_duplicates_and_update_name(optimizer, name, seen_optimizers, seen_optimizer_types, None, add_lr_sch_names)
+            updated_name = self._check_duplicates_and_update_name(
+                optimizer, name, seen_optimizers, seen_optimizer_types, None, add_lr_sch_names
+            )
             names.extend(updated_name)
         return names
 
-    def _check_duplicates_and_update_name(self, optimizer: Optimizer, name: str, seen_optimizers: List, seen_optimizer_types: List, scheduler: Dict[str, Any] = None, add_lr_sch_names: bool = True) -> List:
+    def _check_duplicates_and_update_name(
+        self,
+        optimizer: Optimizer,
+        name: str,
+        seen_optimizers: List,
+        seen_optimizer_types: List,
+        scheduler: Dict[str, Any] = None,
+        add_lr_sch_names: bool = True,
+    ) -> List:
         seen_optimizers.append(optimizer)
         optimizer_cls = type(optimizer)
         if scheduler is not None and scheduler["name"] is None:

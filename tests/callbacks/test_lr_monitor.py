@@ -318,7 +318,7 @@ def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
     assert len(lr_monitor.lrs) == len(
         trainer.optimizers
     ), "Number of learning rates logged does not match number of optimizers"
-    assert lr_monitor.lr_sch_names == ["lr-Adam", "lr-Adam-1"], "Names of learning rates not set correctly" 
+    assert lr_monitor.lr_sch_names == ["lr-Adam", "lr-Adam-1"], "Names of learning rates not set correctly"
 
     if logging_interval == "step":
         expected_number_logged = trainer.global_step // log_every_n_steps
