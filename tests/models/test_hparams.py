@@ -247,6 +247,13 @@ class SubClassBoringModel(CustomBoringModel):
         self.save_hyperparameters()
 
 
+class NonSavingSubClassBoringModel(CustomBoringModel):
+    any_other_loss = torch.nn.CrossEntropyLoss()
+
+    def __init__(self, *args, subclass_arg=1200, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
 class SubSubClassBoringModel(SubClassBoringModel):
     pass
 
@@ -277,6 +284,7 @@ class DictConfSubClassBoringModel(SubClassBoringModel):
     [
         CustomBoringModel,
         SubClassBoringModel,
+        NonSavingSubClassBoringModel,
         SubSubClassBoringModel,
         AggSubClassBoringModel,
         UnconventionalArgsBoringModel,
@@ -296,7 +304,7 @@ def test_collect_init_arguments(tmpdir, cls):
     model = cls(batch_size=179, **extra_args)
     assert model.hparams.batch_size == 179
 
-    if isinstance(model, SubClassBoringModel):
+    if isinstance(model, SubClassBoringModel) or isinstance(model, NonSavingSubClassBoringModel):
         assert model.hparams.subclass_arg == 1200
 
     if isinstance(model, AggSubClassBoringModel):
