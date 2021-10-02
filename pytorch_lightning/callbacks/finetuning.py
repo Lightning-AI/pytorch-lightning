@@ -53,6 +53,7 @@ class BaseFinetuning(Callback):
 
     Example::
 
+        >>> from torch.optim import Adam
         >>> class MyModel(pl.LightningModule):
         ...     def configure_optimizer(self):
         ...         # Make sure to filter the parameters based on `requires_grad`
