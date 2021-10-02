@@ -161,36 +161,34 @@ class LearningRateMonitor(Callback):
             for name, scheduler in zip(self.lr_sch_names, trainer.lr_schedulers):
                 if interval in [scheduler["interval"],"any"]:
                     opt = scheduler["scheduler"].optimizer
-                    param_groups = opt.param_groups
-                    use_betas = "betas" in opt.defaults
-
-                    for i, pg in enumerate(param_groups):
-                        name_and_suffix = self._add_suffix(name, param_groups, i)
-                        lr = self._extract_lr(pg, name_and_suffix)
-                        latest_stat.update(lr)
-                        momentum = self._extract_momentum(
-                            param_group=pg, name=name_and_suffix.replace(name, f"{name}-momentum"), use_betas=use_betas
-                        )
-                        latest_stat.update(momentum)
+                    current_stat = self._get_lr_momentum_stat(opt, name)
+                    latest_stat.update(current_stat)
         else:
             names = self._find_names_from_optimizer(trainer, add_lr_sch_names=False)
             self._remap_keys(names)
 
             for idx, name in enumerate(names):
                 opt = trainer.optimizers[idx]
-                param_groups = opt.param_groups
-                use_betas = "betas" in opt.defaults
-
-                for i, pg in enumerate(param_groups):
-                    name_and_suffix = self._add_suffix(name, param_groups, i)
-                    lr = self._extract_lr(pg, name_and_suffix)
-                    latest_stat.update(lr)
-                    momentum = self._extract_momentum(
-                        param_group=pg, name=name_and_suffix.replace(name, f"{name}-momentum"), use_betas=use_betas
-                    )
-                    latest_stat.update(momentum)
+                current_stat = self._get_lr_momentum_stat(opt, name)
+                latest_stat.update(current_stat)
 
         return latest_stat
+
+    def _get_lr_momentum_stat(self, optimizer: Optimizer, name: str) -> None:
+        lr_momentum_stat = {}
+        param_groups = optimizer.param_groups
+        use_betas = "betas" in optimizer.defaults
+
+        for i, pg in enumerate(param_groups):
+            name_and_suffix = self._add_suffix(name, param_groups, i)
+            lr = self._extract_lr(pg, name_and_suffix)
+            lr_momentum_stat.update(lr)
+            momentum = self._extract_momentum(
+                param_group=pg, name=name_and_suffix.replace(name, f"{name}-momentum"), use_betas=use_betas
+            )
+            lr_momentum_stat.update(momentum)
+
+        return lr_momentum_stat
 
     def _extract_lr(self, param_group: Dict[str, Any], name: str) -> Dict[str, Any]:
         lr = param_group.get("lr")
@@ -253,27 +251,8 @@ class LearningRateMonitor(Callback):
             else:
                 name = "lr-" + sch.optimizer.__class__.__name__
 
-            seen_optimizers.append(sch.optimizer)
-            optimizer_cls = type(sch.optimizer)
-            if scheduler["name"] is None:
-                seen_optimizer_types[optimizer_cls] += 1
-
-            # Multiple param groups for the same scheduler
-            param_groups = sch.optimizer.param_groups
-            duplicates = self._duplicate_param_group_names(param_groups)
-            if duplicates:
-                raise MisconfigurationException(
-                    "A single `Optimizer` cannot have multiple parameter groups with identical "
-                    f"`name` values. {name} has duplicated parameter group names {duplicates}"
-                )
-
-            name = self._add_prefix(name, optimizer_cls, seen_optimizer_types)
-
-            names.extend(self._add_suffix(name, param_groups, i) for i in range(len(param_groups)))
-
-            if add_lr_sch_names:
-                self.lr_sch_names.append(name)
-
+            updated_name = self._check_duplicates_and_update_name(sch.optimizer, name, seen_optimizers, seen_optimizer_types, scheduler, add_lr_sch_names)
+            names.extend(updated_name)
         return names
 
     def _find_names_from_optimizer(self, trainer, add_lr_sch_names: bool = True) -> List[str]:
@@ -282,28 +261,34 @@ class LearningRateMonitor(Callback):
         seen_optimizer_types = defaultdict(int)
         for optimizer in trainer.optimizers:
             name = "lr-" + optimizer.__class__.__name__
+            updated_name = self._check_duplicates_and_update_name(optimizer, name, seen_optimizers, seen_optimizer_types, None, add_lr_sch_names)
+            names.extend(updated_name)
+        return names
 
-            seen_optimizers.append(optimizer)
-            optimizer_cls = type(optimizer)
+    def _check_duplicates_and_update_name(self, optimizer: Optimizer, name: str, seen_optimizers: List, seen_optimizer_types: List, scheduler: Dict[str, Any] = None, add_lr_sch_names: bool = True) -> List:
+        seen_optimizers.append(optimizer)
+        optimizer_cls = type(optimizer)
+        if scheduler is not None and scheduler["name"] is None:
+            seen_optimizer_types[optimizer_cls] += 1
+        elif scheduler is None:
             seen_optimizer_types[optimizer_cls] += 1
 
-            # Multiple param groups for the same scheduler
-            param_groups = optimizer.param_groups
-            duplicates = self._duplicate_param_group_names(param_groups)
-            if duplicates:
-                raise MisconfigurationException(
-                    "A single `Optimizer` cannot have multiple parameter groups with identical "
-                    f"`name` values. {name} has duplicated parameter group names {duplicates}"
-                )
+        # Multiple param groups for the same optimizer
+        param_groups = optimizer.param_groups
+        duplicates = self._duplicate_param_group_names(param_groups)
+        if duplicates:
+            raise MisconfigurationException(
+                "A single `Optimizer` cannot have multiple parameter groups with identical "
+                f"`name` values. {name} has duplicated parameter group names {duplicates}"
+            )
 
-            name = self._add_prefix(name, optimizer_cls, seen_optimizer_types)
+        name = self._add_prefix(name, optimizer_cls, seen_optimizer_types)
+        name_list = [self._add_suffix(name, param_groups, i) for i in range(len(param_groups))]
 
-            names.extend(self._add_suffix(name, param_groups, i) for i in range(len(param_groups)))
+        if add_lr_sch_names:
+            self.lr_sch_names.append(name)
 
-            if add_lr_sch_names:
-                self.lr_sch_names.append(name)
-
-        return names
+        return name_list
 
     @staticmethod
     def _should_log(trainer) -> bool:
