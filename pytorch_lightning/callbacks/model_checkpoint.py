@@ -491,7 +491,7 @@ class ModelCheckpoint(Callback):
     def check_monitor_top_k(self, trainer: "pl.Trainer", current: Optional[torch.Tensor] = None) -> bool:
         if current is None:
             return False
-        
+
         if trainer.global_step < self.top_k_ignore_steps or trainer.current_epoch < self.top_k_ignore_epochs:
             return False
 
