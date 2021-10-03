@@ -16,7 +16,7 @@ import os
 from abc import ABC
 from argparse import _ArgumentGroup, ArgumentParser, Namespace
 from contextlib import suppress
-from typing import Any, Callable, Dict, List, Tuple, Type, Union
+from typing import Any, Callable, Dict, List, Tuple, Type, Union, Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_int, str_to_bool_or_str
@@ -157,7 +157,11 @@ def _get_abbrev_qualified_cls_name(cls: Any) -> str:
 
 
 def add_argparse_args(
-    cls: Type["pl.Trainer"], parent_parser: ArgumentParser, *, use_argument_group: bool = True
+    cls: Type["pl.Trainer"], 
+    parent_parser: ArgumentParser, 
+    *, 
+    use_argument_group: bool = True, 
+    default_help: Optional[Union[str, Dict[str, str]]] = None,
 ) -> Union[_ArgumentGroup, ArgumentParser]:
     r"""Extends existing argparse by default attributes for ``cls``.
 
@@ -219,7 +223,13 @@ def add_argparse_args(
         if len(args_and_types) > 0:
             break
 
-    args_help = _parse_args_from_docstring(cls.__init__.__doc__ or cls.__doc__ or "")
+    if isinstance(default_help, str):
+        args_help = lambda x: default_help
+    else:
+        docs_help = _parse_args_from_docstring(cls.__init__.__doc__ or cls.__doc__ or "")
+        if isinstance(default_help, dict):
+            docs_help.update(default_help)
+        args_help = lambda x: docs_help.get(x)
 
     for arg, arg_types, arg_default in args_and_types:
         arg_types = tuple(at for at in allowed_types if at in arg_types)
@@ -258,7 +268,7 @@ def add_argparse_args(
             use_type = _precision_allowed_type
 
         parser.add_argument(
-            f"--{arg}", dest=arg, default=arg_default, type=use_type, help=args_help.get(arg), **arg_kwargs
+            f"--{arg}", dest=arg, default=arg_default, type=use_type, help=args_help(arg), **arg_kwargs
         )
 
     if use_argument_group:
