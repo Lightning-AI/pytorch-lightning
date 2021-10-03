@@ -189,6 +189,7 @@ class QuantizationAwareTraining(Callback):
             if self._observer_type == "histogram":
                 pl_module.qconfig = torch.quantization.get_default_qconfig(self._qconfig)
             elif self._observer_type == "average":
+                # Needed because of https://github.com/pytorch/pytorch/issues/64564
                 if _TORCH_GREATER_EQUAL_1_10:
                     pl_module.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig, None)
                 else:
