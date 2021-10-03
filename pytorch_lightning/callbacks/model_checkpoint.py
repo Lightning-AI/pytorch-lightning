@@ -208,6 +208,8 @@ class ModelCheckpoint(Callback):
         verbose: bool = False,
         save_last: Optional[bool] = None,
         save_top_k: int = 1,
+        top_k_ignore_steps: int = 0,
+        top_k_ignore_epochs: int = 0,
         save_weights_only: bool = False,
         mode: str = "min",
         auto_insert_metric_name: bool = True,
@@ -222,6 +224,8 @@ class ModelCheckpoint(Callback):
         self.verbose = verbose
         self.save_last = save_last
         self.save_top_k = save_top_k
+        self.top_k_ignore_steps = top_k_ignore_steps
+        self.top_k_ignore_epochs = top_k_ignore_epochs
         self.save_weights_only = save_weights_only
         self.auto_insert_metric_name = auto_insert_metric_name
         self._save_on_train_epoch_end = save_on_train_epoch_end
@@ -486,6 +490,9 @@ class ModelCheckpoint(Callback):
 
     def check_monitor_top_k(self, trainer: "pl.Trainer", current: Optional[torch.Tensor] = None) -> bool:
         if current is None:
+            return False
+        
+        if trainer.global_step < self.top_k_ignore_steps or trainer.current_epoch < self.top_k_ignore_epochs:
             return False
 
         if self.save_top_k == -1:
