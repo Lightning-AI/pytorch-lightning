@@ -24,8 +24,8 @@ from torch.quantization import QConfig
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def wrap_qat_forward_context(
