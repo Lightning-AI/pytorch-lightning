@@ -201,6 +201,7 @@ def test_cpu_amp_precision_throws_error(tmpdir):
 
 
 @pytest.mark.skipif(not _TORCH_CPU_AMP_AVAILABLE, reason="Torch CPU AMP is not available.")
+@RunIf(min_gpus=1)
 def test_cpu_amp_precision_context_manager(tmpdir):
     """Test to ensure that the context manager correctly is set to CPU + bfloat16, and a scaler isn't set."""
 
