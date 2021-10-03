@@ -28,11 +28,12 @@ Leads
 - Carlos Mocholí (`carmocca <https://github.com/carmocca>`_)
 - Kaushik Bokka (`kaushikb11 <https://github.com/kaushikb11>`_)
 - Ananth Subramaniam (`ananthsub <https://github.com/ananthsub>`_)
+- Rohit Gupta (`rohitgr7 <https://github.com/rohitgr7>`_)
+
 
 Core Maintainers
 ----------------
 - Nicki Skafte (`skaftenicki <https://github.com/SkafteNicki>`_)
-- Rohit Gupta (`rohitgr7 <https://github.com/rohitgr7>`_)
 - Roger Shieh (`s-rog <https://github.com/s-rog>`_)
 - Akihiro Nitta (`akihironitta <https://github.com/akihironitta>`_)
 

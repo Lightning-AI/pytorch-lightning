@@ -636,3 +636,9 @@ def test_validate_precision_type(tmpdir, precision):
 
     with pytest.raises(MisconfigurationException, match=f"Precision {precision} is invalid"):
         Trainer(precision=precision)
+
+
+@RunIf(min_gpus=1, amp_native=True)
+def test_amp_level_raises_error_with_native(tmpdir):
+    with pytest.raises(MisconfigurationException, match="not supported with `amp_backend='native'`"):
+        _ = Trainer(default_root_dir=tmpdir, gpus=1, amp_level="O2", amp_backend="native", precision=16)
