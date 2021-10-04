@@ -166,7 +166,7 @@ class TrainerCallbackHookMixin(ABC):
     def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
         """Called when the training batch begins."""
         for callback in self.callbacks:
-            if is_param_in_hook_signature(callback.on_train_batch_start, "dataloader_idx"):
+            if is_param_in_hook_signature(callback.on_train_batch_start, "dataloader_idx", explicit=True):
                 callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx, 0)
             else:
                 callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx)
@@ -175,7 +175,7 @@ class TrainerCallbackHookMixin(ABC):
     def on_train_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx=0):
         """Called when the training batch ends."""
         for callback in self.callbacks:
-            if is_param_in_hook_signature(callback.on_train_batch_end, "dataloader_idx"):
+            if is_param_in_hook_signature(callback.on_train_batch_end, "dataloader_idx", explicit=True):
                 callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx, 0)
             else:
                 callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx)

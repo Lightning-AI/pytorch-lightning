@@ -176,7 +176,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         model_fx = getattr(self.trainer.lightning_module, "on_train_batch_end", None)
         extra_kwargs = (
             {"dataloader_idx": 0}
-            if callable(model_fx) and is_param_in_hook_signature(model_fx, "dataloader_idx")
+            if callable(model_fx) and is_param_in_hook_signature(model_fx, "dataloader_idx", explicit=True)
             else {}
         )
         self.trainer.call_hook("on_train_batch_end", batch_end_outputs, batch, batch_idx, **extra_kwargs)
