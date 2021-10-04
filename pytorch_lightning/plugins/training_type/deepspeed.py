@@ -33,8 +33,10 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import log, rank_zero_info, rank_zero_only
+from pytorch_lightning.utilities.enums import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeTuple
 from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
@@ -346,6 +348,18 @@ class DeepSpeedPlugin(DDPPlugin):
             self._format_config()
             self._config_initialized = True
 
+    def setup(self) -> None:
+        # check that `configure_gradient_clipping` hook isn't overriden since deepspeed handles
+        # gradient clipping internally
+        if is_overridden("configure_gradient_clipping", self.lightning_module):
+            raise MisconfigurationException(
+                "Deepspeed handles gradient clipping internally. Consider setting"
+                " `gradient_clip_val` and `gradient_clip_algorithm` inside `Trainer`."
+            )
+
+        if self.trainer.gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
+            raise MisconfigurationException("Deepspeed does not support clipping gradients by value.")
+
     def _init_deepspeed_distributed(self) -> None:
         if platform.system() != "Windows":
             # do not set env variables on windows, allow deepspeed to control setup
@@ -566,7 +580,7 @@ class DeepSpeedPlugin(DDPPlugin):
             batch_size = self._auto_select_batch_size()
             self.config["train_micro_batch_size_per_gpu"] = batch_size
         if "gradient_clipping" not in self.config:
-            self.config["gradient_clipping"] = self.lightning_module.trainer.gradient_clip_val
+            self.config["gradient_clipping"] = self.lightning_module.trainer.gradient_clip_val or 0.0
 
     def _auto_select_batch_size(self):
         # train_micro_batch_size_per_gpu is used for throughput logging purposes
