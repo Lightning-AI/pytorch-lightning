@@ -48,6 +48,9 @@ class ConfigValidator:
         self._check_progress_bar(model)
         # TODO: Delete _check_on_keyboard_interrupt in v1.7
         self._check_on_keyboard_interrupt()
+        # TODO: Remove `dataloader_idx` from on_train_batch_{start/end}
+        # hook from both LightningModule and Callbacks in v1.7
+        self._check_dl_idx_in_on_train_batch_hooks(model)
 
     def __verify_train_loop_configuration(self, model: "pl.LightningModule") -> None:
         # -----------------------------------
@@ -246,3 +249,20 @@ class ConfigValidator:
                     "The `on_keyboard_interrupt` callback hook was deprecated in v1.5 and will be removed in v1.7."
                     " Please use the `on_exception` callback hook instead."
                 )
+
+    def _check_dl_idx_in_on_train_batch_hooks(self, model: "pl.LightningModule") -> None:
+        for hook in ("on_train_batch_start", "on_train_batch_end"):
+            if is_param_in_hook_signature(getattr(model, hook), "dataloader_idx"):
+                rank_zero_deprecation(
+                    f"`LightningModule.{hook}` hook signature has changed in v1.5. `dataloader_idx`"
+                    " argument has been removed from it. Support for the old signature"
+                    " will be removed in v1.7."
+                )
+
+            for cb in self.trainer.callbacks:
+                if is_param_in_hook_signature(getattr(cb, hook), "dataloader_idx"):
+                    rank_zero_deprecation(
+                        f"`Callback.{hook}` hook signature has changed in v1.5. `dataloader_idx`"
+                        " argument has been removed from it. Support for the old signature"
+                        " will be removed in v1.7."
+                    )

@@ -487,6 +487,7 @@ class Accelerator:
         """Called when train ends."""
         return self.training_type_plugin.on_train_end()
 
-    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    # TODO: Update this in v1.7
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         """Called in the training loop before anything happens for that batch."""
-        return self.training_type_plugin.on_train_batch_start(batch, batch_idx, dataloader_idx)
+        return self.training_type_plugin.on_train_batch_start(batch, batch_idx)

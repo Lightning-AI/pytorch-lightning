@@ -255,3 +255,43 @@ def test_v1_7_0_deprecate_lightning_distributed(tmpdir):
         from pytorch_lightning.distributed.dist import LightningDistributed
 
         _ = LightningDistributed()
+
+
+def test_v1_7_0_old_on_train_batch_start(tmpdir):
+    class OldSignature(Callback):
+        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+            ...
+
+    class OldSignatureModel(BoringModel):
+        def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
+            ...
+
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature())
+    with pytest.deprecated_call(match="old signature will be removed in v1.7"):
+        trainer.fit(model)
+
+    model = OldSignatureModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    with pytest.deprecated_call(match="old signature will be removed in v1.7"):
+        trainer.fit(model)
+
+
+def test_v1_7_0_old_on_train_batch_end(tmpdir):
+    class OldSignature(Callback):
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+            ...
+
+    class OldSignatureModel(BoringModel):
+        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+            ...
+
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature())
+    with pytest.deprecated_call(match="old signature will be removed in v1.7"):
+        trainer.fit(model)
+
+    model = OldSignatureModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    with pytest.deprecated_call(match="old signature will be removed in v1.7"):
+        trainer.fit(model)

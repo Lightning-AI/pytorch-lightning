@@ -299,7 +299,7 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_bat
             self.start_state_dict = self.state_dict()
             self.opt_step_called = False
 
-        def on_train_batch_end(self, outputs, batch, batch_idx, *_):
+        def on_train_batch_end(self, outputs, batch, batch_idx):
             end_state_dict = self.state_dict()
             is_last_batch = (batch_idx + 1) == self.trainer.num_training_batches
 
@@ -966,7 +966,7 @@ def test_on_exception_hook(tmpdir):
         def __init__(self):
             super().__init__()
 
-        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
             raise KeyboardInterrupt
 
         def on_test_start(self, trainer, pl_module):

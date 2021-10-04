@@ -27,6 +27,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
 _OUTPUTS_TYPE = List[_BATCH_OUTPUTS_TYPE]
 
@@ -170,7 +171,15 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             automatic=self.trainer.lightning_module.trainer.lightning_module.automatic_optimization,
             num_optimizers=len(self.trainer.optimizers),
         )
-        self.trainer.call_hook("on_train_batch_end", batch_end_outputs, batch, self.batch_idx, 0)
+
+        # TODO: Update this in v1.7
+        model_fx = getattr(self.trainer.lightning_module, "on_train_batch_end", None)
+        extra_kwargs = (
+            {"dataloader_idx": 0}
+            if callable(model_fx) and is_param_in_hook_signature(model_fx, "dataloader_idx")
+            else {}
+        )
+        self.trainer.call_hook("on_train_batch_end", batch_end_outputs, batch, batch_idx, **extra_kwargs)
         self.trainer.call_hook("on_batch_end")
         self.trainer.logger_connector.on_batch_end()
 

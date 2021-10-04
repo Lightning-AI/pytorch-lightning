@@ -334,7 +334,7 @@ def test_multiple_optimizers_callbacks(tmpdir):
     """Tests that multiple optimizers can be used with callbacks."""
 
     class CB(Callback):
-        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
             pass
 
         def on_train_epoch_start(self, trainer, pl_module):
