@@ -162,7 +162,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_batch_end(self, self.lightning_module)
 
-    # TODO: Update this in v1.7
+    # TODO: Update this in v1.7 (deprecation: #9816)
     def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
         """Called when the training batch begins."""
         for callback in self.callbacks:
@@ -171,7 +171,7 @@ class TrainerCallbackHookMixin(ABC):
             else:
                 callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx)
 
-    # TODO: Update this in v1.7
+    # TODO: Update this in v1.7 (deprecation: #9816)
     def on_train_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx=0):
         """Called when the training batch ends."""
         for callback in self.callbacks:

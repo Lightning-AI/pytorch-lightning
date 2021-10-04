@@ -172,7 +172,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             num_optimizers=len(self.trainer.optimizers),
         )
 
-        # TODO: Update this in v1.7
+        # TODO: Update this in v1.7 (deprecation: #9816)
         model_fx = getattr(self.trainer.lightning_module, "on_train_batch_end", None)
         extra_kwargs = (
             {"dataloader_idx": 0}

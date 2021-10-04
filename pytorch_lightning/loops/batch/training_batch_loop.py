@@ -77,7 +77,7 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
             return AttributeDict(signal=-1)
 
         # hook
-        # TODO: Update this in in v1.7
+        # TODO: Update this in v1.7 (deprecation: #9816)
         model_fx = getattr(self.trainer.lightning_module, "on_train_batch_start", None)
         extra_kwargs = (
             {"dataloader_idx": 0}

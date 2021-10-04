@@ -48,8 +48,7 @@ class ConfigValidator:
         self._check_progress_bar(model)
         # TODO: Delete _check_on_keyboard_interrupt in v1.7
         self._check_on_keyboard_interrupt()
-        # TODO: Remove `dataloader_idx` from on_train_batch_{start/end}
-        # hook from both LightningModule and Callbacks in v1.7
+        # TODO: Remove this in v1.7 (deprecation: #9816)
         self._check_dl_idx_in_on_train_batch_hooks(model)
 
     def __verify_train_loop_configuration(self, model: "pl.LightningModule") -> None:
