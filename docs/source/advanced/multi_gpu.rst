@@ -611,7 +611,7 @@ Let's say you have a batch size of 7 in your dataloader.
         def train_dataloader(self):
             return Dataset(..., batch_size=7)
 
-In DDP and Horovod your effective batch size will be 7 * gpus * num_nodes.
+In DDP or Horovod your effective batch size will be 7 * gpus * num_nodes.
 
 .. code-block:: python
 
