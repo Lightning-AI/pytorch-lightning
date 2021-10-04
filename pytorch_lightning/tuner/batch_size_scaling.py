@@ -16,11 +16,13 @@ import os
 import uuid
 from typing import Optional, Tuple
 
+from torch.utils.data import DataLoader
+
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.data import has_len
+from pytorch_lightning.utilities.data import has_len_all_ranks
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import garbage_collection_cuda, is_oom_error
 from pytorch_lightning.utilities.parsing import lightning_getattr, lightning_hasattr, lightning_setattr
@@ -255,7 +257,7 @@ def _adjust_batch_size(
     if desc:
         log.info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
 
-    if not _is_valid_batch_size(new_size, trainer.train_dataloader):
+    if not _is_valid_batch_size(new_size, trainer.train_dataloader, trainer):
         new_size = min(new_size, len(trainer.train_dataloader.dataset))
 
     changed = new_size != batch_size
@@ -263,5 +265,7 @@ def _adjust_batch_size(
     return new_size, changed
 
 
-def _is_valid_batch_size(current_size, dataloader):
-    return not has_len(dataloader) or current_size <= len(dataloader)
+def _is_valid_batch_size(current_size: int, dataloader: DataLoader, trainer: "pl.Trainer"):
+    return not has_len_all_ranks(dataloader, trainer.training_type_plugin, trainer.datamodule) or current_size <= len(
+        dataloader
+    )

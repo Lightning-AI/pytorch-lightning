@@ -17,7 +17,9 @@ from typing import Any, Iterable, Mapping, Union
 import torch
 from torch.utils.data import DataLoader, IterableDataset
 
+import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 BType = Union[torch.Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
 
@@ -60,6 +62,54 @@ def has_len(dataloader: DataLoader) -> bool:
         if len(dataloader) == 0:
             raise ValueError("`Dataloader` returned 0 length. Please make sure that it returns at least 1 batch")
         has_len = True
+    except TypeError:
+        has_len = False
+    except NotImplementedError:  # e.g. raised by torchtext if a batch_size_fn is used
+        has_len = False
+
+    if has_len and has_iterable_dataset(dataloader):
+        rank_zero_warn(
+            "Your `IterableDataset` has `__len__` defined."
+            " In combination with multi-process data loading (when num_workers > 1),"
+            " `__len__` could be inaccurate if each worker is not configured independently"
+            " to avoid having duplicate data."
+        )
+    return has_len
+
+
+def has_len_all_ranks(
+    dataloader: DataLoader,
+    training_type: "pl.TrainingTypePlugin",
+    model: Union["pl.LightningModule", "pl.LightningDataModule"],
+) -> bool:
+    """Checks if a given Dataloader has ``__len__`` method implemented i.e. if it is a finite dataloader or
+    infinite dataloader.
+
+    Raises:
+        ValueError:
+            If the length of Dataloader is 0, as it requires at least one batch
+    """
+    try:
+        total_length = training_type.reduce(torch.tensor(len(dataloader)), reduce_op="sum")
+        local_length = len(dataloader)
+
+        if total_length == 0:
+            raise MisconfigurationException(
+                " Total length of `Dataloader` across ranks is zero. Please make sure that it returns at least 1 batch"
+            )
+        if total_length > 0 and local_length == 0:
+            if model.allow_zero_length_dataloader_with_ddp:
+                rank_zero_warn(
+                    "Total length of `Dataloader` across ranks is zero, but local rank has zero length. "
+                    "Please be cautious of uneven batch length. "
+                )
+                has_len = False
+            else:
+                raise MisconfigurationException(
+                    "`Dataloader` within local rank has zero length. Please make sure that it returns at least 1 batch"
+                )
+        else:
+            has_len = True
     except TypeError:
         has_len = False
     except NotImplementedError:  # e.g. raised by torchtext if a batch_size_fn is used
