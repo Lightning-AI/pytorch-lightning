@@ -84,14 +84,14 @@ def test_training_starts_with_seed(tmpdir):
 
 
 @pytest.mark.parametrize(["max_epochs", "batch_idx_"], [(2, 5), (3, 8), (4, 12)])
-def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_):
+def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_, tmpdir):
     class CurrentModel(BoringModel):
         def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
             if batch_idx == batch_idx_:
                 return -1
 
     model = CurrentModel()
-    trainer = Trainer(max_epochs=max_epochs, limit_train_batches=10)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=max_epochs, limit_train_batches=10)
     trainer.fit(model)
     if batch_idx_ > trainer.num_training_batches - 1:
         assert trainer.fit_loop.batch_idx == trainer.num_training_batches - 1
