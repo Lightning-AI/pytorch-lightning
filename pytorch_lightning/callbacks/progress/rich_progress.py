@@ -261,7 +261,7 @@ class RichProgressBar(ProgressBarBase):
         return "Predicting"
 
     def _init_progress(self, trainer, pl_module):
-        if self.progress is None or self._progress_stopped:
+        if self.is_enabled and (self.progress is None or self._progress_stopped):
             self._reset_progress_bar_ids()
             self._console.clear_live()
             self.progress = CustomProgress(
@@ -334,7 +334,8 @@ class RichProgressBar(ProgressBarBase):
         train_description = self._get_train_description(trainer.current_epoch)
         if self.main_progress_bar_id is None:
             self.main_progress_bar_id = self._add_task(total_batches, train_description)
-        self.progress.reset(self.main_progress_bar_id, total=total_batches, description=train_description)
+        if self.progress is not None:
+            self.progress.reset(self.main_progress_bar_id, total=total_batches, description=train_description)
 
     def on_validation_epoch_start(self, trainer, pl_module):
         super().on_validation_epoch_start(trainer, pl_module)
