@@ -357,7 +357,7 @@ class DeepSpeedPlugin(DDPPlugin):
                 " `gradient_clip_val` and `gradient_clip_algorithm` inside `Trainer`."
             )
 
-        if self.trainer.gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
+        if self.lightning_module.trainer.gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
             raise MisconfigurationException("Deepspeed does not support clipping gradients by value.")
 
     def _init_deepspeed_distributed(self) -> None:
