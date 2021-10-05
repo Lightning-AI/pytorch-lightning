@@ -261,7 +261,7 @@ class RichProgressBar(ProgressBarBase):
         return "Predicting"
 
     def _init_progress(self, trainer, pl_module):
-        if self.is_enabled and (self.progress is None or self._progress_stopped):
+        if self.progress is None or self._progress_stopped:
             self._reset_progress_bar_ids()
             self._console.clear_live()
             self.progress = CustomProgress(
