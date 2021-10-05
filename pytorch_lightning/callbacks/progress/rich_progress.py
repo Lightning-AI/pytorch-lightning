@@ -303,7 +303,7 @@ class RichProgressBar(ProgressBarBase):
         # can't pickle the rich progress objects
         state = self.__dict__.copy()
         state["progress"] = None
-        state["console"] = None
+        state["_console"] = None
         return state
 
     def __setstate__(self, state):
