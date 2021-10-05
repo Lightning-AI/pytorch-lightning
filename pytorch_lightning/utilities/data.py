@@ -90,7 +90,7 @@ def has_len_all_ranks(
             If the length of Dataloader is 0, as it requires at least one batch
     """
     try:
-        total_length = training_type.reduce(torch.tensor(len(dataloader)), reduce_op="sum")
+        total_length = training_type.reduce(torch.tensor(len(dataloader)).to(model.device), reduce_op="sum")
         local_length = len(dataloader)
 
         if total_length == 0:

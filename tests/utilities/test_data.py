@@ -68,6 +68,6 @@ def test_has_len_all_rank():
     model = BoringModel()
 
     with pytest.raises(MisconfigurationException, match="Total length of `Dataloader` across ranks is zero."):
-        assert has_len_all_ranks(DataLoader(RandomDataset(0, 0)), trainer.training_type_plugin, model)
+        assert not has_len_all_ranks(DataLoader(RandomDataset(0, 0)), trainer.training_type_plugin, model)
 
     assert has_len_all_ranks(DataLoader(RandomDataset(1, 1)), trainer.training_type_plugin, model)

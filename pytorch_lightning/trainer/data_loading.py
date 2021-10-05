@@ -344,9 +344,10 @@ class TrainerDataLoadingMixin(ABC):
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
         self.train_dataloader = CombinedLoader(self.train_dataloader, self.data_connector.multiple_trainloader_mode)
 
+        module = model or self.lightning_module or self.datamodule
         self.num_training_batches = (
             len(self.train_dataloader)
-            if has_len_all_ranks(self.train_dataloader, self.training_type_plugin, self.datamodule)
+            if has_len_all_ranks(self.train_dataloader, self.training_type_plugin, module)
             else float("inf")
         )
 
@@ -373,7 +374,7 @@ class TrainerDataLoadingMixin(ABC):
                     "If you want to disable validation set `limit_val_batches` to 0.0 instead."
                 )
         else:
-            if not has_len_all_ranks(self.train_dataloader, self.training_type_plugin, self.datamodule):
+            if not has_len_all_ranks(self.train_dataloader, self.training_type_plugin, module):
                 if self.val_check_interval == 1.0:
                     self.val_check_batch = float("inf")
                 else:
@@ -452,11 +453,12 @@ class TrainerDataLoadingMixin(ABC):
 
         # determine number of batches
         # datasets could be none, 1 or 2+
+        module = model or self.lightning_module or self.datamodule
         if len(dataloaders) != 0:
             for i, dataloader in enumerate(dataloaders):
                 num_batches = (
                     len(dataloader)
-                    if has_len_all_ranks(dataloader, self.training_type_plugin, self.datamodule)
+                    if has_len_all_ranks(dataloader, self.training_type_plugin, module)
                     else float("inf")
                 )
                 self._worker_check(dataloader, f"{mode.dataloader_prefix}_dataloader {i}")
