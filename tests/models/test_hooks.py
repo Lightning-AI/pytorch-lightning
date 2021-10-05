@@ -320,7 +320,7 @@ class HookedModel(BoringModel):
                                 kwargs=dict(gradient_clip_val=None, gradient_clip_algorithm=None),
                             ),
                         ]
-                        if using_deepspeed
+                        if not using_deepspeed
                         else []
                     ),
                     dict(
