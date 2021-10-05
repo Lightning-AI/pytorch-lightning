@@ -13,7 +13,6 @@
 # limitations under the License.
 import logging
 import pickle
-from typing import List, Optional
 from unittest import mock
 from unittest.mock import Mock
 
@@ -383,46 +382,6 @@ class EarlyStoppingModel(BoringModel):
 _ES_CHECK = dict(check_on_train_epoch_end=True)
 _ES_CHECK_P3 = dict(patience=3, check_on_train_epoch_end=True)
 _NO_WIN = dict(marks=RunIf(skip_windows=True))
-
-
-@pytest.mark.parametrize(
-    "callbacks, expected_stop_epoch, check_on_train_epoch_end, accelerator, num_processes",
-    [
-        ([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, None, 1),
-        ([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, None, 1),
-        pytest.param([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, "ddp_cpu", 2, **_NO_WIN),
-        pytest.param([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, "ddp_cpu", 2, **_NO_WIN),
-        ([EarlyStopping("abc", **_ES_CHECK), EarlyStopping("cba", **_ES_CHECK_P3)], 3, True, None, 1),
-        ([EarlyStopping("cba", **_ES_CHECK_P3), EarlyStopping("abc", **_ES_CHECK)], 3, True, None, 1),
-        pytest.param(
-            [EarlyStopping("abc", **_ES_CHECK), EarlyStopping("cba", **_ES_CHECK_P3)], 3, True, "ddp_cpu", 2, **_NO_WIN
-        ),
-        pytest.param(
-            [EarlyStopping("cba", **_ES_CHECK_P3), EarlyStopping("abc", **_ES_CHECK)], 3, True, "ddp_cpu", 2, **_NO_WIN
-        ),
-    ],
-)
-def test_multiple_early_stopping_callbacks(
-    tmpdir,
-    callbacks: List[EarlyStopping],
-    expected_stop_epoch: int,
-    check_on_train_epoch_end: bool,
-    accelerator: Optional[str],
-    num_processes: int,
-):
-    """Ensure when using multiple early stopping callbacks we stop if any signals we should stop."""
-
-    model = EarlyStoppingModel(expected_stop_epoch, check_on_train_epoch_end)
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=callbacks,
-        overfit_batches=0.20,
-        max_epochs=20,
-        accelerator=accelerator,
-        num_processes=num_processes,
-    )
-    trainer.fit(model)
 
 
 @pytest.mark.parametrize(
