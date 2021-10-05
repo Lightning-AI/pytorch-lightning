@@ -219,7 +219,6 @@ class RichProgressBar(ProgressBarBase):
         self._reset_progress_bar_ids()
         self._progress_stopped: bool = False
         self.theme = theme
-        self._console: Console = Console()
 
     @property
     def refresh_rate_per_second(self) -> float:
@@ -263,6 +262,7 @@ class RichProgressBar(ProgressBarBase):
     def _init_progress(self, trainer, pl_module):
         if self.progress is None or self._progress_stopped:
             self._reset_progress_bar_ids()
+            self._console: Console = Console()
             self._console.clear_live()
             self.progress = CustomProgress(
                 TextColumn("[progress.description]{task.description}"),
@@ -303,13 +303,11 @@ class RichProgressBar(ProgressBarBase):
         # can't pickle the rich progress objects
         state = self.__dict__.copy()
         state["progress"] = None
-        state["_console"] = None
         return state
 
     def __setstate__(self, state):
         self.__dict__ = state
         # reset console reference after loading progress
-        self._console = Console()
 
     def on_sanity_check_start(self, trainer, pl_module):
         super().on_sanity_check_start(trainer, pl_module)
