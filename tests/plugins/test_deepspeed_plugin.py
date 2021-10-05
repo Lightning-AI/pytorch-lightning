@@ -961,3 +961,13 @@ def _run_scheduler_test(mock_step, max_epoch, limit_train_batches, interval):
     else:
         # assert called once at init and once during training
         assert mock_step.call_count == 1 + (max_epoch * limit_train_batches)
+
+
+@RunIf(deepspeed=True)
+def test_different_accumulate_grad_batches_fails(tmpdir):
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, ipus=1, accumulate_grad_batches={1: 2})
+    with pytest.raises(
+        MisconfigurationException, match="DeepSpeed currently does not support different `accumulate_grad_batches`"
+    ):
+        trainer.fit(model)
