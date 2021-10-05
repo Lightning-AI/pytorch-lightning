@@ -2,8 +2,16 @@ import pytest
 import torch
 from torch.utils.data.dataloader import DataLoader
 
-from pytorch_lightning.utilities.data import extract_batch_size, get_len, has_iterable_dataset, has_len
-from tests.helpers.boring_model import RandomDataset, RandomIterableDataset
+from pytorch_lightning import Trainer
+from pytorch_lightning.utilities.data import (
+    extract_batch_size,
+    get_len,
+    has_iterable_dataset,
+    has_len,
+    has_len_all_ranks,
+)
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 
 
 def test_extract_batch_size():
@@ -53,3 +61,13 @@ def test_get_len():
 
     assert isinstance(value, float)
     assert value == float("inf")
+
+
+def test_has_len_all_rank():
+    trainer = Trainer(fast_dev_run=True)
+    model = BoringModel()
+
+    with pytest.raises(MisconfigurationException, match="Total length of `Dataloader` across ranks is zero."):
+        assert has_len_all_ranks(DataLoader(RandomDataset(0, 0)), trainer.training_type_plugin, model)
+
+    assert has_len_all_ranks(DataLoader(RandomDataset(1, 1)), trainer.training_type_plugin, model)
