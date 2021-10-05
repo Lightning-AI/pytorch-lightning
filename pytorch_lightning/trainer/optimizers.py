@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import ABC
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch import optim
@@ -40,6 +40,15 @@ class TrainerOptimizersMixin(ABC):
             )
             optim_conf = _MockOptimizer()
 
+        optimizers, lr_schedulers, optimizer_frequencies, monitor = self._configure_optimizers(optim_conf)
+        lr_schedulers = self._configure_schedulers(lr_schedulers, monitor, not pl_module.automatic_optimization)
+        _validate_scheduler_optimizer(optimizers, lr_schedulers)
+        return optimizers, lr_schedulers, optimizer_frequencies
+
+    @staticmethod
+    def _configure_optimizers(
+        optim_conf: Union[Dict[str, Any], List, Optimizer, Tuple]
+    ) -> Tuple[List, List, List, Optional[str]]:
         optimizers, lr_schedulers, optimizer_frequencies = [], [], []
         monitor = None
 
@@ -58,11 +67,14 @@ class TrainerOptimizersMixin(ABC):
             lr_schedulers = sch if isinstance(sch, list) else [sch]
         # single dictionary
         elif isinstance(optim_conf, dict):
+            _validate_optim_conf(optim_conf)
             optimizers = [optim_conf["optimizer"]]
             monitor = optim_conf.get("monitor", None)
             lr_schedulers = [optim_conf["lr_scheduler"]] if "lr_scheduler" in optim_conf else []
         # multiple dictionaries
         elif isinstance(optim_conf, (list, tuple)) and all(isinstance(d, dict) for d in optim_conf):
+            for opt_dict in optim_conf:
+                _validate_optim_conf(opt_dict)
             optimizers = [opt_dict["optimizer"] for opt_dict in optim_conf]
             scheduler_dict = (
                 lambda scheduler, opt_idx: dict(scheduler, opt_idx=opt_idx)
@@ -95,12 +107,7 @@ class TrainerOptimizersMixin(ABC):
                 ' * {"optimizer": `torch.optim.Optimizer`, (optional) "lr_scheduler": `torch.optim.lr_scheduler`}\n'
                 ' * A list of the previously described dict format, with an optional "frequency" key (int)'
             )
-
-        is_manual_optimization = not pl_module.automatic_optimization
-        lr_schedulers = self.configure_schedulers(lr_schedulers, monitor, is_manual_optimization)
-        _validate_scheduler_optimizer(optimizers, lr_schedulers)
-
-        return optimizers, lr_schedulers, optimizer_frequencies
+        return optimizers, lr_schedulers, optimizer_frequencies, monitor
 
     def convert_to_lightning_optimizers(self):
         def _convert_to_lightning_optimizer(trainer, optimizer):
@@ -113,8 +120,9 @@ class TrainerOptimizersMixin(ABC):
             opt_idx: _convert_to_lightning_optimizer(self, opt) for opt_idx, opt in enumerate(self.optimizers)
         }
 
-    def configure_schedulers(
-        self, schedulers: list, monitor: Optional[str], is_manual_optimization: bool
+    @staticmethod
+    def _configure_schedulers(
+        schedulers: list, monitor: Optional[str], is_manual_optimization: bool
     ) -> List[Dict[str, Any]]:
         """Convert each scheduler into dict structure with relevant information."""
         lr_schedulers = []
@@ -160,6 +168,13 @@ class TrainerOptimizersMixin(ABC):
                             ' For example: {"optimizer": optimizer, "lr_scheduler":'
                             ' {"scheduler": scheduler, "monitor": "your_loss"}}'
                         )
+                    is_one_cycle = isinstance(scheduler["scheduler"], optim.lr_scheduler.OneCycleLR)
+                    if is_one_cycle and scheduler.get("interval", "epoch") == "epoch":
+                        rank_zero_warn(
+                            "A `OneCycleLR` scheduler is using 'interval': 'epoch'."
+                            " Are you sure you didn't mean 'interval': 'step'?",
+                            RuntimeWarning,
+                        )
                     lr_schedulers.append({**default_config, **scheduler})
                 elif isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
                     if monitor is None:
@@ -203,6 +218,13 @@ class _MockOptimizer(Optimizer):
 
     def __repr__(self):
         return "No Optimizer"
+
+
+def _validate_optim_conf(optim_conf: Dict[str, Any]) -> None:
+    valid_keys = {"optimizer", "lr_scheduler", "frequency", "monitor"}
+    extra_keys = optim_conf.keys() - valid_keys
+    if extra_keys:
+        rank_zero_warn(f"Found unsupported keys in the optimizer configuration: {set(extra_keys)}", RuntimeWarning)
 
 
 def _validate_scheduler_optimizer(optimizers, lr_schedulers):

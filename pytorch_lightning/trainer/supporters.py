@@ -24,12 +24,9 @@ from torch.utils.data.dataset import IterableDataset
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.auto_restart import (
-    _find_fast_forward_samplers,
-    CaptureIterableDataset,
-    CaptureMapDataset,
-    IteratorState,
     MergedIteratorState,
     patch_dataloader_iterator,
+    reload_dataloader_state_dict,
 )
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -360,7 +357,13 @@ class CombinedLoader:
     def _state_dict_fn(dataloader: DataLoader, iterator: Optional[Iterator], has_completed: int) -> Dict:
         if isinstance(dataloader, CycleIterator):
             iterator = dataloader._loader_iter
-        state = getattr(iterator, "state", None) if has_completed else getattr(iterator, "previous_state", None)
+
+        # There is currently 2 dataloader states being tracked: (batch_n - 1, state_n - 1), (batch_n, state_n)
+        # where `n` is the current batch. If the batch was processed, it should be saved to reproduce the next batch.
+        # Otherwise, we want to get the state of the previous batch, so we can reproduce the current batch.
+        # The state is stored directly on the Iterator as an attribute by the DataFetcher for accessibility
+        state_to_save = "state" if has_completed else "previous_state"
+        state: Optional[MergedIteratorState] = getattr(iterator, state_to_save, None)
         if state:
             return asdict(state)
         return {}
@@ -400,37 +403,7 @@ class CombinedLoader:
             if isinstance(dataloader, CycleIterator):
                 dataloader = dataloader_to_iter_on.loader
 
-            dataset = dataloader.dataset
-
-            # We reload the states before creating the workers
-            # The specific type of dataset will then decide if the state should be applied before or after
-            # spawning the workers
-            if isinstance(dataset, CaptureMapDataset):
-                iterator_state = state_dict["state"][0]
-
-                if not isinstance(iterator_state, IteratorState):
-                    iterator_state = IteratorState.from_state_dict(iterator_state)
-
-                # reload sampler state
-                ff_sampler = _find_fast_forward_samplers(dataloader)
-                ff_sampler.load_state_dict(iterator_state.sampler_state)
-                # reload dataset state
-                dataset.load_state_dict(
-                    iterator_state.dataset_state,
-                    latest_worker_id=state_dict["latest_worker_id"],
-                    num_workers=iterator_state.num_workers,
-                )
-
-            elif isinstance(dataset, CaptureIterableDataset):
-                dataset_dict = {
-                    sampler_name: state[0]["sampler_state"] for sampler_name, state in state_dict["state"].items()
-                }
-                dataset.load_state_dict(dataset_dict)
-
-            else:
-                raise MisconfigurationException(
-                    "This shouldn't happen. Please, open an issue on PyTorch Lightning Github."
-                )
+            reload_dataloader_state_dict(dataloader, state_dict)
 
             # We finally spawned the workers if any.
             it = iter(dataloader_to_iter_on)

@@ -13,6 +13,7 @@
 # limitations under the License
 import logging
 import os
+import uuid
 from typing import Optional, Tuple
 
 import pytorch_lightning as pl
@@ -63,7 +64,7 @@ def scale_batch_size(
     __scale_batch_reset_params(trainer, model, steps_per_trial)
 
     # Save initial model, that is loaded after batch size is found
-    save_path = os.path.join(trainer.default_root_dir, "scale_batch_size_temp_model.ckpt")
+    save_path = os.path.join(trainer.default_root_dir, f"scale_batch_size_temp_model_{uuid.uuid4()}.ckpt")
     trainer.save_checkpoint(str(save_path))
 
     if trainer.progress_bar_callback:
@@ -101,6 +102,7 @@ def __scale_batch_dump_params(trainer: "pl.Trainer") -> None:
     trainer.__dumped_params = {
         "auto_lr_find": trainer.auto_lr_find,
         "current_epoch": trainer.current_epoch,
+        "global_step": trainer.global_step,
         "max_steps": trainer.max_steps,
         "weights_summary": trainer.weights_summary,
         "logger": trainer.logger,
@@ -128,6 +130,7 @@ def __scale_batch_reset_params(trainer: "pl.Trainer", model: "pl.LightningModule
 def __scale_batch_restore_params(trainer: "pl.Trainer") -> None:
     trainer.auto_lr_find = trainer.__dumped_params["auto_lr_find"]
     trainer.fit_loop.current_epoch = trainer.__dumped_params["current_epoch"]
+    trainer.fit_loop.global_step = trainer.__dumped_params["global_step"]
     trainer.fit_loop.max_steps = trainer.__dumped_params["max_steps"]
     trainer.weights_summary = trainer.__dumped_params["weights_summary"]
     trainer.logger = trainer.__dumped_params["logger"]

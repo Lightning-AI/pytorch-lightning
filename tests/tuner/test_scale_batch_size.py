@@ -91,6 +91,8 @@ def test_model_reset_correctly(tmpdir):
             torch.eq(before_state_dict[key], after_state_dict[key])
         ), "Model was not reset correctly after scaling batch size"
 
+    assert not any(f for f in os.listdir(tmpdir) if f.startswith("scale_batch_size_temp_model"))
+
 
 def test_trainer_reset_correctly(tmpdir):
     """Check that all trainer parameters are reset correctly after scaling batch size."""
@@ -108,6 +110,7 @@ def test_trainer_reset_correctly(tmpdir):
         "limit_train_batches",
         "logger",
         "max_steps",
+        "global_step",
         "weights_summary",
     ]
     expected = {ca: getattr(trainer, ca) for ca in changed_attributes}
@@ -220,7 +223,7 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
         trainer.tune(model, **fit_options)
 
 
-@RunIf(min_gpus=1, amp_native=True)
+@RunIf(min_gpus=1)
 def test_auto_scale_batch_size_with_amp(tmpdir):
     model = EvalModelTemplate()
     batch_size_before = model.batch_size

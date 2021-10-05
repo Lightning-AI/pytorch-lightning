@@ -59,11 +59,19 @@ def test_progress_bar_on(tmpdir, callbacks: list, refresh_rate: Optional[int]):
     assert progress_bars[0] is trainer.progress_bar_callback
 
 
-@pytest.mark.parametrize("callbacks,refresh_rate", [([], 0), ([], False), ([ModelCheckpoint(dirpath="../trainer")], 0)])
-def test_progress_bar_off(tmpdir, callbacks: list, refresh_rate: Union[bool, int]):
+@pytest.mark.parametrize(
+    "callbacks,refresh_rate,enable_progress_bar",
+    [([], 0, True), ([], False, True), ([ModelCheckpoint(dirpath="../trainer")], 0, True), ([], 1, False)],
+)
+def test_progress_bar_off(tmpdir, callbacks: list, refresh_rate: Union[bool, int], enable_progress_bar: bool):
     """Test different ways the progress bar can be turned off."""
 
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=callbacks, progress_bar_refresh_rate=refresh_rate)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=callbacks,
+        progress_bar_refresh_rate=refresh_rate,
+        enable_progress_bar=enable_progress_bar,
+    )
 
     progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBar)]
     assert 0 == len(progress_bars)

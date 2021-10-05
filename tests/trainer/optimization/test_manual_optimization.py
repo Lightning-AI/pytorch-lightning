@@ -68,7 +68,7 @@ class ManualOptModel(BoringModel):
     "kwargs",
     [
         {},
-        pytest.param({"gpus": 1, "precision": 16, "amp_backend": "native"}, marks=RunIf(amp_native=True, min_gpus=1)),
+        pytest.param({"gpus": 1, "precision": 16, "amp_backend": "native"}, marks=RunIf(min_gpus=1)),
         pytest.param(
             {"gpus": 1, "precision": 16, "amp_backend": "apex", "amp_level": "O2"},
             marks=RunIf(amp_apex=True, min_gpus=1),

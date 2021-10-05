@@ -61,7 +61,7 @@ class RichModelSummary(ModelSummary):
     def __init__(self, max_depth: int = 1) -> None:
         if not _RICH_AVAILABLE:
             raise ImportError(
-                "`RichModelSummary` requires `rich` to be installed. Install it by running `pip install rich`."
+                "`RichProgressBar` requires `rich` to be installed. Install it by running `pip install -U rich`."
             )
         super().__init__(max_depth)
 

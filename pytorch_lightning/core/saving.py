@@ -118,7 +118,7 @@ class ModelIO:
             MyLightningModule.load_from_checkpoint(
                 PATH,
                 num_layers=128,
-                pretrained_ckpt_path: NEW_PATH,
+                pretrained_ckpt_path=NEW_PATH,
             )
 
             # predict

@@ -19,6 +19,7 @@ import platform
 import sys
 from importlib.util import find_spec
 
+import pkg_resources
 import torch
 from packaging.version import Version
 from pkg_resources import DistributionNotFound
@@ -53,7 +54,11 @@ def _compare_version(package: str, op, version) -> bool:
     except (ModuleNotFoundError, DistributionNotFound):
         return False
     try:
-        pkg_version = Version(pkg.__version__)
+        if hasattr(pkg, "__version__"):
+            pkg_version = Version(pkg.__version__)
+        else:
+            # try pkg_resources to infer version
+            pkg_version = Version(pkg_resources.get_distribution(pkg).version)
     except TypeError:
         # this is mock by sphinx, so it shall return True ro generate all summaries
         return True
@@ -80,12 +85,11 @@ _HYDRA_AVAILABLE = _module_available("hydra")
 _HYDRA_EXPERIMENTAL_AVAILABLE = _module_available("hydra.experimental")
 _JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
 _KINETO_AVAILABLE = _TORCH_GREATER_EQUAL_1_8_1 and torch.profiler.kineto_available()
-_NATIVE_AMP_AVAILABLE = _module_available("torch.cuda.amp") and hasattr(torch.cuda.amp, "autocast")
 _NEPTUNE_AVAILABLE = _module_available("neptune")
 _NEPTUNE_GREATER_EQUAL_0_9 = _NEPTUNE_AVAILABLE and _compare_version("neptune", operator.ge, "0.9.0")
 _OMEGACONF_AVAILABLE = _module_available("omegaconf")
 _POPTORCH_AVAILABLE = _module_available("poptorch")
-_RICH_AVAILABLE = _module_available("rich")
+_RICH_AVAILABLE = _module_available("rich") and _compare_version("rich", operator.ge, "10.2.2")
 _TORCH_CPU_AMP_AVAILABLE = _compare_version(
     "torch", operator.ge, "1.10.dev20210902"
 )  # todo: swap to 1.10.0 once released

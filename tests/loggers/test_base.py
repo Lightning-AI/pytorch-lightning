@@ -319,7 +319,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         limit_val_batches=0.1,
         num_sanity_val_steps=0,
         checkpoint_callback=False,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         weights_summary=None,
     )
     # there should be no exceptions raised for the same key/value pair in the hparams of both
@@ -343,7 +343,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         limit_val_batches=0.1,
         num_sanity_val_steps=0,
         checkpoint_callback=False,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         weights_summary=None,
     )
     with pytest.raises(MisconfigurationException, match="Error while merging hparams"):
@@ -360,7 +360,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         limit_val_batches=0.1,
         num_sanity_val_steps=0,
         checkpoint_callback=False,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         weights_summary=None,
     )
     with pytest.raises(MisconfigurationException, match="Error while merging hparams"):

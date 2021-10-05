@@ -342,9 +342,6 @@ class DeepSpeedPlugin(DDPPlugin):
 
         self._init_deepspeed_distributed()
 
-        # set the ranks and devices
-        self.dist.rank = self.global_rank
-        self.dist.device = self.root_device
         if not self._config_initialized:
             self._format_config()
             self._config_initialized = True
@@ -444,7 +441,11 @@ class DeepSpeedPlugin(DDPPlugin):
 
         # although we set these here, deepspeed manages the specific optimizer logic
         self.lightning_module.trainer.optimizers = [deepspeed_optimizer]
+
+        deepspeed_scheduler = model.lr_scheduler
         if deepspeed_scheduler is not None:
+            # disable deepspeed lr scheduling as lightning manages scheduling
+            model.lr_scheduler = None
             lr_scheduler["scheduler"] = deepspeed_scheduler
             self.lightning_module.trainer.lr_schedulers = [lr_scheduler]
         self.model = model

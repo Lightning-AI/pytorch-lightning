@@ -42,10 +42,15 @@ class CheckpointConnector:
 
     @property
     def hpc_resume_path(self) -> Optional[str]:
+        if not os.path.isdir(self.trainer.weights_save_path):
+            return None
         dir_path_hpc = str(self.trainer.weights_save_path)
         max_version = self.max_ckpt_version_in_folder(dir_path_hpc, "hpc_ckpt_")
         if max_version is not None:
             return os.path.join(dir_path_hpc, f"hpc_ckpt_{max_version}.ckpt")
+        auto_save_checkpoint = os.path.join(dir_path_hpc, ".pl_auto_save.ckpt")
+        if os.path.exists(auto_save_checkpoint):
+            return auto_save_checkpoint
 
     def resume_start(self) -> None:
         """Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:

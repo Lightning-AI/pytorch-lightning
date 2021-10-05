@@ -117,6 +117,11 @@ def test_v1_7_0_trainer_prepare_data_per_node(tmpdir):
         _ = Trainer(prepare_data_per_node=False)
 
 
+def test_v1_7_0_stochastic_weight_avg_trainer_constructor(tmpdir):
+    with pytest.deprecated_call(match=r"Setting `Trainer\(stochastic_weight_avg=True\)` is deprecated in v1.5"):
+        _ = Trainer(stochastic_weight_avg=True)
+
+
 def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
     class CustomBoringModel(BoringModel):
         def on_train_dataloader(self):
@@ -182,7 +187,7 @@ def test_v1_7_0_on_interrupt(tmpdir):
         max_epochs=1,
         limit_val_batches=0.1,
         limit_train_batches=0.2,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         logger=False,
         default_root_dir=tmpdir,
     )
@@ -243,3 +248,10 @@ def test_v1_7_0_lightning_logger_base_close(tmpdir):
     ):
         logger = LoggerCollection([logger])
         logger.close()
+
+
+def test_v1_7_0_deprecate_lightning_distributed(tmpdir):
+    with pytest.deprecated_call(match="LightningDistributed is deprecated in v1.5 and will be removed in v1.7."):
+        from pytorch_lightning.distributed.dist import LightningDistributed
+
+        _ = LightningDistributed()

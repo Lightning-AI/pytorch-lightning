@@ -316,8 +316,6 @@ def test_explain_what_is_being_tested(tmpdir):
     Test description about text reason to be
     """
 
-    # os.environ["PL_DEV_DEBUG"] = '1' # [OPTIONAL] When activated, you can use internal trainer.dev_debugger
-
     class ExtendedModel(BoringModel):
         ...
 
