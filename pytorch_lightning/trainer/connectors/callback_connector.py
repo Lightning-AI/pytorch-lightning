@@ -141,15 +141,6 @@ class CallbackConnector:
         self.trainer.accumulation_scheduler = grad_accum_callback
 
     def _configure_checkpoint_callbacks(self, checkpoint_callback: bool) -> None:
-        # TODO: Remove this error in v1.5 so we rely purely on the type signature
-        if not isinstance(checkpoint_callback, bool):
-            error_msg = (
-                "Invalid type provided for checkpoint_callback:"
-                f" Expected bool but received {type(checkpoint_callback)}."
-            )
-            if isinstance(checkpoint_callback, Callback):
-                error_msg += " Pass callback instances to the `callbacks` argument in the Trainer constructor instead."
-            raise MisconfigurationException(error_msg)
         if self._trainer_has_checkpoint_callbacks() and checkpoint_callback is False:
             raise MisconfigurationException(
                 "Trainer was configured with checkpoint_callback=False but found ModelCheckpoint in callbacks list."
