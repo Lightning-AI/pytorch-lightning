@@ -1290,6 +1290,7 @@ class LightningModule(
                     },
                 }
 
+
             # In the case of two optimizers, only one using the ReduceLROnPlateau scheduler
             def configure_optimizers(self):
                 optimizer1 = Adam(...)
