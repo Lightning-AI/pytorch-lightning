@@ -1284,9 +1284,11 @@ class LightningModule(
                     "lr_scheduler": {
                         "scheduler": ReduceLROnPlateau(optimizer, ...),
                         "monitor": "metric_to_track",
+                        "frequency": "indicates how often the metric is updated"
+                        # If "monitor" references validation metrics, then "frequency" should be set to the
+                        # value of "trainer.check_val_every_n_epoch".
                     },
                 }
-
 
             # In the case of two optimizers, only one using the ReduceLROnPlateau scheduler
             def configure_optimizers(self):
