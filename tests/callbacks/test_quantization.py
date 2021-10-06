@@ -35,7 +35,6 @@ from tests.helpers.simple_models import RegressionModel
 def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     """Parity test for quant model."""
     seed_everything(42)
-    assert _TORCH_GREATER_EQUAL_1_10
     dm = RegressDataModule()
     trainer_args = dict(default_root_dir=tmpdir, max_epochs=7, gpus=int(torch.cuda.is_available()))
     model = RegressionModel()

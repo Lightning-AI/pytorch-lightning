@@ -62,7 +62,7 @@ def _compare_version(package: str, op, version) -> bool:
     except TypeError:
         # this is mock by sphinx, so it shall return True ro generate all summaries
         return True
-    return op(pkg_version, Version(version))
+    return op(pkg_version.base_version, Version(version))
 
 
 _IS_WINDOWS = platform.system() == "Windows"
