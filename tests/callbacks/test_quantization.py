@@ -18,7 +18,6 @@ import pytest
 import torch
 from torchmetrics.functional import mean_absolute_percentage_error as mape
 
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import QuantizationAwareTraining
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
