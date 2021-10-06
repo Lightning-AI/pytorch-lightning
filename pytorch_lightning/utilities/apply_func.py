@@ -117,7 +117,7 @@ def apply_to_collection(
         return elem_type(*out) if is_namedtuple else elem_type(out)
 
     if _is_dataclass_instance(data):
-        result = copy(data)
+        result = object.__new__(elem_type)
         for field in dataclasses.fields(data):
             v = apply_to_collection(
                 getattr(data, field.name),
@@ -130,7 +130,8 @@ def apply_to_collection(
             )
             if include_none or v is not None:
                 setattr(result, field.name, v)
-            # else retain old field value
+            else:
+                setattr(result, field.name, getattr(data, field.name))
         return result
 
     # data is neither of dtype, nor a collection
