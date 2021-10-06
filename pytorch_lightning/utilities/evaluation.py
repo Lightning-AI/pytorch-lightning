@@ -1,5 +1,6 @@
 import torch
 
+
 def get_loss(model, X, y, criterion):
     preds = model(X)
     loss = criterion(preds, y)
