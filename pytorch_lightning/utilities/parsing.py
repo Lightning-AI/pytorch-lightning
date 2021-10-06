@@ -217,7 +217,9 @@ def save_hyperparameters(
     if is_dataclass(obj):
         init_args = {f.name: getattr(obj, f.name) for f in fields(obj)}
     else:
-        init_args = get_init_args(frame)
+        init_args = {}
+        for local_args in collect_init_args(frame, []):
+            init_args.update(local_args)
     assert init_args, "failed to inspect the obj init"
 
     if ignore is not None:
