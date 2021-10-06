@@ -391,10 +391,6 @@ The lightning community is maintained by
 - [10+ core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, and Ph.D. students from top AI labs.
 - 480+ active community contributors.
 
-[You can create new features in PyTorch lightning.](https://github.com/PyTorchLightning/pytorch-lightning/projects)
-
-[You can solve issues in our github issues tab.](https://github.com/PyTorchLightning/pytorch-lightning/issues)
-
 Want to help us build Lightning and reduce boilerplate for thousands of researchers? [Learn how to make your first contribution here](https://devblog.pytorchlightning.ai/quick-contribution-guide-86d977171b3a)
 
 Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/) which requires projects to have solid testing, documentation and support.
