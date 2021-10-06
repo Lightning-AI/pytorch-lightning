@@ -1,6 +1,4 @@
 import torch
-import torchvision
-
 
 def get_loss(model, X, y, criterion):
     preds = model(X)
