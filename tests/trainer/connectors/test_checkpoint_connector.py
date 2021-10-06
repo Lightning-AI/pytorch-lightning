@@ -141,8 +141,8 @@ def test_loops_restore(tmpdir):
     trainer_args = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
-        limit_train_batches=2,
-        limit_val_batches=2,
+        limit_train_batches=1,
+        limit_val_batches=1,
         logger=False,
         callbacks=[checkpoint_callback],
         num_sanity_val_steps=0,
@@ -156,7 +156,7 @@ def test_loops_restore(tmpdir):
     for fn in TrainerFn:
         if fn != TrainerFn.TUNING:
             trainer_fn = getattr(trainer, f"{fn}_loop")
-            trainer_fn.load_state_dict = Mock(side_effect=trainer_fn.load_state_dict)
+            trainer_fn.load_state_dict = Mock()
 
     for fn in TrainerFn:
         if fn != TrainerFn.TUNING:
@@ -172,4 +172,3 @@ def test_loops_restore(tmpdir):
             if fn2 not in (fn, TrainerFn.TUNING):
                 trainer_loop2 = getattr(trainer, f"{fn2}_loop")
                 trainer_loop2.load_state_dict.assert_not_called()
-                trainer_loop2.load_state_dict.reset_mock()
