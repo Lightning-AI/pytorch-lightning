@@ -193,7 +193,7 @@ class IPUPlugin(ParallelPlugin):
 
         if accumulation_scheduler.epochs != [0]:
             raise MisconfigurationException(
-                "IPUs currently does not support different `accumulate_grad_batches` at different epoch."
+                "IPUs currently does not support different `accumulate_grad_batches` at different epochs."
             )
 
         # TODO(@tchaton): Add support for accumulate_grad_batches being a dictionary

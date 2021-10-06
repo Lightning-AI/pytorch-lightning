@@ -379,7 +379,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
         if accumulation_scheduler.epochs != [0]:
             raise MisconfigurationException(
-                "DeepSpeed currently does not support different `accumulate_grad_batches` at different epoch."
+                "DeepSpeed currently does not support different `accumulate_grad_batches` at different epochs."
             )
 
         precision = self.lightning_module.trainer.accelerator.precision
