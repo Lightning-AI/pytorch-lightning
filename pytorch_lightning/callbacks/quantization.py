@@ -192,8 +192,8 @@ class QuantizationAwareTraining(Callback):
                 # version=None corresponds to using FakeQuantize rather than
                 # FusedMovingAvgObsFakeQuantize which was introduced in PT1.10
                 # details in https://github.com/pytorch/pytorch/issues/64564
-                extra_args = dict(version=None) if _TORCH_GREATER_EQUAL_1_10 else {}
-                pl_module.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig, **extra_args)
+                extra_kwargs = dict(version=None) if _TORCH_GREATER_EQUAL_1_10 else {}
+                pl_module.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig, **extra_kwargs)
 
         elif isinstance(self._qconfig, QConfig):
             pl_module.qconfig = self._qconfig
