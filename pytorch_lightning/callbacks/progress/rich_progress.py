@@ -262,7 +262,7 @@ class RichProgressBar(ProgressBarBase):
     def _init_progress(self, trainer, pl_module):
         if self.is_enabled and (self.progress is None or self._progress_stopped):
             self._reset_progress_bar_ids()
-            self.progress = CustomProgress(
+            self._progress = CustomProgress(
                 TextColumn("[progress.description]{task.description}"),
                 CustomBarColumn(
                     complete_style=self.theme.progress_bar_complete,
@@ -276,7 +276,7 @@ class RichProgressBar(ProgressBarBase):
                 refresh_per_second=self.refresh_rate_per_second,
                 disable=self.is_disabled,
             )
-            self.progress.start()
+            self._progress.start()
             # progress has started
             self._progress_stopped = False
 
@@ -300,6 +300,7 @@ class RichProgressBar(ProgressBarBase):
         # can't pickle the rich progress objects
         state = self.__dict__.copy()
         state["progress"] = None
+        state["_progress"] = None
         return state
 
     def __setstate__(self, state):
