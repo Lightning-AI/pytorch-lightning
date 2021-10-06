@@ -388,15 +388,6 @@ _NO_WIN = dict(marks=RunIf(skip_windows=True))
 @pytest.mark.parametrize(
     "callbacks, expected_stop_epoch, check_on_train_epoch_end, accelerator, num_processes",
     [
-        ([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, None, 1),
-        ([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, None, 1),
-        pytest.param([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, "ddp_cpu", 2, **_NO_WIN),
-        pytest.param([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, "ddp_cpu", 2, **_NO_WIN),
-        ([EarlyStopping("abc", **_ES_CHECK), EarlyStopping("cba", **_ES_CHECK_P3)], 3, True, None, 1),
-        ([EarlyStopping("cba", **_ES_CHECK_P3), EarlyStopping("abc", **_ES_CHECK)], 3, True, None, 1),
-        pytest.param(
-            [EarlyStopping("abc", **_ES_CHECK), EarlyStopping("cba", **_ES_CHECK_P3)], 3, True, "ddp_cpu", 2, **_NO_WIN
-        ),
         pytest.param(
             [EarlyStopping("cba", **_ES_CHECK_P3), EarlyStopping("abc", **_ES_CHECK)], 3, True, "ddp_cpu", 2, **_NO_WIN
         ),
