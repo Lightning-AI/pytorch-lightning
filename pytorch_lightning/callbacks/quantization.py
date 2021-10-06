@@ -189,11 +189,12 @@ class QuantizationAwareTraining(Callback):
             if self._observer_type == "histogram":
                 pl_module.qconfig = torch.quantization.get_default_qconfig(self._qconfig)
             elif self._observer_type == "average":
-                # Needed because of https://github.com/pytorch/pytorch/issues/64564
-                if _TORCH_GREATER_EQUAL_1_10:
-                    pl_module.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig, None)
-                else:
-                    pl_module.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig)
+                # version=None corresponds to using FakeQuantize rather than
+                # FusedMovingAvgObsFakeQuantize which was introduced in PT1.10
+                # details in https://github.com/pytorch/pytorch/issues/64564
+                extra_args = dict(version=None) if _TORCH_GREATER_EQUAL_1_10 else {}
+                pl_module.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig, **extra_args)
+
         elif isinstance(self._qconfig, QConfig):
             pl_module.qconfig = self._qconfig
 
