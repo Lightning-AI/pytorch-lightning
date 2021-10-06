@@ -576,7 +576,7 @@ def test_trainer_properties_restore_resume_from_checkpoint(tmpdir):
             )
 
         def _check_model_state_dict(self):
-            for k in self.state_dict().keys():
+            for k in self.state_dict():
                 yield self._is_equal(self.state_dict()[k], state_dict["state_dict"][k])
 
         def _test_on_val_test_predict_tune_start(self):
