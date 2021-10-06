@@ -953,9 +953,9 @@ class Trainer(
         return result
 
     def _restore_modules_and_callbacks(self) -> None:
-        # restore modules after setup
-        if self.state.fn == TrainerFn.FITTING:
-            self.checkpoint_connector.resume_start()
+        if self.state.fn != TrainerFn.FITTING:
+            return
+
         self.checkpoint_connector.restore_datamodule()
         self.checkpoint_connector.restore_model()
         # restore callback states
@@ -998,6 +998,7 @@ class Trainer(
 
         # check if we should delay restoring checkpoint till later
         if not self.accelerator.restore_checkpoint_after_pre_dispatch:
+            self.checkpoint_connector.resume_start()
             self._restore_modules_and_callbacks()
 
         self._call_configure_sharded_model()  # allow user to setup in model sharded environment
@@ -1049,6 +1050,8 @@ class Trainer(
         if self.accelerator.restore_checkpoint_after_pre_dispatch:
             if self._ckpt_path:
                 self._load_checkpoint_weights()
+
+            self.checkpoint_connector.resume_start()
             self._restore_modules_and_callbacks()
 
         # restore optimizers, etc.
@@ -1153,7 +1156,8 @@ class Trainer(
         # register signals
         self.signal_connector.register_signal_handlers()
 
-        self.checkpoint_connector.resume_end()
+        if self.state.fn != TrainerFn.TUNING:
+            self.checkpoint_connector.resume_end()
 
         # --------------------------
         # Pre-train
