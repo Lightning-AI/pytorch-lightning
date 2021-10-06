@@ -95,7 +95,7 @@ Print a summary of your LightningModule
 ---------------------------------------
 Whenever the ``.fit()`` function gets called, the Trainer will print the weights summary for the LightningModule.
 By default it only prints the top-level modules. If you want to show all submodules in your network, use the
-`'max_depth'` option:
+``max_depth`` option:
 
 .. testcode::
 
