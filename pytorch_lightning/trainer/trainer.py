@@ -651,7 +651,7 @@ class Trainer(
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to validate.
                 If ``None`` and the model instance was passed, use the current weights.
-                Otherwise, the best model from the previous ``trainer.fit`` call will be loaded
+                Otherwise, the best model checkpoint from the previous ``trainer.fit`` call will be loaded
                 if a checkpoint callback is configured.
 
             verbose: If True, prints the validation results.
@@ -741,7 +741,7 @@ class Trainer(
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
                 If ``None`` and the model instance was passed, use the current weights.
-                Otherwise, the best model from the previous ``trainer.fit`` call will be loaded
+                Otherwise, the best model checkpoint from the previous ``trainer.fit`` call will be loaded
                 if a checkpoint callback is configured.
 
             verbose: If True, prints the test results.
@@ -836,7 +836,7 @@ class Trainer(
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to predict.
                 If ``None`` and the model instance was passed, use the current weights.
-                Otherwise, the best model from the previous ``trainer.fit`` call will be loaded
+                Otherwise, the best model checkpoint from the previous ``trainer.fit`` call will be loaded
                 if a checkpoint callback is configured.
 
         Returns:
