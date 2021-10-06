@@ -18,7 +18,6 @@ import os
 import pickle
 import sys
 from argparse import Namespace
-from collections.abc import Mapping
 from copy import deepcopy
 from pathlib import Path
 from unittest import mock
@@ -48,9 +47,7 @@ from pytorch_lightning.utilities.seed import seed_everything
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.boring_model import RandomIterableDataset, RandomIterableDatasetWithLen
-from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
-from tests.helpers.simple_models import ClassificationModel
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -519,102 +516,6 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         new_trainer.fit(next_model)
         assert state["global_step"] + next_model.num_batches_seen == trainer.num_training_batches * trainer.max_epochs
         assert next_model.num_on_load_checkpoint_called == 1
-
-
-def test_trainer_properties_restore_resume_from_checkpoint(tmpdir):
-    """Test that required trainer properties are set correctly when resuming from checkpoint in different
-    phases."""
-
-    class CustomClassifModel(ClassificationModel):
-        def configure_optimizers(self):
-            optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
-            return [optimizer], [lr_scheduler]
-
-    model = CustomClassifModel()
-    dm = ClassifDataModule()
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_last=True)
-    trainer_args = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        logger=False,
-        callbacks=[checkpoint_callback],
-        num_sanity_val_steps=0,
-    )
-    trainer = Trainer(**trainer_args)
-    trainer.fit(model, datamodule=dm)
-
-    resume_ckpt = str(tmpdir / "last.ckpt")
-    state_dict = torch.load(resume_ckpt)
-
-    trainer_args.update(
-        {"max_epochs": 3, "resume_from_checkpoint": resume_ckpt, "checkpoint_callback": False, "callbacks": []}
-    )
-
-    class CustomClassifModel(CustomClassifModel):
-        def _is_equal(self, a, b):
-            if isinstance(a, torch.Tensor):
-                return torch.all(torch.eq(a, b))
-
-            if isinstance(a, Mapping):
-                return all(self._is_equal(a.get(k, None), b.get(k, None)) for k in b.keys())
-
-            return a == b
-
-        def _check_optimizers(self):
-            return all(
-                self._is_equal(self.trainer.optimizers[i].state_dict(), state_dict["optimizer_states"][i])
-                for i in range(len(self.trainer.optimizers))
-            )
-
-        def _check_schedulers(self):
-            return all(
-                self._is_equal(self.trainer.lr_schedulers[i]["scheduler"].state_dict(), state_dict["lr_schedulers"][i])
-                for i in range(len(self.trainer.lr_schedulers))
-            )
-
-        def _check_model_state_dict(self):
-            for k in self.state_dict():
-                yield self._is_equal(self.state_dict()[k], state_dict["state_dict"][k])
-
-        def _test_on_val_test_predict_tune_start(self):
-            assert self.trainer.current_epoch == state_dict["epoch"]
-            assert self.trainer.global_step == state_dict["global_step"]
-            assert not any(self._check_model_state_dict())
-
-            # no optimizes and schedulers are loaded otherwise
-            if self.trainer.state.fn != TrainerFn.TUNING:
-                return
-
-            assert not self._check_optimizers()
-            assert not self._check_schedulers()
-
-        def on_train_start(self):
-            if self.trainer.state.fn == TrainerFn.TUNING:
-                self._test_on_val_test_predict_tune_start()
-            else:
-                assert self.trainer.current_epoch == state_dict["epoch"]
-                assert self.trainer.global_step == state_dict["global_step"]
-                assert all(self._check_model_state_dict())
-                assert self._check_optimizers()
-                assert self._check_schedulers()
-
-        def on_validation_start(self):
-            if self.trainer.state.fn == TrainerFn.VALIDATING:
-                self._test_on_val_test_predict_tune_start()
-
-        def on_test_start(self):
-            self._test_on_val_test_predict_tune_start()
-
-    for fn in ("tune", "fit", "validate", "test", "predict"):
-        model = CustomClassifModel()
-        dm = ClassifDataModule()
-        trainer_args["auto_scale_batch_size"] = (fn == "tune",)
-        trainer = Trainer(**trainer_args)
-        trainer_fn = getattr(trainer, fn)
-        trainer_fn(model, datamodule=dm)
 
 
 def test_trainer_max_steps_and_epochs(tmpdir):
