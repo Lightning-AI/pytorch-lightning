@@ -260,7 +260,7 @@ class RichProgressBar(ProgressBarBase):
         return "Predicting"
 
     def _init_progress(self, trainer, pl_module):
-        if self.is_enabled and (self.progress is None or self._progress_stopped):
+        if False and self.is_enabled and (self.progress is None or self._progress_stopped):
             self._reset_progress_bar_ids()
             self._console: Console = Console()
             self._console.clear_live()
@@ -308,7 +308,6 @@ class RichProgressBar(ProgressBarBase):
 
     def __setstate__(self, state):
         self.__dict__ = state
-        # reset console reference after loading progress
 
     def on_sanity_check_start(self, trainer, pl_module):
         super().on_sanity_check_start(trainer, pl_module)

@@ -522,8 +522,9 @@ def test_tqdm_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
     tqdm_write.assert_not_called()
 
 
-def test_progress_bar_can_be_pickled():
-    bar = ProgressBar()
+@pytest.mark.parametrize("progress_bar_cls", (ProgressBar, pytest.param(RichProgressBar, marks=RunIf(rich=True))))
+def test_progress_bar_can_be_pickled(progress_bar_cls):
+    bar = progress_bar_cls()
     trainer = Trainer(fast_dev_run=True, callbacks=[bar], max_steps=1)
     model = BoringModel()
 
