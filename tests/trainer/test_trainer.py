@@ -611,12 +611,7 @@ def test_trainer_properties_restore_resume_from_checkpoint(tmpdir):
     for fn in ("tune", "fit", "validate", "test", "predict"):
         model = CustomClassifModel()
         dm = ClassifDataModule()
-        trainer_args.update(
-            {
-                "auto_scale_batch_size": fn == "tune",
-            }
-        )
-
+        trainer_args["auto_scale_batch_size"] = (fn == "tune",)
         trainer = Trainer(**trainer_args)
         trainer_fn = getattr(trainer, fn)
         trainer_fn(model, datamodule=dm)

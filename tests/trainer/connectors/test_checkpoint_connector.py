@@ -148,15 +148,10 @@ def test_loops_restore(tmpdir):
         num_sanity_val_steps=0,
     )
     trainer = Trainer(**trainer_args)
-    trainer.validate(model)
-    trainer.test(model)
-    trainer.predict(model)
     trainer.fit(model)
 
-    resume_ckpt = str(tmpdir / "last.ckpt")
-    trainer_args.update(
-        {"max_epochs": 3, "resume_from_checkpoint": resume_ckpt, "checkpoint_callback": False, "callbacks": []}
-    )
+    trainer_args["resume_from_checkpoint"] = str(tmpdir / "last.ckpt")
+
     trainer = Trainer(**trainer_args)
     for fn in TrainerFn:
         if fn != TrainerFn.TUNING:
