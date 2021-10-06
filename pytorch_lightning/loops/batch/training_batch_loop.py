@@ -78,7 +78,7 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
 
         # hook
         # TODO: Update this in v1.7 (deprecation: #9816)
-        model_fx = getattr(self.trainer.lightning_module, "on_train_batch_start", None)
+        model_fx = self.trainer.lightning_module.on_train_batch_start
         extra_kwargs = (
             {"dataloader_idx": 0}
             if callable(model_fx) and is_param_in_hook_signature(model_fx, "dataloader_idx", explicit=True)
