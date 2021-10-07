@@ -295,3 +295,27 @@ def test_v1_7_0_old_on_train_batch_end(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature(), fast_dev_run=True)
     with pytest.deprecated_call(match="`dataloader_idx` argument will be removed in v1.7."):
         trainer.fit(model)
+
+
+def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir):
+    class TestModel(BoringModel):
+        def on_post_move_to_device(self):
+            print("on_post_move_to_device")
+
+    model = TestModel()
+
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, max_epochs=1)
+
+    with pytest.deprecated_call(
+        match=r"Method `on_post_move_to_device` has been deprecated in v1.5 and will be removed in v1.7"
+    ):
+        trainer.fit(model)
+
+
+def test_v1_7_0_deprecate_parameter_validation():
+
+    _soft_unimport_module("pytorch_lightning.core.decorators")
+    with pytest.deprecated_call(
+        match="Using `pytorch_lightning.core.decorators.parameter_validation` is deprecated in v1.5"
+    ):
+        from pytorch_lightning.core.decorators import parameter_validation  # noqa: F401
