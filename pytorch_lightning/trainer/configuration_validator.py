@@ -260,6 +260,6 @@ class ConfigValidator:
             for cb in self.trainer.callbacks:
                 if is_param_in_hook_signature(getattr(cb, hook), "dataloader_idx", explicit=True):
                     rank_zero_deprecation(
-                        f"`{cb.__class__.__name__}.{hook}` hook signature has changed in v1.5."
+                        f"Base `Callback.{hook}` hook signature has changed in v1.5."
                         " The `dataloader_idx` argument will be removed in v1.7."
                     )
