@@ -30,6 +30,7 @@ def get_accuracy(model, X, y, device: str, model_eval: bool = False, argmax: boo
     criterion:
     device:the device that all of the operations are run on
     model_eval:convert the model to a train state or eval state
+    
     argmax:True - [0,1,0] [1,0,0] False -1 5
     """
     if model_eval is True:  # Check is model_eval is True
