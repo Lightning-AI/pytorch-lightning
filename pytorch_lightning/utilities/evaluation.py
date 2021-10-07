@@ -11,9 +11,9 @@ def get_loss(model, X, y, criterion, device="cpu", model_eval=False) -> float:
     model_eval:should this funtion convert the model to a train state or eval state
     """
     if model_eval is True:  # Check is model_eval is True
-        model.eval()  # If model_eval is true this funtion will turn the model's state to evaluation.
+        model.eval()
     else:
-        model.train()  # If model_eval is false this funtion will turn the model's state to train
+        model.train()
     model.to(device)
     X = X.to(device)
     y = y.to(device)
@@ -28,14 +28,14 @@ def get_accuracy(model, X, y, device: str = "cpu", model_eval: bool = False, arg
     X:Inputs of the Model
     y:Ground Truths
     criterion:
-    device:the device that the model and all of the operations are run on
+    device:the device that all of the operations are run on
     model_eval:convert the model to a train state or eval state
     argmax:True - [0,1,0] [1,0,0] False -1 5
     """
     if model_eval is True:  # Check is model_eval is True
-        model.eval()  # If model_eval is true this funtion will turn the model's state to evaluation.
+        model.eval()
     else:
-        model.train()  # If model_eval is false this funtion will turn the model's state to train
+        model.train()
     model.to(device)
     X = X.to(device)
     y = y.to(device)
