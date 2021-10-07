@@ -26,7 +26,7 @@ def bag_of_words(tokenized_words, all_words):
 
 
 def create_nlp_data(
-    X, y, device: str, matrix_y: bool = False, test_size: float = 0.25
+    X, y, matrix_y: bool = False, test_size: float = 0.25
 ) -> "X_train, X_test, y_train, y_test, X, y, data, words, labels, labels_r":
     data = []
     labels = {}
@@ -56,8 +56,8 @@ def create_nlp_data(
         X.append(bag_of_words(sentence, words))
         y.append(tag)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, shuffle=False)
-    X_train = torch.from_numpy(np.array(X_train)).to(device).float()
-    y_train = torch.from_numpy(np.array(y_train)).to(device).float()
-    X_test = torch.from_numpy(np.array(X_test)).to(device).float()
-    y_test = torch.from_numpy(np.array(y_test)).to(device).float()
+    X_train = torch.from_numpy(np.array(X_train)).float()
+    y_train = torch.from_numpy(np.array(y_train)).float()
+    X_test = torch.from_numpy(np.array(X_test)).float()
+    y_test = torch.from_numpy(np.array(y_test)).float()
     return X_train, X_test, y_train, y_test, X, y, data, words, labels, labels_r
