@@ -177,6 +177,7 @@ class Trainer(
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         stochastic_weight_avg: bool = False,
+        detect_anomaly: bool = False,
     ):
         r"""
         Customize every aspect of training via flags.
@@ -222,6 +223,8 @@ class Trainer(
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
                 Default: ``os.getcwd()``.
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
+
+            detect_anomaly: Enable anomaly detection for the autograd engine.
 
             deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
                 Default: ``False``.
@@ -488,6 +491,7 @@ class Trainer(
             track_grad_norm,
             terminate_on_nan,
         )
+        self._detect_anomaly: bool = detect_anomaly
         self._setup_on_init(num_sanity_val_steps)
 
         # configure tuner
@@ -1184,7 +1188,8 @@ class Trainer(
         self.reset_train_val_dataloaders(model)
 
         self.fit_loop.trainer = self
-        self.fit_loop.run()
+        with torch.autograd.set_detect_anomaly(self._detect_anomaly):
+            self.fit_loop.run()
 
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
         if not self.is_global_zero and self.progress_bar_callback is not None:

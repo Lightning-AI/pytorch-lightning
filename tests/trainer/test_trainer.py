@@ -2079,3 +2079,19 @@ def test_trainer_metrics_reset_before_each_task(tmpdir):
     trainer.validate(model)
     trainer.test(model)
     trainer.predict(model)
+
+
+def test_detect_anomaly_nan(tmpdir):
+    class NanModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            output = super().training_step(batch, batch_idx)
+            output["loss"] = output["loss"] * torch.tensor(float("nan"))
+            return output
+
+    model = NanModel()
+    trainer = Trainer(default_root_dir=tmpdir, detect_anomaly=True)
+    with pytest.raises(RuntimeError, match=r"returned nan values in its 0th output."):
+        with pytest.warns(
+            UserWarning, match=r".*Error detected in.* Traceback of forward call that caused the error.*"
+        ):
+            trainer.fit(model)
