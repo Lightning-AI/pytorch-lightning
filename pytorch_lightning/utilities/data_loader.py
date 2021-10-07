@@ -1,9 +1,6 @@
 import os
-
 import cv2
 import numpy as np
-import torch
-import torchvision
 from tqdm import tqdm
 
 
@@ -22,15 +19,15 @@ def load_data(data_dir: str, matrix: bool = False, idx_clf: bool = False):
             idx += 1
             labels[label] = idx
             labels_r[idx] = label
-        for folder in os.listdir(data_dir):
-            for file in os.listdir(f"{data_dir}{folder}/"):
+        for folder in tqdm(os.listdir(data_dir)):
+            for file in tqdm(os.listdir(f"{data_dir}{folder}/")):
                 img = cv2.imread(f"{data_dir}{folder}/{file}")
                 img = cv2.resize(img, (56, 56))
                 img = img / 255.0
                 data.append([img, np.eye(labels[folder] + 1, len(labels))[labels[folder] - 1]])
         X = []
         y = []
-        for d in data:
+        for d in tqdm(data):
             X.append(d[0])
             y.append(d[1])
     if idx_clf:
