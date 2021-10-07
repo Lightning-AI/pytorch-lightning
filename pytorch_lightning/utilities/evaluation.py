@@ -1,34 +1,29 @@
 import torch
 
 
-def get_loss(model, X, y, criterion, device, model_eval=False) -> float:
+def get_loss(model, X, y, criterion, model_eval=False) -> float:
     """
     model:
     X:Inputs of the Model
     y:Ground Truths
     criterion:
-    device:the device that the model and all of the operations are run on
     model_eval:should this funtion convert the model to a train state or eval state
     """
     if model_eval is True:  # Check is model_eval is True
         model.eval()
     else:
         model.train()
-    model.to(device)
-    X = X.to(device)
-    y = y.to(device)
     preds = model(X)  # Predicting X
     loss = criterion(preds, y)  # Calculating loss
     return loss.item()
 
 
-def get_accuracy(model, X, y, device: str, model_eval: bool = False, argmax: bool = False) -> float:
+def get_accuracy(model, X, y, model_eval: bool = False, argmax: bool = False) -> float:
     """
     model:
     X:Inputs of the Model
     y:Ground Truths
     criterion:
-    device:the device that all of the operations are run on
     model_eval:convert the model to a train state or eval state
 
     argmax:True - [0,1,0] [1,0,0] False -1 5
@@ -37,11 +32,7 @@ def get_accuracy(model, X, y, device: str, model_eval: bool = False, argmax: boo
         model.eval()
     else:
         model.train()
-    model.to(device)
-    X = X.to(device)
-    y = y.to(device)
     preds = model(X)  # Predicting X
-    preds = preds.to(device)  # Convert predictions to the device
     correct = 0
     total = 0
     for pred, yb in zip(preds, y):  # iterating over the predictions and the truth
