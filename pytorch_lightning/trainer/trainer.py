@@ -177,6 +177,7 @@ class Trainer(
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         stochastic_weight_avg: bool = False,
+        detect_anomaly: bool = False,
     ):
         r"""
         Customize every aspect of training via flags.
@@ -222,6 +223,8 @@ class Trainer(
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
                 Default: ``os.getcwd()``.
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
+
+            detect_anomaly: Enable anomaly detection for the autograd engine.
 
             deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
                 Default: ``False``.
@@ -488,6 +491,7 @@ class Trainer(
             track_grad_norm,
             terminate_on_nan,
         )
+        self._detect_anomaly: bool = detect_anomaly
         self._setup_on_init(num_sanity_val_steps)
 
         # configure tuner
@@ -953,9 +957,9 @@ class Trainer(
         return result
 
     def _restore_modules_and_callbacks(self) -> None:
-        # restore modules after setup
-        if self.state.fn == TrainerFn.FITTING:
-            self.checkpoint_connector.resume_start()
+        if self.state.fn != TrainerFn.FITTING:
+            return
+
         self.checkpoint_connector.restore_datamodule()
         self.checkpoint_connector.restore_model()
         # restore callback states
@@ -998,6 +1002,7 @@ class Trainer(
 
         # check if we should delay restoring checkpoint till later
         if not self.accelerator.restore_checkpoint_after_pre_dispatch:
+            self.checkpoint_connector.resume_start()
             self._restore_modules_and_callbacks()
 
         self._call_configure_sharded_model()  # allow user to setup in model sharded environment
@@ -1049,6 +1054,8 @@ class Trainer(
         if self.accelerator.restore_checkpoint_after_pre_dispatch:
             if self._ckpt_path:
                 self._load_checkpoint_weights()
+
+            self.checkpoint_connector.resume_start()
             self._restore_modules_and_callbacks()
 
         # restore optimizers, etc.
@@ -1153,7 +1160,8 @@ class Trainer(
         # register signals
         self.signal_connector.register_signal_handlers()
 
-        self.checkpoint_connector.resume_end()
+        if self.state.fn != TrainerFn.TUNING:
+            self.checkpoint_connector.resume_end()
 
         # --------------------------
         # Pre-train
@@ -1180,7 +1188,8 @@ class Trainer(
         self.reset_train_val_dataloaders(model)
 
         self.fit_loop.trainer = self
-        self.fit_loop.run()
+        with torch.autograd.set_detect_anomaly(self._detect_anomaly):
+            self.fit_loop.run()
 
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
         if not self.is_global_zero and self.progress_bar_callback is not None:
