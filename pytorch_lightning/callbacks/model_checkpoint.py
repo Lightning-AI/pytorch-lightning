@@ -279,7 +279,6 @@ class ModelCheckpoint(Callback):
         outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
-        dataloader_idx: int,
     ) -> None:
         """Save checkpoint on train batch end if we meet the criteria for `every_n_train_steps`"""
         if self._should_skip_saving_checkpoint(trainer):
@@ -304,9 +303,7 @@ class ModelCheckpoint(Callback):
 
         self.save_checkpoint(trainer)
 
-    def on_train_epoch_end(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", unused: Optional = None
-    ) -> None:
+    def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Save a checkpoint at the end of the training epoch."""
         # as we advance one step at end of training, we use `global_step - 1` to avoid saving duplicates
         trainer.fit_loop.global_step -= 1

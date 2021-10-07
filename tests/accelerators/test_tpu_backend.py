@@ -163,7 +163,7 @@ def test_manual_optimization_tpus(tmpdir):
         def should_update(self):
             return self.count % 2 == 0
 
-        def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
+        def on_train_batch_start(self, batch, batch_idx):
             self.called["on_train_batch_start"] += 1
             self.weight_before = self.layer.weight.clone()
 
@@ -179,7 +179,7 @@ def test_manual_optimization_tpus(tmpdir):
                 opt.zero_grad()
             return loss
 
-        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+        def on_train_batch_end(self, outputs, batch, batch_idx):
             self.called["on_train_batch_end"] += 1
             after_before = self.layer.weight.clone()
             if self.should_update:

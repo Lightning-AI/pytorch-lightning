@@ -501,7 +501,7 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         def on_train_epoch_start(self, trainer, pl_module):
             self.log("on_train_epoch_start", 2)
 
-        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
             self.log("on_train_batch_end", 3)
 
         def on_batch_end(self, trainer, pl_module):
