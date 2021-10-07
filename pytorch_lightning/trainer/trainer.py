@@ -1986,7 +1986,7 @@ class Trainer(
     @property
     def terminate_on_nan(self) -> bool:
         rank_zero_deprecation(
-            "Trainer property `terminate_on_nan` was deprecated in v1.5 release"
+            "`Trainer.terminate_on_nan` is deprecated in v1.5 release"
             " and will be removed in the v1.7 release."
             " Please use `detect_anomaly` instead."
         )
@@ -1995,7 +1995,7 @@ class Trainer(
     @terminate_on_nan.setter
     def terminate_on_nan(self, val: bool) -> None:
         rank_zero_deprecation(
-            "Trainer property `terminate_on_nan` was deprecated in v1.5 release"
+            "Setting `Trainer.terminate_on_nan` is deprecated in v1.5 release"
             " and will be removed in the v1.7 release."
             " Please use `detect_anomaly` instead."
         )

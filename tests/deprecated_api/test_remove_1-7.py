@@ -287,3 +287,10 @@ def test_v1_7_0_trainer_terminate_on_nan(tmpdir):
         " in the v1.7 release. Please use trainer argument `detect_anomaly` instead."
     ):
         _ = Trainer(terminate_on_nan=True)
+
+    t = Trainer(terminate_on_nan=True)
+    with pytest.deprecated_call(match=r"`Trainer.terminate_on_nan` is deprecated in v1.5"):
+        _ = t.terminate_on_nan
+
+    with pytest.deprecated_call(match=r"Setting `Trainer.terminate_on_nan` is deprecated in v1.5"):
+        t.terminate_on_nan = "blah"
