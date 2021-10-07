@@ -268,12 +268,12 @@ def test_v1_7_0_old_on_train_batch_start(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature())
-    with pytest.deprecated_call(match="old signature will be removed in v1.7"):
+    with pytest.deprecated_call(match="`dataloader_idx` argument will be removed in v1.7."):
         trainer.fit(model)
 
     model = OldSignatureModel()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
-    with pytest.deprecated_call(match="old signature will be removed in v1.7"):
+    with pytest.deprecated_call(match="`dataloader_idx` argument will be removed in v1.7."):
         trainer.fit(model)
 
 
@@ -287,11 +287,11 @@ def test_v1_7_0_old_on_train_batch_end(tmpdir):
             ...
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature())
-    with pytest.deprecated_call(match="old signature will be removed in v1.7"):
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature(), fast_dev_run=True)
+    with pytest.deprecated_call(match="`dataloader_idx` argument will be removed in v1.7."):
         trainer.fit(model)
 
     model = OldSignatureModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
-    with pytest.deprecated_call(match="old signature will be removed in v1.7"):
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature(), fast_dev_run=True)
+    with pytest.deprecated_call(match="`dataloader_idx` argument will be removed in v1.7."):
         trainer.fit(model)

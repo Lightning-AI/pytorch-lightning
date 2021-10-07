@@ -253,15 +253,13 @@ class ConfigValidator:
         for hook in ("on_train_batch_start", "on_train_batch_end"):
             if is_param_in_hook_signature(getattr(model, hook), "dataloader_idx", explicit=True):
                 rank_zero_deprecation(
-                    f"`LightningModule.{hook}` hook signature has changed in v1.5. `dataloader_idx`"
-                    " argument has been removed from it. Support for the old signature"
-                    " will be removed in v1.7."
+                    f"Base `LightningModule.{hook}` hook signature has changed in v1.5."
+                    " The `dataloader_idx` argument will be removed in v1.7."
                 )
 
             for cb in self.trainer.callbacks:
                 if is_param_in_hook_signature(getattr(cb, hook), "dataloader_idx", explicit=True):
                     rank_zero_deprecation(
-                        f"`{cb.__class__.__name__}.{hook}` hook signature has changed in v1.5. `dataloader_idx`"
-                        " argument has been removed from it. Support for the old signature"
-                        " will be removed in v1.7."
+                        f"`{cb.__class__.__name__}.{hook}` hook signature has changed in v1.5."
+                        " The `dataloader_idx` argument will be removed in v1.7."
                     )
