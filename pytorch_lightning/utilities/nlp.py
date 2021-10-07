@@ -25,7 +25,9 @@ def bag_of_words(tokenized_words, all_words):
     return bag
 
 
-def create_nlp_data(X, y, device: str, matrix_y: bool = False, test_size: float = 0.25) -> 'X_train, X_test, y_train, y_test, X, y, data, words, labels, labels_r':
+def create_nlp_data(
+    X, y, device: str, matrix_y: bool = False, test_size: float = 0.25
+) -> "X_train, X_test, y_train, y_test, X, y, data, words, labels, labels_r":
     data = []
     labels = {}
     labels_r = {}
