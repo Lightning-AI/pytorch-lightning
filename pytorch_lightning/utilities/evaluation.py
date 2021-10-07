@@ -1,7 +1,7 @@
 import torch
 
 
-def get_loss(model, X, y, criterion, device="cpu", model_eval=False) -> float:
+def get_loss(model, X, y, criterion, device, model_eval=False) -> float:
     """
     model:
     X:Inputs of the Model
@@ -22,7 +22,7 @@ def get_loss(model, X, y, criterion, device="cpu", model_eval=False) -> float:
     return loss.item()
 
 
-def get_accuracy(model, X, y, device: str = "cpu", model_eval: bool = False, argmax: bool = False) -> float:
+def get_accuracy(model, X, y, device: str, model_eval: bool = False, argmax: bool = False) -> float:
     """
     model:
     X:Inputs of the Model
