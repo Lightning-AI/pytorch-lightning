@@ -348,6 +348,10 @@ class Trainer(
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
                 end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
 
+                .. deprecated:: v1.5
+                    ``terminate_on_nan`` has been deprecated in v1.5 and will be removed in v1.7.
+                    Please use Trainer argument ``detect_anomaly`` instead.
+
             tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on [1]
 
             ipus: How many IPUs to train on.
@@ -1978,6 +1982,24 @@ class Trainer(
             "`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
         )
         return self.fit_loop
+
+    @property
+    def terminate_on_nan(self) -> bool:
+        rank_zero_deprecation(
+            "Trainer property `terminate_on_nan` was deprecated in v1.5 release"
+            " and will be removed in the v1.7 release."
+            " Please use `detect_anomaly` instead."
+        )
+        return self._terminate_on_nan
+
+    @terminate_on_nan.setter
+    def terminate_on_nan(self, val: bool) -> None:
+        rank_zero_deprecation(
+            "Trainer property `terminate_on_nan` was deprecated in v1.5 release"
+            " and will be removed in the v1.7 release."
+            " Please use `detect_anomaly` instead."
+        )
+        self._terminate_on_nan = val
 
     @property
     def _ckpt_path(self) -> Optional[str]:

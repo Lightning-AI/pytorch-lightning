@@ -15,6 +15,7 @@ from typing import Union
 
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
 class TrainingTricksConnector:
@@ -28,6 +29,12 @@ class TrainingTricksConnector:
         track_grad_norm: Union[int, float, str],
         terminate_on_nan: bool,
     ):
+        if terminate_on_nan:
+            rank_zero_deprecation(
+                "Trainer argument `terminate_on_nan` was deprecated in v1.5 release"
+                " and will be removed in the v1.7 release."
+                " Please use trainer argument `detect_anomaly` instead."
+            )
         if not isinstance(terminate_on_nan, bool):
             raise TypeError(f"`terminate_on_nan` should be a bool, got {terminate_on_nan}.")
 
@@ -47,7 +54,7 @@ class TrainingTricksConnector:
                 f"`track_grad_norm` should be an int, a float or 'inf' (infinity norm). Got {track_grad_norm}."
             )
 
-        self.trainer.terminate_on_nan = terminate_on_nan
+        self.trainer._terminate_on_nan = terminate_on_nan
         self.trainer.gradient_clip_val = gradient_clip_val
         self.trainer.gradient_clip_algorithm = GradClipAlgorithmType(gradient_clip_algorithm.lower())
         self.trainer.track_grad_norm = float(track_grad_norm)
