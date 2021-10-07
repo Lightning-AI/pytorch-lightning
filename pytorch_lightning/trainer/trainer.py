@@ -1977,31 +1977,6 @@ class Trainer(
             return self.predict_loop
 
     @property
-    def train_loop(self) -> FitLoop:
-        rank_zero_deprecation(
-            "`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
-        )
-        return self.fit_loop
-
-    @property
-    def terminate_on_nan(self) -> bool:
-        rank_zero_deprecation(
-            "`Trainer.terminate_on_nan` is deprecated in v1.5 release"
-            " and will be removed in the v1.7 release."
-            " Please use `detect_anomaly` instead."
-        )
-        return self._terminate_on_nan
-
-    @terminate_on_nan.setter
-    def terminate_on_nan(self, val: bool) -> None:
-        rank_zero_deprecation(
-            "Setting `Trainer.terminate_on_nan` is deprecated in v1.5 release"
-            " and will be removed in the v1.7 release."
-            " Please use `detect_anomaly` instead."
-        )
-        self._terminate_on_nan = val
-
-    @property
     def _ckpt_path(self) -> Optional[str]:
         if self.state.fn == TrainerFn.VALIDATING:
             return self.validated_ckpt_path
@@ -2050,3 +2025,28 @@ class Trainer(
 
     def __setstate__(self, state):
         self.__dict__ = state
+
+    @property
+    def train_loop(self) -> FitLoop:
+        rank_zero_deprecation(
+            "`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
+        )
+        return self.fit_loop
+
+    @property
+    def terminate_on_nan(self) -> bool:
+        rank_zero_deprecation(
+            "`Trainer.terminate_on_nan` is deprecated in v1.5 release"
+            " and will be removed in the v1.7 release."
+            " Please use `detect_anomaly` instead."
+        )
+        return self._terminate_on_nan
+
+    @terminate_on_nan.setter
+    def terminate_on_nan(self, val: bool) -> None:
+        rank_zero_deprecation(
+            "Setting `Trainer.terminate_on_nan` is deprecated in v1.5 release"
+            " and will be removed in the v1.7 release."
+            " Please use `detect_anomaly` instead."
+        )
+        self._terminate_on_nan = val
