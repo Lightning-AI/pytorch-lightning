@@ -101,7 +101,7 @@ def test_device_stats_monitor_tpu(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=2,
         limit_train_batches=5,
-        tpu_cores=8,
+        tpu_cores=1,
         log_every_n_steps=1,
         callbacks=[device_stats],
         logger=logger,
