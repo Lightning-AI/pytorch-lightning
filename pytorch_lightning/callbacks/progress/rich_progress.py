@@ -369,8 +369,8 @@ class RichProgressBar(ProgressBarBase):
         super().on_predict_epoch_start(trainer, pl_module)
         self.predict_progress_bar_id = self._add_task(self.total_predict_batches, self.predict_description)
 
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
         self._update(self.main_progress_bar_id)
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):

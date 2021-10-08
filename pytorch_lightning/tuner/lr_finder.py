@@ -344,7 +344,7 @@ class _LRCallback(Callback):
 
         self.lrs.append(trainer.lr_schedulers[0]["scheduler"].lr[0])
 
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         """Called when the training batch ends, logs the calculated loss."""
         if (trainer.fit_loop.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return

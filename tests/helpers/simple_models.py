@@ -68,6 +68,10 @@ class ClassificationModel(LightningModule):
         self.log("test_loss", F.cross_entropy(logits, y), prog_bar=False)
         self.log("test_acc", self.test_acc(logits, y), prog_bar=True)
 
+    def predict_step(self, batch, batch_idx):
+        x, _ = batch
+        return self.forward(x)
+
 
 class RegressionModel(LightningModule):
     def __init__(self):
