@@ -35,7 +35,7 @@ local tputests = base.BaseTest {
       coverage run --source=pytorch_lightning -m pytest -v --capture=no \
           tests/profiler/test_xla_profiler.py \
           pytorch_lightning/utilities/xla_device.py \
-          tests/accelerators/test_tpu.py
+          tests/accelerators/test_tpu.py \
           tests/accelerators/test_tpu_backend.py \
           tests/models/test_tpu.py \
           tests/callbacks/test_device_stats_monitor.py
