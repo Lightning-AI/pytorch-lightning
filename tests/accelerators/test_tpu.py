@@ -1,5 +1,5 @@
 from pytorch_lightning.accelerators import TPUAccelerator
-from pytorch_lightning.plugins import SingleTPUPlugin, PrecisionPlugin
+from pytorch_lightning.plugins import PrecisionPlugin, SingleTPUPlugin
 from tests.helpers.runif import RunIf
 
 
