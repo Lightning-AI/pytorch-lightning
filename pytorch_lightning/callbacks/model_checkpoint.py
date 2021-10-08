@@ -222,6 +222,9 @@ class ModelCheckpoint(Callback):
         self.verbose = verbose
         self.save_last = save_last
         self.save_top_k = save_top_k
+        # TODO : The error is from #9868 do a better fix for the bug this is a solution for now
+        if self.save_top_k is None:
+            self.save_top_k = 0
         self.save_weights_only = save_weights_only
         self.auto_insert_metric_name = auto_insert_metric_name
         self._save_on_train_epoch_end = save_on_train_epoch_end
