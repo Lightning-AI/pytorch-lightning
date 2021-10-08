@@ -110,7 +110,8 @@ def test_device_stats_monitor_tpu(tmpdir):
     )
 
     with patch.object(CSVLogger, "log_metrics") as mock_log_method:
-        device_stats.on_train_batch_start(trainer, model, None, None, None)
+        trainer.fit(model)
+        # device_stats.on_train_batch_start(trainer, model, None, None, None)
 
     metrics_dict = mock_log_method.call_args.args[0]
 
