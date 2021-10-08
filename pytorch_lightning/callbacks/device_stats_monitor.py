@@ -52,8 +52,8 @@ class DeviceStatsMonitor(Callback):
         if not self._should_log(trainer):
             return
 
-        device = trainer.training_type_plugin.root_device
-        device_stats = trainer.accelerator.get_device_stats(device)
+        # device = trainer.training_type_plugin.root_device
+        device_stats = trainer.accelerator.get_device_stats(pl_module.device)
         trainer.logger.log_metrics(device_stats, step=trainer.global_step)
 
     def on_train_batch_end(
@@ -68,8 +68,8 @@ class DeviceStatsMonitor(Callback):
         if not self._should_log(trainer):
             return
 
-        device = trainer.training_type_plugin.root_device
-        device_stats = trainer.accelerator.get_device_stats(device)
+        # device = trainer.training_type_plugin.root_device
+        device_stats = trainer.accelerator.get_device_stats(pl_module.device)
         trainer.logger.log_metrics(device_stats, step=trainer.global_step)
 
     @staticmethod
