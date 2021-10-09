@@ -33,6 +33,7 @@ else:
     import torch.quantization as ptq
     from torch.quantization import QConfig
 
+
 def wrap_qat_forward_context(
     quant_cb, model: "pl.LightningModule", func: Callable, trigger_condition: Optional[Union[Callable, int]] = None
 ) -> Callable:
