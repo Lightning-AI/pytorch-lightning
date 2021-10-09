@@ -57,7 +57,7 @@ def test_accelerator_choice_cpu(tmpdir):
 def test_accelerator_choice_ddp_cpu(tmpdir):
     trainer = Trainer(fast_dev_run=True, accelerator="ddp_cpu")
     assert isinstance(trainer.accelerator, CPUAccelerator)
-    assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPPlugin)
     assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
 
 
