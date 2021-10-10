@@ -769,7 +769,7 @@ class AcceleratorConnector:
                     "`accelerator='ddp_cpu'` is not supported on TPU machines. "
                     "Learn more: https://github.com/PyTorchLightning/pytorch-lightning/issues/7810"
                 )
-            if self.num_processes == 1 or (self.num_nodes > 1 and self.num_processes is None):
+            if self.num_processes == 1 and self.num_nodes > 1:
                 self._distrib_type = DistributedType.DDP
                 self.num_processes = 1
             else:
