@@ -54,10 +54,11 @@ def test_accelerator_choice_cpu(tmpdir):
     assert isinstance(trainer.training_type_plugin, SingleDevicePlugin)
 
 
-def test_accelerator_choice_ddp_cpu(tmpdir):
+@pytest.mark.parametrize("num_processes", [1, 2])
+def test_accelerator_choice_ddp_cpu(tmpdir, num_processes: int):
     trainer = Trainer(fast_dev_run=True, accelerator="ddp_cpu")
     assert isinstance(trainer.accelerator, CPUAccelerator)
-    assert isinstance(trainer.training_type_plugin, DDPPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPPlugin if num_processes > 1 else DDPSpawnPlugin)
     assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
 
 
