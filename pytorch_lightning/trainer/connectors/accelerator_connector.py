@@ -771,7 +771,6 @@ class AcceleratorConnector:
                 )
             if self.num_processes == 1 and self.num_nodes > 1:
                 self._distrib_type = DistributedType.DDP
-                self.num_processes = 1
             else:
                 self._distrib_type = DistributedType.DDP_SPAWN
             if self.num_gpus > 0:
