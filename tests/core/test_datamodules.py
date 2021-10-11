@@ -21,13 +21,15 @@ from unittest.mock import call, PropertyMock
 import pytest
 import torch
 from omegaconf import OmegaConf
+from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from tests.helpers import BoringDataModule, BoringModel
+from tests.helpers import BoringDataModule, BoringModel, RandomDataset
+from tests.helpers.dataloaders import CustomNotImplementedErrorDataloader
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
@@ -625,3 +627,55 @@ def test_inconsistent_prepare_data_per_node(tmpdir):
         trainer.model = model
         trainer.datamodule = dm
         trainer.data_connector.prepare_data()
+
+
+DATALOADER = DataLoader(RandomDataset(1, 32))
+
+
+@pytest.mark.parametrize("method_name", ["train_dataloader", "val_dataloader", "test_dataloader", "predict_dataloader"])
+@pytest.mark.parametrize(
+    ["dataloader", "expected"],
+    [
+        [DATALOADER, 32],
+        [[DATALOADER, DATALOADER], 64],
+        [[[DATALOADER], [DATALOADER, DATALOADER]], 96],
+        [[{"foo": DATALOADER}, {"foo": DATALOADER, "bar": DATALOADER}], 96],
+        [{"foo": DATALOADER, "bar": DATALOADER}, 64],
+        [{"foo": {"foo": DATALOADER}, "bar": {"foo": DATALOADER, "bar": DATALOADER}}, 96],
+        [{"foo": [DATALOADER], "bar": [DATALOADER, DATALOADER]}, 96],
+    ],
+)
+def test_len_different_types(method_name, dataloader, expected):
+    dm = LightningDataModule()
+    setattr(dm, method_name, lambda: dataloader)
+    assert len(dm) == expected
+
+
+@pytest.mark.parametrize("method_name", ["train_dataloader", "val_dataloader", "test_dataloader", "predict_dataloader"])
+def test_len_dataloader_no_len(method_name):
+    dataloader = CustomNotImplementedErrorDataloader(DATALOADER)
+    dm = LightningDataModule()
+    setattr(dm, method_name, lambda: dataloader)
+    with pytest.warns(UserWarning, match="`__len__` is not implemented for a `Dataloader`."):
+        assert len(dm) == 0
+
+
+def test_len_all_dataloader_methods_implemented():
+    class BoringDataModule(LightningDataModule):
+        def __init__(self, dataloader):
+            self.dataloader = dataloader
+
+        def train_dataloader(self):
+            return {"foo": self.dataloader, "bar": self.dataloader}
+
+        def val_dataloader(self):
+            return self.dataloader
+
+        def test_dataloader(self):
+            return [self.dataloader]
+
+        def predict_dataloader(self):
+            return [self.dataloader, self.dataloader]
+
+    dm = BoringDataModule(DATALOADER)
+    assert len(dm) == 192
