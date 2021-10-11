@@ -41,6 +41,7 @@ PyTorch Lightning follows the design of `PyTorch distributed communication packa
 - *WORLD_SIZE* - required; how many nodes are in the cluster
 - *NODE_RANK* - required; id of the node in the cluster
 
+.. _training_script_setup:
 
 Training script setup
 ---------------------
@@ -77,7 +78,7 @@ This means that you need to:
 
 `Torch Distributed Run <https://pytorch.org/docs/stable/elastic/run.html>`__ provides helper functions to setup distributed environment variables from the `PyTorch distributed communication package <https://pytorch.org/docs/stable/distributed.html#environment-variable-initialization>`__ that need to be defined on each node.
 
-Once the script is setup like described in :ref:`Training script setup`, you can run the below command across your nodes to start multi-node training.
+Once the script is setup like described in :ref:`training_script_setup`, you can run the below command across your nodes to start multi-node training.
 
 Like a custom cluster, you have to ensure that there is network connectivity between the nodes with firewall rules that allow traffic flow on a specified *MASTER_PORT*.
 
