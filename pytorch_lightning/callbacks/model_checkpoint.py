@@ -427,17 +427,12 @@ class ModelCheckpoint(Callback):
                     f"ModelCheckpoint(save_top_k={self.save_top_k}, monitor=None) is not a valid"
                     " configuration. No quantity for top_k to track."
                 )
-            if self.save_last:
-                rank_zero_warn(
-                    "ModelCheckpoint(save_last=True, save_top_k=0, monitor=None) is a redundant configuration."
-                    " You can save the last checkpoint with ModelCheckpoint(save_top_k=None, monitor=None)."
-                )
 
-    #             if self.save_top_k == -1 and self.save_last:
-    #                 rank_zero_info(
-    #                     "ModelCheckpoint(save_last=True, save_top_k=-1, monitor=None)"
-    #                     " will duplicate the last checkpoint saved."
-    #                 )
+            if self.save_top_k == -1 and self.save_last:
+                 rank_zero_info(
+                     "ModelCheckpoint(save_last=True, save_top_k=-1, monitor=None)"
+                     " will duplicate the last checkpoint saved."
+                 )
 
     def __init_ckpt_dir(self, dirpath: Optional[_PATH], filename: Optional[str]) -> None:
         self._fs = get_filesystem(dirpath if dirpath else "")
