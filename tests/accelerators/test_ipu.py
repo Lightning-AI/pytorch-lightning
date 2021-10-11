@@ -120,7 +120,7 @@ def test_warning_if_ipus_not_used(tmpdir):
 @RunIf(ipu=True)
 def test_no_warning_plugin(tmpdir):
     with pytest.warns(None) as record:
-        Trainer(default_root_dir=tmpdir, plugins=IPUPlugin(training_opts=poptorch.Options()))
+        Trainer(default_root_dir=tmpdir, strategy=IPUPlugin(training_opts=poptorch.Options()))
     assert len(record) == 0
 
 
