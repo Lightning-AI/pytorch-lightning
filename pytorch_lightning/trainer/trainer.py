@@ -87,7 +87,7 @@ from pytorch_lightning.utilities.argparse import (
 )
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
@@ -172,11 +172,12 @@ class Trainer(
         prepare_data_per_node: Optional[bool] = None,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         amp_backend: str = "native",
-        amp_level: str = "O2",
+        amp_level: Optional[str] = None,
         distributed_backend: Optional[str] = None,
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         stochastic_weight_avg: bool = False,
+        detect_anomaly: bool = False,
     ):
         r"""
         Customize every aspect of training via flags.
@@ -190,7 +191,8 @@ class Trainer(
 
             amp_backend: The mixed precision backend to use ("native" or "apex").
 
-            amp_level: The optimization level to use (O1, O2, etc...).
+            amp_level: The optimization level to use (O1, O2, etc...). By default it will be set to "O2"
+                if ``amp_backend`` is set to "apex".
 
             auto_lr_find: If set to True, will make trainer.tune() run a learning rate finder,
                 trying to optimize initial learning for faster convergence. trainer.tune() method will
@@ -203,7 +205,7 @@ class Trainer(
                 Additionally, can be set to either `power` that estimates the batch size through
                 a power search or `binsearch` that estimates the batch size through a binary search.
 
-            auto_select_gpus: If enabled and `gpus` is an integer, pick available
+            auto_select_gpus: If enabled and ``gpus`` is an integer, pick available
                 gpus automatically. This is especially useful when
                 GPUs are configured to be in "exclusive mode", such
                 that only one process at a time can access them.
@@ -222,13 +224,15 @@ class Trainer(
                 Default: ``os.getcwd()``.
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
 
+            detect_anomaly: Enable anomaly detection for the autograd engine.
+
             deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
                 Default: ``False``.
 
             devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,
                 based on the accelerator type.
 
-            distributed_backend: Deprecated. Please use 'accelerator'.
+            distributed_backend: Deprecated. Please use ``accelerator``.
 
             fast_dev_run: Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
                 of train, val and test to find any bugs (ie: a sort of unit test).
@@ -487,6 +491,7 @@ class Trainer(
             track_grad_norm,
             terminate_on_nan,
         )
+        self._detect_anomaly: bool = detect_anomaly
         self._setup_on_init(num_sanity_val_steps)
 
         # configure tuner
@@ -952,9 +957,9 @@ class Trainer(
         return result
 
     def _restore_modules_and_callbacks(self) -> None:
-        # restore modules after setup
-        if self.state.fn == TrainerFn.FITTING:
-            self.checkpoint_connector.resume_start()
+        if self.state.fn != TrainerFn.FITTING:
+            return
+
         self.checkpoint_connector.restore_datamodule()
         self.checkpoint_connector.restore_model()
         # restore callback states
@@ -997,6 +1002,7 @@ class Trainer(
 
         # check if we should delay restoring checkpoint till later
         if not self.accelerator.restore_checkpoint_after_pre_dispatch:
+            self.checkpoint_connector.resume_start()
             self._restore_modules_and_callbacks()
 
         self._call_configure_sharded_model()  # allow user to setup in model sharded environment
@@ -1048,6 +1054,8 @@ class Trainer(
         if self.accelerator.restore_checkpoint_after_pre_dispatch:
             if self._ckpt_path:
                 self._load_checkpoint_weights()
+
+            self.checkpoint_connector.resume_start()
             self._restore_modules_and_callbacks()
 
         # restore optimizers, etc.
@@ -1152,7 +1160,8 @@ class Trainer(
         # register signals
         self.signal_connector.register_signal_handlers()
 
-        self.checkpoint_connector.resume_end()
+        if self.state.fn != TrainerFn.TUNING:
+            self.checkpoint_connector.resume_end()
 
         # --------------------------
         # Pre-train
@@ -1179,7 +1188,8 @@ class Trainer(
         self.reset_train_val_dataloaders(model)
 
         self.fit_loop.trainer = self
-        self.fit_loop.run()
+        with torch.autograd.set_detect_anomaly(self._detect_anomaly):
+            self.fit_loop.run()
 
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
         if not self.is_global_zero and self.progress_bar_callback is not None:
@@ -2004,6 +2014,12 @@ class Trainer(
         active_loop = self._active_loop
         if active_loop is not None:
             return active_loop._results
+
+    def _exit_gracefully_on_signal(self) -> None:
+        if _fault_tolerant_training() and self._terminate_gracefully:
+            caller = inspect.stack()[1]
+            class_name = caller[0].f_locals["self"].__class__.__name__
+            raise ExitGracefullyException(f"Exiting gracefully on {class_name}:{caller.function}")
 
     """
     Other

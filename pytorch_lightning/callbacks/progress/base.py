@@ -35,8 +35,8 @@ class ProgressBarBase(Callback):
             def disable(self):
                 self.enable = False
 
-            def on_train_batch_end(self, trainer, pl_module, outputs):
-                super().on_train_batch_end(trainer, pl_module, outputs)  # don't forget this :)
+            def on_train_batch_end(self, trainer, pl_module, outputs, batch_idx):
+                super().on_train_batch_end(trainer, pl_module, outputs, batch_idx)  # don't forget this :)
                 percent = (self.train_batch_idx / self.total_train_batches) * 100
                 sys.stdout.flush()
                 sys.stdout.write(f'{percent:.01f} percent complete \r')
@@ -161,7 +161,7 @@ class ProgressBarBase(Callback):
     def on_train_epoch_start(self, trainer, pl_module):
         self._train_batch_idx = trainer.fit_loop.epoch_loop.batch_progress.current.completed
 
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         self._train_batch_idx += 1
 
     def on_validation_start(self, trainer, pl_module):

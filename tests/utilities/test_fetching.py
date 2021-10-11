@@ -356,7 +356,7 @@ def test_on_train_batch_start_overridden(tmpdir) -> None:
     `LightningModule`."""
 
     class InvalidModel(AsyncBoringModel):
-        def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
+        def on_train_batch_start(self, batch, batch_idx):
             pass
 
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
@@ -370,7 +370,7 @@ def test_on_train_batch_end_overridden(tmpdir) -> None:
     `LightningModule`."""
 
     class InvalidModel(AsyncBoringModel):
-        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+        def on_train_batch_end(self, outputs, batch, batch_idx):
             pass
 
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
