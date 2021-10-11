@@ -148,6 +148,7 @@ Persisting the state of loops
 -----------------------------
 
 .. note::
+
     This is an experimental feature and is not activated by default.
     Set the environment variable `PL_FAULT_TOLERANT_TRAINING = 1` to enable saving the progress of loops.
     Read more about :doc:`fault-tolerant training training <../advanced/fault_tolerant_training>`.
