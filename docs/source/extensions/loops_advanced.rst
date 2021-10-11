@@ -5,7 +5,7 @@ Loops (Advanced)
 
 
 Example: The Training Step as a Generator
----------------------------------------------------
+-----------------------------------------
 
 Lightning supports multiple optimizers and offers a special :code:`training_step` flavor for it, where an extra argument with the current optimizer being used is passed in.
 Take as an example the following training step of a DCGAN from the `Lightning Bolts <https://github.com/PyTorchLightning/lightning-bolts/>`_ repository:
