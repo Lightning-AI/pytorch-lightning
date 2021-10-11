@@ -175,4 +175,3 @@ For example, the implementation of the :meth:`~pytorch_lightning.loops.base.Loop
     def reset(self):
         if not self.restarting:
             self.iteration = 0
-

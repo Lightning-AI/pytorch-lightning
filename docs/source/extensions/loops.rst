@@ -224,8 +224,8 @@ Simply subclass one of the :ref:`built-in loops <loop structure>` and add the ca
 
     from pytorch_lightning.loops import TrainingEpochLoop
 
-    class CustomEpochLoop(TrainingEpochLoop):
 
+    class CustomEpochLoop(TrainingEpochLoop):
         def advance(self):
             ...
             self.trainer.lightning_module.my_new_hook(*args, **kwargs)
