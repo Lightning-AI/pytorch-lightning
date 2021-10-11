@@ -35,6 +35,7 @@ from pytorch_lightning.profiler.pytorch import PyTorchProfiler
 from pytorch_lightning.utilities.cli import LightningCLI
 
 DEFAULT_CMD_LINE = (
+    "fit",
     "--trainer.max_epochs=1",
     "--trainer.limit_train_batches=15",
     "--trainer.limit_val_batches=15",

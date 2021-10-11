@@ -25,7 +25,7 @@ def print_nan_gradients(model: nn.Module) -> None:
     """Iterates over model parameters and prints out parameter + gradient information if NaN."""
     for param in model.parameters():
         if (param.grad is not None) and torch.isnan(param.grad.float()).any():
-            log.info(param, param.grad)
+            log.info(f"{param}, {param.grad}")
 
 
 def detect_nan_parameters(model: nn.Module) -> None:

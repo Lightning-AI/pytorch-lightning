@@ -305,8 +305,6 @@ class DataFetcher(AbstractDataFetcher):
     def _get_queued_batch(self) -> Tuple[Any, bool]:
         self.wait()
         batch = self.batches.pop(0)
-        if not self.store_on_device:
-            batch = self.move_data_to_device(batch)
         is_last = len(self.batches) == 0
         return batch, is_last
 

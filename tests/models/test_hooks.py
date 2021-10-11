@@ -66,7 +66,7 @@ def test_training_epoch_end_metrics_collection(tmpdir):
     trainer = Trainer(max_epochs=num_epochs, default_root_dir=tmpdir, overfit_batches=2)
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    metrics = trainer.progress_bar_dict
+    metrics = trainer.progress_bar_callback.get_metrics(trainer, model)
 
     # metrics added in training step should be unchanged by epoch end method
     assert metrics["step_metric"] == -1
@@ -91,14 +91,14 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
         def training_epoch_end(self, outputs):
             self.len_outputs = len(outputs)
 
-        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+        def on_train_batch_end(self, outputs, batch, batch_idx):
             self.num_train_batches += 1
 
     class NotOverriddenModel(BoringModel):
         def on_train_epoch_start(self):
             self.num_train_batches = 0
 
-        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+        def on_train_batch_end(self, outputs, batch, batch_idx):
             self.num_train_batches += 1
 
     overridden_model = OverriddenModel()
@@ -289,8 +289,8 @@ class HookedModel(BoringModel):
                     dict(name="on_after_batch_transfer", args=(ANY, 0)),
                     # TODO: `on_batch_{start,end}`
                     dict(name="Callback.on_batch_start", args=(trainer, model)),
-                    dict(name="Callback.on_train_batch_start", args=(trainer, model, ANY, i, 0)),
-                    dict(name="on_train_batch_start", args=(ANY, i, 0)),
+                    dict(name="Callback.on_train_batch_start", args=(trainer, model, ANY, i)),
+                    dict(name="on_train_batch_start", args=(ANY, i)),
                     # without a precision plugin, we execute the closure inside the `optimizer.step`
                     *([] if using_plugin else on_before_optimizer_step),
                     dict(name="forward", args=(ANY,)),
@@ -311,8 +311,8 @@ class HookedModel(BoringModel):
                         args=(current_epoch, i, ANY, 0, ANY),
                         kwargs=dict(on_tpu=False, using_lbfgs=False, using_native_amp=using_native_amp),
                     ),
-                    dict(name="Callback.on_train_batch_end", args=(trainer, model, dict(loss=ANY), ANY, i, 0)),
-                    dict(name="on_train_batch_end", args=(dict(loss=ANY), ANY, i, 0)),
+                    dict(name="Callback.on_train_batch_end", args=(trainer, model, dict(loss=ANY), ANY, i)),
+                    dict(name="on_train_batch_end", args=(dict(loss=ANY), ANY, i)),
                     dict(name="Callback.on_batch_end", args=(trainer, model)),
                 ]
             )
@@ -331,8 +331,8 @@ class HookedModel(BoringModel):
                     dict(name="on_after_batch_transfer", args=(ANY, 0)),
                     # TODO: `on_batch_{start,end}`
                     dict(name="Callback.on_batch_start", args=(trainer, model)),
-                    dict(name="Callback.on_train_batch_start", args=(trainer, model, ANY, i, 0)),
-                    dict(name="on_train_batch_start", args=(ANY, i, 0)),
+                    dict(name="Callback.on_train_batch_start", args=(trainer, model, ANY, i)),
+                    dict(name="on_train_batch_start", args=(ANY, i)),
                     dict(name="forward", args=(ANY,)),
                     dict(name="Callback.on_before_backward", args=(trainer, model, ANY)),
                     dict(name="on_before_backward", args=(ANY,)),
@@ -349,8 +349,8 @@ class HookedModel(BoringModel):
                     *([] if using_plugin else [dict(name="closure")]),
                     dict(name="training_step", args=(ANY, i)),
                     dict(name="training_step_end", args=(dict(loss=ANY),)),
-                    dict(name="Callback.on_train_batch_end", args=(trainer, model, dict(loss=ANY), ANY, i, 0)),
-                    dict(name="on_train_batch_end", args=(dict(loss=ANY), ANY, i, 0)),
+                    dict(name="Callback.on_train_batch_end", args=(trainer, model, dict(loss=ANY), ANY, i)),
+                    dict(name="on_train_batch_end", args=(dict(loss=ANY), ANY, i)),
                     dict(name="Callback.on_batch_end", args=(trainer, model)),
                 ]
             )
@@ -422,7 +422,7 @@ class HookedModel(BoringModel):
         {},
         # these precision plugins modify the optimization flow, so testing them explicitly
         pytest.param(dict(gpus=1, precision=16, plugins="deepspeed"), marks=RunIf(deepspeed=True, min_gpus=1)),
-        pytest.param(dict(gpus=1, precision=16, amp_backend="native"), marks=RunIf(amp_native=True, min_gpus=1)),
+        pytest.param(dict(gpus=1, precision=16, amp_backend="native"), marks=RunIf(min_gpus=1)),
         pytest.param(dict(gpus=1, precision=16, amp_backend="apex"), marks=RunIf(amp_apex=True, min_gpus=1)),
     ],
 )
@@ -454,7 +454,7 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         max_epochs=1,
         limit_train_batches=train_batches,
         limit_val_batches=val_batches,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         weights_summary=None,
         callbacks=[callback],
         **kwargs,
@@ -565,7 +565,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         default_root_dir=tmpdir,
         max_steps=1,
         limit_val_batches=0,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         weights_summary=None,
         callbacks=[HookedCallback([])],
     )
@@ -582,7 +582,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         # already performed 1 step, now resuming to do an additional 2
         max_steps=(1 + train_batches),
         limit_val_batches=0,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         weights_summary=None,
         resume_from_checkpoint=best_model_path,
         callbacks=[callback],
@@ -677,7 +677,7 @@ def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader,
         max_epochs=1,
         limit_val_batches=batches,
         limit_test_batches=batches,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         weights_summary=None,
         callbacks=[callback],
     )
@@ -724,7 +724,7 @@ def test_trainer_model_hook_system_predict(tmpdir):
     callback = HookedCallback(called)
     batches = 2
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_predict_batches=batches, progress_bar_refresh_rate=0, callbacks=[callback]
+        default_root_dir=tmpdir, limit_predict_batches=batches, enable_progress_bar=False, callbacks=[callback]
     )
     assert called == [
         dict(name="Callback.on_init_start", args=(trainer,)),
@@ -844,7 +844,7 @@ def test_trainer_datamodule_hook_system(tmpdir):
         limit_val_batches=batches,
         limit_test_batches=batches,
         limit_predict_batches=batches,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         weights_summary=None,
         reload_dataloaders_every_epoch=True,
     )

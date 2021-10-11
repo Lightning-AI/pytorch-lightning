@@ -23,7 +23,7 @@ A TPU is a Tensor processing unit. Each TPU has 8 cores where each
 core is optimized for 128x128 matrix multiplies. In general, a single
 TPU is about as fast as 5 V100 GPUs!
 
-A TPU pod hosts many TPUs on it. Currently, TPU pod v2 has 2048 cores!
+A TPU pod hosts many TPUs on it. Currently, TPU v3 Pod has up to 2048 TPU cores and 32 TiB of memory!
 You can request a full pod from Google cloud or a "slice" which gives you
 some subset of those 2048 cores.
 
@@ -64,9 +64,9 @@ To get a TPU on colab, follow these steps:
 
    .. code-block::
 
-        !pip install cloud-tpu-client==0.10 https://storage.googleapis.com/tpu-pytorch/wheels/torch_xla-1.8-cp37-cp37m-linux_x86_64.whl
+        !pip install cloud-tpu-client==0.10 https://storage.googleapis.com/tpu-pytorch/wheels/torch_xla-1.9-cp37-cp37m-linux_x86_64.whl
 
-5. Once the above is done, install PyTorch Lightning (v 0.7.0+).
+5. Once the above is done, install PyTorch Lightning.
 
    .. code-block::
 

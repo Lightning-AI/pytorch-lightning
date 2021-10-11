@@ -1172,7 +1172,7 @@ Lightning supports either double precision (64), full precision (32), or half pr
 Half precision, or mixed precision, is the combined use of 32 and 16 bit floating points to reduce memory footprint during model training. This can result in improved performance, achieving +3X speedups on modern GPUs.
 
 .. testcode::
-    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
+    :skipif: not torch.cuda.is_available()
 
     # default used by the Trainer
     trainer = Trainer(precision=32, gpus=1)
@@ -1221,7 +1221,7 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
     2. Set the `precision` trainer flag to 16. You can customize the `Apex optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`_ by setting the `amp_level` flag.
 
     .. testcode::
-        :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
+        :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
 
         # turn on 16-bit
         trainer = Trainer(amp_backend="apex", amp_level="O2", precision=16)
@@ -1281,6 +1281,10 @@ See the :doc:`profiler documentation <../advanced/profiler>`. for more details.
 
 progress_bar_refresh_rate
 ^^^^^^^^^^^^^^^^^^^^^^^^^
+``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
+Please pass :class:`~pytorch_lightning.callbacks.progress.ProgressBar` with ``refresh_rate``
+directly to the Trainer's ``callbacks`` argument instead. To disable the progress bar,
+pass ``enable_progress_bar = False`` to the Trainer.
 
 .. raw:: html
 
@@ -1304,6 +1308,19 @@ Note:
     - In Google Colab notebooks, faster refresh rates (lower number) is known to crash them because of their screen refresh rates.
       Lightning will set it to 20 in these environments if the user does not provide a value.
     - This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
+
+enable_progress_bar
+^^^^^^^^^^^^^^^^^^^
+
+Whether to enable or disable the progress bar. Defaults to True.
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(enable_progress_bar=True)
+
+    # disable progress bar
+    trainer = Trainer(enable_progress_bar=False)
 
 reload_dataloaders_every_n_epochs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

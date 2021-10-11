@@ -231,13 +231,13 @@ class ProgressBar(ProgressBarBase):
         reset(self.main_progress_bar, total=total_batches, current=self.train_batch_idx)
         self.main_progress_bar.set_description(f"Epoch {trainer.current_epoch}")
 
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
         total_batches = self.total_train_batches + self.total_val_batches
         total_batches = convert_inf(total_batches)
         if self._should_update(self.train_batch_idx, total_batches):
             self._update_bar(self.main_progress_bar)
-            self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
+            self.main_progress_bar.set_postfix(self.get_metrics(trainer, pl_module))
 
     def on_validation_start(self, trainer, pl_module):
         super().on_validation_start(trainer, pl_module)
@@ -257,7 +257,7 @@ class ProgressBar(ProgressBarBase):
     def on_validation_end(self, trainer, pl_module):
         super().on_validation_end(trainer, pl_module)
         if self.main_progress_bar is not None:
-            self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
+            self.main_progress_bar.set_postfix(self.get_metrics(trainer, pl_module))
         self.val_progress_bar.close()
 
     def on_train_end(self, trainer, pl_module):

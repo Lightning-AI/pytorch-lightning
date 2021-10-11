@@ -1,3 +1,20 @@
+# Python package
+# Create and test a Python package on multiple Python versions.
+# Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/python
+
+trigger:
+  tags:
+    include:
+      - '*'
+  branches:
+    include:
+      - "master"
+      - "release/*"
+      - "refs/tags/*"
+
+pr: none
+
 schedules:
   - cron: "0 0 * * *" # At the end of every day
     displayName: Daily midnight benchmark

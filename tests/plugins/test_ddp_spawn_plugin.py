@@ -48,7 +48,7 @@ class BoringCallbackDDPSpawnModel(BoringModel):
 
 @RunIf(skip_windows=True)
 def test_ddp_cpu():
-    """Tests if device is set correctely when training for DDPSpawnPlugin."""
+    """Tests if device is set correctly when training for DDPSpawnPlugin."""
     trainer = Trainer(num_processes=2, fast_dev_run=True)
     # assert training type plugin attributes for device setting
 
@@ -64,7 +64,8 @@ def test_ddp_cpu():
 
 @RunIf(min_gpus=2)
 def test_ddp_spawn_extra_parameters(tmpdir):
-    """Tests if device is set correctely when training for DDPSpawnPlugin."""
+    """Tests if device is set correctly when training for DDPSpawnPlugin and tests add_to_queue/get_from_queue with
+    Lightning Module (deprecated way)."""
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, accelerator="ddp_spawn")
 
     assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
@@ -75,10 +76,37 @@ def test_ddp_spawn_extra_parameters(tmpdir):
     val_name: str = "val_acc"
     model = BoringCallbackDDPSpawnModel(val_name, val)
     dm = BoringDataModule()
-
     trainer.fit(model, datamodule=dm)
     assert trainer.callback_metrics[val_name] == torch.tensor(val)
     assert model.test_val == "test_val"
+
+
+class TestDDPSpawnPlugin(DDPSpawnPlugin):
+    def add_to_queue(self, trainer: Trainer, queue: torch.multiprocessing.SimpleQueue) -> None:
+        queue.put("new_test_val")
+        return super().add_to_queue(trainer, queue)
+
+    def get_from_queue(self, trainer: Trainer, queue: torch.multiprocessing.SimpleQueue) -> None:
+        self.new_test_val = queue.get()
+        return super().get_from_queue(trainer, queue)
+
+
+@RunIf(skip_windows=True)
+def test_ddp_spawn_add_get_queue(tmpdir):
+    """Tests add_to_queue/get_from_queue with DDPSpawnPlugin."""
+
+    ddp_spawn_plugin = TestDDPSpawnPlugin()
+    trainer = Trainer(
+        default_root_dir=tmpdir, fast_dev_run=True, num_processes=2, accelerator="ddp_cpu", plugins=[ddp_spawn_plugin]
+    )
+
+    val: float = 1.0
+    val_name: str = "val_acc"
+    model = BoringCallbackDDPSpawnModel(val_name, val)
+    dm = BoringDataModule()
+    trainer.fit(model, datamodule=dm)
+    assert trainer.callback_metrics[val_name] == torch.tensor(val)
+    assert ddp_spawn_plugin.new_test_val == "new_test_val"
 
 
 class BoringModelDDP(BoringModel):

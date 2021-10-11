@@ -16,22 +16,19 @@ from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Uni
 
 import torch
 from torch import Tensor
+from torch.cuda.amp import GradScaler
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins import DataParallelPlugin
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
-from pytorch_lightning.plugins.training_type import TrainingTypePlugin
+from pytorch_lightning.plugins.training_type import DataParallelPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
+from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
-from pytorch_lightning.utilities.types import STEP_OUTPUT
-
-if _NATIVE_AMP_AVAILABLE:
-    from torch.cuda.amp import GradScaler
+from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
 
 
 class Accelerator:
@@ -42,6 +39,7 @@ class Accelerator:
     - CPU
     - GPU
     - TPU
+    - IPU
 
     Each Accelerator gets two plugins upon initialization:
     One to handle differences from the training routine and one to handle different precisions.
@@ -116,7 +114,7 @@ class Accelerator:
 
     def post_dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something after the training/evaluation/prediction starts."""
-        self.training_type_plugin.post_dispatch()
+        self.training_type_plugin.post_dispatch(trainer)
         self.precision_plugin.post_dispatch()
 
     @property
@@ -173,15 +171,7 @@ class Accelerator:
     def training_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> STEP_OUTPUT:
         """The actual training step.
 
-        Args:
-            step_kwargs: the arguments for the models training step. Can consist of the following:
-
-                - batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-                  The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-                - batch_idx (int): Integer displaying index of this batch
-                - optimizer_idx (int): When using multiple optimizers, this argument will also be present.
-                - hiddens(:class:`~torch.Tensor`): Passed in if
-                  :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
+        See :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` for more details
         """
         with self.precision_plugin.train_step_context():
             return self.training_type_plugin.training_step(*step_kwargs.values())
@@ -192,14 +182,7 @@ class Accelerator:
     def validation_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> Optional[STEP_OUTPUT]:
         """The actual validation step.
 
-        Args:
-            step_kwargs: the arguments for the models validation step. Can consist of the following:
-
-                - batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-                  The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-                - batch_idx (int): The index of this batch
-                - dataloader_idx (int): The index of the dataloader that produced this batch
-                  (only if multiple val dataloaders used)
+        See :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` for more details
         """
         with self.precision_plugin.val_step_context():
             return self.training_type_plugin.validation_step(*step_kwargs.values())
@@ -207,14 +190,7 @@ class Accelerator:
     def test_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> Optional[STEP_OUTPUT]:
         """The actual test step.
 
-        Args:
-            step_kwargs: the arguments for the models test step. Can consist of the following:
-
-                - batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-                  The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-                - batch_idx (int): The index of this batch.
-                - dataloader_idx (int): The index of the dataloader that produced this batch
-                  (only if multiple test dataloaders used).
+        See :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step` for more details
         """
         with self.precision_plugin.test_step_context():
             return self.training_type_plugin.test_step(*step_kwargs.values())
@@ -222,14 +198,7 @@ class Accelerator:
     def predict_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> STEP_OUTPUT:
         """The actual predict step.
 
-        Args:
-            step_kwargs: the arguments for the models predict step. Can consist of the following:
-
-                - batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-                  The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-                - batch_idx (int): The index of this batch.
-                - dataloader_idx (int): The index of the dataloader that produced this batch
-                  (only if multiple predict dataloaders used).
+        See :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` for more details
         """
         with self.precision_plugin.predict_step_context():
             return self.training_type_plugin.predict_step(*step_kwargs.values())
@@ -287,8 +256,6 @@ class Accelerator:
         )
         if make_optimizer_step:
             self.run_optimizer_step(optimizer, opt_idx, lambda_closure, **kwargs)
-        self.precision_plugin.post_optimizer_step(optimizer, opt_idx)
-        self.training_type_plugin.post_optimizer_step(optimizer, opt_idx, **kwargs)
 
     def run_optimizer_step(
         self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs: Any
@@ -368,20 +335,41 @@ class Accelerator:
         return self.training_type_plugin.lightning_module_state_dict()
 
     def barrier(self, name: Optional[str] = None) -> None:
+        """
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.6.
+            Please call ``training_type_plugin.barrier`` directly.
+        """
+        rank_zero_deprecation(
+            "`Accelerator.barrier` is deprecated in v1.5 and will be removed in v1.6. "
+            "Barrier logic is implemented directly in the `TrainingTypePlugin` implementations."
+        )
         self.training_type_plugin.barrier(name=name)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         """Broadcasts an object to all processes, such that the src object is broadcast to all other ranks if
         needed.
 
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.6.
+            Please call ``training_type_plugin.broadcast`` directly.
+
         Args:
             obj: Object to broadcast to all process, usually a tensor or collection of tensors.
             src: The source rank of which the object will be broadcast from
         """
+        rank_zero_deprecation(
+            "`Accelerator.broadcast` is deprecated in v1.5 and will be removed in v1.6. "
+            "Broadcast logic is implemented directly in the `TrainingTypePlugin` implementations."
+        )
         return self.training_type_plugin.broadcast(obj, src)
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Function to gather a tensor from several distributed processes.
+
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.6.
+            Please call ``training_type_plugin.all_gather`` directly.
 
         Args:
             tensor: tensor of shape (batch, ...)
@@ -391,6 +379,10 @@ class Accelerator:
         Return:
             A tensor of shape (world_size, batch, ...)
         """
+        rank_zero_deprecation(
+            "`Accelerator.all_gather` is deprecated in v1.5 and will be removed in v1.6. "
+            "All-gather logic is implemented directly in the `TrainingTypePlugin` implementations."
+        )
         return self.training_type_plugin.all_gather(tensor, group=group, sync_grads=sync_grads)
 
     def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
@@ -422,7 +414,7 @@ class Accelerator:
         with self.training_type_plugin.model_sharded_context():
             yield
 
-    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: _PATH) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
@@ -430,20 +422,6 @@ class Accelerator:
             filepath: write-target file's path
         """
         self.training_type_plugin.save_checkpoint(checkpoint, filepath)
-
-    @property
-    def call_configure_sharded_model_hook(self) -> bool:
-        """Allow model parallel hook to be called in suitable environments determined by the training type plugin.
-        This is useful for when we want to shard the model once within fit.
-
-        Returns:
-            True if we want to call the model parallel setup hook.
-        """
-        return self.training_type_plugin.call_configure_sharded_model_hook
-
-    @call_configure_sharded_model_hook.setter
-    def call_configure_sharded_model_hook(self, mode: bool) -> None:
-        self.training_type_plugin.call_configure_sharded_model_hook = mode
 
     @property
     def setup_optimizers_in_pre_dispatch(self) -> bool:
@@ -466,8 +444,16 @@ class Accelerator:
         """
         return self.training_type_plugin.restore_checkpoint_after_pre_dispatch
 
-    def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
-        return self.training_type_plugin.update_global_step(total_batch_idx, current_global_step)
+    def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
+        """Gets stats for a given device.
+
+        Args:
+            device: device for which to get stats
+
+        Returns:
+            Dictionary of device stats
+        """
+        raise NotImplementedError
 
     def on_train_start(self) -> None:
         """Called when train begins."""
@@ -501,6 +487,7 @@ class Accelerator:
         """Called when train ends."""
         return self.training_type_plugin.on_train_end()
 
-    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    # TODO: Update this in v1.7 (deprecation: #9816)
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         """Called in the training loop before anything happens for that batch."""
-        return self.training_type_plugin.on_train_batch_start(batch, batch_idx, dataloader_idx)
+        return self.training_type_plugin.on_train_batch_start(batch, batch_idx)
