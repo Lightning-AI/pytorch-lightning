@@ -151,7 +151,7 @@ Persisting the state of loops
 
     This is an experimental feature and is not activated by default.
     Set the environment variable `PL_FAULT_TOLERANT_TRAINING = 1` to enable saving the progress of loops.
-    Read more about :doc:`fault-tolerant training training <../advanced/fault_tolerant_training>`.
+    Read more about :doc:`fault-tolerant training <../advanced/fault_tolerant_training>`.
 
 A powerful property of the class-based loop interface is that it can own an internal state.
 Loop instances can save their state to the checkpoint through corresponding hooks and if implemented accordingly, resume the state of exectuion at the appropriate place.
