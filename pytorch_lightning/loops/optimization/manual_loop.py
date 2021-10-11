@@ -40,9 +40,7 @@ class ManualResult(OutputResult):
         self.extra = self._check_extra_detach_deprecation(self.extra)
 
     @classmethod
-    def from_training_step_output(
-        cls, training_step_output: Optional[STEP_OUTPUT], normalize: int = 1
-    ) -> "ManualResult":
+    def from_training_step_output(cls, training_step_output: Optional[STEP_OUTPUT]) -> "ManualResult":
         extra = {}
         if isinstance(training_step_output, dict):
             extra = {k: v for k, v in training_step_output.items() if k != "hiddens"}
@@ -55,9 +53,8 @@ class ManualResult(OutputResult):
             )
 
         if "loss" in extra:
-            # accumulate the loss. If `accumulate_grad_batches == 1`, no effect.
             # we detach manually as it's expected that it will have a `grad_fn`
-            extra["loss"] = extra["loss"].detach().div(normalize)
+            extra["loss"] = extra["loss"].detach()
 
         return cls(extra=extra)
 
@@ -118,7 +115,7 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
 
             self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
 
-            result = ManualResult.from_training_step_output(training_step_output, self.trainer.accumulate_grad_batches)
+            result = ManualResult.from_training_step_output(training_step_output)
 
             if self.trainer.move_metrics_to_cpu:
                 # hiddens and the training step output are not moved as they are not considered "metrics"
