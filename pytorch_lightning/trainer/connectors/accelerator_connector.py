@@ -712,7 +712,7 @@ class AcceleratorConnector:
             return
 
         if accelerator is not None and accelerator in TrainingTypePluginsRegistry:
-            self.accelerator = TrainingTypePluginsRegistry[accelerator]["accelerator"]
+            self.accelerator = TrainingTypePluginsRegistry[accelerator]["distributed_backend"]
         elif accelerator is not None:
             self.accelerator = accelerator
 
