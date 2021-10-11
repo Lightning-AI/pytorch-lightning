@@ -337,7 +337,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
 
     # run test set
     new_trainer = Trainer(**trainer_options)
-    new_trainer.test(pretrained_model)
+    new_trainer.test(pretrained_model, datamodule=dm)
     pretrained_model.cpu()
 
     dataloaders = model.test_dataloader()
