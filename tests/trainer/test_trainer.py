@@ -2101,80 +2101,80 @@ def test_detect_anomaly_nan(tmpdir):
     "trainer_kwargs,expected",
     [
         (
-            dict(accelerator_strategy=None, gpus=None),
+            dict(strategy=None, gpus=None),
             dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
-            dict(accelerator_strategy="dp", gpus=None),
+            dict(strategy="dp", gpus=None),
             dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
-            dict(accelerator_strategy="ddp", gpus=None),
+            dict(strategy="ddp", gpus=None),
             dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
-            dict(accelerator_strategy="ddp", num_processes=2, gpus=None),
+            dict(strategy="ddp", num_processes=2, gpus=None),
             dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
-            dict(accelerator_strategy="ddp", num_nodes=2, gpus=None),
+            dict(strategy="ddp", num_nodes=2, gpus=None),
             dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
-            dict(accelerator_strategy="ddp_cpu", num_processes=2, gpus=None),
+            dict(strategy="ddp_cpu", num_processes=2, gpus=None),
             dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
-            dict(accelerator_strategy="ddp2", gpus=None),
+            dict(strategy="ddp2", gpus=None),
             dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
-            dict(accelerator_strategy=None, gpus=1),
+            dict(strategy=None, gpus=1),
             dict(_distrib_type=None, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
-            dict(accelerator_strategy="dp", gpus=1),
+            dict(strategy="dp", gpus=1),
             dict(_distrib_type=DistributedType.DP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
-            dict(accelerator_strategy="ddp", gpus=1),
+            dict(strategy="ddp", gpus=1),
             dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
-            dict(accelerator_strategy="ddp_cpu", num_processes=2, gpus=1),
+            dict(strategy="ddp_cpu", num_processes=2, gpus=1),
             dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
-            dict(accelerator_strategy="ddp2", gpus=1),
+            dict(strategy="ddp2", gpus=1),
             dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
-            dict(accelerator_strategy=None, gpus=2),
+            dict(strategy=None, gpus=2),
             dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
         ),
         (
-            dict(accelerator_strategy="dp", gpus=2),
+            dict(strategy="dp", gpus=2),
             dict(_distrib_type=DistributedType.DP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
         (
-            dict(accelerator_strategy="ddp", gpus=2),
+            dict(strategy="ddp", gpus=2),
             dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
         ),
         (
-            dict(accelerator_strategy="ddp2", gpus=2),
+            dict(strategy="ddp2", gpus=2),
             dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
         (
-            dict(accelerator_strategy="ddp2", num_processes=2, gpus=None),
+            dict(strategy="ddp2", num_processes=2, gpus=None),
             dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
-            dict(accelerator_strategy="dp", num_processes=2, gpus=None),
+            dict(strategy="dp", num_processes=2, gpus=None),
             dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
     ],
 )
-def test_trainer_config_accelerator_strategy(trainer_kwargs, expected, monkeypatch):
+def test_trainer_config_strategy(trainer_kwargs, expected, monkeypatch):
     if trainer_kwargs["gpus"] is not None:
         monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
         monkeypatch.setattr(torch.cuda, "device_count", lambda: trainer_kwargs["gpus"])

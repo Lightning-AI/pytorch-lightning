@@ -154,7 +154,7 @@ class Trainer(
         flush_logs_every_n_steps: Optional[int] = None,
         log_every_n_steps: int = 50,
         accelerator: Optional[Union[str, Accelerator]] = None,
-        accelerator_strategy: Optional[Union[str, TrainingTypePlugin]] = None,
+        strategy: Optional[Union[str, TrainingTypePlugin]] = None,
         sync_batchnorm: bool = False,
         precision: Union[int, str] = 32,
         weights_summary: Optional[str] = "top",
@@ -187,9 +187,6 @@ class Trainer(
 
             accelerator: Previously known as distributed_backend (dp, ddp, ddp2, etc...).
                 Can also take in an accelerator object for custom hardware.
-
-            accelerator_strategy: Supports different accelerator strategies with aliases
-                as well custom training type plugins.
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
 
@@ -350,6 +347,9 @@ class Trainer(
                 no checkpoint file at the path, start from scratch. If resuming from mid-epoch checkpoint,
                 training will start from the beginning of the next epoch.
 
+            strategy: Supports different training strategies with aliases
+                as well custom training type plugins.
+
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
 
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
@@ -406,7 +406,7 @@ class Trainer(
             ipus,
             distributed_backend,
             accelerator,
-            accelerator_strategy,
+            strategy,
             gpus,
             gpu_ids,
             num_nodes,

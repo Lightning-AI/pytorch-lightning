@@ -94,7 +94,7 @@ class AcceleratorConnector:
         ipus,
         distributed_backend,
         accelerator,
-        accelerator_strategy,
+        strategy,
         gpus,
         gpu_ids,
         num_nodes,
@@ -112,7 +112,7 @@ class AcceleratorConnector:
         self._distrib_type = None
         self._accelerator_type = None
 
-        self.accelerator_strategy = accelerator_strategy
+        self.strategy = strategy
         self.distributed_backend = distributed_backend or accelerator
 
         self._init_deterministic(deterministic)
@@ -156,7 +156,7 @@ class AcceleratorConnector:
 
         self.select_accelerator_type()
 
-        if self.accelerator_strategy is not None:
+        if self.strategy is not None:
             self._set_training_type_plugin()
         else:
             self.set_distributed_mode()
@@ -295,47 +295,47 @@ class AcceleratorConnector:
         if distributed_backend is not None:
             rank_zero_deprecation(
                 f"`Trainer(distributed_backend={distributed_backend})` has been deprecated and will be removed in v1.5."
-                f" Use `Trainer(accelerator_strategy={distributed_backend})` instead."
+                f" Use `Trainer(strategy={distributed_backend})` instead."
             )
-            if self.accelerator_strategy is not None:
+            if self.strategy is not None:
                 raise MisconfigurationException(
-                    f"You have passed `Trainer(accelerator_strategy={self.accelerator_strategy})` but have"
+                    f"You have passed `Trainer(strategy={self.strategy})` but have"
                     f" also passed `Trainer(distributed_backend={distributed_backend})`."
-                    f"HINT: Use just `Trainer(accelerator_strategy={self.accelerator_strategy})` instead."
+                    f"HINT: Use just `Trainer(strategy={self.strategy})` instead."
                 )
 
         if accelerator is not None and accelerator in list(DistributedType):
             rank_zero_deprecation(
-                f"Passing {accelerator} `accelerator_strategy` to the `accelerator` flag in Trainer has been deprecated"
-                f" in v1.5 and will be removed in v1.6. Use `Trainer(accelerator_strategy={accelerator})` instead."
+                f"Passing {accelerator} `strategy` to the `accelerator` flag in Trainer has been deprecated"
+                f" in v1.5 and will be removed in v1.6. Use `Trainer(strategy={accelerator})` instead."
             )
-            if self.accelerator_strategy is not None:
+            if self.strategy is not None:
                 raise MisconfigurationException(
-                    f"You have passed `Trainer(accelerator_strategy={self.accelerator_strategy})` but have"
+                    f"You have passed `Trainer(strategy={self.strategy})` but have"
                     f" also passed `Trainer(accelerator={accelerator})`."
-                    f"HINT: Use just `Trainer(accelerator_strategy={self.accelerator_strategy})` instead."
+                    f"HINT: Use just `Trainer(strategy={self.strategy})` instead."
                 )
 
     def _set_training_type_plugin(self) -> None:
-        if isinstance(self.accelerator_strategy, str) and self.accelerator_strategy in TrainingTypePluginsRegistry:
-            self._training_type_plugin = TrainingTypePluginsRegistry.get(self.accelerator_strategy)
-        if isinstance(self.accelerator_strategy, str):
-            self.set_distributed_mode(self.accelerator_strategy)
-        elif isinstance(self.accelerator_strategy, TrainingTypePlugin):
-            self._training_type_plugin = self.accelerator_strategy
+        if isinstance(self.strategy, str) and self.strategy in TrainingTypePluginsRegistry:
+            self._training_type_plugin = TrainingTypePluginsRegistry.get(self.strategy)
+        if isinstance(self.strategy, str):
+            self.set_distributed_mode(self.strategy)
+        elif isinstance(self.strategy, TrainingTypePlugin):
+            self._training_type_plugin = self.strategy
 
     def handle_given_plugins(self) -> None:
 
         for plug in self.plugins:
-            if self.accelerator_strategy is not None and self._is_plugin_training_type(plug):
+            if self.strategy is not None and self._is_plugin_training_type(plug):
                 raise MisconfigurationException(
-                    f"You have passed `Trainer(accelerator_strategy={self.accelerator_strategy})`"
+                    f"You have passed `Trainer(strategy={self.strategy})`"
                     f" and you can only specify one training type plugin, but you have passed {plug} as a plugin."
                 )
             if self._is_plugin_training_type(plug):
                 rank_zero_deprecation(
-                    f"Passing {plug} `accelerator_strategy` to the `plugins` flag in Trainer has been deprecated"
-                    f" in v1.5 and will be removed in v1.6. Use `Trainer(accelerator_strategy={plug})` instead."
+                    f"Passing {plug} `strategy` to the `plugins` flag in Trainer has been deprecated"
+                    f" in v1.5 and will be removed in v1.6. Use `Trainer(strategy={plug})` instead."
                 )
 
         training_type = self._training_type_plugin or None
@@ -938,7 +938,7 @@ class AcceleratorConnector:
             self._device_type = DeviceType.IPU
 
     def update_device_type_if_training_type_plugin_passed(self) -> None:
-        if isinstance(self.accelerator_strategy, TrainingTypePlugin) or any(
+        if isinstance(self.strategy, TrainingTypePlugin) or any(
             isinstance(plug, TrainingTypePlugin) for plug in self.plugins
         ):
             if self._accelerator_type is not None:

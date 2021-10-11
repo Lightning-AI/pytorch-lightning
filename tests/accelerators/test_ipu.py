@@ -531,15 +531,15 @@ def test_set_devices_if_none_ipu():
 
 
 @RunIf(ipu=True)
-def test_accelerator_strategy_choice_ipu_plugin(tmpdir):
-    trainer = Trainer(accelerator_strategy=IPUPlugin(), accelerator="ipu", devices=8)
+def test_strategy_choice_ipu_plugin(tmpdir):
+    trainer = Trainer(strategy=IPUPlugin(), accelerator="ipu", devices=8)
     assert isinstance(trainer.training_type_plugin, IPUPlugin)
 
 
 @RunIf(ipu=True)
 def test_device_type_when_training_plugin_ipu_passed(tmpdir):
 
-    trainer = Trainer(accelerator_strategy=IPUPlugin(), ipus=8)
+    trainer = Trainer(strategy=IPUPlugin(), ipus=8)
     assert isinstance(trainer.training_type_plugin, IPUPlugin)
     assert trainer._device_type == DeviceType.IPU
     assert isinstance(trainer.accelerator, IPUAccelerator)
