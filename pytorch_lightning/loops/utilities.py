@@ -114,7 +114,7 @@ def _build_training_step_kwargs(
     return step_kwargs
 
 
-def _prepare_dataloader_iter(data_fetcher: AbstractDataFetcher, batch_idx: int) -> Iterator:
+def _update_dataloader_iter(data_fetcher: AbstractDataFetcher, batch_idx: int) -> Iterator:
     """Attach the dataloader."""
     if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
         # restore iteration

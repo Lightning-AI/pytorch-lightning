@@ -18,7 +18,7 @@ if _FAIRSCALE_AVAILABLE:
 
 
 @pytest.mark.parametrize("clip_val", [0, 10])
-@RunIf(min_gpus=1, skip_windows=True, amp_native=True, fairscale=True)
+@RunIf(min_gpus=1, skip_windows=True, fairscale=True)
 @mock.patch("fairscale.optim.oss.OSS.clip_grad_norm")
 def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_val, tmpdir):
     """Ensure that clip gradients is only called if the value is greater than 0."""
@@ -62,7 +62,7 @@ def test_invalid_apex_sharded(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=2, amp_native=True, fairscale=True)
+@RunIf(min_gpus=1, fairscale=True)
 @pytest.mark.parametrize(["accelerator"], [("ddp_sharded",), ("ddp_sharded_spawn",)])
 def test_ddp_choice_sharded_amp(tmpdir, accelerator):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
