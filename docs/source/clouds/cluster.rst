@@ -13,11 +13,11 @@ In this guide, we cover
 
 2.  Using `Torch Distributed Run <https://pytorch.org/docs/stable/elastic/run.html>`__
 
-2.  SLURM cluster
+3.  SLURM cluster
 
-3.  Custom cluster environment
+4.  Custom cluster environment
 
-4.  General tips for multi-node training
+5.  General tips for multi-node training
 
 --------
 
