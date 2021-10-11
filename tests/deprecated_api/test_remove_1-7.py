@@ -131,6 +131,13 @@ def test_v1_7_0_trainer_terminate_on_nan(tmpdir, terminate_on_nan):
         assert trainer.terminate_on_nan is terminate_on_nan
         assert trainer._detect_anomaly is False
 
+    trainer = Trainer()
+    with pytest.deprecated_call(match=r"`Trainer.terminate_on_nan` is deprecated in v1.5"):
+        _ = trainer.terminate_on_nan
+
+    with pytest.deprecated_call(match=r"Setting `Trainer.terminate_on_nan` is deprecated in v1.5"):
+        trainer.terminate_on_nan = True
+
 
 def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
     class CustomBoringModel(BoringModel):
@@ -329,18 +336,3 @@ def test_v1_7_0_deprecate_parameter_validation():
         match="Using `pytorch_lightning.core.decorators.parameter_validation` is deprecated in v1.5"
     ):
         from pytorch_lightning.core.decorators import parameter_validation  # noqa: F401
-
-
-def test_v1_7_0_trainer_terminate_on_nan(tmpdir):
-    with pytest.deprecated_call(
-        match="Trainer argument `terminate_on_nan` was deprecated in v1.5 release and will be removed"
-        " in the v1.7 release. Please use trainer argument `detect_anomaly` instead."
-    ):
-        _ = Trainer(terminate_on_nan=True)
-
-    t = Trainer(terminate_on_nan=True)
-    with pytest.deprecated_call(match=r"`Trainer.terminate_on_nan` is deprecated in v1.5"):
-        _ = t.terminate_on_nan
-
-    with pytest.deprecated_call(match=r"Setting `Trainer.terminate_on_nan` is deprecated in v1.5"):
-        t.terminate_on_nan = True

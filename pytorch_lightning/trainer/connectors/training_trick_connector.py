@@ -15,7 +15,6 @@ from typing import Optional, Union
 
 from pytorch_lightning.utilities import GradClipAlgorithmType, rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
 class TrainingTricksConnector:
