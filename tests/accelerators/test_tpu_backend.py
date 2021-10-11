@@ -242,6 +242,7 @@ def test_accelerator_strategy_choice_tpu_plugin(tmpdir):
     assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
 
 
+@RunIf(tpu=True)
 def test_auto_parameters_tying_tpus(tmpdir):
 
     model = WeightSharingModule()

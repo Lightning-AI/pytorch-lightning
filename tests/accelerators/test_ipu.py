@@ -541,5 +541,5 @@ def test_device_type_when_training_plugin_ipu_passed(tmpdir):
 
     trainer = Trainer(accelerator_strategy=IPUPlugin(), ipus=8)
     assert isinstance(trainer.training_type_plugin, IPUPlugin)
-    assert trainer._device_type == DeviceType.IPUgleDevice
+    assert trainer._device_type == DeviceType.IPU
     assert isinstance(trainer.accelerator, IPUAccelerator)
