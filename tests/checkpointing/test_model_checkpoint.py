@@ -1026,7 +1026,7 @@ def test_configure_model_checkpoint(tmpdir):
     assert trainer.checkpoint_callback == callback1
     assert trainer.checkpoint_callbacks == [callback1, callback2]
 
-    with pytest.raises(MisconfigurationException, match="enable_checkpointing=False but found ModelCheckpoint"):
+    with pytest.raises(MisconfigurationException, match="`enable_checkpointing=False` but found `ModelCheckpoint`"):
         Trainer(enable_checkpointing=False, callbacks=[callback1], **kwargs)
 
 
@@ -1198,7 +1198,7 @@ def test_model_checkpoint_mode_options():
 
 def test_trainer_checkpoint_callback_bool(tmpdir):
     mc = ModelCheckpoint(dirpath=tmpdir)
-    with pytest.raises(MisconfigurationException, match="Invalid type provided for enable_checkpointing"):
+    with pytest.raises(MisconfigurationException, match="Invalid type provided for `enable_checkpointing`"):
         Trainer(enable_checkpointing=mc)
 
 
