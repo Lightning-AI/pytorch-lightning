@@ -54,13 +54,13 @@ class RichModelSummary(ModelSummary):
             layer summary off.
 
     Raises:
-        ImportError:
+        ModuleNotFoundError:
             If required `rich` package is not installed on the device.
     """
 
     def __init__(self, max_depth: int = 1) -> None:
         if not _RICH_AVAILABLE:
-            raise ImportError(
+            raise ModuleNotFoundError(
                 "`RichProgressBar` requires `rich` to be installed. Install it by running `pip install -U rich`."
             )
         super().__init__(max_depth)

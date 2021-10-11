@@ -181,7 +181,7 @@ class LoggerConnector:
 
         # log results of evaluation
         if (
-            self.trainer.state.fn != TrainerFn.FITTING
+            self.trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING)
             and self.trainer.evaluating
             and self.trainer.is_global_zero
             and self.trainer.verbose_evaluate

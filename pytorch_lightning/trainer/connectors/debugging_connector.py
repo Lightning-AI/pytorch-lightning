@@ -60,7 +60,7 @@ class DebuggingConnector:
             self.trainer.fit_loop.max_epochs = 1
             val_check_interval = 1.0
             self.trainer.check_val_every_n_epoch = 1
-            self.trainer.logger = DummyLogger()
+            self.trainer.logger = DummyLogger() if self.trainer.logger is not None else None
 
             rank_zero_info(
                 "Running in fast_dev_run mode: will run a full train,"
