@@ -147,8 +147,8 @@ class CallbackConnector:
                 f"Setting `Trainer(checkpoint_callback={checkpoint_callback})` is deprecated in v1.5 and will "
                 f"be removed in v1.7. Please consider using `Trainer(enable_checkpointing={checkpoint_callback})`."
             )
-            # if both are set, look whether anyone is True
-            enable_checkpointing = checkpoint_callback or enable_checkpointing
+            # if both are set then checkpoint only if both are True
+            enable_checkpointing = checkpoint_callback and enable_checkpointing
 
         # TODO: Remove this error in v1.5 so we rely purely on the type signature
         if not isinstance(enable_checkpointing, bool):
