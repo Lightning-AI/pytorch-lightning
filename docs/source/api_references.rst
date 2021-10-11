@@ -87,6 +87,10 @@ Base classes
 Default Loop Implementations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+
+Training
+""""""""
+
 .. currentmodule:: pytorch_lightning.loops.fit_loop
 
 .. autosummary::
@@ -95,7 +99,6 @@ Default Loop Implementations
     :template: classtemplate.rst
 
     FitLoop
-
 
 .. currentmodule:: pytorch_lightning.loops.epoch
 
@@ -124,6 +127,50 @@ Default Loop Implementations
 
     OptimizerLoop
     ManualOptimization
+
+
+Validation and Testing
+""""""""""""""""""""""
+
+.. currentmodule:: pytorch_lightning.loops.dataloader
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    EvaluationLoop
+
+.. currentmodule:: pytorch_lightning.loops.epoch
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    EvaluationEpochLoop
+
+
+Prediction
+""""""""""
+
+.. currentmodule:: pytorch_lightning.loops.dataloader
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    PredictionLoop
+
+.. currentmodule:: pytorch_lightning.loops.epoch
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    PredictionEpochLoop
 
 
 Plugins API
