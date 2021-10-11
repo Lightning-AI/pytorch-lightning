@@ -153,7 +153,7 @@ class CallbackConnector:
         # TODO: Remove this error in v1.5 so we rely purely on the type signature
         if not isinstance(enable_checkpointing, bool):
             error_msg = (
-                "Invalid type provided for enable_checkpointing: "
+                "Invalid type provided for `enable_checkpointing`: "
                 f"Expected bool but received {type(enable_checkpointing)}."
             )
             if isinstance(enable_checkpointing, Callback):
@@ -161,7 +161,7 @@ class CallbackConnector:
             raise MisconfigurationException(error_msg)
         if self._trainer_has_checkpoint_callbacks() and enable_checkpointing is False:
             raise MisconfigurationException(
-                "Trainer was configured with enable_checkpointing=False but found ModelCheckpoint in callbacks list."
+                "Trainer was configured with `enable_checkpointing=False` but found `ModelCheckpoint` in callbacks list."
             )
 
         if not self._trainer_has_checkpoint_callbacks() and enable_checkpointing is True:

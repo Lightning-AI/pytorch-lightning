@@ -574,7 +574,7 @@ To disable automatic checkpointing, set this to `False`.
 
 .. code-block:: python
 
-    # default used by Trainer
+    # default used by Trainer, saves the most recent model to a single checkpoint after each epoch
     trainer = Trainer(enable_checkpointing=True)
 
     # turn off automatic checkpointing
