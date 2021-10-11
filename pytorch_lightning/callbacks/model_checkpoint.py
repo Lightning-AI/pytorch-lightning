@@ -279,7 +279,6 @@ class ModelCheckpoint(Callback):
         outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
-        dataloader_idx: int,
     ) -> None:
         """Save checkpoint on train batch end if we meet the criteria for `every_n_train_steps`"""
         if self._should_skip_saving_checkpoint(trainer):
@@ -304,9 +303,7 @@ class ModelCheckpoint(Callback):
 
         self.save_checkpoint(trainer)
 
-    def on_train_epoch_end(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", unused: Optional = None
-    ) -> None:
+    def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Save a checkpoint at the end of the training epoch."""
         # as we advance one step at end of training, we use `global_step - 1` to avoid saving duplicates
         trainer.fit_loop.global_step -= 1
@@ -541,7 +538,9 @@ class ModelCheckpoint(Callback):
 
         return filename
 
-    def format_checkpoint_name(self, metrics: Dict[str, _METRIC], ver: Optional[int] = None) -> str:
+    def format_checkpoint_name(
+        self, metrics: Dict[str, _METRIC], filename: Optional[str] = None, ver: Optional[int] = None
+    ) -> str:
         """Generate a filename according to the defined template.
 
         Example::
@@ -556,6 +555,8 @@ class ModelCheckpoint(Callback):
             >>> ckpt = ModelCheckpoint(dirpath=tmpdir, filename='{epoch}-{val_loss:.2f}')
             >>> os.path.basename(ckpt.format_checkpoint_name(dict(epoch=2, val_loss=0.123456)))
             'epoch=2-val_loss=0.12.ckpt'
+            >>> os.path.basename(ckpt.format_checkpoint_name(dict(epoch=2, val_loss=0.12), filename='{epoch:d}'))
+            'epoch=2.ckpt'
             >>> ckpt = ModelCheckpoint(dirpath=tmpdir,
             ... filename='epoch={epoch}-validation_loss={val_loss:.2f}',
             ... auto_insert_metric_name=False)
@@ -568,9 +569,8 @@ class ModelCheckpoint(Callback):
             >>> os.path.basename(ckpt.format_checkpoint_name(dict(step=0)))
             'step=0.ckpt'
         """
-        filename = self._format_checkpoint_name(
-            self.filename, metrics, auto_insert_metric_name=self.auto_insert_metric_name
-        )
+        filename = filename or self.filename
+        filename = self._format_checkpoint_name(filename, metrics, auto_insert_metric_name=self.auto_insert_metric_name)
 
         if ver is not None:
             filename = self.CHECKPOINT_JOIN_CHAR.join((filename, f"v{ver}"))
@@ -657,9 +657,7 @@ class ModelCheckpoint(Callback):
         if not self.save_last:
             return
 
-        filepath = self._format_checkpoint_name(self.CHECKPOINT_NAME_LAST, monitor_candidates)
-        filepath = os.path.join(self.dirpath, f"{filepath}{self.FILE_EXTENSION}")
-
+        filepath = self.format_checkpoint_name(monitor_candidates, self.CHECKPOINT_NAME_LAST)
         trainer.save_checkpoint(filepath, self.save_weights_only)
 
         if self.last_model_path and self.last_model_path != filepath:

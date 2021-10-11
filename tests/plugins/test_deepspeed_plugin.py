@@ -649,7 +649,7 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
 
     class TestCallback(Callback):
         def on_train_batch_start(
-            self, trainer: Trainer, pl_module: LightningModule, batch: Any, batch_idx: int, dataloader_idx: int
+            self, trainer: Trainer, pl_module: LightningModule, batch: Any, batch_idx: int
         ) -> None:
             original_deepspeed_plugin = initial_trainer.accelerator.training_type_plugin
             current_deepspeed_plugin = trainer.accelerator.training_type_plugin
@@ -707,9 +707,7 @@ def _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimiz
         def __init__(self):
             self.on_train_batch_start_called = False
 
-        def on_train_batch_start(
-            self, trainer, pl_module: LightningModule, batch: Any, batch_idx: int, dataloader_idx: int
-        ) -> None:
+        def on_train_batch_start(self, trainer, pl_module: LightningModule, batch: Any, batch_idx: int) -> None:
             deepspeed_engine = trainer.training_type_plugin.model
             assert trainer.global_step == deepspeed_engine.global_steps
             self.on_train_batch_start_called = True

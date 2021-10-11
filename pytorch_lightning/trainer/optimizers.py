@@ -230,7 +230,7 @@ def _validate_optim_conf(optim_conf: Dict[str, Any]) -> None:
 def _validate_scheduler_optimizer(optimizers, lr_schedulers):
     if any(sch["scheduler"].optimizer not in optimizers for sch in lr_schedulers):
         raise MisconfigurationException(
-            "Some schedulers are attatched with an optimizer that wasn't returned from `configure_optimizers`."
+            "Some schedulers are attached with an optimizer that wasn't returned from `configure_optimizers`."
         )
 
 

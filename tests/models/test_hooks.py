@@ -91,14 +91,14 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
         def training_epoch_end(self, outputs):
             self.len_outputs = len(outputs)
 
-        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+        def on_train_batch_end(self, outputs, batch, batch_idx):
             self.num_train_batches += 1
 
     class NotOverriddenModel(BoringModel):
         def on_train_epoch_start(self):
             self.num_train_batches = 0
 
-        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+        def on_train_batch_end(self, outputs, batch, batch_idx):
             self.num_train_batches += 1
 
     overridden_model = OverriddenModel()
@@ -289,8 +289,8 @@ class HookedModel(BoringModel):
                     dict(name="on_after_batch_transfer", args=(ANY, 0)),
                     # TODO: `on_batch_{start,end}`
                     dict(name="Callback.on_batch_start", args=(trainer, model)),
-                    dict(name="Callback.on_train_batch_start", args=(trainer, model, ANY, i, 0)),
-                    dict(name="on_train_batch_start", args=(ANY, i, 0)),
+                    dict(name="Callback.on_train_batch_start", args=(trainer, model, ANY, i)),
+                    dict(name="on_train_batch_start", args=(ANY, i)),
                     # without a precision plugin, we execute the closure inside the `optimizer.step`
                     *([] if using_plugin else on_before_optimizer_step),
                     dict(name="forward", args=(ANY,)),
@@ -311,8 +311,8 @@ class HookedModel(BoringModel):
                         args=(current_epoch, i, ANY, 0, ANY),
                         kwargs=dict(on_tpu=False, using_lbfgs=False, using_native_amp=using_native_amp),
                     ),
-                    dict(name="Callback.on_train_batch_end", args=(trainer, model, dict(loss=ANY), ANY, i, 0)),
-                    dict(name="on_train_batch_end", args=(dict(loss=ANY), ANY, i, 0)),
+                    dict(name="Callback.on_train_batch_end", args=(trainer, model, dict(loss=ANY), ANY, i)),
+                    dict(name="on_train_batch_end", args=(dict(loss=ANY), ANY, i)),
                     dict(name="Callback.on_batch_end", args=(trainer, model)),
                 ]
             )
@@ -331,8 +331,8 @@ class HookedModel(BoringModel):
                     dict(name="on_after_batch_transfer", args=(ANY, 0)),
                     # TODO: `on_batch_{start,end}`
                     dict(name="Callback.on_batch_start", args=(trainer, model)),
-                    dict(name="Callback.on_train_batch_start", args=(trainer, model, ANY, i, 0)),
-                    dict(name="on_train_batch_start", args=(ANY, i, 0)),
+                    dict(name="Callback.on_train_batch_start", args=(trainer, model, ANY, i)),
+                    dict(name="on_train_batch_start", args=(ANY, i)),
                     dict(name="forward", args=(ANY,)),
                     dict(name="Callback.on_before_backward", args=(trainer, model, ANY)),
                     dict(name="on_before_backward", args=(ANY,)),
@@ -349,8 +349,8 @@ class HookedModel(BoringModel):
                     *([] if using_plugin else [dict(name="closure")]),
                     dict(name="training_step", args=(ANY, i)),
                     dict(name="training_step_end", args=(dict(loss=ANY),)),
-                    dict(name="Callback.on_train_batch_end", args=(trainer, model, dict(loss=ANY), ANY, i, 0)),
-                    dict(name="on_train_batch_end", args=(dict(loss=ANY), ANY, i, 0)),
+                    dict(name="Callback.on_train_batch_end", args=(trainer, model, dict(loss=ANY), ANY, i)),
+                    dict(name="on_train_batch_end", args=(dict(loss=ANY), ANY, i)),
                     dict(name="Callback.on_batch_end", args=(trainer, model)),
                 ]
             )

@@ -220,7 +220,7 @@ class Counter(Callback):
         self.val_batches_seen = 0
         self.test_batches_seen = 0
 
-    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
         self.train_batches_seen += 1
 
     def on_train_epoch_start(self, trainer, pl_module):
@@ -1482,7 +1482,7 @@ def test_request_dataloader(tmpdir):
             self.train_dataloader = DataLoaderFunc(DataLoaderWrapper(loader))
             self.on_train_dataloader_called = True
 
-        def on_train_batch_start(self, batch, batch_idx: int, dataloader_idx: int) -> None:
+        def on_train_batch_start(self, batch, batch_idx: int) -> None:
             assert isinstance(self.trainer.train_dataloader.loaders, DataLoaderWrapper)
             self.on_train_batch_start_called = True
 

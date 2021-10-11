@@ -37,7 +37,7 @@ _WANDB_GREATER_EQUAL_0_10_22 = _compare_version("wandb", operator.ge, "0.10.22")
 try:
     import wandb
     from wandb.wandb_run import Run
-except ImportError:
+except ModuleNotFoundError:
     # needed for test mocks, these tests shall be updated
     wandb, Run = None, None
 
@@ -74,7 +74,7 @@ class WandbLogger(LightningLoggerBase):
         \**kwargs: Arguments passed to :func:`wandb.init` like `entity`, `group`, `tags`, etc.
 
     Raises:
-        ImportError:
+        ModuleNotFoundError:
             If required WandB package is not installed on the device.
         MisconfigurationException:
             If both ``log_model`` and ``offline``is set to ``True``.
@@ -114,7 +114,7 @@ class WandbLogger(LightningLoggerBase):
         **kwargs,
     ):
         if wandb is None:
-            raise ImportError(
+            raise ModuleNotFoundError(
                 "You want to use `wandb` logger which is not installed yet,"
                 " install it with `pip install wandb`."  # pragma: no-cover
             )
