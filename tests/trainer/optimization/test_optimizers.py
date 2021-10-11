@@ -490,7 +490,7 @@ def test_lr_scheduler_with_no_actual_scheduler_raises(tmpdir):
 
 
 def test_invalid_optimizer_in_scheduler(tmpdir):
-    """Test exception when optimizer attatched to lr_schedulers wasn't returned."""
+    """Test exception when optimizer attached to lr_schedulers wasn't returned."""
 
     class InvalidOptimizerModel(BoringModel):
         def configure_optimizers(self):
@@ -501,7 +501,7 @@ def test_invalid_optimizer_in_scheduler(tmpdir):
 
     model = InvalidOptimizerModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    with pytest.raises(MisconfigurationException, match="attatched with an optimizer that wasn't returned"):
+    with pytest.raises(MisconfigurationException, match="attached with an optimizer that wasn't returned"):
         trainer.fit(model)
 
 
