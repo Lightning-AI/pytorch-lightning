@@ -485,8 +485,6 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         return d
 
     def __len__(self) -> int:
-        """Returns the sum of the length of all dataloaders defined in DataModule."""
-
         def get_num_batches(dataloader):
             if isinstance(dataloader, Sequence):
                 return sum(get_num_batches(dl) for dl in dataloader)

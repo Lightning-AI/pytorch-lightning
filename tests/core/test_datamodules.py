@@ -663,6 +663,7 @@ def test_len_dataloader_no_len(method_name):
 def test_len_all_dataloader_methods_implemented():
     class BoringDataModule(LightningDataModule):
         def __init__(self, dataloader):
+            super().__init__()
             self.dataloader = dataloader
 
         def train_dataloader(self):
