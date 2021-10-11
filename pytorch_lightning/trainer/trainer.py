@@ -2051,4 +2051,4 @@ class Trainer(
             f"Setting `Trainer.terminate_on_nan = {val}` is deprecated in v1.5 and will be removed in 1.7."
             f" Please set `Trainer(detect_anomaly={val})` instead."
         )
-        self._terminate_on_nan = val  # noqa: 212
+        self._terminate_on_nan = val  # : 212

@@ -344,7 +344,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             self._backward(loss, optimizer, opt_idx)
 
             # check if model weights are nan
-            if self.trainer._terminate_on_nan:  # noqa: 212
+            if self.trainer._terminate_on_nan:  # : 212
                 detect_nan_parameters(self.trainer.lightning_module)
 
         return backward_fn
@@ -460,7 +460,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
 
             result = ClosureResult.from_training_step_output(training_step_output, self.trainer.accumulate_grad_batches)
 
-            if self.trainer._terminate_on_nan:  # noqa: 212
+            if self.trainer._terminate_on_nan:  # : 212
                 check_finite_loss(result.closure_loss)
 
             if self.trainer.move_metrics_to_cpu:
