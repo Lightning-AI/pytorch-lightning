@@ -515,6 +515,7 @@ def test_none_monitor_top_k(tmpdir):
     ModelCheckpoint(dirpath=tmpdir, save_top_k=0)
     ModelCheckpoint(dirpath=tmpdir, save_top_k=1)
 
+
 def test_invalid_every_n_epochs(tmpdir):
     """Make sure that a MisconfigurationException is raised for a negative every_n_epochs argument."""
     with pytest.raises(MisconfigurationException, match=r".*Must be >= 0"):
