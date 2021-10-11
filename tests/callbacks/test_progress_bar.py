@@ -59,11 +59,19 @@ def test_progress_bar_on(tmpdir, callbacks: list, refresh_rate: Optional[int]):
     assert progress_bars[0] is trainer.progress_bar_callback
 
 
-@pytest.mark.parametrize("callbacks,refresh_rate", [([], 0), ([], False), ([ModelCheckpoint(dirpath="../trainer")], 0)])
-def test_progress_bar_off(tmpdir, callbacks: list, refresh_rate: Union[bool, int]):
+@pytest.mark.parametrize(
+    "callbacks,refresh_rate,enable_progress_bar",
+    [([], 0, True), ([], False, True), ([ModelCheckpoint(dirpath="../trainer")], 0, True), ([], 1, False)],
+)
+def test_progress_bar_off(tmpdir, callbacks: list, refresh_rate: Union[bool, int], enable_progress_bar: bool):
     """Test different ways the progress bar can be turned off."""
 
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=callbacks, progress_bar_refresh_rate=refresh_rate)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=callbacks,
+        progress_bar_refresh_rate=refresh_rate,
+        enable_progress_bar=enable_progress_bar,
+    )
 
     progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBar)]
     assert 0 == len(progress_bars)
@@ -177,12 +185,12 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
         val_batches_seen = 0
         test_batches_seen = 0
 
-        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-            super().on_train_batch_start(trainer, pl_module, batch, batch_idx, dataloader_idx)
+        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
+            super().on_train_batch_start(trainer, pl_module, batch, batch_idx)
             assert self.train_batch_idx == trainer.fit_loop.batch_idx
 
-        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-            super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+            super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
             assert self.train_batch_idx == trainer.fit_loop.batch_idx + 1
             if not self.is_disabled and self.train_batch_idx % self.refresh_rate == 0:
                 assert self.main_progress_bar.n == self.train_batch_idx

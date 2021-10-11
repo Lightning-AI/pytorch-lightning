@@ -141,7 +141,7 @@ def test_early_stopping_patience(tmpdir, loss_values: list, patience: int, expec
         callbacks=[early_stop_callback],
         num_sanity_val_steps=0,
         max_epochs=10,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
     trainer.fit(model)
     assert trainer.current_epoch == expected_stop_epoch
@@ -177,7 +177,7 @@ def test_early_stopping_patience_train(
         callbacks=[early_stop_callback],
         num_sanity_val_steps=0,
         max_epochs=10,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
     trainer.fit(model)
     assert trainer.current_epoch == expected_stop_epoch
@@ -444,7 +444,7 @@ def test_check_on_train_epoch_end_smart_handling(tmpdir, case):
         default_root_dir=tmpdir,
         limit_val_batches=1,
         callbacks=EarlyStopping(monitor="foo"),
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         **kwargs,
     )
 

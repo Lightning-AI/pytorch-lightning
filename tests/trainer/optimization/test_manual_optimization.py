@@ -68,7 +68,7 @@ class ManualOptModel(BoringModel):
     "kwargs",
     [
         {},
-        pytest.param({"gpus": 1, "precision": 16, "amp_backend": "native"}, marks=RunIf(amp_native=True, min_gpus=1)),
+        pytest.param({"gpus": 1, "precision": 16, "amp_backend": "native"}, marks=RunIf(min_gpus=1)),
         pytest.param(
             {"gpus": 1, "precision": 16, "amp_backend": "apex", "amp_level": "O2"},
             marks=RunIf(amp_apex=True, min_gpus=1),
@@ -232,7 +232,7 @@ class ManualOptimizationExtendedModel(BoringModel):
     def should_update(self):
         return self.count % 2 == 0
 
-    def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
+    def on_train_batch_start(self, batch, batch_idx):
         self.called["on_train_batch_start"] += 1
         self.weight_before = self.layer.weight.clone()
 

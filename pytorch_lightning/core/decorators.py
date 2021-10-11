@@ -11,12 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Decorator for LightningModule methods."""
+from pytorch_lightning.utilities import rank_zero_deprecation
 
-from functools import wraps
-from typing import Callable
+rank_zero_deprecation(
+    "Using `pytorch_lightning.core.decorators.parameter_validation` is deprecated in v1.5, "
+    "and will be removed in v1.7. It has been replaced by automatic parameters tying with "
+    "`pytorch_lightning.utilities.params_tying.set_shared_parameters`"
+)
 
-from pytorch_lightning.utilities import rank_zero_warn
+from functools import wraps  # noqa: E402
+from typing import Callable  # noqa: E402
+
+from pytorch_lightning.utilities import rank_zero_warn  # noqa: E402
 
 
 def parameter_validation(fn: Callable) -> Callable:
