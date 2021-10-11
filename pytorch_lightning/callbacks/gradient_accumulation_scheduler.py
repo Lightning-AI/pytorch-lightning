@@ -66,12 +66,12 @@ class GradientAccumulationScheduler(Callback):
         if not scheduling:  # empty dict error
             raise TypeError("Empty dict cannot be interpreted correct")
 
-        if any(True for key in scheduling if not isinstance(key, int) or key < 0):
+        if any(not isinstance(key, int) or key < 0 for key in scheduling):
             raise MisconfigurationException(
                 f"Epoch should be an int greated than or equal to 0. Got {list(scheduling.keys())}."
             )
 
-        if any(True for value in scheduling.values() if not isinstance(value, int) or value < 1):
+        if any(not isinstance(value, int) or value < 1 for value in scheduling.values()):
             raise MisconfigurationException(
                 f"Accumulation factor should be an int greated than 0. Got {list(scheduling.values())}."
             )
