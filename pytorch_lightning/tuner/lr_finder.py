@@ -223,7 +223,7 @@ def lr_find(
     trainer.callbacks = [_LRCallback(num_training, early_stop_threshold, progress_bar_refresh_rate=1)]
 
     # No logging
-    trainer.logger = DummyLogger()
+    trainer.logger = DummyLogger() if trainer.logger is not None else None
 
     # Max step set to number of iterations
     trainer.fit_loop.max_steps = num_training
