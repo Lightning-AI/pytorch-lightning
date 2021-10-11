@@ -115,10 +115,12 @@ Given this new loop definition, here is how you connect it to the :code:`Trainer
     trainer = Trainer()
 
     yield_loop = YieldLoop()
-    trainer.fit_loop.epoch_loop.batch_loop.connect(optimizer_loop=yield_loop)
-    trainer.fit(model)  # runs the new loop!
 
-Note that we need to connect it to the :class:`~pytorch_lightning.loops.batch.training_batch_loop.TrainingBatchLoop` as this is the next higher loop above the optimizer loop.
+    # the batch loop owns the optimizer loop
+    trainer.fit_loop.epoch_loop.batch_loop.connect(optimizer_loop=yield_loop)
+
+    # run the new loop!
+    trainer.fit(model)
 
 Finally, we can rewrite the GAN training step using the new yield mechanism:
 
