@@ -80,7 +80,7 @@ Which loops does Lightning have and how can they be changed?
 .. image:: ../_static/images/extensions/loops/replace-fit-loop.gif
     :alt: Animation showing how to replace a loop on the Trainer
 
-Entry loops: Fit, validate, test, predict
+Entry Loops: Fit, Validate, Test, Predict
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The Trainer has four entry points for training, testing and inference, and each method corresponds to a main loop:
@@ -170,7 +170,7 @@ Customizing the EpochLoop does not require you to implement an entirely new fit 
 
 More about the built-in loops and how they are composed is explained :ref:`here <loop structure>`:
 
-The Loop base class
+The Loop Base Class
 -------------------
 
 So far we have seen how it is possible to customize existing implementations of loops in Lightning, namely the FitLoop and the OptimizerLoop.
@@ -275,7 +275,7 @@ Here is the `runnable example <https://github.com/PyTorchLightning/lightning-fla
 
 .. _loop structure:
 
-Built-in loop structure
+Built-in Loop Structure
 -----------------------
 
 The training loop in Lightning is called *fit loop* and is actually a combination of several loops.
@@ -336,7 +336,7 @@ Each of these :code:`for`-loops represents a class implementing the :class:`~pyt
      - Substitutes the :class:`~pytorch_lightning.loops.optimization.optimizer_loop.OptimizerLoop` in case of :ref:`manual_optimization` and implements the manual optimization step.
 
 
-Advanced example: the training step as a generator
+Advanced Example: The Training Step as a Generator
 --------------------------------------------------
 
 Lightning supports multiple optimizers and offers a special :code:`training_step` flavor for it, where an extra argument with the current optimizer being used is passed in.
