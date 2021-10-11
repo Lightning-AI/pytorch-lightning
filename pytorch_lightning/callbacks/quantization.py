@@ -27,10 +27,10 @@ from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TORCH_GREATER_EQUAL_1_10:
-    import torch.ao.quantization as ptq
+    import torch.ao.quantization as ptq  # F401
     from torch.ao.quantization import QConfig
 else:
-    import torch.quantization as ptq
+    import torch.quantization as ptq  # noqa F401
     from torch.quantization import QConfig
 
 
