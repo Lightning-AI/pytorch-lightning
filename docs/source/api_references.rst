@@ -70,6 +70,9 @@ Loggers API
 Loop API
 --------
 
+Base classes
+^^^^^^^^^^^^
+
 .. currentmodule:: pytorch_lightning.loops
 
 .. autosummary::
@@ -79,6 +82,49 @@ Loop API
 
     Loop
     DataLoaderLoop
+
+
+Default Loop Implementations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. currentmodule:: pytorch_lightning.loops.fit_loop
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    FitLoop
+
+
+.. currentmodule:: pytorch_lightning.loops.epoch
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    TrainingEpochLoop
+
+.. currentmodule:: pytorch_lightning.loops.batch
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    TrainingBatchLoop
+
+.. currentmodule:: pytorch_lightning.loops.optimization
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    OptimizerLoop
+    ManualOptimization
+
 
 Plugins API
 -----------
