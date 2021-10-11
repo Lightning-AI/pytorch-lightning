@@ -77,11 +77,11 @@ This means that you need to:
 
 `Torch Distributed Run <https://pytorch.org/docs/stable/elastic/run.html>`__ provides helper functions to setup distributed environment variables from the `PyTorch distributed communication package <https://pytorch.org/docs/stable/distributed.html#environment-variable-initialization>`__ that need to be defined on each node.
 
-Once the script is setup like described in :ref:`Training script setup`,you can run the below command across your nodes to start multi-node training.
+Once the script is setup like described in :ref:`Training script setup`, you can run the below command across your nodes to start multi-node training.
 
 Like a custom cluster, you have to ensure that there is network connectivity between the nodes with firewall rules that allow traffic flow on a specified *MASTER_PORT*.
 
-Finally you'll need to decide which node you'd like to be the master node (*MASTER_ADDR*), the ranks of each node (*NODE_RANK*).
+Finally, you'll need to decide which node you'd like to be the master node (*MASTER_ADDR*), and the ranks of each node (*NODE_RANK*).
 
 For example:
 
