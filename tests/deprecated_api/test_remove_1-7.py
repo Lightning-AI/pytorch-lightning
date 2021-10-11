@@ -127,7 +127,9 @@ def test_v1_7_0_trainer_terminate_on_nan(tmpdir, terminate_on_nan):
     with pytest.deprecated_call(
         match="Trainer argument `terminate_on_nan` was deprecated in v1.5 and will be removed in 1.7"
     ):
-        _ = Trainer(terminate_on_nan=terminate_on_nan)
+        trainer = Trainer(terminate_on_nan=terminate_on_nan)
+        assert trainer.terminate_on_nan is terminate_on_nan
+        assert trainer._detect_anomaly is False
 
 
 def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
