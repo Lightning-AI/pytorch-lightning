@@ -435,6 +435,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed bug where the training step output needed to be `deepcopy`-ed ([#9349](https://github.com/PyTorchLightning/pytorch-lightning/pull/9349))
 
+- Fix save_top_k warning in ModelCheckpoint callback ([#9875](https://github.com/PyTorchLightning/pytorch-lightning/pull/9875))
 
 - Fixed freeing data iterators in loop `on_run_end` ([#9386](https://github.com/PyTorchLightning/pytorch-lightning/pull/9386))
 
