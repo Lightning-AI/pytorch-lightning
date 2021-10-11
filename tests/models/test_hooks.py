@@ -416,18 +416,35 @@ class HookedModel(BoringModel):
         return out
 
 
+@RunIf(deepspeed=True, min_gpus=1, special=True)
+def test_trainer_model_hook_system_fit_deepspeed_automatic_optimization(tmpdir):
+    _run_trainer_model_hook_system_fit(
+        dict(gpus=1, precision=16, plugins="deepspeed"), tmpdir, automatic_optimization=True
+    )
+
+
+@RunIf(deepspeed=True, min_gpus=1, special=True)
+def test_trainer_model_hook_system_fit_deepspeed_manual_optimization(tmpdir):
+    _run_trainer_model_hook_system_fit(
+        dict(gpus=1, precision=16, plugins="deepspeed"), tmpdir, automatic_optimization=False
+    )
+
+
 @pytest.mark.parametrize(
     "kwargs",
     [
         {},
         # these precision plugins modify the optimization flow, so testing them explicitly
-        pytest.param(dict(gpus=1, precision=16, plugins="deepspeed"), marks=RunIf(deepspeed=True, min_gpus=1)),
         pytest.param(dict(gpus=1, precision=16, amp_backend="native"), marks=RunIf(min_gpus=1)),
         pytest.param(dict(gpus=1, precision=16, amp_backend="apex"), marks=RunIf(amp_apex=True, min_gpus=1)),
     ],
 )
 @pytest.mark.parametrize("automatic_optimization", (True, False))
 def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
+    _run_trainer_model_hook_system_fit(kwargs, tmpdir, automatic_optimization)
+
+
+def _run_trainer_model_hook_system_fit(kwargs, tmpdir, automatic_optimization):
     called = []
 
     class TestModel(HookedModel):
@@ -459,14 +476,11 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         callbacks=[callback],
         **kwargs,
     )
-
     assert called == [
         dict(name="Callback.on_init_start", args=(trainer,)),
         dict(name="Callback.on_init_end", args=(trainer,)),
     ]
-
     trainer.fit(model)
-
     saved_ckpt = {
         "callbacks": ANY,
         "epoch": 1,
@@ -481,7 +495,6 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
     elif kwargs.get("amp_backend") == "apex":
         saved_ckpt["amp_scaling_state"] = ANY
     device = torch.device("cuda:0" if "gpus" in kwargs else "cpu")
-
     expected = [
         dict(name="Callback.on_init_start", args=(trainer,)),
         dict(name="Callback.on_init_end", args=(trainer,)),

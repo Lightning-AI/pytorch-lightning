@@ -213,12 +213,13 @@ def test_warn_deepspeed_override_backward(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=1, deepspeed=True, special=True)
+@RunIf(min_gpus=1, deepspeed=True)
 @pytest.mark.parametrize(
     ["dataset_cls", "value"],
     [(RandomDataset, "auto"), (RandomDataset, 10), (RandomIterableDataset, "auto"), (RandomIterableDataset, 10)],
 )
-def test_deepspeed_auto_batch_size_config_select(tmpdir, dataset_cls, value):
+@mock.patch("deepspeed.init_distributed", autospec=True)
+def test_deepspeed_auto_batch_size_config_select(mock_deepspeed_distributed, tmpdir, dataset_cls, value):
     """Test to ensure that the batch size is correctly set as expected for deepspeed logging purposes."""
 
     class TestModel(BoringModel):
@@ -226,7 +227,7 @@ def test_deepspeed_auto_batch_size_config_select(tmpdir, dataset_cls, value):
             return DataLoader(dataset_cls(32, 64))
 
     class AssertCallback(Callback):
-        def on_train_start(self, trainer, pl_module) -> None:
+        def setup(self, trainer, pl_module, stage: Optional[str] = None) -> None:
             assert isinstance(trainer.accelerator.training_type_plugin, DeepSpeedPlugin)
             config = trainer.accelerator.training_type_plugin.config
 
@@ -855,7 +856,7 @@ def test_deepspeed_multigpu_no_schedulers(tmpdir):
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
-@RunIf(min_gpus=1, deepspeed=True)
+@RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_deepspeed_skip_backward_raises(tmpdir):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
