@@ -114,7 +114,7 @@ class AcceleratorConnector:
 
         self.accelerator_strategy = accelerator_strategy
         self.distributed_backend = distributed_backend or accelerator
-        
+
         self._init_deterministic(deterministic)
 
         self.num_processes = num_processes

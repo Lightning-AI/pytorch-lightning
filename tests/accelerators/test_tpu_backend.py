@@ -240,7 +240,7 @@ def test_accelerator_strategy_choice_tpu_str(tmpdir, accelerator_strategy):
 def test_accelerator_strategy_choice_tpu_plugin(tmpdir):
     trainer = Trainer(accelerator_strategy=TPUSpawnPlugin(), accelerator="tpu", devices=8)
     assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
-    
+
 
 def test_auto_parameters_tying_tpus(tmpdir):
 

@@ -2095,8 +2095,8 @@ def test_detect_anomaly_nan(tmpdir):
             UserWarning, match=r".*Error detected in.* Traceback of forward call that caused the error.*"
         ):
             trainer.fit(model)
-            
-            
+
+
 @pytest.mark.parametrize(
     "trainer_kwargs,expected",
     [
