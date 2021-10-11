@@ -178,7 +178,6 @@ class Trainer(
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         stochastic_weight_avg: bool = False,
-        detect_anomaly: bool = False,
     ):
         r"""
         Customize every aspect of training via flags.
@@ -353,8 +352,8 @@ class Trainer(
                 end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
 
                 .. deprecated:: v1.5
-                    `Trainer argument `terminate_on_nan` was deprecated in v1.5 release and will be removed in
-                    the v1.7 release. Please use trainer argument `detect_anomaly` instead.`
+                    Trainer argument ``terminate_on_nan`` was deprecated in v1.5 and will be removed in 1.7.
+                    Please use ``detect_anomaly`` instead.
 
             detect_anomaly: Enable anomaly detection for the autograd engine.
 

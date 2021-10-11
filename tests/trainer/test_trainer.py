@@ -957,21 +957,6 @@ def test_nan_params_detection(backward_mock, tmpdir):
     assert not torch.isfinite(params).all()
 
 
-def test_detect_anomaly_nan(tmpdir):
-    class CurrentModel(BoringModel):
-        def forward(self, x):
-            x /= 0
-            return self.layer(x)
-
-    model = CurrentModel()
-    trainer = Trainer(default_root_dir=tmpdir, detect_anomaly=True)
-    with pytest.raises(RuntimeError, match=r"Function 'MseLossBackward' returned nan values in its 0th output."):
-        with pytest.warns(
-            UserWarning, match=r".*Error detected in MseLossBackward. Traceback of forward call that caused the error.*"
-        ):
-            trainer.fit(model)
-
-
 def test_on_exception_hook(tmpdir):
     """Test the on_exception callback hook and the trainer interrupted flag."""
 

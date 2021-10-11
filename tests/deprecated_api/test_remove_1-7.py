@@ -124,8 +124,7 @@ def test_v1_7_0_stochastic_weight_avg_trainer_constructor(tmpdir):
 
 def test_v1_7_0_trainer_terminate_on_nan(tmpdir):
     with pytest.deprecated_call(
-        match="Trainer argument `terminate_on_nan` was deprecated in v1.5 release and will be removed"
-        " in the v1.7 release. Please use trainer argument `detect_anomaly` instead."
+        match="Trainer argument `terminate_on_nan` was deprecated in v1.5 and will be removed in 1.7"
     ):
         _ = Trainer(terminate_on_nan=True)
 
