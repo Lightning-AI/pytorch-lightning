@@ -11,6 +11,8 @@ In this guide, we cover
 
 1.  General purpose cluster (not managed)
 
+2.  Using `Torch Distributed Run <https://pytorch.org/docs/stable/elastic/run.html>`__
+
 2.  SLURM cluster
 
 3.  Custom cluster environment
@@ -66,12 +68,41 @@ This means that you need to:
 3. Run the script on each node.
 
 
---------
+----------
+
+.. _torch_distributed_run:
+
+2. Torch Distributed Run
+========================
+
+`Torch Distributed Run <https://pytorch.org/docs/stable/elastic/run.html>`__ provides helper functions to setup distributed environment variables from the `PyTorch distributed communication package <https://pytorch.org/docs/stable/distributed.html#environment-variable-initialization>`__ that need to be defined on each node.
+
+Once the script is setup like described in :ref:`Training script setup`,you can run the below command across your nodes to start multi-node training.
+
+Like a custom cluster, you have to ensure that there is network connectivity between the nodes with firewall rules that allow traffic flow on a specified *MASTER_PORT*.
+
+Finally you'll need to decide which node you'd like to be the master node (*MASTER_ADDR*), the ranks of each node (*NODE_RANK*).
+
+For example:
+
+* *MASTER_ADDR* 10.10.10.16
+* *MASTER_PORT* 29500
+* *NODE_RANK* 0 for the first node, 1 for the second node
+
+Run the below command with the appropriate variables set on each node.
+
+.. code-block:: bash
+    python -m torch.distributed.run
+        --nnodes=2 # number of nodes you'd like to run with
+        --master_addr <MASTER_ADDR>
+        --master_port <MASTER_PORT>
+        --node_rank <NODE_RANK>
+        train.py (--arg1 ... train script args...)
 
 
 .. _slurm:
 
-2. SLURM managed cluster
+3. SLURM managed cluster
 ========================
 
 Lightning automates the details behind training on a SLURM-powered cluster. In contrast to the general purpose
@@ -239,7 +270,7 @@ The other option is that you generate scripts on your own via a bash command or 
 
 .. _custom-cluster:
 
-3. Custom cluster
+4. Custom cluster
 =================
 
 Lightning provides an interface for providing your own definition of a cluster environment. It mainly consists of
@@ -282,7 +313,7 @@ and node rank (node id). Here is an example of a custom
 
 ----------
 
-4. General tips for multi-node training
+5. General tips for multi-node training
 =======================================
 
 Debugging flags
