@@ -130,7 +130,6 @@ class ModelCheckpoint(Callback):
 
             Use ``every_n_epochs`` instead.
 
-
     Note:
         For extra customization, ModelCheckpoint includes the following attributes:
 

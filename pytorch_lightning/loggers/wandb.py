@@ -282,7 +282,7 @@ class WandbLogger(LightningLoggerBase):
             rank_zero_warn(
                 f"Providing log_model={log_model} requires wandb version >= 0.10.22"
                 " for logging associated model metadata.\n"
-                "Hint: Upgrade with `pip install --ugrade wandb`."
+                "Hint: Upgrade with `pip install --upgrade wandb`."
             )
 
         super().__init__()
