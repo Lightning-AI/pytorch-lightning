@@ -174,68 +174,6 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     assert not failed, "Model should be loaded due to strict=False."
 
 
-@pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))
-def test_trainer_accumulate_grad_batches_zero_grad(tmpdir, accumulate_grad_batches):
-    with patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
-        model = BoringModel()
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            limit_train_batches=20,
-            limit_val_batches=1,
-            max_epochs=1,
-            weights_summary=None,
-            accumulate_grad_batches=accumulate_grad_batches,
-        )
-        assert trainer.accumulate_grad_batches == accumulate_grad_batches
-        trainer.fit(model)
-
-        assert sum(isinstance(cb, GradientAccumulationScheduler) for cb in trainer.callbacks) == 1
-        assert sgd_zero_grad.call_count == math.ceil(trainer.limit_train_batches / accumulate_grad_batches)
-
-
-@pytest.mark.parametrize(
-    ["accumulate_grad_batches", "expected_call_count"],
-    [
-        ({1: 2, 3: 4}, 10 + 5 + 5 + 3),
-        ({0: 2, 2: 1}, 5 + 5 + 10 + 10),
-    ],
-)
-def test_trainer_accumulate_grad_batches_dict_zero_grad(tmpdir, accumulate_grad_batches, expected_call_count):
-    with patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
-        model = BoringModel()
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            limit_train_batches=10,
-            limit_val_batches=1,
-            max_epochs=4,
-            weights_summary=None,
-            accumulate_grad_batches=accumulate_grad_batches,
-        )
-        assert trainer.accumulate_grad_batches == accumulate_grad_batches.get(0, 1)
-        trainer.fit(model)
-
-        assert sum(isinstance(cb, GradientAccumulationScheduler) for cb in trainer.callbacks) == 1
-        assert sgd_zero_grad.call_count == expected_call_count
-
-
-def test_trainer_accumulate_grad_batches_with_callback(tmpdir):
-    with patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
-        model = BoringModel()
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            limit_train_batches=10,
-            limit_val_batches=1,
-            max_epochs=4,
-            weights_summary=None,
-            callbacks=[GradientAccumulationScheduler({1: 2, 3: 4})],
-        )
-        assert trainer.accumulate_grad_batches == 1
-        trainer.fit(model)
-
-        assert sum(isinstance(cb, GradientAccumulationScheduler) for cb in trainer.callbacks) == 1
-        assert sgd_zero_grad.call_count == 10 + 5 + 5 + 3
-
-
 def test_trainer_accumulate_grad_batches_incorrect_value(tmpdir):
     with pytest.raises(MisconfigurationException, match=".*should be an int or a dict.*"):
         Trainer(default_root_dir=tmpdir, accumulate_grad_batches=(2, 5))
