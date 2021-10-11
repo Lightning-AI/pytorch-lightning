@@ -846,8 +846,8 @@ class AcceleratorConnector:
                 f"Selected distributed backend {self._distrib_type} is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible backends:"
                 f" {', '.join(DistributedType.interactive_compatible_types())}."
-                f" In case you are spawning processes yourself, make sure to include the Trainer"
-                f" creation inside the worker function."
+                " In case you are spawning processes yourself, make sure to include the Trainer"
+                " creation inside the worker function."
             )
 
     def check_horovod(self):
