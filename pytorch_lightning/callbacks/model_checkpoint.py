@@ -147,7 +147,7 @@ class ModelCheckpoint(Callback):
 
     Raises:
         MisconfigurationException:
-            If ``save_top_k`` is neither ``0`` nor more than or equal to ``-1``,
+            If ``save_top_k`` is smaller than ``-1``,
             if ``monitor`` is ``None`` and ``save_top_k`` is none of ``None``, ``-1``, and ``0``, or
             if ``mode`` is none of ``"min"`` or ``"max"``.
         ValueError:
