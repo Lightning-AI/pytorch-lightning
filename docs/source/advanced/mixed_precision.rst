@@ -30,7 +30,7 @@ Since computation happens in FP16, there is a chance of numerical instability. T
     When using TPUs, setting ``precision=16`` will enable bfloat16 which is the only supported precision type on TPUs.
 
 .. testcode::
-    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
+    :skipif: not torch.cuda.is_available()
 
     Trainer(gpus=1, precision=16)
 
@@ -71,13 +71,13 @@ NVIDIA APEX Mixed Precision
 `NVIDIA APEX <https://github.com/NVIDIA/apex>`__ offers some additional flexibility in setting mixed precision. This can be useful for when wanting to try out different precision configurations, such as keeping most of your weights in FP16 as well as running computation in FP16.
 
 .. testcode::
-    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
+    :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
 
     Trainer(gpus=1, amp_backend="apex")
 
 Set the `NVIDIA optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`__ via the trainer.
 
 .. testcode::
-    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
+    :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
 
     Trainer(gpus=1, amp_backend="apex", amp_level="O2")

@@ -299,7 +299,7 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_bat
             self.start_state_dict = self.state_dict()
             self.opt_step_called = False
 
-        def on_train_batch_end(self, outputs, batch, batch_idx, *_):
+        def on_train_batch_end(self, outputs, batch, batch_idx):
             end_state_dict = self.state_dict()
             is_last_batch = (batch_idx + 1) == self.trainer.num_training_batches
 
@@ -966,7 +966,7 @@ def test_on_exception_hook(tmpdir):
         def __init__(self):
             super().__init__()
 
-        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
             raise KeyboardInterrupt
 
         def on_test_start(self, trainer, pl_module):
@@ -1011,7 +1011,7 @@ def test_on_exception_hook(tmpdir):
 
 @pytest.mark.parametrize(
     "precision",
-    [32, pytest.param(16, marks=RunIf(min_gpus=1, amp_native=True))],
+    [32, pytest.param(16, marks=RunIf(min_gpus=1))],
 )
 def test_gradient_clipping_by_norm(tmpdir, precision):
     """Test gradient clipping by norm."""
@@ -1044,7 +1044,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
 
 @pytest.mark.parametrize(
     "precision",
-    [32, pytest.param(16, marks=RunIf(min_gpus=1, amp_native=True))],
+    [32, pytest.param(16, marks=RunIf(min_gpus=1))],
 )
 def test_gradient_clipping_by_value(tmpdir, precision):
     """Test gradient clipping by value."""
@@ -2079,3 +2079,19 @@ def test_trainer_metrics_reset_before_each_task(tmpdir):
     trainer.validate(model)
     trainer.test(model)
     trainer.predict(model)
+
+
+def test_detect_anomaly_nan(tmpdir):
+    class NanModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            output = super().training_step(batch, batch_idx)
+            output["loss"] = output["loss"] * torch.tensor(float("nan"))
+            return output
+
+    model = NanModel()
+    trainer = Trainer(default_root_dir=tmpdir, detect_anomaly=True)
+    with pytest.raises(RuntimeError, match=r"returned nan values in its 0th output."):
+        with pytest.warns(
+            UserWarning, match=r".*Error detected in.* Traceback of forward call that caused the error.*"
+        ):
+            trainer.fit(model)

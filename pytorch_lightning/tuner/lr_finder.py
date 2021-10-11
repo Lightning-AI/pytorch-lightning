@@ -115,8 +115,8 @@ class _LRFinder:
                 optimizers = [optim_conf["optimizer"]]
             elif isinstance(optim_conf, (list, tuple)) and isinstance(optim_conf[0], dict):
                 optimizers = [opt_dict["optimizer"] for opt_dict in optim_conf]
-            elif isinstance(optim_conf, (list, tuple)):
-                optimizers = [optim_conf]
+            elif isinstance(optim_conf, (list, tuple)) and all(isinstance(opt, Optimizer) for opt in optim_conf):
+                optimizers = list(optim_conf)
 
             if len(optimizers) != 1:
                 raise MisconfigurationException(
@@ -223,7 +223,7 @@ def lr_find(
     trainer.callbacks = [_LRCallback(num_training, early_stop_threshold, progress_bar_refresh_rate=1)]
 
     # No logging
-    trainer.logger = DummyLogger()
+    trainer.logger = DummyLogger() if trainer.logger is not None else None
 
     # Max step set to number of iterations
     trainer.fit_loop.max_steps = num_training
@@ -344,7 +344,7 @@ class _LRCallback(Callback):
 
         self.lrs.append(trainer.lr_schedulers[0]["scheduler"].lr[0])
 
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         """Called when the training batch ends, logs the calculated loss."""
         if (trainer.fit_loop.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return

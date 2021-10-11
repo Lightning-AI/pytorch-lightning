@@ -357,7 +357,13 @@ class CombinedLoader:
     def _state_dict_fn(dataloader: DataLoader, iterator: Optional[Iterator], has_completed: int) -> Dict:
         if isinstance(dataloader, CycleIterator):
             iterator = dataloader._loader_iter
-        state = getattr(iterator, "state", None) if has_completed else getattr(iterator, "previous_state", None)
+
+        # There is currently 2 dataloader states being tracked: (batch_n - 1, state_n - 1), (batch_n, state_n)
+        # where `n` is the current batch. If the batch was processed, it should be saved to reproduce the next batch.
+        # Otherwise, we want to get the state of the previous batch, so we can reproduce the current batch.
+        # The state is stored directly on the Iterator as an attribute by the DataFetcher for accessibility
+        state_to_save = "state" if has_completed else "previous_state"
+        state: Optional[MergedIteratorState] = getattr(iterator, state_to_save, None)
         if state:
             return asdict(state)
         return {}
