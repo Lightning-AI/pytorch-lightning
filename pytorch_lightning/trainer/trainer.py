@@ -167,7 +167,7 @@ class Trainer(
         reload_dataloaders_every_epoch: bool = False,
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
-        terminate_on_nan: bool = False,
+        detect_anomaly: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: Optional[bool] = None,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
@@ -177,6 +177,7 @@ class Trainer(
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         stochastic_weight_avg: bool = False,
+        terminate_on_nan: Optional[bool] = None,
     ):
         r"""
         Customize every aspect of training via flags.
@@ -222,6 +223,8 @@ class Trainer(
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
                 Default: ``os.getcwd()``.
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
+
+            detect_anomaly: Enable anomaly detection for the autograd engine.
 
             deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
                 Default: ``False``.
@@ -349,8 +352,10 @@ class Trainer(
                 end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
 
                 .. deprecated:: v1.5
-                    ``terminate_on_nan`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please use Trainer argument ``detect_anomaly`` instead.
+                    Trainer argument ``terminate_on_nan`` was deprecated in v1.5 and will be removed in 1.7.
+                    Please use ``detect_anomaly`` instead.
+
+            detect_anomaly: Enable anomaly detection for the autograd engine.
 
             tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on [1]
 
@@ -492,6 +497,7 @@ class Trainer(
             track_grad_norm,
             terminate_on_nan,
         )
+        self._detect_anomaly: bool = detect_anomaly
         self._setup_on_init(num_sanity_val_steps)
 
         # configure tuner
@@ -1188,7 +1194,8 @@ class Trainer(
         self.reset_train_val_dataloaders(model)
 
         self.fit_loop.trainer = self
-        self.fit_loop.run()
+        with torch.autograd.set_detect_anomaly(self._detect_anomaly):
+            self.fit_loop.run()
 
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
         if not self.is_global_zero and self.progress_bar_callback is not None:
