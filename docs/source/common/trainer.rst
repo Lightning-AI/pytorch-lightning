@@ -528,7 +528,7 @@ Example::
 checkpoint_callback
 ^^^^^^^^^^^^^^^^^^^
 
-Deprecated: This has been renamed ``enable_checkpointing``.
+Deprecated: This has been deprecated in v1.5 and will be removed in v.17. Please use ``enable_checkpointing`` instead.
 
 default_root_dir
 ^^^^^^^^^^^^^^^^
