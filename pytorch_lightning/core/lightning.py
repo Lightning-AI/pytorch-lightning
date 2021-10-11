@@ -1285,8 +1285,8 @@ class LightningModule(
                         "scheduler": ReduceLROnPlateau(optimizer, ...),
                         "monitor": "metric_to_track",
                         "frequency": "indicates how often the metric is updated"
-                        # If "monitor" references validation metrics, then "frequency" should be set to the
-                        # value of "trainer.check_val_every_n_epoch".
+                        # If "monitor" references validation metrics, then "frequency" should be set to a
+                        # multiple of "trainer.check_val_every_n_epoch".
                     },
                 }
 
