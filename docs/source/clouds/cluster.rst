@@ -99,6 +99,9 @@ Run the below command with the appropriate variables set on each node.
         --node_rank <NODE_RANK>
         train.py (--arg1 ... train script args...)
 
+.. note::
+
+    ``torch.distributed.run`` assumes that you'd like to spawn a process per GPU if GPU devices are found on the node. This can be adjusted with ``-nproc_per_node``.
 
 .. _slurm:
 
