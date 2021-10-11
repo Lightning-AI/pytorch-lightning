@@ -228,7 +228,7 @@ Simply subclass one of the :ref:`built-in loops <loop structure>` and add the ca
     class CustomEpochLoop(TrainingEpochLoop):
         def advance(self):
             ...
-            self.trainer.lightning_module.my_new_hook(*args, **kwargs)
+            self.trainer.call_hook("my_new_hook", *args, **kwargs)
             ...
 
 
