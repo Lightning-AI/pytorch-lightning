@@ -340,7 +340,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
     new_trainer.test(pretrained_model, datamodule=dm)
     pretrained_model.cpu()
 
-    dataloaders = model.test_dataloader()
+    dataloaders = dm.test_dataloader()
     if not isinstance(dataloaders, list):
         dataloaders = [dataloaders]
 
