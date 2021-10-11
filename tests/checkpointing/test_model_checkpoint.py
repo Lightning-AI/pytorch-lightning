@@ -516,15 +516,6 @@ def test_none_monitor_top_k(tmpdir):
     ModelCheckpoint(dirpath=tmpdir, save_top_k=1)
 
 
-def test_none_monitor_save_last(tmpdir):
-    """Test that a warning appears for save_last=True with monitor=None."""
-    with pytest.warns(UserWarning, match=r"ModelCheckpoint.*is a redundant.*"):
-        ModelCheckpoint(dirpath=tmpdir, save_last=True)
-    # These should not fail
-    ModelCheckpoint(dirpath=tmpdir, save_last=None)
-    ModelCheckpoint(dirpath=tmpdir, save_last=False)
-
-
 def test_invalid_every_n_epochs(tmpdir):
     """Make sure that a MisconfigurationException is raised for a negative every_n_epochs argument."""
     with pytest.raises(MisconfigurationException, match=r".*Must be >= 0"):
