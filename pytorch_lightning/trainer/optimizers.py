@@ -40,12 +40,6 @@ class TrainerOptimizersMixin(ABC):
             )
             optim_conf = _MockOptimizer()
 
-        optimizers, lr_schedulers, optimizer_frequencies = self._configure_optim_config(optim_conf, pl_module)
-        return optimizers, lr_schedulers, optimizer_frequencies
-
-    def _configure_optim_config(
-        self, optim_conf: Union[Dict[str, Any], List, Optimizer, Tuple], pl_module: "pl.LightningModule"
-    ):
         optimizers, lr_schedulers, optimizer_frequencies, monitor = self._configure_optimizers(optim_conf)
         lr_schedulers = self._configure_schedulers(lr_schedulers, monitor, not pl_module.automatic_optimization)
         _validate_scheduler_optimizer(optimizers, lr_schedulers)
