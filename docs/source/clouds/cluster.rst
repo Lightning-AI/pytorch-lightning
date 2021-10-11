@@ -92,6 +92,7 @@ For example:
 Run the below command with the appropriate variables set on each node.
 
 .. code-block:: bash
+
     python -m torch.distributed.run
         --nnodes=2 # number of nodes you'd like to run with
         --master_addr <MASTER_ADDR>
