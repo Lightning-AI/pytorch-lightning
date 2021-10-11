@@ -17,9 +17,7 @@ from tests.helpers import BoringModel
     ],
 )
 def test_min_max_steps_epochs(tmpdir, min_epochs, max_epochs, min_steps, max_steps):
-    """
-    Tests that max_steps can be used without max_epochs
-    """
+    """Tests that max_steps can be used without max_epochs."""
     model = BoringModel()
 
     trainer = Trainer(

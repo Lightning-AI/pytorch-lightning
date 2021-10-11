@@ -80,14 +80,14 @@ fi
 
 # TODO: enable when CI uses torch>=1.9
 # test deadlock is properly handled with TorchElastic.
-# LOGS=$(PL_RUNNING_SPECIAL_TESTS=1 python -m torch.distributed.run --nproc_per_node=2 --max_restarts 0 -m coverage run --source pytorch_lightning -a tests/plugins/environments/torch_elastic_deadlock.py | grep "SUCCEEDED")
+# LOGS=$(PL_RUNNING_SPECIAL_TESTS=1 PL_RECONCILE_PROCESS=1 python -m torch.distributed.run --nproc_per_node=2 --max_restarts 0 -m coverage run --source pytorch_lightning -a tests/plugins/environments/torch_elastic_deadlock.py | grep "SUCCEEDED")
 # if  [ -z "$LOGS" ]; then
 #    exit 1
 # fi
 # report+="Ran\ttests/plugins/environments/torch_elastic_deadlock.py\n"
 
 # test that a user can manually launch individual processes
-args="--trainer.gpus 2 --trainer.accelerator ddp --trainer.fast_dev_run 1"
+args="--trainer.gpus 2 --trainer.accelerator ddp --trainer.max_epochs=1 --trainer.limit_train_batches=1 --trainer.limit_val_batches=1 --trainer.limit_test_batches=1"
 MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=1 python pl_examples/basic_examples/simple_image_classifier.py ${args} &
 MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=0 python pl_examples/basic_examples/simple_image_classifier.py ${args}
 report+="Ran\tmanual ddp launch test\n"

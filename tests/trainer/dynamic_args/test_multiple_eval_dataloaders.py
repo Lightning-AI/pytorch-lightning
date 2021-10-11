@@ -107,9 +107,7 @@ def test_multiple_eval_dataloaders_list(tmpdir):
 
 
 def test_multiple_optimizers_multiple_dataloaders(tmpdir):
-    """
-    Tests that only training_step can be used
-    """
+    """Tests that only training_step can be used."""
 
     class TestModel(BoringModel):
         def on_train_epoch_start(self) -> None:

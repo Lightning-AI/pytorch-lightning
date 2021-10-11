@@ -33,9 +33,7 @@ from tests.helpers.boring_model import BoringModel  # noqa: E402
 @pytest.mark.skip("Multi-node testing is currently disabled")
 @RunIf(special=True)
 def test_logging_sync_dist_true_ddp(tmpdir):
-    """
-    Tests to ensure that the sync_dist flag works with CPU (should just return the original value)
-    """
+    """Tests to ensure that the sync_dist flag works with CPU (should just return the original value)"""
     fake_result = 1
 
     class TestModel(BoringModel):
@@ -72,9 +70,7 @@ def test_logging_sync_dist_true_ddp(tmpdir):
 @pytest.mark.skip("Multi-node testing is currently disabled")
 @RunIf(special=True)
 def test__validation_step__log(tmpdir):
-    """
-    Tests that validation_step can log
-    """
+    """Tests that validation_step can log."""
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):

@@ -11,9 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Test logging in the evaluation loop
-"""
+"""Test logging in the evaluation loop."""
 import collections
 import itertools
 from unittest import mock
@@ -29,9 +27,7 @@ from tests.helpers import BoringModel, RandomDataset
 
 
 def test__validation_step__log(tmpdir):
-    """
-    Tests that validation_step can log
-    """
+    """Tests that validation_step can log."""
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -67,9 +63,7 @@ def test__validation_step__log(tmpdir):
 
 
 def test__validation_step__epoch_end__log(tmpdir):
-    """
-    Tests that validation_epoch_end can log
-    """
+    """Tests that validation_epoch_end can log."""
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -203,9 +197,7 @@ def test_eval_logging_auto_reduce(tmpdir):
 
 @pytest.mark.parametrize(["batches", "log_interval", "max_epochs"], [(1, 1, 1), (64, 32, 2)])
 def test_eval_epoch_only_logging(tmpdir, batches, log_interval, max_epochs):
-    """
-    Tests that test_epoch_end can be used to log, and we return them in the results.
-    """
+    """Tests that test_epoch_end can be used to log, and we return them in the results."""
 
     class TestModel(BoringModel):
         def test_epoch_end(self, outputs):
@@ -264,9 +256,7 @@ def test_multi_dataloaders_add_suffix_properly(tmpdir, suffix):
 
 
 def test_log_works_in_val_callback(tmpdir):
-    """
-    Tests that log can be called within callback
-    """
+    """Tests that log can be called within callback."""
 
     class TestCallback(callbacks.Callback):
 
@@ -369,9 +359,7 @@ def test_log_works_in_val_callback(tmpdir):
 
 
 def test_log_works_in_test_callback(tmpdir):
-    """
-    Tests that log can be called within callback
-    """
+    """Tests that log can be called within callback."""
 
     class TestCallback(callbacks.Callback):
 
@@ -500,9 +488,7 @@ def test_log_works_in_test_callback(tmpdir):
 
 @mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
 def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
-    """
-    This tests make sure we properly log_metrics to loggers
-    """
+    """This tests make sure we properly log_metrics to loggers."""
 
     class ExtendedModel(BoringModel):
 
@@ -541,7 +527,6 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
         limit_val_batches=2,
         limit_test_batches=2,
         max_epochs=2,
-        progress_bar_refresh_rate=1,
     )
 
     # Train the model ⚡
@@ -550,6 +535,12 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     # hp_metric + 2 steps + epoch + 2 steps + epoch
     expected_num_calls = 1 + 2 + 1 + 2 + 1
 
+    assert set(trainer.callback_metrics) == {
+        "train_loss",
+        "valid_loss_0_epoch",
+        "valid_loss_0",
+        "valid_loss_1",
+    }
     assert len(mock_log_metrics.mock_calls) == expected_num_calls
     assert mock_log_metrics.mock_calls[0] == call({"hp_metric": -1}, 0)
 
@@ -583,10 +574,87 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
 
     results = trainer.test(model)
     assert set(trainer.callback_metrics) == {
-        "train_loss",
-        "valid_loss_0_epoch",
-        "valid_loss_0",
-        "valid_loss_1",
         "test_loss",
     }
     assert set(results[0]) == {"test_loss"}
+
+
+def test_logging_dict_on_validation_step(tmpdir):
+    class TestModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            loss = super().validation_step(batch, batch_idx)
+            loss = loss["x"]
+            metrics = {
+                "loss": loss,
+                "loss_1": loss,
+            }
+            self.log("val_metrics", metrics)
+
+        validation_epoch_end = None
+
+    model = TestModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=2,
+    )
+
+    trainer.fit(model)
+
+
+@pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
+def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            out = super().training_step(batch, batch_idx)
+            value = 1 + batch_idx
+            if self.current_epoch != 0:
+                value *= 10
+            self.log("batch_idx", value, on_step=True, on_epoch=True, prog_bar=True)
+            return out
+
+        def training_epoch_end(self, outputs):
+            metrics = self.trainer.progress_bar_metrics
+            v = 15 if self.current_epoch == 0 else 150
+            assert metrics["batch_idx_epoch"] == (v / 5.0)
+
+        def validation_step(self, batch, batch_idx, dataloader_idx):
+            value = (1 + batch_idx) * (1 + dataloader_idx)
+            if self.current_epoch != 0:
+                value *= 10
+            self.log("val_loss", value, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+            return value
+
+        def validation_epoch_end(self, outputs):
+            if self.current_epoch == 0:
+                assert sum(outputs[0]) / 5 == 3
+                assert sum(outputs[1]) / 5 == 6
+            else:
+                assert sum(outputs[0]) / 5 == 30
+                assert sum(outputs[1]) / 5 == 60
+
+            tot_loss = torch.mean(torch.tensor(outputs, dtype=torch.float))
+            if self.current_epoch == 0:
+                assert tot_loss == (3 + 6) / 2
+            else:
+                assert tot_loss == (30 + 60) / 2
+            assert self.trainer._results["validation_step.val_loss.0"].cumulated_batch_size == 5
+            assert self.trainer._results["validation_step.val_loss.1"].cumulated_batch_size == 5
+
+        def val_dataloader(self):
+            return [super().val_dataloader(), super().val_dataloader()]
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=5,
+        limit_val_batches=5,
+        num_sanity_val_steps=0,
+        val_check_interval=val_check_interval,
+        max_epochs=3,
+        log_every_n_steps=1,
+        weights_summary=None,
+    )
+    trainer.fit(model)

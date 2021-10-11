@@ -216,18 +216,14 @@ Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
 +---------------+-----------+---------------------+---------------------------------+
 | [1, 3]        | list      | [1, 3]              | GPUs 1 and 3                    |
 +---------------+-----------+---------------------+---------------------------------+
-| "0"           | str       | [0]                 | GPU 0                           |
+| "0"           | str       | None                | CPU                             |
 +---------------+-----------+---------------------+---------------------------------+
-| "3"           | str       | [3]                 | GPU 3 (will change in v1.5)     |
+| "3"           | str       | [0, 1, 2]           | first 3 GPUs                    |
 +---------------+-----------+---------------------+---------------------------------+
 | "1, 3"        | str       | [1, 3]              | GPUs 1 and 3                    |
 +---------------+-----------+---------------------+---------------------------------+
 | "-1"          | str       | [0, 1, 2, ...]      | all available GPUs              |
 +---------------+-----------+---------------------+---------------------------------+
-
-.. warning::
-    The behavior for :code:`gpus="3"` (str) will change. Currently it selects the GPU with index 3, but will
-    select the first 3 GPUs from v1.5.
 
 .. note::
 
@@ -615,16 +611,17 @@ Let's say you have a batch size of 7 in your dataloader.
         def train_dataloader(self):
             return Dataset(..., batch_size=7)
 
-In (DDP, Horovod) your effective batch size will be 7 * gpus * num_nodes.
+In DDP or Horovod your effective batch size will be 7 * gpus * num_nodes.
 
 .. code-block:: python
 
     # effective batch size = 7 * 8
-    Trainer(gpus=8, accelerator="ddp|horovod")
+    Trainer(gpus=8, accelerator="ddp")
+    Trainer(gpus=8, accelerator="horovod")
 
     # effective batch size = 7 * 8 * 10
-    Trainer(gpus=8, num_nodes=10, accelerator="ddp|horovod")
-
+    Trainer(gpus=8, num_nodes=10, accelerator="ddp")
+    Trainer(gpus=8, num_nodes=10, accelerator="horovod")
 
 In DDP2, your effective batch size will be 7 * num_nodes.
 The reason is that the full batch is visible to all GPUs on the node when using DDP2.

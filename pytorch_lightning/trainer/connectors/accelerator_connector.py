@@ -26,6 +26,7 @@ from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
+    CheckpointIO,
     DataParallelPlugin,
     DDP2Plugin,
     DDPFullyShardedPlugin,
@@ -59,11 +60,6 @@ from pytorch_lightning.plugins.environments import (
     TorchElasticEnvironment,
 )
 from pytorch_lightning.utilities import (
-    _APEX_AVAILABLE,
-    _HOROVOD_AVAILABLE,
-    _IPU_AVAILABLE,
-    _NATIVE_AMP_AVAILABLE,
-    _TPU_AVAILABLE,
     AMPType,
     device_parser,
     DeviceType,
@@ -72,7 +68,16 @@ from pytorch_lightning.utilities import (
     rank_zero_info,
     rank_zero_warn,
 )
+from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import (
+    _APEX_AVAILABLE,
+    _HOROVOD_AVAILABLE,
+    _IPU_AVAILABLE,
+    _TORCH_GREATER_EQUAL_1_7,
+    _TORCH_GREATER_EQUAL_1_8,
+    _TPU_AVAILABLE,
+)
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
@@ -96,7 +101,7 @@ class AcceleratorConnector:
         sync_batchnorm,
         benchmark,
         replace_sampler_ddp,
-        deterministic,
+        deterministic: bool,
         precision,
         amp_type,
         amp_level,
@@ -109,6 +114,8 @@ class AcceleratorConnector:
 
         self.accelerator_strategy = accelerator_strategy
         self.distributed_backend = distributed_backend or accelerator
+        
+        self._init_deterministic(deterministic)
 
         self.num_processes = num_processes
         self.devices = devices
@@ -121,7 +128,6 @@ class AcceleratorConnector:
         self.sync_batchnorm = sync_batchnorm
         self.benchmark = benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
-        self.deterministic = deterministic
         self.precision = precision
         self.amp_type = amp_type.lower() if isinstance(amp_type, str) else None
         self.amp_level = amp_level
@@ -130,6 +136,7 @@ class AcceleratorConnector:
         self._precision_plugin: Optional[PrecisionPlugin] = None
         self._training_type_plugin: Optional[TrainingTypePlugin] = None
         self._cluster_environment: Optional[ClusterEnvironment] = None
+        self._checkpoint_io: Optional[CheckpointIO] = None
 
         plugins = plugins if plugins is not None else []
 
@@ -144,6 +151,7 @@ class AcceleratorConnector:
         self._handle_accelerator_and_distributed_backend(distributed_backend, accelerator)
 
         self._validate_accelerator_and_devices()
+
         self._warn_if_devices_flag_ignored()
 
         self.select_accelerator_type()
@@ -177,15 +185,22 @@ class AcceleratorConnector:
         # TODO: should this be moved to GPU accelerator?
         torch.backends.cudnn.benchmark = self.benchmark
 
-        # determinism for cudnn
-        # TODO: should this be moved to GPU accelerator?
-        torch.backends.cudnn.deterministic = deterministic
+        self.replace_sampler_ddp = replace_sampler_ddp
+
+    def _init_deterministic(self, deterministic: bool) -> None:
+        self.deterministic = deterministic
+        if _TORCH_GREATER_EQUAL_1_8:
+            torch.use_deterministic_algorithms(deterministic)
+        elif _TORCH_GREATER_EQUAL_1_7:
+            torch.set_deterministic(deterministic)
+        else:  # the minimum version Lightning supports is PyTorch 1.6
+            torch._set_deterministic(deterministic)
         if deterministic:
             # fixing non-deterministic part of horovod
             # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
             os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
-
-        self.replace_sampler_ddp = replace_sampler_ddp
+            # https://docs.nvidia.com/cuda/cublas/index.html#cublasApi_reproducibility
+            os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
     def select_accelerator_type(self) -> None:
         if self.distributed_backend == "auto":
@@ -323,7 +338,8 @@ class AcceleratorConnector:
                     f" in v1.5 and will be removed in v1.6. Use `Trainer(accelerator_strategy={plug})` instead."
                 )
 
-        training_type = self._training_type_plugin
+        training_type = self._training_type_plugin or None
+        checkpoint = None
         precision = None
         cluster_environment = None
 
@@ -349,18 +365,25 @@ class AcceleratorConnector:
 
                 else:
                     raise MisconfigurationException(
-                        "You can only specify one precision and one training type plugin."
-                        f" Found more than 1 training type plugin: {type(plug).__name__}"
+                        "You can only specify one training type plugin."
+                        f" Available: {type(training_type).__name__}, given: {type(plug).__name__}"
                     )
             elif isinstance(plug, PrecisionPlugin):
                 if precision is None:
                     precision = plug
                 else:
                     raise MisconfigurationException(
-                        "You can only specify one precision and one training type plugin."
-                        f" Found more than 1 precision plugin: {type(plug).__name__}"
+                        "You can only specify one precision plugin."
+                        f" Available: {type(precision).__name__}, given: {type(plug).__name__}"
                     )
-
+            elif isinstance(plug, CheckpointIO):
+                if checkpoint is None:
+                    checkpoint = plug
+                else:
+                    raise MisconfigurationException(
+                        "You can only specify one checkpoint plugin."
+                        f" Available: {type(checkpoint).__name__}, given: {type(plug).__name__}"
+                    )
             elif isinstance(plug, ClusterEnvironment):
                 if cluster_environment is None:
                     cluster_environment = plug
@@ -375,6 +398,7 @@ class AcceleratorConnector:
 
         self._training_type_plugin = training_type
         self._precision_plugin = precision
+        self._checkpoint_io = checkpoint
         self._cluster_environment = cluster_environment or self.select_cluster_environment()
 
     @property
@@ -395,6 +419,9 @@ class AcceleratorConnector:
         if self._training_type_plugin is None:
             self._training_type_plugin = self.select_training_type_plugin()
         self._training_type_plugin = self.resolve_training_type_plugin(self._training_type_plugin)
+        # attach checkpoint plugin to the training type plugin
+        if self._checkpoint_io is not None:
+            self._training_type_plugin.checkpoint_io = self._checkpoint_io
         self._training_type_plugin_resolved = True
 
         return self._training_type_plugin
@@ -581,20 +608,6 @@ class AcceleratorConnector:
             for plug in self.plugins
         )
 
-    @property
-    def is_using_torchelastic(self) -> bool:
-        """
-        .. deprecated:: v1.3
-            Will be removed in v1.5.0.
-        Returns:
-            ``True`` if the current process was launched using the torchelastic command.
-        """
-        rank_zero_deprecation(
-            "The property `AcceleratorConnector.is_using_torchelastic` was deprecated in v1.3"
-            " and will be removed in 1.5. Use `TorchElasticEnvironment.is_using_torchelastic()` instead."
-        )
-        return TorchElasticEnvironment.is_using_torchelastic()
-
     def select_precision_plugin(self) -> PrecisionPlugin:
         # set precision type
         self.amp_type = AMPType.from_str(self.amp_type)
@@ -609,33 +622,24 @@ class AcceleratorConnector:
             return PrecisionPlugin()
         if self.precision == 64:
             return DoublePrecisionPlugin()
-        if self.precision == 16:
+        if self.precision in (16, "bf16"):
             if self.use_tpu:
                 return TPUHalfPrecisionPlugin()
 
             if self.amp_type == AMPType.NATIVE:
-                if self.use_cpu:
+                if self.amp_level is not None:
                     raise MisconfigurationException(
-                        "You have asked for native AMP on CPU, but AMP is only available on GPU."
+                        f"You have asked for `amp_level={repr(self.amp_level)}` which is not supported"
+                        " with `amp_backend='native'`."
                     )
-                if not _NATIVE_AMP_AVAILABLE:
-                    msg = (
-                        "You have asked for native AMP but your PyTorch version does not support it."
-                        " Consider upgrading with `pip install torch>=1.6`."
-                    )
-                    if _APEX_AVAILABLE:
-                        self.amp_type = AMPType.APEX
-                        msg += " We will attempt to use NVIDIA Apex for this session."
-                        rank_zero_warn(msg)
-                    else:
-                        raise MisconfigurationException(msg)
-                else:
-                    log.info("Using native 16bit precision.")
-                    if self._is_sharded_training_type:
-                        return ShardedNativeMixedPrecisionPlugin()
-                    if self._is_fully_sharded_training_type:
-                        return FullyShardedNativeMixedPrecisionPlugin()
-                    return NativeMixedPrecisionPlugin()
+
+                log.info(f"Using native {self.precision} bit Automatic Mixed Precision")
+                if self._is_sharded_training_type:
+                    return ShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+                if self._is_fully_sharded_training_type:
+                    return FullyShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+
+                return NativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
 
             if self.amp_type == AMPType.APEX:
                 if not _APEX_AVAILABLE:
@@ -645,13 +649,17 @@ class AcceleratorConnector:
                     )
                 if self._is_sharded_training_type or self._is_fully_sharded_training_type:
                     raise MisconfigurationException(
-                        "Sharded Plugin is not supported with Apex AMP,"
-                        " please using native AMP for 16-bit precision."
+                        "Sharded Plugin is not supported with Apex AMP, please using native AMP for 16-bit precision."
                     )
                 log.info("Using APEX 16bit precision.")
+
+                self.amp_level = self.amp_level or "O2"
+
                 return ApexMixedPrecisionPlugin(self.amp_level)
 
-        raise NotImplementedError("We only support precisions 64, 32 and 16!")
+        raise MisconfigurationException(
+            f"Precision {self.precision} is invalid. Allowed precision values: {PrecisionType.supported_types()}"
+        )
 
     def select_training_type_plugin(self) -> TrainingTypePlugin:
         if (
@@ -893,10 +901,8 @@ class AcceleratorConnector:
             self.num_processes = hvd.local_size()
 
     def check_interactive_compatibility(self):
-        """
-        Raises a `MisconfigurationException` if the accelerator and/or plugin
-        is not compatible with an interactive environment
-        """
+        """Raises a `MisconfigurationException` if the accelerator and/or plugin is not compatible with an
+        interactive environment."""
         from pytorch_lightning.utilities import _IS_INTERACTIVE
 
         if _IS_INTERACTIVE and self._distrib_type is not None and not self._distrib_type.is_interactive_compatible():

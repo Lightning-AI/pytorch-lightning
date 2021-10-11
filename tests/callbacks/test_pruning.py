@@ -107,7 +107,7 @@ def train_with_pruning_callback(
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         weights_summary=None,
         checkpoint_callback=False,
         logger=False,
@@ -225,7 +225,7 @@ def test_pruning_lth_callable(tmpdir, resample_parameters: bool):
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         weights_summary=None,
         checkpoint_callback=False,
         logger=False,
@@ -252,7 +252,7 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         weights_summary=None,
         checkpoint_callback=False,
         logger=False,
@@ -294,11 +294,8 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool
 def test_permanent_when_model_is_saved_multiple_times(
     tmpdir, caplog, prune_on_train_epoch_end, save_on_train_epoch_end
 ):
-    """
-    When a model is saved multiple times and make_permanent=True, we need to
-    make sure a copy is pruned and not the trained model if we want to continue
-    with the same pruning buffers.
-    """
+    """When a model is saved multiple times and make_permanent=True, we need to make sure a copy is pruned and not
+    the trained model if we want to continue with the same pruning buffers."""
     if prune_on_train_epoch_end and save_on_train_epoch_end:
         pytest.xfail(
             "Pruning sets the `grad_fn` of the parameters so we can't save"
@@ -324,7 +321,7 @@ def test_permanent_when_model_is_saved_multiple_times(
     ckpt_callback = ModelCheckpoint(
         monitor="test", save_top_k=2, save_last=True, save_on_train_epoch_end=save_on_train_epoch_end
     )
-    trainer = Trainer(callbacks=[pruning_callback, ckpt_callback], max_epochs=3, progress_bar_refresh_rate=0)
+    trainer = Trainer(callbacks=[pruning_callback, ckpt_callback], max_epochs=3, enable_progress_bar=False)
     with caplog.at_level(INFO):
         trainer.fit(model)
 

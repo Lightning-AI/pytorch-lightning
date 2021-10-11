@@ -23,6 +23,7 @@ from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import TPUSpawnPlugin
+from pytorch_lightning.utilities import find_shared_parameters
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -47,7 +48,7 @@ class WeightSharingModule(BoringModel):
 @RunIf(tpu=True)
 @pl_multi_process_test
 def test_resume_training_on_cpu(tmpdir):
-    """Checks if training can be resumed from a saved checkpoint on CPU"""
+    """Checks if training can be resumed from a saved checkpoint on CPU."""
     # Train a model on TPU
     model = BoringModel()
     trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=8)
@@ -78,40 +79,6 @@ def test_if_test_works_after_train(tmpdir):
     trainer = Trainer(max_epochs=1, tpu_cores=8, default_root_dir=tmpdir, fast_dev_run=True)
     trainer.fit(model)
     assert len(trainer.test(model)) == 1
-
-
-@RunIf(tpu=True)
-@pl_multi_process_test
-def test_weight_tying_warning(tmpdir, capsys=None):
-    """
-    Ensure a warning is thrown if model parameter lengths do not match
-    post moving to device.
-    """
-
-    model = WeightSharingModule()
-    trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=1)
-
-    with pytest.warns(UserWarning, match=r"The model layers do not match after moving to the target device."):
-        trainer.fit(model)
-
-
-@RunIf(tpu=True)
-@pl_multi_process_test
-def test_if_weights_tied(tmpdir, capsys=None):
-    """
-    Test if weights are properly tied on `on_post_move_to_device`.
-    Ensure no warning for parameter mismatch is thrown.
-    """
-
-    class Model(WeightSharingModule):
-        def on_post_move_to_device(self):
-            self.layer_3.weight = self.layer_1.weight
-
-    model = Model()
-    trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=1)
-
-    with pytest.warns(UserWarning, match="The model layers do not match"):
-        trainer.fit(model)
 
 
 @RunIf(tpu=True)
@@ -198,7 +165,7 @@ def test_manual_optimization_tpus(tmpdir):
         def should_update(self):
             return self.count % 2 == 0
 
-        def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
+        def on_train_batch_start(self, batch, batch_idx):
             self.called["on_train_batch_start"] += 1
             self.weight_before = self.layer.weight.clone()
 
@@ -214,7 +181,7 @@ def test_manual_optimization_tpus(tmpdir):
                 opt.zero_grad()
             return loss
 
-        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+        def on_train_batch_end(self, outputs, batch, batch_idx):
             self.called["on_train_batch_end"] += 1
             after_before = self.layer.weight.clone()
             if self.should_update:
@@ -273,3 +240,48 @@ def test_accelerator_strategy_choice_tpu_str(tmpdir, accelerator_strategy):
 def test_accelerator_strategy_choice_tpu_plugin(tmpdir):
     trainer = Trainer(accelerator_strategy=TPUSpawnPlugin(), accelerator="tpu", devices=8)
     assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
+    
+
+def test_auto_parameters_tying_tpus(tmpdir):
+
+    model = WeightSharingModule()
+    shared_params = find_shared_parameters(model)
+
+    assert shared_params[0] == ["layer_1.weight", "layer_3.weight"]
+
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, tpu_cores=8, max_epochs=1)
+    trainer.fit(model)
+
+    assert torch.all(torch.eq(model.layer_1.weight, model.layer_3.weight))
+
+
+@RunIf(tpu=True)
+def test_auto_parameters_tying_tpus_nested_module(tmpdir):
+    class SubModule(nn.Module):
+        def __init__(self, layer):
+            super().__init__()
+            self.layer = layer
+
+        def forward(self, x):
+            return self.layer(x)
+
+    class NestedModule(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.layer = nn.Linear(32, 10, bias=False)
+            self.net_a = SubModule(self.layer)
+            self.layer_2 = nn.Linear(10, 32, bias=False)
+            self.net_b = SubModule(self.layer)
+
+        def forward(self, x):
+            x = self.net_a(x)
+            x = self.layer_2(x)
+            x = self.net_b(x)
+            return x
+
+    model = NestedModule()
+
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, tpu_cores=8, max_epochs=1)
+    trainer.fit(model)
+
+    assert torch.all(torch.eq(model.net_a.layer.weight, model.net_b.layer.weight))

@@ -23,6 +23,9 @@ include *.md
 # Include the license file
 include LICENSE
 
+# Include the citation info
+include *.cff
+
 exclude *.sh
 exclude *.svg
 recursive-include pytorch_lightning *.py

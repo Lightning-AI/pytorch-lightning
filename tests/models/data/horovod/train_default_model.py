@@ -1,5 +1,4 @@
-"""
-This script is meant to be executed from `../../test_horovod.py`.
+"""This script is meant to be executed from `../../test_horovod.py`.
 
 Because Horovod uses a parallel programming model similar to MPI, unit tests for collective
 ops like allreduce need to be run in parallel. The most common approach for running parallel

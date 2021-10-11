@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Test that the warnings actually appear and they have the correct `stacklevel`
+"""Test that the warnings actually appear and they have the correct `stacklevel`
 
 Needs to be run outside of `pytest` as it captures all the warnings.
 """
@@ -26,6 +25,7 @@ running_special = os.getenv("PL_RUNNING_SPECIAL_TESTS", "0") == "1"
 if running_special:
 
     stderr = StringIO()
+    # recording
     with redirect_stderr(stderr):
         _warn("test1")
         _warn("test2", DeprecationWarning)

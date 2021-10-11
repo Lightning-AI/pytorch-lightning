@@ -17,34 +17,17 @@ from unittest import mock
 import pytest
 import torch
 
-from pytorch_lightning import callbacks, seed_everything, Trainer
+from pytorch_lightning import callbacks, Trainer
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_mc_called(tmpdir):
-    seed_everything(1234)
-
-    # -----------------
-    # TRAIN LOOP ONLY
-    # -----------------
-    train_step_only_model = BoringModel()
-    train_step_only_model.validation_step = None
-
+def test_checkpoint_callback_disabled(tmpdir):
     # no callback
     trainer = Trainer(max_epochs=3, checkpoint_callback=False)
-    trainer.fit(train_step_only_model)
-    assert len(trainer.dev_debugger.checkpoint_callback_history) == 0
-
-    # -----------------
-    # TRAIN + VAL LOOP ONLY
-    # -----------------
-    val_train_model = BoringModel()
-    # no callback
-    trainer = Trainer(max_epochs=3, checkpoint_callback=False)
-    trainer.fit(val_train_model)
-    assert len(trainer.dev_debugger.checkpoint_callback_history) == 0
+    assert not trainer.checkpoint_callbacks
+    trainer.fit(BoringModel())
+    assert not trainer.checkpoint_callbacks
 
 
 @mock.patch("torch.save")
@@ -60,7 +43,7 @@ def test_default_checkpoint_freq(save_mock, tmpdir, epochs: int, val_check_inter
         weights_summary=None,
         val_check_interval=val_check_interval,
         limit_val_batches=1,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
     trainer.fit(model)
 
@@ -136,7 +119,7 @@ def _top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
     trainer = Trainer(
         callbacks=[callbacks.ModelCheckpoint(dirpath=tmpdir, monitor="my_loss_step", save_top_k=k, mode="max")],
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=epochs,
         weights_summary=None,
         val_check_interval=val_check_interval,

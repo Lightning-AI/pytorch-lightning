@@ -32,8 +32,8 @@ def test_trainer_with_gpus_options_combination_at_available_gpus_env(auto_select
         with pytest.raises(
             expected_error,
             match=re.escape(
-                r"auto_select_gpus=True, gpus=0 is not a valid configuration.\
-            Please select a valid number of GPU resources when using auto_select_gpus."
+                "auto_select_gpus=True, gpus=0 is not a valid configuration."
+                " Please select a valid number of GPU resources when using auto_select_gpus."
             ),
         ):
             Trainer(auto_select_gpus=auto_select_gpus, gpus=gpus)
@@ -51,8 +51,8 @@ def test_pick_multiple_gpus(nb, expected_gpu_idxs, expected_error):
         with pytest.raises(
             expected_error,
             match=re.escape(
-                r"auto_select_gpus=True, gpus=0 is not a valid configuration.\
-            Please select a valid number of GPU resources when using auto_select_gpus."
+                "auto_select_gpus=True, gpus=0 is not a valid configuration."
+                " Please select a valid number of GPU resources when using auto_select_gpus."
             ),
         ):
             pick_multiple_gpus(nb)

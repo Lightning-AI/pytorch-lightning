@@ -1,6 +1,8 @@
 API References
 ==============
 
+.. include:: links.rst
+
 Accelerator API
 ---------------
 
@@ -127,6 +129,18 @@ Cluster Environments
     KubeflowEnvironment
     SLURMEnvironment
 
+Checkpoint IO Plugins
+^^^^^^^^^^^^^^^^^^^^^
+
+.. currentmodule:: pytorch_lightning.plugins.io
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    CheckpointIO
+    TorchCheckpointIO
 
 Profiler API
 ------------

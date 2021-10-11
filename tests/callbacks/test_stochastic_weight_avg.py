@@ -121,7 +121,7 @@ def train_with_swa(
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=max_epochs,
         limit_train_batches=5,
         limit_val_batches=0,
@@ -185,14 +185,14 @@ def test_swa_raises():
         StochasticWeightAveraging(swa_epoch_start=1.5, swa_lrs=0.1)
     with pytest.raises(MisconfigurationException, match=">0 integer or a float between 0 and 1"):
         StochasticWeightAveraging(swa_epoch_start=-1, swa_lrs=0.1)
-    with pytest.raises(MisconfigurationException, match="positive float or a list of positive float"):
+    with pytest.raises(MisconfigurationException, match="positive float, or a list of positive floats"):
         StochasticWeightAveraging(swa_epoch_start=5, swa_lrs=[0.2, 1])
 
 
 @pytest.mark.parametrize("stochastic_weight_avg", [False, True])
 @pytest.mark.parametrize("use_callbacks", [False, True])
 def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks: bool, stochastic_weight_avg: bool):
-    """Test to ensure SWA Callback is injected when `stochastic_weight_avg` is provided to the Trainer"""
+    """Test to ensure SWA Callback is injected when `stochastic_weight_avg` is provided to the Trainer."""
 
     class TestModel(BoringModel):
         def configure_optimizers(self):
@@ -211,13 +211,13 @@ def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks: bool, stochast
     trainer.fit(model)
     if use_callbacks or stochastic_weight_avg:
         assert sum(1 for cb in trainer.callbacks if isinstance(cb, StochasticWeightAveraging)) == 1
-        assert trainer.callbacks[0]._swa_lrs == (1e-3 if use_callbacks else 0.1)
+        assert trainer.callbacks[0]._swa_lrs == [1e-3 if use_callbacks else 0.1]
     else:
         assert all(not isinstance(cb, StochasticWeightAveraging) for cb in trainer.callbacks)
 
 
 def test_swa_deepcopy(tmpdir):
-    """Test to ensure SWA Callback doesn't deepcopy dataloaders and datamodule potentially leading to OOM"""
+    """Test to ensure SWA Callback doesn't deepcopy dataloaders and datamodule potentially leading to OOM."""
 
     class TestSWA(StochasticWeightAveraging):
         def __init__(self, *args, **kwargs):
@@ -237,3 +237,39 @@ def test_swa_deepcopy(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, callbacks=swa, fast_dev_run=True)
     trainer.fit(model, train_dataloader=DataLoader(RandomDataset(32, 2)))
     assert swa.on_before_accelerator_backend_setup_called
+
+
+def test_swa_multiple_lrs(tmpdir):
+    swa_lrs = [0.123, 0.321]
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super(BoringModel, self).__init__()
+            self.layer1 = torch.nn.Linear(32, 32)
+            self.layer2 = torch.nn.Linear(32, 2)
+
+        def forward(self, x):
+            x = self.layer1(x)
+            x = self.layer2(x)
+            return x
+
+        def configure_optimizers(self):
+            params = [{"params": self.layer1.parameters(), "lr": 0.1}, {"params": self.layer2.parameters(), "lr": 0.2}]
+            return torch.optim.Adam(params)
+
+        def on_train_epoch_start(self):
+            optimizer = trainer.optimizers[0]
+            assert [pg["lr"] for pg in optimizer.param_groups] == [0.1, 0.2]
+            assert [pg["initial_lr"] for pg in optimizer.param_groups] == swa_lrs
+            assert [pg["swa_lr"] for pg in optimizer.param_groups] == swa_lrs
+            self.on_train_epoch_start_called = True
+
+    model = TestModel()
+    swa_callback = StochasticWeightAveraging(swa_lrs=swa_lrs)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=swa_callback,
+        fast_dev_run=1,
+    )
+    trainer.fit(model)
+    assert model.on_train_epoch_start_called

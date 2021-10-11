@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, Optional
+from contextlib import contextmanager
+from typing import Dict, Generator, Optional
 
 import torch
 
@@ -34,13 +35,17 @@ class DDPShardedPlugin(DDPPlugin):
 
     _REDUCE_BUFFER_SIZE_DEFAULT = 2 ** 23  # 8M
 
-    def configure_ddp(self):
+    def configure_ddp(self) -> None:
         self._wrap_optimizers()
+
+        if "reduce_buffer_size" not in self._ddp_kwargs:
+            # For multi-node training, enabling bucketing will improve performance.
+            self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
+
         self._model = ShardedDataParallel(
             LightningShardedDataParallel(self.model),
             sharded_optimizer=self.lightning_module.trainer.optimizers,
-            # For multi-node training, enabling bucketing will improve performance.
-            reduce_buffer_size=self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0,
+            **self._ddp_kwargs
         )
         setattr(self._model, "require_backward_grad_sync", False)
 
@@ -95,6 +100,19 @@ class DDPShardedPlugin(DDPPlugin):
 
     def pre_backward(self, closure_loss: torch.Tensor) -> None:
         pass
+
+    @contextmanager
+    def block_backward_sync(self) -> Generator:
+        """Blocks syncing gradients behaviour on backwards pass.
+
+        This is useful for skipping sync when accumulating gradients, reducing communication overhead
+        Returns: context manager with sync behaviour off
+        """
+        if isinstance(self.model, ShardedDataParallel):
+            with self.model.no_sync():
+                yield None
+        else:
+            yield None
 
     def post_training_step(self):
         pass

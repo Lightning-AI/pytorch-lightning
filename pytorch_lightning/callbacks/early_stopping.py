@@ -39,7 +39,7 @@ class EarlyStopping(Callback):
     Args:
         monitor: quantity to be monitored.
         min_delta: minimum change in the monitored quantity to qualify as an improvement, i.e. an absolute
-            change of less than `min_delta`, will count as no improvement.
+            change of less than or equal to `min_delta`, will count as no improvement.
         patience: number of checks with no improvement
             after which training will be stopped. Under the default configuration, one check happens after
             every training epoch. However, the frequency of validation can be modified by setting various parameters on
@@ -75,6 +75,13 @@ class EarlyStopping(Callback):
         >>> from pytorch_lightning.callbacks import EarlyStopping
         >>> early_stopping = EarlyStopping('val_loss')
         >>> trainer = Trainer(callbacks=[early_stopping])
+
+    .. tip:: Saving and restoring multiple early stopping callbacks at the same time is supported under variation in the
+        following arguments:
+
+        *monitor, mode*
+
+        Read more: :ref:`Persisting Callback State`
     """
     mode_dict = {"min": torch.lt, "max": torch.gt}
 
@@ -91,7 +98,7 @@ class EarlyStopping(Callback):
         check_finite: bool = True,
         stopping_threshold: Optional[float] = None,
         divergence_threshold: Optional[float] = None,
-        check_on_train_epoch_end: bool = True,
+        check_on_train_epoch_end: Optional[bool] = None,
     ):
         super().__init__()
         self.min_delta = min_delta
@@ -119,6 +126,16 @@ class EarlyStopping(Callback):
                 " For backward compatibility, setting this to `early_stop_on`."
             )
         self.monitor = monitor or "early_stop_on"
+
+    @property
+    def state_key(self) -> str:
+        return self._generate_state_key(monitor=self.monitor, mode=self.mode)
+
+    def on_init_end(self, trainer: "pl.Trainer") -> None:
+        if self._check_on_train_epoch_end is None:
+            # if the user runs validation multiple times per training epoch or multiple training epochs without
+            # validation, then we run after validation instead of on train epoch end
+            self._check_on_train_epoch_end = trainer.val_check_interval == 1.0 and trainer.check_val_every_n_epoch == 1
 
     def _validate_condition_metric(self, logs):
         monitor_val = logs.get(self.monitor)
@@ -153,7 +170,9 @@ class EarlyStopping(Callback):
             "patience": self.patience,
         }
 
-    def on_load_checkpoint(self, callback_state: Dict[str, Any]) -> None:
+    def on_load_checkpoint(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
+    ) -> None:
         self.wait_count = callback_state["wait_count"]
         self.stopped_epoch = callback_state["stopped_epoch"]
         self.best_score = callback_state["best_score"]
@@ -175,10 +194,7 @@ class EarlyStopping(Callback):
         self._run_early_stopping_check(trainer)
 
     def _run_early_stopping_check(self, trainer: "pl.Trainer") -> None:
-        """
-        Checks whether the early stopping condition is met
-        and if so tells the trainer to stop the training.
-        """
+        """Checks whether the early stopping condition is met and if so tells the trainer to stop the training."""
         logs = trainer.callback_metrics
 
         if trainer.fast_dev_run or not self._validate_condition_metric(  # disable early_stopping with fast_dev_run
@@ -187,11 +203,7 @@ class EarlyStopping(Callback):
             return
 
         current = logs.get(self.monitor)
-
-        # when in dev debugging
-        trainer.dev_debugger.track_early_stopping_history(self, current)
-
-        should_stop, reason = self._evalute_stopping_criteria(current)
+        should_stop, reason = self._evaluate_stopping_criteria(current)
 
         # stop every ddp process if any world process decides to stop
         should_stop = trainer.training_type_plugin.reduce_boolean_decision(should_stop)
@@ -201,7 +213,7 @@ class EarlyStopping(Callback):
         if reason and self.verbose:
             self._log_info(trainer, reason)
 
-    def _evalute_stopping_criteria(self, current: torch.Tensor) -> Tuple[bool, str]:
+    def _evaluate_stopping_criteria(self, current: torch.Tensor) -> Tuple[bool, str]:
         should_stop = False
         reason = None
         if self.check_finite and not torch.isfinite(current):

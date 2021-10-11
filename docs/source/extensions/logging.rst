@@ -15,8 +15,24 @@ Logging
 #######
 
 Lightning supports the most popular logging frameworks (TensorBoard, Comet, etc...).
-To use a logger, simply pass it into the :class:`~pytorch_lightning.trainer.trainer.Trainer`.
-Lightning uses TensorBoard by default.
+
+By default, Lightning uses `PyTorch TensorBoard <https://pytorch.org/docs/stable/tensorboard.html>`__ logging  under the hood, and stores the logs to a directory (by default in ``lightning_logs/``).
+
+.. testcode::
+
+    from pytorch_lightning import Trainer
+
+    # Automatically logs to a directory
+    # (by default ``lightning_logs/``)
+    trainer = Trainer()
+
+To see your logs:
+
+.. code-block:: bash
+
+    tensorboard --logdir=lightning_logs/
+
+You can also pass a custom Logger to the :class:`~pytorch_lightning.trainer.trainer.Trainer`.
 
 .. testcode::
 
@@ -245,13 +261,13 @@ Modifying the progress bar
 
 The progress bar by default already includes the training loss and version number of the experiment
 if you are using a logger. These defaults can be customized by overriding the
-:func:`~pytorch_lightning.core.lightning.LightningModule.get_progress_bar_dict` hook in your module.
+:func:`~pytorch_lightning.callbacks.base.ProgressBarBase.get_metrics` hook in your module.
 
 .. code-block:: python
 
-    def get_progress_bar_dict(self):
+    def get_metrics(self):
         # don't show the version number
-        items = super().get_progress_bar_dict()
+        items = super().get_metrics()
         items.pop("v_num", None)
         return items
 

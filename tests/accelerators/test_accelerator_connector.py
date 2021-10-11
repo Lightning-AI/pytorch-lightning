@@ -361,7 +361,7 @@ def _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class):
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
 def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
-    """Test that we choose the custom cluster even when SLURM or TE flags are around"""
+    """Test that we choose the custom cluster even when SLURM or TE flags are around."""
 
     class CustomCluster(LightningEnvironment):
         def master_address(self):
@@ -702,3 +702,16 @@ def test_device_type_when_training_plugin_gpu_passed(tmpdir, plugin):
     assert isinstance(trainer.training_type_plugin, plugin)
     assert trainer._device_type == DeviceType.GPU
     assert isinstance(trainer.accelerator, GPUAccelerator)
+
+
+@pytest.mark.parametrize("precision", [1, 12, "invalid"])
+def test_validate_precision_type(tmpdir, precision):
+
+    with pytest.raises(MisconfigurationException, match=f"Precision {precision} is invalid"):
+        Trainer(precision=precision)
+
+
+@RunIf(min_gpus=1, amp_native=True)
+def test_amp_level_raises_error_with_native(tmpdir):
+    with pytest.raises(MisconfigurationException, match="not supported with `amp_backend='native'`"):
+        _ = Trainer(default_root_dir=tmpdir, gpus=1, amp_level="O2", amp_backend="native", precision=16)

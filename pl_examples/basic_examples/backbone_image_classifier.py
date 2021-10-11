@@ -11,11 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-MNIST backbone image classifier example.
+"""MNIST backbone image classifier example.
 
-To run:
-python backbone_image_classifier.py --trainer.max_epochs=50
+To run: python backbone_image_classifier.py --trainer.max_epochs=50
 """
 from typing import Optional
 
@@ -76,26 +74,26 @@ class LitClassifier(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self.backbone(x)
+        y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
         self.log("train_loss", loss, on_epoch=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self.backbone(x)
+        y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
         self.log("valid_loss", loss, on_step=True)
 
     def test_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self.backbone(x)
+        y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
         self.log("test_loss", loss)
 
     def predict_step(self, batch, batch_idx, dataloader_idx=None):
         x, y = batch
-        return self.backbone(x)
+        return self(x)
 
     def configure_optimizers(self):
         # self.hparams available because we called self.save_hyperparameters()
@@ -124,9 +122,10 @@ class MyDataModule(pl.LightningDataModule):
 
 
 def cli_main():
-    cli = LightningCLI(LitClassifier, MyDataModule, seed_everything_default=1234, save_config_overwrite=True)
-    cli.trainer.test(cli.model, datamodule=cli.datamodule)
-    predictions = cli.trainer.predict(cli.model, datamodule=cli.datamodule)
+    cli = LightningCLI(LitClassifier, MyDataModule, seed_everything_default=1234, save_config_overwrite=True, run=False)
+    cli.trainer.fit(cli.model, datamodule=cli.datamodule)
+    cli.trainer.test(ckpt_path="best")
+    predictions = cli.trainer.predict(ckpt_path="best")
     print(predictions[0])
 
 

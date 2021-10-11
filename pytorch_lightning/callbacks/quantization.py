@@ -20,20 +20,24 @@ import functools
 from typing import Any, Callable, Optional, Sequence, Union
 
 import torch
-from torch.quantization import QConfig
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+if _TORCH_GREATER_EQUAL_1_10:
+    from torch.ao.quantization import QConfig
+else:
+    from torch.quantization import QConfig
 
 
 def wrap_qat_forward_context(
     quant_cb, model: "pl.LightningModule", func: Callable, trigger_condition: Optional[Union[Callable, int]] = None
 ) -> Callable:
-    """
-    Decorator to wrap forward path as it is needed to quantize inputs and dequantize outputs for in/out compatibility
-    Moreover this version has the (de)quantization conditional as it may not be needed for the training all the time
-    """
+    """Decorator to wrap forward path as it is needed to quantize inputs and dequantize outputs for in/out
+    compatibility Moreover this version has the (de)quantization conditional as it may not be needed for the
+    training all the time."""
     # todo: consider using registering hook before/after forward
     @functools.wraps(func)
     def wrapper(data) -> Any:
@@ -54,9 +58,8 @@ def wrap_qat_forward_context(
 
 
 def wrap_quantize_forward_context(model: "pl.LightningModule", func: Callable) -> Callable:
-    """
-    Decorator to wrap forward path as it is needed to quantize inputs and dequantize outputs for in/out compatibility
-    """
+    """Decorator to wrap forward path as it is needed to quantize inputs and dequantize outputs for in/out
+    compatibility."""
     # todo: consider using registering hook before/after forward
     @functools.wraps(func)
     def wrapper(data) -> Any:
@@ -69,7 +72,7 @@ def wrap_quantize_forward_context(model: "pl.LightningModule", func: Callable) -
 
 
 def _recursive_hasattr(obj: Any, attribs: str, state: bool = True) -> bool:
-    """recursive check if model has some layers denoted with '.'"""
+    """recursive check if model has some layers denoted with '.'."""
     if "." in attribs:
         attrib, attribs = attribs.split(".", 1)
         if hasattr(obj, attrib):
@@ -79,12 +82,9 @@ def _recursive_hasattr(obj: Any, attribs: str, state: bool = True) -> bool:
 
 
 class QuantizationAwareTraining(Callback):
-    """
-    Quantization allows speeding up inference and decreasing memory requirements
-    by performing computations and storing tensors at lower bitwidths
-    (such as INT8 or FLOAT16) than floating point precision.
-    We use native PyTorch API so for more information
-    see `Quantization <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>`_.
+    """Quantization allows speeding up inference and decreasing memory requirements by performing computations and
+    storing tensors at lower bitwidths (such as INT8 or FLOAT16) than floating point precision. We use native
+    PyTorch API so for more information see `PyTorch Quantization`_.
 
     .. warning:: ``QuantizationAwareTraining`` is in beta and subject to change.
 
@@ -95,8 +95,7 @@ class QuantizationAwareTraining(Callback):
 
             - 'fbgemm' for server inference.
             - 'qnnpack' for mobile inference.
-            - a custom `torch.quantization.QConfig
-              <https://pytorch.org/docs/stable/torch.quantization.html#torch.quantization.QConfig>`_.
+            - a custom `torch.quantization.QConfig`_.
 
         observer_type: allows switching between ``MovingAverageMinMaxObserver`` as "average" (default)
             and ``HistogramObserver`` as "histogram" which is more computationally expensive.
@@ -127,6 +126,8 @@ class QuantizationAwareTraining(Callback):
         quantize_on_fit_end: perform the quantization in `on_fit_end`.
             Note that once converted, the model cannot be put in training mode again.
 
+    .. _PyTorch Quantization: https://pytorch.org/docs/stable/quantization.html#quantization-aware-training
+    .. _torch.quantization.QConfig: https://pytorch.org/docs/stable/torch.quantization.html#torch.quantization.QConfig
     """
 
     OBSERVER_TYPES = ("histogram", "average")
@@ -192,7 +193,12 @@ class QuantizationAwareTraining(Callback):
             if self._observer_type == "histogram":
                 pl_module.qconfig = torch.quantization.get_default_qconfig(self._qconfig)
             elif self._observer_type == "average":
-                pl_module.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig)
+                # version=None corresponds to using FakeQuantize rather than
+                # FusedMovingAvgObsFakeQuantize which was introduced in PT1.10
+                # details in https://github.com/pytorch/pytorch/issues/64564
+                extra_kwargs = dict(version=None) if _TORCH_GREATER_EQUAL_1_10 else {}
+                pl_module.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig, **extra_kwargs)
+
         elif isinstance(self._qconfig, QConfig):
             pl_module.qconfig = self._qconfig
 

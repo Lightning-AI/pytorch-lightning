@@ -45,7 +45,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
         model: Optional[Module] = None,
     ) -> None:
-        """Clips the gradients"""
+        """Clips the gradients."""
         if clip_val is None:
             return
 

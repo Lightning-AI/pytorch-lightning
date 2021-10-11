@@ -33,7 +33,7 @@ try:
     from mlflow.tracking import context, MlflowClient
     from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
 # todo: there seems to be still some remaining import error with Conda env
-except ImportError:
+except ModuleNotFoundError:
     _MLFLOW_AVAILABLE = False
     mlflow, MlflowClient, context = None, None, None
     MLFLOW_RUN_NAME = "mlflow.runName"
@@ -53,8 +53,7 @@ else:
 
 
 class MLFlowLogger(LightningLoggerBase):
-    """
-    Log using `MLflow <https://mlflow.org>`_.
+    """Log using `MLflow <https://mlflow.org>`_.
 
     Install it with pip:
 
@@ -101,7 +100,7 @@ class MLFlowLogger(LightningLoggerBase):
             default.
 
     Raises:
-        ImportError:
+        ModuleNotFoundError:
             If required MLFlow package is not installed on the device.
     """
 
@@ -118,7 +117,7 @@ class MLFlowLogger(LightningLoggerBase):
         artifact_location: Optional[str] = None,
     ):
         if mlflow is None:
-            raise ImportError(
+            raise ModuleNotFoundError(
                 "You want to use `mlflow` logger which is not installed yet, install it with `pip install mlflow`."
             )
         super().__init__()
@@ -163,8 +162,7 @@ class MLFlowLogger(LightningLoggerBase):
                 self.tags = self.tags or {}
                 if MLFLOW_RUN_NAME in self.tags:
                     log.warning(
-                        f"The tag {MLFLOW_RUN_NAME} is found in tags. "
-                        f"The value will be overridden by {self._run_name}."
+                        f"The tag {MLFLOW_RUN_NAME} is found in tags. The value will be overridden by {self._run_name}."
                     )
                 self.tags[MLFLOW_RUN_NAME] = self._run_name
             run = self._mlflow_client.create_run(experiment_id=self._experiment_id, tags=resolve_tags(self.tags))
@@ -172,14 +170,22 @@ class MLFlowLogger(LightningLoggerBase):
         return self._mlflow_client
 
     @property
-    def run_id(self):
-        # create the experiment if it does not exist to get the run id
+    def run_id(self) -> str:
+        """Create the experiment if it does not exist to get the run id.
+
+        Returns:
+            The run id.
+        """
         _ = self.experiment
         return self._run_id
 
     @property
-    def experiment_id(self):
-        # create the experiment if it does not exist to get the experiment id
+    def experiment_id(self) -> str:
+        """Create the experiment if it does not exist to get the experiment id.
+
+        Returns:
+            The experiment id.
+        """
         _ = self.experiment
         return self._experiment_id
 
@@ -228,8 +234,7 @@ class MLFlowLogger(LightningLoggerBase):
 
     @property
     def save_dir(self) -> Optional[str]:
-        """
-        The root file directory in which MLflow experiments are saved.
+        """The root file directory in which MLflow experiments are saved.
 
         Return:
             Local path to the root experiment directory if the tracking uri is local.
@@ -240,8 +245,18 @@ class MLFlowLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
+        """Get the experiment id.
+
+        Returns:
+            The experiment id.
+        """
         return self.experiment_id
 
     @property
     def version(self) -> str:
+        """Get the run id.
+
+        Returns:
+            The run id.
+        """
         return self.run_id

@@ -907,6 +907,9 @@ Stop training once this number of epochs is reached
     # default used by the Trainer
     trainer = Trainer(max_epochs=1000)
 
+If both ``max_epochs`` and ``max_steps`` aren't specified, ``max_epochs`` will default to ``1000``.
+To enable infinite training, set ``max_epochs = -1``.
+
 min_epochs
 ^^^^^^^^^^
 
@@ -946,6 +949,9 @@ Training will stop if max_steps or max_epochs have reached (earliest).
 
     # Stop after 100 steps
     trainer = Trainer(max_steps=100)
+
+If ``max_steps`` is not specified, ``max_epochs`` will be used instead (and ``max_epochs`` defaults to
+``1000`` if ``max_epochs`` is not specified). To disable this default, set ``max_steps = -1``.
 
 min_steps
 ^^^^^^^^^
@@ -1166,7 +1172,7 @@ Lightning supports either double precision (64), full precision (32), or half pr
 Half precision, or mixed precision, is the combined use of 32 and 16 bit floating points to reduce memory footprint during model training. This can result in improved performance, achieving +3X speedups on modern GPUs.
 
 .. testcode::
-    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
+    :skipif: not torch.cuda.is_available()
 
     # default used by the Trainer
     trainer = Trainer(precision=32, gpus=1)
@@ -1215,7 +1221,7 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
     2. Set the `precision` trainer flag to 16. You can customize the `Apex optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`_ by setting the `amp_level` flag.
 
     .. testcode::
-        :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
+        :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
 
         # turn on 16-bit
         trainer = Trainer(amp_backend="apex", amp_level="O2", precision=16)
@@ -1275,6 +1281,10 @@ See the :doc:`profiler documentation <../advanced/profiler>`. for more details.
 
 progress_bar_refresh_rate
 ^^^^^^^^^^^^^^^^^^^^^^^^^
+``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
+Please pass :class:`~pytorch_lightning.callbacks.progress.ProgressBar` with ``refresh_rate``
+directly to the Trainer's ``callbacks`` argument instead. To disable the progress bar,
+pass ``enable_progress_bar = False`` to the Trainer.
 
 .. raw:: html
 
@@ -1298,6 +1308,19 @@ Note:
     - In Google Colab notebooks, faster refresh rates (lower number) is known to crash them because of their screen refresh rates.
       Lightning will set it to 20 in these environments if the user does not provide a value.
     - This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
+
+enable_progress_bar
+^^^^^^^^^^^^^^^^^^^
+
+Whether to enable or disable the progress bar. Defaults to True.
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(enable_progress_bar=True)
+
+    # disable progress bar
+    trainer = Trainer(enable_progress_bar=False)
 
 reload_dataloaders_every_n_epochs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1482,66 +1505,6 @@ Example::
     --env=XLA_USE_BF16=1
     -- python your_trainer_file.py
 
-truncated_bptt_steps
-^^^^^^^^^^^^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/truncated_bptt_steps.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/truncated_bptt_steps.mp4"></video>
-
-|
-
-Truncated back prop breaks performs backprop every k steps of
-a much longer sequence.
-
-If this is enabled, your batches will automatically get truncated
-and the trainer will apply Truncated Backprop to it.
-
-(`Williams et al. "An efficient gradient-based algorithm for on-line training of
-recurrent network trajectories."
-<http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.7941&rep=rep1&type=pdf>`_)
-
-.. testcode::
-
-    # default used by the Trainer (ie: disabled)
-    trainer = Trainer(truncated_bptt_steps=None)
-
-    # backprop every 5 steps in a batch
-    trainer = Trainer(truncated_bptt_steps=5)
-
-.. note::  Make sure your batches have a sequence dimension.
-
-Lightning takes care to split your batch along the time-dimension.
-
-.. code-block:: python
-
-    # we use the second as the time dimension
-    # (batch, time, ...)
-    sub_batch = batch[0, 0:t, ...]
-
-Using this feature requires updating your LightningModule's
-:meth:`pytorch_lightning.core.LightningModule.training_step` to include a `hiddens` arg
-with the hidden
-
-.. code-block:: python
-
-        # Truncated back-propagation through time
-        def training_step(self, batch, batch_idx, hiddens):
-            # hiddens are the hiddens from the previous truncated backprop step
-            out, hiddens = self.lstm(data, hiddens)
-            return {"loss": ..., "hiddens": hiddens}
-
-To modify how the batch is split,
-override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`:
-
-.. testcode::
-
-    class LitMNIST(LightningModule):
-        def tbptt_split_batch(self, batch, split_size):
-            # do your own splitting on the batch
-            return splits
 
 val_check_interval
 ^^^^^^^^^^^^^^^^^^

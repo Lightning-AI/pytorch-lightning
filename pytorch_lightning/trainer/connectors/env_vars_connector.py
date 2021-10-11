@@ -19,10 +19,8 @@ from pytorch_lightning.utilities.argparse import get_init_arguments_and_types, p
 
 
 def _defaults_from_env_vars(fn: Callable) -> Callable:
-    """
-    Decorator for :class:`~pytorch_lightning.trainer.trainer.Trainer` methods for which
-    input arguments should be moved automatically to the correct device.
-    """
+    """Decorator for :class:`~pytorch_lightning.trainer.trainer.Trainer` methods for which input arguments should
+    be moved automatically to the correct device."""
 
     @wraps(fn)
     def insert_env_defaults(self, *args, **kwargs):

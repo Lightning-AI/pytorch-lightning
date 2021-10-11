@@ -13,12 +13,15 @@
 # limitations under the License.
 from unittest.mock import Mock
 
+import pytest
 import torch
+import torch.distributed as dist
 from torch import nn
 from torch.optim import Adam, SGD
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.utilities import _TORCH_SHARDED_TENSOR_AVAILABLE
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -299,3 +302,36 @@ def test_device_placement(tmpdir):
     assert_device(torch.device("cpu"))
     trainer.predict(model, dataloaders=model.train_dataloader())
     assert_device(torch.device("cpu"))
+
+
+class BoringModelWithShardedTensor(BoringModel):
+    def __init__(self, spec):
+        super().__init__()
+        self.sharded_tensor = dist._sharded_tensor.empty(spec, 10, 20)
+        self.sharded_tensor.local_shards()[0].tensor.fill_(0)
+
+
+@pytest.mark.skipif(
+    not _TORCH_SHARDED_TENSOR_AVAILABLE, reason="Test requires the torch version to support `ShardedTensor`"
+)
+def test_sharded_tensor_state_dict(tmpdir, single_process_pg):
+    spec = dist._sharding_spec.ChunkShardingSpec(
+        dim=0,
+        placements=[
+            "rank:0/cpu",
+        ],
+    )
+
+    m_0 = BoringModelWithShardedTensor(spec)
+    m_0.sharded_tensor.local_shards()[0].tensor.fill_(1)
+    assert "sharded_tensor" in m_0.state_dict(), 'Expect "sharded_tensor" to appear in the state dict'
+
+    m_1 = BoringModelWithShardedTensor(spec)
+    assert not torch.allclose(
+        m_1.sharded_tensor.local_shards()[0].tensor, m_0.sharded_tensor.local_shards()[0].tensor
+    ), "Expect the shards to be different before `m_1` loading `m_0`'s state dict"
+
+    m_1.load_state_dict(m_0.state_dict(), strict=False)
+    assert torch.allclose(
+        m_1.sharded_tensor.local_shards()[0].tensor, m_0.sharded_tensor.local_shards()[0].tensor
+    ), "Expect the shards to be same after `m_1` loading `m_0`'s state dict"

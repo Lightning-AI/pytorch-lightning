@@ -78,9 +78,8 @@ class ModelPruning(Callback):
         verbose: int = 0,
         prune_on_train_epoch_end: bool = True,
     ) -> None:
-        """
-        Model pruning Callback, using PyTorch's prune utilities.
-        This callback is responsible of pruning networks parameters during training.
+        """Model pruning Callback, using PyTorch's prune utilities. This callback is responsible of pruning
+        networks parameters during training.
 
         To learn more about pruning with PyTorch, please take a look at
         `this tutorial <https://pytorch.org/tutorials/intermediate/pruning_tutorial.html>`_.
@@ -232,18 +231,14 @@ class ModelPruning(Callback):
         self._verbose = verbose
 
     def filter_parameters_to_prune(self, parameters_to_prune: _PARAM_LIST = ()) -> _PARAM_LIST:
-        """
-        This function can be overridden to control which module to prune.
-        """
+        """This function can be overridden to control which module to prune."""
         return parameters_to_prune
 
     def _create_pruning_fn(self, pruning_fn: str, **kwargs: Any) -> Union[Callable, pytorch_prune.BasePruningMethod]:
-        """
-        This function takes `pruning_fn`, a function name.
+        """This function takes `pruning_fn`, a function name.
 
-        IF use_global_unstructured, pruning_fn will be resolved into its associated ``PyTorch BasePruningMethod``
-        ELSE, pruning_fn will be resolved into its function counterpart from `torch.nn.utils.prune`.
-
+        IF use_global_unstructured, pruning_fn will be resolved into its associated ``PyTorch BasePruningMethod`` ELSE,
+        pruning_fn will be resolved into its function counterpart from `torch.nn.utils.prune`.
         """
         pruning_fn = (
             _PYTORCH_PRUNING_METHOD[pruning_fn]
@@ -265,8 +260,7 @@ class ModelPruning(Callback):
         return partial(pruning_fn, **kwargs)
 
     def make_pruning_permanent(self, module: nn.Module) -> None:
-        """
-        Removes pruning buffers from any pruned modules
+        """Removes pruning buffers from any pruned modules.
 
         Adapted from https://github.com/pytorch/pytorch/blob/1.7.1/torch/nn/utils/prune.py#L1176-L1180
         """
@@ -443,9 +437,8 @@ class ModelPruning(Callback):
     def sanitize_parameters_to_prune(
         pl_module: LightningModule, parameters_to_prune: _PARAM_LIST = (), parameter_names: Sequence[str] = ()
     ) -> _PARAM_LIST:
-        """
-        This function is responsible of sanitizing ``parameters_to_prune`` and ``parameter_names``.
-        If ``parameters_to_prune is None``, it will be generated with all parameters of the model.
+        """This function is responsible of sanitizing ``parameters_to_prune`` and ``parameter_names``. If
+        ``parameters_to_prune is None``, it will be generated with all parameters of the model.
 
         Raises:
             MisconfigurationException:

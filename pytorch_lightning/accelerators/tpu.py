@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Dict, Optional, Union
 
 import torch
 from torch.optim import Optimizer
@@ -32,11 +32,13 @@ if _XLA_AVAILABLE:
 class TPUAccelerator(Accelerator):
     """Accelerator for TPU devices."""
 
-    def setup(self, trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+    def setup(self, trainer: "pl.Trainer") -> None:
         """
         Raises:
             MisconfigurationException:
-                If AMP is used with TPU, or if TPUs are not using a single TPU core or TPU spawn training.
+                If AMP is used with TPU.
+            MisconfigurationException:
+                If TPUs are not using a single TPU core or TPU spawn training.
         """
         if isinstance(self.precision_plugin, MixedPrecisionPlugin):
             raise MisconfigurationException(
@@ -45,7 +47,7 @@ class TPUAccelerator(Accelerator):
 
         if not isinstance(self.training_type_plugin, (SingleTPUPlugin, TPUSpawnPlugin)):
             raise MisconfigurationException("TPUs only support a single tpu core or tpu spawn training.")
-        return super().setup(trainer, model)
+        return super().setup(trainer)
 
     def run_optimizer_step(
         self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs: Any
@@ -59,3 +61,21 @@ class TPUAccelerator(Accelerator):
         for opt in self.optimizers:
             for p, v in opt.state.items():
                 opt.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, self.root_device)
+
+    def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
+        """Gets stats for the given TPU device.
+
+        Args:
+            device: TPU device for which to get stats
+
+        Returns:
+            A dictionary mapping the metrics (free memory and peak memory) to their values.
+        """
+        memory_info = xm.get_memory_info(device)
+        free_memory = memory_info["kb_free"]
+        peak_memory = memory_info["kb_total"] - free_memory
+        device_stats = {
+            "avg. free memory (MB)": free_memory,
+            "avg. peak memory (MB)": peak_memory,
+        }
+        return device_stats

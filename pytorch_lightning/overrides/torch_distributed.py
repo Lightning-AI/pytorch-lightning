@@ -16,9 +16,7 @@ if torch.distributed.is_available():
 
 # https://github.com/pytorch/pytorch/blob/1.7/torch/distributed/distributed_c10d.py#L160
 def _rank_not_in_group(group):
-    """
-    Helper that checks if the current process's rank is not in a given group.
-    """
+    """Helper that checks if the current process's rank is not in a given group."""
     if group is None:
         return False
     return group == GroupMember.NON_GROUP_MEMBER

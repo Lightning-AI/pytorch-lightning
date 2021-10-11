@@ -51,7 +51,7 @@ jobs:
     - bash: |
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
         pip install fairscale>=0.3.4
-        pip install "deepspeed>=0.4.3, !=0.4.4" # FIXME: bug with 0.4.4
+        pip install "deepspeed==0.4.3" # FIXME: bug with >= 0.4.4
         pip install . --requirement requirements/devel.txt
         pip list
       displayName: 'Install dependencies'
@@ -108,6 +108,8 @@ jobs:
         bash pl_examples/run_examples.sh --trainer.gpus=1
         bash pl_examples/run_examples.sh --trainer.gpus=2 --trainer.accelerator=ddp
         bash pl_examples/run_examples.sh --trainer.gpus=2 --trainer.accelerator=ddp --trainer.precision=16
+        bash pl_examples/run_examples.sh --trainer.gpus=2 --trainer.accelerator=dp
+        bash pl_examples/run_examples.sh --trainer.gpus=2 --trainer.accelerator=dp --trainer.precision=16
       env:
         PL_USE_MOCKED_MNIST: "1"
       displayName: 'Testing: examples'

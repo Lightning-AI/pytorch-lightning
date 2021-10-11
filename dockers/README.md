@@ -20,7 +20,9 @@ docker image build \
     --build-arg PYTORCH_VERSION=1.8 \
     .
 ```
+
 or nightly version from Conda
+
 ```bash
 git clone <git-repository>
 docker image build \
@@ -48,6 +50,7 @@ docker image rm pytorch-lightning:latest
 ## Run docker image with GPUs
 
 To run docker image with access to you GPUs you need to install
+
 ```bash
 # Add the package repositories
 distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
@@ -69,17 +72,17 @@ docker run --rm -it --gpus all pytorchlightning/pytorch_lightning:base-cuda-py3.
 Inspiration comes from https://u.group/thinking/how-to-put-jupyter-notebooks-in-a-dockerfile
 
 1. Build the docker image:
-    ```bash
-    docker image build \
-        -t pytorch-lightning:v1.3.1 \
-        -f dockers/nvidia/Dockerfile \
-        --build-arg LIGHTNING_VERSION=1.3.1 \
-        .
-    ```
-2. start the server and map ports:
-    ```bash
-    docker run --rm -it --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all -p 8888:8888 pytorch-lightning:v1.3.1
-    ```
-3. Connect in local browser:
-    - copy the generated path e.g. `http://hostname:8888/?token=0719fa7e1729778b0cec363541a608d5003e26d4910983c6`
-    - replace the `hostname` by `localhost`
+   ```bash
+   docker image build \
+       -t pytorch-lightning:v1.3.1 \
+       -f dockers/nvidia/Dockerfile \
+       --build-arg LIGHTNING_VERSION=1.3.1 \
+       .
+   ```
+1. start the server and map ports:
+   ```bash
+   docker run --rm -it --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all -p 8888:8888 pytorch-lightning:v1.3.1
+   ```
+1. Connect in local browser:
+   - copy the generated path e.g. `http://hostname:8888/?token=0719fa7e1729778b0cec363541a608d5003e26d4910983c6`
+   - replace the `hostname` by `localhost`
