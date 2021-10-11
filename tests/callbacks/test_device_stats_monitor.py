@@ -101,7 +101,7 @@ def test_device_stats_monitor_tpu(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=2,
         limit_train_batches=5,
-        tpu_cores=1,
+        tpu_cores=[1],
         log_every_n_steps=1,
         callbacks=[device_stats],
         logger=logger,
@@ -111,7 +111,6 @@ def test_device_stats_monitor_tpu(tmpdir):
 
     with patch.object(CSVLogger, "log_metrics") as mock_log_method:
         trainer.fit(model)
-        # device_stats.on_train_batch_start(trainer, model, None, None, None)
 
     metrics_dict = mock_log_method.call_args.args[0]
 
