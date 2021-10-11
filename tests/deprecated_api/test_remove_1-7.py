@@ -122,6 +122,16 @@ def test_v1_7_0_stochastic_weight_avg_trainer_constructor(tmpdir):
         _ = Trainer(stochastic_weight_avg=True)
 
 
+@pytest.mark.parametrize("terminate_on_nan", [True, False])
+def test_v1_7_0_trainer_terminate_on_nan(tmpdir, terminate_on_nan):
+    with pytest.deprecated_call(
+        match="Trainer argument `terminate_on_nan` was deprecated in v1.5 and will be removed in 1.7"
+    ):
+        trainer = Trainer(terminate_on_nan=terminate_on_nan)
+        assert trainer.terminate_on_nan is terminate_on_nan
+        assert trainer._detect_anomaly is False
+
+
 def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
     class CustomBoringModel(BoringModel):
         def on_train_dataloader(self):
