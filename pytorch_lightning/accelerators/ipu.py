@@ -40,5 +40,5 @@ class IPUAccelerator(Accelerator):
         lambda_closure()
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
-        """Returns dummy implementation."""
+        """IPU device stats aren't supported yet."""
         return {}
