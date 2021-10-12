@@ -355,8 +355,7 @@ class LightningLoggerBase(ABC):
         checkpoint_callback: "ReferenceType[ModelCheckpoint]",
         checkpoints: List[ModelCheckpoint],
     ) -> None:
-        """
-        Log the given checkpoints.
+        """Log the given checkpoints.
 
         Args:
             checkpoint_callback: ModelCheckpoint callback reference.
@@ -366,8 +365,7 @@ class LightningLoggerBase(ABC):
     def _scan_and_log_checkpoints(
         self, checkpoint_callback: "ReferenceType[ModelCheckpoint]", logged_model_time: dict
     ) -> None:
-        """
-        Get and log the checkpoints to be logged.
+        """Get and log the checkpoints to be logged.
 
         Args:
             checkpoint_callback: ModelCheckpoint callback reference.
@@ -572,8 +570,7 @@ def merge_dicts(
 def scan_checkpoints(
     checkpoint_callback: "ReferenceType[ModelCheckpoint]", logged_model_time: dict
 ) -> List[ModelCheckpoint]:
-    """
-    Return the checkpoints to be logged.
+    """Return the checkpoints to be logged.
 
     Args:
         checkpoint_callback: ModelCheckpoint callback reference.
