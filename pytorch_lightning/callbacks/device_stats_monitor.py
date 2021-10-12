@@ -52,7 +52,6 @@ class DeviceStatsMonitor(Callback):
         pl_module: "pl.LightningModule",
         batch: Any,
         batch_idx: int,
-        unused: Optional[int] = 0,
     ) -> None:
         if not trainer.logger_connector.should_update_logs:
             return
@@ -67,7 +66,6 @@ class DeviceStatsMonitor(Callback):
         outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
-        unused: Optional[int] = 0,
     ) -> None:
         if not trainer.logger_connector.should_update_logs:
             return
