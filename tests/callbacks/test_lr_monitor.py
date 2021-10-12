@@ -390,7 +390,7 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
         callbacks=[TestFinetuning(), lr_monitor, Check()],
         enable_progress_bar=False,
         weights_summary=None,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
     model = TestModel()
     model.training_epoch_end = None

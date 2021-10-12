@@ -135,7 +135,7 @@ class GPUStatsMonitor(Callback):
 
     @rank_zero_only
     def on_train_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int
     ) -> None:
         if self._log_stats.intra_step_time:
             self._snap_intra_step_time = time.time()
@@ -161,7 +161,6 @@ class GPUStatsMonitor(Callback):
         outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
-        dataloader_idx: int,
     ) -> None:
         if self._log_stats.inter_step_time:
             self._snap_inter_step_time = time.time()

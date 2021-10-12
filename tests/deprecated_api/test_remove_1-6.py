@@ -30,7 +30,7 @@ from tests.helpers import BoringDataModule, BoringModel
 
 def test_v1_6_0_trainer_model_hook_mixin(tmpdir):
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, logger=False)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_checkpointing=False, logger=False)
     trainer.fit(model)
     with pytest.deprecated_call(match="is deprecated in v1.4 and will be removed in v1.6"):
         trainer.is_function_implemented("training_step", model)
@@ -330,7 +330,7 @@ def test_v1_6_0_deprecated_device_dtype_mixin_import():
         from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin  # noqa: F401
 
 
-def test_v1_7_0_deprecated_accelerator_collective():
+def test_v1_6_0_deprecated_accelerator_collective():
     from pytorch_lightning.plugins.precision import PrecisionPlugin
     from pytorch_lightning.plugins.training_type import SingleDevicePlugin
 

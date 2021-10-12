@@ -24,6 +24,7 @@ from pytorch_lightning.loops.optimization.optimizer_loop import OptimizerLoop
 from pytorch_lightning.loops.utilities import _get_active_optimizers
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AttributeDict
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.warnings import WarningCache
 
 _OUTPUTS_TYPE = List[Union[_OPTIMIZER_LOOP_OUTPUTS_TYPE, _MANUAL_LOOP_OUTPUTS_TYPE]]
@@ -76,7 +77,14 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
             return AttributeDict(signal=-1)
 
         # hook
-        response = self.trainer.call_hook("on_train_batch_start", batch, batch_idx, 0)
+        # TODO: Update this in v1.7 (deprecation: #9816)
+        model_fx = self.trainer.lightning_module.on_train_batch_start
+        extra_kwargs = (
+            {"dataloader_idx": 0}
+            if callable(model_fx) and is_param_in_hook_signature(model_fx, "dataloader_idx", explicit=True)
+            else {}
+        )
+        response = self.trainer.call_hook("on_train_batch_start", batch, batch_idx, **extra_kwargs)
         if response == -1:
             return AttributeDict(signal=-1)
 

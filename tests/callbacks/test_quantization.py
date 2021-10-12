@@ -56,7 +56,7 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     assert torch.allclose(org_score, quant_score, atol=0.45)
     model_path = trainer.checkpoint_callback.best_model_path
 
-    trainer_args.update(dict(max_epochs=1, checkpoint_callback=False))
+    trainer_args.update(dict(max_epochs=1, enable_checkpointing=False))
     if not convert:
         trainer = Trainer(callbacks=[QuantizationAwareTraining()], **trainer_args)
         trainer.fit(qmodel, datamodule=dm)

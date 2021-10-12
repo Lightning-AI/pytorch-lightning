@@ -122,6 +122,16 @@ def test_v1_7_0_stochastic_weight_avg_trainer_constructor(tmpdir):
         _ = Trainer(stochastic_weight_avg=True)
 
 
+@pytest.mark.parametrize("terminate_on_nan", [True, False])
+def test_v1_7_0_trainer_terminate_on_nan(tmpdir, terminate_on_nan):
+    with pytest.deprecated_call(
+        match="Trainer argument `terminate_on_nan` was deprecated in v1.5 and will be removed in 1.7"
+    ):
+        trainer = Trainer(terminate_on_nan=terminate_on_nan)
+        assert trainer.terminate_on_nan is terminate_on_nan
+        assert trainer._detect_anomaly is False
+
+
 def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
     class CustomBoringModel(BoringModel):
         def on_train_dataloader(self):
@@ -255,6 +265,51 @@ def test_v1_7_0_deprecate_lightning_distributed(tmpdir):
         from pytorch_lightning.distributed.dist import LightningDistributed
 
         _ = LightningDistributed()
+
+
+def test_v1_7_0_checkpoint_callback_trainer_constructor(tmpdir):
+    with pytest.deprecated_call(match=r"Setting `Trainer\(checkpoint_callback=True\)` is deprecated in v1.5"):
+        _ = Trainer(checkpoint_callback=True)
+
+
+def test_v1_7_0_old_on_train_batch_start(tmpdir):
+    class OldSignature(Callback):
+        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+            ...
+
+    class OldSignatureModel(BoringModel):
+        def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
+            ...
+
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature())
+    with pytest.deprecated_call(match="`dataloader_idx` argument will be removed in v1.7."):
+        trainer.fit(model)
+
+    model = OldSignatureModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    with pytest.deprecated_call(match="`dataloader_idx` argument will be removed in v1.7."):
+        trainer.fit(model)
+
+
+def test_v1_7_0_old_on_train_batch_end(tmpdir):
+    class OldSignature(Callback):
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+            ...
+
+    class OldSignatureModel(BoringModel):
+        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+            ...
+
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature(), fast_dev_run=True)
+    with pytest.deprecated_call(match="`dataloader_idx` argument will be removed in v1.7."):
+        trainer.fit(model)
+
+    model = OldSignatureModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature(), fast_dev_run=True)
+    with pytest.deprecated_call(match="`dataloader_idx` argument will be removed in v1.7."):
+        trainer.fit(model)
 
 
 def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir):
