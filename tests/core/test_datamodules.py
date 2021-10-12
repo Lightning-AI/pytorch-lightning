@@ -566,13 +566,14 @@ def test_define_as_dataclass():
         batch_size: int
         dims: int = 2
 
-        def __post_init__(self):
-            super().__init__(dims=self.dims)
+        def train_dataloader(self):
+            return DataLoader(torch.randn(self.batch_size * 2, 10), batch_size=self.batch_size)
 
     # asserts for the different dunder methods added by dataclass, when __init__ is implemented, i.e.
     # __repr__, __eq__, __lt__, __le__, etc.
     assert BoringDataModule1(batch_size=64).dims == 2
     assert BoringDataModule1(batch_size=32)
+    assert len(BoringDataModule1(batch_size=32)) == 2
     assert hasattr(BoringDataModule1, "__repr__")
     assert BoringDataModule1(batch_size=32) == BoringDataModule1(batch_size=32)
 
@@ -583,7 +584,9 @@ def test_define_as_dataclass():
 
     # asserts for the different dunder methods added by dataclass, when super class is inherently initialized, i.e.
     # __init__, __repr__, __eq__, __lt__, __le__, etc.
-    assert BoringDataModule2(batch_size=32)
+    assert BoringDataModule2(batch_size=32) is not None
+    assert BoringDataModule2(batch_size=32).batch_size == 32
+    assert len(BoringDataModule2(batch_size=32)) == 0
     assert hasattr(BoringDataModule2, "__repr__")
     assert BoringDataModule2(batch_size=32).prepare_data() is None
     assert BoringDataModule2(batch_size=32) == BoringDataModule2(batch_size=32)

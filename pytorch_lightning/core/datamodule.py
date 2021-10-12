@@ -22,9 +22,8 @@ from torch.utils.data import DataLoader, Dataset, IterableDataset
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
 from pytorch_lightning.core.mixins import HyperparametersMixin
 from pytorch_lightning.utilities import rank_zero_deprecation
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.argparse import add_argparse_args, from_argparse_args, get_init_arguments_and_types
-from pytorch_lightning.utilities.data import has_len
-from pytorch_lightning.utilities.distributed import rank_zero_warn
 
 
 class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
@@ -485,22 +484,17 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         return d
 
     def __len__(self) -> int:
-        def get_num_batches(dataloader):
-            if isinstance(dataloader, Sequence):
-                return sum(get_num_batches(dl) for dl in dataloader)
-            if isinstance(dataloader, Mapping):
-                return sum(get_num_batches(dl) for dl in dataloader.values())
-            if not has_len(dataloader):
-                rank_zero_warn("`__len__` is not implemented for a `Dataloader`.")
-                return 0
-            return len(dataloader)
-
         num_batches = 0
+
+        def get_num_batches(dataloader: DataLoader) -> None:
+            nonlocal num_batches
+            num_batches += len(dataloader)
+
         for method_name in ("train_dataloader", "val_dataloader", "test_dataloader", "predict_dataloader"):
             dataloader_method = getattr(self, method_name)
             try:
                 dataloader = dataloader_method()
-                num_batches += get_num_batches(dataloader)
+                apply_to_collection(dataloader, DataLoader, get_num_batches)
             except NotImplementedError:
                 pass
 
