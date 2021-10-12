@@ -349,7 +349,8 @@ class RichProgressBar(ProgressBarBase):
             )
 
     def _update(self, progress_bar_id: int, visible: bool = True) -> None:
-        pass
+        if self.progress is not None:
+            self.progress.update(progress_bar_id, advance=1.0, visible=visible)
 
     def on_validation_epoch_end(self, trainer, pl_module):
         super().on_validation_epoch_end(trainer, pl_module)
