@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import argparse
 import contextlib
 import json
 import logging
@@ -429,6 +430,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
         model_parameters = filter(lambda p: p.requires_grad, self.model.parameters())
         model, deepspeed_optimizer, _, deepspeed_scheduler = deepspeed.initialize(
+            args=argparse.Namespace(device_rank=self.root_device.index),
             config=self.config,
             model=model,
             model_parameters=model_parameters,
@@ -505,6 +507,7 @@ class DeepSpeedPlugin(DDPPlugin):
         # Remove all module hooks before initializing new model
         remove_module_hooks(model)
         model, _, _, _ = deepspeed.initialize(
+            args=argparse.Namespace(device_rank=self.root_device.index),
             config=inference_config,
             model=model,
             optimizer=optimizer,

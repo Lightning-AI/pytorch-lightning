@@ -489,6 +489,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed missing arguments when saving hyperparameters from the parent class but not from the child class ([#9800](https://github.com/PyTorchLightning/pytorch-lightning/pull/9800))
 
 
+- Fixed DeepSpeed GPU device IDs ([#9847](https://github.com/PyTorchLightning/pytorch-lightning/pull/9847))
+
+
 - Reset `val_dataloader` in `tuner/batch_size_scaling` ([#9857](https://github.com/PyTorchLightning/pytorch-lightning/pull/9857))
 
 
