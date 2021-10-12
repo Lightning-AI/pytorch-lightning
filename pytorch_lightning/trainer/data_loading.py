@@ -536,20 +536,18 @@ class TrainerDataLoadingMixin(ABC):
         if self.val_dataloaders is None:
             self.reset_val_dataloader(model=model)
 
-    # FIXME: wrong docstring
     def request_dataloader(
         self, stage: RunningStage, model: Optional["pl.LightningModule"] = None
     ) -> Union[DataLoader, List[DataLoader]]:
-        """Handles downloading data in the GPU or TPU case.
+        """Requests a dataloader from the given model by calling dataloader hooks corresponding to the given stage.
 
         Returns:
-            The dataloader
+            The requested dataloader
         """
         source = getattr(self.data_connector, f"_{stage.dataloader_prefix}_dataloader_source")
 
         hook = f"{stage.dataloader_prefix}_dataloader"
         self.call_hook("on_" + hook, pl_module=model)
-        # dataloader = self.call_hook(hook, pl_module=model)
         dataloader = source.request()
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
