@@ -26,6 +26,7 @@ from pytorch_lightning.callbacks import (
 )
 from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.timer import Timer
+from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.utilities import _RICH_AVAILABLE, ModelSummaryMode, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn
@@ -201,7 +202,7 @@ class CallbackConnector:
             return progress_bars[0]
         # check if progress bar has been turned off (i.e refresh_rate == 0)
         if refresh_rate != 0:
-            if _RICH_AVAILABLE:
+            if _RICH_AVAILABLE and not isinstance(self.trainer.training_type_plugin, DDPSpawnPlugin):
                 if refresh_rate is None:
                     progress_bar_callback = RichProgressBar()
                     self.trainer.callbacks.append(progress_bar_callback)
