@@ -24,12 +24,10 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DistributedSampler
 
 from pl_examples.automator_examples.models import weights_init, Generator, Discriminator
-from pytorch_lightning.automator.automator import Automator, AutomatedModel
+from pytorch_lightning.lite.automator import LightningLite, AutomatedModel
 
 parser = argparse.ArgumentParser()
-parser.add_argument(
-    "--workers", type=int, help="number of data loading workers", default=0
-)
+parser.add_argument("--workers", type=int, help="number of data loading workers", default=0)
 parser.add_argument("--batchSize", type=int, default=64, help="input batch size")
 parser.add_argument(
     "--imageSize",
@@ -37,25 +35,17 @@ parser.add_argument(
     default=64,
     help="the height / width of the input image to network",
 )
-parser.add_argument(
-    "--niter", type=int, default=25, help="number of epochs to train for"
-)
-parser.add_argument(
-    "--lr", type=float, default=0.0002, help="learning rate, default=0.0002"
-)
-parser.add_argument(
-    "--beta1", type=float, default=0.5, help="beta1 for adam. default=0.5"
-)
+parser.add_argument("--niter", type=int, default=25, help="number of epochs to train for")
+parser.add_argument("--lr", type=float, default=0.0002, help="learning rate, default=0.0002")
+parser.add_argument("--beta1", type=float, default=0.5, help="beta1 for adam. default=0.5")
 
 parser.add_argument("--netG", default="", help="path to netG (to continue training)")
 parser.add_argument("--netD", default="", help="path to netD (to continue training)")
-parser.add_argument(
-    "--outf", default="./lightning_logs", help="folder to output images and model checkpoints"
-)
+parser.add_argument("--outf", default="./lightning_logs", help="folder to output images and model checkpoints")
 
 
 # ------------------------------------------------------------------------------------------------------------
-# Available Automator Flags
+# Available LightningLite Flags
 # ------------------------------------------------------------------------------------------------------------
 parser.add_argument("--accelerator", type=str, default=None, choices=["ddp", "ddp_cpu", "dp"])
 parser.add_argument("--gpus", type=int, default=0)
@@ -84,15 +74,15 @@ def main():
     # os.environ["NODE_RANK"] = str(opt.local_rank)
     os.environ["PL_IN_DDP_SUBPROCESS"] = "1"
 
-    automator = Automator(
+    automator = LightningLite(
         accelerator=opt.accelerator,
         gpus=opt.gpus,
         num_processes=opt.num_processes,
         precision=opt.precision,
         amp_backend=opt.amp_backend,
     )
-    # automatorD = AutomatedModel(**kargs)
-    # automatorG = AutomatedModel(**kargs)
+    # automatorD = LiteModel(**kargs)
+    # automatorG = LiteModel(**kargs)
     #
     # automatorD.setup_optimizer(opt, model1)
     dataset = dset.MNIST(
@@ -106,9 +96,7 @@ def main():
             ]
         ),
     )
-    dataloader = torch.utils.data.DataLoader(
-        dataset, batch_size=opt.batchSize, shuffle=True, num_workers=opt.workers
-    )
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batchSize, shuffle=True, num_workers=opt.workers)
 
     dataloader = automator.setup_dataloader(dataloader)
 
@@ -144,7 +132,6 @@ def main():
     real_label = 1
     fake_label = 0
 
-
     for epoch in range(opt.niter):
         for i, data in enumerate(dataloader, 0):
             ############################
@@ -154,9 +141,7 @@ def main():
             netD.zero_grad()
             real_cpu = automator.to_device(data[0])
             batch_size = real_cpu.size(0)
-            label = torch.full(
-                (batch_size,), real_label, dtype=real_cpu.dtype, device=automator.device
-            )
+            label = torch.full((batch_size,), real_label, dtype=real_cpu.dtype, device=automator.device)
             output = netD(real_cpu)
             output = output.float()  # required if precision = 16
 
@@ -214,9 +199,7 @@ def main():
                 )
             )
             if i % 100 == 0:
-                vutils.save_image(
-                    real_cpu, "%s/real_samples.png" % opt.outf, normalize=True
-                )
+                vutils.save_image(real_cpu, "%s/real_samples.png" % opt.outf, normalize=True)
                 fake = netG(fixed_noise)
                 vutils.save_image(
                     fake.detach(),

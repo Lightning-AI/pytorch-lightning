@@ -16,7 +16,7 @@ from pytorch_lightning.trainer.connectors.accelerator_connector import (
 from pytorch_lightning.utilities import move_data_to_device
 
 
-class AutomatedOptimizer(Optimizer):
+class LiteOptimizer(Optimizer):
     def __init__(self, optimizer: Optimizer, accelerator: Accelerator):
         super().__init__(params=optimizer.param_groups, defaults={})
         self.optimizer = optimizer
@@ -32,8 +32,7 @@ class AutomatedOptimizer(Optimizer):
         return output
 
 
-class AutomatedModel(nn.Module):
-
+class LiteModel(nn.Module):
     def __init__(self, module: nn.Module, accelerator: Accelerator):
         super().__init__()
         self._module = module
@@ -49,7 +48,7 @@ class AutomatedModel(nn.Module):
         return output
 
 
-class Automator:
+class LightningLite:
     def __init__(
         self,
         accelerator=None,
@@ -65,7 +64,6 @@ class Automator:
 
         if accelerator == "ddp_spawn":
             raise
-
 
         backend_connector = AcceleratorConnector(
             gpus=gpus,
@@ -120,23 +118,13 @@ class Automator:
     def _setup_models_and_optimizers(self, models: Sequence[nn.Module], optimizers: Sequence[Optimizer]):
         # Let accelerator/plugin wrap and connect the models and optimizers
         models, optimizers = self.training_type_plugin.setup_models_and_optimizers(models, optimizers)
-        models = [
-            AutomatedModel(module=model, accelerator=self.accelerator)
-            for model in models
-        ]
-        optimizers = [
-            AutomatedOptimizer(
-                optimizer=optimizer, accelerator=self.accelerator)
-            for optimizer in optimizers
-        ]
+        models = [LiteModel(module=model, accelerator=self.accelerator) for model in models]
+        optimizers = [LiteOptimizer(optimizer=optimizer, accelerator=self.accelerator) for optimizer in optimizers]
         return models, optimizers
 
     def setup_dataloader(self, *dataloaders: DataLoader):
         # user can call this method independently instead of the general purpose setup method
-        dataloaders = [
-            self.training_type_plugin.setup_dataloader(dataloader)
-            for dataloader in dataloaders
-        ]
+        dataloaders = [self.training_type_plugin.setup_dataloader(dataloader) for dataloader in dataloaders]
         dataloaders = dataloaders[0] if len(dataloaders) == 1 else dataloaders
         return dataloaders
 
