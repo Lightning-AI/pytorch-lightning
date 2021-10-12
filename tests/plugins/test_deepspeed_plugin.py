@@ -962,6 +962,7 @@ def _run_scheduler_test(mock_step, max_epoch, limit_train_batches, interval):
         assert mock_step.call_count == 1 + (max_epoch * limit_train_batches)
 
 
+@RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_deepspeed_configure_gradient_clipping(tmpdir):
     """Test to ensure that an exception is raised when `LightningModule.configure_gradient_clipping` is overridden
     in case of deepspeed."""
@@ -995,6 +996,7 @@ def test_deepspeed_gradient_clip_by_value(tmpdir):
         trainer.fit(model)
 
 
+@RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_different_accumulate_grad_batches_fails(tmpdir):
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, accumulate_grad_batches={1: 2}, gpus=1, plugins="deepspeed")
