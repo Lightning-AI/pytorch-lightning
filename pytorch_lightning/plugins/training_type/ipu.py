@@ -193,7 +193,7 @@ class IPUPlugin(ParallelPlugin):
 
         if accumulation_scheduler.epochs != [0]:
             raise MisconfigurationException(
-                "IPUs currently does not support different `accumulate_grad_batches` at different epoch."
+                "IPUs currently does not support different `accumulate_grad_batches` at different epochs."
             )
 
         # TODO(@tchaton): Add support for accumulate_grad_batches being a dictionary
@@ -285,7 +285,7 @@ class IPUPlugin(ParallelPlugin):
     def on_predict_end(self):
         self._detach_models()
 
-    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
         # Updates optimizer stats if LR scheduler modified the optimizer state
         optimizer = self.lightning_module.trainer.optimizers[0]
         self.poptorch_models[RunningStage.TRAINING].setOptimizer(optimizer)

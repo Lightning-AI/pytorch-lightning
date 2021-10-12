@@ -308,7 +308,7 @@ def test_stages_correct(tmpdir):
 
 
 @RunIf(ipu=True)
-def test_accumulate_grad_batches_dict_fails(tmpdir):
+def test_different_accumulate_grad_batches_fails(tmpdir):
     model = IPUModel()
     trainer = Trainer(default_root_dir=tmpdir, ipus=1, accumulate_grad_batches={1: 2})
     with pytest.raises(
