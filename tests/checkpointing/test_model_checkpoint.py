@@ -36,12 +36,12 @@ import pytorch_lightning as pl
 import tests.helpers.utils as tutils
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import TensorBoardLogger, CSVLogger
+from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import _PATH
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
-from pytorch_lightning.utilities.types import _PATH
 
 
 def test_model_checkpoint_state_key():
