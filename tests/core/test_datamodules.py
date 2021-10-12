@@ -659,8 +659,7 @@ def test_len_dataloader_no_len(method_name):
     dataloader = CustomNotImplementedErrorDataloader(DATALOADER)
     dm = LightningDataModule()
     setattr(dm, method_name, lambda: dataloader)
-    with pytest.warns(UserWarning, match="`__len__` is not implemented for a `Dataloader`."):
-        assert len(dm) == 0
+    assert len(dm) == 0
 
 
 def test_len_all_dataloader_methods_implemented():

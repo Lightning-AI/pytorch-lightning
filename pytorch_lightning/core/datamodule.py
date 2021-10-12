@@ -24,6 +24,7 @@ from pytorch_lightning.core.mixins import HyperparametersMixin
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.argparse import add_argparse_args, from_argparse_args, get_init_arguments_and_types
+from pytorch_lightning.utilities.warnings import _warn
 
 
 class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
@@ -484,11 +485,15 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         return d
 
     def __len__(self) -> int:
-        num_batches = 0
+        num_batches = None
 
         def get_num_batches(dataloader: DataLoader) -> None:
             nonlocal num_batches
-            num_batches += len(dataloader)
+            L = len(dataloader)
+            if num_batches is None:
+                num_batches = L
+            else:
+                num_batches += L
 
         for method_name in ("train_dataloader", "val_dataloader", "test_dataloader", "predict_dataloader"):
             dataloader_method = getattr(self, method_name)
@@ -497,5 +502,9 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
                 apply_to_collection(dataloader, DataLoader, get_num_batches)
             except NotImplementedError:
                 pass
+
+        if not num_batches:
+            _warn("You datamodule didn't find any valid dataloader and the `__len__` will be returned as 0.")
+            return 0
 
         return num_batches
