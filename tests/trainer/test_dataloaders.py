@@ -184,7 +184,7 @@ def test_dataloaders_passed_to_fn(tmpdir, ckpt_path, n):
         model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
         model.test_step = model.test_step__multiple_dataloaders
 
-    # train, multiple val and multiple test passed to fit
+    # multiple val dataloaders passed to fit
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
     trainer.fit(model, train_dataloader=model.dataloader(train=True), val_dataloaders=dataloaders)
 
@@ -195,10 +195,10 @@ def test_dataloaders_passed_to_fn(tmpdir, ckpt_path, n):
         ckpt_path = trainer.checkpoint_callback.best_model_path
 
     trainer.test(test_dataloaders=dataloaders, ckpt_path=ckpt_path)
-    trainer.validate(val_dataloaders=dataloaders, ckpt_path=ckpt_path)
-
-    assert len(trainer.val_dataloaders) == n
     assert len(trainer.test_dataloaders) == n
+
+    trainer.validate(val_dataloaders=dataloaders, ckpt_path=ckpt_path)
+    assert len(trainer.val_dataloaders) == n
 
 
 class DummyModel(BoringModel):
@@ -551,17 +551,15 @@ def test_mixing_of_dataloader_options(tmpdir, ckpt_path):
     # fit model
     trainer = Trainer(**trainer_options)
     trainer.fit(model, val_dataloaders=model.dataloader(train=False))
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # fit model
     trainer = Trainer(**trainer_options)
     trainer.fit(model, val_dataloaders=model.dataloader(train=False))
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
+    assert len(trainer.val_dataloaders) == 1, f"`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}"
+
     if ckpt_path == "specific":
         ckpt_path = trainer.checkpoint_callback.best_model_path
     trainer.test(test_dataloaders=model.dataloader(train=False), ckpt_path=ckpt_path)
-
-    assert len(trainer.val_dataloaders) == 1, f"`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}"
     assert (
         len(trainer.test_dataloaders) == 1
     ), f"`test_dataloaders` not initiated properly, got {trainer.test_dataloaders}"
@@ -1313,8 +1311,8 @@ def test_dataloaders_load_only_once_passed_loaders(tmpdir):
 
 
 def test_dataloaders_reset_and_attach(tmpdir):
-    """Test that repeated calls to Trainer.{fit,validate,test,predict} properly reset and dataloaders before
-    attaching the new one."""
+    """Test that repeated calls to Trainer.{fit,validate,test,predict} properly reset dataloaders before attaching
+    the new one."""
     # the assertions compare the datasets and not dataloaders since we patch and replace the samplers
     dataloader_0 = DataLoader(dataset=RandomDataset(32, 64))
     dataloader_1 = DataLoader(dataset=RandomDataset(32, 64))
