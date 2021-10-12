@@ -256,26 +256,24 @@ class DataConnector:
             self.sanity_check_data_fetcher = None
 
 
-_DATALOADERS = Union[DataLoader, List[DataLoader], Dict[str, DataLoader]]
-
-
-# TODO: type for list/dict of dataloaders
 @dataclass
 class _DataLoaderSource:
 
-    instance: Optional[Union[_DATALOADERS, "pl.LightningModule", "pl.LightningDataModule"]] = None
+    instance: Optional[
+        Union[TRAIN_DATALOADERS, EVAL_DATALOADERS, "pl.LightningModule", "pl.LightningDataModule"]
+    ] = None
     name: str = ""
 
     @property
     def available(self) -> bool:
         return not self.is_module() or is_overridden(self.name, self.instance)
 
-    def request(self) -> _DATALOADERS:
+    def request(self) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
         if self.is_module() and self.name:
             return getattr(self.instance, self.name)()
         return self.instance
 
     def is_module(self) -> bool:
-        from pytorch_lightning import LightningDataModule, LightningModule
+        from pytorch_lightning import LightningDataModule, LightningModule  # prevent cyclic import
 
         return isinstance(self.instance, (LightningModule, LightningDataModule))
