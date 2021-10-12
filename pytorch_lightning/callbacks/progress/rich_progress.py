@@ -398,7 +398,10 @@ class RichProgressBar(ProgressBarBase):
         return train_description
 
     def _stop_progress(self) -> None:
-        pass
+        if self.progress is not None:
+            self.progress.stop()
+            # # signals for progress to be re-initialized for next stages
+            self._progress_stopped = True
 
     def _reset_progress_bar_ids(self):
         self.main_progress_bar_id: Optional[int] = None
