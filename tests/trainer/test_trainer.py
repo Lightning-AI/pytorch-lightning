@@ -785,6 +785,50 @@ def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
             assert getattr(trainer, path_attr) == ckpt_path
 
 
+@pytest.mark.parametrize("checkpoint_callback", (False, True))
+@pytest.mark.parametrize("fn", ("validate", "test", "predict"))
+def test_tested_checkpoint_path_best(tmpdir, checkpoint_callback, fn):
+    class TestModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            self.log("foo", -batch_idx)
+            return super().validation_step(batch, batch_idx)
+
+        def test_step(self, *args):
+            return self.validation_step(*args)
+
+        def predict_step(self, batch, *_):
+            return self(batch)
+
+    model = TestModel()
+    model.test_epoch_end = None
+    trainer = Trainer(
+        max_epochs=2,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        limit_predict_batches=1,
+        enable_progress_bar=False,
+        default_root_dir=tmpdir,
+        checkpoint_callback=checkpoint_callback,
+    )
+    trainer.fit(model)
+
+    trainer_fn = getattr(trainer, fn)
+    path_attr = f"{fn}{'d' if fn == 'validate' else 'ed'}_ckpt_path"
+    assert getattr(trainer, path_attr) is None
+
+    if checkpoint_callback:
+        trainer_fn(ckpt_path="best")
+        assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
+
+        trainer_fn(model, ckpt_path="best")
+        assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
+    else:
+        with pytest.raises(MisconfigurationException, match="`ModelCheckpoint` is not configured."):
+            trainer_fn(ckpt_path="best")
+        with pytest.raises(MisconfigurationException, match="`ModelCheckpoint` is not configured."):
+            trainer_fn(model, ckpt_path="best")
+
+
 def test_disabled_training(tmpdir):
     """Verify that `limit_train_batches=0` disables the training loop unless `fast_dev_run=True`."""
 
