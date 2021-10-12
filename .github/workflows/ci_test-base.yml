@@ -16,7 +16,7 @@ jobs:
       # max-parallel: 6
       matrix:
         os: [ubuntu-20.04, windows-2019, macOS-10.15]
-        python-version: [3.7]
+        python-version: [3.8]
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 20
@@ -33,6 +33,10 @@ jobs:
       run: |
         brew install libomp  # https://github.com/pytorch/pytorch/issues/20030
 
+    - name: Weekly reset caching
+      run: echo "::set-output name=period::$(python -c 'import time ; days = time.time() / 60 / 60 / 24 ; print(int(days / 7))' 2>&1)"
+      id: times
+
     # Note: This uses an internal pip API and may not always work
     # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
     - name: Get pip cache
@@ -44,9 +48,9 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ hashFiles('requirements.txt') }}
+        key: ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ hashFiles('requirements.txt') }}
         restore-keys: |
-          ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-
+          ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-py${{ matrix.python-version }}-${{ matrix.requires }}-
 
     - name: Install dependencies
       run: |
@@ -67,8 +71,8 @@ jobs:
 
     - name: Test Package [only]
       run: |
-        # NOTE: run coverage on tests does not propagare faler status for Win, https://github.com/nedbat/coveragepy/issues/1003
-        python -m pytest pytorch_lightning -v --cov=pytorch_lightning --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+        # NOTE: run coverage on tests does not propagate failure status for Win, https://github.com/nedbat/coveragepy/issues/1003
+        coverage run --source pytorch_lightning -m pytest pytorch_lightning -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
 
     - name: Upload pytest test results
       uses: actions/upload-artifact@v2

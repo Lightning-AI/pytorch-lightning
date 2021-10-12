@@ -14,6 +14,7 @@ clean:
 	rm -rf .mypy_cache
 	rm -rf .pytest_cache
 	rm -rf ./docs/build
+	rm -rf ./docs/source/notebooks
 	rm -rf ./docs/source/generated
 	rm -rf ./docs/source/*/generated
 	rm -rf ./docs/source/api
@@ -29,4 +30,4 @@ test: clean
 
 docs: clean
 	pip install --quiet -r requirements/docs.txt
-	python -m sphinx -b html -W docs/source docs/build
+	python -m sphinx -b html -W --keep-going docs/source docs/build

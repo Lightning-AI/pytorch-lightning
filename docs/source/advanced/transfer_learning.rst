@@ -21,10 +21,12 @@ Let's use the `AutoEncoder` as a feature extractor in a separate model.
     class Encoder(torch.nn.Module):
         ...
 
+
     class AutoEncoder(LightningModule):
         def __init__(self):
             self.encoder = Encoder()
             self.decoder = Decoder()
+
 
     class CIFAR10Classifier(LightningModule):
         def __init__(self):
@@ -49,6 +51,7 @@ Example: Imagenet (computer Vision)
     :skipif: not _TORCHVISION_AVAILABLE
 
     import torchvision.models as models
+
 
     class ImagenetTransferLearning(LightningModule):
         def __init__(self):
@@ -102,20 +105,16 @@ Here's a model that uses `Huggingface transformers <https://github.com/huggingfa
 .. testcode::
 
     class BertMNLIFinetuner(LightningModule):
-
         def __init__(self):
             super().__init__()
 
-            self.bert = BertModel.from_pretrained('bert-base-cased', output_attentions=True)
+            self.bert = BertModel.from_pretrained("bert-base-cased", output_attentions=True)
             self.W = nn.Linear(bert.config.hidden_size, 3)
             self.num_classes = 3
 
-
         def forward(self, input_ids, attention_mask, token_type_ids):
 
-            h, _, attn = self.bert(input_ids=input_ids,
-                             attention_mask=attention_mask,
-                             token_type_ids=token_type_ids)
+            h, _, attn = self.bert(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
 
             h_cls = h[:, 0]
             logits = self.W(h_cls)

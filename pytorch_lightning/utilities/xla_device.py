@@ -12,21 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import functools
+import os
 import queue as q
 import traceback
 from multiprocessing import Process, Queue
-
-import torch
+from typing import Any, Callable, Union
 
 from pytorch_lightning.utilities.imports import _XLA_AVAILABLE
 
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
-#: define waiting time got checking TPU available in sec
-TPU_CHECK_TIMEOUT = 100
+
+# define TPU availability timeout in seconds
+TPU_CHECK_TIMEOUT = 60
 
 
-def inner_f(queue, func, *args, **kwargs):  # pragma: no cover
+def inner_f(queue: Queue, func: Callable, *args: Any, **kwargs: Any) -> None:  # pragma: no cover
     try:
         queue.put(func(*args, **kwargs))
     # todo: specify the possible exception
@@ -35,11 +36,10 @@ def inner_f(queue, func, *args, **kwargs):  # pragma: no cover
         queue.put(None)
 
 
-def pl_multi_process(func):
-
+def pl_multi_process(func: Callable) -> Callable:
     @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        queue = Queue()
+    def wrapper(*args: Any, **kwargs: Any) -> Union[bool, Any]:
+        queue: Queue = Queue()
         proc = Process(target=inner_f, args=(queue, func, *args), kwargs=kwargs)
         proc.start()
         proc.join(TPU_CHECK_TIMEOUT)
@@ -53,41 +53,28 @@ def pl_multi_process(func):
 
 
 class XLADeviceUtils:
-    """Used to detect the type of XLA device"""
+    """Used to detect the type of XLA device."""
 
-    TPU_AVAILABLE = None
-
-    @staticmethod
-    def _fetch_xla_device_type(device: torch.device) -> str:
-        """
-        Returns XLA device type
-
-        Args:
-            device: (:class:`~torch.device`): Accepts a torch.device type with a XLA device format i.e xla:0
-
-        Return:
-            Returns a str of the device hardware type. i.e TPU
-        """
-        if _XLA_AVAILABLE:
-            return xm.xla_device_hw(device)
+    _TPU_AVAILABLE = False
 
     @staticmethod
+    @pl_multi_process
     def _is_device_tpu() -> bool:
-        """
-        Check if device is TPU
+        """Check if TPU devices are available.
 
         Return:
-            A boolean value indicating if the xla device is a TPU device or not
+            A boolean value indicating if TPU devices are available
         """
-        if _XLA_AVAILABLE:
-            device = xm.xla_device()
-            device_type = XLADeviceUtils._fetch_xla_device_type(device)
-            return device_type == "TPU"
+        # For the TPU Pod training process, for example, if we have
+        # TPU v3-32 with 4 VMs, the world size would be 4 and as
+        # we would have to use `torch_xla.distributed.xla_dist` for
+        # multiple VMs and TPU_CONFIG won't be available, running
+        # `xm.get_xla_supported_devices("TPU")` won't be possible.
+        return (xm.xrt_world_size() > 1) or bool(xm.get_xla_supported_devices("TPU"))
 
     @staticmethod
     def xla_available() -> bool:
-        """
-        Check if XLA library is installed
+        """Check if XLA library is installed.
 
         Return:
             A boolean value indicating if a XLA is installed
@@ -96,12 +83,18 @@ class XLADeviceUtils:
 
     @staticmethod
     def tpu_device_exists() -> bool:
-        """
-        Runs XLA device check within a separate process
+        """Runs XLA device check within a separate process.
 
         Return:
             A boolean value indicating if a TPU device exists on the system
         """
-        if XLADeviceUtils.TPU_AVAILABLE is None and _XLA_AVAILABLE:
-            XLADeviceUtils.TPU_AVAILABLE = pl_multi_process(XLADeviceUtils._is_device_tpu)()
-        return XLADeviceUtils.TPU_AVAILABLE
+        if os.getenv("PL_TPU_AVAILABLE", "0") == "1":
+            XLADeviceUtils._TPU_AVAILABLE = True
+
+        if XLADeviceUtils.xla_available() and not XLADeviceUtils._TPU_AVAILABLE:
+
+            XLADeviceUtils._TPU_AVAILABLE = XLADeviceUtils._is_device_tpu()
+
+            if XLADeviceUtils._TPU_AVAILABLE:
+                os.environ["PL_TPU_AVAILABLE"] = "1"
+        return XLADeviceUtils._TPU_AVAILABLE

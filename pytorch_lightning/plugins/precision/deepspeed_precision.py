@@ -11,23 +11,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, TYPE_CHECKING, Union
+from typing import Any, Callable, Optional, Union
 
-import torch
+from torch import Tensor
+from torch.nn import Module
+from torch.optim import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
+from pytorch_lightning.utilities import GradClipAlgorithmType
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
-
-if TYPE_CHECKING:
-    from torch.optim import Optimizer
-
-    from pytorch_lightning.core.lightning import LightningModule
 
 warning_cache = WarningCache()
 
 
 class DeepSpeedPrecisionPlugin(PrecisionPlugin):
+    """Precision plugin for DeepSpeed integration."""
 
     def __init__(self, precision: int) -> None:
         super().__init__()
@@ -35,52 +36,46 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
     def pre_optimizer_step(
         self,
-        pl_module: 'LightningModule',
-        optimizer: 'Optimizer',
+        model: "pl.LightningModule",
+        optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
         **kwargs: Any,
     ) -> bool:
-        deepspeed_engine = pl_module.trainer.model
-        # DeepSpeed not support closures.
-        lambda_closure()
-
-        if not pl_module.automatic_optimization:
-            pl_module.trainer.call_hook("on_after_backward")
-
+        """Hook to do something before each optimizer step."""
+        result = lambda_closure()  # DeepSpeed does not support closures
+        super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
+        # in manual optimization, the closure does not return a value
+        if model.automatic_optimization and result is None:
+            raise MisconfigurationException(
+                "Skipping backward by returning `None` from your `training_step` is not supported by `DeepSpeed`"
+            )
+        # the following should be in a `optimizer_step` hook but we don't have one in the precision plugin.
+        deepspeed_engine = model.trainer.model
         deepspeed_engine.step()
-
         return False
 
-    def backward(
-        self,
-        model: 'LightningModule',
-        closure_loss: torch.Tensor,
-        optimizer: 'Optimizer',
-        opt_idx: int,
-        should_accumulate: bool,
-        *args: Any,
-        **kwargs: Any,
-    ) -> torch.Tensor:
-        if is_overridden('backward', model):
+    def backward(self, model: "pl.LightningModule", closure_loss: Tensor, *args: Any, **kwargs: Any) -> None:
+        if is_overridden("backward", model):
             warning_cache.warn(
-                "Overridden backward hook in the LightningModule will be ignored since DeepSpeed handles"
-                "backward logic outside of the LightningModule"
+                "You have overridden the `LightningModule.backward` hook but it will be ignored since DeepSpeed handles"
+                " the backward logic internally."
             )
         # todo: hack around for deepspeed engine to call backward
         deepspeed_engine = model.trainer.model
         deepspeed_engine.backward(closure_loss, *args, **kwargs)
-        # once backward has been applied, release graph
-        closure_loss = closure_loss.detach()
 
-        return closure_loss
 
     def run_backward(self, tensor, *args, **kwargs):
         # TODO: implement
         pass
 
-    def clip_gradients(self, optimizer: 'Optimizer', clip_val: Union[int, float], norm_type: float = 2.0) -> None:
-        """
-        DeepSpeed handles clipping gradients via the training type plugin.
-        """
+    def clip_gradients(
+        self,
+        optimizer: Optimizer,
+        clip_val: Union[int, float],
+        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
+        model: Optional[Module] = None,
+    ) -> None:
+        """DeepSpeed handles clipping gradients internally via the training type plugin."""
         pass

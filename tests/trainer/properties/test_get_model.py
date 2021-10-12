@@ -13,13 +13,11 @@
 # limitations under the License.
 
 from pytorch_lightning import Trainer
-from tests.accelerators import DDPLauncher
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 
 class TrainerGetModel(BoringModel):
-
     def on_fit_start(self):
         assert self == self.trainer.lightning_module
 
@@ -28,27 +26,20 @@ class TrainerGetModel(BoringModel):
 
 
 def test_get_model(tmpdir):
-    """
-    Tests that `trainer.lightning_module` extracts the model correctly
-    """
+    """Tests that `trainer.lightning_module` extracts the model correctly."""
 
     model = TrainerGetModel()
 
     limit_train_batches = 2
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
-        max_epochs=1,
+        default_root_dir=tmpdir, limit_train_batches=limit_train_batches, limit_val_batches=2, max_epochs=1
     )
     trainer.fit(model)
 
 
 @RunIf(skip_windows=True)
 def test_get_model_ddp_cpu(tmpdir):
-    """
-    Tests that `trainer.lightning_module` extracts the model correctly when using ddp on cpu
-    """
+    """Tests that `trainer.lightning_module` extracts the model correctly when using ddp on cpu."""
 
     model = TrainerGetModel()
 
@@ -58,7 +49,7 @@ def test_get_model_ddp_cpu(tmpdir):
         limit_train_batches=limit_train_batches,
         limit_val_batches=2,
         max_epochs=1,
-        accelerator='ddp_cpu',
+        accelerator="ddp_cpu",
         num_processes=2,
     )
     trainer.fit(model)
@@ -66,40 +57,12 @@ def test_get_model_ddp_cpu(tmpdir):
 
 @RunIf(min_gpus=1)
 def test_get_model_gpu(tmpdir):
-    """
-    Tests that `trainer.lightning_module` extracts the model correctly when using GPU
-    """
+    """Tests that `trainer.lightning_module` extracts the model correctly when using GPU."""
 
     model = TrainerGetModel()
 
     limit_train_batches = 2
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
-        max_epochs=1,
-        gpus=1,
+        default_root_dir=tmpdir, limit_train_batches=limit_train_batches, limit_val_batches=2, max_epochs=1, gpus=1
     )
     trainer.fit(model)
-
-
-@RunIf(min_gpus=1, skip_windows=True)
-@DDPLauncher.run("--accelerator [accelerator]", max_epochs=["1"], accelerator=["ddp", "ddp_spawn"])
-def test_get_model_ddp_gpu(tmpdir, args=None):
-    """
-    Tests that `trainer.lightning_module` extracts the model correctly when using GPU + ddp accelerators
-    """
-
-    model = TrainerGetModel()
-
-    limit_train_batches = 2
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
-        max_epochs=1,
-        gpus=1,
-        accelerator=args.accelerator
-    )
-    trainer.fit(model)
-    return 1

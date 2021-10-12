@@ -22,9 +22,7 @@ log = logging.getLogger(__name__)
 
 
 class SLURMEnvironment(ClusterEnvironment):
-
-    def __init__(self):
-        super().__init__()
+    """Cluster environment for training on a cluster managed by SLURM."""
 
     def creates_children(self) -> bool:
         return True
@@ -69,23 +67,32 @@ class SLURMEnvironment(ClusterEnvironment):
 
         return int(default_port)
 
-    def world_size(self):
-        return None
+    def world_size(self) -> int:
+        return int(os.environ["SLURM_NTASKS"])
+
+    def set_world_size(self, size: int) -> None:
+        log.debug("SLURMEnvironment.set_world_size was called, but setting world size is not allowed. Ignored.")
+
+    def global_rank(self) -> int:
+        return int(os.environ["SLURM_PROCID"])
+
+    def set_global_rank(self, rank: int) -> None:
+        log.debug("SLURMEnvironment.set_global_rank was called, but setting global rank is not allowed. Ignored.")
 
     def local_rank(self) -> int:
-        return int(os.environ['SLURM_LOCALID'])
+        return int(os.environ["SLURM_LOCALID"])
 
     def node_rank(self) -> int:
-        return int(os.environ['SLURM_NODEID'])
+        return int(os.environ["SLURM_NODEID"])
 
     def resolve_root_node_address(self, root_node: str) -> str:
-        if '[' in root_node:
-            name, numbers = root_node.split('[', maxsplit=1)
-            number = numbers.split(',', maxsplit=1)[0]
-            if '-' in number:
-                number = number.split('-')[0]
+        if "[" in root_node:
+            name, numbers = root_node.split("[", maxsplit=1)
+            number = numbers.split(",", maxsplit=1)[0]
+            if "-" in number:
+                number = number.split("-")[0]
 
-            number = re.sub('[^0-9]', '', number)
+            number = re.sub("[^0-9]", "", number)
             root_node = name + number
 
         return root_node

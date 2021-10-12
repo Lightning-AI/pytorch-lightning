@@ -11,13 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.core import memory
 from pytorch_lightning.trainer import Trainer
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.utilities import memory
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
@@ -30,12 +28,12 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
 
     trainer_options = dict(
         default_root_dir=tmpdir,
-        callbacks=[EarlyStopping(monitor='train_acc')],
+        callbacks=[EarlyStopping(monitor="train_acc")],
         max_epochs=50,
         limit_train_batches=10,
         limit_val_batches=10,
         gpus=[0, 1],
-        accelerator='ddp_spawn',
+        accelerator="ddp_spawn",
     )
 
     dm = ClassifDataModule()
@@ -53,8 +51,8 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
         limit_train_batches=10,
         limit_val_batches=10,
         gpus=[0, 1],
-        accelerator='ddp_spawn',
-        progress_bar_refresh_rate=0,
+        accelerator="ddp_spawn",
+        enable_progress_bar=False,
     )
 
     model = BoringModel()
@@ -62,7 +60,7 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
     tpipes.run_model_test(trainer_options, model)
 
     # test memory helper functions
-    memory.get_memory_profile('min_max')
+    memory.get_memory_profile("min_max")
 
 
 @RunIf(min_gpus=2)
@@ -75,12 +73,12 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=1,
         limit_train_batches=0.2,
         limit_val_batches=0.2,
         gpus=[0, 1],
-        accelerator='ddp_spawn',
+        accelerator="ddp_spawn",
     )
     trainer.fit(model, **fit_options)
-    assert trainer.state == TrainerState.FINISHED, "DDP doesn't work with dataloaders passed to fit()."
+    assert trainer.state.finished, "DDP doesn't work with dataloaders passed to fit()."

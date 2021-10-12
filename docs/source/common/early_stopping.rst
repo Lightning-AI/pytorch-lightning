@@ -34,7 +34,7 @@ callback can be used to monitor a validation metric and stop the training when n
 To enable it:
 
 - Import :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callback.
-- Log the metric you want to monitor using :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method.
+- Log the metric you want to monitor using :func:`~pytorch_lightning.core.lightning.LightningModule.log` method.
 - Init the callback, and set `monitor` to the logged metric of your choice.
 - Pass the :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callback to the :class:`~pytorch_lightning.trainer.trainer.Trainer` callbacks flag.
 
@@ -42,23 +42,28 @@ To enable it:
 
     from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
-    def validation_step(...):
-        self.log('val_loss', loss)
 
-    trainer = Trainer(callbacks=[EarlyStopping(monitor='val_loss')])
+    def validation_step(self):
+        self.log("val_loss", loss)
 
--   You can customize the callbacks behaviour by changing its parameters.
+
+    trainer = Trainer(callbacks=[EarlyStopping(monitor="val_loss")])
+
+You can customize the callbacks behaviour by changing its parameters.
 
 .. testcode::
 
-    early_stop_callback = EarlyStopping(
-       monitor='val_accuracy',
-       min_delta=0.00,
-       patience=3,
-       verbose=False,
-       mode='max'
-    )
+    early_stop_callback = EarlyStopping(monitor="val_accuracy", min_delta=0.00, patience=3, verbose=False, mode="max")
     trainer = Trainer(callbacks=[early_stop_callback])
+
+
+Additional parameters that stop training at extreme points:
+
+- ``stopping_threshold``: Stops training immediately once the monitored quantity reaches this threshold.
+  It is useful when we know that going beyond a certain optimal value does not further benefit us.
+- ``divergence_threshold``: Stops training as soon as the monitored quantity becomes worse than this threshold.
+  When reaching a value this bad, we believe the model cannot recover anymore and it is better to stop early and run with different initial conditions.
+- ``check_finite``: When turned on, we stop training if the monitored metric becomes NaN or infinite.
 
 In case you need early stopping in a different part of training, subclass :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`
 and change where it is called:
@@ -66,7 +71,6 @@ and change where it is called:
 .. testcode::
 
     class MyEarlyStopping(EarlyStopping):
-
         def on_validation_end(self, trainer, pl_module):
             # override this to disable early stopping at the end of val loop
             pass
@@ -87,12 +91,6 @@ and change where it is called:
    validation epochs with no improvement, and not the number of training epochs.
    Therefore, with parameters `check_val_every_n_epoch=10` and `patience=3`, the trainer
    will perform at least 40 training epochs before being stopped.
-
-.. seealso::
-    - :class:`~pytorch_lightning.trainer.trainer.Trainer`
-    - :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`
-
-----------
 
 .. seealso::
     - :class:`~pytorch_lightning.trainer.trainer.Trainer`

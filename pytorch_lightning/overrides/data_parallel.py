@@ -16,43 +16,30 @@ import warnings
 from typing import Any
 
 import torch
-from torch.nn import DataParallel
-from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
-from pytorch_lightning.overrides.distributed import LightningDistributedModule
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
-class LightningDataParallel(DataParallel):
-
-    def __init__(self, module: LightningModule, *args, **kwargs):
-        warnings.warn(
-            "The usage of `LightningDataParallel` is deprecated since v1.2 and will be removed in v1.4."
-            " From now on we recommend to directly subclass `torch.nn.parallel.DataParallel`.", DeprecationWarning
-        )
-        super().__init__(LightningParallelModule(module), *args, **kwargs)
-
-
-class LightningDistributedDataParallel(DistributedDataParallel):
-
-    def __init__(self, module: LightningModule, *args, **kwargs):
-        warnings.warn(
-            "The usage of `LightningDistributedDataParallel` is deprecated since v1.2 and will be removed in v1.4."
-            " From now on we recommend to directly subclass `torch.nn.parallel.DistributedDataParallel`.",
-            DeprecationWarning
-        )
-        super().__init__(LightningDistributedModule(module), *args, **kwargs)
+def _ignore_scalar_return_in_dp():
+    # Users get confused by this warning so we silence it
+    warnings.filterwarnings(
+        "ignore",
+        message=(
+            "Was asked to gather along dimension 0, but all input tensors were scalars;"
+            " will instead unsqueeze and return a vector."
+        ),
+    )
 
 
 class LightningParallelModule(_LightningModuleWrapperBase):
-    """
-    Wraps the user's LightningModule and redirects the forward call to the appropriate
-    method, either ``training_step``, ``validation_step``, ``test_step`` or ``predict``.
-    This class is used in combination with :class:`~torch.nn.parallel.DataParallel` as
-    shown in the example. It also takes care of converting Python scalars to Tensors and
-    un-squeezes 0-dimensional Tensors as it is required by :class:`~torch.nn.parallel.DataParallel`.
+    """Wraps the user's LightningModule and redirects the forward call to the appropriate method, either
+    ``training_step``, ``validation_step``, ``test_step`` or ``predict``. This class is used in combination with
+    :class:`~torch.nn.parallel.DataParallel` as shown in the example. It also takes care of converting Python
+    scalars to Tensors and un-squeezes 0-dimensional Tensors as it is required by
+    :class:`~torch.nn.parallel.DataParallel`.
 
     Example:
 
@@ -64,13 +51,15 @@ class LightningParallelModule(_LightningModuleWrapperBase):
 
     Args:
         pl_module: the model to wrap
-
     """
 
-    def __init__(self, pl_module: LightningModule):
+    def __init__(self, pl_module: "pl.LightningModule") -> None:
         super().__init__(pl_module)
+        _ignore_scalar_return_in_dp()
 
     def forward(self, *inputs, **kwargs):
+        self.update_replica_device_attributes(inputs)
+        # forward call will redirect to training_step, validation_step, etc.
         output = super().forward(*inputs, **kwargs)
 
         def output_transform(data: Any):
@@ -78,23 +67,49 @@ class LightningParallelModule(_LightningModuleWrapperBase):
             data = unsqueeze_scalar_tensor(data)
             return data
 
-        output = apply_to_collection(
-            output,
-            dtype=(numbers.Number, torch.Tensor),
-            function=output_transform,
-        )
+        output = apply_to_collection(output, dtype=(numbers.Number, torch.Tensor), function=output_transform)
         return output
+
+    def update_replica_device_attributes(self, inputs: Any) -> None:
+        """Updates the device information of LightningModule by reading the device from the inputs. In
+        :class:`~torch.nn.data_parallel.DataParallel` changes to the state during the `forward` pass are lost when
+        the replicas get discarded. The only way to know the current device is from the inputs passed into the
+        model.
+
+        Args:
+            inputs: A collection of inputs (typically a tuple). If the inputs don't contain tensors,
+                a warning is shown that accessing ``self.device`` will not return the correct device.
+        """
+        replica_device = None
+
+        def find_tensor_with_device(tensor: torch.Tensor) -> torch.Tensor:
+            nonlocal replica_device
+            if replica_device is None and tensor.device != torch.device("cpu"):
+                replica_device = tensor.device
+            return tensor
+
+        apply_to_collection(inputs, dtype=torch.Tensor, function=find_tensor_with_device)
+
+        if replica_device is not None:
+            # by calling .to() we force the update to the self.device property
+            self.module.to(device=replica_device)
+        else:
+            rank_zero_warn(
+                "Could not determine on which device the inputs are."
+                " When using DataParallel (accelerator='dp'), be aware that in case you are using self.device"
+                " in your code, it will reference only the root device."
+            )
 
 
 def python_scalar_to_tensor(data: Any, device: torch.device = torch.device("cpu")) -> Any:
-    """ Converts a Python scalar number to a torch tensor and places it on the given device. """
+    """Converts a Python scalar number to a torch tensor and places it on the given device."""
     if isinstance(data, numbers.Number):
         data = torch.tensor([data], device=device)
     return data
 
 
 def unsqueeze_scalar_tensor(data: Any) -> Any:
-    """ Un-squeezes a 0-dim tensor. """
+    """Un-squeezes a 0-dim tensor."""
     if isinstance(data, torch.Tensor) and data.dim() == 0:
         data = data.unsqueeze(0)
     return data

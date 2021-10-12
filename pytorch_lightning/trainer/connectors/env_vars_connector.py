@@ -19,10 +19,8 @@ from pytorch_lightning.utilities.argparse import get_init_arguments_and_types, p
 
 
 def _defaults_from_env_vars(fn: Callable) -> Callable:
-    """
-    Decorator for :class:`~pytorch_lightning.trainer.trainer.Trainer` methods for which
-    input arguments should be moved automatically to the correct device.
-    """
+    """Decorator for :class:`~pytorch_lightning.trainer.trainer.Trainer` methods for which input arguments should
+    be moved automatically to the correct device."""
 
     @wraps(fn)
     def insert_env_defaults(self, *args, **kwargs):
@@ -31,7 +29,7 @@ def _defaults_from_env_vars(fn: Callable) -> Callable:
             # parse only the argument names
             cls_arg_names = [arg[0] for arg in get_init_arguments_and_types(cls)]
             # convert args to kwargs
-            kwargs.update({k: v for k, v in zip(cls_arg_names, args)})
+            kwargs.update(dict(zip(cls_arg_names, args)))
         env_variables = vars(parse_env_variables(cls))
         # update the kwargs by env variables
         kwargs = dict(list(env_variables.items()) + list(kwargs.items()))

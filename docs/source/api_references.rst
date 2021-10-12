@@ -1,6 +1,23 @@
 API References
 ==============
 
+.. include:: links.rst
+
+Accelerator API
+---------------
+
+.. currentmodule:: pytorch_lightning.accelerators
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    Accelerator
+    CPUAccelerator
+    GPUAccelerator
+    TPUAccelerator
+
 Core API
 --------
 
@@ -50,6 +67,81 @@ Loggers API
     test_tube
     wandb
 
+Plugins API
+-----------
+
+Training Type Plugins
+^^^^^^^^^^^^^^^^^^^^^
+
+.. currentmodule:: pytorch_lightning.plugins.training_type
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    TrainingTypePlugin
+    SingleDevicePlugin
+    ParallelPlugin
+    DataParallelPlugin
+    DDPPlugin
+    DDP2Plugin
+    DDPShardedPlugin
+    DDPSpawnShardedPlugin
+    DDPSpawnPlugin
+    DeepSpeedPlugin
+    HorovodPlugin
+    SingleTPUPlugin
+    TPUSpawnPlugin
+
+Precision Plugins
+^^^^^^^^^^^^^^^^^
+
+.. currentmodule:: pytorch_lightning.plugins.precision
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    PrecisionPlugin
+    NativeMixedPrecisionPlugin
+    ShardedNativeMixedPrecisionPlugin
+    ApexMixedPrecisionPlugin
+    DeepSpeedPrecisionPlugin
+    TPUHalfPrecisionPlugin
+    DoublePrecisionPlugin
+
+Cluster Environments
+^^^^^^^^^^^^^^^^^^^^
+
+.. currentmodule:: pytorch_lightning.plugins.environments
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    ClusterEnvironment
+    LightningEnvironment
+    LSFEnvironment
+    TorchElasticEnvironment
+    KubeflowEnvironment
+    SLURMEnvironment
+
+Checkpoint IO Plugins
+^^^^^^^^^^^^^^^^^^^^^
+
+.. currentmodule:: pytorch_lightning.plugins.io
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    CheckpointIO
+    TorchCheckpointIO
+
 Profiler API
 ------------
 
@@ -58,8 +150,15 @@ Profiler API
 .. autosummary::
     :toctree: api
     :nosignatures:
+    :template: classtemplate.rst
 
-    profilers
+    AbstractProfiler
+    AdvancedProfiler
+    BaseProfiler
+    PassThroughProfiler
+    PyTorchProfiler
+    SimpleProfiler
+
 
 Trainer API
 -----------
@@ -75,14 +174,14 @@ Trainer API
 Tuner API
 ---------
 
-.. currentmodule:: pytorch_lightning.tuner
+.. currentmodule:: pytorch_lightning.tuner.tuning
 
 .. autosummary::
     :toctree: api
     :nosignatures:
+    :template: classtemplate.rst
 
-    batch_size_scaling
-    lr_finder
+    Tuner
 
 Utilities API
 -------------
@@ -93,5 +192,6 @@ Utilities API
     :toctree: api
     :nosignatures:
 
-    argparse_utils
+    cli
+    argparse
     seed

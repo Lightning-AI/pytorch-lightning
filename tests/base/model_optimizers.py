@@ -17,37 +17,17 @@ from torch import optim
 
 
 class ConfigureOptimizersPool(ABC):
-
     def configure_optimizers(self):
-        """
-        return whatever optimizers we want here.
+        """return whatever optimizers we want here.
+
         :return: list of optimizers
         """
         optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
         return optimizer
 
-    def configure_optimizers__empty(self):
-        return None
-
-    def configure_optimizers__lbfgs(self):
-        """
-        return whatever optimizers we want here.
-        :return: list of optimizers
-        """
-        optimizer = optim.LBFGS(self.parameters(), lr=self.learning_rate)
-        return optimizer
-
     def configure_optimizers__adagrad(self):
         optimizer = optim.Adagrad(self.parameters(), lr=self.learning_rate)
         return optimizer
-
-    def configure_optimizers__multiple_optimizers_frequency(self):
-        optimizer1 = optim.Adam(self.parameters(), lr=self.learning_rate)
-        optimizer2 = optim.Adam(self.parameters(), lr=self.learning_rate)
-        return [
-            dict(optimizer=optimizer1, frequency=1),
-            dict(optimizer=optimizer2, frequency=5),
-        ]
 
     def configure_optimizers__single_scheduler(self):
         optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
@@ -63,13 +43,10 @@ class ConfigureOptimizersPool(ABC):
         return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
 
     def configure_optimizers__param_groups(self):
-        param_groups = [{
-            'params': list(self.parameters())[:2],
-            'lr': self.learning_rate * 0.1
-        }, {
-            'params': list(self.parameters())[2:],
-            'lr': self.learning_rate
-        }]
+        param_groups = [
+            {"params": list(self.parameters())[:2], "lr": self.learning_rate * 0.1},
+            {"params": list(self.parameters())[2:], "lr": self.learning_rate},
+        ]
 
         optimizer = optim.Adam(param_groups)
         lr_scheduler = optim.lr_scheduler.StepLR(optimizer, 1, gamma=0.1)

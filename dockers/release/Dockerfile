@@ -13,19 +13,22 @@
 # limitations under the License.
 
 ARG PYTHON_VERSION=3.7
-ARG PYTORCH_VERSION=1.5
+ARG PYTORCH_VERSION=1.6
 
 FROM pytorchlightning/pytorch_lightning:base-cuda-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
 
-MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
+LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
 
 ARG LIGHTNING_VERSION=""
 
-COPY ./ ./pytorch-lightning/
+COPY ./ /home/pytorch-lightning/
 
 # install dependencies
 RUN \
-    #conda install "pip>20.1" && \
+    cd /home && \
+    mv pytorch-lightning/_notebooks notebooks && \
+    mv pytorch-lightning/pl_examples . && \
+    # replace by specific version if asked
     if [ ! -z "$LIGHTNING_VERSION" ] ; then \
         rm -rf pytorch-lightning ; \
         wget https://github.com/PyTorchLightning/pytorch-lightning/archive/${LIGHTNING_VERSION}.zip --progress=bar:force:noscroll ; \

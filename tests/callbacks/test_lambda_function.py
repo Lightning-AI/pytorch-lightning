@@ -11,28 +11,34 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
+from functools import partial
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback, LambdaCallback
 from tests.helpers.boring_model import BoringModel
+from tests.models.test_hooks import get_members
 
 
 def test_lambda_call(tmpdir):
     seed_everything(42)
 
     class CustomModel(BoringModel):
-
         def on_train_epoch_start(self):
             if self.current_epoch > 1:
                 raise KeyboardInterrupt
 
     checker = set()
-    hooks = [m for m, _ in inspect.getmembers(Callback, predicate=inspect.isfunction)]
-    hooks_args = {h: (lambda x: lambda *args: checker.add(x))(h) for h in hooks}
-    hooks_args["on_save_checkpoint"] = (lambda x: lambda *args: [checker.add(x)])("on_save_checkpoint")
+
+    def call(hook, *_, **__):
+        checker.add(hook)
+
+    hooks = get_members(Callback)
+    hooks_args = {h: partial(call, h) for h in hooks}
+    hooks_args["on_save_checkpoint"] = lambda *_: [checker.add("on_save_checkpoint")]
 
     model = CustomModel()
+
+    # successful run
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -40,22 +46,21 @@ def test_lambda_call(tmpdir):
         limit_val_batches=1,
         callbacks=[LambdaCallback(**hooks_args)],
     )
-    results = trainer.fit(model)
-    assert results
+    trainer.fit(model)
 
-    model = CustomModel()
-    ckpt_path = trainer.checkpoint_callback.best_model_path
+    # raises KeyboardInterrupt and loads from checkpoint
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=3,
         limit_train_batches=1,
         limit_val_batches=1,
         limit_test_batches=1,
-        resume_from_checkpoint=ckpt_path,
+        limit_predict_batches=1,
+        resume_from_checkpoint=trainer.checkpoint_callback.best_model_path,
         callbacks=[LambdaCallback(**hooks_args)],
     )
-    results = trainer.fit(model)
+    trainer.fit(model)
     trainer.test(model)
+    trainer.predict(model)
 
-    assert results
-    assert checker == set(hooks)
+    assert checker == hooks

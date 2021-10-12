@@ -19,6 +19,10 @@
 # Required
 version: 2
 
+submodules:
+  include: all
+  recursive: true
+
 # Build documentation in the docs/ directory with Sphinx
 # reference: https://docs.readthedocs.io/en/stable/config-file/v2.html#sphinx
 sphinx:
@@ -32,7 +36,7 @@ sphinx:
 # Optionally build your docs in additional formats such as PDF and ePub
 formats:
   - htmlzip
-  - pdf
+  #- pdf
 
 # Optionally set the version of Python and requirements required to build your docs
 python:

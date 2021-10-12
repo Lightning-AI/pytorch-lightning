@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""MNIST simple image classifier example.
 
-from argparse import ArgumentParser
-from pprint import pprint
+To run: python simple_image_classifier.py --trainer.max_epochs=50
+"""
 
 import torch
 from torch.nn import functional as F
@@ -21,6 +22,7 @@ from torch.nn import functional as F
 import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
 from pl_examples.basic_examples.mnist_datamodule import MNISTDataModule
+from pytorch_lightning.utilities.cli import LightningCLI
 
 
 class LitClassifier(pl.LightningModule):
@@ -32,7 +34,7 @@ class LitClassifier(pl.LightningModule):
     )
     """
 
-    def __init__(self, hidden_dim=128, learning_rate=1e-3):
+    def __init__(self, hidden_dim: int = 128, learning_rate: float = 0.0001):
         super().__init__()
         self.save_hyperparameters()
 
@@ -55,60 +57,26 @@ class LitClassifier(pl.LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
-        self.log('valid_loss', loss)
+        self.log("valid_loss", loss)
 
     def test_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
-        self.log('test_loss', loss)
+        self.log("test_loss", loss)
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
 
-    @staticmethod
-    def add_model_specific_args(parent_parser):
-        parser = parent_parser.add_argument_group("LitClassifier")
-        parser.add_argument('--hidden_dim', type=int, default=128)
-        parser.add_argument('--learning_rate', type=float, default=0.0001)
-        return parent_parser
-
 
 def cli_main():
-    pl.seed_everything(1234)
-
-    # ------------
-    # args
-    # ------------
-    parser = ArgumentParser()
-    parser = pl.Trainer.add_argparse_args(parser)
-    parser = LitClassifier.add_model_specific_args(parser)
-    parser = MNISTDataModule.add_argparse_args(parser)
-    args = parser.parse_args()
-
-    # ------------
-    # data
-    # ------------
-    dm = MNISTDataModule.from_argparse_args(args)
-
-    # ------------
-    # model
-    # ------------
-    model = LitClassifier(args.hidden_dim, args.learning_rate)
-
-    # ------------
-    # training
-    # ------------
-    trainer = pl.Trainer.from_argparse_args(args)
-    trainer.fit(model, datamodule=dm)
-
-    # ------------
-    # testing
-    # ------------
-    result = trainer.test(model, datamodule=dm)
-    pprint(result)
+    cli = LightningCLI(
+        LitClassifier, MNISTDataModule, seed_everything_default=1234, save_config_overwrite=True, run=False
+    )
+    cli.trainer.fit(cli.model, datamodule=cli.datamodule)
+    cli.trainer.test(ckpt_path="best")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli_lightning_logo()
     cli_main()

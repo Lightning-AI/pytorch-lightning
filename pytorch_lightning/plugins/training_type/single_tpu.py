@@ -12,32 +12,55 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Optional, Union
+from typing import Any, Dict
 
-import torch
-
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
-from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
-from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
-from pytorch_lightning.utilities.apply_func import move_data_to_device
+from pytorch_lightning.utilities import (
+    _OMEGACONF_AVAILABLE,
+    _TPU_AVAILABLE,
+    find_shared_parameters,
+    set_shared_parameters,
+)
+from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.types import _PATH
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
 
+if _OMEGACONF_AVAILABLE:
+    from omegaconf import DictConfig, ListConfig, OmegaConf
+
 
 class SingleTPUPlugin(SingleDevicePlugin):
+    """Plugin for training on a single TPU device."""
 
-    def __init__(self, device: Union[torch.device, int]):
-        if isinstance(device, int):
-            device = xm.xla_device(device)
-        super().__init__(device)
+    def __init__(
+        self,
+        device: int,
+        debug: bool = False,
+    ):
 
+        device = xm.xla_device(device)
+        super().__init__(device=device)
+
+        self.debug = debug
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
 
-    def on_tpu(self) -> bool:
-        return True
+    @property
+    def is_distributed(self) -> bool:
+        return False
+
+    def setup(self) -> None:
+        shared_params = find_shared_parameters(self.model)
+        self.model_to_device()
+        if is_overridden("on_post_move_to_device", self.lightning_module):
+            self.model.on_post_move_to_device()
+        else:
+            set_shared_parameters(self.model, shared_params)
 
     def model_to_device(self) -> None:
         self.model.to(self.root_device)
@@ -46,32 +69,35 @@ class SingleTPUPlugin(SingleDevicePlugin):
         if isinstance(self.device, int):
             self.device = xm.xla_device(self.device)
 
+        if self.debug:
+            os.environ["PT_XLA_DEBUG"] = str(1)
+
         self.tpu_local_core_rank = xm.get_local_ordinal()
         self.tpu_global_core_rank = xm.get_ordinal()
 
-    def post_dispatch(self) -> None:
-        model = self.lightning_module
+    def save(self, state_dict: Dict, path: _PATH) -> None:
+        xm.save(state_dict, path)
 
-        if on_colab_kaggle():
-            rank_zero_warn("cleaning up... please do not interrupt")
-            self.save_spawn_weights(model)
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: _PATH) -> None:
+        """Save model/training states as a checkpoint file through state-dump and file-write.
 
-    def save_spawn_weights(self, model: LightningModule) -> Optional[str]:
+        Args:
+            checkpoint: dict containing model and trainer state
+            filepath: write-target file's path
         """
-        Dump a temporary checkpoint after ddp ends to get weights out of the process
-        """
-        path = os.path.join(model.trainer.default_root_dir, "__temp_weight_distributed_end.ckpt")
-        model.trainer.save_checkpoint(path)
-        return path
+        # Related Issue: https://github.com/pytorch/xla/issues/2773
+        if _OMEGACONF_AVAILABLE:
+            checkpoint = apply_to_collection(checkpoint, (DictConfig, ListConfig), OmegaConf.to_container)
+        self.save({k: v for k, v in checkpoint.items() if k != "callbacks"}, filepath)
 
-    def on_save(self, checkpoint: dict) -> dict:
-        """
-        Move XLA tensors to CPU before saving
-        Recommended on XLA Guide:
-        https://github.com/pytorch/xla/blob/master/API_GUIDE.md#saving-and-loading-xla-tensors
-        """
-        return move_data_to_device(checkpoint, torch.device("cpu"))
+    def teardown(self) -> None:
+        # TPU teardown
+        os.environ.pop("PT_XLA_DEBUG", None)
 
     @property
-    def is_distributed(self):
-        return False
+    def checkpoint_io(self) -> CheckpointIO:
+        return self._checkpoint_io
+
+    @checkpoint_io.setter
+    def checkpoint_io(self, plugin: CheckpointIO) -> None:
+        raise MisconfigurationException("TPU Plugin currently does not support custom checkpoint plugins.")

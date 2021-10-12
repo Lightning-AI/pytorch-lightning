@@ -23,17 +23,18 @@ from tests.helpers.simple_models import ClassificationModel, RegressionModel
 
 
 @pytest.mark.parametrize(
-    "data_class,model_class", [
+    "data_class,model_class",
+    [
         (None, BoringModel),
         (None, BasicGAN),
         (None, ParityModuleRNN),
         (None, ParityModuleMNIST),
         (ClassifDataModule, ClassificationModel),
         (RegressDataModule, RegressionModel),
-    ]
+    ],
 )
 def test_models(tmpdir, data_class, model_class):
-    """Test simple models"""
+    """Test simple models."""
     dm = data_class() if data_class else data_class
     model = model_class()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
@@ -43,4 +44,4 @@ def test_models(tmpdir, data_class, model_class):
 
     model.to_torchscript()
     if data_class:
-        model.to_onnx(os.path.join(tmpdir, 'my-model.onnx'), input_sample=dm.sample)
+        model.to_onnx(os.path.join(tmpdir, "my-model.onnx"), input_sample=dm.sample)

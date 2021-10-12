@@ -53,7 +53,7 @@ Datamodules are for you if you ever asked the questions:
 
 What is a DataModule
 --------------------
-A DataModule is simply a collection of a train_dataloader, val_dataloader(s), test_dataloader(s) along with the
+A DataModule is simply a collection of a train_dataloader(s), val_dataloader(s), test_dataloader(s) along with the
 matching transforms and data processing/downloads steps required.
 
 Here's a simple PyTorch example:
@@ -74,7 +74,6 @@ The equivalent DataModule just organizes the same exact code, but makes it reusa
 .. code-block:: python
 
     class MNISTDataModule(pl.LightningDataModule):
-
         def __init__(self, data_dir: str = "path/to/dir", batch_size: int = 32):
             super().__init__()
             self.data_dir = data_dir
@@ -93,6 +92,10 @@ The equivalent DataModule just organizes the same exact code, but makes it reusa
 
         def test_dataloader(self):
             return DataLoader(self.mnist_test, batch_size=self.batch_size)
+
+        def teardown(self, stage: Optional[str] = None):
+            # Used to clean-up when the run is finished
+            ...
 
 But now, as the complexity of your processing grows (transforms, multiple-GPU training), you can
 let Lightning handle those details for you while making this dataset reusable so you can share with
@@ -119,16 +122,11 @@ Here's a more realistic, complex DataModule that shows how much more reusable th
 
 
     class MNISTDataModule(pl.LightningDataModule):
-
-        def __init__(self, data_dir: str = './'):
+        def __init__(self, data_dir: str = "./"):
             super().__init__()
             self.data_dir = data_dir
-            self.transform = transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize((0.1307,), (0.3081,))
-            ])
+            self.transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
 
-            # self.dims is returned when you call dm.size()
             # Setting default dims here because we know them.
             # Could optionally be assigned dynamically in dm.setup()
             self.dims = (1, 28, 28)
@@ -141,7 +139,7 @@ Here's a more realistic, complex DataModule that shows how much more reusable th
         def setup(self, stage: Optional[str] = None):
 
             # Assign train/val datasets for use in dataloaders
-            if stage == 'fit' or stage is None:
+            if stage == "fit" or stage is None:
                 mnist_full = MNIST(self.data_dir, train=True, transform=self.transform)
                 self.mnist_train, self.mnist_val = random_split(mnist_full, [55000, 5000])
 
@@ -149,7 +147,7 @@ Here's a more realistic, complex DataModule that shows how much more reusable th
                 # self.dims = tuple(self.mnist_train[0][0].shape)
 
             # Assign test dataset for use in dataloader(s)
-            if stage == 'test' or stage is None:
+            if stage == "test" or stage is None:
                 self.mnist_test = MNIST(self.data_dir, train=False, transform=self.transform)
 
                 # Optionally...
@@ -164,10 +162,6 @@ Here's a more realistic, complex DataModule that shows how much more reusable th
         def test_dataloader(self):
             return DataLoader(self.mnist_test, batch_size=32)
 
-
-.. note:: ``setup`` expects a string arg ``stage``. It is used to separate setup logic for ``trainer.fit`` and ``trainer.test``.
-
-
 ---------------
 
 LightningDataModule API
@@ -179,6 +173,8 @@ To define a DataModule define 5 methods:
 - train_dataloader
 - val_dataloader(s)
 - test_dataloader(s)
+
+and optionally one or multiple predict_dataloader(s).
 
 
 prepare_data
@@ -209,7 +205,7 @@ There are also data operations you might want to perform on every GPU. Use setup
 - count number of classes
 - build vocabulary
 - perform train/val/test splits
-- apply transforms (defined explicitly in your datamodule or assigned in init)
+- apply transforms (defined explicitly in your datamodule)
 - etc...
 
 .. code-block:: python
@@ -218,32 +214,31 @@ There are also data operations you might want to perform on every GPU. Use setup
 
 
     class MNISTDataModule(pl.LightningDataModule):
-
         def setup(self, stage: Optional[str] = None):
 
             # Assign Train/val split(s) for use in Dataloaders
-            if stage == 'fit' or stage is None:
-                mnist_full = MNIST(
-                    self.data_dir,
-                    train=True,
-                    download=True,
-                    transform=self.transform
-                )
+            if stage in (None, "fit"):
+                mnist_full = MNIST(self.data_dir, train=True, download=True, transform=self.transform)
                 self.mnist_train, self.mnist_val = random_split(mnist_full, [55000, 5000])
                 self.dims = self.mnist_train[0][0].shape
 
             # Assign Test split(s) for use in Dataloaders
-            if stage == 'test' or stage is None:
-                self.mnist_test = MNIST(
-                    self.data_dir,
-                    train=False,
-                    download=True,
-                    transform=self.transform
-                )
-                self.dims = getattr(self, 'dims', self.mnist_test[0][0].shape)
+            if stage in (None, "test"):
+                self.mnist_test = MNIST(self.data_dir, train=False, download=True, transform=self.transform)
+                self.dims = getattr(self, "dims", self.mnist_test[0][0].shape)
 
 
-.. warning:: `setup` is called from every process. Setting state here is okay.
+:meth:`~pytorch_lightning.core.datamodule.LightningDataModule.setup` expects an ``stage: Optional[str]`` argument.
+It is used to separate setup logic for ``trainer.{fit,validate,test}``. If ``setup`` is called with ``stage = None``,
+we assume all stages have been set-up.
+
+.. note:: ``setup`` is called from every process. Setting state here is okay.
+.. note:: ``teardown`` can be used to clean up the state. It is also called from every process
+.. note::
+    ``{setup,teardown,prepare_data}`` call will be only called once for a specific stage.
+    If the stage was ``None`` then we assume ``{fit,validate,test}`` have been called. For example, this means that
+    any duplicate ``dm.setup('fit')`` calls will be a no-op. To avoid this, you can overwrite
+    ``dm._has_setup_fit = False``
 
 
 train_dataloader
@@ -290,17 +285,34 @@ Use this method to generate the test dataloader. Usually you just wrap the datas
             return DataLoader(self.mnist_test, batch_size=64)
 
 
+predict_dataloader
+^^^^^^^^^^^^^^^^^^
+Returns a special dataloader for inference. This is the dataloader that the Trainer
+:meth:`~pytorch_lightning.trainer.trainer.Trainer.predict` method uses.
+
+.. code-block:: python
+
+    import pytorch_lightning as pl
+
+
+    class MNISTDataModule(pl.LightningDataModule):
+        def predict_dataloader(self):
+            return DataLoader(self.mnist_test, batch_size=64)
+
+
 transfer_batch_to_device
 ^^^^^^^^^^^^^^^^^^^^^^^^
 Override to define how you want to move an arbitrary batch to a device.
+To check the current state of execution of this hook you can use ``self.trainer.training/testing/validating/predicting``
+so that you can add different logic as per your requirement.
 
 .. testcode::
 
     class MNISTDataModule(LightningDataModule):
-        def transfer_batch_to_device(self, batch, device):
-            x = batch['x']
+        def transfer_batch_to_device(self, batch, device, dataloader_idx):
+            x = batch["x"]
             x = CustomDataWrapper(x)
-            batch['x'] = x.to(device)
+            batch["x"] = x.to(device)
             return batch
 
 
@@ -310,17 +322,16 @@ Override to define how you want to move an arbitrary batch to a device.
 on_before_batch_transfer
 ^^^^^^^^^^^^^^^^^^^^^^^^
 Override to alter or apply augmentations to your batch before it is transferred to the device.
+To check the current state of execution of this hook you can use ``self.trainer.training/testing/validating/predicting``
+so that you can add different logic as per your requirement.
 
 .. testcode::
 
     class MNISTDataModule(LightningDataModule):
         def on_before_batch_transfer(self, batch, dataloader_idx):
-            batch['x'] = transforms(batch['x'])
+            batch["x"] = transforms(batch["x"])
             return batch
 
-
-.. warning::
-    Currently dataloader_idx always returns 0 and will be updated to support the true idx in the future.
 
 .. note:: This hook only runs on single GPU training and DDP (no data-parallel).
 
@@ -328,18 +339,16 @@ Override to alter or apply augmentations to your batch before it is transferred 
 on_after_batch_transfer
 ^^^^^^^^^^^^^^^^^^^^^^^
 Override to alter or apply augmentations to your batch after it is transferred to the device.
+To check the current state of execution of this hook you can use ``self.trainer.training/testing/validating/predicting``
+so that you can add different logic as per your requirement.
 
 .. testcode::
 
     class MNISTDataModule(LightningDataModule):
         def on_after_batch_transfer(self, batch, dataloader_idx):
-            batch['x'] = gpu_transforms(batch['x'])
+            batch["x"] = gpu_transforms(batch["x"])
             return batch
 
-
-.. warning::
-
-    Currently ``dataloader_idx`` always returns 0 and will be updated to support the true ``idx`` in the future.
 
 .. note::
     This hook only runs on single GPU training and DDP (no data-parallel). This hook
@@ -372,27 +381,28 @@ The recommended way to use a DataModule is simply:
     dm = MNISTDataModule()
     model = Model()
     trainer.fit(model, dm)
-
     trainer.test(datamodule=dm)
 
-If you need information from the dataset to build your model, then run `prepare_data` and `setup` manually (Lightning
-still ensures the method runs on the correct devices)
+If you need information from the dataset to build your model, then run
+:meth:`~pytorch_lightning.core.datamodule.LightningDataModule.prepare_data` and
+:meth:`~pytorch_lightning.core.datamodule.LightningDataModule.setup` manually (Lightning ensures
+the method runs on the correct devices).
 
 .. code-block:: python
 
     dm = MNISTDataModule()
     dm.prepare_data()
-    dm.setup(stage='fit')
+    dm.setup(stage="fit")
 
     model = Model(num_classes=dm.num_classes, width=dm.width, vocab=dm.vocab)
     trainer.fit(model, dm)
 
-    dm.setup(stage='test')
+    dm.setup(stage="test")
     trainer.test(datamodule=dm)
 
 ----------------
 
-Datamodules without Lightning
+DataModules without Lightning
 -----------------------------
 You can of course use DataModules in plain PyTorch code as well.
 
@@ -403,7 +413,7 @@ You can of course use DataModules in plain PyTorch code as well.
     dm.prepare_data()
 
     # splits/transforms
-    dm.setup(stage='fit')
+    dm.setup(stage="fit")
 
     # use data
     for batch in dm.train_dataloader():
@@ -411,10 +421,32 @@ You can of course use DataModules in plain PyTorch code as well.
     for batch in dm.val_dataloader():
         ...
 
+    dm.teardown(stage="fit")
+
     # lazy load test data
-    dm.setup(stage='test')
+    dm.setup(stage="test")
     for batch in dm.test_dataloader():
         ...
 
+    dm.teardown(stage="test")
+
 But overall, DataModules encourage reproducibility by allowing all details of a dataset to be specified in a unified
 structure.
+
+----------------
+
+Hyperparameters in DataModules
+------------------------------
+Like LightningModules, DataModules support hyperparameters with the same API.
+
+.. code-block:: python
+
+    import pytorch_lightning as pl
+
+
+    class CustomDataModule(pl.LightningDataModule):
+        def __init__(self, *args, **kwargs):
+            super().__init__()
+            self.save_hyperparameters()
+
+Refer to `save_hyperparameters` in :doc:`lightning module <../common/lightning_module>` for more details.

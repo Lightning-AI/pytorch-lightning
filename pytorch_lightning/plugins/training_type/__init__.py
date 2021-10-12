@@ -3,10 +3,9 @@ from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin  # noqa: F40
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.dp import DataParallelPlugin  # noqa: F401
+from pytorch_lightning.plugins.training_type.fully_sharded import DDPFullyShardedPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin  # noqa: F401
-from pytorch_lightning.plugins.training_type.rpc import RPCPlugin  # noqa: F401
-from pytorch_lightning.plugins.training_type.rpc_sequential import RPCSequentialPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.sharded import DDPShardedPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnShardedPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin  # noqa: F401

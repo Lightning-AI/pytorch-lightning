@@ -44,16 +44,17 @@ Example:
 
     from pytorch_lightning.callbacks import Callback
 
-    class MyPrintingCallback(Callback):
 
+    class MyPrintingCallback(Callback):
         def on_init_start(self, trainer):
-            print('Starting to init trainer!')
+            print("Starting to init trainer!")
 
         def on_init_end(self, trainer):
-            print('trainer is init now')
+            print("trainer is init now")
 
         def on_train_end(self, trainer, pl_module):
-            print('do something when training ends')
+            print("do something when training ends")
+
 
     trainer = Trainer(callbacks=[MyPrintingCallback()])
 
@@ -71,10 +72,10 @@ Examples
 --------
 You can do pretty much anything with callbacks.
 
-- `Add a MLP to fine-tune self-supervised networks <https://pytorch-lightning-bolts.readthedocs.io/en/latest/self_supervised_callbacks.html#sslonlineevaluator>`_.
-- `Find how to modify an image input to trick the classification result <https://pytorch-lightning-bolts.readthedocs.io/en/latest/vision_callbacks.html#confused-logit>`_.
-- `Interpolate the latent space of any variational model <https://pytorch-lightning-bolts.readthedocs.io/en/latest/variational_callbacks.html#latent-dim-interpolator>`_.
-- `Log images to Tensorboard for any model <https://pytorch-lightning-bolts.readthedocs.io/en/latest/vision_callbacks.html#tensorboard-image-generator>`_.
+- `Add a MLP to fine-tune self-supervised networks <https://lightning-bolts.readthedocs.io/en/latest/self_supervised_callbacks.html#sslonlineevaluator>`_.
+- `Find how to modify an image input to trick the classification result <https://lightning-bolts.readthedocs.io/en/latest/vision_callbacks.html#confused-logit>`_.
+- `Interpolate the latent space of any variational model <https://lightning-bolts.readthedocs.io/en/latest/variational_callbacks.html#latent-dim-interpolator>`_.
+- `Log images to Tensorboard for any model <https://lightning-bolts.readthedocs.io/en/latest/vision_callbacks.html#tensorboard-image-generator>`_.
 
 
 --------------
@@ -85,7 +86,7 @@ Lightning has a few built-in callbacks.
 
 .. note::
     For a richer collection of callbacks, check out our
-    `bolts library <https://pytorch-lightning-bolts.readthedocs.io/en/latest/callbacks.html>`_.
+    `bolts library <https://lightning-bolts.readthedocs.io/en/latest/callbacks.html>`_.
 
 .. currentmodule:: pytorch_lightning.callbacks
 
@@ -96,6 +97,7 @@ Lightning has a few built-in callbacks.
 
     BackboneFinetuning
     BaseFinetuning
+    BasePredictionWriter
     Callback
     EarlyStopping
     GPUStatsMonitor
@@ -104,12 +106,18 @@ Lightning has a few built-in callbacks.
     LearningRateMonitor
     ModelCheckpoint
     ModelPruning
+    ModelSummary
     ProgressBar
     ProgressBarBase
+    RichModelSummary
+    RichProgressBar
     QuantizationAwareTraining
     StochasticWeightAveraging
+    XLAStatsMonitor
 
 ----------
+
+.. _Persisting Callback State:
 
 Persisting State
 ----------------
@@ -117,10 +125,61 @@ Persisting State
 Some callbacks require internal state in order to function properly. You can optionally
 choose to persist your callback's state as part of model checkpoint files using the callback hooks
 :meth:`~pytorch_lightning.callbacks.Callback.on_save_checkpoint` and :meth:`~pytorch_lightning.callbacks.Callback.on_load_checkpoint`.
-However, you must follow two constraints:
+Note that the returned state must be able to be pickled.
 
-1. Your returned state must be able to be pickled.
-2. You can only use one instance of that class in the Trainer callbacks list. We don't support persisting state for multiple callbacks of the same class.
+When your callback is meant to be used only as a singleton callback then implementing the above two hooks is enough
+to persist state effectively. However, if passing multiple instances of the callback to the Trainer is supported, then
+the callback must define a :attr:`~pytorch_lightning.callbacks.Callback.state_key` property in order for Lightning
+to be able to distinguish the different states when loading the callback state. This concept is best illustrated by
+the following example.
+
+.. testcode::
+
+    class Counter(Callback):
+        def __init__(self, what="epochs", verbose=True):
+            self.what = what
+            self.verbose = verbose
+            self.state = {"epochs": 0, "batches": 0}
+
+        @property
+        def state_key(self):
+            # note: we do not include `verbose` here on purpose
+            return self._generate_state_key(what=self.what)
+
+        def on_train_epoch_end(self, *args, **kwargs):
+            if self.what == "epochs":
+                self.state["epochs"] += 1
+
+        def on_train_batch_end(self, *args, **kwargs):
+            if self.what == "batches":
+                self.state["batches"] += 1
+
+        def on_load_checkpoint(self, trainer, pl_module, callback_state):
+            self.state.update(callback_state)
+
+        def on_save_checkpoint(self, trainer, pl_module, checkpoint):
+            return self.state.copy()
+
+
+    # two callbacks of the same type are being used
+    trainer = Trainer(callbacks=[Counter(what="epochs"), Counter(what="batches")])
+
+A Lightning checkpoint from this Trainer with the two stateful callbacks will include the following information:
+
+.. code-block::
+
+    {
+        "state_dict": ...,
+        "callbacks": {
+            "Counter{'what': 'batches'}": {"batches": 32, "epochs": 0},
+            "Counter{'what': 'epochs'}": {"batches": 0, "epochs": 2},
+            ...
+        }
+    }
+
+The implementation of a :attr:`~pytorch_lightning.callbacks.Callback.state_key` is essential here. If it were missing,
+Lightning would not be able to disambiguate the state for these two callbacks, and :attr:`~pytorch_lightning.callbacks.Callback.state_key`
+by default only defines the class name as the key, e.g., here ``Counter``.
 
 
 Best Practices
@@ -167,7 +226,7 @@ on_init_end
 on_fit_start
 ^^^^^^^^^^^^
 
-.. automethod:: pytorch_lightning.callbacks.Callback.on_save_checkpoint
+.. automethod:: pytorch_lightning.callbacks.Callback.on_fit_start
     :noindex:
 
 on_fit_end
@@ -338,6 +397,12 @@ on_keyboard_interrupt
 .. automethod:: pytorch_lightning.callbacks.Callback.on_keyboard_interrupt
     :noindex:
 
+on_exception
+^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_exception
+    :noindex:
+
 on_save_checkpoint
 ^^^^^^^^^^^^^^^^^^
 
@@ -348,4 +413,28 @@ on_load_checkpoint
 ^^^^^^^^^^^^^^^^^^
 
 .. automethod:: pytorch_lightning.callbacks.Callback.on_load_checkpoint
+    :noindex:
+
+on_before_backward
+^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_before_backward
+    :noindex:
+
+on_after_backward
+^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_after_backward
+    :noindex:
+
+on_before_optimizer_step
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_before_optimizer_step
+    :noindex:
+
+on_before_zero_grad
+^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_before_zero_grad
     :noindex:
