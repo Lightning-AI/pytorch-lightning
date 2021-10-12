@@ -24,7 +24,7 @@ def test_invalid_on_cpu(tmpdir):
     ):
         trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, plugins="fsdp")
         assert isinstance(trainer.accelerator.training_type_plugin, DDPFullyShardedPlugin)
-        trainer.accelerator.setup_environment()
+        trainer.training_type_plugin.setup_environment()
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
@@ -120,7 +120,7 @@ def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
 
 def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
     # Use FullySharded to get the state dict for the sake of comparison
-    model_state_dict = trainer.accelerator.lightning_module_state_dict()
+    model_state_dict = trainer.training_type_plugin.lightning_module_state_dict()
 
     if trainer.is_global_zero:
         saved_model = cls.load_from_checkpoint(ckpt_path)
