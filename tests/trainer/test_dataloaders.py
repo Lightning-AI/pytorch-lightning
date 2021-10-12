@@ -1484,7 +1484,6 @@ def test_request_dataloader(tmpdir):
             assert isinstance(self.trainer.train_dataloader.loaders, DataLoaderWrapper)
             self.on_train_batch_start_called = True
 
-        # FIXME: this patching happens after we set the source, so we still call the old method
         def on_val_dataloader(self) -> None:
             loader = self.val_dataloader()
             self.val_dataloader = DataLoaderFunc(DataLoaderWrapper(loader))
