@@ -21,7 +21,7 @@ import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 
-from pl_examples.lite_examples.models import Discriminator, Generator, weights_init
+from pl_examples.lite_examples.gan.models import Discriminator, Generator, weights_init
 from pytorch_lightning.lite import LightningLite
 
 parser = argparse.ArgumentParser()
@@ -42,14 +42,14 @@ parser.add_argument("--netD", default="", help="path to netD (to continue traini
 parser.add_argument("--outf", default="./lightning_logs", help="folder to output images and model checkpoints")
 parser.add_argument("--local_rank", type=int, default=0)
 
-opt = parser.parse_args()
+opt, _ = parser.parse_known_args()
 os.makedirs(opt.outf, exist_ok=True)
 ngpu = int(opt.ngpu)
 
 nz = 100
 
 
-class Lite(LightningLite):
+class GANTrainer(LightningLite):
     def run(self):
         random.seed(123)
         torch.manual_seed(123)
@@ -168,5 +168,5 @@ class Lite(LightningLite):
 
 
 if __name__ == "__main__":
-    lite = Lite(accelerator="ddp", num_processes=2)
-    lite.run()
+    gan = GANTrainer(accelerator="ddp", num_processes=2)
+    gan.run()
