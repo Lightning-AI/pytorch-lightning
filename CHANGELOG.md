@@ -439,7 +439,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed a redundant warning with `ModelCheckpoint(monitor=None)` callback ([#9875](https://github.com/PyTorchLightning/pytorch-lightning/pull/9875))
 
 
-- Remove `epoch` from `logged_metrics` ([#9904](https://github.com/PyTorchLightning/pytorch-lightning/pull/9904))
+- Remove `epoch` from `trainer.logged_metrics` ([#9904](https://github.com/PyTorchLightning/pytorch-lightning/pull/9904))
 
 
 ### Fixed
