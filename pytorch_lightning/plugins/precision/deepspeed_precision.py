@@ -66,8 +66,8 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         deepspeed_engine.backward(closure_loss, *args, **kwargs)
 
     def run_backward(self, tensor, *args, **kwargs):
-        # TODO: implement
-        pass
+        deepspeed_engine = None  # TODO: access engine here
+        deepspeed_engine.backward(tensor, *args, **kwargs)
 
     def clip_gradients(
         self,

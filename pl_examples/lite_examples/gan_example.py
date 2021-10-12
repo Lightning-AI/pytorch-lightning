@@ -57,7 +57,7 @@ class Lite(LightningLite):
         # TODO: how do we handle this in Accelerator?
         # torch.cuda.set_device(opt.local_rank)
         # TODO: how do we handle this?
-        os.environ["LOCAL_RANK"] = str(opt.local_rank)
+        # os.environ["LOCAL_RANK"] = str(opt.local_rank)
         # os.environ["NODE_RANK"] = str(opt.local_rank)
 
         dataset = dset.MNIST(
@@ -75,7 +75,7 @@ class Lite(LightningLite):
             dataset, batch_size=opt.batchSize, shuffle=True, num_workers=opt.workers
         )
 
-        dataloader = lite.setup_dataloader(dataloader)
+        dataloader = self.setup_dataloader(dataloader)
         # assert isinstance(dataloader.sampler, DistributedSampler)
 
         netG = Generator()
@@ -84,15 +84,15 @@ class Lite(LightningLite):
         netD = Discriminator()
         netD.apply(weights_init)
 
-        lite.to_device(netG)
-        lite.to_device(netD)
+        self.to_device(netG)
+        self.to_device(netD)
 
         # assert isinstance(netG, DistributedDataParallel)
         # assert isinstance(netD, DistributedDataParallel)
 
         criterion = nn.BCELoss()
 
-        fixed_noise = torch.randn(opt.batchSize, nz, 1, 1, device=lite.device)
+        fixed_noise = torch.randn(opt.batchSize, nz, 1, 1, device=self.device)
         real_label = 1
         fake_label = 0
 
@@ -100,7 +100,7 @@ class Lite(LightningLite):
         optimizerD = optim.Adam(netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
         optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 
-        (netG, netD), (optimizerG, optimizerD) = lite.setup(models=(netG, netD), optimizers=(optimizerG, optimizerD))
+        (netG, netD), (optimizerG, optimizerD) = self.setup(models=(netG, netD), optimizers=(optimizerG, optimizerD))
 
         for epoch in range(opt.niter):
             for i, data in enumerate(dataloader, 0):
@@ -109,9 +109,9 @@ class Lite(LightningLite):
                 ###########################
                 # train with real
                 netD.zero_grad()
-                real_cpu = lite.to_device(data[0])
+                real_cpu = self.to_device(data[0])
                 batch_size = real_cpu.size(0)
-                label = torch.full((batch_size,), real_label, dtype=real_cpu.dtype, device=lite.device)
+                label = torch.full((batch_size,), real_label, dtype=real_cpu.dtype, device=self.device)
 
                 output = netD(real_cpu)
                 errD_real = criterion(output, label)
@@ -119,7 +119,7 @@ class Lite(LightningLite):
                 D_x = output.mean().item()
 
                 # train with fake
-                noise = torch.randn(batch_size, nz, 1, 1, device=lite.device)
+                noise = torch.randn(batch_size, nz, 1, 1, device=self.device)
                 fake = netG(noise)
                 label.fill_(fake_label)
                 output = netD(fake.detach())

@@ -1,9 +1,22 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from abc import abstractmethod, ABC
 from collections import Callable
 from contextlib import contextmanager
-from typing import Any, Optional, Sequence, Tuple, Union
-from weakref import proxy
+from typing import Any, Optional, Sequence, Union, List
 
-import torch.multiprocessing as mp
 import torch.nn as nn
 from torch import Tensor
 from torch.optim import Optimizer
@@ -11,57 +24,27 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.lite.wrappers import _LiteOptimizer, _LiteModel
+from pytorch_lightning.plugins import PLUGIN_INPUT
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.utilities import move_data_to_device
 
 
-class LiteOptimizer(Optimizer):
-    def __init__(self, optimizer: Optimizer, accelerator: Accelerator):
-        super().__init__(params=optimizer.param_groups, defaults={})
-        self.optimizer = optimizer
-        self._accelerator = accelerator
-
-    def step(self, closure=None, **kwargs: Any):
-        print("running automated step")
-        output = self._accelerator.run_optimizer_step(
-            self.optimizer,
-            lambda_closure=closure,
-            **kwargs,
-        )
-        return output
-
-
-class LiteModel(nn.Module):
-    def __init__(self, module: nn.Module, accelerator: Accelerator):
-        super().__init__()
-        self._module = module
-        self._accelerator = accelerator
-
-    @property
-    def module(self):
-        return self._module
-
-    def forward(self, *args, **kwargs):
-        with self._accelerator.forward_context():
-            output = self.module.forward(*args, **kwargs)
-        return output
-
-
-class LightningLite:
+class LightningLite(ABC):
     def __init__(
         self,
-        accelerator=None,
-        plugins=None,
-        gpus=None,
-        tpu_cores=None,
-        ipus=None,
-        num_processes=1,
-        devices=None,
-        num_nodes=1,
-        precision=32,
+        accelerator: Optional[Union[str, Accelerator]] = None,
+        plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
+        gpus: Optional[Union[List[int], str, int]] = None,
+        tpu_cores: Optional[Union[List[int], str, int]] = None,
+        ipus: Optional[int] = None,
+        num_processes: int = 1,
+        devices: Optional[Union[List[int], str, int]] = None,
+        num_nodes: int = 1,
+        precision: Union[int, str] = 32,
         amp_backend: str = "native",
-        amp_level: str = "O2",
-        replace_sampler_ddp=True,
+        amp_level: Optional[str] = None,
+        replace_sampler_ddp: bool = True,
     ):
         gpu_ids, tpu_cores = Trainer._parse_devices(gpus=gpus, auto_select_gpus=False, tpu_cores=tpu_cores)
         backend_connector = AcceleratorConnector(
@@ -87,6 +70,7 @@ class LightningLite:
 
         # TODO: Do we need to initialize distributed at the very beginning
         #    any reason to delay??
+        #    this will also launch processes in ddp/ddp_spawn
         self.accelerator.setup_environment()
 
     @property
@@ -101,6 +85,10 @@ class LightningLite:
     def device(self):
         # the device on the local rank
         return self.training_type_plugin.root_device
+
+    @abstractmethod
+    def run(self, *args, **kwarg):
+        pass
 
     def setup(
         self,
@@ -119,8 +107,8 @@ class LightningLite:
     def _setup_models_and_optimizers(self, models: Sequence[nn.Module], optimizers: Sequence[Optimizer]):
         # Let accelerator/plugin wrap and connect the models and optimizers
         models, optimizers = self.training_type_plugin.setup_models_and_optimizers(models, optimizers)
-        models = [LiteModel(module=model, accelerator=self.accelerator) for model in models]
-        optimizers = [LiteOptimizer(optimizer=optimizer, accelerator=self.accelerator) for optimizer in optimizers]
+        models = [_LiteModel(module=model, accelerator=self.accelerator) for model in models]
+        optimizers = [_LiteOptimizer(optimizer=optimizer, accelerator=self.accelerator) for optimizer in optimizers]
         return models, optimizers
 
     def setup_dataloader(self, *dataloaders: DataLoader):
