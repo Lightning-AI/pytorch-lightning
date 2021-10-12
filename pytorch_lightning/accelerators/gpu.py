@@ -79,7 +79,7 @@ class GPUAccelerator(Accelerator):
         self._move_optimizer_state(torch.device("cpu"))
 
 
-def _get_nvidia_gpu_stats(device: torch.device) -> Dict[str, float]:
+def _get_nvidia_gpu_stats(device: Union[str, torch.device]) -> Dict[str, float]:
     """Get GPU stats including memory, fan speed, and temperature from nvidia-smi.
 
     Args:
