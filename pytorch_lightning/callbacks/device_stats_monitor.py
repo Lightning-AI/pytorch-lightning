@@ -52,7 +52,6 @@ class DeviceStatsMonitor(Callback):
         if not trainer.logger_connector.should_update_logs:
             return
 
-        # device = trainer.training_type_plugin.root_device
         device_stats = trainer.accelerator.get_device_stats(pl_module.device)
         trainer.logger.log_metrics(device_stats, step=trainer.global_step)
 
@@ -68,6 +67,5 @@ class DeviceStatsMonitor(Callback):
         if not trainer.logger_connector.should_update_logs:
             return
 
-        # device = trainer.training_type_plugin.root_device
         device_stats = trainer.accelerator.get_device_stats(pl_module.device)
         trainer.logger.log_metrics(device_stats, step=trainer.global_step)
