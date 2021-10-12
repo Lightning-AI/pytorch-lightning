@@ -297,7 +297,7 @@ def test_training_step_no_return_when_even(tmpdir):
         max_epochs=4,
         weights_summary=None,
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
 
     Closure.warning_cache.clear()
@@ -343,7 +343,7 @@ def test_training_step_none_batches(tmpdir):
         max_epochs=4,
         weights_summary=None,
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
 
     with pytest.warns(UserWarning, match=r".*train_dataloader yielded None.*"):

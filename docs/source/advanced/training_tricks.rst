@@ -30,7 +30,7 @@ Gradient Clipping
 Gradient clipping may be enabled to avoid exploding gradients. By default, this will clip the gradient norm by calling
 :func:`torch.nn.utils.clip_grad_norm_` computed over all model parameters together.
 If the Trainer's ``gradient_clip_algorithm`` is set to ``'value'`` (``'norm'`` by default), this will use instead
-:func:`torch.nn.utils.clip_grad_norm_` for each parameter instead.
+:func:`torch.nn.utils.clip_grad_value_` for each parameter instead.
 
 .. note::
     If using mixed precision, the ``gradient_clip_val`` does not need to be changed as the gradients are unscaled
