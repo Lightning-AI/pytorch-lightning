@@ -91,7 +91,7 @@ class PrecisionPlugin(CheckpointHooks):
         return closure_loss
 
     def run_backward(self, tensor, *args, **kwargs) -> None:
-        """ Lightning-independent backward logic. """
+        """Lightning-independent backward logic."""
         tensor.backward(*args, **kwargs)
 
     def pre_optimizer_step(
@@ -106,14 +106,14 @@ class PrecisionPlugin(CheckpointHooks):
         model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         return True
 
-    def post_optimizer_step(self, optimizer: 'Optimizer', optimizer_idx: int) -> None:
+    def post_optimizer_step(self, optimizer: "Optimizer", optimizer_idx: int) -> None:
         """Hook to do something after each optimizer step."""
 
     def run_pre_optimizer_step(self, optimizer: "Optimizer"):
-        """ Lightning-independent pre optimizer step logic. """
+        """Lightning-independent pre optimizer step logic."""
 
     def run_post_optimizer_step(self, optimizer: "Optimizer"):
-        """ Lightning-independent post optimizer step logic. """
+        """Lightning-independent post optimizer step logic."""
 
     def clip_gradients(
         self,
@@ -154,6 +154,11 @@ class PrecisionPlugin(CheckpointHooks):
 
     def post_dispatch(self) -> None:
         """Hook to do something after the training/evaluation/prediction finishes."""
+
+    @contextlib.contextmanager
+    def forward_context(self) -> Generator:
+        """A contextmanager for managing model forward/training_step/evaluation_step/predict_step"""
+        yield
 
     @contextlib.contextmanager
     def train_step_context(self) -> Generator:

@@ -303,6 +303,11 @@ class TrainingTypePlugin(ABC):
             return self.checkpoint_io.remove_checkpoint(filepath)
 
     @contextlib.contextmanager
+    def forward_context(self) -> Generator:
+        """A contextmanager for managing model forward/training_step/evaluation_step/predict_step"""
+        yield
+
+    @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
         """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
         shard the model instantly, which is useful for extremely large models which can save memory and

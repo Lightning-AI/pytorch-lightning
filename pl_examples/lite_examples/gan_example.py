@@ -73,7 +73,7 @@ class Lite(LightningLite):
             dataset, batch_size=opt.batchSize, shuffle=True, num_workers=opt.workers
         )
 
-        dataloader = lite.setup(dataloader)
+        dataloader = lite.setup_dataloader(dataloader)
         # assert isinstance(dataloader.sampler, DistributedSampler)
 
         netG = Generator()
@@ -84,8 +84,6 @@ class Lite(LightningLite):
 
         lite.to_device(netG)
         lite.to_device(netD)
-
-        netG, netD = lite.setup(netG, netD)
 
         # assert isinstance(netG, DistributedDataParallel)
         # assert isinstance(netD, DistributedDataParallel)
@@ -100,7 +98,7 @@ class Lite(LightningLite):
         optimizerD = optim.Adam(netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
         optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 
-        optimizerG, optimizerG = lite.setup(optimizerG, optimizerD)
+        (netG, netD), (optimizerG, optimizerD) = lite.setup(models=(netG, netD), optimizers=(optimizerG, optimizerD))
 
         for epoch in range(opt.niter):
             for i, data in enumerate(dataloader, 0):
