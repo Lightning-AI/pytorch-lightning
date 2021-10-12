@@ -353,9 +353,6 @@ def test_v1_6_0_deprecated_accelerator_pass_through_functions():
         accelerator.connect(model)
 
     with pytest.deprecated_call(match="will be removed in v1.6"):
-        accelerator.teardown()
-
-    with pytest.deprecated_call(match="will be removed in v1.6"):
         accelerator.post_training_step()
 
     with pytest.deprecated_call(match="will be removed in v1.6"):
