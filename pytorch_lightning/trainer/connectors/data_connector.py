@@ -50,10 +50,10 @@ class DataConnector:
         self.test_data_fetcher = test_data_fetcher
         self.sanity_check_data_fetcher: Optional[AbstractDataFetcher] = None
 
-        self._train_dataloader_source = DataLoaderSource()
-        self._val_dataloader_source = DataLoaderSource()
-        self._test_dataloader_source = DataLoaderSource()
-        self._predict_dataloader_source = DataLoaderSource()
+        self._train_dataloader_source = _DataLoaderSource()
+        self._val_dataloader_source = _DataLoaderSource()
+        self._test_dataloader_source = _DataLoaderSource()
+        self._predict_dataloader_source = _DataLoaderSource()
 
     @property
     def evaluation_data_fetcher(self) -> Optional[AbstractDataFetcher]:
@@ -203,16 +203,16 @@ class DataConnector:
         self.trainer.test_dataloaders = None
         self.trainer.predict_dataloaders = None
 
-        self._train_dataloader_source = DataLoaderSource(
+        self._train_dataloader_source = _DataLoaderSource(
             train_dataloaders if train_dataloaders is not None else model, "train_dataloader"
         )
-        self._val_dataloader_source = DataLoaderSource(
+        self._val_dataloader_source = _DataLoaderSource(
             val_dataloaders if val_dataloaders is not None else model, "val_dataloader"
         )
-        self._test_dataloader_source = DataLoaderSource(
+        self._test_dataloader_source = _DataLoaderSource(
             test_dataloaders if test_dataloaders is not None else model, "test_dataloader"
         )
-        self._predict_dataloader_source = DataLoaderSource(
+        self._predict_dataloader_source = _DataLoaderSource(
             predict_dataloaders if predict_dataloaders is not None else model, "predict_dataloader"
         )
 
@@ -223,10 +223,10 @@ class DataConnector:
         if datamodule is None:
             return
 
-        self._train_dataloader_source = DataLoaderSource(datamodule, "train_dataloader")
-        self._val_dataloader_source = DataLoaderSource(datamodule, "val_dataloader")
-        self._test_dataloader_source = DataLoaderSource(datamodule, "test_dataloader")
-        self._predict_dataloader_source = DataLoaderSource(datamodule, "predict_dataloader")
+        self._train_dataloader_source = _DataLoaderSource(datamodule, "train_dataloader")
+        self._val_dataloader_source = _DataLoaderSource(datamodule, "val_dataloader")
+        self._test_dataloader_source = _DataLoaderSource(datamodule, "test_dataloader")
+        self._predict_dataloader_source = _DataLoaderSource(datamodule, "predict_dataloader")
 
         # Override data transfer hooks if dataset-specific to_device logic has been defined in datamodule
         batch_transfer_hooks = ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
@@ -261,7 +261,7 @@ _DATALOADERS = Union[DataLoader, List[DataLoader], Dict[str, DataLoader]]
 
 # TODO: type for list/dict of dataloaders
 @dataclass
-class DataLoaderSource:
+class _DataLoaderSource:
 
     instance: Optional[Union[_DATALOADERS, "pl.LightningModule", "pl.LightningDataModule"]] = None
     name: str = ""
