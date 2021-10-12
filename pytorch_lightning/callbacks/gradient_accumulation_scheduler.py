@@ -53,7 +53,7 @@ class GradientAccumulationScheduler(Callback):
         >>> from pytorch_lightning import Trainer
         >>> from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
-        # at epoch 5 start accumulating every 2 batches. Here we have 4 instead of 5
+        # from epoch 5, it starts accumulating every 2 batches. Here we have 4 instead of 5
         because epoch (key) should be zero-indexed.
         >>> accumulator = GradientAccumulationScheduler(scheduling={4: 2})
         >>> trainer = Trainer(callbacks=[accumulator])
@@ -70,12 +70,12 @@ class GradientAccumulationScheduler(Callback):
 
         if any(not isinstance(key, int) or key < 0 for key in scheduling):
             raise MisconfigurationException(
-                f"Epoch should be an int greated than or equal to 0. Got {list(scheduling.keys())}."
+                f"Epoch should be an int greater than or equal to 0. Got {list(scheduling.keys())}."
             )
 
         if any(not isinstance(value, int) or value < 1 for value in scheduling.values()):
             raise MisconfigurationException(
-                f"Accumulation factor should be an int greated than 0. Got {list(scheduling.values())}."
+                f"Accumulation factor should be an int greater than 0. Got {list(scheduling.values())}."
             )
 
         minimal_epoch = min(scheduling.keys())
