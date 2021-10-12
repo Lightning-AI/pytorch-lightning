@@ -220,9 +220,12 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
         limit_train_batches=0.2,
         auto_scale_batch_size="power",
     )
-    fit_options = dict(train_dataloader=model.dataloader(train=True))
+    fit_options = dict(train_dataloaders=model.dataloader(train=True))
 
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(
+        MisconfigurationException,
+        match="The batch scaling feature cannot be used with dataloaders passed directly",
+    ):
         trainer.tune(model, **fit_options)
 
 

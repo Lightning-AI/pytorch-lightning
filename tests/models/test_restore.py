@@ -340,7 +340,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
     new_trainer.test(pretrained_model)
     pretrained_model.cpu()
 
-    dataloaders = model.test_dataloader()
+    dataloaders = dm.test_dataloader()
     if not isinstance(dataloaders, list):
         dataloaders = [dataloaders]
 
@@ -539,7 +539,7 @@ def test_dp_resume(tmpdir):
             # haven't trained with the new loaded model
             new_trainer.state.stage = RunningStage.VALIDATING
 
-            dataloader = self.train_dataloader()
+            dataloader = dm.train_dataloader()
             tpipes.run_prediction_eval_model_template(self.trainer.lightning_module, dataloader=dataloader)
             self.on_pretrain_routine_end_called = True
 
