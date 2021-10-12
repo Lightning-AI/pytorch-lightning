@@ -150,15 +150,6 @@ class CallbackConnector:
             # if both are set then checkpoint only if both are True
             enable_checkpointing = checkpoint_callback and enable_checkpointing
 
-        # TODO: Remove this error in v1.5 so we rely purely on the type signature
-        if not isinstance(enable_checkpointing, bool):
-            error_msg = (
-                "Invalid type provided for `enable_checkpointing`: "
-                f"Expected bool but received {type(enable_checkpointing)}."
-            )
-            if isinstance(enable_checkpointing, Callback):
-                error_msg += " Pass callback instances to the `callbacks` argument in the Trainer constructor instead."
-            raise MisconfigurationException(error_msg)
         if self._trainer_has_checkpoint_callbacks() and enable_checkpointing is False:
             raise MisconfigurationException(
                 "Trainer was configured with `enable_checkpointing=False`"
