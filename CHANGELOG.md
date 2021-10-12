@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [unReleased] - 2021-MM-DD
+## [1.5.0] - 2021-MM-DD
 
 ### Added
 
@@ -146,6 +146,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `ModelSummary` callback ([#9344](https://github.com/PyTorchLightning/pytorch-lightning/pull/9344))
 
 
+- Added `log_images`, `log_text` and `log_table` to `WandbLogger` ([#9545](https://github.com/PyTorchLightning/pytorch-lightning/pull/9545))
+
+
 - Added `PL_RECONCILE_PROCESS` environment variable to enable process reconciliation regardless of cluster environment settings ([#9389](https://github.com/PyTorchLightning/pytorch-lightning/pull/9389))
 
 
@@ -254,6 +257,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Changed `HorovodPlugin.all_gather` to return a `torch.Tensor` instead of a list ([#9696](https://github.com/PyTorchLightning/pytorch-lightning/pull/9696))
 
 
+- Changed Trainer connectors to be protected attributes:
+    * Configuration Validator ([#9779](https://github.com/PyTorchLightning/pytorch-lightning/pull/9779))
+
+
 - Restore `current_epoch` and `global_step` irrespective of trainer task ([#9413](https://github.com/PyTorchLightning/pytorch-lightning/pull/9413))
 
 
@@ -267,6 +274,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 ### Deprecated
+
+- Deprecated trainer argument `terminate_on_nan` in favour of `detect_anomaly`([#9175](https://github.com/PyTorchLightning/pytorch-lightning/pull/9175))
+
 
 - Deprecated `LightningModule.summarize()` in favor of `pytorch_lightning.utilities.model_summary.summarize()`
 
@@ -314,6 +324,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Deprecated Accelerator collective API `barrier`, `broadcast`, and `all_gather`, call `TrainingTypePlugin` collective API directly ([#9677](https://github.com/PyTorchLightning/pytorch-lightning/pull/9677))
+
+
+- Deprecated `checkpoint_callback` from the `Trainer` constructor in favour of `enable_checkpointing` ([#9754](https://github.com/PyTorchLightning/pytorch-lightning/pull/9754))
 
 
 - Deprecated the `LightningModule.on_post_move_to_device` method ([#9525](https://github.com/PyTorchLightning/pytorch-lightning/pull/9525))
@@ -421,6 +434,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Removed `TrainerProperties` mixin and moved property definitions directly into `Trainer` ([#9495](https://github.com/PyTorchLightning/pytorch-lightning/pull/9495))
+
+
+- Removed a redundant warning with `ModelCheckpoint(monitor=None)` callback ([#9875](https://github.com/PyTorchLightning/pytorch-lightning/pull/9875))
 
 
 ### Fixed
