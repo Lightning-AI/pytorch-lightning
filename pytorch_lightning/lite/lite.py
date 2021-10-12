@@ -15,7 +15,8 @@
 from abc import abstractmethod, ABC
 from collections import Callable
 from contextlib import contextmanager
-from typing import Any, Optional, Sequence, Union, List
+from pathlib import Path
+from typing import Any, Optional, Sequence, Union, List, Dict
 
 import torch.nn as nn
 from torch import Tensor
@@ -66,25 +67,33 @@ class LightningLite(ABC):
             amp_level=amp_level,
             plugins=plugins,
         )
-        self.accelerator = backend_connector.select_accelerator()
-
+        self._accelerator = backend_connector.select_accelerator()
+        self._training_type_plugin = self._accelerator.training_type_plugin
+        self._precision_plugin = self._accelerator.precision_plugin
         # TODO: Do we need to initialize distributed at the very beginning
         #    any reason to delay??
         #    this will also launch processes in ddp/ddp_spawn
-        self.accelerator.setup_environment()
-
-    @property
-    def training_type_plugin(self):
-        return self.accelerator.training_type_plugin
-
-    @property
-    def precision_plugin(self):
-        return self.accelerator.precision_plugin
+        self._accelerator.setup_environment()
 
     @property
     def device(self):
-        # the device on the local rank
-        return self.training_type_plugin.root_device
+        return self._accelerator.root_device
+
+    @property
+    def global_rank(self):
+        return getattr(self._training_type_plugin, "global_rank", 0)
+
+    @property
+    def local_rank(self):
+        return getattr(self._training_type_plugin, "local_rank", 0)
+
+    @property
+    def node_rank(self):
+        return getattr(self._training_type_plugin, "node_rank", 0)
+
+    @property
+    def world_size(self):
+        return getattr(self._training_type_plugin, "world_size", 1)
 
     @abstractmethod
     def run(self, *args, **kwarg):
@@ -106,30 +115,30 @@ class LightningLite(ABC):
 
     def _setup_models_and_optimizers(self, models: Sequence[nn.Module], optimizers: Sequence[Optimizer]):
         # Let accelerator/plugin wrap and connect the models and optimizers
-        models, optimizers = self.training_type_plugin.setup_models_and_optimizers(models, optimizers)
-        models = [_LiteModel(module=model, accelerator=self.accelerator) for model in models]
-        optimizers = [_LiteOptimizer(optimizer=optimizer, accelerator=self.accelerator) for optimizer in optimizers]
+        models, optimizers = self._training_type_plugin.setup_models_and_optimizers(models, optimizers)
+        models = [_LiteModel(module=model, accelerator=self._accelerator) for model in models]
+        optimizers = [_LiteOptimizer(optimizer=optimizer, accelerator=self._accelerator) for optimizer in optimizers]
         return models, optimizers
 
     def setup_dataloader(self, *dataloaders: DataLoader):
         # user can call this method independently instead of the general purpose setup method
-        dataloaders = [self.training_type_plugin.setup_dataloader(dataloader) for dataloader in dataloaders]
+        dataloaders = [self._training_type_plugin.setup_dataloader(dataloader) for dataloader in dataloaders]
         dataloaders = dataloaders[0] if len(dataloaders) == 1 else dataloaders
         return dataloaders
 
     def backward(self, tensor: Tensor, *args, **kwargs):
         # user will call automator.backward(loss) instead of loss.backward()
-        self.accelerator.run_backward(tensor, *args, **kwargs)
+        self._accelerator.run_backward(tensor, *args, **kwargs)
 
     @contextmanager
     def forward_context(self):
-        with self.accelerator.forward_context():
+        with self._accelerator.forward_context():
             yield
 
     # @contextmanager
     # def backward_context(self, *args, **kwargs):
     #     yield
-    #
+
     # @contextmanager
     def optimizer_step_context(self, model=None, optimizer=None):
         # necessary for deepspeed + scaling
@@ -138,31 +147,17 @@ class LightningLite(ABC):
         yield
         optimizer.step = temp
 
-    def to_device(self, obj: Union[nn.Module, Tensor]) -> Union[nn.Module, Tensor]:
+    def to_device(self, obj: Union[nn.Module, Tensor, Any]) -> Union[nn.Module, Tensor, Any]:
         if isinstance(obj, nn.Module):
             return obj.to(self.device)
         return move_data_to_device(obj, device=self.device)
 
-    def sync(self, data: Any) -> Any:
-        # all_gather
-        pass
-
-    def reduce_data(self, data: Any) -> Any:
-        return self.training_type_plugin.reduce(data)
-
     def reduce_decision(self, decision: bool) -> bool:
-        return self.training_type_plugin.reduce_boolean_decision(decision)
+        return self._training_type_plugin.reduce_boolean_decision(decision)
 
-    def broadcast_decision(self, decision: bool):
-        # return self.training_type_plugin.broadcast_boolean_decision(decision)
-        return False
+    def save_checkpoint(self, filepath: Union[str, Path], content: Dict[str, Any]):
+        raise NotImplementedError()
 
-    def save_checkpoint(self, filepath):
-        pass
-
-    def execute_on_rank(self, func: Callable, rank: int):
-        pass
-
-    def spawn(self, function: Callable, *args: Any):
-        # ctx = mp.spawn(function, args, nprocs=..., ...)
-        pass
+    def execute_on_rank(self, func: Callable, rank: int, *args: Any, **kwargs: Any) -> None:
+        if self.global_rank == rank:
+            func(*args, **kwargs)
