@@ -669,7 +669,8 @@ class Trainer(
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to validate.
                 If ``None`` and the model instance was passed, use the current weights.
-                Otherwise, the best model from the previous ``trainer.fit`` call will be loaded.
+                Otherwise, the best model checkpoint from the previous ``trainer.fit`` call will be loaded
+                if a checkpoint callback is configured.
 
             verbose: If True, prints the validation results.
 
@@ -758,7 +759,8 @@ class Trainer(
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
                 If ``None`` and the model instance was passed, use the current weights.
-                Otherwise, the best model from the previous ``trainer.fit`` call will be loaded.
+                Otherwise, the best model checkpoint from the previous ``trainer.fit`` call will be loaded
+                if a checkpoint callback is configured.
 
             verbose: If True, prints the test results.
 
@@ -852,7 +854,8 @@ class Trainer(
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to predict.
                 If ``None`` and the model instance was passed, use the current weights.
-                Otherwise, the best model from the previous ``trainer.fit`` call will be loaded.
+                Otherwise, the best model checkpoint from the previous ``trainer.fit`` call will be loaded
+                if a checkpoint callback is configured.
 
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
@@ -1281,15 +1284,20 @@ class Trainer(
 
         if model_connected and ckpt_path is None:
             rank_zero_warn(
-                f"`.{fn}(ckpt_path=None)` was called without a model. "
-                "The best model of the previous `fit` call will be used. "
-                f"You can pass `{fn}(ckpt_path='best')` to avoid this warning "
-                "or `ckpt_path=trainer.model_checkpoint.last_model_path` to use the last model."
+                f"`.{fn}(ckpt_path=None)` was called without a model."
+                " The best model of the previous `fit` call will be used."
+                f" You can pass `{fn}(ckpt_path='best')` to use and best model"
+                " checkpoint and avoid this warning or"
+                " `ckpt_path=trainer.model_checkpoint.last_model_path` to use the last model."
             )
             ckpt_path = "best"
 
         if ckpt_path == "best":
             # if user requests the best checkpoint but we don't have it, error
+            if not self.checkpoint_callback:
+                raise MisconfigurationException(
+                    f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured.'
+                )
             if not self.checkpoint_callback.best_model_path:
                 if self.fast_dev_run:
                     raise MisconfigurationException(
