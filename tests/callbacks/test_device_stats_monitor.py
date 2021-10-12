@@ -19,6 +19,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import DeviceStatsMonitor
 from pytorch_lightning.loggers import CSVLogger
+from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -95,29 +96,27 @@ def test_device_stats_monitor_tpu(tmpdir):
 
     model = BoringModel()
     device_stats = DeviceStatsMonitor()
-    logger = CSVLogger(tmpdir)
+
+    class DebugLogger(CSVLogger):
+        @rank_zero_only
+        def log_metrics(self, metrics, step) -> None:
+            fields = ["avg. free memory (MB)", "avg. peak memory (MB)"]
+            for f in fields:
+                assert any(f in h for h in metrics.keys())
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=2,
-        limit_train_batches=5,
-        tpu_cores=[1],
+        max_epochs=1,
+        limit_train_batches=1,
+        tpu_cores=8,
         log_every_n_steps=1,
         callbacks=[device_stats],
-        logger=logger,
+        logger=DebugLogger(tmpdir),
         checkpoint_callback=False,
         enable_progress_bar=False,
     )
 
-    with patch.object(CSVLogger, "log_metrics") as mock_log_method:
-        trainer.fit(model)
-
-    metrics_dict = mock_log_method.call_args.args[0]
-
-    fields = ["avg. free memory (MB)", "avg. peak memory (MB)"]
-
-    for f in fields:
-        assert any(f in h for h in metrics_dict.keys())
+    trainer.fit(model)
 
 
 def test_device_stats_monitor_no_logger(tmpdir):
