@@ -24,6 +24,9 @@ class NoDataLoaderModel(BoringModel):
     def __init__(self):
         super().__init__()
         self.train_dataloader = None
+        self.val_dataloader = None
+        self.test_dataloader = None
+        self.predict_dataloader = None
 
 
 @pytest.mark.parametrize(
