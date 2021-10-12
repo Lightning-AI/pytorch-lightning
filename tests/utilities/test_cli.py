@@ -202,7 +202,7 @@ def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
         ({}, {}),
         (dict(logger=False), {}),
         (dict(logger=False), dict(logger=True)),
-        (dict(logger=False), dict(checkpoint_callback=True)),
+        (dict(logger=False), dict(enable_checkpointing=True)),
     ],
 )
 def test_init_from_argparse_args(cli_args, extra_args):
