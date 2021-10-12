@@ -129,7 +129,7 @@ def test_should_stop_mid_epoch(tmpdir):
 
 
 @pytest.mark.parametrize(["max_epochs", "current_epoch"], [(1, 0), (1, 1), (1, 2)])
-def test_warning_no_early_stoppoing_and_max_epochs(tmpdir, max_epochs, current_epoch):
+def test_warning_no_early_stopping_and_max_epochs(tmpdir, max_epochs, current_epoch):
     """Test that training stops early with max epoch being reached."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=max_epochs)
@@ -143,7 +143,7 @@ def test_warning_no_early_stoppoing_and_max_epochs(tmpdir, max_epochs, current_e
 
 
 @pytest.mark.parametrize(["max_steps", "global_steps"], [(1, 0), (1, 1), (1, 2)])
-def test_warning_no_early_stoppoing_and_max_steps(tmpdir, max_steps, global_steps):
+def test_warning_no_early_stopping_and_max_steps(tmpdir, max_steps, global_steps):
     """Test that training stops early with max steps being reached."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_steps=max_steps)

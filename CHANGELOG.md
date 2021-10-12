@@ -157,19 +157,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `RichModelSummary` callback ([#9546](https://github.com/PyTorchLightning/pytorch-lightning/pull/9546))
 
 
-- Added a warning to notify `FitLoop` stopping when early stopping conditions are not met ([#9749](https://github.com/PyTorchLightning/pytorch-lightning/pull/9749))
-
-
 - Added `enable_progress_bar` to Trainer constructor ([#9664](https://github.com/PyTorchLightning/pytorch-lightning/pull/9664))
 
 
 - Added `pl_legacy_patch` load utility for loading old checkpoints that have pickled legacy Lightning attributes ([#9166](https://github.com/PyTorchLightning/pytorch-lightning/pull/9166))
 
 
-- Added a warning to notify `FitLoop` stopping when early stopping conditions are not met ([#9749](https://github.com/PyTorchLightning/pytorch-lightning/pull/9749))
-
-
 - Added support for `torch.use_deterministic_algorithms` ([#9121](https://github.com/PyTorchLightning/pytorch-lightning/pull/9121))
+
+
+- Added a warning to notify `FitLoop` stopping when early stopping conditions are not met ([#9749](https://github.com/PyTorchLightning/pytorch-lightning/pull/9749))
 
 
 ### Changed
