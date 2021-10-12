@@ -330,7 +330,7 @@ def test_v1_6_0_deprecated_device_dtype_mixin_import():
         from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin  # noqa: F401
 
 
-def test_v1_7_0_deprecated_accelerator_collective():
+def test_v1_6_0_deprecated_accelerator_collective():
     from pytorch_lightning.plugins.precision import PrecisionPlugin
     from pytorch_lightning.plugins.training_type import SingleDevicePlugin
 
