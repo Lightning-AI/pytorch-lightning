@@ -63,8 +63,9 @@ class Accelerator:
 
         See deprecation warning below.
 
-        .. deprecated:: v1.5     This method is deprecated in v1.5 and will be removed in v1.6.     Please call
-        `training_type_plugin.connect` directly.
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.6.
+            Please call `training_type_plugin.on_train_batch_start` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.connect` is deprecated in v1.5 and will be removed in v1.6. "
