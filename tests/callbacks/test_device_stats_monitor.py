@@ -14,7 +14,6 @@
 from unittest.mock import patch
 
 import pytest
-import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import DeviceStatsMonitor
@@ -45,11 +44,8 @@ def test_device_stats_gpu_from_torch(tmpdir):
         enable_progress_bar=False,
     )
 
-    # This line is needed to initialize cuda context, so that `torch.cuda.memory_stats` returns something.
-    # See https://github.com/pytorch/pytorch/issues/65793
-    _ = torch.randn(1, device="cuda")
     with patch.object(CSVLogger, "log_metrics") as mock_log_method:
-        device_stats.on_train_batch_start(trainer, model, None, None, None)
+        trainer.fit(model)
 
     metrics_dict = mock_log_method.call_args.args[0]
 
@@ -80,7 +76,7 @@ def test_device_stats_gpu_from_nvidia(tmpdir):
     )
 
     with patch.object(CSVLogger, "log_metrics") as mock_log_method:
-        device_stats.on_train_batch_start(trainer, model, None, None, None)
+        trainer.fit(model)
 
     metrics_dict = mock_log_method.call_args.args[0]
 
