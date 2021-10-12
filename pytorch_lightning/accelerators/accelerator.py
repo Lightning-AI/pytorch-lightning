@@ -62,7 +62,7 @@ class Accelerator:
         """Transfers ownership of the model to this plugin.
 
         .. deprecated:: v1.5     This method is deprecated in v1.5 and will be removed in v1.6.     Please call
-        ``training_type_plugin.connect`` directly.
+        `training_type_plugin.connect` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.connect` is deprecated in v1.5 and will be removed in v1.6. "
@@ -75,7 +75,7 @@ class Accelerator:
 
         .. deprecated:: v1.5
             This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call ``training_type_plugin.setup_environment`` directly.
+            Please call `training_type_plugin.setup_environment` directly.
 
         This is called before the LightningModule/DataModule setup hook which allows the user to access the accelerator
         environment before setup is complete.
@@ -101,7 +101,7 @@ class Accelerator:
         """
         .. deprecated:: v1.5
             This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call ``training_type_plugin.start_training`` directly.
+            Please call `training_type_plugin.start_training` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.start_training` is deprecated in v1.5 and will be removed in v1.6. "
@@ -113,7 +113,7 @@ class Accelerator:
         """
         .. deprecated:: v1.5
             This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call ``training_type_plugin.start_evaluating`` directly.
+            Please call `training_type_plugin.start_evaluating` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.start_evaluating` is deprecated in v1.5 and will be removed in v1.6. "
@@ -125,7 +125,7 @@ class Accelerator:
         """
         .. deprecated:: v1.5
             This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call ``training_type_plugin.start_predicting`` directly.
+            Please call `training_type_plugin.start_predicting` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.start_predicting` is deprecated in v1.5 and will be removed in v1.6. "
@@ -191,7 +191,7 @@ class Accelerator:
 
         .. deprecated:: v1.5
             This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call ``training_type_plugin.teardown`` directly.
+            Please call `training_type_plugin.teardown` directly.
 
         It is the right place to release memory and free other resources.
         """
@@ -231,7 +231,7 @@ class Accelerator:
         """
         .. deprecated:: v1.5
             This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call ``training_type_plugin.post_training_step`` directly.
+            Please call `training_type_plugin.post_training_step` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.post_training_step` is deprecated in v1.5 and will be removed in v1.6. "
@@ -268,7 +268,7 @@ class Accelerator:
 
         .. deprecated:: v1.5
             This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call ``training_type_plugin.training_step_end`` directly.
+            Please call `training_type_plugin.training_step_end` directly.
 
         Args:
             output: the output of the training step
@@ -284,7 +284,7 @@ class Accelerator:
 
         .. deprecated:: v1.5
             This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call ``training_type_plugin.test_step_end`` directly.
+            Please call `training_type_plugin.test_step_end` directly.
 
         Args:
             output: the output of the test step
@@ -300,7 +300,7 @@ class Accelerator:
 
         .. deprecated:: v1.5
             This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call ``training_type_plugin.validation_step_end`` directly.
+            Please call `training_type_plugin.validation_step_end` directly.
 
         Args:
             output: the output of the validation step
@@ -416,7 +416,7 @@ class Accelerator:
 
         .. deprecated:: v1.5
             This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call ``training_type_plugin.lightning_module_state_dict`` directly.
+            Please call `training_type_plugin.lightning_module_state_dict` directly.
 
         Allows for syncing/collating model state from processes in custom plugins.
         """
@@ -430,7 +430,7 @@ class Accelerator:
         """
         .. deprecated:: v1.5
             This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call ``training_type_plugin.barrier`` directly.
+            Please call `training_type_plugin.barrier` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.barrier` is deprecated in v1.5 and will be removed in v1.6. "
@@ -444,7 +444,7 @@ class Accelerator:
 
         .. deprecated:: v1.5
             This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call ``training_type_plugin.broadcast`` directly.
+            Please call `training_type_plugin.broadcast` directly.
 
         Args:
             obj: Object to broadcast to all process, usually a tensor or collection of tensors.
@@ -461,7 +461,7 @@ class Accelerator:
 
         .. deprecated:: v1.5
             This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call ``training_type_plugin.all_gather`` directly.
+            Please call `training_type_plugin.all_gather` directly.
 
         Args:
             tensor: tensor of shape (batch, ...)
@@ -482,7 +482,7 @@ class Accelerator:
 
         .. deprecated:: v1.5
             This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call ``training_type_plugin.process_dataloader`` directly.
+            Please call `training_type_plugin.process_dataloader` directly.
 
         Args:
             dataloader: iterable. Ideally of type: :class:`torch.utils.data.DataLoader`
@@ -499,7 +499,7 @@ class Accelerator:
 
         .. deprecated:: v1.5
             This property is deprecated in v1.5 and will be removed in v1.6.
-            Please call ``training_type_plugin.results`` directly.
+            Please call `training_type_plugin.results` directly.
 
         In distributed training, we make sure to transfer the results to the appropriate master process.
         """
@@ -527,7 +527,7 @@ class Accelerator:
 
         .. deprecated:: v1.5
             This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call ``training_type_plugin.save_checkpoint`` directly.
+            Please call `training_type_plugin.save_checkpoint` directly.
 
         Args:
             checkpoint: dict containing model and trainer state
@@ -547,7 +547,7 @@ class Accelerator:
 
         .. deprecated:: v1.5
             This property is deprecated in v1.5 and will be removed in v1.6.
-            Please call ``training_type_plugin.setup_optimizers_in_pre_dispatch`` directly.
+            Please call `training_type_plugin.setup_optimizers_in_pre_dispatch` directly.
 
         Returns:
             If True, delay setup optimizers until `pre_dispatch`, else call within `setup`.
@@ -565,7 +565,7 @@ class Accelerator:
 
         .. deprecated:: v1.5
             This property is deprecated in v1.5 and will be removed in v1.6.
-            Please call ``training_type_plugin.restore_checkpoint_after_pre_dispatch`` directly.
+            Please call `training_type_plugin.restore_checkpoint_after_pre_dispatch` directly.
 
         Returns:
             If true, restore checkpoint after pre_dispatch.
@@ -591,7 +591,7 @@ class Accelerator:
         """Called when train begins.
 
         .. deprecated:: v1.5     This method is deprecated in v1.5 and will be removed in v1.6.     Please call
-        ``training_type_plugin.on_train_start`` directly.
+        `training_type_plugin.on_train_start` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.on_train_start` is deprecated in v1.5 and will be removed in v1.6. "
@@ -603,7 +603,7 @@ class Accelerator:
         """Called when validation begins.
 
         .. deprecated:: v1.5     This method is deprecated in v1.5 and will be removed in v1.6.     Please call
-        ``training_type_plugin.on_validation_start`` directly.
+        `training_type_plugin.on_validation_start` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.on_validation_start` is deprecated in v1.5 and will be removed in v1.6. "
@@ -615,7 +615,7 @@ class Accelerator:
         """Called when test begins.
 
         .. deprecated:: v1.5     This method is deprecated in v1.5 and will be removed in v1.6.     Please call
-        ``training_type_plugin.on_test_start`` directly.
+        `training_type_plugin.on_test_start` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.on_test_start` is deprecated in v1.5 and will be removed in v1.6. "
@@ -627,7 +627,7 @@ class Accelerator:
         """Called when predict begins.
 
         .. deprecated:: v1.5     This method is deprecated in v1.5 and will be removed in v1.6.     Please call
-        ``training_type_plugin.on_predict_start`` directly.
+        `training_type_plugin.on_predict_start` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.on_predict_start` is deprecated in v1.5 and will be removed in v1.6. "
@@ -639,7 +639,7 @@ class Accelerator:
         """Called when validation ends.
 
         .. deprecated:: v1.5     This method is deprecated in v1.5 and will be removed in v1.6.     Please call
-        ``training_type_plugin.on_validation_end`` directly.
+        `training_type_plugin.on_validation_end` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.on_validation_end` is deprecated in v1.5 and will be removed in v1.6. "
@@ -651,7 +651,7 @@ class Accelerator:
         """Called when test end.
 
         .. deprecated:: v1.5     This method is deprecated in v1.5 and will be removed in v1.6.     Please call
-        ``training_type_plugin.on_test_end`` directly.
+        `training_type_plugin.on_test_end` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.on_test_end` is deprecated in v1.5 and will be removed in v1.6. "
@@ -663,7 +663,7 @@ class Accelerator:
         """Called when predict ends.
 
         .. deprecated:: v1.5     This method is deprecated in v1.5 and will be removed in v1.6.     Please call
-        ``training_type_plugin.on_predict_end`` directly.
+        `training_type_plugin.on_predict_end` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.on_predict_end` is deprecated in v1.5 and will be removed in v1.6. "
@@ -675,7 +675,7 @@ class Accelerator:
         """Called when train ends.
 
         .. deprecated:: v1.5     This method is deprecated in v1.5 and will be removed in v1.6.     Please call
-        ``training_type_plugin.on_train_end`` directly.
+        `training_type_plugin.on_train_end` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.on_train_end` is deprecated in v1.5 and will be removed in v1.6. "
@@ -688,7 +688,7 @@ class Accelerator:
         """Called in the training loop before anything happens for that batch.
 
         .. deprecated:: v1.5     This method is deprecated in v1.5 and will be removed in v1.6.     Please call
-        ``training_type_plugin.on_train_batch_start`` directly.
+        `training_type_plugin.on_train_batch_start` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.on_train_batch_start` is deprecated in v1.5 and will be removed in v1.6. "
