@@ -19,6 +19,7 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torch.utils.data.sampler import BatchSampler, Sampler, SequentialSampler
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7
 from tests.helpers import BoringModel, RandomDataset
@@ -101,11 +102,7 @@ def test_replace_distributed_sampler(tmpdir, mode):
 
 
 @pytest.mark.parametrize("num_workers", [0, 1])
-def test_dataloader_warnings(num_workers):
-    class TestModel(BoringModel):
-        def on_train_start(self, *_) -> None:
-            raise SystemExit()
-
+def test_dataloader_warnings(tmpdir, num_workers):
     dl = DataLoader(RandomDataset(32, 64), num_workers=num_workers)
     if hasattr(dl, "persistent_workers"):
         if num_workers == 0:
@@ -115,9 +112,10 @@ def test_dataloader_warnings(num_workers):
     else:
         warn_str = "Consider setting accelerator=ddp"
 
-    trainer = Trainer(accelerator="ddp_spawn")
-    with pytest.warns(UserWarning, match=warn_str), pytest.raises(SystemExit):
-        trainer.fit(TestModel(), dl)
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="ddp_spawn", num_processes=2, fast_dev_run=4)
+    assert trainer.accelerator_connector._distrib_type == DistributedType.DDP_SPAWN
+    with pytest.warns(UserWarning, match=warn_str):
+        trainer.fit(BoringModel(), dl)
 
 
 def test_update_dataloader_raises():
