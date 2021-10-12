@@ -47,7 +47,12 @@ class DeviceStatsMonitor(Callback):
             raise MisconfigurationException("Cannot use DeviceStatsMonitor callback with Trainer that has no logger.")
 
     def on_train_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        batch: Any,
+        batch_idx: int,
+        unused: Optional[int] = 0,
     ) -> None:
         if not trainer.logger_connector.should_update_logs:
             return
@@ -62,7 +67,7 @@ class DeviceStatsMonitor(Callback):
         outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
-        dataloader_idx: int,
+        unused: Optional[int] = 0,
     ) -> None:
         if not trainer.logger_connector.should_update_logs:
             return
