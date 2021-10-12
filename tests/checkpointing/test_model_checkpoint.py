@@ -80,9 +80,9 @@ def mock_optimizer_connector(trainer):
 
 @pytest.mark.parametrize("save_last", [False, True])  # problem with save_last = True
 @pytest.mark.parametrize("save_on_train_epoch_end", [True, False])
-@pytest.mark.parametrize("max_epochs, every_n_epochs", [(9, 5), (9, 0), (9, 9)])
+@pytest.mark.parametrize("every_n_epochs", [2, 0, 5])
 def test_model_checkpoint_connection_to_logger(
-    tmpdir, save_last: bool, save_on_train_epoch_end: bool, max_epochs: int, every_n_epochs: int):
+    tmpdir, save_last: bool, save_on_train_epoch_end: bool, every_n_epochs: int):
     """Test that when a model checkpoint is saved, it triggers the logger.after_save_checkpoint """
 
     # I use a global flag which is raise when ckpt is written and lowered when logger is called
@@ -105,6 +105,7 @@ def test_model_checkpoint_connection_to_logger(
         def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
             print("called after new ckpt is saved")
             global ckpt_flag_raised
+            assert ckpt_flag_raised
             ckpt_flag_raised = False
 
     class CustomTrainer(Trainer):
@@ -130,12 +131,12 @@ def test_model_checkpoint_connection_to_logger(
         callbacks=[ckpt_callback],
         logger=CustomLogger(save_dir=tmpdir, flush_logs_every_n_steps=1),
         check_val_every_n_epoch=1,
-        max_epochs=9,
+        max_epochs=5,
         weights_save_path=tmpdir,
     )
 
     calls = mock_optimizer_connector(trainer)
-    trainer.fit(model=model, train_dataloaders=model.train_dataloader(), val_dataloaders=model.val_dataloader())
+    trainer.fit(model=model)
     assert not ckpt_flag_raised
     del ckpt_flag_raised
 
