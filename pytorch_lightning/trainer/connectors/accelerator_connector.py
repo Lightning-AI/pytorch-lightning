@@ -706,8 +706,8 @@ class AcceleratorConnector:
         # that we first select training_type_plugin, then precision_plugin
         accelerator = acc_cls(training_type_plugin=self.training_type_plugin, precision_plugin=self.precision_plugin)
         # transfer ownership of the plugins to the accelerator
-        self._training_type_plugin = proxy(self.training_type_plugin)
-        self._precision_plugin = proxy(self.precision_plugin)
+        self._training_type_plugin = self.training_type_plugin
+        self._precision_plugin = self.precision_plugin
 
         return accelerator
 

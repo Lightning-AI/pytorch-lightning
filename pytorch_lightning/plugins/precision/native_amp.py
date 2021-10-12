@@ -99,7 +99,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             self.scaler.update()
         return False
 
-    def post_optimizer_step(self, optimizer: 'Optimizer', optimizer_idx: int) -> None:
+    def post_optimizer_step(self, optimizer: "Optimizer", optimizer_idx: int) -> None:
         """Updates the GradScaler"""
         self.run_post_optimizer_step(optimizer)
 
@@ -109,7 +109,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     def run_post_optimizer_step(self, optimizer: "Optimizer") -> None:
         self.scaler.step(optimizer)
         self.scaler.update()
-    
+
     def autocast_context_manager(self) -> torch.cuda.amp.autocast:
         if self.use_cpu:
             return torch.cpu.amp.autocast(dtype=self._dtype)  # Only reached in pytorch==1.10 where this is ok. skipcq
@@ -121,8 +121,9 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     def forward_context(self) -> Generator[None, None, None]:
         """Enable autocast context"""
         with torch.cuda.amp.autocast():
-            
-    @contextmanager       
+            yield
+
+    @contextmanager
     def train_step_context(self) -> Generator[None, None, None]:
         """Enable autocast context."""
         with self.autocast_context_manager():

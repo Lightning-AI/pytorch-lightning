@@ -13,11 +13,12 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Union, Sequence
 
 import torch
 from torch import Tensor
 from torch.nn import Module
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl

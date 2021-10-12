@@ -84,10 +84,10 @@ class Accelerator:
     def setup_dataloader(self, dataloader: DataLoader) -> DataLoader:
         return self.training_type_plugin.setup_dataloader(dataloader)
 
-    def setup_model(self, model: nn.Module) -> nn.Module:
+    def setup_model(self, model: Module) -> Module:
         return self.training_type_plugin.setup_model_and_optimizers(model, None)
 
-    def start_training(self, trainer: 'Trainer') -> None:
+    def start_training(self, trainer: "Trainer") -> None:
         self.training_type_plugin.start_training(trainer)
 
     def start_evaluating(self, trainer: "pl.Trainer") -> None:
@@ -250,7 +250,7 @@ class Accelerator:
         return closure_loss
 
     def run_backward(self, tensor: Tensor, *args, **kwargs) -> None:
-        """ Lightning-independent backward logic """
+        """Lightning-independent backward logic"""
         # TODO: Q: We don't need training_type.pre_/post_backward here right? Because we can't automate
         #   the blocking of "require_backward_grad_sync" for the PyTorch user
         self.precision_plugin.run_backward(tensor, *args, **kwargs)
@@ -269,9 +269,7 @@ class Accelerator:
         if make_optimizer_step:
             self.run_optimizer_step(optimizer, opt_idx, lambda_closure, **kwargs)
 
-    def run_optimizer_step(
-        self, optimizer: Optimizer, lambda_closure: Callable, **kwargs: Any
-    ) -> None:
+    def run_optimizer_step(self, optimizer: Optimizer, lambda_closure: Callable, **kwargs: Any) -> None:
         """Lightning-independent optimizer step logic"""
         self.precision_plugin.run_pre_optimizer_step(optimizer)
         self.training_type_plugin.optimizer_step(optimizer, lambda_closure=lambda_closure, **kwargs)
@@ -508,7 +506,7 @@ class Accelerator:
         """Called in the training loop before anything happens for that batch."""
         return self.training_type_plugin.on_train_batch_start(batch, batch_idx)
 
-    @contextmanager
+    @contextlib.contextmanager
     def forward_context(self):
         with self.precision_plugin.forward_context(), self.training_type_plugin.forward_context():
             yield

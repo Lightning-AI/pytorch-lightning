@@ -27,7 +27,9 @@ import __main__
 import numpy as np
 import torch
 import torch.distributed
+from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
+from torch.utils.data import DataLoader, DistributedSampler
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -181,7 +183,7 @@ class DDPPlugin(ParallelPlugin):
 
         self.setup_distributed()
 
-    def setup_model(self, model: nn.Module) -> nn.Module:
+    def setup_model(self, model: Module) -> Module:
         model = DistributedDataParallel(
             module=model.to(self.root_device),
             device_ids=self.determine_ddp_device_ids(),
@@ -192,7 +194,7 @@ class DDPPlugin(ParallelPlugin):
     def setup_dataloader(self, dataloader: DataLoader) -> DataLoader:
         kwargs = self.distributed_sampler_kwargs
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
-        dataloader = replace_sampler(dataloader, sampler)
+        # dataloader = replace_sampler(dataloader, sampler)
         return dataloader
 
     def _call_children_scripts(self):
