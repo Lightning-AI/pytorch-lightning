@@ -460,7 +460,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
 
             result = ClosureResult.from_training_step_output(training_step_output, self.trainer.accumulate_grad_batches)
 
-            if self.trainer._terminate_on_nan:  # : 212
+            if self.trainer._terminate_on_nan:
                 check_finite_loss(result.closure_loss)
 
             if self.trainer.move_metrics_to_cpu:
