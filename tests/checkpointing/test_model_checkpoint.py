@@ -21,7 +21,7 @@ from argparse import Namespace
 from datetime import timedelta
 from logging import INFO
 from pathlib import Path
-from typing import Optional, Union
+from typing import Union
 from unittest import mock
 from unittest.mock import call, MagicMock, Mock, patch
 
@@ -36,11 +36,12 @@ import pytorch_lightning as pl
 import tests.helpers.utils as tutils
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
+from pytorch_lightning.loggers import TensorBoardLogger, CSVLogger
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
+from pytorch_lightning.utilities.types import _PATH
 
 
 def test_model_checkpoint_state_key():
@@ -79,20 +80,42 @@ def mock_optimizer_connector(trainer):
 
 @pytest.mark.parametrize("save_last", [False, True])  # problem with save_last = True
 @pytest.mark.parametrize("save_on_train_epoch_end", [True, False])
-@pytest.mark.parametrize("max_epochs, every_n_epochs", [(5, 2), (5, 0), (5, 5)])
+@pytest.mark.parametrize("every_n_epochs", [2, 0, 5])
 def test_model_checkpoint_connection_to_logger(
-    tmpdir, save_last: bool, save_on_train_epoch_end: bool, max_epochs: int, every_n_epochs: int
-):
-    """Test that when a model checkpoint is saved, it triggers the logger.after_save_checkpoint."""
+    tmpdir, save_last: bool, save_on_train_epoch_end: bool, every_n_epochs: int):
+    """Test that when a model checkpoint is saved, it triggers the logger.after_save_checkpoint """
+
+    # I use a global flag which is raise when ckpt is written and lowered when logger is called
+    # I check that the model is never acting when the flag is raised
+    # This means that ckpt writing and logger action are in tight sequence
+
+    global ckpt_flag_raised  # this flag
+    ckpt_flag_raised = False
+
+    class CustomBoringModel(BoringModel):
+        def forward(self, x):
+            global ckpt_flag_raised
+            assert not ckpt_flag_raised
+            return self.layer(x)
 
     class CustomLogger(CSVLogger):
+        def __init__(self, **kargs):
+            super(CustomLogger, self).__init__(**kargs)
 
-        triggered_train_epoch_end: bool = False
-        trainer: Optional[Trainer]
+        def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
+            print("called after new ckpt is saved")
+            global ckpt_flag_raised
+            assert ckpt_flag_raised
+            ckpt_flag_raised = False
 
-        def after_save_checkpoint(self, *_):
-            if self.trainer.fit_loop.epoch_loop.done:
-                self.triggered_train_epoch_end = True
+    class CustomTrainer(Trainer):
+        def __init__(self, **kargs):
+            super(CustomTrainer, self).__init__(**kargs)
+
+        def save_checkpoint(self, filepath: _PATH, weights_only: bool = False) -> None:
+            super(CustomTrainer, self).save_checkpoint(filepath, weights_only)
+            global ckpt_flag_raised
+            ckpt_flag_raised = True
 
     ckpt_callback = ModelCheckpoint(
         filename="my_checkpoint",
@@ -101,27 +124,21 @@ def test_model_checkpoint_connection_to_logger(
         every_n_epochs=every_n_epochs,
     )
 
-    model = BoringModel()
-    logger = CustomLogger(save_dir=tmpdir, flush_logs_every_n_steps=1)
+    model = CustomBoringModel()
 
-    trainer = Trainer(
+    trainer = CustomTrainer(
         default_root_dir=tmpdir,
         callbacks=[ckpt_callback],
-        logger=logger,
+        logger=CustomLogger(save_dir=tmpdir, flush_logs_every_n_steps=1),
         check_val_every_n_epoch=1,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        max_epochs=max_epochs,
+        max_epochs=5,
         weights_save_path=tmpdir,
     )
-    logger.trainer = trainer
 
-    mock_optimizer_connector(trainer)
-    trainer.fit(model=model, train_dataloaders=model.train_dataloader(), val_dataloaders=model.val_dataloader())
-    if every_n_epochs == 0 and not save_last:
-        assert not logger.triggered_train_epoch_end
-    else:
-        assert logger.triggered_train_epoch_end
+    calls = mock_optimizer_connector(trainer)
+    trainer.fit(model=model)
+    assert not ckpt_flag_raised
+    del ckpt_flag_raised
 
 
 @pytest.mark.parametrize(
@@ -561,6 +578,15 @@ def test_none_monitor_top_k(tmpdir):
     ModelCheckpoint(dirpath=tmpdir, save_top_k=-1)
     ModelCheckpoint(dirpath=tmpdir, save_top_k=0)
     ModelCheckpoint(dirpath=tmpdir, save_top_k=1)
+
+
+def test_none_monitor_save_last(tmpdir):
+    """Test that a warning appears for save_last=True with monitor=None."""
+    with pytest.warns(UserWarning, match=r"ModelCheckpoint.*is a redundant.*"):
+        ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    # These should not fail
+    ModelCheckpoint(dirpath=tmpdir, save_last=None)
+    ModelCheckpoint(dirpath=tmpdir, save_last=False)
 
 
 def test_invalid_every_n_epochs(tmpdir):
@@ -1025,17 +1051,18 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
         model = ExtendedBoringModel()
 
         trainer.test(model)
-        assert trainer.global_step == epochs * limit_train_batches
-        assert trainer.current_epoch == epochs
-
-        trainer.validate(model)
-        assert trainer.global_step == epochs * limit_train_batches
-        assert trainer.current_epoch == epochs
+        # resume_from_checkpoint is resumed when calling `.fit`
+        assert trainer.global_step == 0
+        assert trainer.current_epoch == 0
 
         trainer.fit(model)
         assert trainer.global_step == epochs * limit_train_batches
         assert trainer.current_epoch == epochs
         assert_checkpoint_log_dir(idx)
+
+        trainer.validate(model)
+        assert trainer.global_step == epochs * limit_train_batches
+        assert trainer.current_epoch == epochs
 
 
 def test_configure_model_checkpoint(tmpdir):
@@ -1045,17 +1072,17 @@ def test_configure_model_checkpoint(tmpdir):
     callback2 = ModelCheckpoint()
 
     # no callbacks
-    trainer = Trainer(enable_checkpointing=False, callbacks=[], **kwargs)
+    trainer = Trainer(checkpoint_callback=False, callbacks=[], **kwargs)
     assert not any(isinstance(c, ModelCheckpoint) for c in trainer.callbacks)
     assert trainer.checkpoint_callback is None
 
     # default configuration
-    trainer = Trainer(callbacks=[], **kwargs)
+    trainer = Trainer(checkpoint_callback=True, callbacks=[], **kwargs)
     assert sum(1 for c in trainer.callbacks if isinstance(c, ModelCheckpoint)) == 1
     assert isinstance(trainer.checkpoint_callback, ModelCheckpoint)
 
-    # custom callback passed to callbacks list, enable_checkpointing=True is ignored
-    trainer = Trainer(enable_checkpointing=True, callbacks=[callback1], **kwargs)
+    # custom callback passed to callbacks list, checkpoint_callback=True is ignored
+    trainer = Trainer(checkpoint_callback=True, callbacks=[callback1], **kwargs)
     assert [c for c in trainer.callbacks if isinstance(c, ModelCheckpoint)] == [callback1]
     assert trainer.checkpoint_callback == callback1
 
@@ -1064,8 +1091,8 @@ def test_configure_model_checkpoint(tmpdir):
     assert trainer.checkpoint_callback == callback1
     assert trainer.checkpoint_callbacks == [callback1, callback2]
 
-    with pytest.raises(MisconfigurationException, match="`enable_checkpointing=False` but found `ModelCheckpoint`"):
-        Trainer(enable_checkpointing=False, callbacks=[callback1], **kwargs)
+    with pytest.raises(MisconfigurationException, match="checkpoint_callback=False but found ModelCheckpoint"):
+        Trainer(checkpoint_callback=False, callbacks=[callback1], **kwargs)
 
 
 def test_val_check_interval_checkpoint_files(tmpdir):
@@ -1236,8 +1263,8 @@ def test_model_checkpoint_mode_options():
 
 def test_trainer_checkpoint_callback_bool(tmpdir):
     mc = ModelCheckpoint(dirpath=tmpdir)
-    with pytest.raises(MisconfigurationException, match="Invalid type provided for `enable_checkpointing`"):
-        Trainer(enable_checkpointing=mc)
+    with pytest.raises(MisconfigurationException, match="Invalid type provided for checkpoint_callback"):
+        Trainer(checkpoint_callback=mc)
 
 
 def test_check_val_every_n_epochs_top_k_integration(tmpdir):
