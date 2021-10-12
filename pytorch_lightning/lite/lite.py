@@ -1,19 +1,17 @@
-from weakref import proxy
 from collections import Callable
 from contextlib import contextmanager
-from typing import Any, Union, Optional, Sequence, Tuple
+from typing import Any, Optional, Sequence, Tuple, Union
+from weakref import proxy
 
+import torch.multiprocessing as mp
 import torch.nn as nn
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
-import torch.multiprocessing as mp
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import Accelerator
-from pytorch_lightning.trainer.connectors.accelerator_connector import (
-    AcceleratorConnector,
-)
+from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.utilities import move_data_to_device
 
 

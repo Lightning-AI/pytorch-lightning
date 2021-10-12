@@ -7,9 +7,11 @@ python -m torch.distributed.launch --nproc_per_node=2 gan_example.py
 
 """
 from __future__ import print_function
+
 import argparse
 import os
 import random
+
 import torch
 import torch.nn as nn
 import torch.nn.parallel
@@ -19,7 +21,7 @@ import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 
-from pl_examples.lite_examples.models import weights_init, Generator, Discriminator
+from pl_examples.lite_examples.models import Discriminator, Generator, weights_init
 from pytorch_lightning.lite import LightningLite
 
 parser = argparse.ArgumentParser()

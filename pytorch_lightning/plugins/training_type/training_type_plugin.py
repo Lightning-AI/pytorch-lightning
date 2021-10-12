@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Union, Sequence
+from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Sequence, Union
 
 import torch
 from torch import Tensor

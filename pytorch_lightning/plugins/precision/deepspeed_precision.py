@@ -65,7 +65,6 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         deepspeed_engine = model.trainer.model
         deepspeed_engine.backward(closure_loss, *args, **kwargs)
 
-
     def run_backward(self, tensor, *args, **kwargs):
         # TODO: implement
         pass

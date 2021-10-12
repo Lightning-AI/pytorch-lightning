@@ -1,7 +1,6 @@
 import torch
 from torch import nn as nn
 
-
 nc = 1
 nz = 100
 ngf = 64
