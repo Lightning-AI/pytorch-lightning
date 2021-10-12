@@ -34,9 +34,11 @@ class GradientAccumulationScheduler(Callback):
         scheduling: scheduling in format {epoch: accumulation_factor}
 
     Note:
-        Keys in ``scheduling`` represent epoch. Make sure they are zero-indexed,
-        that means if you want to change the accumulation factor after 4 epochs,
-        set ``GradientAccumulationScheduler(scheduling={4: factor})``.
+        The argument scheduling is a dictionary. Each key represent an epoch and 
+        its associated accumulation factor value. 
+        Warning: Epoch are zero-indexed c.f it means if you want to change 
+        the accumulation factor after 4 epochs, set ``Trainer(accumulate_grad_batches={4: factor})``
+        or ``GradientAccumulationScheduler(scheduling={4: factor})``.
         For more info check the example below.
 
     Raises:
