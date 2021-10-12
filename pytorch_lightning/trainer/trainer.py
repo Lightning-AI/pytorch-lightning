@@ -1294,7 +1294,7 @@ class Trainer(
 
         if ckpt_path == "best":
             # if user requests the best checkpoint but we don't have it, error
-            if self.checkpoint_callback is None:
+            if not self.checkpoint_callback:
                 raise MisconfigurationException(
                     f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured.'
                 )
