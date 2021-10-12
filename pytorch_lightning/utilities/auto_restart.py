@@ -27,6 +27,7 @@ from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoad
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
 class FastForwardSampler(Sampler):
@@ -45,6 +46,7 @@ class FastForwardSampler(Sampler):
         self._sampler = sampler
         self.restarting: bool = False
         self._current_iteration = 0
+        self._counter = 0
         self._dataloader_batch_size: Optional[int] = None
         self._cached_state_dict: Optional[Dict[int, Any]] = None
         self._attr_name = attr_name
@@ -68,32 +70,39 @@ class FastForwardSampler(Sampler):
         return worker_info.id if worker_info else 0
 
     def __iter__(self) -> Iterator[Any]:
+        self.sampler_iter = iter(self._sampler)
         self._current_iteration = 0
+        self._counter = 0
+        return self
+
+    def __next__(self):
         # the `state dict` was cached as workers were unavailable before.
         if self._cached_state_dict is not None:
             self._load_non_random_state(self._cached_state_dict)
 
-        i = 0
-        sampler_iter = iter(self._sampler)
-        while i < self._current_iteration:
-            next(sampler_iter)
-            i += 1
+        while self._counter < self._current_iteration:
+            next(self.sampler_iter)
+            self._counter += 1
 
         # here: i == self._current_iteration
         if self._cached_state_dict is not None:
             self._cached_state_dict = None
 
         # recreate iterator to be sure loading is reflected there as well
-        while True:
-            self._current_iteration += 1
-            try:
-                yield next(sampler_iter)
-            except StopIteration:
-                break
+        self._current_iteration += 1
+        self._counter += 1
+        has_raised = False
+        try:
+            return next(self.sampler_iter)
+        except StopIteration:
+            has_raised = True
 
         self._current_iteration = 0
+        self._counter = 0
         self._cached_state_dict = None
         self.restarting = False
+        if has_raised:
+            raise StopIteration
 
     def __len__(self) -> int:
         return len(self._sampler)
@@ -545,3 +554,37 @@ def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
     dataloader.collate_fn = partial(
         _capture_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
     )
+
+
+def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, Any]) -> None:
+    """Utility to reload state_dict within dataloader for fault tolerance."""
+
+    if not _fault_tolerant_training():
+        return
+
+    dataset = dataloader.dataset
+
+    if isinstance(dataset, CaptureMapDataset):
+        iterator_state = state_dict["state"][0]
+
+        if not isinstance(iterator_state, IteratorState):
+            iterator_state = IteratorState.from_state_dict(iterator_state)
+
+        # reload sampler state
+        ff_sampler = _find_fast_forward_samplers(dataloader)
+        ff_sampler.load_state_dict(iterator_state.sampler_state)
+
+        # reload dataset state
+        dataset.load_state_dict(
+            iterator_state.dataset_state,
+            latest_worker_id=state_dict["latest_worker_id"],
+            num_workers=iterator_state.num_workers,
+        )
+
+    elif isinstance(dataset, CaptureIterableDataset):
+        dataset.load_state_dict(
+            {sampler_name: state[0]["sampler_state"] for sampler_name, state in state_dict["state"].items()}
+        )
+
+    else:
+        raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")

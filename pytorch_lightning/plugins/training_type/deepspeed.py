@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import argparse
 import contextlib
 import json
 import logging
@@ -35,6 +36,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import log, rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
+from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeTuple
 from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
 
@@ -334,33 +336,35 @@ class DeepSpeedPlugin(DDPPlugin):
         return config
 
     def setup_distributed(self):
-        super().setup_distributed()
+        reset_seed()
+
+        # determine which process we are and world size
+        self.set_world_ranks()
+
+        self._init_deepspeed_distributed()
+
         if not self._config_initialized:
             self._format_config()
             self._config_initialized = True
 
-    def init_ddp_connection(self, global_rank: Optional[int] = None, world_size: Optional[int] = None) -> None:
+    def _init_deepspeed_distributed(self) -> None:
         if platform.system() != "Windows":
             # do not set env variables on windows, allow deepspeed to control setup
-            global_rank = global_rank if global_rank is not None else self.cluster_environment.global_rank()
-            world_size = world_size if world_size is not None else self.cluster_environment.world_size()
-            self._set_node_environment_variables(global_rank, world_size)
+            self._set_node_environment_variables()
             log.info(
                 "initializing deepspeed distributed: "
-                f"GLOBAL_RANK: {global_rank}, "
-                f"MEMBER: {global_rank + 1}/{world_size}"
+                f"GLOBAL_RANK: {self.global_rank}, "
+                f"MEMBER: {self.global_rank + 1}/{self.world_size}"
             )
         deepspeed.init_distributed(
             self.torch_distributed_backend, distributed_port=self.cluster_environment.master_port()
         )
 
-    def _set_node_environment_variables(
-        self, global_rank: Optional[int] = None, world_size: Optional[int] = None
-    ) -> None:
+    def _set_node_environment_variables(self) -> None:
         os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        os.environ["RANK"] = str(global_rank)
-        os.environ["WORLD_SIZE"] = str(world_size)
+        os.environ["RANK"] = str(self.global_rank)
+        os.environ["WORLD_SIZE"] = str(self.world_size)
         os.environ["LOCAL_RANK"] = str(self.local_rank)
 
     @property
@@ -372,11 +376,11 @@ class DeepSpeedPlugin(DDPPlugin):
         self.barrier()
 
     def init_deepspeed(self):
-        accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
-        if not isinstance(accumulate_grad_batches, int):
+        accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
+
+        if accumulation_scheduler.epochs != [0]:
             raise MisconfigurationException(
-                "DeepSpeed currently only supports `Trainer.accumulate_grad_batches` being an integer."
-                f" Received {accumulate_grad_batches}"
+                "DeepSpeed currently does not support different `accumulate_grad_batches` at different epochs."
             )
 
         precision = self.lightning_module.trainer.accelerator.precision
@@ -426,6 +430,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
         model_parameters = filter(lambda p: p.requires_grad, self.model.parameters())
         model, deepspeed_optimizer, _, deepspeed_scheduler = deepspeed.initialize(
+            args=argparse.Namespace(device_rank=self.root_device.index),
             config=self.config,
             model=model,
             model_parameters=model_parameters,
@@ -438,7 +443,11 @@ class DeepSpeedPlugin(DDPPlugin):
 
         # although we set these here, deepspeed manages the specific optimizer logic
         self.lightning_module.trainer.optimizers = [deepspeed_optimizer]
+
+        deepspeed_scheduler = model.lr_scheduler
         if deepspeed_scheduler is not None:
+            # disable deepspeed lr scheduling as lightning manages scheduling
+            model.lr_scheduler = None
             lr_scheduler["scheduler"] = deepspeed_scheduler
             self.lightning_module.trainer.lr_schedulers = [lr_scheduler]
         self.model = model
@@ -498,6 +507,7 @@ class DeepSpeedPlugin(DDPPlugin):
         # Remove all module hooks before initializing new model
         remove_module_hooks(model)
         model, _, _, _ = deepspeed.initialize(
+            args=argparse.Namespace(device_rank=self.root_device.index),
             config=inference_config,
             model=model,
             optimizer=optimizer,

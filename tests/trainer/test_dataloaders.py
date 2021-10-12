@@ -12,15 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from unittest import mock
-from unittest.mock import Mock, patch
+from unittest.mock import call, Mock, patch
 
 import numpy
 import pytest
 import torch
+from torch.utils.data import RandomSampler
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset, IterableDataset, Subset
 from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data.sampler import SequentialSampler
 
 import tests.helpers.pipelines as tpipes
 from pytorch_lightning import Callback, seed_everything, Trainer
@@ -183,7 +184,7 @@ def test_dataloaders_passed_to_fn(tmpdir, ckpt_path, n):
         model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
         model.test_step = model.test_step__multiple_dataloaders
 
-    # train, multiple val and multiple test passed to fit
+    # multiple val dataloaders passed to fit
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
     trainer.fit(model, train_dataloader=model.dataloader(train=True), val_dataloaders=dataloaders)
 
@@ -194,10 +195,10 @@ def test_dataloaders_passed_to_fn(tmpdir, ckpt_path, n):
         ckpt_path = trainer.checkpoint_callback.best_model_path
 
     trainer.test(test_dataloaders=dataloaders, ckpt_path=ckpt_path)
-    trainer.validate(val_dataloaders=dataloaders, ckpt_path=ckpt_path)
-
-    assert len(trainer.val_dataloaders) == n
     assert len(trainer.test_dataloaders) == n
+
+    trainer.validate(val_dataloaders=dataloaders, ckpt_path=ckpt_path)
+    assert len(trainer.val_dataloaders) == n
 
 
 class DummyModel(BoringModel):
@@ -219,7 +220,7 @@ class Counter(Callback):
         self.val_batches_seen = 0
         self.test_batches_seen = 0
 
-    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
         self.train_batches_seen += 1
 
     def on_train_epoch_start(self, trainer, pl_module):
@@ -334,11 +335,11 @@ def test_dataloaders_with_limit_val_batches(tmpdir, dataset, limit_val_batches):
 
     epoch_cb = Counter()
     callbacks = [epoch_cb]
-    checkpoint_callback = True
+    enable_checkpointing = False
     if limit_val_batches > 0:
         callbacks.append(ModelCheckpoint(monitor="val_log", save_top_k=1, mode="max", verbose=False))
-    else:
-        checkpoint_callback = False
+        enable_checkpointing = True
+
     epochs = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -346,7 +347,7 @@ def test_dataloaders_with_limit_val_batches(tmpdir, dataset, limit_val_batches):
         max_epochs=epochs,
         callbacks=callbacks,
         limit_val_batches=limit_val_batches,
-        checkpoint_callback=checkpoint_callback,
+        enable_checkpointing=enable_checkpointing,
     )
     model = DummyModel()
 
@@ -550,17 +551,15 @@ def test_mixing_of_dataloader_options(tmpdir, ckpt_path):
     # fit model
     trainer = Trainer(**trainer_options)
     trainer.fit(model, val_dataloaders=model.dataloader(train=False))
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # fit model
     trainer = Trainer(**trainer_options)
     trainer.fit(model, val_dataloaders=model.dataloader(train=False))
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
+    assert len(trainer.val_dataloaders) == 1, f"`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}"
+
     if ckpt_path == "specific":
         ckpt_path = trainer.checkpoint_callback.best_model_path
     trainer.test(test_dataloaders=model.dataloader(train=False), ckpt_path=ckpt_path)
-
-    assert len(trainer.val_dataloaders) == 1, f"`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}"
     assert (
         len(trainer.test_dataloaders) == 1
     ), f"`test_dataloaders` not initiated properly, got {trainer.test_dataloaders}"
@@ -1011,7 +1010,7 @@ def test_batch_size_smaller_than_num_gpus(tmpdir):
 
 @pytest.mark.parametrize(
     ["multiple_trainloader_mode", "num_training_batches"],
-    [pytest.param("min_size", 5), pytest.param("max_size_cycle", 10)],
+    [("min_size", 5), ("max_size_cycle", 10)],
 )
 def test_fit_multiple_train_loaders(tmpdir, multiple_trainloader_mode, num_training_batches):
     """Integration test for multple train loaders."""
@@ -1088,31 +1087,30 @@ def test_test_dataloader_not_implemented_error_failed(tmpdir):
         trainer.test(model)
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_only_once(tmpdir):
+    model = BoringModel()
+    tracker = Mock()
 
-    model = EvalModelTemplate()
+    model.train_dataloader = Mock(wraps=model.train_dataloader)
+    model.val_dataloader = Mock(wraps=model.val_dataloader)
+    model.test_dataloader = Mock(wraps=model.test_dataloader)
 
-    # logger file to get meta
+    tracker.attach_mock(model.train_dataloader, "train_dataloader")
+    tracker.attach_mock(model.val_dataloader, "val_dataloader")
+    tracker.attach_mock(model.test_dataloader, "test_dataloader")
+
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=0.3, limit_val_batches=0.3, max_epochs=3)
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
-    assert len(trainer.dev_debugger.val_dataloader_calls) == 1
-    assert len(trainer.dev_debugger.test_dataloader_calls) == 0
-    assert len(trainer.dev_debugger.train_dataloader_calls) == 1
+    model.train_dataloader.assert_called_once()
+    model.val_dataloader.assert_called_once()
+    model.test_dataloader.assert_not_called()
 
-    # verify the sequence
-    calls = trainer.dev_debugger.dataloader_sequence_calls
-    expected_sequence = ["val_dataloader", "train_dataloader"]
-    for call, expected in zip(calls, expected_sequence):
-        assert call["name"] == expected
+    assert tracker.mock_calls == [call.val_dataloader(), call.train_dataloader()]
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_only_once_val_interval(tmpdir):
-
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     # logger file to get meta
     trainer = Trainer(
@@ -1123,63 +1121,65 @@ def test_dataloaders_load_only_once_val_interval(tmpdir):
         reload_dataloaders_every_n_epochs=True,
         max_epochs=3,
     )
+
+    tracker = Mock()
+    model.train_dataloader = Mock(wraps=model.train_dataloader)
+    model.val_dataloader = Mock(wraps=model.val_dataloader)
+    model.test_dataloader = Mock(wraps=model.test_dataloader)
+
+    tracker.attach_mock(model.train_dataloader, "train_dataloader")
+    tracker.attach_mock(model.val_dataloader, "val_dataloader")
+    tracker.attach_mock(model.test_dataloader, "test_dataloader")
+
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-
-    trainer.test()
-
-    assert len(trainer.dev_debugger.val_dataloader_calls) == 10
-    assert len(trainer.dev_debugger.test_dataloader_calls) == 1
-    assert len(trainer.dev_debugger.train_dataloader_calls) == 3
+    trainer.test(model)
 
     # verify the sequence
-    calls = trainer.dev_debugger.dataloader_sequence_calls
     expected_sequence = [
-        "val_dataloader",
-        "train_dataloader",
-        "val_dataloader",
-        "val_dataloader",
-        "val_dataloader",
-        "train_dataloader",
-        "val_dataloader",
-        "val_dataloader",
-        "val_dataloader",
-        "train_dataloader",
-        "val_dataloader",
-        "val_dataloader",
-        "val_dataloader",
-        "test_dataloader",
+        call.val_dataloader(),
+        call.train_dataloader(),
+        call.val_dataloader(),
+        call.val_dataloader(),
+        call.val_dataloader(),
+        call.train_dataloader(),
+        call.val_dataloader(),
+        call.val_dataloader(),
+        call.val_dataloader(),
+        call.train_dataloader(),
+        call.val_dataloader(),
+        call.val_dataloader(),
+        call.val_dataloader(),
+        call.test_dataloader(),
     ]
-    for call, expected in zip(calls, expected_sequence):
-        assert call["name"] == expected
+    assert tracker.mock_calls == expected_sequence
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_only_once_no_sanity_check(tmpdir):
-
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir, limit_train_batches=0.3, limit_val_batches=0.3, num_sanity_val_steps=0, max_epochs=3
     )
-    trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
-    assert len(trainer.dev_debugger.val_dataloader_calls) == 1
-    assert len(trainer.dev_debugger.test_dataloader_calls) == 0
-    assert len(trainer.dev_debugger.train_dataloader_calls) == 1
+    tracker = Mock()
+    model.train_dataloader = Mock(wraps=model.train_dataloader)
+    model.val_dataloader = Mock(wraps=model.val_dataloader)
+    model.test_dataloader = Mock(wraps=model.test_dataloader)
+
+    tracker.attach_mock(model.train_dataloader, "train_dataloader")
+    tracker.attach_mock(model.val_dataloader, "val_dataloader")
+    tracker.attach_mock(model.test_dataloader, "test_dataloader")
+
+    trainer.fit(model)
 
     # verify the sequence
-    calls = trainer.dev_debugger.dataloader_sequence_calls
-    expected_sequence = ["train_dataloader", "val_dataloader"]
-    for call, expected in zip(calls, expected_sequence):
-        assert call["name"] == expected
+    expected_sequence = [call.train_dataloader(), call.val_dataloader()]
+    assert tracker.mock_calls == expected_sequence
 
 
 @pytest.mark.parametrize("n", [1, 2])
 def test_dataloaders_load_every_n_epochs(tmpdir, n):
-
     model = BoringModel()
 
     trainer = Trainer(
@@ -1189,22 +1189,27 @@ def test_dataloaders_load_every_n_epochs(tmpdir, n):
         reload_dataloaders_every_n_epochs=n,
         max_epochs=3,
     )
-    trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
-    trainer.test()
+    tracker = Mock()
+    model.train_dataloader = Mock(wraps=model.train_dataloader)
+    model.val_dataloader = Mock(wraps=model.val_dataloader)
+    model.test_dataloader = Mock(wraps=model.test_dataloader)
+
+    tracker.attach_mock(model.train_dataloader, "train_dataloader")
+    tracker.attach_mock(model.val_dataloader, "val_dataloader")
+    tracker.attach_mock(model.test_dataloader, "test_dataloader")
+
+    trainer.fit(model)
+    trainer.test(model)
 
     # verify the sequence
-    calls = trainer.dev_debugger.dataloader_sequence_calls
-    expected_sequence = ["val_dataloader"]
+    expected_sequence = [call.val_dataloader()]
     if n == 1:
-        expected_sequence += ["train_dataloader", "val_dataloader"] * 3
+        expected_sequence += [call.train_dataloader(), call.val_dataloader()] * 3
     elif n == 2:
-        expected_sequence += ["train_dataloader", "val_dataloader"] * 2
-    expected_sequence += ["test_dataloader"]
-
-    for call, expected in zip(calls, expected_sequence):
-        assert call["name"] == expected
+        expected_sequence += [call.train_dataloader(), call.val_dataloader()] * 2
+    expected_sequence += [call.test_dataloader()]
+    assert tracker.mock_calls == expected_sequence
 
 
 @pytest.mark.parametrize("n", ["test", -1])
@@ -1214,7 +1219,6 @@ def test_dataloaders_load_every_n_epochs_exception(tmpdir, n):
         Trainer(default_root_dir=tmpdir, reload_dataloaders_every_n_epochs=n)
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx):
@@ -1236,21 +1240,22 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
         max_epochs=3,
         callbacks=[checkpoint_callback],
     )
+
+    tracker = Mock()
+    model.train_dataloader = Mock(wraps=model.train_dataloader)
+    model.val_dataloader = Mock(wraps=model.val_dataloader)
+    model.test_dataloader = Mock(wraps=model.test_dataloader)
+
+    tracker.attach_mock(model.train_dataloader, "train_dataloader")
+    tracker.attach_mock(model.val_dataloader, "val_dataloader")
+    tracker.attach_mock(model.test_dataloader, "test_dataloader")
+
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
+    trainer.test(model)
 
-    trainer.test()
-
-    assert len(trainer.dev_debugger.val_dataloader_calls) == 4
-    assert len(trainer.dev_debugger.train_dataloader_calls) == 3
-    assert len(trainer.dev_debugger.test_dataloader_calls) == 1
-
-    # verify the sequence
-    calls = trainer.dev_debugger.dataloader_sequence_calls
-
-    expected_sequence = [
-        "train_dataloader",
-        "val_dataloader",
+    expected_calls = [
+        call.train_dataloader(),
+        call.val_dataloader(),
         # This has subsequent calls to val_dataloader
         # because the training loop runs the evaluation loop,
         # which reloads the val dataloader again.
@@ -1259,49 +1264,55 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
         # meaning multiple passes through the validation data within a single training epoch
         # would not have the dataloader reloaded.
         # This breaks the assumption behind reload_dataloaders_every_epoch=True
-        "val_dataloader",
-        "train_dataloader",
-        "val_dataloader",
-        "train_dataloader",
-        "val_dataloader",
-        "test_dataloader",
+        call.val_dataloader(),
+        call.train_dataloader(),
+        call.val_dataloader(),
+        call.train_dataloader(),
+        call.val_dataloader(),
+        call.test_dataloader(),
     ]
-    for call, expected in zip(calls, expected_sequence):
-        assert call["name"] == expected
+    assert tracker.mock_calls == expected_calls
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_only_once_passed_loaders(tmpdir):
+    model = BoringModel()
+    train_dataloader = model.train_dataloader()
+    val_dataloader = model.val_dataloader()
+    test_dataloader = model.test_dataloader()
 
-    model = EvalModelTemplate()
-    train_loader = model.train_dataloader()
+    # delete dataloader methods on the model
     model.train_dataloader = None
-    val_loader = model.val_dataloader()
     model.val_dataloader = None
-    test_loader = model.test_dataloader()
     model.test_dataloader = None
 
-    # logger file to get meta
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=0.3, limit_val_batches=0.3, max_epochs=3)
-    trainer.fit(model, train_loader, val_loader)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
-    trainer.test(test_dataloaders=test_loader)
+    trainer.reset_train_dataloader = Mock(wraps=trainer.reset_train_dataloader)
+    trainer.reset_val_dataloader = Mock(wraps=trainer.reset_val_dataloader)
+    trainer.reset_test_dataloader = Mock(wraps=trainer.reset_test_dataloader)
 
-    assert len(trainer.dev_debugger.val_dataloader_calls) == 1
-    assert len(trainer.dev_debugger.test_dataloader_calls) == 1
-    assert len(trainer.dev_debugger.train_dataloader_calls) == 1
+    tracker = Mock()
+    tracker.attach_mock(trainer.reset_train_dataloader, "reset_train_dataloader")
+    tracker.attach_mock(trainer.reset_val_dataloader, "reset_val_dataloader")
+    tracker.attach_mock(trainer.reset_test_dataloader, "reset_test_dataloader")
 
-    # verify the sequence
-    calls = trainer.dev_debugger.dataloader_sequence_calls
-    expected_sequence = ["val_dataloader", "train_dataloader"]
-    for call, expected in zip(calls, expected_sequence):
-        assert call["name"] == expected
+    trainer.fit(model, train_dataloader, val_dataloader)
+    trainer.test(model, test_dataloaders=test_dataloader)
+
+    trainer.reset_train_dataloader.assert_called_once()
+    trainer.reset_val_dataloader.assert_called_once()
+    trainer.reset_test_dataloader.assert_called_once()
+
+    assert tracker.mock_calls == [
+        call.reset_val_dataloader(),
+        call.reset_train_dataloader(model=model),
+        call.reset_test_dataloader(),
+    ]
 
 
 def test_dataloaders_reset_and_attach(tmpdir):
-    """Test that repeated calls to Trainer.{fit,validate,test,predict} properly reset and dataloaders before
-    attaching the new one."""
+    """Test that repeated calls to Trainer.{fit,validate,test,predict} properly reset dataloaders before attaching
+    the new one."""
     # the assertions compare the datasets and not dataloaders since we patch and replace the samplers
     dataloader_0 = DataLoader(dataset=RandomDataset(32, 64))
     dataloader_1 = DataLoader(dataset=RandomDataset(32, 64))
@@ -1469,7 +1480,7 @@ def test_request_dataloader(tmpdir):
             self.train_dataloader = DataLoaderFunc(DataLoaderWrapper(loader))
             self.on_train_dataloader_called = True
 
-        def on_train_batch_start(self, batch, batch_idx: int, dataloader_idx: int) -> None:
+        def on_train_batch_start(self, batch, batch_idx: int) -> None:
             assert isinstance(self.trainer.train_dataloader.loaders, DataLoaderWrapper)
             self.on_train_batch_start_called = True
 
@@ -1490,3 +1501,24 @@ def test_request_dataloader(tmpdir):
     assert model.on_train_batch_start_called
     assert model.on_val_dataloader_called
     assert model.on_val_batch_start_called
+
+
+@pytest.mark.parametrize("num_loaders", [1, 2])
+def test_multiple_dataloaders_with_random_sampler_overfit_batches(num_loaders, tmpdir):
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            for idx in range(num_loaders):
+                assert isinstance(self.trainer.train_dataloader.loaders[idx].loader.sampler, SequentialSampler)
+            return super().training_step(batch[0], batch_idx)
+
+        def _create_dataloader(self):
+            ds = RandomDataset(32, 64)
+            return DataLoader(ds, sampler=RandomSampler(ds))
+
+        def train_dataloader(self):
+            return [self._create_dataloader() for _ in range(num_loaders)]
+
+        validation_step = None
+
+    trainer = Trainer(default_root_dir=tmpdir, overfit_batches=1.0, max_epochs=1)
+    trainer.fit(TestModel())

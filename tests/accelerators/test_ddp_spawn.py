@@ -52,7 +52,7 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
         limit_val_batches=10,
         gpus=[0, 1],
         accelerator="ddp_spawn",
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
 
     model = BoringModel()
@@ -73,7 +73,7 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=1,
         limit_train_batches=0.2,
         limit_val_batches=0.2,

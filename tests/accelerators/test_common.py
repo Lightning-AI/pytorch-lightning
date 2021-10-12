@@ -16,7 +16,7 @@ import torch
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import SingleDevicePlugin
+from pytorch_lightning.utilities.seed import seed_everything
 from tests.accelerators.test_dp import CustomClassificationModelDP
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -33,16 +33,11 @@ from tests.helpers.runif import RunIf
 )
 def test_evaluate(tmpdir, trainer_kwargs):
     tutils.set_random_master_port()
-
+    seed_everything(1)
     dm = ClassifDataModule()
     model = CustomClassificationModelDP()
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        limit_train_batches=10,
-        limit_val_batches=10,
-        deterministic=True,
-        **trainer_kwargs
+        default_root_dir=tmpdir, max_epochs=2, limit_train_batches=10, limit_val_batches=10, **trainer_kwargs
     )
 
     trainer.fit(model, datamodule=dm)
@@ -50,11 +45,8 @@ def test_evaluate(tmpdir, trainer_kwargs):
 
     old_weights = model.layer_0.weight.clone().detach().cpu()
 
-    result = trainer.validate(datamodule=dm)
-    assert result[0]["val_acc"] > 0.55
-
-    result = trainer.test(datamodule=dm)
-    assert result[0]["test_acc"] > 0.55
+    trainer.validate(datamodule=dm)
+    trainer.test(datamodule=dm)
 
     # make sure weights didn't change
     new_weights = model.layer_0.weight.clone().detach().cpu()
@@ -77,57 +69,3 @@ def test_model_parallel_setup_called(tmpdir):
     trainer.fit(model)
 
     assert model.configure_sharded_model_called
-
-
-class DummyModel(BoringModel):
-    def __init__(self):
-        super().__init__()
-        self.configure_sharded_model_called = False
-
-    def configure_sharded_model(self):
-        self.configure_sharded_model_called = True
-
-
-def test_configure_sharded_model_false(tmpdir):
-    """Ensure ``configure_sharded_model`` is not called, when turned off."""
-
-    class CustomPlugin(SingleDevicePlugin):
-        @property
-        def call_configure_sharded_model_hook(self) -> bool:
-            return False
-
-    model = DummyModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=1,
-        plugins=CustomPlugin(device=torch.device("cpu")),
-    )
-    trainer.fit(model)
-
-    assert not model.configure_sharded_model_called
-
-
-def test_accelerator_configure_sharded_model_called_once(tmpdir):
-    """Ensure that the configure sharded model hook is called, and set to False after to ensure not called
-    again."""
-
-    model = DummyModel()
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=1)
-    assert trainer.accelerator.call_configure_sharded_model_hook is True
-    trainer.fit(model)
-    assert trainer.accelerator.call_configure_sharded_model_hook is False
-
-
-def test_configure_sharded_model_called_once(tmpdir):
-    """Ensure ``configure_sharded_model`` is only called once."""
-
-    model = DummyModel()
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=1)
-    trainer.fit(model)
-
-    assert model.configure_sharded_model_called
-    model.configure_sharded_model_called = False
-
-    assert not model.configure_sharded_model_called

@@ -78,7 +78,7 @@ class PredictionLoop(DataLoaderLoop):
         self.epoch_batch_indices = []
 
     def on_run_start(self) -> None:
-        """Calls ``on_predict_start`` hook."""
+        """Calls ``_on_predict_start`` hook."""
         self._on_predict_start()
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
