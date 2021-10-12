@@ -9,6 +9,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 import torch.multiprocessing as mp
 
+from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.trainer.connectors.accelerator_connector import (
     AcceleratorConnector,
@@ -52,35 +53,37 @@ class LightningLite:
     def __init__(
         self,
         accelerator=None,
-        plugin=None,
+        plugins=None,
         gpus=None,
-        tpus=None,
+        tpu_cores=None,
+        ipus=None,
         num_processes=1,
+        devices=None,
         num_nodes=1,
         precision=32,
         amp_backend: str = "native",
         amp_level: str = "O2",
+        replace_sampler_ddp=True,
     ):
-
-        if accelerator == "ddp_spawn":
-            raise
-
+        gpu_ids, tpu_cores = Trainer._parse_devices(gpus=gpus, auto_select_gpus=False, tpu_cores=tpu_cores)
         backend_connector = AcceleratorConnector(
-            gpus=gpus,
-            tpu_cores=tpus,
             num_processes=num_processes,
-            distributed_backend=accelerator,
+            devices=devices,
+            tpu_cores=tpu_cores,
+            ipus=ipus,
+            distributed_backend=None,  # TODO: remove
+            accelerator=accelerator,
+            gpus=gpus,
+            gpu_ids=gpu_ids,
             num_nodes=num_nodes,
+            sync_batchnorm=False,  # TODO: add support?
+            benchmark=False,
+            replace_sampler_ddp=replace_sampler_ddp,
+            deterministic=False,
             precision=precision,
             amp_type=amp_backend,
             amp_level=amp_level,
-            plugins=plugin,
-            # TODO:
-            deterministic=False,
-            sync_batchnorm=False,
-            benchmark=False,
-            replace_sampler_ddp=True,
-            auto_select_gpus=False,
+            plugins=plugins,
         )
         self.accelerator = backend_connector.select_accelerator()
 
