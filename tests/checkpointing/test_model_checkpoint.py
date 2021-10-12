@@ -82,14 +82,14 @@ def mock_optimizer_connector(trainer):
 @pytest.mark.parametrize("save_on_train_epoch_end", [True, False])
 @pytest.mark.parametrize("every_n_epochs", [2, 0, 5])
 def test_model_checkpoint_connection_to_logger(
-        tmpdir, save_last: bool, save_on_train_epoch_end: bool, every_n_epochs: int):
-    """Test that when a model checkpoint is saved, it triggers the logger.after_save_checkpoint """
+    tmpdir, save_last: bool, save_on_train_epoch_end: bool, every_n_epochs: int
+):
+    """Test that when a model checkpoint is saved, it triggers the logger.after_save_checkpoint."""
 
     class CustomLogger(CSVLogger):
-
         def __init__(self, **kargs):
             self.ckpt_files = []
-            super(CustomLogger, self).__init__(**kargs)
+            super().__init__(**kargs)
 
         def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
             try:
@@ -105,13 +105,12 @@ def test_model_checkpoint_connection_to_logger(
                     self.ckpt_files.append(path)
 
     class CustomTrainer(Trainer):
-
         def __init__(self, **kargs):
             self.ckpt_files = []
-            super(CustomTrainer, self).__init__(**kargs)
+            super().__init__(**kargs)
 
         def save_checkpoint(self, filepath: _PATH, weights_only: bool = False) -> None:
-            super(CustomTrainer, self).save_checkpoint(filepath, weights_only)
+            super().save_checkpoint(filepath, weights_only)
             self.ckpt_files.append(filepath)
 
     ckpt_callback = ModelCheckpoint(
