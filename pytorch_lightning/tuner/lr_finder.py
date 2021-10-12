@@ -115,8 +115,8 @@ class _LRFinder:
                 optimizers = [optim_conf["optimizer"]]
             elif isinstance(optim_conf, (list, tuple)) and isinstance(optim_conf[0], dict):
                 optimizers = [opt_dict["optimizer"] for opt_dict in optim_conf]
-            elif isinstance(optim_conf, (list, tuple)):
-                optimizers = [optim_conf]
+            elif isinstance(optim_conf, (list, tuple)) and all(isinstance(opt, Optimizer) for opt in optim_conf):
+                optimizers = list(optim_conf)
 
             if len(optimizers) != 1:
                 raise MisconfigurationException(
