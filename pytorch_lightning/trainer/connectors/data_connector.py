@@ -258,6 +258,19 @@ class DataConnector:
 
 @dataclass
 class _DataLoaderSource:
+    """Stores the information where the dataloaders come from.
+
+    The source can be
+
+    1. from a ``*_datalaoder()`` method on the :class:`~pytorch_lightning.core.lightning.LightningModule`,
+    2. from a ``*_datalaoder()`` method on the :class:`~pytorch_lightning.core.datamodule.LightningDataModule`,
+    3. a direct instance of a :class:`~torch.utils.data.DataLoader` or supported collections thereof.
+
+    Arguments:
+        instance: A LightningModule, LightningDataModule, or (a collection of) dataloader(s).
+        name: A name for this dataloader source. If the instance is a module, the name corresponds to the hook
+            that returns the desired dataloader(s).
+    """
 
     instance: Optional[
         Union[TRAIN_DATALOADERS, EVAL_DATALOADERS, "pl.LightningModule", "pl.LightningDataModule"]
@@ -266,14 +279,20 @@ class _DataLoaderSource:
 
     @property
     def available(self) -> bool:
+        """Returns whether the source dataloader is available. If the source is a module it checks that the method
+        with given :attr:`name` is overridden."""
         return not self.is_module() or is_overridden(self.name, self.instance)
 
     def request(self) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
+        """Returns the dataloader from the source. If the source is a module, the method with the corresponding
+        :attr:`name` gets called."""
         if self.is_module() and self.name:
             return getattr(self.instance, self.name)()
         return self.instance
 
     def is_module(self) -> bool:
+        """Returns whether the the DataLoader source is a LightningModule or a LightningDataModule.
+        It does not check whether ``*_dataloader`` methods are actually overridden."""
         from pytorch_lightning import LightningDataModule, LightningModule  # prevent cyclic import
 
         return isinstance(self.instance, (LightningModule, LightningDataModule))
