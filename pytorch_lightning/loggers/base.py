@@ -362,7 +362,6 @@ class LightningLoggerBase(ABC):
             checkpoint_callback: ModelCheckpoint callback reference.
             checkpoints: list of checkpoints.
         """
-        pass
 
     def _scan_and_log_checkpoints(
         self, checkpoint_callback: "ReferenceType[ModelCheckpoint]", logged_model_time: dict
