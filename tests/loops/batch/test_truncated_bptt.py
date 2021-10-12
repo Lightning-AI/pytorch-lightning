@@ -101,7 +101,7 @@ def test_persistent_hidden_state_transfer(tmpdir, model_class):
         max_epochs=2,
         weights_summary=None,
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
 
@@ -142,7 +142,7 @@ def test_tbptt_split_shapes(tmpdir, model_class):
         max_epochs=1,
         weights_summary=None,
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model, train_dataloaders=train_dataloader)
 
@@ -166,7 +166,7 @@ def test_tbptt_logging(tmpdir, model_class):
         max_epochs=2,
         log_every_n_steps=2,
         weights_summary=None,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
     assert set(trainer.logged_metrics) == {"loss_step", "loss_epoch", "epoch"}
