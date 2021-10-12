@@ -1033,7 +1033,7 @@ class Trainer(
         # SET UP TRAINING
         # ----------------------------
         self.call_hook("on_before_accelerator_backend_setup")
-        self.training_type_plugin.setup_environment()
+        self.accelerator.setup_environment()
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
         # check if we should delay restoring checkpoint till later
@@ -1166,7 +1166,7 @@ class Trainer(
         self.accelerator.post_dispatch(self)
         # these `teardown` calls are here instead of in `_call_teardown_hook` since they are internal teardowns
         # which need to happen before.
-        self.training_type_plugin.teardown()
+        self.accelerator.teardown()
         self.data_connector.teardown()
         self._active_loop.teardown()
         self.logger_connector.teardown()

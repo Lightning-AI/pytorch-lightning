@@ -330,7 +330,7 @@ def test_v1_6_0_deprecated_device_dtype_mixin_import():
         from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin  # noqa: F401
 
 
-def test_v1_6_0_deprecated_accelerator_pass_through_functions(tmpdir):
+def test_v1_6_0_deprecated_accelerator_pass_through_functions():
     from pytorch_lightning.plugins.precision import PrecisionPlugin
     from pytorch_lightning.plugins.training_type import SingleDevicePlugin
 
@@ -351,9 +351,6 @@ def test_v1_6_0_deprecated_accelerator_pass_through_functions(tmpdir):
     with pytest.deprecated_call(match="will be removed in v1.6"):
         model = BoringModel()
         accelerator.connect(model)
-
-    with pytest.deprecated_call(match="will be removed in v1.6"):
-        accelerator.setup_environment()
 
     with pytest.deprecated_call(match="will be removed in v1.6"):
         accelerator.teardown()
@@ -388,9 +385,6 @@ def test_v1_6_0_deprecated_accelerator_pass_through_functions(tmpdir):
 
     with pytest.deprecated_call(match="will be removed in v1.6"):
         accelerator.restore_checkpoint_after_pre_dispatch
-
-    with pytest.deprecated_call(match="will be removed in v1.6"):
-        accelerator.on_train_start()
 
     with pytest.deprecated_call(match="will be removed in v1.6"):
         accelerator.on_validation_start()

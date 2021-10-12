@@ -24,7 +24,7 @@ def test_invalid_on_cpu(tmpdir):
     ):
         trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, plugins="fsdp")
         assert isinstance(trainer.accelerator.training_type_plugin, DDPFullyShardedPlugin)
-        trainer.training_type_plugin.setup_environment()
+        trainer.accelerator.setup_environment()
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})

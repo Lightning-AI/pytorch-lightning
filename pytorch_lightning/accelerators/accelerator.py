@@ -61,6 +61,8 @@ class Accelerator:
     def connect(self, model: "pl.LightningModule") -> None:
         """Transfers ownership of the model to this plugin.
 
+        See deprecation warning below.
+
         .. deprecated:: v1.5     This method is deprecated in v1.5 and will be removed in v1.6.     Please call
         `training_type_plugin.connect` directly.
         """
@@ -73,17 +75,9 @@ class Accelerator:
     def setup_environment(self) -> None:
         """Setup any processes or distributed connections.
 
-        .. deprecated:: v1.5
-            This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call `training_type_plugin.setup_environment` directly.
-
         This is called before the LightningModule/DataModule setup hook which allows the user to access the accelerator
         environment before setup is complete.
         """
-        rank_zero_deprecation(
-            "`Accelerator.setup_environment` is deprecated in v1.5 and will be removed in v1.6. "
-            "`setup_environment` logic is implemented directly in the `TrainingTypePlugin` implementations."
-        )
         self.training_type_plugin.setup_environment()
 
     def setup(self, trainer: "pl.Trainer") -> None:
@@ -189,16 +183,8 @@ class Accelerator:
     def teardown(self) -> None:
         """This method is called to teardown the training process.
 
-        .. deprecated:: v1.5
-            This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call `training_type_plugin.teardown` directly.
-
         It is the right place to release memory and free other resources.
         """
-        rank_zero_deprecation(
-            "`Accelerator.teardown` is deprecated in v1.5 and will be removed in v1.6. "
-            "`teardown` logic is implemented directly in the `TrainingTypePlugin` implementations."
-        )
         self.training_type_plugin.teardown()
 
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
@@ -588,22 +574,17 @@ class Accelerator:
         raise NotImplementedError
 
     def on_train_start(self) -> None:
-        """Called when train begins.
-
-        .. deprecated:: v1.5     This method is deprecated in v1.5 and will be removed in v1.6.     Please call
-        `training_type_plugin.on_train_start` directly.
-        """
-        rank_zero_deprecation(
-            "`Accelerator.on_train_start` is deprecated in v1.5 and will be removed in v1.6. "
-            "`on_train_start` logic is implemented directly in the `TrainingTypePlugin` implementations."
-        )
+        """Called when train begins."""
         return self.training_type_plugin.on_train_start()
 
     def on_validation_start(self) -> None:
         """Called when validation begins.
 
-        .. deprecated:: v1.5     This method is deprecated in v1.5 and will be removed in v1.6.     Please call
-        `training_type_plugin.on_validation_start` directly.
+        See deprecation warning below.
+
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.6.
+            Please call `training_type_plugin.on_validation_start` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.on_validation_start` is deprecated in v1.5 and will be removed in v1.6. "
@@ -614,8 +595,11 @@ class Accelerator:
     def on_test_start(self) -> None:
         """Called when test begins.
 
-        .. deprecated:: v1.5     This method is deprecated in v1.5 and will be removed in v1.6.     Please call
-        `training_type_plugin.on_test_start` directly.
+        See deprecation warning below.
+
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.6.
+            Please call `training_type_plugin.on_test_start` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.on_test_start` is deprecated in v1.5 and will be removed in v1.6. "
@@ -626,8 +610,11 @@ class Accelerator:
     def on_predict_start(self) -> None:
         """Called when predict begins.
 
-        .. deprecated:: v1.5     This method is deprecated in v1.5 and will be removed in v1.6.     Please call
-        `training_type_plugin.on_predict_start` directly.
+        See deprecation warning below.
+
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.6.
+            Please call `training_type_plugin.on_predict_start` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.on_predict_start` is deprecated in v1.5 and will be removed in v1.6. "
@@ -638,8 +625,11 @@ class Accelerator:
     def on_validation_end(self) -> None:
         """Called when validation ends.
 
-        .. deprecated:: v1.5     This method is deprecated in v1.5 and will be removed in v1.6.     Please call
-        `training_type_plugin.on_validation_end` directly.
+        See deprecation warning below.
+
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.6.
+            Please call `training_type_plugin.on_validation_end` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.on_validation_end` is deprecated in v1.5 and will be removed in v1.6. "
@@ -650,8 +640,11 @@ class Accelerator:
     def on_test_end(self) -> None:
         """Called when test end.
 
-        .. deprecated:: v1.5     This method is deprecated in v1.5 and will be removed in v1.6.     Please call
-        `training_type_plugin.on_test_end` directly.
+        See deprecation warning below.
+
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.6.
+            Please call `training_type_plugin.on_test_end` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.on_test_end` is deprecated in v1.5 and will be removed in v1.6. "
@@ -662,8 +655,11 @@ class Accelerator:
     def on_predict_end(self) -> None:
         """Called when predict ends.
 
-        .. deprecated:: v1.5     This method is deprecated in v1.5 and will be removed in v1.6.     Please call
-        `training_type_plugin.on_predict_end` directly.
+        See deprecation warning below.
+
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.6.
+            Please call `training_type_plugin.on_predict_end` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.on_predict_end` is deprecated in v1.5 and will be removed in v1.6. "
@@ -674,8 +670,11 @@ class Accelerator:
     def on_train_end(self) -> None:
         """Called when train ends.
 
-        .. deprecated:: v1.5     This method is deprecated in v1.5 and will be removed in v1.6.     Please call
-        `training_type_plugin.on_train_end` directly.
+        See deprecation warning below.
+
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.6.
+            Please call `training_type_plugin.on_train_end` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.on_train_end` is deprecated in v1.5 and will be removed in v1.6. "
@@ -687,8 +686,11 @@ class Accelerator:
     def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         """Called in the training loop before anything happens for that batch.
 
-        .. deprecated:: v1.5     This method is deprecated in v1.5 and will be removed in v1.6.     Please call
-        `training_type_plugin.on_train_batch_start` directly.
+        See deprecation warning below.
+
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.6.
+            Please call `training_type_plugin.on_train_batch_start` directly.
         """
         rank_zero_deprecation(
             "`Accelerator.on_train_batch_start` is deprecated in v1.5 and will be removed in v1.6. "
