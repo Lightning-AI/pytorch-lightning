@@ -493,14 +493,14 @@ def test_hparams_save_yaml(tmpdir):
     )
     path_yaml = os.path.join(tmpdir, "testing-hparams.yaml")
 
-    def compare(loadedParams, defaultParams: dict):
-        assert isinstance(loadedParams, (dict, DictConfig))
-        assert loadedParams.keys() == defaultParams.keys()
-        for k, v in defaultParams.items():
+    def compare(loaded_params, default_params: dict):
+        assert isinstance(loaded_params, (dict, DictConfig))
+        assert loaded_params.keys() == default_params.keys()
+        for k, v in default_params.items():
             if isinstance(v, Enum):
-                assert v.name == loadedParams[k]
+                assert v.name == loaded_params[k]
             else:
-                assert v == loadedParams[k]
+                assert v == loaded_params[k]
 
     save_hparams_to_yaml(path_yaml, hparams)
     compare(load_hparams_from_yaml(path_yaml, use_omegaconf=False), hparams)
