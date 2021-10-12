@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import argparse
 import contextlib
 import json
 import logging
@@ -389,11 +390,11 @@ class DeepSpeedPlugin(DDPPlugin):
         self.barrier()
 
     def init_deepspeed(self):
-        accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
-        if not isinstance(accumulate_grad_batches, int):
+        accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
+
+        if accumulation_scheduler.epochs != [0]:
             raise MisconfigurationException(
-                "DeepSpeed currently only supports `Trainer.accumulate_grad_batches` being an integer."
-                f" Received {accumulate_grad_batches}"
+                "DeepSpeed currently does not support different `accumulate_grad_batches` at different epochs."
             )
 
         precision = self.lightning_module.trainer.accelerator.precision
@@ -443,6 +444,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
         model_parameters = filter(lambda p: p.requires_grad, self.model.parameters())
         model, deepspeed_optimizer, _, deepspeed_scheduler = deepspeed.initialize(
+            args=argparse.Namespace(device_rank=self.root_device.index),
             config=self.config,
             model=model,
             model_parameters=model_parameters,
@@ -519,6 +521,7 @@ class DeepSpeedPlugin(DDPPlugin):
         # Remove all module hooks before initializing new model
         remove_module_hooks(model)
         model, _, _, _ = deepspeed.initialize(
+            args=argparse.Namespace(device_rank=self.root_device.index),
             config=inference_config,
             model=model,
             optimizer=optimizer,

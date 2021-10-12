@@ -13,7 +13,7 @@
 # limitations under the License.
 from typing import Optional, Union
 
-from pytorch_lightning.utilities import GradClipAlgorithmType
+from pytorch_lightning.utilities import GradClipAlgorithmType, rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -26,10 +26,15 @@ class TrainingTricksConnector:
         gradient_clip_val: Optional[Union[int, float]],
         gradient_clip_algorithm: Optional[str],
         track_grad_norm: Union[int, float, str],
-        terminate_on_nan: bool,
+        terminate_on_nan: Optional[bool],
     ):
-        if not isinstance(terminate_on_nan, bool):
-            raise TypeError(f"`terminate_on_nan` should be a bool, got {terminate_on_nan}.")
+        if terminate_on_nan is not None:
+            rank_zero_deprecation(
+                "Trainer argument `terminate_on_nan` was deprecated in v1.5 and will be removed in 1.7."
+                " Please use `Trainer(detect_anomaly=True)` instead."
+            )
+            if not isinstance(terminate_on_nan, bool):
+                raise TypeError(f"`terminate_on_nan` should be a bool, got {terminate_on_nan}.")
 
         # gradient clipping
         if gradient_clip_val is not None and not isinstance(gradient_clip_val, (int, float)):
