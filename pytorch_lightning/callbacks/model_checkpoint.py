@@ -147,7 +147,7 @@ class ModelCheckpoint(Callback):
 
     Raises:
         MisconfigurationException:
-            If ``save_top_k`` is neither ``None`` nor more than or equal to ``-1``,
+            If ``save_top_k`` is smaller than ``-1``,
             if ``monitor`` is ``None`` and ``save_top_k`` is none of ``None``, ``-1``, and ``0``, or
             if ``mode`` is none of ``"min"`` or ``"max"``.
         ValueError:
@@ -427,11 +427,7 @@ class ModelCheckpoint(Callback):
                     f"ModelCheckpoint(save_top_k={self.save_top_k}, monitor=None) is not a valid"
                     " configuration. No quantity for top_k to track."
                 )
-            if self.save_last:
-                rank_zero_warn(
-                    "ModelCheckpoint(save_last=True, save_top_k=None, monitor=None) is a redundant configuration."
-                    " You can save the last checkpoint with ModelCheckpoint(save_top_k=None, monitor=None)."
-                )
+
             if self.save_top_k == -1 and self.save_last:
                 rank_zero_info(
                     "ModelCheckpoint(save_last=True, save_top_k=-1, monitor=None)"

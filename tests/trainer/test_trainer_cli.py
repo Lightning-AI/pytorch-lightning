@@ -190,7 +190,7 @@ def test_argparse_args_parsing_gpus(cli_args, expected_parsed, expected_device_i
         ({}, {}),
         ({"logger": False}, {}),
         ({"logger": False}, {"logger": True}),
-        ({"logger": False}, {"checkpoint_callback": True}),
+        ({"logger": False}, {"enable_checkpointing": True}),
     ],
 )
 def test_init_from_argparse_args(cli_args, extra_args):
