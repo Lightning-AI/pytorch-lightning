@@ -78,53 +78,50 @@ def mock_optimizer_connector(trainer):
     return calls
 
 
-@pytest.mark.parametrize("save_last", [False, True])  # problem with save_last = True
+@pytest.mark.parametrize("save_last", [False, True])
 @pytest.mark.parametrize("save_on_train_epoch_end", [True, False])
 @pytest.mark.parametrize("every_n_epochs", [2, 0, 5])
 def test_model_checkpoint_connection_to_logger(
-    tmpdir, save_last: bool, save_on_train_epoch_end: bool, every_n_epochs: int):
+        tmpdir, save_last: bool, save_on_train_epoch_end: bool, every_n_epochs: int):
     """Test that when a model checkpoint is saved, it triggers the logger.after_save_checkpoint """
 
-    # I use a global flag which is raise when ckpt is written and lowered when logger is called
-    # I check that the model is never acting when the flag is raised
-    # This means that ckpt writing and logger action are in tight sequence
-
-    global ckpt_flag_raised  # this flag
-    ckpt_flag_raised = False
-
-    class CustomBoringModel(BoringModel):
-        def forward(self, x):
-            global ckpt_flag_raised
-            assert not ckpt_flag_raised
-            return self.layer(x)
-
     class CustomLogger(CSVLogger):
+
         def __init__(self, **kargs):
+            self.ckpt_files = []
             super(CustomLogger, self).__init__(**kargs)
 
         def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
-            print("called after new ckpt is saved")
-            global ckpt_flag_raised
-            assert ckpt_flag_raised
-            ckpt_flag_raised = False
+            try:
+                path1 = list(checkpoint_callback.best_k_models.keys())[-1]
+            except IndexError:
+                path1 = None
+            path2 = checkpoint_callback.best_model_path
+            path3 = checkpoint_callback.last_model_path
+            print("called after new ckpt is saved", path1, path2, path3)
+
+            for path in [path1, path2, path3]:
+                if path is not None and path != "":
+                    self.ckpt_files.append(path)
 
     class CustomTrainer(Trainer):
+
         def __init__(self, **kargs):
+            self.ckpt_files = []
             super(CustomTrainer, self).__init__(**kargs)
 
         def save_checkpoint(self, filepath: _PATH, weights_only: bool = False) -> None:
             super(CustomTrainer, self).save_checkpoint(filepath, weights_only)
-            global ckpt_flag_raised
-            ckpt_flag_raised = True
+            self.ckpt_files.append(filepath)
 
     ckpt_callback = ModelCheckpoint(
-        filename="my_checkpoint",
+        filename="my_checkpoint-{epoch}",
         save_on_train_epoch_end=save_on_train_epoch_end,
         save_last=save_last,
         every_n_epochs=every_n_epochs,
     )
 
-    model = CustomBoringModel()
+    model = BoringModel()
 
     trainer = CustomTrainer(
         default_root_dir=tmpdir,
@@ -137,8 +134,7 @@ def test_model_checkpoint_connection_to_logger(
 
     calls = mock_optimizer_connector(trainer)
     trainer.fit(model=model)
-    assert not ckpt_flag_raised
-    del ckpt_flag_raised
+    assert set(trainer.ckpt_files) == set(trainer.logger.ckpt_files)
 
 
 @pytest.mark.parametrize(
