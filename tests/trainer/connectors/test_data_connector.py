@@ -17,7 +17,7 @@ import pytest
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.trainer.connectors.data_connector import _DataLoaderSource
-from tests.helpers import BoringModel, BoringDataModule
+from tests.helpers import BoringDataModule, BoringModel
 
 
 class NoDataLoaderModel(BoringModel):
