@@ -264,7 +264,7 @@ class RichProgressBar(ProgressBarBase):
             self._reset_progress_bar_ids()
             self._console: Console = Console()
             self._console.clear_live()
-            self._progress = CustomProgress(
+            self.progress = CustomProgress(
                 TextColumn("[progress.description]{task.description}"),
                 CustomBarColumn(
                     complete_style=self.theme.progress_bar_complete,
@@ -279,7 +279,7 @@ class RichProgressBar(ProgressBarBase):
                 disable=self.is_disabled,
                 console=self._console,
             )
-            self._progress.start()
+            self.progress.start()
             # progress has started
             self._progress_stopped = False
 
@@ -303,11 +303,12 @@ class RichProgressBar(ProgressBarBase):
         # can't pickle the rich progress objects
         state = self.__dict__.copy()
         state["_console"] = None
-        state["_progress"] = None
+        state["progress"] = None
         return state
 
     def __setstate__(self, state):
         self.__dict__ = state
+        state["_console"] = Console()
 
     def on_sanity_check_start(self, trainer, pl_module):
         super().on_sanity_check_start(trainer, pl_module)
