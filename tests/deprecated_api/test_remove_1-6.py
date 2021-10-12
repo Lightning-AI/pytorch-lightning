@@ -340,7 +340,7 @@ def test_v1_6_0_passing_strategy_to_plugins_flag():
         Trainer(plugins="ddp_spawn")
 
 
-def test_v1_7_0_deprecated_accelerator_collective():
+def test_v1_6_0_deprecated_accelerator_collective():
     from pytorch_lightning.plugins.precision import PrecisionPlugin
     from pytorch_lightning.plugins.training_type import SingleDevicePlugin
 

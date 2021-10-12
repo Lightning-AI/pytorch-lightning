@@ -168,7 +168,7 @@ class Trainer(
         reload_dataloaders_every_epoch: bool = False,
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
-        terminate_on_nan: bool = False,
+        detect_anomaly: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: Optional[bool] = None,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
@@ -178,7 +178,7 @@ class Trainer(
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         stochastic_weight_avg: bool = False,
-        detect_anomaly: bool = False,
+        terminate_on_nan: Optional[bool] = None,
     ):
         r"""
         Customize every aspect of training via flags.
@@ -354,6 +354,12 @@ class Trainer(
 
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
                 end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
+
+                .. deprecated:: v1.5
+                    Trainer argument ``terminate_on_nan`` was deprecated in v1.5 and will be removed in 1.7.
+                    Please use ``detect_anomaly`` instead.
+
+            detect_anomaly: Enable anomaly detection for the autograd engine.
 
             tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on [1]
 
