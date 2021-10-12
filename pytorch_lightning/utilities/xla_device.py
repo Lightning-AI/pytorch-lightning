@@ -70,10 +70,7 @@ class XLADeviceUtils:
         # we would have to use `torch_xla.distributed.xla_dist` for
         # multiple VMs and TPU_CONFIG won't be available, running
         # `xm.get_xla_supported_devices("TPU")` won't be possible.
-        if xm.xrt_world_size() > 1:
-            return True
-        tpus = xm.get_xla_supported_devices("TPU")
-        return False if tpus is None else len(tpus) > 0
+        return (xm.xrt_world_size() > 1) or bool(xm.get_xla_supported_devices("TPU"))
 
     @staticmethod
     def xla_available() -> bool:
