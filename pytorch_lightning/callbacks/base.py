@@ -327,5 +327,5 @@ class Callback(abc.ABC):
         pass
 
     def on_before_zero_grad(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", optimizer: Optimizer) -> None:
-        """Called after ``optimizer.step()`` and before ``optimizer.zero_grad()``."""
+        """Called before ``optimizer.zero_grad()``."""
         pass
