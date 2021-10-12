@@ -97,7 +97,12 @@ class Callback(abc.ABC):
         pass
 
     def on_train_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        batch: Any,
+        batch_idx: int,
+        unused: Optional[int] = 0,
     ) -> None:
         """Called when the train batch begins."""
         pass
@@ -109,7 +114,7 @@ class Callback(abc.ABC):
         outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
-        dataloader_idx: int,
+        unused: Optional[int] = 0,
     ) -> None:
         """Called when the train batch ends."""
         pass
@@ -322,5 +327,5 @@ class Callback(abc.ABC):
         pass
 
     def on_before_zero_grad(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", optimizer: Optimizer) -> None:
-        """Called after ``optimizer.step()`` and before ``optimizer.zero_grad()``."""
+        """Called before ``optimizer.zero_grad()``."""
         pass
