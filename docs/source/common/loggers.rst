@@ -251,7 +251,9 @@ The :class:`~pytorch_lightning.loggers.WandbLogger` is available anywhere except
             self.log({"generated_images": [wandb.Image(some_img, caption="...")]})
 
 .. seealso::
-    :class:`~pytorch_lightning.loggers.WandbLogger` docs.
+    - :class:`~pytorch_lightning.loggers.WandbLogger` docs.
+    - `W&B Documentation <https://docs.wandb.ai/integrations/lightning>`__
+    - `Demo in Google Colab <http://wandb.me/lightning>`__ with hyperparameter search and model logging
 
 ----------------
 

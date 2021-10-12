@@ -299,7 +299,7 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_bat
             self.start_state_dict = self.state_dict()
             self.opt_step_called = False
 
-        def on_train_batch_end(self, outputs, batch, batch_idx, *_):
+        def on_train_batch_end(self, outputs, batch, batch_idx):
             end_state_dict = self.state_dict()
             is_last_batch = (batch_idx + 1) == self.trainer.num_training_batches
 
@@ -966,7 +966,7 @@ def test_on_exception_hook(tmpdir):
         def __init__(self):
             super().__init__()
 
-        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
             raise KeyboardInterrupt
 
         def on_test_start(self, trainer, pl_module):
@@ -1307,7 +1307,7 @@ def test_trainer_setup_call(tmpdir, stage):
 
     model = CurrentModel()
     callback = CurrentCallback()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, callbacks=[callback])
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_checkpointing=False, callbacks=[callback])
 
     if stage == "fit":
         trainer.fit(model)
@@ -1884,7 +1884,7 @@ def test_on_load_checkpoint_missing_callbacks(tmpdir):
 def test_module_current_fx_attributes_reset(tmpdir):
     """Ensure that lightning module's attributes related to current fx are reset at the end of execution."""
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1, checkpoint_callback=False, logger=False)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1, enable_checkpointing=False, logger=False)
 
     trainer.fit(model)
     assert model._current_fx_name is None
@@ -2079,3 +2079,19 @@ def test_trainer_metrics_reset_before_each_task(tmpdir):
     trainer.validate(model)
     trainer.test(model)
     trainer.predict(model)
+
+
+def test_detect_anomaly_nan(tmpdir):
+    class NanModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            output = super().training_step(batch, batch_idx)
+            output["loss"] = output["loss"] * torch.tensor(float("nan"))
+            return output
+
+    model = NanModel()
+    trainer = Trainer(default_root_dir=tmpdir, detect_anomaly=True)
+    with pytest.raises(RuntimeError, match=r"returned nan values in its 0th output."):
+        with pytest.warns(
+            UserWarning, match=r".*Error detected in.* Traceback of forward call that caused the error.*"
+        ):
+            trainer.fit(model)

@@ -611,16 +611,17 @@ Let's say you have a batch size of 7 in your dataloader.
         def train_dataloader(self):
             return Dataset(..., batch_size=7)
 
-In (DDP, Horovod) your effective batch size will be 7 * gpus * num_nodes.
+In DDP or Horovod your effective batch size will be 7 * gpus * num_nodes.
 
 .. code-block:: python
 
     # effective batch size = 7 * 8
-    Trainer(gpus=8, accelerator="ddp|horovod")
+    Trainer(gpus=8, accelerator="ddp")
+    Trainer(gpus=8, accelerator="horovod")
 
     # effective batch size = 7 * 8 * 10
-    Trainer(gpus=8, num_nodes=10, accelerator="ddp|horovod")
-
+    Trainer(gpus=8, num_nodes=10, accelerator="ddp")
+    Trainer(gpus=8, num_nodes=10, accelerator="horovod")
 
 In DDP2, your effective batch size will be 7 * num_nodes.
 The reason is that the full batch is visible to all GPUs on the node when using DDP2.
