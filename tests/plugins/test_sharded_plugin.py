@@ -18,7 +18,7 @@ if _FAIRSCALE_AVAILABLE:
 
 
 @pytest.mark.parametrize("clip_val", [0, 10])
-@RunIf(min_gpus=1, skip_windows=True, amp_native=True, fairscale=True)
+@RunIf(min_gpus=1, skip_windows=True, fairscale=True)
 @mock.patch("fairscale.optim.oss.OSS.clip_grad_norm")
 def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_val, tmpdir):
     """Ensure that clip gradients is only called if the value is greater than 0."""
@@ -62,7 +62,7 @@ def test_invalid_apex_sharded(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=2, amp_native=True, fairscale=True)
+@RunIf(min_gpus=1, fairscale=True)
 @pytest.mark.parametrize(["accelerator"], [("ddp_sharded",), ("ddp_sharded_spawn",)])
 def test_ddp_choice_sharded_amp(tmpdir, accelerator):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
@@ -309,3 +309,13 @@ def test_custom_kwargs_sharded_reduce_buffer_size(tmpdir, params, expected_buffe
         assert kwargs["reduce_buffer_size"] == DDPShardedPlugin._REDUCE_BUFFER_SIZE_DEFAULT
     else:
         assert kwargs["reduce_buffer_size"] == expected_buffer_size
+
+
+@RunIf(skip_windows=True, fairscale=True)
+def test_block_backward_sync(tmpdir):
+    plugin = DDPShardedPlugin()
+    model = mock.MagicMock(spec=ShardedDataParallel)
+    with mock.patch.object(plugin, "_model", model):
+        with plugin.block_backward_sync():
+            pass
+    model.no_sync.assert_called_once()

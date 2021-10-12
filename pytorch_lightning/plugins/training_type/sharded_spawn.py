@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, Optional
+from contextlib import contextmanager
+from typing import Dict, Generator, Optional
 
 import torch
 
@@ -62,6 +63,19 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
         if isinstance(optimizer, OSS):
             optimizer.consolidate_state_dict()
         return self._optim_state_dict(optimizer)
+
+    @contextmanager
+    def block_backward_sync(self) -> Generator:
+        """Blocks syncing gradients behaviour on backwards pass.
+
+        This is useful for skipping sync when accumulating gradients, reducing communication overhead
+        Returns: context manager with sync behaviour off
+        """
+        if isinstance(self.model, ShardedDataParallel):
+            with self.model.no_sync():
+                yield None
+        else:
+            yield None
 
     @rank_zero_only
     def _optim_state_dict(self, optimizer):

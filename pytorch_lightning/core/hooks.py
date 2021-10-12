@@ -79,7 +79,7 @@ class ModelHooks:
         - training_start
         """
 
-    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_train_batch_start(self, batch: Any, batch_idx: int, unused: Optional[int] = 0) -> None:
         """Called in the training loop before anything happens for that batch.
 
         If you return -1 here, you will skip training for the rest of the current epoch.
@@ -87,17 +87,17 @@ class ModelHooks:
         Args:
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
-            dataloader_idx: the index of the dataloader
+            unused: Deprecated argument. Will be removed in v1.7.
         """
 
-    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, unused: Optional[int] = 0) -> None:
         """Called in the training loop after the batch.
 
         Args:
             outputs: The outputs of training_step_end(training_step(x))
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
-            dataloader_idx: the index of the dataloader
+            unused: Deprecated argument. Will be removed in v1.7.
         """
 
     def on_validation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
@@ -297,12 +297,8 @@ class ModelHooks:
         where we'd like to shard the model instantly, which is useful for extremely large models which can save
         memory and initialization time.
 
-        The accelerator manages whether to call this hook at every given stage.
-        For sharded plugins where model parallelism is required, the hook is usually on called once
-        to initialize the sharded parameters, and not called again in the same process.
-
-        By default for accelerators/plugins that do not use model sharding techniques,
-        this hook is called during each fit/val/test/predict stages.
+        This hook is called during each of fit/val/test/predict stages in the same process, so ensure that
+        implementation of this hook is idempotent.
         """
 
 

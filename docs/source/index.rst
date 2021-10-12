@@ -119,14 +119,14 @@ PyTorch Lightning
    :caption: Examples
 
    ecosystem/community_examples
-   Autoencoder <https://lightning-bolts.readthedocs.io/en/latest/autoencoders.html#autoencoders>
-   BYOL <https://lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#byol>
-   DQN <https://lightning-bolts.readthedocs.io/en/latest/reinforce_learn.html#deep-q-network-dqn>
-   GAN <https://lightning-bolts.readthedocs.io/en/latest/gans.html#basic-gan>
-   GPT-2 <https://lightning-bolts.readthedocs.io/en/latest/convolutional.html#gpt-2>
-   Image-GPT <https://lightning-bolts.readthedocs.io/en/latest/convolutional.html#image-gpt>
-   SimCLR <https://lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#simclr>
-   VAE <https://lightning-bolts.readthedocs.io/en/latest/autoencoders.html#basic-vae>
+   Autoencoder <https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/autoencoders.html>
+   BYOL <https://lightning-bolts.readthedocs.io/en/latest/deprecated/callbacks/self_supervised.html#byolmaweightupdate>
+   DQN <https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/reinforce_learn.html#deep-q-network-dqn>
+   GAN <https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/gans.html#basic-gan>
+   GPT-2 <https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/convolutional.html#gpt-2>
+   Image-GPT <https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/convolutional.html#image-gpt>
+   SimCLR <https://lightning-bolts.readthedocs.io/en/latest/deprecated/transforms/self_supervised.html#simclr-transforms>
+   VAE <https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/autoencoders.html#basic-vae>
 
 .. toctree::
    :maxdepth: 1
