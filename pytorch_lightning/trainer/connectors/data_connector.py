@@ -38,7 +38,6 @@ class DataConnector:
         self,
         trainer: "pl.Trainer",
         multiple_trainloader_mode: str = "max_size_cycle",
-        # TODO: remove these args
         train_data_fetcher: Optional[AbstractDataFetcher] = None,
         validate_data_fetcher: Optional[AbstractDataFetcher] = None,
         test_data_fetcher: Optional[AbstractDataFetcher] = None,
