@@ -279,20 +279,27 @@ class _DataLoaderSource:
 
     @property
     def available(self) -> bool:
-        """Returns whether the source dataloader is available. If the source is a module it checks that the method
-        with given :attr:`name` is overridden."""
+        """Returns whether the source dataloader is available.
+
+        If the source is a module it checks that the method with given :attr:`name` is overridden.
+        """
         return not self.is_module() or is_overridden(self.name, self.instance)
 
     def request(self) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
-        """Returns the dataloader from the source. If the source is a module, the method with the corresponding
-        :attr:`name` gets called."""
+        """Returns the dataloader from the source.
+
+        If the source is a module, the method with the corresponding
+        :attr:`name` gets called.
+        """
         if self.is_module() and self.name:
             return getattr(self.instance, self.name)()
         return self.instance
 
     def is_module(self) -> bool:
         """Returns whether the the DataLoader source is a LightningModule or a LightningDataModule.
-        It does not check whether ``*_dataloader`` methods are actually overridden."""
+
+        It does not check whether ``*_dataloader`` methods are actually overridden.
+        """
         from pytorch_lightning import LightningDataModule, LightningModule  # prevent cyclic import
 
         return isinstance(self.instance, (LightningModule, LightningDataModule))
