@@ -16,6 +16,7 @@ from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Uni
 
 import torch
 from torch import Tensor
+from torch.cuda.amp import GradScaler
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
@@ -24,13 +25,10 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import DataParallelPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, rank_zero_deprecation
+from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
 from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
-
-if _NATIVE_AMP_AVAILABLE:
-    from torch.cuda.amp import GradScaler
 
 
 class Accelerator:
@@ -258,8 +256,6 @@ class Accelerator:
         )
         if make_optimizer_step:
             self.run_optimizer_step(optimizer, opt_idx, lambda_closure, **kwargs)
-        self.precision_plugin.post_optimizer_step(optimizer, opt_idx)
-        self.training_type_plugin.post_optimizer_step(optimizer, opt_idx, **kwargs)
 
     def run_optimizer_step(
         self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs: Any
@@ -491,6 +487,7 @@ class Accelerator:
         """Called when train ends."""
         return self.training_type_plugin.on_train_end()
 
-    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    # TODO: Update this in v1.7 (deprecation: #9816)
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         """Called in the training loop before anything happens for that batch."""
-        return self.training_type_plugin.on_train_batch_start(batch, batch_idx, dataloader_idx)
+        return self.training_type_plugin.on_train_batch_start(batch, batch_idx)

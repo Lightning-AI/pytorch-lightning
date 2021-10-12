@@ -110,6 +110,10 @@ def test_optimizer_frequencies(tmpdir, frequencies, expected):
         def training_step(self, batch, batch_idx, optimizer_idx):
             return super().training_step(batch, batch_idx)
 
+        def training_epoch_end(self, outputs):
+            assert len(outputs[0]) == sum(idx == 0 for idx, _ in expected)
+            assert len(outputs[1]) == sum(idx == 1 for idx, _ in expected)
+
         def configure_optimizers(self):
             opt0 = SGD(self.parameters(), lr=0.1)
             opt1 = Adam(self.parameters(), lr=0.1)
@@ -190,7 +194,7 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         limit_val_batches=0,
         num_sanity_val_steps=0,
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
     weights_complete = model.parameters()
@@ -209,7 +213,7 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         limit_val_batches=0,
         num_sanity_val_steps=0,
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
     with pytest.raises(CustomException):
         trainer.fit(model)
@@ -230,7 +234,7 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         limit_val_batches=0,
         num_sanity_val_steps=0,
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
     weights_resumed = model.parameters()

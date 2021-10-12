@@ -253,7 +253,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
 
 @pytest.mark.parametrize(
     ["tpu_cores", "expected_tpu_id"],
-    [pytest.param(1, None), pytest.param(8, None), pytest.param([1], 1), pytest.param([8], 8)],
+    [(1, None), (8, None), ([1], 1), ([8], 8)],
 )
 @RunIf(tpu=True)
 def test_tpu_id_to_be_as_expected(tpu_cores, expected_tpu_id):
@@ -301,17 +301,17 @@ def test_broadcast_on_tpu():
 @pytest.mark.parametrize(
     ["tpu_cores", "expected_tpu_id", "error_expected"],
     [
-        pytest.param(1, None, False),
-        pytest.param(8, None, False),
-        pytest.param([1], 1, False),
-        pytest.param([8], 8, False),
-        pytest.param("1,", 1, False),
-        pytest.param("1", None, False),
-        pytest.param("9, ", 9, True),
-        pytest.param([9], 9, True),
-        pytest.param([0], 0, True),
-        pytest.param(2, None, True),
-        pytest.param(10, None, True),
+        (1, None, False),
+        (8, None, False),
+        ([1], 1, False),
+        ([8], 8, False),
+        ("1,", 1, False),
+        ("1", None, False),
+        ("9, ", 9, True),
+        ([9], 9, True),
+        ([0], 0, True),
+        (2, None, True),
+        (10, None, True),
     ],
 )
 @RunIf(tpu=True)
@@ -327,7 +327,7 @@ def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
 
 @pytest.mark.parametrize(
     ["cli_args", "expected"],
-    [pytest.param("--tpu_cores=8", {"tpu_cores": 8}), pytest.param("--tpu_cores=1,", {"tpu_cores": "1,"})],
+    [("--tpu_cores=8", {"tpu_cores": 8}), ("--tpu_cores=1,", {"tpu_cores": "1,"})],
 )
 @RunIf(tpu=True)
 @pl_multi_process_test
@@ -399,11 +399,11 @@ def test_tpu_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
 @RunIf(tpu=True)
 @pl_multi_process_test
 def test_if_test_works_with_checkpoint_false(tmpdir):
-    """Ensure that model trains properly when `checkpoint_callback` is set to False."""
+    """Ensure that model trains properly when `enable_checkpointing` is set to False."""
 
     # Train a model on TPU
     model = BoringModel()
-    trainer = Trainer(max_epochs=1, tpu_cores=8, default_root_dir=tmpdir, fast_dev_run=True, checkpoint_callback=False)
+    trainer = Trainer(max_epochs=1, tpu_cores=8, default_root_dir=tmpdir, fast_dev_run=True, enable_checkpointing=False)
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 

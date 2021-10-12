@@ -214,7 +214,7 @@ Lightning offers mixed precision training for GPUs and CPUs, as well as bfloat16
 
 
 .. testcode::
-    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
+    :skipif: torch.cuda.device_count() < 4
 
     # 16-bit precision
     trainer = Trainer(precision=16, gpus=4)
