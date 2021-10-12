@@ -267,6 +267,11 @@ def test_v1_7_0_deprecate_lightning_distributed(tmpdir):
         _ = LightningDistributed()
 
 
+def test_v1_7_0_checkpoint_callback_trainer_constructor(tmpdir):
+    with pytest.deprecated_call(match=r"Setting `Trainer\(checkpoint_callback=True\)` is deprecated in v1.5"):
+        _ = Trainer(checkpoint_callback=True)
+
+
 def test_v1_7_0_old_on_train_batch_start(tmpdir):
     class OldSignature(Callback):
         def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
