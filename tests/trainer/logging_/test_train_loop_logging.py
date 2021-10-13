@@ -78,7 +78,7 @@ def test__training_step__log(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
         callbacks=[ModelCheckpoint(monitor="l_se")],
     )
     trainer.fit(model)
@@ -116,7 +116,7 @@ def test__training_step__epoch_end__log(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -156,7 +156,7 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
         limit_val_batches=batches,
         max_epochs=max_epochs,
         log_every_n_steps=log_interval,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -194,7 +194,7 @@ def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
         limit_train_batches=batches,
         limit_val_batches=batches,
         max_epochs=2,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -232,7 +232,7 @@ def test_different_batch_types_for_sizing(tmpdir):
         limit_train_batches=1,
         limit_val_batches=2,
         max_epochs=1,
-        weights_summary=None,
+        enable_model_summary=False,
         fast_dev_run=True,
     )
     trainer.fit(model)
@@ -391,7 +391,7 @@ def test_logging_sync_dist_true(tmpdir, gpus):
         default_root_dir=tmpdir,
         limit_train_batches=3,
         limit_val_batches=3,
-        weights_summary=None,
+        enable_model_summary=False,
         gpus=gpus,
     )
     trainer.fit(model)
@@ -439,7 +439,7 @@ def test_logging_sync_dist_true_ddp(tmpdir):
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=2,
-        weights_summary=None,
+        enable_model_summary=False,
         accelerator="ddp",
         gpus=2,
         profiler="pytorch",
@@ -483,7 +483,7 @@ def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmpdir: str):
         limit_val_batches=0,
         enable_checkpointing=False,
         logger=False,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     model = TestModel()
     trainer.fit(model)
@@ -519,7 +519,7 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=1,
-        weights_summary=None,
+        enable_model_summary=False,
         callbacks=[LoggingCallback()],
     )
     trainer.fit(model)

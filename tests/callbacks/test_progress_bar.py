@@ -547,7 +547,7 @@ def _test_progress_bar_max_val_check_interval(
         default_root_dir=tmpdir,
         num_sanity_val_steps=0,
         max_epochs=1,
-        weights_summary=None,
+        enable_model_summary=False,
         val_check_interval=val_check_interval,
         gpus=world_size,
         accelerator="ddp",

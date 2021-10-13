@@ -306,7 +306,7 @@ def test_result_reduce_horovod(tmpdir):
             limit_val_batches=2,
             max_epochs=1,
             log_every_n_steps=1,
-            weights_summary=None,
+            enable_model_summary=False,
             logger=False,
         )
 

@@ -272,7 +272,7 @@ class MyLightningCLI(LightningCLI):
         parser.set_defaults(
             {
                 "trainer.max_epochs": 15,
-                "trainer.weights_summary": None,
+                "trainer.enable_model_summary": False,
                 "trainer.num_sanity_val_steps": 0,
             }
         )

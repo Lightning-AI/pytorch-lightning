@@ -341,3 +341,18 @@ def test_v1_7_0_deprecate_parameter_validation():
         match="Using `pytorch_lightning.core.decorators.parameter_validation` is deprecated in v1.5"
     ):
         from pytorch_lightning.core.decorators import parameter_validation  # noqa: F401
+
+
+def test_v1_7_0_weights_summary_trainer(tmpdir):
+    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_summary=full\)` is deprecated in v1.5"):
+        t = Trainer(weights_summary="full")
+
+    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_summary=None\)` is deprecated in v1.5"):
+        t = Trainer(weights_summary=None)
+
+    t = Trainer(weights_summary="top")
+    with pytest.deprecated_call(match=r"`Trainer.weights_summary` is deprecated in v1.5"):
+        _ = t.weights_summary
+
+    with pytest.deprecated_call(match=r"Setting `Trainer.weights_summary` is deprecated in v1.5"):
+        t.weights_summary = "blah"

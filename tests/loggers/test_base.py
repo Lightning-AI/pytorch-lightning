@@ -320,7 +320,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         num_sanity_val_steps=0,
         enable_checkpointing=False,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     # there should be no exceptions raised for the same key/value pair in the hparams of both
     # the lightning module and data module
@@ -344,7 +344,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         num_sanity_val_steps=0,
         enable_checkpointing=False,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     with pytest.raises(MisconfigurationException, match="Error while merging hparams"):
         trainer.fit(model, dm)
@@ -361,7 +361,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         num_sanity_val_steps=0,
         enable_checkpointing=False,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     with pytest.raises(MisconfigurationException, match="Error while merging hparams"):
         trainer.fit(model, dm)

@@ -160,7 +160,6 @@ def test_lbfgs_cpu_model(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         enable_progress_bar=False,
-        weights_summary="top",
         limit_train_batches=0.2,
         limit_val_batches=0.2,
     )

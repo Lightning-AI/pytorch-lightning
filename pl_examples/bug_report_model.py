@@ -55,7 +55,7 @@ def run():
         limit_val_batches=1,
         num_sanity_val_steps=0,
         max_epochs=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
     trainer.test(model, dataloaders=test_data)

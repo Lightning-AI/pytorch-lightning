@@ -280,7 +280,7 @@ def test_train_loop_only(tmpdir):
     model.test_step_end = None
     model.test_epoch_end = None
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, weights_summary=None)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_model_summary=False)
 
     # fit model
     trainer.fit(model, datamodule=dm)
@@ -298,7 +298,7 @@ def test_train_val_loop_only(tmpdir):
     model.validation_step_end = None
     model.validation_epoch_end = None
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, weights_summary=None)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_model_summary=False)
 
     # fit model
     trainer.fit(model, datamodule=dm)
@@ -329,7 +329,7 @@ def test_dm_checkpoint_save(tmpdir):
         max_epochs=1,
         limit_train_batches=2,
         limit_val_batches=1,
-        weights_summary=None,
+        enable_model_summary=False,
         callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on")],
     )
 
@@ -348,7 +348,7 @@ def test_full_loop(tmpdir):
     dm = ClassifDataModule()
     model = ClassificationModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, weights_summary=None, deterministic=True)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_model_summary=False, deterministic=True)
 
     # fit model
     trainer.fit(model, dm)
