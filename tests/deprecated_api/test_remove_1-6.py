@@ -330,16 +330,6 @@ def test_v1_6_0_deprecated_device_dtype_mixin_import():
         from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin  # noqa: F401
 
 
-def test_v1_6_0_passing_strategy_to_accelerator_trainer_flag():
-    with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.6."):
-        Trainer(accelerator="ddp_spawn")
-
-
-def test_v1_6_0_passing_strategy_to_plugins_flag():
-    with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.6."):
-        Trainer(plugins="ddp_spawn")
-
-
 def test_v1_6_0_deprecated_accelerator_collective():
     from pytorch_lightning.plugins.precision import PrecisionPlugin
     from pytorch_lightning.plugins.training_type import SingleDevicePlugin

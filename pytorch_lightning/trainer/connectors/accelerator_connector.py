@@ -307,7 +307,7 @@ class AcceleratorConnector:
         if accelerator is not None and accelerator in list(DistributedType):
             rank_zero_deprecation(
                 f"Passing {accelerator} `strategy` to the `accelerator` flag in Trainer has been deprecated"
-                f" in v1.5 and will be removed in v1.6. Use `Trainer(strategy={accelerator})` instead."
+                f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={accelerator})` instead."
             )
             if self.strategy is not None:
                 raise MisconfigurationException(
@@ -335,7 +335,7 @@ class AcceleratorConnector:
             if self._is_plugin_training_type(plug):
                 rank_zero_deprecation(
                     f"Passing {plug} `strategy` to the `plugins` flag in Trainer has been deprecated"
-                    f" in v1.5 and will be removed in v1.6. Use `Trainer(strategy={plug})` instead."
+                    f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={plug})` instead."
                 )
 
         training_type = self._training_type_plugin or None

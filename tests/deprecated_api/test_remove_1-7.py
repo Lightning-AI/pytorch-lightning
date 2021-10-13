@@ -329,3 +329,13 @@ def test_v1_7_0_deprecate_parameter_validation():
         match="Using `pytorch_lightning.core.decorators.parameter_validation` is deprecated in v1.5"
     ):
         from pytorch_lightning.core.decorators import parameter_validation  # noqa: F401
+
+
+def test_v1_7_0_passing_strategy_to_accelerator_trainer_flag():
+    with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.7."):
+        Trainer(accelerator="ddp_spawn")
+
+
+def test_v1_7_0_passing_strategy_to_plugins_flag():
+    with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.7."):
+        Trainer(plugins="ddp_spawn")
