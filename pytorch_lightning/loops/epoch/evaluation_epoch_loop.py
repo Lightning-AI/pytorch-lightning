@@ -148,7 +148,9 @@ class EvaluationEpochLoop(Loop):
         outputs = self.outputs
         # free memory
         self.outputs = []
+        del self._dataloader_iter
         self._dataloader_iter = None
+        del self._data_fetcher
         self._data_fetcher = None
         return outputs
 
