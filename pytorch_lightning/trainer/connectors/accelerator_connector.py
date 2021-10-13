@@ -112,7 +112,7 @@ class AcceleratorConnector:
         self._distrib_type = None
         self._accelerator_type = None
 
-        self.strategy = strategy
+        self.strategy = strategy.lower() if isinstance(strategy, str) else strategy
         self.distributed_backend = distributed_backend or accelerator
 
         self._init_deterministic(deterministic)
