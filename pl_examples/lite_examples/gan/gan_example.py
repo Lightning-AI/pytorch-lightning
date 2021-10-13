@@ -119,7 +119,6 @@ class GANTrainer(LightningLite):
                 label = torch.full((batch_size,), real_label, dtype=real_cpu.dtype, device=self.device)
 
                 output = netD(real_cpu)
-                print(output.dtype, label.dtype, output.max(), output.min())
                 errD_real = criterion(output, label)
                 self.backward(errD_real)
                 D_x = output.mean().item()
@@ -129,7 +128,6 @@ class GANTrainer(LightningLite):
                 fake = netG(noise)
                 label.fill_(fake_label)
                 output = netD(fake.detach())
-                print(output.dtype, label.dtype, output.max(), output.min())
                 errD_fake = criterion(output, label)
                 self.backward(errD_fake)
                 D_G_z1 = output.mean().item()
@@ -142,7 +140,6 @@ class GANTrainer(LightningLite):
                 netG.zero_grad()
                 label.fill_(real_label)  # fake labels are real for generator cost
                 output = netD(fake)
-                print(output.dtype, label.dtype, output.max(), output.min())
                 errG = criterion(output, label)
                 self.backward(errG)
                 D_G_z2 = output.mean().item()
