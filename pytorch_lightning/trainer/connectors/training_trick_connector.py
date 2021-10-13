@@ -52,7 +52,7 @@ class TrainingTricksConnector:
                 f"`track_grad_norm` should be an int, a float or 'inf' (infinity norm). Got {track_grad_norm}."
             )
 
-        self.trainer.terminate_on_nan = terminate_on_nan
+        self.trainer._terminate_on_nan = terminate_on_nan
         self.trainer.gradient_clip_val = gradient_clip_val
         self.trainer.gradient_clip_algorithm = GradClipAlgorithmType(gradient_clip_algorithm.lower())
         self.trainer.track_grad_norm = float(track_grad_norm)

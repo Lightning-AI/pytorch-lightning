@@ -193,7 +193,7 @@ def test_multiple_optimizers_manual_log(tmpdir):
     with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward) as bwd_mock:
         trainer.fit(model)
     assert bwd_mock.call_count == limit_train_batches * 3
-    assert set(trainer.logged_metrics) == {"a_step", "a_epoch", "epoch"}
+    assert set(trainer.logged_metrics) == {"a_step", "a_epoch"}
 
 
 @RunIf(min_gpus=1)
@@ -1055,7 +1055,7 @@ def test_multiple_optimizers_logging(precision, tmpdir):
 
     trainer.fit(model)
 
-    assert set(trainer.logged_metrics) == {"epoch", "loss_d", "loss_g"}
+    assert set(trainer.logged_metrics) == {"loss_d", "loss_g"}
     assert set(trainer.progress_bar_metrics) == {"loss_d", "loss_g"}
 
 

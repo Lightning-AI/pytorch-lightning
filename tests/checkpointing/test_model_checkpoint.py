@@ -1187,12 +1187,6 @@ def test_model_checkpoint_mode_options():
         ModelCheckpoint(mode="unknown_option")
 
 
-def test_trainer_checkpoint_callback_bool(tmpdir):
-    mc = ModelCheckpoint(dirpath=tmpdir)
-    with pytest.raises(MisconfigurationException, match="Invalid type provided for `enable_checkpointing`"):
-        Trainer(enable_checkpointing=mc)
-
-
 def test_check_val_every_n_epochs_top_k_integration(tmpdir):
     model = BoringModel()
     mc = ModelCheckpoint(dirpath=tmpdir, monitor="epoch", save_top_k=-1, filename="{epoch}")

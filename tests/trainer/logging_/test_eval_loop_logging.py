@@ -55,7 +55,7 @@ def test__validation_step__log(tmpdir):
     )
     trainer.fit(model)
 
-    assert set(trainer.logged_metrics) == {"a2", "a_step", "a_epoch", "b_step", "b_epoch", "epoch"}
+    assert set(trainer.logged_metrics) == {"a2", "a_step", "a_epoch", "b_step", "b_epoch"}
 
     # we don't want to enable val metrics during steps because it is not something that users should do
     # on purpose DO NOT allow b_step... it's silly to monitor val step metrics
@@ -94,7 +94,7 @@ def test__validation_step__epoch_end__log(tmpdir):
     trainer.fit(model)
 
     # make sure all the metrics are available for loggers
-    assert set(trainer.logged_metrics) == {"epoch", "a", "b_step", "b_epoch", "c", "d_step", "d_epoch", "g"}
+    assert set(trainer.logged_metrics) == {"a", "b_step", "b_epoch", "c", "d_step", "d_epoch", "g"}
 
     assert not trainer.progress_bar_metrics
 
@@ -123,14 +123,14 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
 
     # assert the loggers received the expected number
     logged_metrics = set(trainer.logged_metrics)
-    assert logged_metrics == {"c", "d/e/f", "epoch"}
+    assert logged_metrics == {"c", "d/e/f"}
 
     pbar_metrics = set(trainer.progress_bar_metrics)
     assert pbar_metrics == {"c"}
 
     # make sure all the metrics are available for callbacks
     callback_metrics = set(trainer.callback_metrics)
-    assert callback_metrics == (logged_metrics | pbar_metrics) - {"epoch"}
+    assert callback_metrics == (logged_metrics | pbar_metrics)
 
 
 def test_eval_float_logging(tmpdir):
@@ -153,7 +153,7 @@ def test_eval_float_logging(tmpdir):
     )
     trainer.fit(model)
 
-    assert set(trainer.logged_metrics) == {"a", "epoch"}
+    assert set(trainer.logged_metrics) == {"a"}
 
 
 def test_eval_logging_auto_reduce(tmpdir):
