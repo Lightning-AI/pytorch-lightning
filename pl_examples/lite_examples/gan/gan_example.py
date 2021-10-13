@@ -3,7 +3,7 @@ DCGAN - Adapted from pytorch/examples
 
 Launch it with this command:
 
-python -m torch.distributed.launch --nproc_per_node=2 gan_example.py
+python -m torch.distributed.run --nproc_per_node=2 gan_example.py
 
 """
 from __future__ import print_function
