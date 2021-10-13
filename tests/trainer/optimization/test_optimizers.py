@@ -655,3 +655,38 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir, save_on
     model.training_epoch_end = None
     trainer.fit(model)
     assert model.on_save_checkpoint_called
+
+
+def test_scheduler_in_order(tmpdir):
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        logger=False,
+        max_epochs=1,
+        gpus=1,
+        precision=16,
+        limit_train_batches=4,
+        limit_val_batches=1,
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
+    )
+
+    class TestModel(BoringModel):
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
+            scheduler = {
+                "scheduler": torch.optim.lr_scheduler.StepLR(optimizer, step_size=1),
+                "name": "learning_rate",
+                "interval": "step",
+                "frequency": 1,
+            }
+
+            return {"optimizer": optimizer, "lr_scheduler": scheduler}
+
+    model = TestModel()
+    model.training_epoch_end = None
+
+    with pytest.warns(None) as record:
+        trainer.fit(model)
+
+    for r in record:
+        assert "Detected call of `lr_scheduler.step()` before `optimizer.step()`." not in str(r.message)
