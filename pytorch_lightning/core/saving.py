@@ -319,7 +319,7 @@ def load_hparams_from_yaml(config_yaml: str, use_omegaconf: bool = True) -> Dict
 
         Args:
             config_yaml: Path to config yaml file
-            use_omegaconf: If omegaconf is available and `use_omegaconf=True`,
+            use_omegaconf: If omegaconf is available and ``use_omegaconf=True``,
                 the hparams will be converted to ``DictConfig`` if possible.
 
     >>> hparams = Namespace(batch_size=32, learning_rate=0.001, data_root='./any/path/here')
@@ -352,8 +352,8 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace], use_omega
     Args:
         config_yaml: path to new YAML file
         hparams: parameters to be saved
-            use_omegaconf: If omegaconf is available and `use_omegaconf=True`,
-                the hparams will be converted to ``DictConfig`` if possible.
+        use_omegaconf: If omegaconf is available and ``use_omegaconf=True``,
+            the hparams will be converted to ``DictConfig`` if possible.
 
     """
     fs = get_filesystem(config_yaml)
