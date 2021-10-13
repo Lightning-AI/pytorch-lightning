@@ -177,7 +177,7 @@ class LearningRateMonitor(Callback):
                 current_stat = self._get_lr_momentum_stat(opt, name)
                 latest_stat.update(current_stat)
 
-        optimizer_hparam_keys, new_optimizers = self._find_names_from_optimizers(
+        optimizer_hparam_keys, optimizers_without_scheduler = self._find_names_from_optimizers(
             trainer.optimizers,
             seen_optimizers=optimizers_with_scheduler,
             seen_optimizer_types=optimizers_with_scheduler_types,
@@ -185,7 +185,7 @@ class LearningRateMonitor(Callback):
         )
         self._remap_keys(optimizer_hparam_keys)
 
-        for opt, name in zip(new_optimizers, optimizer_hparam_keys):
+        for opt, name in zip(optimizers_without_scheduler, optimizer_hparam_keys):
             current_stat = self._get_lr_momentum_stat(opt, name)
             latest_stat.update(current_stat)
 
@@ -278,7 +278,7 @@ class LearningRateMonitor(Callback):
         self, optimizers, seen_optimizers, seen_optimizer_types, add_lr_sch_names: bool = True
     ) -> List[str]:
         names = []
-        new_optimizers = []
+        optimizers_without_scheduler = []
 
         for optimizer in optimizers:
             if optimizer in seen_optimizers:
@@ -289,8 +289,8 @@ class LearningRateMonitor(Callback):
                 optimizer, name, seen_optimizers, seen_optimizer_types, None, add_lr_sch_names
             )
             names.extend(updated_name)
-            new_optimizers.append(optimizer)
-        return names, new_optimizers
+            optimizers_without_scheduler.append(optimizer)
+        return names, optimizers_without_scheduler
 
     def _check_duplicates_and_update_name(
         self,
