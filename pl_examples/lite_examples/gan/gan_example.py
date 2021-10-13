@@ -23,6 +23,7 @@ import torchvision.utils as vutils
 
 from pl_examples.lite_examples.gan.models import Discriminator, Generator, weights_init
 from pytorch_lightning.lite import LightningLite
+from pytorch_lightning.lite.wrappers import _LiteOptimizer, _LiteModel
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--workers", type=int, help="number of data loading workers", default=0)
@@ -102,6 +103,9 @@ class GANTrainer(LightningLite):
         optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 
         (netG, netD), (optimizerG, optimizerD) = self.setup(models=(netG, netD), optimizers=(optimizerG, optimizerD))
+
+        assert isinstance(optimizerG, _LiteOptimizer)
+        assert isinstance(netG, _LiteModel)
 
         for epoch in range(opt.niter):
             for i, data in enumerate(dataloader, 0):
