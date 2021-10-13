@@ -51,7 +51,7 @@ def test__validation_step__log(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -89,7 +89,7 @@ def test__validation_step__epoch_end__log(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -117,7 +117,7 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
         limit_val_batches=batches,
         max_epochs=max_epochs,
         log_every_n_steps=log_interval,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -149,7 +149,7 @@ def test_eval_float_logging(tmpdir):
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -180,7 +180,7 @@ def test_eval_logging_auto_reduce(tmpdir):
         limit_val_batches=3,
         max_epochs=1,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
         num_sanity_val_steps=0,
     )
     trainer.fit(model)
@@ -210,7 +210,7 @@ def test_eval_epoch_only_logging(tmpdir, batches, log_interval, max_epochs):
         max_epochs=max_epochs,
         limit_test_batches=batches,
         log_every_n_steps=log_interval,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     results = trainer.test(model)
 
@@ -244,7 +244,7 @@ def test_multi_dataloaders_add_suffix_properly(tmpdir, suffix):
         limit_test_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     results = trainer.test(model)
 
@@ -655,6 +655,6 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
         val_check_interval=val_check_interval,
         max_epochs=3,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)

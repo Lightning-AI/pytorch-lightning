@@ -125,7 +125,7 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
         ("--tpu_cores=1,", dict(tpu_cores="1,")),
         ("--limit_train_batches=100", dict(limit_train_batches=100)),
         ("--limit_train_batches 0.8", dict(limit_train_batches=0.8)),
-        ("--weights_summary=null", dict(weights_summary=None)),
+        ("--enable_model_summary FALSE", dict(enable_model_summary=False)),
         (
             "",
             dict(
