@@ -535,6 +535,9 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
     model.training_epoch_end = None
     trainer.fit(model)
 
+    expected = [0.1, 0.1, 0.1, 0.1, 0.1]
+    assert lr_monitor.lrs["lr-Adam-2"] == expected
+
     expected = [0.1, 0.05, 0.025, 0.0125, 0.00625]
     assert lr_monitor.lrs["lr-Adam/pg1"] == expected
 
