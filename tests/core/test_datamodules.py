@@ -25,6 +25,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -646,6 +647,7 @@ DATALOADER = DataLoader(RandomDataset(1, 32))
         [{"foo": DATALOADER, "bar": DATALOADER}, 64],
         [{"foo": {"foo": DATALOADER}, "bar": {"foo": DATALOADER, "bar": DATALOADER}}, 96],
         [{"foo": [DATALOADER], "bar": [DATALOADER, DATALOADER]}, 96],
+        [CombinedLoader({"foo": DATALOADER, "bar": DATALOADER}), 64],
     ],
 )
 def test_len_different_types(method_name, dataloader, expected):
@@ -659,7 +661,8 @@ def test_len_dataloader_no_len(method_name):
     dataloader = CustomNotImplementedErrorDataloader(DATALOADER)
     dm = LightningDataModule()
     setattr(dm, method_name, lambda: dataloader)
-    assert len(dm) == 0
+    with pytest.warns(UserWarning, match="The number of batches for a dataloader is counted as 0"):
+        assert len(dm) == 0
 
 
 def test_len_all_dataloader_methods_implemented():
@@ -681,4 +684,12 @@ def test_len_all_dataloader_methods_implemented():
             return [self.dataloader, self.dataloader]
 
     dm = BoringDataModule(DATALOADER)
+
+    # 6 dataloaders each producing 32 batches: 6 * 32 = 192
     assert len(dm) == 192
+
+
+def test_len_no_dataloader_methods_implemented():
+    dm = LightningDataModule()
+    with pytest.warns(UserWarning, match="You datamodule does not have any valid dataloader"):
+        assert len(dm) == 0

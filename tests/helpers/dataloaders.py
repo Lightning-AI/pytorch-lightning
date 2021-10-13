@@ -13,9 +13,12 @@
 # limitations under the License.
 """Custom dataloaders for testing."""
 
+from torch.utils.data import DataLoader
 
-class CustomInfDataloader:
+
+class CustomInfDataloader(DataLoader):
     def __init__(self, dataloader):
+        super().__init__(dataloader.dataset)
         self.dataloader = dataloader
         self.iter = iter(dataloader)
         self.count = 0
