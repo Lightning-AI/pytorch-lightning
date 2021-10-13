@@ -160,14 +160,17 @@ class DDPSpawnPlugin(ParallelPlugin):
         return {"args": (trainer, self.mp_queue), "nprocs": self.num_processes}
 
     def start_training(self, trainer: "pl.Trainer") -> None:
+        # TODO: refactor: call self.spawn() here
         mp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
 
     def start_evaluating(self, trainer: "pl.Trainer") -> None:
+        # TODO: refactor: call self.spawn() here
         mp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
 
     def start_predicting(self, trainer: "pl.Trainer") -> None:
+        # TODO: refactor: call self.spawn() here
         mp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
 
     def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> None:
@@ -175,29 +178,18 @@ class DDPSpawnPlugin(ParallelPlugin):
         mp.spawn(self._wrapped_function, args=(function, args, kwargs), nprocs=self.num_processes)
 
     def _wrapped_function(self, process_idx: int, function: Callable, args: Any, kwargs: Any) -> None:
-        self.set_world_ranks(process_idx)
-        rank_zero_only.rank = self.global_rank
-        init_ddp_connection(self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size)
+        self._worker_setup(process_idx)
         function(*args, **kwargs)
 
-    def new_process(self, process_idx: int, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
-        self.mp_queue = mp_queue
-
+    def _worker_setup(self, process_idx: int):
         reset_seed()
-
         self.set_world_ranks(process_idx)
-
-        # set warning rank
         rank_zero_only.rank = self.global_rank
-
-        # set up server using proc 0's ip address
-        # try to init for 20 times at max in case ports are taken
-        # where to store ip_table
         init_ddp_connection(self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size)
 
-        # TODO: we moved it to the trainer.fit after calling pre_dispatch
-        #   ... need to double check that it is the correct place
-        # self.trainer.call_setup_hook(self.model)
+    def new_process(self, process_idx: int, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
+        self._worker_setup(process_idx)
+        self.mp_queue = mp_queue
 
         # move the model to the correct device
         self.model_to_device()
