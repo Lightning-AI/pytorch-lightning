@@ -1706,7 +1706,7 @@ The metrics sent to the logger (visualizer).
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        self.log("a_val", 2, log=True)
+        self.log("a_val", 2, logger=True)
 
 
     logged_metrics = trainer.logged_metrics

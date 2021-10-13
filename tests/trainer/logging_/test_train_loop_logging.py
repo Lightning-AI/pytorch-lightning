@@ -84,12 +84,12 @@ def test__training_step__log(tmpdir):
     trainer.fit(model)
 
     logged_metrics = set(trainer.logged_metrics)
-    assert logged_metrics == {"epoch", "default", "l_e", "l_s", "l_se_step", "l_se_epoch"}
+    assert logged_metrics == {"default", "l_e", "l_s", "l_se_step", "l_se_epoch"}
 
     pbar_metrics = set(trainer.progress_bar_metrics)
     assert pbar_metrics == {"p_e", "p_s", "p_se_step", "p_se_epoch"}
 
-    assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"p_se", "l_se"}) - {"epoch"}
+    assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"p_se", "l_se"})
 
 
 def test__training_step__epoch_end__log(tmpdir):
@@ -121,12 +121,12 @@ def test__training_step__epoch_end__log(tmpdir):
     trainer.fit(model)
 
     logged_metrics = set(trainer.logged_metrics)
-    assert logged_metrics == {"epoch", "a_step", "a_epoch", "b", "b1", "a1", "a2"}
+    assert logged_metrics == {"a_step", "a_epoch", "b", "b1", "a1", "a2"}
 
     pbar_metrics = set(trainer.progress_bar_metrics)
     assert pbar_metrics == {"b"}
 
-    assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a"}) - {"epoch"}
+    assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a"})
 
 
 @pytest.mark.parametrize(["batches", "log_interval", "max_epochs"], [(1, 1, 1), (64, 32, 2)])
@@ -162,12 +162,12 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
 
     # make sure all the metrics are available for callbacks
     logged_metrics = set(trainer.logged_metrics)
-    assert logged_metrics == {"a_step", "a_epoch", "b_step", "b_epoch", "c", "d/e/f", "epoch"}
+    assert logged_metrics == {"a_step", "a_epoch", "b_step", "b_epoch", "c", "d/e/f"}
 
     pbar_metrics = set(trainer.progress_bar_metrics)
     assert pbar_metrics == {"c", "b_epoch", "b_step"}
 
-    assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a", "b"}) - {"epoch"}
+    assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a", "b"})
 
 
 @pytest.mark.parametrize(
@@ -237,7 +237,7 @@ def test_different_batch_types_for_sizing(tmpdir):
     )
     trainer.fit(model)
 
-    assert set(trainer.logged_metrics) == {"a_step", "a_epoch", "n_step", "n_epoch", "epoch"}
+    assert set(trainer.logged_metrics) == {"a_step", "a_epoch", "n_step", "n_epoch"}
 
 
 def test_log_works_in_train_callback(tmpdir):

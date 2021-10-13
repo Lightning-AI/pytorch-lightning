@@ -169,4 +169,4 @@ def test_tbptt_logging(tmpdir, model_class):
         enable_checkpointing=False,
     )
     trainer.fit(model)
-    assert set(trainer.logged_metrics) == {"loss_step", "loss_epoch", "epoch"}
+    assert set(trainer.logged_metrics) == {"loss_step", "loss_epoch"}
