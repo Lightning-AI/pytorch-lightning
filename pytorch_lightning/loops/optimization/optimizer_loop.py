@@ -484,10 +484,11 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             grad_norm_dict = grad_norm(self.trainer.lightning_module, self.trainer.track_grad_norm)
 
         # clip gradients
-        self.trainer.lightning_module.configure_gradient_clipping(
-            optimizer,
-            opt_idx,
-            gradient_clip_val=self.trainer.gradient_clip_val,
-            gradient_clip_algorithm=self.trainer.gradient_clip_algorithm,
-        )
+        if not self.trainer.accelerator_connector.use_deepspeed:
+            self.trainer.lightning_module.configure_gradient_clipping(
+                optimizer,
+                opt_idx,
+                gradient_clip_val=self.trainer.gradient_clip_val,
+                gradient_clip_algorithm=self.trainer.gradient_clip_algorithm,
+            )
         return grad_norm_dict

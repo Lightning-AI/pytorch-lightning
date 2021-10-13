@@ -349,18 +349,6 @@ class DeepSpeedPlugin(DDPPlugin):
             self._format_config()
             self._config_initialized = True
 
-    def setup(self) -> None:
-        # check that `configure_gradient_clipping` hook isn't overriden since deepspeed handles
-        # gradient clipping internally
-        if is_overridden("configure_gradient_clipping", self.lightning_module):
-            raise MisconfigurationException(
-                "Deepspeed handles gradient clipping internally. Consider setting"
-                " `gradient_clip_val` and `gradient_clip_algorithm` inside `Trainer`."
-            )
-
-        if self.lightning_module.trainer.gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
-            raise MisconfigurationException("Deepspeed does not support clipping gradients by value.")
-
     def _init_deepspeed_distributed(self) -> None:
         if platform.system() != "Windows":
             # do not set env variables on windows, allow deepspeed to control setup
@@ -390,6 +378,18 @@ class DeepSpeedPlugin(DDPPlugin):
         self.barrier()
 
     def init_deepspeed(self):
+        # check that `configure_gradient_clipping` hook isn't overriden since deepspeed handles
+        # gradient clipping internally
+        if is_overridden("configure_gradient_clipping", self.lightning_module):
+            rank_zero_warn(
+                "Since deepspeed handles gradient clipping internally, this hook will"
+                " be ignored. Consider setting `gradient_clip_val` and `gradient_clip_algorithm`"
+                " inside `Trainer`."
+            )
+
+        if self.lightning_module.trainer.gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
+            raise MisconfigurationException("Deepspeed does not support clipping gradients by value.")
+
         accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
 
         if accumulation_scheduler.epochs != [0]:

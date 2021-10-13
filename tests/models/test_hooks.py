@@ -281,18 +281,24 @@ class HookedModel(BoringModel):
             dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY, 0)),
             dict(name="on_before_optimizer_step", args=(ANY, 0)),
         ]
-        configure_gradient_clipping = [
-            dict(
-                name="clip_gradients",
-                args=(ANY,),
-                kwargs=dict(gradient_clip_val=None, gradient_clip_algorithm=None),
-            ),
-            dict(
-                name="configure_gradient_clipping",
-                args=(ANY, 0),
-                kwargs=dict(gradient_clip_val=None, gradient_clip_algorithm=None),
-            ),
-        ]
+
+        # deepspeed handles gradient clipping internally
+        configure_gradient_clipping = (
+            []
+            if using_deepspeed
+            else [
+                dict(
+                    name="clip_gradients",
+                    args=(ANY,),
+                    kwargs=dict(gradient_clip_val=None, gradient_clip_algorithm=None),
+                ),
+                dict(
+                    name="configure_gradient_clipping",
+                    args=(ANY, 0),
+                    kwargs=dict(gradient_clip_val=None, gradient_clip_algorithm=None),
+                ),
+            ]
+        )
         for i in range(batches):
             out.extend(
                 [

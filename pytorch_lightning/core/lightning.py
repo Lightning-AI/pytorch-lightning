@@ -1536,6 +1536,10 @@ class LightningModule(
     ):
         """Perform gradient clipping for the optimizer parameters. Called before :meth:`optimizer_step`.
 
+        Note:
+            This hook won't be called when using deepspeed since it handles gradient clipping internally.
+            Consider setting ``gradient_clip_val`` and ``gradient_clip_algorithm`` inside ``Trainer``."
+
         Args:
             optimizer: Current optimizer being used.
             optimizer_idx: Index of the current optimizer being used.
