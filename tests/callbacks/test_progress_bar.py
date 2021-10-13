@@ -185,12 +185,12 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
         val_batches_seen = 0
         test_batches_seen = 0
 
-        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-            super().on_train_batch_start(trainer, pl_module, batch, batch_idx, dataloader_idx)
+        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
+            super().on_train_batch_start(trainer, pl_module, batch, batch_idx)
             assert self.train_batch_idx == trainer.fit_loop.batch_idx
 
-        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-            super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+            super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
             assert self.train_batch_idx == trainer.fit_loop.batch_idx + 1
             if not self.is_disabled and self.train_batch_idx % self.refresh_rate == 0:
                 assert self.main_progress_bar.n == self.train_batch_idx
@@ -263,7 +263,7 @@ def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches: int):
         limit_val_batches=limit_val_batches,
         callbacks=[progress_bar],
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
 
@@ -342,7 +342,7 @@ def test_main_progress_bar_update_amount(
         limit_val_batches=val_batches,
         callbacks=[progress_bar],
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
     if train_batches > 0:
@@ -362,7 +362,7 @@ def test_test_progress_bar_update_amount(tmpdir, test_batches: int, refresh_rate
         limit_test_batches=test_batches,
         callbacks=[progress_bar],
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
     trainer.test(model)
     progress_bar.test_progress_bar.update.assert_has_calls([call(delta) for delta in test_deltas])
@@ -379,7 +379,7 @@ def test_tensor_to_float_conversion(tmpdir):
             return super().training_step(batch, batch_idx)
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, logger=False, checkpoint_callback=False
+        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, logger=False, enable_checkpointing=False
     )
     trainer.fit(TestModel())
 

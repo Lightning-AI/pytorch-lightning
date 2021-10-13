@@ -174,68 +174,6 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     assert not failed, "Model should be loaded due to strict=False."
 
 
-@pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))
-def test_trainer_accumulate_grad_batches_zero_grad(tmpdir, accumulate_grad_batches):
-    with patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
-        model = BoringModel()
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            limit_train_batches=20,
-            limit_val_batches=1,
-            max_epochs=1,
-            enable_model_summary=False,
-            accumulate_grad_batches=accumulate_grad_batches,
-        )
-        assert trainer.accumulate_grad_batches == accumulate_grad_batches
-        trainer.fit(model)
-
-        assert sum(isinstance(cb, GradientAccumulationScheduler) for cb in trainer.callbacks) == 1
-        assert sgd_zero_grad.call_count == math.ceil(trainer.limit_train_batches / accumulate_grad_batches)
-
-
-@pytest.mark.parametrize(
-    ["accumulate_grad_batches", "expected_call_count"],
-    [
-        ({1: 2, 3: 4}, 10 + 5 + 5 + 3),
-        ({0: 2, 2: 1}, 5 + 5 + 10 + 10),
-    ],
-)
-def test_trainer_accumulate_grad_batches_dict_zero_grad(tmpdir, accumulate_grad_batches, expected_call_count):
-    with patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
-        model = BoringModel()
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            limit_train_batches=10,
-            limit_val_batches=1,
-            max_epochs=4,
-            enable_model_summary=False,
-            accumulate_grad_batches=accumulate_grad_batches,
-        )
-        assert trainer.accumulate_grad_batches == accumulate_grad_batches.get(0, 1)
-        trainer.fit(model)
-
-        assert sum(isinstance(cb, GradientAccumulationScheduler) for cb in trainer.callbacks) == 1
-        assert sgd_zero_grad.call_count == expected_call_count
-
-
-def test_trainer_accumulate_grad_batches_with_callback(tmpdir):
-    with patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
-        model = BoringModel()
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            limit_train_batches=10,
-            limit_val_batches=1,
-            max_epochs=4,
-            enable_model_summary=False,
-            callbacks=[GradientAccumulationScheduler({1: 2, 3: 4})],
-        )
-        assert trainer.accumulate_grad_batches == 1
-        trainer.fit(model)
-
-        assert sum(isinstance(cb, GradientAccumulationScheduler) for cb in trainer.callbacks) == 1
-        assert sgd_zero_grad.call_count == 10 + 5 + 5 + 3
-
-
 def test_trainer_accumulate_grad_batches_incorrect_value(tmpdir):
     with pytest.raises(MisconfigurationException, match=".*should be an int or a dict.*"):
         Trainer(default_root_dir=tmpdir, accumulate_grad_batches=(2, 5))
@@ -299,7 +237,7 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_bat
             self.start_state_dict = self.state_dict()
             self.opt_step_called = False
 
-        def on_train_batch_end(self, outputs, batch, batch_idx, *_):
+        def on_train_batch_end(self, outputs, batch, batch_idx):
             end_state_dict = self.state_dict()
             is_last_batch = (batch_idx + 1) == self.trainer.num_training_batches
 
@@ -785,6 +723,50 @@ def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
             assert getattr(trainer, path_attr) == ckpt_path
 
 
+@pytest.mark.parametrize("checkpoint_callback", (False, True))
+@pytest.mark.parametrize("fn", ("validate", "test", "predict"))
+def test_tested_checkpoint_path_best(tmpdir, checkpoint_callback, fn):
+    class TestModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            self.log("foo", -batch_idx)
+            return super().validation_step(batch, batch_idx)
+
+        def test_step(self, *args):
+            return self.validation_step(*args)
+
+        def predict_step(self, batch, *_):
+            return self(batch)
+
+    model = TestModel()
+    model.test_epoch_end = None
+    trainer = Trainer(
+        max_epochs=2,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        limit_predict_batches=1,
+        enable_progress_bar=False,
+        default_root_dir=tmpdir,
+        checkpoint_callback=checkpoint_callback,
+    )
+    trainer.fit(model)
+
+    trainer_fn = getattr(trainer, fn)
+    path_attr = f"{fn}{'d' if fn == 'validate' else 'ed'}_ckpt_path"
+    assert getattr(trainer, path_attr) is None
+
+    if checkpoint_callback:
+        trainer_fn(ckpt_path="best")
+        assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
+
+        trainer_fn(model, ckpt_path="best")
+        assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
+    else:
+        with pytest.raises(MisconfigurationException, match="`ModelCheckpoint` is not configured."):
+            trainer_fn(ckpt_path="best")
+        with pytest.raises(MisconfigurationException, match="`ModelCheckpoint` is not configured."):
+            trainer_fn(model, ckpt_path="best")
+
+
 def test_disabled_training(tmpdir):
     """Verify that `limit_train_batches=0` disables the training loop unless `fast_dev_run=True`."""
 
@@ -966,7 +948,7 @@ def test_on_exception_hook(tmpdir):
         def __init__(self):
             super().__init__()
 
-        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
             raise KeyboardInterrupt
 
         def on_test_start(self, trainer, pl_module):
@@ -1307,7 +1289,7 @@ def test_trainer_setup_call(tmpdir, stage):
 
     model = CurrentModel()
     callback = CurrentCallback()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, callbacks=[callback])
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_checkpointing=False, callbacks=[callback])
 
     if stage == "fit":
         trainer.fit(model)
@@ -1884,7 +1866,7 @@ def test_on_load_checkpoint_missing_callbacks(tmpdir):
 def test_module_current_fx_attributes_reset(tmpdir):
     """Ensure that lightning module's attributes related to current fx are reset at the end of execution."""
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1, checkpoint_callback=False, logger=False)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1, enable_checkpointing=False, logger=False)
 
     trainer.fit(model)
     assert model._current_fx_name is None
@@ -2079,3 +2061,19 @@ def test_trainer_metrics_reset_before_each_task(tmpdir):
     trainer.validate(model)
     trainer.test(model)
     trainer.predict(model)
+
+
+def test_detect_anomaly_nan(tmpdir):
+    class NanModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            output = super().training_step(batch, batch_idx)
+            output["loss"] = output["loss"] * torch.tensor(float("nan"))
+            return output
+
+    model = NanModel()
+    trainer = Trainer(default_root_dir=tmpdir, detect_anomaly=True)
+    with pytest.raises(RuntimeError, match=r"returned nan values in its 0th output."):
+        with pytest.warns(
+            UserWarning, match=r".*Error detected in.* Traceback of forward call that caused the error.*"
+        ):
+            trainer.fit(model)

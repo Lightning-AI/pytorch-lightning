@@ -331,12 +331,12 @@ def test_lightning_optimizer_keeps_hooks(tmpdir):
         def configure_optimizers(self):
             return OptimizerWithHooks(self)
 
-        def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+        def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
             self.count_on_train_batch_start += 1
             optimizer = self.optimizers(use_pl_optimizer=False)
             assert len(optimizer._fwd_handles) == 1
 
-        def on_train_batch_end(self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+        def on_train_batch_end(self, outputs: Any, batch: Any, batch_idx: int) -> None:
             self.count_on_train_batch_end += 1
             del self.trainer._lightning_optimizers
             gc.collect()  # not necessary, just in case

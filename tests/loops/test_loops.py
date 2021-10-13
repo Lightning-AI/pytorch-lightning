@@ -367,7 +367,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         accumulate_grad_batches=accumulate_grad_batches,
         enable_progress_bar=False,
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
 
     # simulate a failure
@@ -567,7 +567,6 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
         accumulate_grad_batches=accumulate_grad_batches,
         enable_progress_bar=False,
         logger=False,
-        checkpoint_callback=True,
     )
     trainer.fit(model)
 
