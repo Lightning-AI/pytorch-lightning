@@ -14,8 +14,9 @@
 import logging
 import os
 import re
+from functools import partial
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Callable
 
 import numpy as np
 import torch
@@ -168,6 +169,15 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def start_predicting(self, trainer: "pl.Trainer") -> None:
         mp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
+
+    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> None:
+        mp.spawn(self._wrapped_function, args=(function, args, kwargs), nprocs=self.num_processes)
+
+    def _wrapped_function(self, process_idx: int, function: Callable, args: Any, kwargs: Any) -> None:
+        self.set_world_ranks(process_idx)
+        rank_zero_only.rank = self.global_rank
+        init_ddp_connection(self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size)
+        function(*args, **kwargs)
 
     def new_process(self, process_idx: int, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
         self.mp_queue = mp_queue

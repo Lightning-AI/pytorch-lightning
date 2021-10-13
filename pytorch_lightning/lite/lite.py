@@ -15,6 +15,7 @@
 from abc import abstractmethod, ABC
 from collections import Callable
 from contextlib import contextmanager
+from functools import wraps, partial
 from pathlib import Path
 from typing import Any, Optional, Sequence, Union, List, Dict
 
@@ -26,7 +27,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.lite.wrappers import _LiteOptimizer, _LiteModel
-from pytorch_lightning.plugins import PLUGIN_INPUT
+from pytorch_lightning.plugins import PLUGIN_INPUT, DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.utilities import move_data_to_device
 
@@ -70,10 +71,9 @@ class LightningLite(ABC):
         self._accelerator = backend_connector.select_accelerator()
         self._training_type_plugin = self._accelerator.training_type_plugin
         self._precision_plugin = self._accelerator.precision_plugin
-        # TODO: Do we need to initialize distributed at the very beginning
-        #    any reason to delay??
-        #    this will also launch processes in ddp/ddp_spawn
-        self._accelerator.setup_environment()
+
+        # wrap the run method so we can inject setup logic or spawn processes for the user
+        self.run = self._run_wrapper(self.run)
 
     @property
     def device(self):
@@ -96,8 +96,19 @@ class LightningLite(ABC):
         return getattr(self._training_type_plugin, "world_size", 1)
 
     @abstractmethod
-    def run(self, *args, **kwarg):
+    def run(self, *args, **kwarg) -> None:
         pass
+
+    def _run_wrapper(self, run_method: Callable) -> Callable:
+        return partial(self._run_impl, run_method=run_method)
+
+    def _run_impl(self, run_method, *args, **kwargs) -> None:
+        self._training_type_plugin.setup_environment()
+        if isinstance(self._training_type_plugin, DDPSpawnPlugin):
+            self._training_type_plugin.spawn(run_method, *args, **kwargs)
+        else:
+            run_method(*args, **kwargs)
+        # TODO: any teardown needed here?
 
     def setup(
         self,
