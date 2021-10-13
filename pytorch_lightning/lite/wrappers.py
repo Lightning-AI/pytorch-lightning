@@ -14,10 +14,12 @@
 
 from typing import Any
 
-from torch import nn as nn
+import torch
+from torch import nn as nn, Tensor
 from torch.optim import Optimizer
 
 from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
 class _LiteOptimizer(Optimizer):
@@ -26,12 +28,12 @@ class _LiteOptimizer(Optimizer):
         self.optimizer = optimizer
         self._accelerator = accelerator
 
-    def step(self, closure=None, **kwargs: Any):
+    def step(self, closure=None):
         print("running automated step")
-        output = self._accelerator.run_optimizer_step(
+        output = self._accelerator.optimizer_step(
             self.optimizer,
             lambda_closure=closure,
-            **kwargs,
+            model=None,
         )
         return output
 
@@ -49,4 +51,6 @@ class _LiteModel(nn.Module):
     def forward(self, *args, **kwargs):
         with self._accelerator.forward_context():
             output = self.module.forward(*args, **kwargs)
+
+        output = apply_to_collection(output, function=lambda t: t.to(torch.get_default_dtype()), dtype=Tensor)
         return output

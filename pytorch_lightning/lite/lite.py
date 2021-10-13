@@ -96,11 +96,11 @@ class LightningLite(ABC):
         return getattr(self._training_type_plugin, "world_size", 1)
 
     @abstractmethod
-    def run(self, *args, **kwarg) -> None:
+    def run(self, *args, **kwargs) -> None:
         pass
 
     def _run_wrapper(self, run_method: Callable) -> Callable:
-        return partial(self._run_impl, run_method=run_method)
+        return partial(self._run_impl, run_method)
 
     def _run_impl(self, run_method, *args, **kwargs) -> None:
         self._training_type_plugin.setup_environment()
@@ -116,8 +116,8 @@ class LightningLite(ABC):
         optimizers: Union[Optimizer, Sequence[Optimizer]],
     ):
         # wrap all objects passed in and return them in the same order
-        models = [models] if len(models) == 1 else models
-        optimizers = [optimizers] if len(optimizers) == 1 else optimizers
+        models = [models] if isinstance(models, nn.Module) or len(models) == 1 else models
+        optimizers = [optimizers] if isinstance(optimizers, Optimizer) or len(optimizers) == 1 else optimizers
         models, optimizers = self._setup_models_and_optimizers(models, optimizers)
 
         models = models[0] if len(models) == 1 else models
