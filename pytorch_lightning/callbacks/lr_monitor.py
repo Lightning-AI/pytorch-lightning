@@ -122,11 +122,21 @@ class LearningRateMonitor(Callback):
                 )
 
         # Find names for schedulers
-        names = (
-            self._find_names(trainer.lr_schedulers)
-            if trainer.lr_schedulers
-            else self._find_names_from_optimizer(trainer)
+        names = []
+        (
+            sched_hparam_keys,
+            optimizers_with_scheduler,
+            optimizers_with_scheduler_types,
+        ) = self._find_names_from_schedulers(trainer.lr_schedulers)
+        names.extend(sched_hparam_keys)
+
+        # Find names for leftover optimizers
+        optimizer_hparam_keys, _ = self._find_names_from_optimizers(
+            trainer.optimizers,
+            seen_optimizers=optimizers_with_scheduler,
+            seen_optimizer_types=optimizers_with_scheduler_types,
         )
+        names.extend(optimizer_hparam_keys)
 
         # Initialize for storing values
         self.lrs = {name: [] for name in names}
@@ -154,23 +164,30 @@ class LearningRateMonitor(Callback):
     def _extract_stats(self, trainer, interval: str) -> Dict[str, float]:
         latest_stat = {}
 
-        if trainer.lr_schedulers:
-            names = self._find_names(trainer.lr_schedulers, add_lr_sch_names=False)
-            self._remap_keys(names)
+        (
+            scheduler_hparam_keys,
+            optimizers_with_scheduler,
+            optimizers_with_scheduler_types,
+        ) = self._find_names_from_schedulers(trainer.lr_schedulers, add_lr_sch_names=False)
+        self._remap_keys(scheduler_hparam_keys)
 
-            for name, scheduler in zip(self.lr_sch_names, trainer.lr_schedulers):
-                if interval in [scheduler["interval"], "any"]:
-                    opt = scheduler["scheduler"].optimizer
-                    current_stat = self._get_lr_momentum_stat(opt, name)
-                    latest_stat.update(current_stat)
-        else:
-            names = self._find_names_from_optimizer(trainer, add_lr_sch_names=False)
-            self._remap_keys(names)
-
-            for idx, name in enumerate(names):
-                opt = trainer.optimizers[idx]
+        for name, scheduler in zip(self.lr_sch_names, trainer.lr_schedulers):
+            if interval in [scheduler["interval"], "any"]:
+                opt = scheduler["scheduler"].optimizer
                 current_stat = self._get_lr_momentum_stat(opt, name)
                 latest_stat.update(current_stat)
+
+        optimizer_hparam_keys, new_optimizers = self._find_names_from_optimizers(
+            trainer.optimizers,
+            seen_optimizers=optimizers_with_scheduler,
+            seen_optimizer_types=optimizers_with_scheduler_types,
+            add_lr_sch_names=False,
+        )
+        self._remap_keys(optimizer_hparam_keys)
+
+        for opt, name in zip(new_optimizers, optimizer_hparam_keys):
+            current_stat = self._get_lr_momentum_stat(opt, name)
+            latest_stat.update(current_stat)
 
         return latest_stat
 
@@ -238,7 +255,7 @@ class LearningRateMonitor(Callback):
             return set()
         return {n for n in names if names.count(n) > 1}
 
-    def _find_names(self, lr_schedulers: List, add_lr_sch_names: bool = True) -> List[str]:
+    def _find_names_from_schedulers(self, lr_schedulers: List, add_lr_sch_names: bool = True) -> List[str]:
         # Create unique names in the case we have multiple of the same learning
         # rate scheduler + multiple parameter groups
         names = []
@@ -255,19 +272,25 @@ class LearningRateMonitor(Callback):
                 sch.optimizer, name, seen_optimizers, seen_optimizer_types, scheduler, add_lr_sch_names
             )
             names.extend(updated_name)
-        return names
+        return names, seen_optimizers, seen_optimizer_types
 
-    def _find_names_from_optimizer(self, trainer, add_lr_sch_names: bool = True) -> List[str]:
+    def _find_names_from_optimizers(
+        self, optimizers, seen_optimizers, seen_optimizer_types, add_lr_sch_names: bool = True
+    ) -> List[str]:
         names = []
-        seen_optimizers = []
-        seen_optimizer_types = defaultdict(int)
-        for optimizer in trainer.optimizers:
+        new_optimizers = []
+
+        for optimizer in optimizers:
+            if optimizer in seen_optimizers:
+                continue
+
             name = "lr-" + optimizer.__class__.__name__
             updated_name = self._check_duplicates_and_update_name(
                 optimizer, name, seen_optimizers, seen_optimizer_types, None, add_lr_sch_names
             )
             names.extend(updated_name)
-        return names
+            new_optimizers.append(optimizer)
+        return names, new_optimizers
 
     def _check_duplicates_and_update_name(
         self,

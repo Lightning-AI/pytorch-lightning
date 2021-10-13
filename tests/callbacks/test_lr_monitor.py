@@ -476,17 +476,30 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
     class Check(Callback):
         def on_train_epoch_start(self, trainer, pl_module) -> None:
             num_param_groups = sum(len(opt.param_groups) for opt in trainer.optimizers)
-            assert lr_monitor.lr_sch_names == ["lr-Adam", "lr-Adam-1"]
+            assert lr_monitor.lr_sch_names == ["lr-Adam", "lr-Adam-1", "lr-Adam-2"]
             if trainer.current_epoch == 0:
                 assert num_param_groups == 3
             elif trainer.current_epoch == 1:
                 assert num_param_groups == 4
-                assert list(lr_monitor.lrs) == ["lr-Adam-1", "lr-Adam/pg1", "lr-Adam/pg2"]
+                assert list(lr_monitor.lrs) == ["lr-Adam-1", "lr-Adam-2", "lr-Adam/pg1", "lr-Adam/pg2"]
             elif trainer.current_epoch == 2:
                 assert num_param_groups == 5
-                assert list(lr_monitor.lrs) == ["lr-Adam/pg1", "lr-Adam/pg2", "lr-Adam-1/pg1", "lr-Adam-1/pg2"]
+                assert list(lr_monitor.lrs) == [
+                    "lr-Adam-2",
+                    "lr-Adam/pg1",
+                    "lr-Adam/pg2",
+                    "lr-Adam-1/pg1",
+                    "lr-Adam-1/pg2",
+                ]
             else:
-                expected = ["lr-Adam/pg1", "lr-Adam/pg2", "lr-Adam-1/pg1", "lr-Adam-1/pg2", "lr-Adam-1/pg3"]
+                expected = [
+                    "lr-Adam-2",
+                    "lr-Adam/pg1",
+                    "lr-Adam/pg2",
+                    "lr-Adam-1/pg1",
+                    "lr-Adam-1/pg2",
+                    "lr-Adam-1/pg3",
+                ]
                 assert list(lr_monitor.lrs) == expected
 
     class TestFinetuning(BackboneFinetuning):
