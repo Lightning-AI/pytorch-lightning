@@ -231,8 +231,8 @@ class ProgressBar(ProgressBarBase):
         reset(self.main_progress_bar, total=total_batches, current=self.train_batch_idx)
         self.main_progress_bar.set_description(f"Epoch {trainer.current_epoch}")
 
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
         total_batches = self.total_train_batches + self.total_val_batches
         total_batches = convert_inf(total_batches)
         if self._should_update(self.train_batch_idx, total_batches):

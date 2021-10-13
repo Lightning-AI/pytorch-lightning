@@ -22,6 +22,7 @@ from torchmetrics import Metric
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loops.fit_loop import FitLoop
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -42,10 +43,15 @@ class CheckpointConnector:
 
     @property
     def hpc_resume_path(self) -> Optional[str]:
+        if not os.path.isdir(self.trainer.weights_save_path):
+            return None
         dir_path_hpc = str(self.trainer.weights_save_path)
         max_version = self.max_ckpt_version_in_folder(dir_path_hpc, "hpc_ckpt_")
         if max_version is not None:
             return os.path.join(dir_path_hpc, f"hpc_ckpt_{max_version}.ckpt")
+        auto_save_checkpoint = os.path.join(dir_path_hpc, ".pl_auto_save.ckpt")
+        if os.path.exists(auto_save_checkpoint):
+            return auto_save_checkpoint
 
     def resume_start(self) -> None:
         """Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
@@ -163,10 +169,14 @@ class CheckpointConnector:
 
         # restore precision plugin (scaler etc.)
         self.trainer.precision_plugin.on_load_checkpoint(self._loaded_checkpoint)
+
         # restore loops and their progress
         self.restore_loops()
 
-        self.restore_optimizers_and_schedulers()
+        assert self.trainer.state.fn is not None
+        if self.trainer.state.fn == TrainerFn.FITTING:
+            # restore optimizers and schedulers state
+            self.restore_optimizers_and_schedulers()
 
     def restore_callbacks(self) -> None:
         """Restores all callbacks from the pre-loaded checkpoint."""
@@ -185,6 +195,21 @@ class CheckpointConnector:
 
         self.trainer.fit_loop.global_step = self._loaded_checkpoint["global_step"]
         self.trainer.fit_loop.current_epoch = self._loaded_checkpoint["epoch"]
+
+        assert self.trainer.state.fn is not None
+        state_dict = self._loaded_checkpoint.get("loops")
+        if state_dict is not None and self.trainer.state.fn != TrainerFn.TUNING:
+            if self.trainer.state.fn == TrainerFn.FITTING:
+                self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
+            elif self.trainer.state.fn == TrainerFn.VALIDATING:
+                self.trainer.validate_loop.load_state_dict(state_dict["validate_loop"])
+            elif self.trainer.state.fn == TrainerFn.TESTING:
+                self.trainer.test_loop.load_state_dict(state_dict["test_loop"])
+            elif self.trainer.state.fn == TrainerFn.PREDICTING:
+                self.trainer.predict_loop.load_state_dict(state_dict["predict_loop"])
+
+        if self.trainer.state.fn != TrainerFn.FITTING:
+            return
 
         # crash if max_epochs is lower then the current epoch from the checkpoint
         if (
@@ -211,13 +236,6 @@ class CheckpointConnector:
                 " This can cause unreliable results if further training is done,"
                 " consider using an end of epoch checkpoint."
             )
-
-        state_dict = self._loaded_checkpoint.get("loops")
-        if state_dict:
-            self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
-            self.trainer.validate_loop.load_state_dict(state_dict["validate_loop"])
-            self.trainer.test_loop.load_state_dict(state_dict["test_loop"])
-            self.trainer.predict_loop.load_state_dict(state_dict["predict_loop"])
 
     def restore_optimizers_and_schedulers(self) -> None:
         """Restores the optimizers and learning rate scheduler states from the pre-loaded checkpoint."""

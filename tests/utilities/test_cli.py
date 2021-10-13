@@ -125,7 +125,7 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
         ("--tpu_cores=1,", dict(tpu_cores="1,")),
         ("--limit_train_batches=100", dict(limit_train_batches=100)),
         ("--limit_train_batches 0.8", dict(limit_train_batches=0.8)),
-        ("--weights_summary=null", dict(weights_summary=None)),
+        ("--enable_model_summary FALSE", dict(enable_model_summary=False)),
         (
             "",
             dict(
@@ -202,7 +202,7 @@ def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
         ({}, {}),
         (dict(logger=False), {}),
         (dict(logger=False), dict(logger=True)),
-        (dict(logger=False), dict(checkpoint_callback=True)),
+        (dict(logger=False), dict(enable_checkpointing=True)),
     ],
 )
 def test_init_from_argparse_args(cli_args, extra_args):
@@ -337,7 +337,7 @@ def test_lightning_cli_args(tmpdir):
         f"--data.data_dir={tmpdir}",
         f"--trainer.default_root_dir={tmpdir}",
         "--trainer.max_epochs=1",
-        "--trainer.weights_summary=null",
+        "--trainer.enable_model_summary=False",
         "--seed_everything=1234",
     ]
 

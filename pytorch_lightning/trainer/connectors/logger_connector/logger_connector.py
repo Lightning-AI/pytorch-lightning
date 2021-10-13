@@ -103,6 +103,9 @@ class LoggerConnector:
 
         if step is None:
             step = scalar_metrics.pop("step", None)
+
+        self._logged_metrics.update(scalar_metrics)
+
         if step is None:
             # added metrics for convenience
             scalar_metrics.setdefault("epoch", self.trainer.current_epoch)
@@ -111,8 +114,6 @@ class LoggerConnector:
         # log actual metrics
         self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
         self.trainer.logger.save()
-
-        self._logged_metrics.update(scalar_metrics)
 
     """
     Evaluation metric updates
@@ -181,7 +182,7 @@ class LoggerConnector:
 
         # log results of evaluation
         if (
-            self.trainer.state.fn != TrainerFn.FITTING
+            self.trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING)
             and self.trainer.evaluating
             and self.trainer.is_global_zero
             and self.trainer.verbose_evaluate

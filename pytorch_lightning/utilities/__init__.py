@@ -41,7 +41,6 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _IS_INTERACTIVE,
     _JSONARGPARSE_AVAILABLE,
     _module_available,
-    _NATIVE_AMP_AVAILABLE,
     _OMEGACONF_AVAILABLE,
     _POPTORCH_AVAILABLE,
     _RICH_AVAILABLE,
@@ -58,6 +57,7 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _TPU_AVAILABLE,
     _XLA_AVAILABLE,
 )
+from pytorch_lightning.utilities.parameter_tying import find_shared_parameters, set_shared_parameters  # noqa: F401
 from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable  # noqa: F401
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn  # noqa: F401
 
