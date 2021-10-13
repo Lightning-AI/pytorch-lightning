@@ -242,8 +242,6 @@ def get_all_subclasses(cls):
     return set(subclass_list)
 
 
-# Credit to DeepSpeed
-# https://github.com/microsoft/DeepSpeed/blob/master/deepspeed/runtime/zero/partition_parameters.py#L277
 def use_meta_device():
     """Replace all torch.nn.Module by their meta replacement."""
     for subclass in get_all_subclasses(torch.nn.modules.module.Module):
