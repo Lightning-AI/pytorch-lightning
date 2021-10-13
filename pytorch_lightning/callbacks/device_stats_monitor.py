@@ -78,5 +78,5 @@ class DeviceStatsMonitor(Callback):
         trainer.logger.log_metrics(prefixed_device_stats, step=trainer.global_step)
 
 
-def prefix_metrics_keys(metrics_dict: Dict[str, float], prefix: str):
+def prefix_metrics_keys(metrics_dict: Dict[str, float], prefix: str) -> Dict:
     return {prefix + "." + k: v for k, v in metrics_dict.items()}
