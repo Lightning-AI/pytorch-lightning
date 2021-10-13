@@ -18,7 +18,7 @@ Device Stats Monitor
 Monitors and logs device stats during training.
 
 """
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
@@ -58,7 +58,8 @@ class DeviceStatsMonitor(Callback):
             return
 
         device_stats = trainer.accelerator.get_device_stats(pl_module.device)
-        trainer.logger.log_metrics(device_stats, step=trainer.global_step)
+        prefixed_device_stats = prefix_metrics_keys(device_stats, "on_train_batch_start")
+        trainer.logger.log_metrics(prefixed_device_stats, step=trainer.global_step)
 
     def on_train_batch_end(
         self,
@@ -73,4 +74,9 @@ class DeviceStatsMonitor(Callback):
             return
 
         device_stats = trainer.accelerator.get_device_stats(pl_module.device)
-        trainer.logger.log_metrics(device_stats, step=trainer.global_step)
+        prefixed_device_stats = prefix_metrics_keys(device_stats, "on_train_batch_end")
+        trainer.logger.log_metrics(prefixed_device_stats, step=trainer.global_step)
+
+
+def prefix_metrics_keys(metrics_dict: Dict[str, float], prefix: str):
+    return {prefix + "." + k: v for k, v in metrics_dict.items()}
