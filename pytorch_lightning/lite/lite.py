@@ -27,7 +27,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.lite.wrappers import _LiteOptimizer, _LiteModel
-from pytorch_lightning.plugins import PLUGIN_INPUT, DDPSpawnPlugin
+from pytorch_lightning.plugins import PLUGIN_INPUT, DDPSpawnPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.utilities import move_data_to_device
 
@@ -36,6 +36,7 @@ class LightningLite(ABC):
     def __init__(
         self,
         accelerator: Optional[Union[str, Accelerator]] = None,
+        strategy: Optional[Union[str, TrainingTypePlugin]] = None,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         gpus: Optional[Union[List[int], str, int]] = None,
         tpu_cores: Optional[Union[List[int], str, int]] = None,
@@ -56,6 +57,7 @@ class LightningLite(ABC):
             ipus=ipus,
             distributed_backend=None,  # TODO: remove
             accelerator=accelerator,
+            strategy=strategy,
             gpus=gpus,
             gpu_ids=gpu_ids,
             num_nodes=num_nodes,
