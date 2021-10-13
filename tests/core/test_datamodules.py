@@ -658,7 +658,11 @@ def test_len_different_types(method_name, dataloader, expected):
 
 @pytest.mark.parametrize("method_name", ["train_dataloader", "val_dataloader", "test_dataloader", "predict_dataloader"])
 def test_len_dataloader_no_len(method_name):
-    dataloader = CustomNotImplementedErrorDataloader(DATALOADER)
+    class CustomNotImplementedErrorDataloader(DataLoader):
+        def __len__(self):
+            raise NotImplementedError
+
+    dataloader = CustomNotImplementedErrorDataloader(RandomDataset(1, 32))
     dm = LightningDataModule()
     setattr(dm, method_name, lambda: dataloader)
     with pytest.warns(UserWarning, match="The number of batches for a dataloader is counted as 0"):
