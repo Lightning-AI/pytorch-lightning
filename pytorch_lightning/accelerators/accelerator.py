@@ -255,7 +255,14 @@ class Accelerator:
         #   the blocking of "require_backward_grad_sync" for the PyTorch user
         self.precision_plugin.run_backward(tensor, *args, **kwargs)
 
-    def optimizer_step(self, optimizer: Optimizer, opt_idx: int, lambda_closure: Callable, **kwargs: Any) -> None:
+    def optimizer_step(
+        self,
+        optimizer: Optimizer,
+        opt_idx: int = 0,
+        lambda_closure: Optional[Callable] = None,
+        model: Optional[Union[Module, "pl.LightningModule"]] = None,
+        **kwargs: Any
+    ) -> None:
         """performs the actual optimizer step.
 
         Args:
@@ -263,18 +270,15 @@ class Accelerator:
             opt_idx: index of the current optimizer
             lambda_closure: closure calculating the loss value
         """
+        model = model if model is not None else self.lightning_module
         make_optimizer_step = self.precision_plugin.pre_optimizer_step(
-            self.lightning_module, optimizer, opt_idx, lambda_closure, **kwargs
+            model, optimizer, opt_idx, lambda_closure, **kwargs
         )
         if make_optimizer_step:
-            self.run_optimizer_step(optimizer, opt_idx, lambda_closure, **kwargs)
+            self.run_optimizer_step(optimizer, lambda_closure, **kwargs)
 
     def run_optimizer_step(self, optimizer: Optimizer, lambda_closure: Callable, **kwargs: Any) -> None:
-        """Lightning-independent optimizer step logic"""
-        self.precision_plugin.run_pre_optimizer_step(optimizer)
         self.training_type_plugin.optimizer_step(optimizer, lambda_closure=lambda_closure, **kwargs)
-        self.precision_plugin.run_post_optimizer_step(optimizer)
-        # TODO: do we need to call training_type_plugin.post_optimizer_step?
 
     def optimizer_zero_grad(self, current_epoch: int, batch_idx: int, optimizer: Optimizer, opt_idx: int) -> None:
         """Zeros all model parameter's gradients."""

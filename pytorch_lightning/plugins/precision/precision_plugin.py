@@ -96,14 +96,15 @@ class PrecisionPlugin(CheckpointHooks):
 
     def pre_optimizer_step(
         self,
-        model: "pl.LightningModule",
+        model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
         **kwargs: Any,
     ) -> bool:
         """Hook to do something before each optimizer step."""
-        model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
+        if isinstance(model, pl.LightningModule):
+            model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         return True
 
     def post_optimizer_step(self, optimizer: "Optimizer", optimizer_idx: int) -> None:
