@@ -166,7 +166,7 @@ class CallbackConnector:
         if weights_summary is None:
             rank_zero_deprecation(
                 "Setting `Trainer(weights_summary=None)` is deprecated in v1.5 and will be removed"
-                " in v1.7. Please set `Trainer(enable_model_summary=False) instead."
+                " in v1.7. Please set `Trainer(enable_model_summary=False)` instead."
             )
             return
         if not enable_model_summary:
