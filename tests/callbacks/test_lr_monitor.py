@@ -252,7 +252,7 @@ def test_lr_monitor_custom_name(tmpdir):
         limit_train_batches=0.5,
         callbacks=[lr_monitor],
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(TestModel())
     assert lr_monitor.lr_sch_names == list(lr_monitor.lrs.keys()) == ["my_logging_name"]
@@ -273,7 +273,7 @@ def test_lr_monitor_custom_pg_name(tmpdir):
         limit_train_batches=2,
         callbacks=[lr_monitor],
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(TestModel())
     assert lr_monitor.lr_sch_names == ["lr-SGD"]
@@ -311,7 +311,7 @@ def test_lr_monitor_duplicate_custom_pg_names(tmpdir):
         limit_train_batches=2,
         callbacks=[lr_monitor],
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
     )
 
     with pytest.raises(
@@ -389,7 +389,7 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
         limit_train_batches=2,
         callbacks=[TestFinetuning(), lr_monitor, Check()],
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
         enable_checkpointing=False,
     )
     model = TestModel()

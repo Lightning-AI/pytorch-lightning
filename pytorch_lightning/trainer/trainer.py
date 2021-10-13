@@ -157,6 +157,7 @@ class Trainer(
         accelerator: Optional[Union[str, Accelerator]] = None,
         sync_batchnorm: bool = False,
         precision: Union[int, str] = 32,
+        enable_model_summary: bool = True,
         weights_summary: Optional[str] = "top",
         weights_save_path: Optional[str] = None,
         num_sanity_val_steps: int = 2,
@@ -370,7 +371,15 @@ class Trainer(
             val_check_interval: How often to check the validation set. Use float to check within a training epoch,
                 use int to check every n steps (batches).
 
+            enable_model_summary: Whether to enable model summarization by default.
+
             weights_summary: Prints a summary of the weights when training begins.
+
+                .. deprecated:: v1.5
+                    ``weights_summary`` has been deprecated in v1.5 and will be removed in v1.7.
+                    To disable the summary, pass ``enable_model_summary = False`` to the Trainer.
+                    To customize the summary, pass :class:`~pytorch_lightning.callbacks.model_summary.ModelSummary`
+                    directly to the Trainer's ``callbacks`` argument.
 
             weights_save_path: Where to save weights if specified. Will override default_root_dir
                 for checkpoints only. Use this if for whatever reason you need the checkpoints
@@ -463,6 +472,9 @@ class Trainer(
         self.tested_ckpt_path: Optional[str] = None
         self.predicted_ckpt_path: Optional[str] = None
 
+        # todo: remove in v1.7
+        self._weights_summary: Optional[str] = None
+
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init
         self.callback_connector.on_trainer_init(
@@ -474,6 +486,7 @@ class Trainer(
             process_position,
             default_root_dir,
             weights_save_path,
+            enable_model_summary,
             weights_summary,
             stochastic_weight_avg,
             max_time,
@@ -2022,6 +2035,16 @@ class Trainer(
             caller = inspect.stack()[1]
             class_name = caller[0].f_locals["self"].__class__.__name__
             raise ExitGracefullyException(f"Exiting gracefully on {class_name}:{caller.function}")
+
+    @property
+    def weights_summary(self) -> Optional[str]:
+        rank_zero_deprecation("`Trainer.weights_summary` is deprecated in v1.5 and will be removed in v1.7.")
+        return self._weights_summary
+
+    @weights_summary.setter
+    def weights_summary(self, val: Optional[str]) -> None:
+        rank_zero_deprecation("Setting `Trainer.weights_summary` is deprecated in v1.5 and will be removed in v1.7.")
+        self._weights_summary = val
 
     """
     Other

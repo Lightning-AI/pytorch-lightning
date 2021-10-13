@@ -429,7 +429,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         val_check_interval=1.0,
         enable_progress_bar=False,
         logger=False,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -621,8 +621,8 @@ def test_trainer_max_steps_accumulate_batches(tmpdir):
         max_steps=num_train_samples + 10,
         accumulate_grad_batches=10,
         logger=False,
-        weights_summary=None,
         enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -1389,7 +1389,7 @@ def predict(
         default_root_dir=tmpdir,
         max_epochs=1,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
         accelerator=accelerator,
         gpus=gpus,
         num_processes=num_processes,

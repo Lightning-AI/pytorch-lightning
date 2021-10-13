@@ -890,7 +890,9 @@ def test_iterable_dataset_stop_iteration_at_epoch_beginning(yield_at_all):
     model = TestModel()
     train_dataloader = DataLoader(TestDataset(model.gen), batch_size=2)
     trainer = Trainer(
-        default_root_dir=os.getcwd(), max_epochs=2, weights_summary=None  # we expect the second epoch to be skipped
+        default_root_dir=os.getcwd(),
+        max_epochs=2,
+        enable_model_summary=False,  # we expect the second epoch to be skipped
     )
     trainer.fit(model, train_dataloader=train_dataloader)
     assert trainer.global_step == 2 * yield_at_all
