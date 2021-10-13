@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from typing import Any
+from typing import Any, Callable, Optional
 
 import torch
 from torch import nn as nn, Tensor
@@ -23,32 +22,31 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
 class _LiteOptimizer(Optimizer):
-    def __init__(self, optimizer: Optimizer, accelerator: Accelerator):
-        super().__init__(params=optimizer.param_groups, defaults=optimizer.defaults)
-        self.optimizer = optimizer
+    def __init__(self, optimizer: Optimizer, accelerator: Accelerator) -> None:
+        super().__init__(params=optimizer.param_groups, defaults=optimizer.defaults)  # type: ignore[call-arg]
+        self.__dict__ = optimizer.__dict__
+        self._optimizer = optimizer
         self._accelerator = accelerator
 
-    def step(self, closure=None):
-        print("running automated step")
-        output = self._accelerator.optimizer_step(
-            self.optimizer,
+    def step(self, closure: Optional[Callable] = None) -> None:
+        self._accelerator.optimizer_step(
+            self._optimizer,
             lambda_closure=closure,
             model=None,
         )
-        return output
 
 
-class _LiteModel(nn.Module):
-    def __init__(self, module: nn.Module, accelerator: Accelerator):
+class _LiteModule(nn.Module):
+    def __init__(self, module: nn.Module, accelerator: Accelerator) -> None:
         super().__init__()
         self._module = module
         self._accelerator = accelerator
 
     @property
-    def module(self):
+    def module(self) -> nn.Module:
         return self._module
 
-    def forward(self, *args, **kwargs):
+    def forward(self, *args: Any, **kwargs: Any) -> Any:
         with self._accelerator.forward_context():
             output = self.module.forward(*args, **kwargs)
 
