@@ -19,4 +19,4 @@ jobs:
         run: |
           grep mypy requirements/test.txt | xargs -0 pip install
           pip list
-      - run: mypy
+      - run: mypy --install-types --non-interactive

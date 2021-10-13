@@ -22,9 +22,9 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
-def test_checkpoint_callback_disabled(tmpdir):
+def test_disabled_checkpointing(tmpdir):
     # no callback
-    trainer = Trainer(max_epochs=3, checkpoint_callback=False)
+    trainer = Trainer(max_epochs=3, enable_checkpointing=False)
     assert not trainer.checkpoint_callbacks
     trainer.fit(BoringModel())
     assert not trainer.checkpoint_callbacks
@@ -43,7 +43,7 @@ def test_default_checkpoint_freq(save_mock, tmpdir, epochs: int, val_check_inter
         weights_summary=None,
         val_check_interval=val_check_interval,
         limit_val_batches=1,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
     trainer.fit(model)
 
@@ -119,7 +119,7 @@ def _top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
     trainer = Trainer(
         callbacks=[callbacks.ModelCheckpoint(dirpath=tmpdir, monitor="my_loss_step", save_top_k=k, mode="max")],
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=epochs,
         weights_summary=None,
         val_check_interval=val_check_interval,

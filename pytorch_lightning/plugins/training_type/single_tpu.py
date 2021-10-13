@@ -14,12 +14,18 @@
 import os
 from typing import Any, Dict
 
-from pytorch_lightning.core.decorators import parameter_validation
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
-from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE
+from pytorch_lightning.utilities import (
+    _OMEGACONF_AVAILABLE,
+    _TPU_AVAILABLE,
+    find_shared_parameters,
+    set_shared_parameters,
+)
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.types import _PATH
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -48,7 +54,14 @@ class SingleTPUPlugin(SingleDevicePlugin):
     def is_distributed(self) -> bool:
         return False
 
-    @parameter_validation
+    def setup(self) -> None:
+        shared_params = find_shared_parameters(self.model)
+        self.model_to_device()
+        if is_overridden("on_post_move_to_device", self.lightning_module):
+            self.model.on_post_move_to_device()
+        else:
+            set_shared_parameters(self.model, shared_params)
+
     def model_to_device(self) -> None:
         self.model.to(self.root_device)
 
@@ -62,10 +75,10 @@ class SingleTPUPlugin(SingleDevicePlugin):
         self.tpu_local_core_rank = xm.get_local_ordinal()
         self.tpu_global_core_rank = xm.get_ordinal()
 
-    def save(self, state_dict: Dict, path: str) -> None:
+    def save(self, state_dict: Dict, path: _PATH) -> None:
         xm.save(state_dict, path)
 
-    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: _PATH) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import argparse
 import contextlib
 import json
 import logging
@@ -24,7 +25,6 @@ import torch
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
@@ -36,7 +36,8 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import log, rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
-from pytorch_lightning.utilities.types import LRSchedulerTypeTuple
+from pytorch_lightning.utilities.seed import reset_seed
+from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeTuple
 from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
 
 warning_cache = WarningCache()
@@ -124,6 +125,7 @@ class DeepSpeedPlugin(DDPPlugin):
         contiguous_memory_optimization: bool = False,
         synchronize_checkpoint_boundary: bool = False,
         load_full_weights: bool = False,
+        partition_module: bool = True,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
         billion parameter models. `For more information: https://pytorch-
@@ -253,6 +255,12 @@ class DeepSpeedPlugin(DDPPlugin):
             load_full_weights: True when loading a single checkpoint file containing the model state dict
                 when using ZeRO Stage 3. This differs from the DeepSpeed checkpoint which contains shards
                 per worker.
+
+            partition_module: When True, partitions the ``LightningModule`` across devices when using ZeRO Stage 3.
+                This is the default behaviour to ensure that the entire module is appropriately initialized
+                for DeepSpeed. When False we do not explicitly convert the model, which is fine if NO layers
+                or ALL layers are defined in ``configure_sharded_model``. This is useful for layers such as
+                ``torch.nn.RNN`` which do internal logic when moving to device.
         """
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
@@ -305,6 +313,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
         self.remote_device = remote_device
         self.load_full_weights = load_full_weights
+        self.partition_module = partition_module
 
         # default FP16 parameters.
         self.loss_scale = loss_scale
@@ -327,33 +336,35 @@ class DeepSpeedPlugin(DDPPlugin):
         return config
 
     def setup_distributed(self):
-        super().setup_distributed()
+        reset_seed()
+
+        # determine which process we are and world size
+        self.set_world_ranks()
+
+        self._init_deepspeed_distributed()
+
         if not self._config_initialized:
             self._format_config()
             self._config_initialized = True
 
-    def init_ddp_connection(self, global_rank: Optional[int] = None, world_size: Optional[int] = None) -> None:
+    def _init_deepspeed_distributed(self) -> None:
         if platform.system() != "Windows":
             # do not set env variables on windows, allow deepspeed to control setup
-            global_rank = global_rank if global_rank is not None else self.cluster_environment.global_rank()
-            world_size = world_size if world_size is not None else self.cluster_environment.world_size()
-            self._set_node_environment_variables(global_rank, world_size)
+            self._set_node_environment_variables()
             log.info(
                 "initializing deepspeed distributed: "
-                f"GLOBAL_RANK: {global_rank}, "
-                f"MEMBER: {global_rank + 1}/{world_size}"
+                f"GLOBAL_RANK: {self.global_rank}, "
+                f"MEMBER: {self.global_rank + 1}/{self.world_size}"
             )
         deepspeed.init_distributed(
             self.torch_distributed_backend, distributed_port=self.cluster_environment.master_port()
         )
 
-    def _set_node_environment_variables(
-        self, global_rank: Optional[int] = None, world_size: Optional[int] = None
-    ) -> None:
+    def _set_node_environment_variables(self) -> None:
         os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        os.environ["RANK"] = str(global_rank)
-        os.environ["WORLD_SIZE"] = str(world_size)
+        os.environ["RANK"] = str(self.global_rank)
+        os.environ["WORLD_SIZE"] = str(self.world_size)
         os.environ["LOCAL_RANK"] = str(self.local_rank)
 
     @property
@@ -365,12 +376,17 @@ class DeepSpeedPlugin(DDPPlugin):
         self.barrier()
 
     def init_deepspeed(self):
-        self._handle_gradient_accumulation_steps()
+        accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
+
+        if accumulation_scheduler.epochs != [0]:
+            raise MisconfigurationException(
+                "DeepSpeed currently does not support different `accumulate_grad_batches` at different epochs."
+            )
 
         precision = self.lightning_module.trainer.accelerator.precision
         model = LightningDeepSpeedModule(pl_module=self.model, precision=precision)
 
-        if self.zero_stage_3:
+        if self.zero_stage_3 and self.partition_module:
             # Ensure the entire model has been moved to the appropriate device
             dtype = torch.float16 if self.precision in (16, "mixed") else torch.float32
             deepspeed.zero.Init(
@@ -414,6 +430,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
         model_parameters = filter(lambda p: p.requires_grad, self.model.parameters())
         model, deepspeed_optimizer, _, deepspeed_scheduler = deepspeed.initialize(
+            args=argparse.Namespace(device_rank=self.root_device.index),
             config=self.config,
             model=model,
             model_parameters=model_parameters,
@@ -426,7 +443,11 @@ class DeepSpeedPlugin(DDPPlugin):
 
         # although we set these here, deepspeed manages the specific optimizer logic
         self.lightning_module.trainer.optimizers = [deepspeed_optimizer]
+
+        deepspeed_scheduler = model.lr_scheduler
         if deepspeed_scheduler is not None:
+            # disable deepspeed lr scheduling as lightning manages scheduling
+            model.lr_scheduler = None
             lr_scheduler["scheduler"] = deepspeed_scheduler
             self.lightning_module.trainer.lr_schedulers = [lr_scheduler]
         self.model = model
@@ -486,6 +507,7 @@ class DeepSpeedPlugin(DDPPlugin):
         # Remove all module hooks before initializing new model
         remove_module_hooks(model)
         model, _, _, _ = deepspeed.initialize(
+            args=argparse.Namespace(device_rank=self.root_device.index),
             config=inference_config,
             model=model,
             optimizer=optimizer,
@@ -517,18 +539,10 @@ class DeepSpeedPlugin(DDPPlugin):
         # internally, the engine has a reference to the optimizer already.
         self.model.step(**kwargs)
 
-    def _handle_gradient_accumulation_steps(self):
-        """This functions overrides the trainer.accumulation_scheduler to generate ``accumulate_grad_batches=1``.
-
-        Therefore, ``optimizer_step`` will be called on every batches seen so DeepSpeed Engine handles the gradient
-        accumulation logic internally.
-        """
-        if self.config.get("gradient_accumulation_steps") > 1:
-            self._original_accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
-            # todo (tchaton) Add support for accumulate_grad_batches being a dictionary.
-            self.lightning_module.trainer.accumulation_scheduler = GradientAccumulationScheduler({0: 1})
-        else:
-            self._original_accumulate_grad_batches = None
+    @property
+    def handles_gradient_accumulation(self) -> bool:
+        """Whether the plugin handles gradient accumulation internally."""
+        return True
 
     def _format_config(self):
         if self.config is None:
@@ -542,9 +556,10 @@ class DeepSpeedPlugin(DDPPlugin):
     def _format_batch_size_and_grad_accum_config(self):
         if "gradient_accumulation_steps" in self.config:
             raise MisconfigurationException(
-                "Within the DeepSpeed config, do not set gradient_accumulation_steps"
-                " as this will be set via accumulate_grad_batches=x argument passed via the Lightning Trainer."
+                "Do not set `gradient_accumulation_steps` in the DeepSpeed config"
+                " as this will be set with the `accumulate_grad_batches` argument passed via the Lightning Trainer."
             )
+        self.config["gradient_accumulation_steps"] = self.lightning_module.trainer.accumulate_grad_batches
         if "train_micro_batch_size_per_gpu" not in self.config:
             rank_zero_warn(
                 "Inferring the batch size for internal deepspeed logging from the `train_dataloader()`. "
@@ -553,7 +568,6 @@ class DeepSpeedPlugin(DDPPlugin):
             )
             batch_size = self._auto_select_batch_size()
             self.config["train_micro_batch_size_per_gpu"] = batch_size
-        self.config["gradient_accumulation_steps"] = self.lightning_module.trainer.accumulate_grad_batches
         if "gradient_clipping" not in self.config:
             self.config["gradient_clipping"] = self.lightning_module.trainer.gradient_clip_val
 
@@ -664,7 +678,7 @@ class DeepSpeedPlugin(DDPPlugin):
     def _multi_device(self) -> bool:
         return self.num_processes > 1 or self.num_nodes > 1
 
-    def save_checkpoint(self, checkpoint: Dict, filepath: str) -> None:
+    def save_checkpoint(self, checkpoint: Dict, filepath: _PATH) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
@@ -685,7 +699,7 @@ class DeepSpeedPlugin(DDPPlugin):
         checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
         self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint)
 
-    def load_checkpoint(self, checkpoint_path: Union[str, Path]) -> Optional[Dict[str, Any]]:
+    def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         if self.load_full_weights and self.zero_stage_3:
             # Broadcast to ensure we load from the rank 0 checkpoint
             # This doesn't have to be the case when using deepspeed sharded checkpointing
@@ -770,13 +784,6 @@ class DeepSpeedPlugin(DDPPlugin):
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         # override to do nothing, deepspeed engine already loaded the states in `load_checkpoint()`
         pass
-
-    def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
-        if self._original_accumulate_grad_batches is None:
-            return super().update_global_step(total_batch_idx, current_global_step)
-        if total_batch_idx % self._original_accumulate_grad_batches == 0:
-            current_global_step += 1
-        return current_global_step
 
     @classmethod
     def register_plugins(cls, plugin_registry: Dict) -> None:

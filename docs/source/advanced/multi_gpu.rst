@@ -611,27 +611,34 @@ Let's say you have a batch size of 7 in your dataloader.
         def train_dataloader(self):
             return Dataset(..., batch_size=7)
 
-In (DDP, Horovod) your effective batch size will be 7 * gpus * num_nodes.
+In DDP, DDP_SPAWN, Deepspeed, DDP_SHARDED, or Horovod your effective batch size will be 7 * gpus * num_nodes.
 
 .. code-block:: python
 
     # effective batch size = 7 * 8
-    Trainer(gpus=8, accelerator="ddp|horovod")
+    Trainer(gpus=8, accelerator="ddp")
+    Trainer(gpus=8, accelerator="ddp_spawn")
+    Trainer(gpus=8, accelerator="ddp_sharded")
+    Trainer(gpus=8, accelerator="horovod")
 
     # effective batch size = 7 * 8 * 10
-    Trainer(gpus=8, num_nodes=10, accelerator="ddp|horovod")
+    Trainer(gpus=8, num_nodes=10, accelerator="ddp")
+    Trainer(gpus=8, num_nodes=10, accelerator="ddp_spawn")
+    Trainer(gpus=8, num_nodes=10, accelerator="ddp_sharded")
+    Trainer(gpus=8, num_nodes=10, accelerator="horovod")
 
-
-In DDP2, your effective batch size will be 7 * num_nodes.
+In DDP2 or DP, your effective batch size will be 7 * num_nodes.
 The reason is that the full batch is visible to all GPUs on the node when using DDP2.
 
 .. code-block:: python
 
     # effective batch size = 7
     Trainer(gpus=8, accelerator="ddp2")
+    Trainer(gpus=8, accelerator="dp")
 
     # effective batch size = 7 * 10
     Trainer(gpus=8, num_nodes=10, accelerator="ddp2")
+    Trainer(gpus=8, accelerator="dp")
 
 
 .. note:: Huge batch sizes are actually really bad for convergence. Check out:

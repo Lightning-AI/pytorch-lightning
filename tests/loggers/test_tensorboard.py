@@ -120,6 +120,7 @@ def test_tensorboard_no_name(tmpdir, name):
     assert os.listdir(tmpdir / "version_0")
 
 
+@mock.patch.dict(os.environ, {})
 def test_tensorboard_log_sub_dir(tmpdir):
     class TestLogger(TensorBoardLogger):
         # for reproducibility
@@ -256,7 +257,7 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, tmpdir):
 
         def training_step(self, *args):
             self.log("foo", 1, on_step=True, on_epoch=True)
-            if not self.trainer.fit_loop.should_accumulate():
+            if not self.trainer.fit_loop._should_accumulate():
                 if self.trainer.logger_connector.should_update_logs:
                     self.indexes.append(self.trainer.global_step)
             return super().training_step(*args)

@@ -42,7 +42,7 @@ if _NEPTUNE_AVAILABLE and _NEPTUNE_GREATER_EQUAL_0_9:
         from neptune.new.exceptions import NeptuneLegacyProjectException, NeptuneOfflineModeFetchException
         from neptune.new.run import Run
         from neptune.new.types import File as NeptuneFile
-    except ImportError:
+    except ModuleNotFoundError:
         import neptune
         from neptune.exceptions import NeptuneLegacyProjectException
         from neptune.run import Run
@@ -243,7 +243,7 @@ class NeptuneLogger(LightningLoggerBase):
             used when run is created.
 
     Raises:
-        ImportError:
+        ModuleNotFoundError:
             If required Neptune package in version >=0.9 is not installed on the device.
         TypeError:
             If configured project has not been migrated to new structure yet.

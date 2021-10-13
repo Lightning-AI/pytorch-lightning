@@ -19,7 +19,6 @@ import logging
 import numbers
 import os
 import tempfile
-from abc import ABC
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
@@ -62,7 +61,6 @@ log = logging.getLogger(__name__)
 
 
 class LightningModule(
-    ABC,
     DeviceDtypeModuleMixin,
     HyperparametersMixin,
     ModelIO,
@@ -403,10 +401,12 @@ class LightningModule(
         on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
         if self.trainer is None:
-            raise MisconfigurationException(
+            # not an error to support testing the `*_step` methods without a `Trainer` reference
+            rank_zero_warn(
                 "You are trying to `self.log()` but the `self.trainer` reference is not registered on the model yet."
                 " This is most likely because the model hasn't been passed to the `Trainer`"
             )
+            return
         results = self.trainer._results
         if results is None:
             raise MisconfigurationException(
@@ -606,7 +606,7 @@ class LightningModule(
             the output will also be a collection with tensors of this shape.
         """
         group = group if group is not None else torch.distributed.group.WORLD
-        all_gather = self.trainer.accelerator.all_gather
+        all_gather = self.trainer.training_type_plugin.all_gather
         data = convert_to_tensors(data, device=self.device)
         return apply_to_collection(data, torch.Tensor, all_gather, group=group, sync_grads=sync_grads)
 
@@ -763,8 +763,10 @@ class LightningModule(
             training_epoch_end(train_outs)
 
         Args:
-            outputs: List of outputs you defined in :meth:`training_step`, or if there are
-                multiple dataloaders, a list containing a list of outputs for each dataloader.
+            outputs: List of outputs you defined in :meth:`training_step`.
+                If there are multiple optimizers, it is a list containing a list of outputs for each optimizer.
+                If using ``truncated_bptt_steps > 1``, each element is a list of outputs corresponding to the outputs
+                of each processed split batch.
 
         Return:
             None
@@ -772,19 +774,10 @@ class LightningModule(
         Note:
             If this method is not overridden, this won't be called.
 
-        Example::
-
-            def training_epoch_end(self, training_step_outputs):
-                # do something with all training_step outputs
-                return result
-
-        With multiple dataloaders, ``outputs`` will be a list of lists. The outer list contains
-        one entry per dataloader, while the inner list contains the individual outputs of
-        each training step for that dataloader.
-
         .. code-block:: python
 
             def training_epoch_end(self, training_step_outputs):
+                # do something with all training_step outputs
                 for out in training_step_outputs:
                     ...
         """
@@ -1211,7 +1204,7 @@ class LightningModule(
         Example::
 
             def configure_callbacks(self):
-                early_stop = EarlyStopping(monitor"val_acc", mode="max")
+                early_stop = EarlyStopping(monitor="val_acc", mode="max")
                 checkpoint = ModelCheckpoint(monitor="val_loss")
                 return [early_stop, checkpoint]
 
@@ -1281,6 +1274,9 @@ class LightningModule(
                     "lr_scheduler": {
                         "scheduler": ReduceLROnPlateau(optimizer, ...),
                         "monitor": "metric_to_track",
+                        "frequency": "indicates how often the metric is updated"
+                        # If "monitor" references validation metrics, then "frequency" should be set to a
+                        # multiple of "trainer.check_val_every_n_epoch".
                     },
                 }
 

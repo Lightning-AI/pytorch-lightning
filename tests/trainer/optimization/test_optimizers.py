@@ -19,8 +19,9 @@ from torch import optim
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.boring_model import BoringModel
+from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 
 
@@ -97,6 +98,15 @@ def test_reducelronplateau_with_no_monitor_in_lr_scheduler_dict_raises(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.raises(MisconfigurationException, match="must include a monitor when a `ReduceLROnPlateau`"):
         trainer.fit(model)
+
+
+def test_onecyclelr_with_epoch_interval_warns():
+    """Test warning when a OneCycleLR is used and interval is epoch."""
+    model = BoringModel()
+    optimizer = optim.Adam(model.parameters())
+    lr_scheduler = {"scheduler": optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.01, total_steps=3)}
+    with pytest.warns(RuntimeWarning, match="Are you sure you didn't mean 'interval': 'step'?"):
+        TrainerOptimizersMixin._configure_schedulers([lr_scheduler], None, False)
 
 
 def test_reducelronplateau_scheduling(tmpdir):
@@ -299,9 +309,9 @@ def test_step_scheduling_for_multiple_optimizers_with_frequency(
     assert trainer.lr_schedulers[1]["scheduler"]._step_count == expected_steps[1]
 
 
-@pytest.mark.parametrize("fn", ("validate", "test"))
-def test_init_optimizers_during_evaluation(tmpdir, fn):
-    """Test that optimizers is an empty list during evaluation."""
+@pytest.mark.parametrize("fn", ("validate", "test", "predict"))
+def test_init_optimizers_during_evaluation_and_prediction(tmpdir, fn):
+    """Test that optimizers is an empty list during evaluation and prediction."""
 
     class TestModel(BoringModel):
         def configure_optimizers(self):
@@ -311,9 +321,9 @@ def test_init_optimizers_during_evaluation(tmpdir, fn):
             lr_scheduler2 = optim.lr_scheduler.StepLR(optimizer2, step_size=1)
             return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
 
-    trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=10, limit_test_batches=10)
-    validate_or_test = getattr(trainer, fn)
-    validate_or_test(TestModel(), ckpt_path=None)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
+    train_fn = getattr(trainer, fn)
+    train_fn(TestModel(), datamodule=BoringDataModule(), ckpt_path=None)
 
     assert len(trainer.lr_schedulers) == 0
     assert len(trainer.optimizers) == 0
@@ -324,7 +334,7 @@ def test_multiple_optimizers_callbacks(tmpdir):
     """Tests that multiple optimizers can be used with callbacks."""
 
     class CB(Callback):
-        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
             pass
 
         def on_train_epoch_start(self, trainer, pl_module):
@@ -415,6 +425,35 @@ def test_unknown_configure_optimizers_raises(tmpdir):
         trainer.fit(model)
 
 
+def test_optimizer_config_dict_with_extra_keys_warns(tmpdir):
+    """Test exception when optimizer configuration dict has extra keys."""
+    model = BoringModel()
+    optimizer = optim.Adam(model.parameters())
+    optim_conf = {
+        "optimizer": optimizer,
+        "lr_scheduler": {"scheduler": optim.lr_scheduler.StepLR(optimizer, 1)},
+        "foo": 1,
+        "bar": 2,
+    }
+    with pytest.warns(RuntimeWarning, match=r"Found unsupported keys in the optimizer configuration: \{.+\}"):
+        TrainerOptimizersMixin._configure_optimizers(optim_conf)
+
+
+def test_multiple_optimizer_config_dicts_with_extra_keys_warns(tmpdir):
+    """Test exception when multiple optimizer configuration dicts have extra keys."""
+    model = BoringModel()
+    optimizer1 = optim.Adam(model.parameters(), lr=0.01)
+    optimizer2 = optim.Adam(model.parameters(), lr=0.01)
+    lr_scheduler_config_1 = {"scheduler": optim.lr_scheduler.StepLR(optimizer1, 1)}
+    lr_scheduler_config_2 = {"scheduler": optim.lr_scheduler.StepLR(optimizer2, 1)}
+    optim_conf = [
+        {"optimizer": optimizer1, "lr_scheduler": lr_scheduler_config_1, "foo": 1, "bar": 2},
+        {"optimizer": optimizer2, "lr_scheduler": lr_scheduler_config_2, "foo": 1, "bar": 2},
+    ]
+    with pytest.warns(RuntimeWarning, match=r"Found unsupported keys in the optimizer configuration: \{.+\}"):
+        TrainerOptimizersMixin._configure_optimizers(optim_conf)
+
+
 def test_lr_scheduler_with_unknown_interval_raises(tmpdir):
     """Test exception when lr_scheduler dict has unknown interval param value."""
     model = BoringModel()
@@ -451,7 +490,7 @@ def test_lr_scheduler_with_no_actual_scheduler_raises(tmpdir):
 
 
 def test_invalid_optimizer_in_scheduler(tmpdir):
-    """Test exception when optimizer attatched to lr_schedulers wasn't returned."""
+    """Test exception when optimizer attached to lr_schedulers wasn't returned."""
 
     class InvalidOptimizerModel(BoringModel):
         def configure_optimizers(self):
@@ -462,7 +501,7 @@ def test_invalid_optimizer_in_scheduler(tmpdir):
 
     model = InvalidOptimizerModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    with pytest.raises(MisconfigurationException, match="attatched with an optimizer that wasn't returned"):
+    with pytest.raises(MisconfigurationException, match="attached with an optimizer that wasn't returned"):
         trainer.fit(model)
 
 
@@ -542,7 +581,7 @@ def test_lr_scheduler_state_updated_before_saving(tmpdir, every_n_train_steps, e
     lr, gamma = 1, 10
     trainer = Trainer(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         logger=False,
         max_epochs=max_epochs,
         limit_train_batches=batches,
@@ -578,7 +617,7 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir, save_on
     batches = 4
     trainer = Trainer(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         logger=False,
         max_epochs=1,
         limit_train_batches=batches,
