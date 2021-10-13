@@ -131,6 +131,13 @@ def test_v1_7_0_trainer_terminate_on_nan(tmpdir, terminate_on_nan):
         assert trainer.terminate_on_nan is terminate_on_nan
         assert trainer._detect_anomaly is False
 
+    trainer = Trainer()
+    with pytest.deprecated_call(match=r"`Trainer.terminate_on_nan` is deprecated in v1.5"):
+        _ = trainer.terminate_on_nan
+
+    with pytest.deprecated_call(match=r"Setting `Trainer.terminate_on_nan = True` is deprecated in v1.5"):
+        trainer.terminate_on_nan = True
+
 
 def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
     class CustomBoringModel(BoringModel):
@@ -334,3 +341,28 @@ def test_v1_7_0_deprecate_parameter_validation():
         match="Using `pytorch_lightning.core.decorators.parameter_validation` is deprecated in v1.5"
     ):
         from pytorch_lightning.core.decorators import parameter_validation  # noqa: F401
+
+
+def test_v1_7_0_passing_strategy_to_accelerator_trainer_flag():
+    with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.7."):
+        Trainer(accelerator="ddp_spawn")
+
+
+def test_v1_7_0_passing_strategy_to_plugins_flag():
+    with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.7."):
+        Trainer(plugins="ddp_spawn")
+
+
+def test_v1_7_0_weights_summary_trainer(tmpdir):
+    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_summary=full\)` is deprecated in v1.5"):
+        t = Trainer(weights_summary="full")
+
+    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_summary=None\)` is deprecated in v1.5"):
+        t = Trainer(weights_summary=None)
+
+    t = Trainer(weights_summary="top")
+    with pytest.deprecated_call(match=r"`Trainer.weights_summary` is deprecated in v1.5"):
+        _ = t.weights_summary
+
+    with pytest.deprecated_call(match=r"Setting `Trainer.weights_summary` is deprecated in v1.5"):
+        t.weights_summary = "blah"

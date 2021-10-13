@@ -429,7 +429,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         val_check_interval=1.0,
         enable_progress_bar=False,
         logger=False,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -621,8 +621,8 @@ def test_trainer_max_steps_accumulate_batches(tmpdir):
         max_steps=num_train_samples + 10,
         accumulate_grad_batches=10,
         logger=False,
-        weights_summary=None,
         enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -1389,7 +1389,7 @@ def predict(
         default_root_dir=tmpdir,
         max_epochs=1,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
         accelerator=accelerator,
         gpus=gpus,
         num_processes=num_processes,
@@ -2077,3 +2077,98 @@ def test_detect_anomaly_nan(tmpdir):
             UserWarning, match=r".*Error detected in.* Traceback of forward call that caused the error.*"
         ):
             trainer.fit(model)
+
+
+@pytest.mark.parametrize(
+    "trainer_kwargs,expected",
+    [
+        (
+            dict(strategy=None, gpus=None),
+            dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+        ),
+        (
+            dict(strategy="dp", gpus=None),
+            dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+        ),
+        (
+            dict(strategy="ddp", gpus=None),
+            dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+        ),
+        (
+            dict(strategy="ddp", num_processes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
+        (
+            dict(strategy="ddp", num_nodes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+        ),
+        (
+            dict(strategy="ddp_cpu", num_processes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
+        (
+            dict(strategy="ddp2", gpus=None),
+            dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+        ),
+        (
+            dict(strategy=None, gpus=1),
+            dict(_distrib_type=None, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+        ),
+        (
+            dict(strategy="dp", gpus=1),
+            dict(_distrib_type=DistributedType.DP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+        ),
+        (
+            dict(strategy="ddp", gpus=1),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+        ),
+        (
+            dict(strategy="ddp_cpu", num_processes=2, gpus=1),
+            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
+        (
+            dict(strategy="ddp2", gpus=1),
+            dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+        ),
+        (
+            dict(strategy=None, gpus=2),
+            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
+        ),
+        (
+            dict(strategy="dp", gpus=2),
+            dict(_distrib_type=DistributedType.DP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+        ),
+        (
+            dict(strategy="ddp", gpus=2),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
+        ),
+        (
+            dict(strategy="ddp2", gpus=2),
+            dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+        ),
+        (
+            dict(strategy="ddp2", num_processes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
+        (
+            dict(strategy="dp", num_processes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
+        (
+            dict(strategy="ddp_spawn", num_processes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
+        (
+            dict(strategy="ddp_spawn", num_processes=1, gpus=None),
+            dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+        ),
+    ],
+)
+def test_trainer_config_strategy(trainer_kwargs, expected, monkeypatch):
+    if trainer_kwargs["gpus"] is not None:
+        monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+        monkeypatch.setattr(torch.cuda, "device_count", lambda: trainer_kwargs["gpus"])
+    trainer = Trainer(**trainer_kwargs)
+    assert len(expected) == 4
+    for k, v in expected.items():
+        assert getattr(trainer, k) == v, f"Failed {k}: {v}"

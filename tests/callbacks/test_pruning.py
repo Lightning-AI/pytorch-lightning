@@ -108,7 +108,7 @@ def train_with_pruning_callback(
     trainer = Trainer(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
         enable_checkpointing=False,
         logger=False,
         limit_train_batches=10,
@@ -226,7 +226,7 @@ def test_pruning_lth_callable(tmpdir, resample_parameters: bool):
     trainer = Trainer(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
         enable_checkpointing=False,
         logger=False,
         limit_train_batches=10,
@@ -253,7 +253,7 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool
     trainer = Trainer(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
         enable_checkpointing=False,
         logger=False,
         limit_train_batches=10,

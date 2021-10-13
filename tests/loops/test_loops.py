@@ -682,7 +682,7 @@ def test_fit_loop_reset(tmpdir):
         max_epochs=2,
         callbacks=[checkpoint_callback],
         logger=False,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 

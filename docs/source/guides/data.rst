@@ -227,8 +227,8 @@ needs to wrap the DataLoaders with `CombinedLoader`.
 
 
     def val_dataloader(self):
-        loader_1 = DataLoader()
-        loader_2 = DataLoader()
+        loader_a = DataLoader()
+        loader_b = DataLoader()
         loaders = {"a": loader_a, "b": loader_b}
         combined_loaders = CombinedLoader(loaders, "max_size_cycle")
         return combined_loaders
