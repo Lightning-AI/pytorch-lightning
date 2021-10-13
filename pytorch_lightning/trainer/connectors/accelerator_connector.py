@@ -94,7 +94,7 @@ class AcceleratorConnector:
         ipus,
         distributed_backend,
         accelerator,
-        strategy,
+        strategy: Optional[Union[str, TrainingTypePlugin]],
         gpus,
         gpu_ids,
         num_nodes,
