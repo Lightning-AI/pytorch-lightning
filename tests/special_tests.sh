@@ -20,7 +20,7 @@ export PL_RUNNING_SPECIAL_TESTS=1
 defaults='-m coverage run --source pytorch_lightning --append -m pytest --durations=0 --capture=no --disable-warnings'
 
 # find tests marked as `@RunIf(special=True)`
-grep_output=$(grep --recursive --line-number --word-regexp 'tests' 'benchmarks' --regexp 'special=True')
+grep_output=$(grep --recursive --line-number --word-regexp 'tests/plugins' 'benchmarks' --regexp 'special=True')
 # file paths
 files=$(echo "$grep_output" | cut -f1 -d:)
 files_arr=($files)

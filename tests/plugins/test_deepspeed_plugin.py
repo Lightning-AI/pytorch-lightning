@@ -977,6 +977,7 @@ def test_deepspeed_configure_gradient_clipping(tmpdir):
         default_root_dir=tmpdir,
         gpus=1,
         plugins="deepspeed",
+        fast_dev_run=True,
     )
     with pytest.warns(UserWarning, match="handles gradient clipping internally"):
         trainer.fit(model)
