@@ -198,7 +198,7 @@ def test_transfer_batch_hook_ddp(tmpdir):
         limit_train_batches=2,
         limit_val_batches=0,
         max_epochs=1,
-        weights_summary=None,
+        enable_model_summary=False,
         accelerator="ddp",
         gpus=2,
     )
@@ -472,7 +472,7 @@ def _run_trainer_model_hook_system_fit(kwargs, tmpdir, automatic_optimization):
         limit_train_batches=train_batches,
         limit_val_batches=val_batches,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
         callbacks=[callback],
         **kwargs,
     )
@@ -579,7 +579,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         max_steps=1,
         limit_val_batches=0,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
         callbacks=[HookedCallback([])],
     )
     trainer.fit(model)
@@ -596,7 +596,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         max_steps=(1 + train_batches),
         limit_val_batches=0,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
         resume_from_checkpoint=best_model_path,
         callbacks=[callback],
     )
@@ -691,7 +691,7 @@ def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader,
         limit_val_batches=batches,
         limit_test_batches=batches,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
         callbacks=[callback],
     )
     assert called == [
@@ -858,7 +858,7 @@ def test_trainer_datamodule_hook_system(tmpdir):
         limit_test_batches=batches,
         limit_predict_batches=batches,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
         reload_dataloaders_every_epoch=True,
     )
 

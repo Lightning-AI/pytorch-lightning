@@ -36,6 +36,15 @@ def test_model_summary_callback_with_weights_summary_none():
     trainer = Trainer(weights_summary=None)
     assert not any(isinstance(cb, ModelSummary) for cb in trainer.callbacks)
 
+    trainer = Trainer(enable_model_summary=False)
+    assert not any(isinstance(cb, ModelSummary) for cb in trainer.callbacks)
+
+    trainer = Trainer(enable_model_summary=False, weights_summary="full")
+    assert not any(isinstance(cb, ModelSummary) for cb in trainer.callbacks)
+
+    trainer = Trainer(enable_model_summary=True, weights_summary=None)
+    assert not any(isinstance(cb, ModelSummary) for cb in trainer.callbacks)
+
 
 def test_model_summary_callback_with_weights_summary():
 

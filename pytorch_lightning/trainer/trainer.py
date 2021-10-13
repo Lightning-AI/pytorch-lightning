@@ -120,7 +120,8 @@ class Trainer(
     def __init__(
         self,
         logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
-        checkpoint_callback: bool = True,
+        checkpoint_callback: Optional[bool] = None,
+        enable_checkpointing: bool = True,
         callbacks: Optional[Union[List[Callback], Callback]] = None,
         default_root_dir: Optional[str] = None,
         gradient_clip_val: Union[int, float] = 0.0,
@@ -157,6 +158,7 @@ class Trainer(
         strategy: Optional[Union[str, TrainingTypePlugin]] = None,
         sync_batchnorm: bool = False,
         precision: Union[int, str] = 32,
+        enable_model_summary: bool = True,
         weights_summary: Optional[str] = "top",
         weights_save_path: Optional[str] = None,
         num_sanity_val_steps: int = 2,
@@ -216,6 +218,12 @@ class Trainer(
             callbacks: Add a callback or list of callbacks.
 
             checkpoint_callback: If ``True``, enable checkpointing.
+
+                .. deprecated:: v1.5
+                    ``checkpoint_callback`` has been deprecated in v1.5 and will be removed in v1.7.
+                    Please consider using ``enable_checkpointing`` instead.
+
+            enable_checkpointing: If ``True``, enable checkpointing.
                 It will configure a default ModelCheckpoint callback if there is no user-defined ModelCheckpoint in
                 :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks`.
 
@@ -370,7 +378,15 @@ class Trainer(
             val_check_interval: How often to check the validation set. Use float to check within a training epoch,
                 use int to check every n steps (batches).
 
+            enable_model_summary: Whether to enable model summarization by default.
+
             weights_summary: Prints a summary of the weights when training begins.
+
+                .. deprecated:: v1.5
+                    ``weights_summary`` has been deprecated in v1.5 and will be removed in v1.7.
+                    To disable the summary, pass ``enable_model_summary = False`` to the Trainer.
+                    To customize the summary, pass :class:`~pytorch_lightning.callbacks.model_summary.ModelSummary`
+                    directly to the Trainer's ``callbacks`` argument.
 
             weights_save_path: Where to save weights if specified. Will override default_root_dir
                 for checkpoints only. Use this if for whatever reason you need the checkpoints
@@ -401,7 +417,7 @@ class Trainer(
         gpu_ids, tpu_cores = self._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
         # init connectors
-        self.config_validator = ConfigValidator(self)
+        self._config_validator = ConfigValidator(self)
         self.data_connector = DataConnector(self, multiple_trainloader_mode)
         self.optimizer_connector = OptimizerConnector(self)
 
@@ -465,16 +481,21 @@ class Trainer(
         self.tested_ckpt_path: Optional[str] = None
         self.predicted_ckpt_path: Optional[str] = None
 
+        # todo: remove in v1.7
+        self._weights_summary: Optional[str] = None
+
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init
         self.callback_connector.on_trainer_init(
             callbacks,
             checkpoint_callback,
+            enable_checkpointing,
             enable_progress_bar,
             progress_bar_refresh_rate,
             process_position,
             default_root_dir,
             weights_save_path,
+            enable_model_summary,
             weights_summary,
             stochastic_weight_avg,
             max_time,
@@ -666,7 +687,8 @@ class Trainer(
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to validate.
                 If ``None`` and the model instance was passed, use the current weights.
-                Otherwise, the best model from the previous ``trainer.fit`` call will be loaded.
+                Otherwise, the best model checkpoint from the previous ``trainer.fit`` call will be loaded
+                if a checkpoint callback is configured.
 
             verbose: If True, prints the validation results.
 
@@ -755,7 +777,8 @@ class Trainer(
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
                 If ``None`` and the model instance was passed, use the current weights.
-                Otherwise, the best model from the previous ``trainer.fit`` call will be loaded.
+                Otherwise, the best model checkpoint from the previous ``trainer.fit`` call will be loaded
+                if a checkpoint callback is configured.
 
             verbose: If True, prints the test results.
 
@@ -849,7 +872,8 @@ class Trainer(
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to predict.
                 If ``None`` and the model instance was passed, use the current weights.
-                Otherwise, the best model from the previous ``trainer.fit`` call will be loaded.
+                Otherwise, the best model checkpoint from the previous ``trainer.fit`` call will be loaded
+                if a checkpoint callback is configured.
 
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
@@ -989,7 +1013,7 @@ class Trainer(
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
 
-        self.config_validator.verify_loop_configurations(model)
+        self._config_validator.verify_loop_configurations(model)
 
         # attach model log function to callback
         self.callback_connector.attach_model_logging_functions(model)
@@ -1278,15 +1302,20 @@ class Trainer(
 
         if model_connected and ckpt_path is None:
             rank_zero_warn(
-                f"`.{fn}(ckpt_path=None)` was called without a model. "
-                "The best model of the previous `fit` call will be used. "
-                f"You can pass `{fn}(ckpt_path='best')` to avoid this warning "
-                "or `ckpt_path=trainer.model_checkpoint.last_model_path` to use the last model."
+                f"`.{fn}(ckpt_path=None)` was called without a model."
+                " The best model of the previous `fit` call will be used."
+                f" You can pass `{fn}(ckpt_path='best')` to use and best model"
+                " checkpoint and avoid this warning or"
+                " `ckpt_path=trainer.model_checkpoint.last_model_path` to use the last model."
             )
             ckpt_path = "best"
 
         if ckpt_path == "best":
             # if user requests the best checkpoint but we don't have it, error
+            if not self.checkpoint_callback:
+                raise MisconfigurationException(
+                    f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured.'
+                )
             if not self.checkpoint_callback.best_model_path:
                 if self.fast_dev_run:
                     raise MisconfigurationException(
@@ -1495,10 +1524,6 @@ class Trainer(
     def world_size(self) -> int:
         # some training types define a world size
         return getattr(self.accelerator.training_type_plugin, "world_size", 1)
-
-    @property
-    def should_rank_save_checkpoint(self) -> bool:
-        return self.accelerator.training_type_plugin.should_rank_save_checkpoint
 
     @property
     def _distrib_type(self) -> DistributedType:
@@ -1989,13 +2014,6 @@ class Trainer(
             return self.predict_loop
 
     @property
-    def train_loop(self) -> FitLoop:
-        rank_zero_deprecation(
-            "`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
-        )
-        return self.fit_loop
-
-    @property
     def _ckpt_path(self) -> Optional[str]:
         if self.state.fn == TrainerFn.VALIDATING:
             return self.validated_ckpt_path
@@ -2032,6 +2050,16 @@ class Trainer(
             class_name = caller[0].f_locals["self"].__class__.__name__
             raise ExitGracefullyException(f"Exiting gracefully on {class_name}:{caller.function}")
 
+    @property
+    def weights_summary(self) -> Optional[str]:
+        rank_zero_deprecation("`Trainer.weights_summary` is deprecated in v1.5 and will be removed in v1.7.")
+        return self._weights_summary
+
+    @weights_summary.setter
+    def weights_summary(self, val: Optional[str]) -> None:
+        rank_zero_deprecation("Setting `Trainer.weights_summary` is deprecated in v1.5 and will be removed in v1.7.")
+        self._weights_summary = val
+
     """
     Other
     """
@@ -2044,3 +2072,23 @@ class Trainer(
 
     def __setstate__(self, state):
         self.__dict__ = state
+
+    @property
+    def train_loop(self) -> FitLoop:
+        rank_zero_deprecation(
+            "`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
+        )
+        return self.fit_loop
+
+    @property
+    def terminate_on_nan(self) -> bool:
+        rank_zero_deprecation("`Trainer.terminate_on_nan` is deprecated in v1.5 and will be removed in 1.7.")
+        return self._terminate_on_nan
+
+    @terminate_on_nan.setter
+    def terminate_on_nan(self, val: bool) -> None:
+        rank_zero_deprecation(
+            f"Setting `Trainer.terminate_on_nan = {val}` is deprecated in v1.5 and will be removed in 1.7."
+            f" Please set `Trainer(detect_anomaly={val})` instead."
+        )
+        self._terminate_on_nan = val  # : 212
