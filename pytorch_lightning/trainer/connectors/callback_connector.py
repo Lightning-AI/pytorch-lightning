@@ -211,19 +211,21 @@ class CallbackConnector:
         if len(progress_bars) == 1:
             return progress_bars[0]
         # check if progress bar has been turned off (i.e refresh_rate == 0)
-        if refresh_rate != 0:
-            if _RICH_AVAILABLE and not isinstance(self.trainer.training_type_plugin, DDPSpawnPlugin):
-                if refresh_rate is None:
-                    progress_bar_callback = RichProgressBar()
-                    self.trainer.callbacks.append(progress_bar_callback)
-                    return progress_bar_callback
-                else:
-                    rank_zero_warn(
-                        "`RichProgressBar` does not support setting the refresh rate via the Trainer. "
-                        "If you'd like to change the refresh rate and continue using the `RichProgressBar`, "
-                        "please pass `callbacks=RichProgressBar(refresh_rate=4)`. "
-                        "Setting to the `TQDM ProgressBar`."
-                    )
+        if refresh_rate == 0:
+            return
+        # if Rich is available and refresh_rate is None return Rich ProgressBar
+        if _RICH_AVAILABLE and not isinstance(self.trainer.training_type_plugin, DDPSpawnPlugin):
+            if refresh_rate is None:
+                progress_bar_callback = RichProgressBar()
+                self.trainer.callbacks.append(progress_bar_callback)
+                return progress_bar_callback
+            else:
+                rank_zero_warn(
+                    "`RichProgressBar` does not support setting the refresh rate via the Trainer. "
+                    "If you'd like to change the refresh rate and continue using the `RichProgressBar`, "
+                    "please pass `callbacks=RichProgressBar(refresh_rate=4)`. "
+                    "Setting to the `TQDM ProgressBar`."
+                )
             # else return new TQDMProgressBar
             if os.getenv("COLAB_GPU") and refresh_rate is None:
                 # smaller refresh rate on colab causes crashes for TQDM, choose a higher value
