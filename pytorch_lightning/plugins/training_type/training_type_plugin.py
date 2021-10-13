@@ -58,7 +58,7 @@ class TrainingTypePlugin(ABC):
         environment before setup is complete.
         """
 
-    def setup(self, model: Module) -> None:
+    def setup(self) -> None:
         """Called by the accelerator to finish setup."""
 
     def setup_dataloader(self, dataloader: DataLoader) -> DataLoader:
