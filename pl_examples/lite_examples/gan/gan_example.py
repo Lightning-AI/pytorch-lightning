@@ -22,6 +22,7 @@ import torchvision.transforms as transforms
 import torchvision.utils as vutils
 
 from pl_examples.lite_examples.gan.models import Discriminator, Generator, weights_init
+from pytorch_lightning import seed_everything
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.lite.wrappers import _LiteOptimizer, _LiteModule
 
@@ -53,8 +54,7 @@ nz = 100
 class GANTrainer(LightningLite):
     def run(self):
         print("selected plugin: ", self._training_type_plugin)
-        random.seed(123)
-        torch.manual_seed(123)
+        seed_everything(123)
 
         # TODO: how do we handle this in Accelerator?
         # torch.cuda.set_device(opt.local_rank)
@@ -62,9 +62,11 @@ class GANTrainer(LightningLite):
         # os.environ["LOCAL_RANK"] = str(opt.local_rank)
         # os.environ["NODE_RANK"] = str(opt.local_rank)
 
+        if self.local_rank == 0:
+            dset.MNIST(root=".", download=True)
+
         dataset = dset.MNIST(
             root=".",
-            download=True,
             transform=transforms.Compose(
                 [
                     transforms.Resize(opt.imageSize),
@@ -88,9 +90,6 @@ class GANTrainer(LightningLite):
 
         self.to_device(netG)
         self.to_device(netD)
-
-        # assert isinstance(netG, DistributedDataParallel)
-        # assert isinstance(netD, DistributedDataParallel)
 
         criterion = nn.BCELoss()
 

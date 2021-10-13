@@ -6,6 +6,7 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 
+from pytorch_lightning import seed_everything
 from pytorch_lightning.lite import LightningLite
 
 
@@ -39,7 +40,7 @@ class MNIST(LightningLite):
     def run(self, args):
         use_cuda = self.device.type == "cuda"
 
-        torch.manual_seed(args.seed)
+        seed_everything(args.seed)
 
         train_kwargs = {"batch_size": args.batch_size}
         test_kwargs = {"batch_size": args.test_batch_size}
@@ -48,8 +49,11 @@ class MNIST(LightningLite):
             train_kwargs.update(cuda_kwargs)
             test_kwargs.update(cuda_kwargs)
 
+        if self.local_rank == 0:
+            datasets.MNIST("../data", download=True)
+
         transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-        dataset1 = datasets.MNIST("../data", train=True, download=True, transform=transform)
+        dataset1 = datasets.MNIST("../data", train=True, transform=transform)
         dataset2 = datasets.MNIST("../data", train=False, transform=transform)
         train_loader = torch.utils.data.DataLoader(dataset1, **train_kwargs)
         test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
