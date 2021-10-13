@@ -54,8 +54,8 @@ class DataParallelPlugin(ParallelPlugin):
 
     def setup(self) -> None:
         # model needs to be moved to the device before it is wrapped
-        model.to(self.root_device)
-        self._model = self.setup_model(LightningParallelModule(model))
+        self.model_to_device()
+        self._model = self.setup_model(LightningParallelModule(self._model))
 
     def setup_model(self, model: Module) -> Module:
         return DataParallel(module=model, device_ids=self.parallel_devices)
