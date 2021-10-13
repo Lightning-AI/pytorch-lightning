@@ -124,8 +124,8 @@ class Trainer(
         enable_checkpointing: bool = True,
         callbacks: Optional[Union[List[Callback], Callback]] = None,
         default_root_dir: Optional[str] = None,
-        gradient_clip_val: Union[int, float] = 0.0,
-        gradient_clip_algorithm: str = "norm",
+        gradient_clip_val: Optional[Union[int, float]] = None,
+        gradient_clip_algorithm: Optional[str] = None,
         process_position: int = 0,
         num_nodes: int = 1,
         num_processes: int = 1,
@@ -251,11 +251,12 @@ class Trainer(
 
             gpus: Number of GPUs to train on (int) or which GPUs to train on (list or str) applied per node
 
-            gradient_clip_val: The value at which to clip gradients. Passing ``gradient_clip_val=0`` disables gradient
-                clipping.
+            gradient_clip_val: The value at which to clip gradients. Passing ``gradient_clip_val=None`` disables
+                gradient clipping.
 
             gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
-                for clip_by_value, and ``gradient_clip_algorithm="norm"`` for clip_by_norm.
+                to clip by value, and ``gradient_clip_algorithm="norm"`` to clip by norm. By default it will
+                be set to ``"norm"``.
 
             limit_train_batches: How much of training dataset to check (float = fraction, int = num_batches).
 
