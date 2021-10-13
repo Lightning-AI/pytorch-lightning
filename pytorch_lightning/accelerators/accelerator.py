@@ -251,8 +251,6 @@ class Accelerator:
 
     def run_backward(self, tensor: Tensor, *args, **kwargs) -> None:
         """Lightning-independent backward logic"""
-        # TODO: Q: We don't need training_type.pre_/post_backward here right? Because we can't automate
-        #   the blocking of "require_backward_grad_sync" for the PyTorch user
         self.precision_plugin.run_backward(tensor, *args, **kwargs)
 
     def optimizer_step(
@@ -269,6 +267,7 @@ class Accelerator:
             optimizer: the optimizer performing the step
             opt_idx: index of the current optimizer
             lambda_closure: closure calculating the loss value
+            model: reference to the model, optionally defining optimizer step related hooks
         """
         model = model if model is not None else self.lightning_module
         make_optimizer_step = self.precision_plugin.pre_optimizer_step(
