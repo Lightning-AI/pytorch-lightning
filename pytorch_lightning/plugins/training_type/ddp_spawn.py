@@ -171,6 +171,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         mp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
 
     def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> None:
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
         mp.spawn(self._wrapped_function, args=(function, args, kwargs), nprocs=self.num_processes)
 
     def _wrapped_function(self, process_idx: int, function: Callable, args: Any, kwargs: Any) -> None:
