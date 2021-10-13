@@ -499,7 +499,8 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
                 rank_zero_warn(
                     "The number of batches for a dataloader is counted as 0 because it does not have `__len__` defined."
                 )
-            num_batches += len(dataloader)
+            else:
+                num_batches += len(dataloader)
 
         for method_name in ("train_dataloader", "val_dataloader", "test_dataloader", "predict_dataloader"):
             dataloader_method = getattr(self, method_name)
