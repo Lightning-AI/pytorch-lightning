@@ -51,6 +51,7 @@ nz = 100
 
 class GANTrainer(LightningLite):
     def run(self):
+        print("selected plugin: ", self._training_type_plugin)
         random.seed(123)
         torch.manual_seed(123)
 
@@ -115,7 +116,7 @@ class GANTrainer(LightningLite):
 
                 output = netD(real_cpu)
                 errD_real = criterion(output, label)
-                errD_real.backward()
+                self.backward(errD_real)
                 D_x = output.mean().item()
 
                 # train with fake
@@ -124,7 +125,7 @@ class GANTrainer(LightningLite):
                 label.fill_(fake_label)
                 output = netD(fake.detach())
                 errD_fake = criterion(output, label)
-                errD_fake.backward()
+                self.backward(errD_fake)
                 D_G_z1 = output.mean().item()
                 errD = errD_real + errD_fake
                 optimizerD.step()
@@ -136,7 +137,7 @@ class GANTrainer(LightningLite):
                 label.fill_(real_label)  # fake labels are real for generator cost
                 output = netD(fake)
                 errG = criterion(output, label)
-                errG.backward()
+                self.backward(errG)
                 D_G_z2 = output.mean().item()
                 optimizerG.step()
 
