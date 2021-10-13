@@ -609,7 +609,7 @@ class ModelCheckpoint(Callback):
 
         self.dirpath = ckpt_path
 
-        if not trainer.fast_dev_run and trainer.should_rank_save_checkpoint:
+        if not trainer.fast_dev_run and trainer.training_type_plugin.should_rank_save_checkpoint:
             self._fs.makedirs(self.dirpath, exist_ok=True)
 
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
