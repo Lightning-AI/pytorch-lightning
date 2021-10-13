@@ -288,7 +288,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Updated error message for interactive incompatible plugins ([#9896](https://github.com/PyTorchLightning/pytorch-lightning/pull/9896))
 
 
-- Changed `training_type_plugin` in favor of `accelerator` within the loops ([#9901](https://github.com/PyTorchLightning/pytorch-lightning/pull/9901))
+- Updated several places in the loops and trainer to access `training_type_plugin` directly instead of `accelerator` ([#9901](https://github.com/PyTorchLightning/pytorch-lightning/pull/9901))
 
 
 ### Deprecated
