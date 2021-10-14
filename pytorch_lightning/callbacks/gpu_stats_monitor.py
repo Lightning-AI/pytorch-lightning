@@ -29,7 +29,7 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import DeviceType, rank_zero_only
+from pytorch_lightning.utilities import DeviceType, rank_zero_only, rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -37,6 +37,10 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 class GPUStatsMonitor(Callback):
     r"""
+    .. deprecated:: v1.5
+        The `GPUStatsMonitor` callback was deprecated in v1.5 and will be removed in v1.7. "
+        "Please use the `DeviceStatsMonitor` callback instead.
+
     Automatically monitors and logs GPU stats during training stage. ``GPUStatsMonitor``
     is a callback and in order to use it you need to assign a logger in the ``Trainer``.
 
@@ -90,6 +94,11 @@ class GPUStatsMonitor(Callback):
         temperature: bool = False,
     ):
         super().__init__()
+
+        rank_zero_deprecation(
+            "The `GPUStatsMonitor` callback was deprecated in v1.5 and will be removed in v1.7. "
+            "Please use the `DeviceStatsMonitor` callback instead."
+        )
 
         if shutil.which("nvidia-smi") is None:
             raise MisconfigurationException(
