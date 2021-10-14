@@ -20,7 +20,7 @@ from itertools import chain
 from typing import Callable, Dict, Iterator, Optional
 
 import torch
-from torch import Tensor
+from torch import nn, Tensor
 from torch._C import _DisableTorchDispatch  # type: ignore[attr-defined]
 from torch.nn import Module
 
@@ -242,9 +242,46 @@ def get_all_subclasses(cls):
     return set(subclass_list)
 
 
-def use_meta_device():
+def recursively_setattr(root_module: nn.Module, prefix: str, materialized_module: nn.Module):
+    *path, name = prefix.split(".")
+    for p in path:
+        root_module = getattr(root_module, p)
+
+    try:
+        index = int(name)
+        root_module[index] = materialized_module
+    except ValueError:
+        setattr(root_module, name, materialized_module)
+
+
+def materialize_module(root_module: torch.nn.Module):
+    """This utility enables to recursively materialize a module and its children."""
+    modules = list(root_module.named_modules())[::-1]
+    for prefix, mod in modules:
+        materialize_fn = getattr(mod, "materialize", None)
+        if materialize_fn:
+            materialized_module = materialize_fn()
+            recursively_setattr(root_module, prefix, materialized_module)
+
+
+__STORAGE_META__ = {}
+
+
+def unset_meta_device():
+    for mods, subclass, _ in __STORAGE_META__.values():
+        for mod in mods:
+            setattr(mod, subclass.__name__, subclass)
+
+
+def set_meta_device():
     """Replace all torch.nn.Module by their meta replacement."""
     for subclass in get_all_subclasses(torch.nn.modules.module.Module):
+
+        if str(subclass) in __STORAGE_META__:
+            mods, subclass, meta_class = __STORAGE_META__[subclass]
+            for mod in mods:
+                setattr(mod, subclass.__name__, meta_class)
+            continue
 
         class _MetaClass(subclass):
             def __new__(cls, *args, **kwargs):
@@ -285,6 +322,18 @@ def use_meta_device():
             mod = getattr(mod, name)
             out.append(search(mod))
 
-        for mod in chain(*out):
-            if mod:
-                setattr(mod, subclass.__name__, _MetaClass)
+        mods = [mod for mod in chain(*out) if mod]
+
+        __STORAGE_META__[str(subclass)] = (mods, subclass, _MetaClass)
+
+        for mod in mods:
+            setattr(mod, subclass.__name__, _MetaClass)
+
+
+def set_device(device: torch.DeviceObjType):
+    if device.type == "meta":
+        set_meta_device()
+    else:
+        unset_meta_device()
+        if device.type == "cuda":
+            torch.cuda.set_device(device)

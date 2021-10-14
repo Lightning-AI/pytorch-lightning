@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import torch
 from torch import nn
 
-from pytorch_lightning.utilities.meta import use_meta_device
+import pytorch_lightning as pl
+from pytorch_lightning.utilities.meta import materialize_module
 
 
 def test_use_meta_device():
@@ -25,7 +27,7 @@ def test_use_meta_device():
                 self.lins.append(nn.Linear(1, 1))
             self.layer = nn.Sequential(*self.lins)
 
-    use_meta_device()
+    pl.set_device(torch.device("meta"))
 
     m = nn.Linear(in_features=1, out_features=1)
 
@@ -33,3 +35,10 @@ def test_use_meta_device():
 
     mlp = MLP(4)
     assert mlp.layer[0].weight.device.type == "meta"
+
+    materialize_module(mlp)
+
+    pl.set_device(torch.device("cpu"))
+
+    m = nn.Linear(in_features=1, out_features=1)
+    assert m.weight.device.type == "cpu"
