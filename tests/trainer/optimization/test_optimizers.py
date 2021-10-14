@@ -370,7 +370,7 @@ def test_multiple_optimizers_callbacks(tmpdir):
         limit_train_batches=1,
         limit_val_batches=2,
         max_epochs=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 

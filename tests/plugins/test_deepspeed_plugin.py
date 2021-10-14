@@ -213,12 +213,13 @@ def test_warn_deepspeed_override_backward(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=1, deepspeed=True, special=True)
+@RunIf(min_gpus=1, deepspeed=True)
 @pytest.mark.parametrize(
     ["dataset_cls", "value"],
     [(RandomDataset, "auto"), (RandomDataset, 10), (RandomIterableDataset, "auto"), (RandomIterableDataset, 10)],
 )
-def test_deepspeed_auto_batch_size_config_select(tmpdir, dataset_cls, value):
+@mock.patch("deepspeed.init_distributed", autospec=True)
+def test_deepspeed_auto_batch_size_config_select(mock_deepspeed_distributed, tmpdir, dataset_cls, value):
     """Test to ensure that the batch size is correctly set as expected for deepspeed logging purposes."""
 
     class TestModel(BoringModel):
@@ -226,7 +227,7 @@ def test_deepspeed_auto_batch_size_config_select(tmpdir, dataset_cls, value):
             return DataLoader(dataset_cls(32, 64))
 
     class AssertCallback(Callback):
-        def on_train_start(self, trainer, pl_module) -> None:
+        def setup(self, trainer, pl_module, stage: Optional[str] = None) -> None:
             assert isinstance(trainer.accelerator.training_type_plugin, DeepSpeedPlugin)
             config = trainer.accelerator.training_type_plugin.config
 
@@ -855,7 +856,7 @@ def test_deepspeed_multigpu_no_schedulers(tmpdir):
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
-@RunIf(min_gpus=1, deepspeed=True)
+@RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_deepspeed_skip_backward_raises(tmpdir):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -962,6 +963,41 @@ def _run_scheduler_test(mock_step, max_epoch, limit_train_batches, interval):
 
 
 @RunIf(min_gpus=1, deepspeed=True, special=True)
+def test_deepspeed_configure_gradient_clipping(tmpdir):
+    """Test to ensure that a warning is raised when `LightningModule.configure_gradient_clipping` is overridden in
+    case of deepspeed."""
+
+    class TestModel(BoringModel):
+        def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
+            if optimizer_idx == 0:
+                self.clip_gradients(optimizer, gradient_clip_val, gradient_clip_algorithm)
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        gpus=1,
+        plugins="deepspeed",
+        fast_dev_run=True,
+    )
+    with pytest.warns(UserWarning, match="handles gradient clipping internally"):
+        trainer.fit(model)
+
+
+@RunIf(min_gpus=1, deepspeed=True, special=True)
+def test_deepspeed_gradient_clip_by_value(tmpdir):
+    """Test to ensure that an exception is raised when using `gradient_clip_algorithm='value'`."""
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        gpus=1,
+        plugins="deepspeed",
+        gradient_clip_algorithm="value",
+    )
+    with pytest.raises(MisconfigurationException, match="does not support clipping gradients by value"):
+        trainer.fit(model)
+
+
+@RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_different_accumulate_grad_batches_fails(tmpdir):
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, accumulate_grad_batches={1: 2}, gpus=1, plugins="deepspeed")
@@ -969,3 +1005,40 @@ def test_different_accumulate_grad_batches_fails(tmpdir):
         MisconfigurationException, match="DeepSpeed currently does not support different `accumulate_grad_batches`"
     ):
         trainer.fit(model)
+
+
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+def test_specific_gpu_device_id(tmpdir):
+    class TestCallback(Callback):
+        def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
+            assert model.device.index == 1
+
+        def on_train_batch_start(
+            self,
+            trainer: Trainer,
+            pl_module: LightningModule,
+            batch: Any,
+            batch_idx: int,
+            dataloader_idx: int,
+        ) -> None:
+            assert batch.device.index == 1
+
+        def on_test_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
+            assert model.device.index == 1
+
+        def on_test_batch_start(
+            self,
+            trainer: Trainer,
+            pl_module: LightningModule,
+            batch: Any,
+            batch_idx: int,
+            dataloader_idx: int,
+        ) -> None:
+            assert batch.device.index == 1
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir, fast_dev_run=True, gpus=[1], plugins="deepspeed", callbacks=TestCallback()
+    )
+    trainer.fit(model)
+    trainer.test(model)
