@@ -174,7 +174,7 @@ def _get_all_available_gpus() -> Optional[List[int]]:
          a list of all available gpus
     """
     if not torch.cuda.is_available():
-        return None
+        return []
     return list(range(torch.cuda.device_count()))
 
 
