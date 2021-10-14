@@ -120,11 +120,12 @@ class Trainer(
     def __init__(
         self,
         logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
-        checkpoint_callback: bool = True,
+        checkpoint_callback: Optional[bool] = None,
+        enable_checkpointing: bool = True,
         callbacks: Optional[Union[List[Callback], Callback]] = None,
         default_root_dir: Optional[str] = None,
-        gradient_clip_val: Union[int, float] = 0.0,
-        gradient_clip_algorithm: str = "norm",
+        gradient_clip_val: Optional[Union[int, float]] = None,
+        gradient_clip_algorithm: Optional[str] = None,
         process_position: int = 0,
         num_nodes: int = 1,
         num_processes: int = 1,
@@ -154,8 +155,10 @@ class Trainer(
         flush_logs_every_n_steps: Optional[int] = None,
         log_every_n_steps: int = 50,
         accelerator: Optional[Union[str, Accelerator]] = None,
+        strategy: Optional[Union[str, TrainingTypePlugin]] = None,
         sync_batchnorm: bool = False,
         precision: Union[int, str] = 32,
+        enable_model_summary: bool = True,
         weights_summary: Optional[str] = "top",
         weights_save_path: Optional[str] = None,
         num_sanity_val_steps: int = 2,
@@ -167,7 +170,7 @@ class Trainer(
         reload_dataloaders_every_epoch: bool = False,
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
-        terminate_on_nan: bool = False,
+        detect_anomaly: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: Optional[bool] = None,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
@@ -177,7 +180,7 @@ class Trainer(
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         stochastic_weight_avg: bool = False,
-        detect_anomaly: bool = False,
+        terminate_on_nan: Optional[bool] = None,
     ):
         r"""
         Customize every aspect of training via flags.
@@ -215,6 +218,12 @@ class Trainer(
             callbacks: Add a callback or list of callbacks.
 
             checkpoint_callback: If ``True``, enable checkpointing.
+
+                .. deprecated:: v1.5
+                    ``checkpoint_callback`` has been deprecated in v1.5 and will be removed in v1.7.
+                    Please consider using ``enable_checkpointing`` instead.
+
+            enable_checkpointing: If ``True``, enable checkpointing.
                 It will configure a default ModelCheckpoint callback if there is no user-defined ModelCheckpoint in
                 :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks`.
 
@@ -245,11 +254,12 @@ class Trainer(
 
             gpus: Number of GPUs to train on (int) or which GPUs to train on (list or str) applied per node
 
-            gradient_clip_val: The value at which to clip gradients. Passing ``gradient_clip_val=0`` disables gradient
-                clipping.
+            gradient_clip_val: The value at which to clip gradients. Passing ``gradient_clip_val=None`` disables
+                gradient clipping.
 
             gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
-                for clip_by_value, and ``gradient_clip_algorithm="norm"`` for clip_by_norm.
+                to clip by value, and ``gradient_clip_algorithm="norm"`` to clip by norm. By default it will
+                be set to ``"norm"``.
 
             limit_train_batches: How much of training dataset to check (float = fraction, int = num_batches).
 
@@ -346,10 +356,19 @@ class Trainer(
                 no checkpoint file at the path, start from scratch. If resuming from mid-epoch checkpoint,
                 training will start from the beginning of the next epoch.
 
+            strategy: Supports different training strategies with aliases
+                as well custom training type plugins.
+
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
 
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
                 end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
+
+                .. deprecated:: v1.5
+                    Trainer argument ``terminate_on_nan`` was deprecated in v1.5 and will be removed in 1.7.
+                    Please use ``detect_anomaly`` instead.
+
+            detect_anomaly: Enable anomaly detection for the autograd engine.
 
             tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on [1]
 
@@ -360,7 +379,15 @@ class Trainer(
             val_check_interval: How often to check the validation set. Use float to check within a training epoch,
                 use int to check every n steps (batches).
 
+            enable_model_summary: Whether to enable model summarization by default.
+
             weights_summary: Prints a summary of the weights when training begins.
+
+                .. deprecated:: v1.5
+                    ``weights_summary`` has been deprecated in v1.5 and will be removed in v1.7.
+                    To disable the summary, pass ``enable_model_summary = False`` to the Trainer.
+                    To customize the summary, pass :class:`~pytorch_lightning.callbacks.model_summary.ModelSummary`
+                    directly to the Trainer's ``callbacks`` argument.
 
             weights_save_path: Where to save weights if specified. Will override default_root_dir
                 for checkpoints only. Use this if for whatever reason you need the checkpoints
@@ -391,7 +418,7 @@ class Trainer(
         gpu_ids, tpu_cores = self._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
         # init connectors
-        self.config_validator = ConfigValidator(self)
+        self._config_validator = ConfigValidator(self)
         self.data_connector = DataConnector(self, multiple_trainloader_mode)
         self.optimizer_connector = OptimizerConnector(self)
 
@@ -402,6 +429,7 @@ class Trainer(
             ipus,
             distributed_backend,
             accelerator,
+            strategy,
             gpus,
             gpu_ids,
             num_nodes,
@@ -454,16 +482,21 @@ class Trainer(
         self.tested_ckpt_path: Optional[str] = None
         self.predicted_ckpt_path: Optional[str] = None
 
+        # todo: remove in v1.7
+        self._weights_summary: Optional[str] = None
+
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init
         self.callback_connector.on_trainer_init(
             callbacks,
             checkpoint_callback,
+            enable_checkpointing,
             enable_progress_bar,
             progress_bar_refresh_rate,
             process_position,
             default_root_dir,
             weights_save_path,
+            enable_model_summary,
             weights_summary,
             stochastic_weight_avg,
             max_time,
@@ -655,7 +688,8 @@ class Trainer(
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to validate.
                 If ``None`` and the model instance was passed, use the current weights.
-                Otherwise, the best model from the previous ``trainer.fit`` call will be loaded.
+                Otherwise, the best model checkpoint from the previous ``trainer.fit`` call will be loaded
+                if a checkpoint callback is configured.
 
             verbose: If True, prints the validation results.
 
@@ -744,7 +778,8 @@ class Trainer(
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
                 If ``None`` and the model instance was passed, use the current weights.
-                Otherwise, the best model from the previous ``trainer.fit`` call will be loaded.
+                Otherwise, the best model checkpoint from the previous ``trainer.fit`` call will be loaded
+                if a checkpoint callback is configured.
 
             verbose: If True, prints the test results.
 
@@ -838,7 +873,8 @@ class Trainer(
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to predict.
                 If ``None`` and the model instance was passed, use the current weights.
-                Otherwise, the best model from the previous ``trainer.fit`` call will be loaded.
+                Otherwise, the best model checkpoint from the previous ``trainer.fit`` call will be loaded
+                if a checkpoint callback is configured.
 
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
@@ -978,19 +1014,19 @@ class Trainer(
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
 
-        self.config_validator.verify_loop_configurations(model)
+        self._config_validator.verify_loop_configurations(model)
 
         # attach model log function to callback
         self.callback_connector.attach_model_logging_functions(model)
 
         # attach model to the training type plugin
-        self.accelerator.connect(model)
+        self.training_type_plugin.connect(model)
 
         # hook
         self.data_connector.prepare_data()
         self.callback_connector._attach_model_callbacks()
 
-        if self._ckpt_path and not self.accelerator.restore_checkpoint_after_pre_dispatch:
+        if self._ckpt_path and not self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
             self._load_checkpoint_weights()
 
         # ----------------------------
@@ -1001,7 +1037,7 @@ class Trainer(
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
         # check if we should delay restoring checkpoint till later
-        if not self.accelerator.restore_checkpoint_after_pre_dispatch:
+        if not self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
             self.checkpoint_connector.resume_start()
             self._restore_modules_and_callbacks()
 
@@ -1019,9 +1055,9 @@ class Trainer(
                                 |                             ||
                          {self._dispatch}                     ||
                                 |                             ||  LIGHTNING
-                  {self.accelerator.start_training}           ||
-                or {self.accelerator.start_evaluating}        ||
-                or {self.accelerator.start_predicting}        ||  FLOW
+         {self.training_type_plugin.start_training}           ||
+       or {self.training_type_plugin.start_evaluating}        ||
+       or {self.training_type_plugin.start_predicting}        ||  FLOW
                                 |                             ||
                          {self.run_stage}                     ||
                                 |                             ||  DIRECTION
@@ -1051,7 +1087,7 @@ class Trainer(
         # plugin will setup fitting (e.g. ddp will launch child processes)
         self._pre_dispatch()
 
-        if self.accelerator.restore_checkpoint_after_pre_dispatch:
+        if self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
             if self._ckpt_path:
                 self._load_checkpoint_weights()
 
@@ -1083,7 +1119,7 @@ class Trainer(
             self.state.status = TrainerStatus.FINISHED
         self.state.stage = None
 
-        return self.accelerator.results
+        return self.training_type_plugin.results
 
     def _pre_dispatch(self):
         self.accelerator.pre_dispatch(self)
@@ -1137,11 +1173,11 @@ class Trainer(
 
     def _dispatch(self):
         if self.evaluating:
-            self.accelerator.start_evaluating(self)
+            self.training_type_plugin.start_evaluating(self)
         elif self.predicting:
-            self.accelerator.start_predicting(self)
+            self.training_type_plugin.start_predicting(self)
         else:
-            self.accelerator.start_training(self)
+            self.training_type_plugin.start_training(self)
 
     def run_stage(self):
         self.accelerator.dispatch(self)
@@ -1267,15 +1303,20 @@ class Trainer(
 
         if model_connected and ckpt_path is None:
             rank_zero_warn(
-                f"`.{fn}(ckpt_path=None)` was called without a model. "
-                "The best model of the previous `fit` call will be used. "
-                f"You can pass `{fn}(ckpt_path='best')` to avoid this warning "
-                "or `ckpt_path=trainer.model_checkpoint.last_model_path` to use the last model."
+                f"`.{fn}(ckpt_path=None)` was called without a model."
+                " The best model of the previous `fit` call will be used."
+                f" You can pass `{fn}(ckpt_path='best')` to use and best model"
+                " checkpoint and avoid this warning or"
+                " `ckpt_path=trainer.model_checkpoint.last_model_path` to use the last model."
             )
             ckpt_path = "best"
 
         if ckpt_path == "best":
             # if user requests the best checkpoint but we don't have it, error
+            if not self.checkpoint_callback:
+                raise MisconfigurationException(
+                    f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured.'
+                )
             if not self.checkpoint_callback.best_model_path:
                 if self.fast_dev_run:
                     raise MisconfigurationException(
@@ -1468,26 +1509,26 @@ class Trainer(
 
     @property
     def global_rank(self) -> int:
-        return self.accelerator.training_type_plugin.global_rank
+        return self.training_type_plugin.global_rank
 
     @property
     def local_rank(self) -> int:
         # some training types define a local rank
-        return getattr(self.accelerator.training_type_plugin, "local_rank", 0)
+        return getattr(self.training_type_plugin, "local_rank", 0)
 
     @property
     def node_rank(self) -> int:
         # some training types define a local rank
-        return getattr(self.accelerator.training_type_plugin, "node_rank", 0)
+        return getattr(self.training_type_plugin, "node_rank", 0)
 
     @property
     def world_size(self) -> int:
         # some training types define a world size
-        return getattr(self.accelerator.training_type_plugin, "world_size", 1)
+        return getattr(self.training_type_plugin, "world_size", 1)
 
     @property
     def should_rank_save_checkpoint(self) -> bool:
-        return self.accelerator.training_type_plugin.should_rank_save_checkpoint
+        return self.training_type_plugin.should_rank_save_checkpoint
 
     @property
     def _distrib_type(self) -> DistributedType:
@@ -1978,13 +2019,6 @@ class Trainer(
             return self.predict_loop
 
     @property
-    def train_loop(self) -> FitLoop:
-        rank_zero_deprecation(
-            "`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
-        )
-        return self.fit_loop
-
-    @property
     def _ckpt_path(self) -> Optional[str]:
         if self.state.fn == TrainerFn.VALIDATING:
             return self.validated_ckpt_path
@@ -2021,6 +2055,16 @@ class Trainer(
             class_name = caller[0].f_locals["self"].__class__.__name__
             raise ExitGracefullyException(f"Exiting gracefully on {class_name}:{caller.function}")
 
+    @property
+    def weights_summary(self) -> Optional[str]:
+        rank_zero_deprecation("`Trainer.weights_summary` is deprecated in v1.5 and will be removed in v1.7.")
+        return self._weights_summary
+
+    @weights_summary.setter
+    def weights_summary(self, val: Optional[str]) -> None:
+        rank_zero_deprecation("Setting `Trainer.weights_summary` is deprecated in v1.5 and will be removed in v1.7.")
+        self._weights_summary = val
+
     """
     Other
     """
@@ -2033,3 +2077,23 @@ class Trainer(
 
     def __setstate__(self, state):
         self.__dict__ = state
+
+    @property
+    def train_loop(self) -> FitLoop:
+        rank_zero_deprecation(
+            "`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
+        )
+        return self.fit_loop
+
+    @property
+    def terminate_on_nan(self) -> bool:
+        rank_zero_deprecation("`Trainer.terminate_on_nan` is deprecated in v1.5 and will be removed in 1.7.")
+        return self._terminate_on_nan
+
+    @terminate_on_nan.setter
+    def terminate_on_nan(self, val: bool) -> None:
+        rank_zero_deprecation(
+            f"Setting `Trainer.terminate_on_nan = {val}` is deprecated in v1.5 and will be removed in 1.7."
+            f" Please set `Trainer(detect_anomaly={val})` instead."
+        )
+        self._terminate_on_nan = val  # : 212

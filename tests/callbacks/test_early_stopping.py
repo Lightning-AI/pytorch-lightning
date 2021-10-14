@@ -95,7 +95,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     )
 
     with pytest.raises(MisconfigurationException, match=r"You restored a checkpoint with current_epoch"):
-        new_trainer.fit(model)
+        new_trainer.fit(model, datamodule=dm)
 
 
 def test_early_stopping_no_extraneous_invocations(tmpdir):
@@ -111,7 +111,7 @@ def test_early_stopping_no_extraneous_invocations(tmpdir):
         limit_train_batches=4,
         limit_val_batches=4,
         max_epochs=expected_count,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model, datamodule=dm)
 
