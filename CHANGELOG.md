@@ -483,6 +483,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed parsing argument `gpus=-1`in CPU machines ([#8766](https://github.com/PyTorchLightning/pytorch-lightning/pull/8766))
+
 
 - Fixed an issue with logger outputs not being finalized correctly after prediction runs ([#8685](https://github.com/PyTorchLightning/pytorch-lightning/pull/8685))
 
