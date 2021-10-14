@@ -532,6 +532,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Reset `val_dataloader` in `tuner/batch_size_scaling` ([#9857](https://github.com/PyTorchLightning/pytorch-lightning/pull/9857))
 
+- - Fixed `train_dataloader` is loaded twice when resuming from checkpoint during fit loop ([#9671](https://github.com/PyTorchLightning/pytorch-lightning/pull/9671))
 
 ## [1.4.9] - 2021-09-30
 
