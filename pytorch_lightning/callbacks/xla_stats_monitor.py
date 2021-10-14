@@ -31,8 +31,8 @@ if _TPU_AVAILABLE:
 class XLAStatsMonitor(Callback):
     r"""
     .. deprecated:: v1.5
-        The `XLAStatsMonitor` callback was deprecated in v1.5 and will be removed in v1.7. "
-        "Please use the `DeviceStatsMonitor` callback instead.
+        The `XLAStatsMonitor` callback was deprecated in v1.5 and will be removed in v1.7.
+        Please use the `DeviceStatsMonitor` callback instead.
 
     Automatically monitors and logs XLA stats during training stage. ``XLAStatsMonitor`` is a callback and in
     order to use it you need to assign a logger in the ``Trainer``.
@@ -57,8 +57,8 @@ class XLAStatsMonitor(Callback):
         super().__init__()
 
         rank_zero_deprecation(
-            "The `XLAStatsMonitor` callback was deprecated in v1.5 and will be removed in v1.7. "
-            "Please use the `DeviceStatsMonitor` callback instead."
+            "The `XLAStatsMonitor` callback was deprecated in v1.5 and will be removed in v1.7."
+            " Please use the `DeviceStatsMonitor` callback instead."
         )
 
         if not _TPU_AVAILABLE:
