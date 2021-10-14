@@ -264,37 +264,55 @@ def materialize_module(root_module: torch.nn.Module):
             recursively_setattr(root_module, prefix, materialized_module)
 
 
+# cache to optimize the search while resetting later on.
 __STORAGE_META__ = {}
 
 
-def unset_meta_device():
+def unset_meta_device() -> None:
+    """Replace all meta module by their original version."""
     for mods, subclass, _ in __STORAGE_META__.values():
         for mod in mods:
             setattr(mod, subclass.__name__, subclass)
 
 
-def set_meta_device():
+def set_meta_device() -> None:
     """Replace all torch.nn.Module by their meta replacement."""
+
+    # Find all the nn.Module subclasses
     for subclass in get_all_subclasses(torch.nn.modules.module.Module):
 
+        # if subclass has already been stored, use teh cache
         if str(subclass) in __STORAGE_META__:
+            # reset the class import package to its rightfull state.
             mods, subclass, meta_class = __STORAGE_META__[str(subclass)]
             for mod in mods:
                 setattr(mod, subclass.__name__, meta_class)
             continue
 
+        # Create a class subclassing current `subclass` overriding its new method.
+        # this will enable use to use `torch.distributed.nn.utils.init_meta` to create a `meta`
+        # version of the current subclass module
         class _MetaClass(subclass):
             def __new__(cls, *args, **kwargs):
+                # access the current subclass
                 subclass = cls.__bases__[0]
                 submodules = subclass.__module__.split(".")
+                # import its package
                 mod = importlib.import_module(submodules[0])
                 for name in submodules[1:]:
                     mod = getattr(mod, name)
+
+                # replace the package to its rightful form, so python instantiation
+                # works as expected.
                 setattr(mod, subclass.__name__, subclass)
+
+                # create meta module
                 obj = init_meta(subclass, *args, **kwargs)
 
                 obj._materialize = obj.materialize
 
+                # the `materialize` function need to be overridden as the same
+                # toggle logic need to be used to enable proper module instantiation.
                 def materialize():
                     nonlocal obj
                     setattr(mod, subclass.__name__, subclass)
@@ -303,6 +321,7 @@ def set_meta_device():
                     return obj
 
                 obj.materialize = materialize
+                # replace the package to its meta form, so future instantation are still in the meta form.
                 setattr(mod, subclass.__name__, cls)
                 return obj
 
@@ -316,21 +335,29 @@ def set_meta_device():
         submodules = subclass.__module__.split(".")
         mod = importlib.import_module(submodules[0])
 
+        # nn.Module class can be imported at different level and they all need to be mocked.
+        # Example: torch.nn.Linear is actually torch.nn.modules.linear.Linear
+        # Therefore, torch.nn.Linear, torch.nn.modules.Linear, torch.nn.modules.linear.Linear
+        # needs to be replaced by the torch.nn.linear.modules.Linear _MetaClass
         out = []
         out.append(search(mod))
         for name in submodules[1:]:
             mod = getattr(mod, name)
             out.append(search(mod))
 
+        # drop empty module
         mods = [mod for mod in chain(*out) if mod]
 
+        # store the modules search so it doesn't have to be performed again for this class
         __STORAGE_META__[str(subclass)] = (mods, subclass, _MetaClass)
 
+        # replace all subclass by its meta form
         for mod in mods:
             setattr(mod, subclass.__name__, _MetaClass)
 
 
-def set_device(device: torch.DeviceObjType):
+def set_device(device: torch.DeviceObjType) -> None:
+    """Utility to switch to meta device."""
     if device.type == "meta":
         set_meta_device()
     else:
