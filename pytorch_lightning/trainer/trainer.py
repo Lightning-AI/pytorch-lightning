@@ -38,7 +38,7 @@ from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop, TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
-from pytorch_lightning.plugins import DDPSpawnPlugin, ParallelPlugin, PLUGIN_INPUT, PrecisionPlugin, TrainingTypePlugin
+from pytorch_lightning.plugins import DDPSpawnPlugin, PLUGIN_INPUT, PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
     BaseProfiler,
@@ -412,6 +412,10 @@ class Trainer(
                     directly to the Trainer's ``callbacks`` argument instead.
         """
         super().__init__()
+        from pytorch_lightning.utilities.parsing import collect_init_args
+
+        # hack to record all init args
+        self.trainer_kwargs = collect_init_args(inspect.currentframe(), [])[0]
         Trainer._log_api_event("init")
         self.state = TrainerState()
 
@@ -1684,7 +1688,7 @@ class Trainer(
 
     @property
     def distributed_sampler_kwargs(self) -> Optional[dict]:
-        if isinstance(self.training_type_plugin, ParallelPlugin):
+        if hasattr(self.training_type_plugin, "distributed_sampler_kwargs"):
             return self.training_type_plugin.distributed_sampler_kwargs
 
     @property
