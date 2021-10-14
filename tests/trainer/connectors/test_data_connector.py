@@ -16,6 +16,7 @@ from unittest.mock import Mock
 import pytest
 from torch.utils.data import DataLoader
 
+from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.connectors.data_connector import _DataLoaderSource
 from tests.helpers import BoringDataModule, BoringModel
 
@@ -57,6 +58,7 @@ def test_dataloader_source_direct_access():
 def test_dataloader_source_request_from_module():
     """Test requesting a dataloader from a module works."""
     module = BoringModel()
+    module.trainer = Trainer()
     module.foo = Mock(return_value=module.train_dataloader())
 
     source = _DataLoaderSource(module, "foo")

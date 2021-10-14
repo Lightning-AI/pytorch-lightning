@@ -283,8 +283,17 @@ class _DataLoaderSource:
         If the source is a module, the method with the corresponding
         :attr:`name` gets called.
         """
-        if self.is_module() and self.name:
+        from pytorch_lightning import LightningDataModule, LightningModule  # prevent cyclic import
+
+        if not self.name:
+            return self.instance
+
+        if isinstance(self.instance, LightningModule):
+            return self.instance.trainer.call_hook(self.name, pl_module=self.instance)
+
+        if isinstance(self.instance, LightningDataModule):
             return getattr(self.instance, self.name)()
+
         return self.instance
 
     def is_available(self) -> bool:
