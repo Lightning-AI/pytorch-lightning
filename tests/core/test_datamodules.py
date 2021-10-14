@@ -664,7 +664,7 @@ def test_len_dataloader_no_len(method_name):
     dataloader = CustomNotImplementedErrorDataloader(RandomDataset(1, 32))
     dm = LightningDataModule()
     setattr(dm, method_name, lambda: dataloader)
-    with pytest.warns(UserWarning, match="The number of batches for a dataloader is counted as 0"):
+    with pytest.warns(UserWarning, match=f"The number of batches for a dataloader in `{method_name}` is counted as 0"):
         assert len(dm) == 0
 
 

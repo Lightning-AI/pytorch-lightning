@@ -493,11 +493,12 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         num_batches = 0
         not_implemented_count = 0
 
-        def get_num_batches(dataloader: DataLoader) -> None:
+        def get_num_batches(dataloader: DataLoader, name: str) -> None:
             nonlocal num_batches
             if not has_len(dataloader):
                 rank_zero_warn(
-                    "The number of batches for a dataloader is counted as 0 because it does not have `__len__` defined."
+                    f"The number of batches for a dataloader in `{name}` is counted as 0 "
+                    "because it does not have `__len__` defined."
                 )
             else:
                 num_batches += len(dataloader)
@@ -506,11 +507,12 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
             dataloader_method = getattr(self, method_name)
             try:
                 dataloader = dataloader_method()
-                if isinstance(dataloader, CombinedLoader):
-                    dataloader = dataloader.loaders
-                apply_to_collection(dataloader, DataLoader, get_num_batches)
             except NotImplementedError:
                 not_implemented_count += 1
+                continue
+            if isinstance(dataloader, CombinedLoader):
+                dataloader = dataloader.loaders
+            apply_to_collection(dataloader, DataLoader, get_num_batches, method_name)
 
         if not_implemented_count == 4:
             rank_zero_warn("You datamodule does not have any valid dataloader so `__len__` will be returned as 0.")
