@@ -31,7 +31,7 @@ if _TORCH_META_AVAILABLE:
 
     ####################################################################
     # BELOW: TAKEN FROM https://github.com/pytorch/pytorch/pull/66317. #
-    # This will be removed once merged PyTorch 1.11 is released        #
+    # TODO: Removed once merged and released on PyTorch side           #
     ####################################################################
 
     @contextlib.contextmanager
@@ -214,7 +214,7 @@ if _TORCH_META_AVAILABLE:
 
     ####################################################################
     # ABOVE: TAKEN FROM https://github.com/pytorch/pytorch/pull/66317. #
-    # This will be removed once merged PyTorch 1.11 is released        #
+    # TODO: Removed once merged and released on PyTorch side           #
     ####################################################################
 
 
