@@ -658,6 +658,7 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir, save_on
 
 
 def test_scheduler_in_order(tmpdir):
+
     trainer = Trainer(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
@@ -685,6 +686,7 @@ def test_scheduler_in_order(tmpdir):
     model = TestModel()
     model.training_epoch_end = None
 
+    # capture all warnings
     with pytest.warns(None) as record:
         trainer.fit(model)
 
