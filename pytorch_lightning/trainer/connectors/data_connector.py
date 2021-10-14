@@ -14,9 +14,7 @@
 import os
 from dataclasses import dataclass
 from functools import partial
-from typing import Dict, Iterable, List, Optional, Union
-
-from torch.utils.data import DataLoader
+from typing import Iterable, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_deprecation
