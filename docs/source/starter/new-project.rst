@@ -272,6 +272,11 @@ Turn off automatic optimization and you control the train loop!
         self.manual_backward(loss_b)
         opt_b.step()
 
+Loop customization
+------------------
+
+If you need even more flexibility, you can fully customize the training loop to its core.
+Learn more about loops :doc:`here <../extensions/loops>`.
 
 Predict or Deploy
 =================
