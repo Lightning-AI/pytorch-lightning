@@ -278,8 +278,7 @@ class _DataLoaderSource:
     def request(self) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
         """Returns the dataloader from the source.
 
-        If the source is a module, the method with the corresponding
-        :attr:`name` gets called.
+        If the source is a module, the method with the corresponding :attr:`name` gets called.
         """
         from pytorch_lightning import LightningDataModule, LightningModule  # prevent cyclic import
 
@@ -290,7 +289,8 @@ class _DataLoaderSource:
             return self.instance.trainer.call_hook(self.name, pl_module=self.instance)
 
         if isinstance(self.instance, LightningDataModule):
-            return getattr(self.instance, self.name)()
+            method = getattr(self.instance, self.name)
+            return method()
 
         return self.instance
 
