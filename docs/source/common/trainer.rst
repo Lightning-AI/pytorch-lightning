@@ -840,8 +840,9 @@ See Also:
 
 log_gpu_memory
 ^^^^^^^^^^^^^^
-Setting ``log_gpu_memory`` with the trainer flag is deprecated and will be removed in v1.7.
-Please monitor GPU stats with the ``DeviceStatsMonitor`` callback directly instead.
+Setting ``log_gpu_memory`` with the trainer flag is deprecated in v1.5 and will be removed in v1.7.
+Please monitor GPU stats with the :class:`~pytorch_lightning.callbacks.device_stats_monitor.DeviceStatsMonitor`
+callback directly instead.
 
 .. raw:: html
 
