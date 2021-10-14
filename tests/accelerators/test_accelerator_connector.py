@@ -54,7 +54,7 @@ def test_accelerator_choice_cpu(tmpdir):
     assert isinstance(trainer.training_type_plugin, SingleDevicePlugin)
 
 
-@pytest.mark.parametrize(("num_processes", "num_nodes"), ([1, 2], [1, 2]))
+@pytest.mark.parametrize(("num_processes", "num_nodes"), ([(1, 1), (1, 2), (2, 1), (2, 2)]))
 def test_accelerator_choice_ddp_cpu(tmpdir, num_processes: int, num_nodes: int):
     trainer = Trainer(fast_dev_run=True, accelerator="ddp_cpu", num_processes=num_processes, num_nodes=num_nodes)
     assert isinstance(trainer.accelerator, CPUAccelerator)
