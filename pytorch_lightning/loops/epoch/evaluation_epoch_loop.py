@@ -148,6 +148,8 @@ class EvaluationEpochLoop(Loop):
         outputs = self.outputs
         # free memory
         self.outputs = []
+        # manually delete the DataLoader as PyTorch shuts down any persistent workers on `__del__`
+        # https://github.com/pytorch/pytorch/issues/64766#issuecomment-930467482
         del self._dataloader_iter
         self._dataloader_iter = None
         self._data_fetcher = None
