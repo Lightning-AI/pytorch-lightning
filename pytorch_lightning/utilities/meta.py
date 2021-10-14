@@ -31,7 +31,7 @@ if _TORCH_META_AVAILABLE:
 
     ####################################################################
     # BELOW: TAKEN FROM https://github.com/pytorch/pytorch/pull/66317. #
-    # This will be removed once merged.                                #
+    # This will be removed once merged PyTorch 1.11 is released        #
     ####################################################################
 
     @contextlib.contextmanager
@@ -214,7 +214,7 @@ if _TORCH_META_AVAILABLE:
 
     ####################################################################
     # ABOVE: TAKEN FROM https://github.com/pytorch/pytorch/pull/66317. #
-    # This will be removed once merged.                                #
+    # This will be removed once merged PyTorch 1.11 is released        #
     ####################################################################
 
 
@@ -260,6 +260,9 @@ __STORAGE_META__ = {}
 
 def unset_meta_device() -> None:
     """Replace all meta module by their original version."""
+    if not _TORCH_META_AVAILABLE:
+        raise MisconfigurationException("torch.device('meta') is supported from PyTorch 1.10.0")
+
     for mods, subclass, _ in __STORAGE_META__.values():
         for mod in mods:
             setattr(mod, subclass.__name__, subclass)
@@ -267,6 +270,9 @@ def unset_meta_device() -> None:
 
 def set_meta_device() -> None:
     """Replace all torch.nn.Module by their meta replacement."""
+
+    if not _TORCH_META_AVAILABLE:
+        raise MisconfigurationException("torch.device('meta') is supported from PyTorch 1.10.0")
 
     # Find all the nn.Module subclasses
     for subclass in get_all_subclasses(torch.nn.modules.module.Module):
@@ -344,16 +350,3 @@ def set_meta_device() -> None:
         # replace all subclass by its meta form
         for mod in mods:
             setattr(mod, subclass.__name__, _MetaClass)
-
-
-def set_device(device: torch.DeviceObjType) -> None:
-    """Utility to switch to meta device."""
-    if device.type == "meta":
-        if not _TORCH_META_AVAILABLE:
-            raise MisconfigurationException("torch.device('meta') is supported from PyTorch 1.10.0")
-        set_meta_device()
-    else:
-        if _TORCH_META_AVAILABLE:
-            unset_meta_device()
-        if device.type == "cuda":
-            torch.cuda.set_device(device)

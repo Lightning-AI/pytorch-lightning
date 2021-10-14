@@ -12,15 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
-import torch
 from torch import nn
 
-import pytorch_lightning as pl
 from pytorch_lightning.utilities.imports import _TORCH_META_AVAILABLE
-from pytorch_lightning.utilities.meta import materialize_module
+from pytorch_lightning.utilities.meta import materialize_module, set_meta_device, unset_meta_device
 
 
-@pytest.mark.skipif(not _TORCH_META_AVAILABLE, reason="Support only with PyTorch 1.11")
+@pytest.mark.skipif(not _TORCH_META_AVAILABLE, reason="Support only with PyTorch 1.10")
 def test_use_meta_device():
     class MLP(nn.Module):
         def __init__(self, num_convs: int):
@@ -30,7 +28,7 @@ def test_use_meta_device():
                 self.lins.append(nn.Linear(1, 1))
             self.layer = nn.Sequential(*self.lins)
 
-    pl.set_device(torch.device("meta"))
+    set_meta_device()
 
     m = nn.Linear(in_features=1, out_features=1)
 
@@ -41,15 +39,15 @@ def test_use_meta_device():
 
     materialize_module(mlp)
 
-    pl.set_device(torch.device("cpu"))
+    unset_meta_device()
 
     m = nn.Linear(in_features=1, out_features=1)
     assert m.weight.device.type == "cpu"
 
-    pl.set_device(torch.device("meta"))
+    set_meta_device()
     m = nn.Linear(in_features=1, out_features=1)
     assert m.weight.device.type == "meta"
 
-    pl.set_device(torch.device("cpu"))
+    unset_meta_device()
     m = nn.Linear(in_features=1, out_features=1)
     assert m.weight.device.type == "cpu"

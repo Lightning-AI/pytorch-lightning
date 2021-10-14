@@ -20,10 +20,9 @@ _PROJECT_ROOT = os.path.dirname(_PACKAGE_ROOT)
 from pytorch_lightning.callbacks import Callback  # noqa: E402
 from pytorch_lightning.core import LightningDataModule, LightningModule  # noqa: E402
 from pytorch_lightning.trainer import Trainer  # noqa: E402
-from pytorch_lightning.utilities.meta import set_device  # noqa: E402
 from pytorch_lightning.utilities.seed import seed_everything  # noqa: E402
 
-__all__ = ["Trainer", "LightningDataModule", "LightningModule", "Callback", "seed_everything", "set_device"]
+__all__ = ["Trainer", "LightningDataModule", "LightningModule", "Callback", "seed_everything"]
 
 # for compatibility with namespace packages
 __import__("pkg_resources").declare_namespace(__name__)
