@@ -97,17 +97,15 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def _validate_patched_dataloaders(model: "pl.LightningModule") -> None:
         """Validate and fail fast if the dataloaders were passed directly to fit."""
         connector: DataConnector = model.trainer.data_connector
-        if not connector._train_dataloader_source.is_module():
-            TPUSpawnPlugin._validate_dataloader(connector._train_dataloader_source.instance)
-
-        if not connector._val_dataloader_source.is_module():
-            TPUSpawnPlugin._validate_dataloader(connector._val_dataloader_source.instance)
-
-        if not connector._test_dataloader_source.is_module():
-            TPUSpawnPlugin._validate_dataloader(connector._test_dataloader_source.instance)
-
-        if not connector._predict_dataloader_source.is_module():
-            TPUSpawnPlugin._validate_dataloader(connector._predict_dataloader_source.instance)
+        sources = (
+            connector._train_dataloader_source,
+            connector._val_dataloader_source,
+            connector._test_dataloader_source,
+            connector._predict_dataloader_source,
+        )
+        for dataloader_source in sources:
+            if not dataloader_source.is_module():
+                TPUSpawnPlugin._validate_dataloader(dataloader_source.instance)
 
     def connect(self, model: "pl.LightningModule") -> None:
         TPUSpawnPlugin._validate_patched_dataloaders(model)
