@@ -24,6 +24,7 @@ from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Tuple, U
 from weakref import proxy
 
 import torch
+from torch.cuda.amp import GradScaler
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -1490,9 +1491,9 @@ class Trainer(
         file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")
         self.save_checkpoint(file_path)
 
-    """
-    Accelerator properties
-    """
+    ########################
+    # Accelerator properties
+    ########################
 
     @property
     def accelerator(self) -> Accelerator:
@@ -1555,7 +1556,7 @@ class Trainer(
         return self.accelerator_connector.root_gpu
 
     @property
-    def tpu_cores(self) -> int:
+    def tpu_cores(self) -> Optional[Union[int, List[int]]]:
         return self.accelerator_connector.tpu_cores
 
     @property
@@ -1616,7 +1617,7 @@ class Trainer(
         return self.accelerator.precision
 
     @property
-    def scaler(self):
+    def scaler(self) -> Optional[GradScaler]:
         return self.accelerator.scaler
 
     @property

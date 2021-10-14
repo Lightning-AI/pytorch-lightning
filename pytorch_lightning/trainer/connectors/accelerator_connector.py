@@ -553,16 +553,14 @@ class AcceleratorConnector:
         if hasattr(self.training_type_plugin, "is_distributed") and not self.use_tpu:
             return self.training_type_plugin.is_distributed
         is_distributed = self.use_ddp or self.use_ddp2 or self.use_horovod
-        if self.use_tpu:
+        if self.use_tpu and hasattr(self.training_type_plugin, "is_distributed"):
             is_distributed |= self.training_type_plugin.is_distributed
         return is_distributed
 
     @property
     def num_gpus(self) -> int:
         gpus = self.parallel_device_ids
-        if gpus is None:
-            return 0
-        return len(gpus)
+        return 0 if gpus is None else len(gpus)
 
     @property
     def num_ipus(self) -> int:
@@ -581,6 +579,8 @@ class AcceleratorConnector:
             # https://github.com/PyTorchLightning/pytorch-lightning/issues/3169
             if isinstance(self.tpu_cores, int):
                 devices = list(range(self.tpu_cores))
+            else:
+                raise MisconfigurationException(f"`tpu_cores` has to be int, but {self.tpu_cores} given.")
         elif self.use_ipu:
             devices = list(range(self.num_ipus))
         else:
@@ -589,11 +589,8 @@ class AcceleratorConnector:
 
     @property
     def root_gpu(self) -> Optional[int]:
-        return (
-            self.accelerator.root_device.index
-            if not isinstance(self.accelerator, (IPUAccelerator, TPUAccelerator))
-            else None
-        )
+        if not isinstance(self.accelerator, (IPUAccelerator, TPUAccelerator)):
+            return self.accelerator.root_device.index
 
     @staticmethod
     def _is_plugin_training_type(plugin: Union[str, TrainingTypePlugin]) -> bool:
