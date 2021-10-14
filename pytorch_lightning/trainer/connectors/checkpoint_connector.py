@@ -461,7 +461,7 @@ class CheckpointConnector:
             weights_only: saving model weights only
         """
         _checkpoint = self.dump_checkpoint(weights_only)
-        self.trainer.accelerator.save_checkpoint(_checkpoint, filepath)
+        self.trainer.training_type_plugin.save_checkpoint(_checkpoint, filepath)
 
     def _get_lightning_module_state_dict(self) -> Dict[str, torch.Tensor]:
         metrics = (
@@ -474,7 +474,7 @@ class CheckpointConnector:
             metric.persistent(True)
             metric.sync()
 
-        state_dict = self.trainer.accelerator.lightning_module_state_dict()
+        state_dict = self.trainer.training_type_plugin.lightning_module_state_dict()
 
         for metric in metrics:
             # sync can be a no-op (e.g. on cpu) so `unsync` would raise a user error exception if we don't check
