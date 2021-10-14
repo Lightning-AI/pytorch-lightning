@@ -31,7 +31,7 @@ class LoggerConnector:
         self.trainer = trainer
         if log_gpu_memory is not None:
             rank_zero_deprecation(
-                "Setting `log_gpu_memory` with the trainer flag is deprecated and will be removed in v1.7. "
+                "Setting `log_gpu_memory` with the trainer flag is deprecated in v1.5 and will be removed in v1.7. "
                 "Please monitor GPU stats with the `DeviceStatsMonitor` callback directly instead."
             )
         self.log_gpu_memory = log_gpu_memory
