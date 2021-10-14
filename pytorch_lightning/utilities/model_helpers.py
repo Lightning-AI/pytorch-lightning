@@ -64,7 +64,4 @@ def is_overridden(
     if parent_attr is None:
         raise ValueError("The parent should define the method")
 
-    instance_code = instance_attr.__code__
-    parent_code = parent_attr.__code__
-
-    return instance_code != parent_code
+    return instance_attr.__code__ != parent_attr.__code__
