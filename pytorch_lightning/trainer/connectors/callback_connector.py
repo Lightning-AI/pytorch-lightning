@@ -45,6 +45,7 @@ class CallbackConnector:
         process_position: int,
         default_root_dir: Optional[str],
         weights_save_path: Optional[str],
+        enable_model_summary: bool,
         weights_summary: Optional[str],
         stochastic_weight_avg: bool,
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
@@ -101,7 +102,7 @@ class CallbackConnector:
             self.trainer._progress_bar_callback = None
 
         # configure the ModelSummary callback
-        self._configure_model_summary_callback(weights_summary)
+        self._configure_model_summary_callback(enable_model_summary, weights_summary)
 
         # accumulated grads
         self._configure_accumulated_gradients(accumulate_grad_batches)
@@ -150,15 +151,6 @@ class CallbackConnector:
             # if both are set then checkpoint only if both are True
             enable_checkpointing = checkpoint_callback and enable_checkpointing
 
-        # TODO: Remove this error in v1.5 so we rely purely on the type signature
-        if not isinstance(enable_checkpointing, bool):
-            error_msg = (
-                "Invalid type provided for `enable_checkpointing`: "
-                f"Expected bool but received {type(enable_checkpointing)}."
-            )
-            if isinstance(enable_checkpointing, Callback):
-                error_msg += " Pass callback instances to the `callbacks` argument in the Trainer constructor instead."
-            raise MisconfigurationException(error_msg)
         if self._trainer_has_checkpoint_callbacks() and enable_checkpointing is False:
             raise MisconfigurationException(
                 "Trainer was configured with `enable_checkpointing=False`"
@@ -168,24 +160,50 @@ class CallbackConnector:
         if not self._trainer_has_checkpoint_callbacks() and enable_checkpointing is True:
             self.trainer.callbacks.append(ModelCheckpoint())
 
-    def _configure_model_summary_callback(self, weights_summary: Optional[str] = None) -> None:
-        if any(isinstance(cb, ModelSummary) for cb in self.trainer.callbacks):
+    def _configure_model_summary_callback(
+        self, enable_model_summary: bool, weights_summary: Optional[str] = None
+    ) -> None:
+        if weights_summary is None:
+            rank_zero_deprecation(
+                "Setting `Trainer(weights_summary=None)` is deprecated in v1.5 and will be removed"
+                " in v1.7. Please set `Trainer(enable_model_summary=False)` instead."
+            )
             return
-        if weights_summary is not None:
+        if not enable_model_summary:
+            return
+
+        model_summary_cbs = [type(cb) for cb in self.trainer.callbacks if isinstance(cb, ModelSummary)]
+        if model_summary_cbs:
+            rank_zero_info(
+                f"Trainer already configured with model summary callbacks: {model_summary_cbs}."
+                " Skipping setting a default `ModelSummary` callback."
+            )
+            return
+
+        if weights_summary == "top":
+            # special case the default value for weights_summary to preserve backward compatibility
+            max_depth = 1
+        else:
+            rank_zero_deprecation(
+                f"Setting `Trainer(weights_summary={weights_summary})` is deprecated in v1.5 and will be removed"
+                " in v1.7. Please pass `pytorch_lightning.callbacks.model_summary.ModelSummary` with"
+                " `max_depth` directly to the Trainer's `callbacks` argument instead."
+            )
             if weights_summary not in ModelSummaryMode.supported_types():
                 raise MisconfigurationException(
                     f"`weights_summary` can be None, {', '.join(ModelSummaryMode.supported_types())}",
                     f" but got {weights_summary}",
                 )
             max_depth = ModelSummaryMode.get_max_depth(weights_summary)
-            if self.trainer._progress_bar_callback is not None and isinstance(
-                self.trainer._progress_bar_callback, RichProgressBar
-            ):
-                model_summary = RichModelSummary(max_depth=max_depth)
-            else:
-                model_summary = ModelSummary(max_depth=max_depth)
-            self.trainer.callbacks.append(model_summary)
-            self.trainer.weights_summary = weights_summary
+
+        is_progress_bar_rich = isinstance(self.trainer._progress_bar_callback, RichProgressBar)
+
+        if self.trainer._progress_bar_callback is not None and is_progress_bar_rich:
+            model_summary = RichModelSummary(max_depth=max_depth)
+        else:
+            model_summary = ModelSummary(max_depth=max_depth)
+        self.trainer.callbacks.append(model_summary)
+        self.trainer._weights_summary = weights_summary
 
     def _configure_swa_callbacks(self):
         if not self.trainer._stochastic_weight_avg:

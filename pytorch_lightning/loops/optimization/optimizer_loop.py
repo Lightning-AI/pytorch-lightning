@@ -240,7 +240,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
 
         if not self.trainer.fit_loop._should_accumulate():
             # track gradients
-            grad_norm_dict = self._track_and_norm_grad(optimizer=optimizer)
+            grad_norm_dict = self._track_and_norm_grad(optimizer=optimizer, opt_idx=opt_idx)
             if grad_norm_dict:
                 self.trainer.lightning_module._current_fx_name = "on_after_backward"
                 self.trainer.lightning_module.log_grad_norm(grad_norm_dict)
@@ -344,7 +344,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             self._backward(loss, optimizer, opt_idx)
 
             # check if model weights are nan
-            if self.trainer.terminate_on_nan:
+            if self.trainer._terminate_on_nan:
                 detect_nan_parameters(self.trainer.lightning_module)
 
         return backward_fn
@@ -460,7 +460,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
 
             result = ClosureResult.from_training_step_output(training_step_output, self.trainer.accumulate_grad_batches)
 
-            if self.trainer.terminate_on_nan:
+            if self.trainer._terminate_on_nan:
                 check_finite_loss(result.closure_loss)
 
             if self.trainer.move_metrics_to_cpu:
@@ -470,7 +470,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
 
         return result
 
-    def _track_and_norm_grad(self, optimizer: torch.optim.Optimizer) -> Dict[str, float]:
+    def _track_and_norm_grad(self, optimizer: torch.optim.Optimizer, opt_idx: int) -> Dict[str, float]:
         """Tracks gradient norms and clips the gradients of all parameters optimized by the current optimizer.
 
         Args:
@@ -484,7 +484,11 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             grad_norm_dict = grad_norm(self.trainer.lightning_module, self.trainer.track_grad_norm)
 
         # clip gradients
-        self.trainer.accelerator.clip_gradients(
-            optimizer, self.trainer.gradient_clip_val, gradient_clip_algorithm=self.trainer.gradient_clip_algorithm
-        )
+        if not self.trainer.accelerator_connector.use_deepspeed:
+            self.trainer.lightning_module.configure_gradient_clipping(
+                optimizer,
+                opt_idx,
+                gradient_clip_val=self.trainer.gradient_clip_val,
+                gradient_clip_algorithm=self.trainer.gradient_clip_algorithm,
+            )
         return grad_norm_dict

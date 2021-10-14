@@ -228,6 +228,19 @@ def test_ddp_cpu_not_supported_on_tpus():
 
 
 @RunIf(tpu=True)
+@pytest.mark.parametrize("strategy", ["tpu_spawn", "tpu_spawn_debug"])
+def test_strategy_choice_tpu_str(tmpdir, strategy):
+    trainer = Trainer(strategy=strategy, accelerator="tpu", devices=8)
+    assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
+
+
+@RunIf(tpu=True)
+def test_strategy_choice_tpu_plugin(tmpdir):
+    trainer = Trainer(strategy=TPUSpawnPlugin(), accelerator="tpu", devices=8)
+    assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
+
+
+@RunIf(tpu=True)
 def test_auto_parameters_tying_tpus(tmpdir):
 
     model = WeightSharingModule()
