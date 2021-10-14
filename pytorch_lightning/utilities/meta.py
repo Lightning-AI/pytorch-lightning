@@ -246,12 +246,14 @@ def recursively_setattr(root_module: nn.Module, prefix: str, materialized_module
 
 def materialize_module(root_module: torch.nn.Module):
     """This utility enables to recursively materialize a module and its children."""
-    modules = list(root_module.named_modules())[::-1]
+    memo = []
+    modules = list(root_module.named_modules())
     for prefix, mod in modules:
         materialize_fn = getattr(mod, "materialize", None)
         if materialize_fn:
-            materialized_module = materialize_fn()
-            recursively_setattr(root_module, prefix, materialized_module)
+            memo.append((prefix, materialize_fn()))
+    for prefix, materialized_module in memo:
+        recursively_setattr(root_module, prefix, materialized_module)
 
 
 # cache to optimize the search while resetting later on.

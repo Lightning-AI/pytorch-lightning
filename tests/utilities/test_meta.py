@@ -39,6 +39,8 @@ def test_use_meta_device():
 
     materialize_module(mlp)
 
+    assert mlp.layer[0].weight.device.type == "cpu"
+
     unset_meta_device()
 
     m = nn.Linear(in_features=1, out_features=1)
