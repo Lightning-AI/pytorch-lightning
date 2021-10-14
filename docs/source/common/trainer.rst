@@ -840,6 +840,8 @@ See Also:
 
 log_gpu_memory
 ^^^^^^^^^^^^^^
+Setting ``log_gpu_memory`` with the trainer flag is deprecated and will be removed in v1.7.
+Please monitor GPU stats with the ``DeviceStatsMonitor`` callback directly instead.
 
 .. raw:: html
 
