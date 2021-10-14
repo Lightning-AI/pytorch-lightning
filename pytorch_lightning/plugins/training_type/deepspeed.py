@@ -590,7 +590,7 @@ class DeepSpeedPlugin(DDPPlugin):
         # by default we try to use the batch size of the loader
         batch_size = 1
         train_dl_source = self.lightning_module.trainer.data_connector._train_dataloader_source
-        if train_dl_source.is_available():
+        if train_dl_source.is_defined():
             train_dataloader = train_dl_source.request()
             if hasattr(train_dataloader, "batch_sampler"):
                 batch_size = train_dataloader.batch_sampler.batch_size

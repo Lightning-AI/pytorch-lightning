@@ -294,8 +294,8 @@ class _DataLoaderSource:
 
         return self.instance
 
-    def is_available(self) -> bool:
-        """Returns whether the source dataloader is available.
+    def is_defined(self) -> bool:
+        """Returns whether the source dataloader can be retrieved or not.
 
         If the source is a module it checks that the method with given :attr:`name` is overridden.
         """

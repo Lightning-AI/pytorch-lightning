@@ -67,7 +67,7 @@ class ConfigValidator:
         # -----------------------------------
         # verify model has a train dataloader
         # -----------------------------------
-        has_train_dataloader = self.trainer.data_connector._train_dataloader_source.is_available()
+        has_train_dataloader = self.trainer.data_connector._train_dataloader_source.is_defined()
         if not has_train_dataloader:
             raise MisconfigurationException(
                 "No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a"
@@ -176,7 +176,7 @@ class ConfigValidator:
             )
 
     def __verify_predict_loop_configuration(self, model: "pl.LightningModule") -> None:
-        has_predict_dataloader = self.trainer.data_connector._predict_dataloader_source.is_available()
+        has_predict_dataloader = self.trainer.data_connector._predict_dataloader_source.is_defined()
         if not has_predict_dataloader:
             raise MisconfigurationException("Dataloader not found for `Trainer.predict`")
         # ----------------------------------------------
