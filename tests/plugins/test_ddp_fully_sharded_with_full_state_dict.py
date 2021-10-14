@@ -120,7 +120,7 @@ def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
 
 def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
     # Use FullySharded to get the state dict for the sake of comparison
-    model_state_dict = trainer.accelerator.lightning_module_state_dict()
+    model_state_dict = trainer.training_type_plugin.lightning_module_state_dict()
 
     if trainer.is_global_zero:
         saved_model = cls.load_from_checkpoint(ckpt_path)
