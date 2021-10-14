@@ -245,7 +245,7 @@ def recursively_setattr(root_module: nn.Module, prefix: str, materialized_module
 
 
 def materialize_module(root_module: torch.nn.Module):
-    """This utility enables to recursively materialize a module and its children."""
+    """This utility performs an in-place operation by materialize a module and its children."""
     memo = []
     modules = list(root_module.named_modules())
     for prefix, mod in modules:
