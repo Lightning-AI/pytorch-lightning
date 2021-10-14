@@ -18,7 +18,8 @@ import pytest
 import torch
 
 from pytorch_lightning import Callback, LightningDataModule, Trainer
-from pytorch_lightning.callbacks.xla_stats_monitor import GPUStatsMonitor, XLAStatsMonitor
+from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
+from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
