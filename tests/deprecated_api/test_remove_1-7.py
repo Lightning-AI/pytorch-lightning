@@ -18,6 +18,8 @@ import pytest
 import torch
 
 from pytorch_lightning import Callback, LightningDataModule, Trainer
+from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
+from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from tests.deprecated_api import _soft_unimport_module
@@ -377,3 +379,15 @@ def test_v1_7_0_trainer_log_gpu_memory(tmpdir):
     with pytest.deprecated_call(match="The property `LoggerConnector.gpus_metrics` was deprecated in v1.5"):
         lg = LoggerConnector(trainer)
         _ = lg.gpus_metrics
+
+
+@RunIf(min_gpus=1)
+def test_v1_7_0_deprecate_gpu_stats_monitor(tmpdir):
+    with pytest.deprecated_call(match="The `GPUStatsMonitor` callback was deprecated in v1.5"):
+        _ = GPUStatsMonitor()
+
+
+@RunIf(tpu=True)
+def test_v1_7_0_deprecate_xla_stats_monitor(tmpdir):
+    with pytest.deprecated_call(match="The `XLAStatsMonitor` callback was deprecated in v1.5"):
+        _ = XLAStatsMonitor()
