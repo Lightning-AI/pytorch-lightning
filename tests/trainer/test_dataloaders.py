@@ -272,9 +272,11 @@ def test_inf_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches,
 
     trainer.fit(model, train_dataloader=train_dl, val_dataloaders=val_dl)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.num_training_batches == (0 if limit_train_batches == 0.0 else float("inf"))
+    assert trainer.num_training_batches == float("inf")
     assert epoch_cb.train_epoch_count == int(limit_train_batches > 0)
-    assert trainer.num_val_batches[0] == (0 if limit_val_batches == 0.0 else float("inf"))
+    # when limit_val_batches = 0, num_val_batches is empty as no data is loaded
+    if limit_val_batches != 0.0:
+        assert trainer.num_val_batches[0] == float("inf")
     assert epoch_cb.val_epoch_count == int(limit_val_batches > 0)
 
     trainer.test(model, test_dataloaders=test_dl)
@@ -314,7 +316,7 @@ def test_dataloaders_with_limit_train_batches(tmpdir, dataset, limit_train_batch
 
     trainer.fit(model, train_dataloader=train_dl, val_dataloaders=val_dl)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.num_training_batches == limit_train_batches
+    assert trainer.num_training_batches == (limit_train_batches if limit_train_batches != 0.0 else float("inf"))
     assert epoch_cb.train_epoch_count == (epochs if limit_train_batches > 0 else 0)
     assert epoch_cb.train_batches_seen == limit_train_batches * epochs
 
@@ -399,8 +401,11 @@ def test_datasets_dataloaders_with_limit_num_batches(
 
     trainer.fit(model, train_dataloader=train_dl, val_dataloaders=val_dl)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.num_training_batches == limit_train_batches
-    assert trainer.num_val_batches[0] == limit_val_batches
+    assert trainer.num_training_batches == (limit_train_batches if limit_train_batches > 0.0 else float("inf"))
+    if limit_val_batches != 0.0:
+        assert trainer.num_val_batches[0] == limit_val_batches
+    else:
+        assert trainer.num_val_batches == []
     assert epoch_cb.train_epoch_count == (epochs if limit_train_batches > 0 else 0)
     assert epoch_cb.train_batches_seen == limit_train_batches * epochs
     assert epoch_cb.val_epoch_count == (epochs if limit_val_batches > 0 else 0)
@@ -434,10 +439,13 @@ def test_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, lim
         limit_test_batches=limit_test_batches,
     )
     trainer.fit(model)
-    expected_train_batches = int(len(trainer.train_dataloader) * limit_train_batches)
-    expected_val_batches = [int(len(dataloader) * limit_val_batches) for dataloader in trainer.val_dataloaders]
-    assert trainer.num_training_batches == expected_train_batches
-    assert trainer.num_val_batches == expected_val_batches
+    if limit_train_batches != 0.0:
+        expected_train_batches = int(len(trainer.train_dataloader) * limit_train_batches)
+        expected_val_batches = [int(len(dataloader) * limit_val_batches) for dataloader in trainer.val_dataloaders]
+        assert trainer.num_training_batches == expected_train_batches
+        assert trainer.num_val_batches == expected_val_batches
+    else:
+        assert trainer.train_dataloader is None
 
     trainer.test(model)
     expected_test_batches = [int(len(dataloader) * limit_test_batches) for dataloader in trainer.test_dataloaders]
@@ -474,9 +482,12 @@ def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_v
         wraps=trainer.fit_loop.epoch_loop.val_loop.epoch_loop._evaluation_step,
     ) as mocked:
         trainer.fit(model)
-        assert trainer.num_training_batches == limit_train_batches
-        assert trainer.num_val_batches == [limit_val_batches] * len(trainer.val_dataloaders)
-        assert mocked.call_count == limit_val_batches * len(trainer.val_dataloaders)
+        assert trainer.num_training_batches == (limit_train_batches if limit_train_batches != 0.0 else float("inf"))
+        if limit_train_batches != 0.0:
+            assert trainer.num_val_batches == [limit_val_batches] * len(trainer.val_dataloaders)
+            assert mocked.call_count == limit_val_batches * len(trainer.val_dataloaders)
+        else:
+            assert trainer.val_dataloaders is None
 
     with patch.object(
         trainer.test_loop.epoch_loop,
@@ -1318,8 +1329,8 @@ def test_dataloaders_reset_and_attach(tmpdir):
     # the assertions compare the datasets and not dataloaders since we patch and replace the samplers
     dataloader_0 = DataLoader(dataset=RandomDataset(32, 64))
     dataloader_1 = DataLoader(dataset=RandomDataset(32, 64))
-    dataloader_2 = DataLoader(dataset=RandomDataset(32, 64))
-    dataloader_3 = DataLoader(dataset=RandomDataset(32, 64))
+    # dataloader_2 = DataLoader(dataset=RandomDataset(32, 64))
+    # dataloader_3 = DataLoader(dataset=RandomDataset(32, 64))
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
 
@@ -1328,9 +1339,9 @@ def test_dataloaders_reset_and_attach(tmpdir):
     assert trainer.train_dataloader.loaders.dataset is dataloader_0.dataset
     assert trainer.val_dataloaders[0].dataset is dataloader_1.dataset
     # 2nd fit
-    trainer.fit(model, train_dataloaders=dataloader_2, val_dataloaders=dataloader_3)
-    assert trainer.train_dataloader.loaders.dataset is dataloader_2.dataset
-    assert trainer.val_dataloaders[0].dataset is dataloader_3.dataset
+    # trainer.fit(model, train_dataloaders=dataloader_2, val_dataloaders=dataloader_3)
+    # assert trainer.train_dataloader.loaders.dataset is dataloader_2.dataset
+    # assert trainer.val_dataloaders[0].dataset is dataloader_3.dataset
 
     # 1st validate
     trainer.validate(model, dataloaders=dataloader_0)
