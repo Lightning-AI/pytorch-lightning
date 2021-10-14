@@ -62,6 +62,7 @@ class RunningStage(LightningEnum):
         - ``TrainerFn.VALIDATING`` - ``RunningStage.VALIDATING``
         - ``TrainerFn.TESTING`` - ``RunningStage.TESTING``
         - ``TrainerFn.PREDICTING`` - ``RunningStage.PREDICTING``
+        - ``TrainerFn.SERVING`` - ``RunningStage.SERVING``
         - ``TrainerFn.TUNING`` - ``RunningStage.{TUNING,SANITY_CHECKING,TRAINING,VALIDATING}``
     """
 
@@ -70,6 +71,7 @@ class RunningStage(LightningEnum):
     VALIDATING = "validate"
     TESTING = "test"
     PREDICTING = "predict"
+    SERVING = "serving"
     TUNING = "tune"
 
     @property
