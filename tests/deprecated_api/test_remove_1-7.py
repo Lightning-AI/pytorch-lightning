@@ -371,7 +371,7 @@ def test_v1_7_0_weights_summary_trainer(tmpdir):
 
 def test_v1_7_0_trainer_log_gpu_memory(tmpdir):
     with pytest.deprecated_call(
-        match="Setting `log_gpu_memory` with the trainer flag is deprecated in v.17 and will be removed"
+        match="Setting `log_gpu_memory` with the trainer flag is deprecated in v1.5 and will be removed"
     ):
         trainer = Trainer(log_gpu_memory="min_max")
     with pytest.deprecated_call(match="The property `LoggerConnector.gpus_metrics` was deprecated in v1.5"):
