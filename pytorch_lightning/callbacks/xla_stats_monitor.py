@@ -21,7 +21,7 @@ Monitor and logs XLA stats during training.
 import time
 
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import _TPU_AVAILABLE, DeviceType, rank_zero_info, rank_zero_deprecation
+from pytorch_lightning.utilities import _TPU_AVAILABLE, DeviceType, rank_zero_deprecation, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TPU_AVAILABLE:
