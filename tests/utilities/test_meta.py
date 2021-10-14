@@ -42,3 +42,11 @@ def test_use_meta_device():
 
     m = nn.Linear(in_features=1, out_features=1)
     assert m.weight.device.type == "cpu"
+
+    pl.set_device(torch.device("meta"))
+    m = nn.Linear(in_features=1, out_features=1)
+    assert m.weight.device.type == "meta"
+
+    pl.set_device(torch.device("cpu"))
+    m = nn.Linear(in_features=1, out_features=1)
+    assert m.weight.device.type == "cpu"

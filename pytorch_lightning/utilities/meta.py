@@ -278,7 +278,7 @@ def set_meta_device():
     for subclass in get_all_subclasses(torch.nn.modules.module.Module):
 
         if str(subclass) in __STORAGE_META__:
-            mods, subclass, meta_class = __STORAGE_META__[subclass]
+            mods, subclass, meta_class = __STORAGE_META__[str(subclass)]
             for mod in mods:
                 setattr(mod, subclass.__name__, meta_class)
             continue
