@@ -96,9 +96,7 @@ def test_ddp_spawn_add_get_queue(tmpdir):
     """Tests add_to_queue/get_from_queue with DDPSpawnPlugin."""
 
     ddp_spawn_plugin = TestDDPSpawnPlugin()
-    trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=True, num_processes=2, strategy="ddp_cpu", plugins=[ddp_spawn_plugin]
-    )
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, num_processes=2, strategy=ddp_spawn_plugin)
 
     val: float = 1.0
     val_name: str = "val_acc"
