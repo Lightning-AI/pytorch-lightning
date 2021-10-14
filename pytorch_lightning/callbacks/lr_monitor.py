@@ -281,6 +281,8 @@ class LearningRateMonitor(Callback):
         optimizers_without_scheduler = []
 
         for optimizer in optimizers:
+            # Deepspeed optimizer wraps the native optimizer
+            optimizer = optimizer.optimizer if hasattr(optimizer, "optimizer") else optimizer
             if optimizer in seen_optimizers:
                 continue
 
