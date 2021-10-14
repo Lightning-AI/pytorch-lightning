@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import os
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -31,7 +33,9 @@ from tests.helpers.runif import RunIf
 
 
 class SwaTestModel(BoringModel):
-    def __init__(self, batchnorm: bool = True, interval: str = "epoch", iterable_dataset: bool = False):
+    def __init__(
+        self, batchnorm: bool = True, interval: str = "epoch", iterable_dataset: bool = False, crash_after_epoch=None
+    ):
         super().__init__()
         layers = [nn.Linear(32, 32)]
         if batchnorm:
@@ -40,6 +44,8 @@ class SwaTestModel(BoringModel):
         self.layer = nn.Sequential(*layers)
         self.interval = interval
         self.iterable_dataset = iterable_dataset
+        self.crash_after_epoch = crash_after_epoch
+        self._epoch_count = 0
 
     def training_step(self, batch, batch_idx):
         output = self.forward(batch)
@@ -63,8 +69,23 @@ class SwaTestModel(BoringModel):
             },
         }
 
+    def training_epoch_end(self, _):
+        if not self.crash_after_epoch:
+            return
+        self._epoch_count += 1
+        if self._epoch_count >= self.crash_after_epoch:
+            raise RuntimeError("Crash test")
+
 
 class SwaTestCallback(StochasticWeightAveraging):
+    def __init__(self, *args, **kwargs):
+        if "resuming_from_epoch" in kwargs:
+            self.resuming_from_epoch = kwargs["resuming_from_epoch"]
+            del kwargs["resuming_from_epoch"]
+        else:
+            self.resuming_from_epoch = 0
+        super().__init__(*args, **kwargs)
+
     update_parameters_calls: int = 0
     transfer_weights_calls: int = 0
 
@@ -102,10 +123,16 @@ class SwaTestCallback(StochasticWeightAveraging):
 
         if not isinstance(trainer.training_type_plugin, DDPSpawnPlugin):
             # check backward call count. the batchnorm update epoch should not backward
-            assert trainer.accelerator.backward.call_count == trainer.max_epochs * trainer.limit_train_batches
+            assert trainer.accelerator.backward.call_count == (
+                (trainer.max_epochs - self.resuming_from_epoch) * trainer.limit_train_batches
+            )
 
         # check call counts
-        assert self.update_parameters_calls == trainer.max_epochs - (self._swa_epoch_start - 1)
+        if self.resuming_from_epoch >= self._swa_epoch_start:
+            expected_update_calls = trainer.max_epochs - self.resuming_from_epoch
+        else:
+            expected_update_calls = trainer.max_epochs - (self._swa_epoch_start - 1)
+        assert self.update_parameters_calls == expected_update_calls
         assert self.transfer_weights_calls == 1
 
 
@@ -273,3 +300,46 @@ def test_swa_multiple_lrs(tmpdir):
     )
     trainer.fit(model)
     assert model.on_train_epoch_start_called
+
+
+def test_swa_resume_training_from_checkpoint(tmpdir):
+    model = SwaTestModel(crash_after_epoch=3)
+    swa_start = 2
+    max_epochs = 5
+    swa_callback = SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        max_epochs=max_epochs,
+        limit_train_batches=5,
+        limit_val_batches=0,
+        callbacks=[swa_callback],
+        accumulate_grad_batches=2,
+        num_processes=1,
+    )
+
+    with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward), pytest.raises(RuntimeError):
+        trainer.fit(model)
+
+    checkpoint_dir = Path(tmpdir) / "lightning_logs" / "version_0" / "checkpoints"
+    checkpoint_files = os.listdir(checkpoint_dir)
+    assert len(checkpoint_files) == 1
+    checkpoint_path = checkpoint_dir / checkpoint_files[0]
+
+    model = SwaTestModel()
+    swa_callback = SwaTestCallback(resuming_from_epoch=2, swa_epoch_start=swa_start, swa_lrs=0.1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        max_epochs=max_epochs,
+        limit_train_batches=5,
+        limit_val_batches=0,
+        callbacks=[swa_callback],
+        accumulate_grad_batches=2,
+        num_processes=1,
+        resume_from_checkpoint=checkpoint_path,
+    )
+
+    with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward):
+        trainer.fit(model)
