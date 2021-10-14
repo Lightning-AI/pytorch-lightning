@@ -16,8 +16,10 @@ from torch import nn
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.meta import materialize_module
+from tests.helpers.runif import RunIf
 
 
+@RunIf(min_torch="1.10")
 def test_use_meta_device():
     class MLP(nn.Module):
         def __init__(self, num_convs: int):

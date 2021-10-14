@@ -187,6 +187,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `strategy` argument to Trainer ([#8597](https://github.com/PyTorchLightning/pytorch-lightning/pull/8597))
 
 
+- Added `set_device` as `pl.set_device` ([#9920](https://github.com/PyTorchLightning/pytorch-lightning/pull/9920))
+
+
 ### Changed
 
 - Module imports are now catching `ModuleNotFoundError` instead of `ImportError` ([#9867](https://github.com/PyTorchLightning/pytorch-lightning/pull/9867))
