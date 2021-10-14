@@ -326,7 +326,7 @@ class LoggerConnector:
         """
         rank_zero_deprecation(
             "The property `LoggerConnector.gpus_metrics` was deprecated in v1.5"
-            " and will be removed in 1.7. Use the DeviceStatsMonitor callbacks instead."
+            " and will be removed in 1.7. Use the `DeviceStatsMonitor` callback instead."
         )
         if self.trainer._device_type == DeviceType.GPU and self.log_gpu_memory:
             mem_map = memory.get_memory_profile(self.log_gpu_memory)
