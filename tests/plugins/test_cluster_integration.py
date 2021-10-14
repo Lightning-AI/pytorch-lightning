@@ -80,11 +80,11 @@ def test_ranks_available_manual_plugin_selection(plugin_cls):
 @pytest.mark.parametrize(
     "trainer_kwargs",
     [
-        dict(accelerator="ddp", gpus=[1, 2]),
-        dict(accelerator="ddp_sharded", gpus=[1, 2]),
-        dict(accelerator="ddp2", gpus=[1, 2]),
-        dict(accelerator="ddp_cpu", num_processes=2),
-        dict(accelerator="ddp_spawn", gpus=[1, 2]),
+        dict(strategy="ddp", gpus=[1, 2]),
+        dict(strategy="ddp_sharded", gpus=[1, 2]),
+        dict(strategy="ddp2", gpus=[1, 2]),
+        dict(strategy="ddp_cpu", num_processes=2),
+        dict(strategy="ddp_spawn", gpus=[1, 2]),
     ],
 )
 @mock.patch("torch.cuda.is_available", return_value=True)

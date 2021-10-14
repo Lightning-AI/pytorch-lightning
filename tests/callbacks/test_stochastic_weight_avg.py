@@ -110,7 +110,7 @@ class SwaTestCallback(StochasticWeightAveraging):
 
 
 def train_with_swa(
-    tmpdir, batchnorm=True, accelerator=None, gpus=None, num_processes=1, interval="epoch", iterable_dataset=False
+    tmpdir, batchnorm=True, strategy=None, gpus=None, num_processes=1, interval="epoch", iterable_dataset=False
 ):
     model = SwaTestModel(batchnorm=batchnorm, interval=interval, iterable_dataset=iterable_dataset)
     swa_start = 2
@@ -127,7 +127,7 @@ def train_with_swa(
         limit_val_batches=0,
         callbacks=[swa_callback],
         accumulate_grad_batches=2,
-        accelerator=accelerator,
+        strategy=strategy,
         gpus=gpus,
         num_processes=num_processes,
     )
@@ -141,17 +141,17 @@ def train_with_swa(
 
 @RunIf(min_gpus=2, special=True)
 def test_swa_callback_ddp(tmpdir):
-    train_with_swa(tmpdir, accelerator="ddp", gpus=2)
+    train_with_swa(tmpdir, strategy="ddp", gpus=2)
 
 
 @RunIf(min_gpus=2)
 def test_swa_callback_ddp_spawn(tmpdir):
-    train_with_swa(tmpdir, accelerator="ddp_spawn", gpus=2)
+    train_with_swa(tmpdir, strategy="ddp_spawn", gpus=2)
 
 
 @RunIf(skip_windows=True)
 def test_swa_callback_ddp_cpu(tmpdir):
-    train_with_swa(tmpdir, accelerator="ddp_cpu", num_processes=2)
+    train_with_swa(tmpdir, strategy="ddp_cpu", num_processes=2)
 
 
 @RunIf(min_gpus=1)

@@ -39,9 +39,7 @@ def test_model_torch_save_ddp_cpu(tmpdir):
     """Test to ensure torch save does not fail for model and trainer using cpu ddp."""
     model = BoringModel()
     num_epochs = 1
-    trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=num_epochs, accelerator="ddp_cpu", num_processes=2, logger=False
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=num_epochs, strategy="ddp_cpu", num_processes=2, logger=False)
     temp_path = os.path.join(tmpdir, "temp.pt")
     trainer.fit(model)
 
@@ -55,7 +53,7 @@ def test_model_torch_save_ddp_cuda(tmpdir):
     """Test to ensure torch save does not fail for model and trainer using gpu ddp."""
     model = BoringModel()
     num_epochs = 1
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=num_epochs, accelerator="ddp_spawn", gpus=2)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=num_epochs, strategy="ddp_spawn", gpus=2)
     temp_path = os.path.join(tmpdir, "temp.pt")
     trainer.fit(model)
 

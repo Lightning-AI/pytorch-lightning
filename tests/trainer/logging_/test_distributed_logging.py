@@ -65,7 +65,7 @@ def test_all_rank_logging_ddp_cpu(tmpdir):
     model = TestModel()
     all_rank_logger = AllRankLogger()
     trainer = Trainer(
-        accelerator="ddp_cpu",
+        strategy="ddp_cpu",
         num_processes=2,
         default_root_dir=tmpdir,
         limit_train_batches=1,
@@ -85,7 +85,7 @@ def test_all_rank_logging_ddp_spawn(tmpdir):
     all_rank_logger = AllRankLogger()
     model.training_epoch_end = None
     trainer = Trainer(
-        accelerator="ddp_spawn",
+        strategy="ddp_spawn",
         gpus=2,
         default_root_dir=tmpdir,
         limit_train_batches=1,
