@@ -2162,6 +2162,22 @@ def test_detect_anomaly_nan(tmpdir):
             dict(strategy="ddp_spawn", num_processes=1, gpus=None),
             dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
+        (
+            dict(strategy="ddp_cpu", num_processes=1, num_nodes=1, gpus=None),
+            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1)
+        ),
+        (
+            dict(strategy="ddp_cpu", num_processes=2, num_nodes=1, gpus=None),
+            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2)
+        ),
+        (
+            dict(strategy="ddp_cpu", num_processes=1, num_nodes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1)
+        ),
+        (
+            dict(strategy="ddp_cpu", num_processes=2, num_nodes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2)
+        ),
     ],
 )
 def test_trainer_config_strategy(trainer_kwargs, expected, monkeypatch):
