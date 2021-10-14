@@ -42,7 +42,7 @@ class NoDataLoaderModel(BoringModel):
 def test_dataloader_source_available(instance, available):
     """Test the availability check for _DataLoaderSource."""
     source = _DataLoaderSource(instance=instance, name="train_dataloader")
-    assert source.available is available
+    assert source.is_available() is available
 
 
 def test_dataloader_source_direct_access():
@@ -50,7 +50,7 @@ def test_dataloader_source_direct_access():
     dataloader = BoringModel().train_dataloader()
     source = _DataLoaderSource(instance=dataloader, name="any")
     assert not source.is_module()
-    assert source.available
+    assert source.is_available()
     assert source.request() is dataloader
 
 

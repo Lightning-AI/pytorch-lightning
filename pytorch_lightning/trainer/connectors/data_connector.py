@@ -277,14 +277,6 @@ class _DataLoaderSource:
     ] = None
     name: str = ""
 
-    @property
-    def available(self) -> bool:
-        """Returns whether the source dataloader is available.
-
-        If the source is a module it checks that the method with given :attr:`name` is overridden.
-        """
-        return not self.is_module() or is_overridden(self.name, self.instance)
-
     def request(self) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
         """Returns the dataloader from the source.
 
@@ -294,6 +286,13 @@ class _DataLoaderSource:
         if self.is_module() and self.name:
             return getattr(self.instance, self.name)()
         return self.instance
+
+    def is_available(self) -> bool:
+        """Returns whether the source dataloader is available.
+
+        If the source is a module it checks that the method with given :attr:`name` is overridden.
+        """
+        return not self.is_module() or is_overridden(self.name, self.instance)
 
     def is_module(self) -> bool:
         """Returns whether the the DataLoader source is a LightningModule or a LightningDataModule.
