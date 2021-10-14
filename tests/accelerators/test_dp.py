@@ -88,7 +88,7 @@ def test_multi_gpu_model_dp(tmpdir):
         limit_val_batches=10,
         gpus=[0, 1],
         accelerator="dp",
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
 
     model = BoringModel()

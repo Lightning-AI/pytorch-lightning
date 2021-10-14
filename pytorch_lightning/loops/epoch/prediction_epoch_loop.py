@@ -46,7 +46,7 @@ class PredictionEpochLoop(Loop):
         """Resets the loops internal state."""
         self._all_batch_indices: List[int] = []
         self.predictions: List[Any] = []
-        self.batch_progress.current.reset()
+        self.batch_progress.reset_on_run()
 
     def on_run_start(
         self,

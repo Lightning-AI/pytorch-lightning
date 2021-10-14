@@ -46,8 +46,12 @@ class ConfigValidator:
         self._check_add_get_queue(model)
         # TODO(@daniellepintz): Delete _check_progress_bar in v1.7
         self._check_progress_bar(model)
+        # TODO: Delete _check_on_post_move_to_device in v1.7
+        self._check_on_post_move_to_device(model)
         # TODO: Delete _check_on_keyboard_interrupt in v1.7
         self._check_on_keyboard_interrupt()
+        # TODO: Remove this in v1.7 (deprecation: #9816)
+        self._check_dl_idx_in_on_train_batch_hooks(model)
 
     def __verify_train_loop_configuration(self, model: "pl.LightningModule") -> None:
         # -----------------------------------
@@ -125,6 +129,19 @@ class ConfigValidator:
             rank_zero_deprecation(
                 "The `LightningModule.get_progress_bar_dict` method was deprecated in v1.5 and will be removed in v1.7."
                 " Please use the `ProgressBarBase.get_metrics` instead."
+            )
+
+    def _check_on_post_move_to_device(self, model: "pl.LightningModule") -> None:
+        r"""
+        Checks if `on_post_move_to_device` method is overriden and sends a deprecation warning.
+
+        Args:
+            model: The model to check the `on_post_move_to_device` method.
+        """
+        if is_overridden("on_post_move_to_device", model):
+            rank_zero_deprecation(
+                "Method `on_post_move_to_device` has been deprecated in v1.5 and will be removed in v1.7. "
+                "We perform automatic parameters tying without the need of implementing `on_post_move_to_device`."
             )
 
     def __verify_eval_loop_configuration(self, model: "pl.LightningModule", stage: str) -> None:
@@ -246,3 +263,18 @@ class ConfigValidator:
                     "The `on_keyboard_interrupt` callback hook was deprecated in v1.5 and will be removed in v1.7."
                     " Please use the `on_exception` callback hook instead."
                 )
+
+    def _check_dl_idx_in_on_train_batch_hooks(self, model: "pl.LightningModule") -> None:
+        for hook in ("on_train_batch_start", "on_train_batch_end"):
+            if is_param_in_hook_signature(getattr(model, hook), "dataloader_idx", explicit=True):
+                rank_zero_deprecation(
+                    f"Base `LightningModule.{hook}` hook signature has changed in v1.5."
+                    " The `dataloader_idx` argument will be removed in v1.7."
+                )
+
+            for cb in self.trainer.callbacks:
+                if is_param_in_hook_signature(getattr(cb, hook), "dataloader_idx", explicit=True):
+                    rank_zero_deprecation(
+                        f"Base `Callback.{hook}` hook signature has changed in v1.5."
+                        " The `dataloader_idx` argument will be removed in v1.7."
+                    )

@@ -121,7 +121,7 @@ def train_with_swa(
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=max_epochs,
         limit_train_batches=5,
         limit_val_batches=0,

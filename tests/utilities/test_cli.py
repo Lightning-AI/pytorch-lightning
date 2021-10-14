@@ -22,6 +22,7 @@ from contextlib import redirect_stdout
 from io import StringIO
 from typing import List, Optional, Union
 from unittest import mock
+from unittest.mock import ANY
 
 import pytest
 import torch
@@ -39,6 +40,7 @@ from pytorch_lightning.utilities.cli import (
     LightningArgumentParser,
     LightningCLI,
     LR_SCHEDULER_REGISTRY,
+    MODEL_REGISTRY,
     OPTIMIZER_REGISTRY,
     SaveConfigCallback,
 )
@@ -46,6 +48,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
+from tests.helpers.utils import no_warning_call
 
 torchvision_version = version.parse("0")
 if _TORCHVISION_AVAILABLE:
@@ -883,6 +886,35 @@ def test_registries(tmpdir):
         OPTIMIZER_REGISTRY.register_classes(torch.optim, torch.optim.Optimizer)
     OPTIMIZER_REGISTRY.register_classes(torch.optim, torch.optim.Optimizer, override=True)
 
+    # test `_Registry.__call__` returns the class
+    assert isinstance(CustomCallback(), CustomCallback)
+
+
+@MODEL_REGISTRY
+class TestModel(BoringModel):
+    def __init__(self, foo, bar=5):
+        super().__init__()
+        self.foo = foo
+        self.bar = bar
+
+
+MODEL_REGISTRY(cls=BoringModel)
+
+
+def test_lightning_cli_model_choices():
+    with mock.patch("sys.argv", ["any.py", "fit", "--model=BoringModel"]), mock.patch(
+        "pytorch_lightning.Trainer._fit_impl"
+    ) as run:
+        cli = LightningCLI(trainer_defaults={"fast_dev_run": 1})
+        assert isinstance(cli.model, BoringModel)
+        run.assert_called_once_with(cli.model, ANY, ANY, ANY)
+
+    with mock.patch("sys.argv", ["any.py", "--model=TestModel", "--model.foo", "123"]):
+        cli = LightningCLI(run=False)
+        assert isinstance(cli.model, TestModel)
+        assert cli.model.foo == 123
+        assert cli.model.bar == 5
+
 
 @pytest.mark.parametrize("use_class_path_callbacks", [False, True])
 def test_registries_resolution(use_class_path_callbacks):
@@ -895,6 +927,7 @@ def test_registries_resolution(use_class_path_callbacks):
         "--trainer.callbacks=LearningRateMonitor",
         "--trainer.callbacks.logging_interval=epoch",
         "--trainer.callbacks.log_momentum=True",
+        "--model=BoringModel",
         "--trainer.callbacks=ModelCheckpoint",
         "--trainer.callbacks.monitor=loss",
         "--lr_scheduler",
@@ -912,8 +945,9 @@ def test_registries_resolution(use_class_path_callbacks):
         extras = [Callback, Callback]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
-        cli = LightningCLI(BoringModel, run=False)
+        cli = LightningCLI(run=False)
 
+    assert isinstance(cli.model, BoringModel)
     optimizers, lr_scheduler = cli.model.configure_optimizers()
     assert isinstance(optimizers[0], torch.optim.Adam)
     assert optimizers[0].param_groups[0]["lr"] == 0.0001
@@ -1265,3 +1299,11 @@ def test_lightning_cli_reinstantiate_trainer():
     )
     # the existing config is not updated
     assert cli.config_init["trainer"]["max_epochs"] is None
+
+
+def test_cli_configure_optimizers_warning(tmpdir):
+    match = "configure_optimizers` will be overridden by `LightningCLI"
+    with mock.patch("sys.argv", ["any.py"]), no_warning_call(UserWarning, match=match):
+        LightningCLI(BoringModel, run=False)
+    with mock.patch("sys.argv", ["any.py", "--optimizer=Adam"]), pytest.warns(UserWarning, match=match):
+        LightningCLI(BoringModel, run=False)

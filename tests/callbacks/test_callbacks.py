@@ -35,7 +35,7 @@ def test_callbacks_configured_in_model(tmpdir):
 
     model = TestModel()
     trainer_options = dict(
-        default_root_dir=tmpdir, checkpoint_callback=False, fast_dev_run=True, progress_bar_refresh_rate=0
+        default_root_dir=tmpdir, checkpoint_callback=False, fast_dev_run=True, enable_progress_bar=False
     )
 
     def assert_expected_calls(_trainer, model_callback, trainer_callback):
@@ -86,9 +86,7 @@ def test_configure_callbacks_hook_multiple_calls(tmpdir):
             return [model_callback_mock]
 
     model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=True, checkpoint_callback=False, progress_bar_refresh_rate=1
-    )
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, checkpoint_callback=False)
 
     callbacks_before_fit = trainer.callbacks.copy()
     assert callbacks_before_fit
