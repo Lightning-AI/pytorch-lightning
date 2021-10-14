@@ -11,15 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytest
 import torch
 from torch import nn
 
 import pytorch_lightning as pl
+from pytorch_lightning.utilities.imports import _TORCH_META_AVAILABLE
 from pytorch_lightning.utilities.meta import materialize_module
-from tests.helpers.runif import RunIf
 
 
-@RunIf(min_torch="1.10")
+@pytest.mark.skipif(not _TORCH_META_AVAILABLE, reason="Support only with PyTorch 1.11")
 def test_use_meta_device():
     class MLP(nn.Module):
         def __init__(self, num_convs: int):

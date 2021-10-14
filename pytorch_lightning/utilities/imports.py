@@ -96,6 +96,7 @@ _TORCH_CPU_AMP_AVAILABLE = _compare_version(
 _TORCH_BFLOAT_AVAILABLE = _compare_version(
     "torch", operator.ge, "1.10.0.dev20210902"
 )  # todo: swap to 1.10.0 once released
+_TORCH_META_AVAILABLE = _compare_version("torch", operator.ge, "1.11.0.dev20211011")
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
 _TORCH_SHARDED_TENSOR_AVAILABLE = _compare_version(
     "torch", operator.ge, "1.10.0.dev20210809"
