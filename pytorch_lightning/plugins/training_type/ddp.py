@@ -128,7 +128,7 @@ class DDPPlugin(ParallelPlugin):
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
         self._rank_0_has_called_call_children_scripts: bool = False
-        self._self_deleted_checkpoint_state_dict: bool = False
+        self._has_loaded_state_dict: bool = False
         self.set_world_ranks()
 
     @property
@@ -538,10 +538,10 @@ class DDPPlugin(ParallelPlugin):
             # clean up memory
             torch.cuda.empty_cache()
 
-        self._self_deleted_checkpoint_state_dict = False
+        self._has_loaded_state_dict = False
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        if "state_dict" not in checkpoint and self._self_deleted_checkpoint_state_dict:
+        if "state_dict" not in checkpoint and self._has_loaded_state_dict:
             return
         self.lightning_module.load_state_dict(checkpoint["state_dict"])
 
@@ -553,8 +553,10 @@ class DDPPlugin(ParallelPlugin):
         for current_worker in range(self.num_processes):
             if self.local_rank == current_worker:
                 checkpoint = super().load_checkpoint(checkpoint_path)
+                self.lightning_module.on_load_checkpoint(checkpoint)
+                self.load_model_state_dict(checkpoint)
                 del checkpoint["state_dict"]
-                self._self_deleted_checkpoint_state_dict = True
+                self._has_loaded_state_dict = True
                 log.info(f"Rank {self.global_rank}: done loading model states from {checkpoint_path}.")
             self.barrier()
         return checkpoint
