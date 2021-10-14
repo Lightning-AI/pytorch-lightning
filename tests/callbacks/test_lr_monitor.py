@@ -37,16 +37,11 @@ def test_lr_monitor_single_lr(tmpdir):
         default_root_dir=tmpdir, max_epochs=2, limit_val_batches=0.1, limit_train_batches=0.5, callbacks=[lr_monitor]
     )
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     assert lr_monitor.lrs, "No learning rates logged"
     assert all(v is None for v in lr_monitor.last_momentum_values.values()), "Momentum should not be logged by default"
-    assert len(lr_monitor.lrs) == len(
-        trainer.lr_schedulers
-    ), "Number of learning rates logged does not match number of lr schedulers"
-    assert (
-        lr_monitor.lr_sch_names == list(lr_monitor.lrs.keys()) == ["lr-SGD"]
-    ), "Names of learning rates not set correctly"
+    assert len(lr_monitor.lrs) == len(trainer.lr_schedulers)
+    assert lr_monitor.lr_sch_names == list(lr_monitor.lrs.keys()) == ["lr-SGD"]
 
 
 @pytest.mark.parametrize("opt", ["SGD", "Adam"])
@@ -79,15 +74,10 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt: str):
         callbacks=[lr_monitor],
     )
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     assert all(v is not None for v in lr_monitor.last_momentum_values.values()), "Expected momentum to be logged"
-    assert len(lr_monitor.last_momentum_values) == len(
-        trainer.lr_schedulers
-    ), "Number of momentum values logged does not match number of lr schedulers"
-    assert all(
-        k == f"lr-{opt}-momentum" for k in lr_monitor.last_momentum_values.keys()
-    ), "Names of momentum values not set correctly"
+    assert len(lr_monitor.last_momentum_values) == len(trainer.lr_schedulers)
+    assert all(k == f"lr-{opt}-momentum" for k in lr_monitor.last_momentum_values.keys())
 
 
 def test_log_momentum_no_momentum_optimizer(tmpdir):
@@ -111,15 +101,10 @@ def test_log_momentum_no_momentum_optimizer(tmpdir):
     )
     with pytest.warns(RuntimeWarning, match="optimizers do not have momentum."):
         trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     assert all(v == 0 for v in lr_monitor.last_momentum_values.values()), "Expected momentum to be logged"
-    assert len(lr_monitor.last_momentum_values) == len(
-        trainer.lr_schedulers
-    ), "Number of momentum values logged does not match number of lr schedulers"
-    assert all(
-        k == "lr-ASGD-momentum" for k in lr_monitor.last_momentum_values.keys()
-    ), "Names of momentum values not set correctly"
+    assert len(lr_monitor.last_momentum_values) == len(trainer.lr_schedulers)
+    assert all(k == "lr-ASGD-momentum" for k in lr_monitor.last_momentum_values.keys())
 
 
 def test_lr_monitor_no_lr_scheduler_single_lr(tmpdir):
@@ -138,15 +123,11 @@ def test_lr_monitor_no_lr_scheduler_single_lr(tmpdir):
         default_root_dir=tmpdir, max_epochs=2, limit_val_batches=0.1, limit_train_batches=0.5, callbacks=[lr_monitor]
     )
 
-    # with pytest.warns(RuntimeWarning, match="have no learning rate schedulers"):
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     assert lr_monitor.lrs, "No learning rates logged"
-    assert len(lr_monitor.lrs) == len(
-        trainer.optimizers
-    ), "Number of learning rates logged does not match number of optimizers"
-    assert lr_monitor.lr_sch_names == ["lr-SGD"], "Names of learning rates not set correctly"
+    assert len(lr_monitor.lrs) == len(trainer.optimizers)
+    assert lr_monitor.lr_sch_names == ["lr-SGD"]
 
 
 @pytest.mark.parametrize("opt", ["SGD", "Adam"])
@@ -178,15 +159,10 @@ def test_lr_monitor_no_lr_scheduler_single_lr_with_momentum(tmpdir, opt: str):
         callbacks=[lr_monitor],
     )
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     assert all(v is not None for v in lr_monitor.last_momentum_values.values()), "Expected momentum to be logged"
-    assert len(lr_monitor.last_momentum_values) == len(
-        trainer.optimizers
-    ), "Number of momentum values logged does not match number of optimizers"
-    assert all(
-        k == f"lr-{opt}-momentum" for k in lr_monitor.last_momentum_values.keys()
-    ), "Names of momentum values not set correctly"
+    assert len(lr_monitor.last_momentum_values) == len(trainer.optimizers)
+    assert all(k == f"lr-{opt}-momentum" for k in lr_monitor.last_momentum_values.keys())
 
 
 def test_log_momentum_no_momentum_optimizer_no_lr_scheduler(tmpdir):
@@ -209,15 +185,10 @@ def test_log_momentum_no_momentum_optimizer_no_lr_scheduler(tmpdir):
     )
     with pytest.warns(RuntimeWarning, match="optimizers do not have momentum."):
         trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     assert all(v == 0 for v in lr_monitor.last_momentum_values.values()), "Expected momentum to be logged"
-    assert len(lr_monitor.last_momentum_values) == len(
-        trainer.optimizers
-    ), "Number of momentum values logged does not match number of optimizers"
-    assert all(
-        k == "lr-ASGD-momentum" for k in lr_monitor.last_momentum_values.keys()
-    ), "Names of momentum values not set correctly"
+    assert len(lr_monitor.last_momentum_values) == len(trainer.optimizers)
+    assert all(k == "lr-ASGD-momentum" for k in lr_monitor.last_momentum_values.keys())
 
 
 def test_lr_monitor_no_logger(tmpdir):
@@ -264,12 +235,9 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
         callbacks=[lr_monitor],
     )
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     assert lr_monitor.lrs, "No learning rates logged"
-    assert len(lr_monitor.lrs) == len(
-        trainer.lr_schedulers
-    ), "Number of learning rates logged does not match number of lr schedulers"
+    assert len(lr_monitor.lrs) == len(trainer.lr_schedulers)
     assert lr_monitor.lr_sch_names == ["lr-Adam", "lr-Adam-1"], "Names of learning rates not set correctly"
 
     if logging_interval == "step":
@@ -277,9 +245,7 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
     if logging_interval == "epoch":
         expected_number_logged = trainer.max_epochs
 
-    assert all(
-        len(lr) == expected_number_logged for lr in lr_monitor.lrs.values()
-    ), "Length of logged learning rates do not match the expected number"
+    assert all(len(lr) == expected_number_logged for lr in lr_monitor.lrs.values())
 
 
 @pytest.mark.parametrize("logging_interval", ["step", "epoch"])
@@ -312,12 +278,9 @@ def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
         callbacks=[lr_monitor],
     )
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     assert lr_monitor.lrs, "No learning rates logged"
-    assert len(lr_monitor.lrs) == len(
-        trainer.optimizers
-    ), "Number of learning rates logged does not match number of optimizers"
+    assert len(lr_monitor.lrs) == len(trainer.optimizers)
     assert lr_monitor.lr_sch_names == ["lr-Adam", "lr-Adam-1"], "Names of learning rates not set correctly"
 
     if logging_interval == "step":
@@ -325,9 +288,7 @@ def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
     if logging_interval == "epoch":
         expected_number_logged = trainer.max_epochs
 
-    assert all(
-        len(lr) == expected_number_logged for lr in lr_monitor.lrs.values()
-    ), "Length of logged learning rates do not match the expected number"
+    assert all(len(lr) == expected_number_logged for lr in lr_monitor.lrs.values())
 
 
 def test_lr_monitor_param_groups(tmpdir):
@@ -353,12 +314,9 @@ def test_lr_monitor_param_groups(tmpdir):
         default_root_dir=tmpdir, max_epochs=2, limit_val_batches=0.1, limit_train_batches=0.5, callbacks=[lr_monitor]
     )
     trainer.fit(model, datamodule=dm)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     assert lr_monitor.lrs, "No learning rates logged"
-    assert len(lr_monitor.lrs) == 2 * len(
-        trainer.lr_schedulers
-    ), "Number of learning rates logged does not match number of param groups"
+    assert len(lr_monitor.lrs) == 2 * len(trainer.lr_schedulers)
     assert lr_monitor.lr_sch_names == ["lr-Adam"]
     assert list(lr_monitor.lrs.keys()) == ["lr-Adam/pg1", "lr-Adam/pg2"], "Names of learning rates not set correctly"
 
