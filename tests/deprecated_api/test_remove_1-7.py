@@ -370,12 +370,13 @@ def test_v1_7_0_weights_summary_trainer(tmpdir):
         t.weights_summary = "blah"
 
 
+@RunIf(min_gpus=1)
 def test_v1_7_0_deprecate_gpu_stats_monitor(tmpdir):
     with pytest.deprecated_call(match="The `GPUStatsMonitor` callback was deprecated in v1.5"):
         _ = GPUStatsMonitor()
 
 
 @RunIf(tpu=True)
-def test_v1_7_0_deprecate_tpu_stats_monitor(tmpdir):
+def test_v1_7_0_deprecate_xla_stats_monitor(tmpdir):
     with pytest.deprecated_call(match="The `XLAStatsMonitor` callback was deprecated in v1.5"):
         _ = XLAStatsMonitor()
