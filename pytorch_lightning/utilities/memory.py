@@ -96,8 +96,10 @@ def garbage_collection_cuda() -> None:
 
 
 def get_memory_profile(mode: str) -> Dict[str, float]:
-    """.. deprecated:: v1.5 This function was deprecated in v1.5 in favor of
-    `pytorch_lightning.accelerators.gpu._get_nvidia_gpu_stats` and will be removed in v1.7.
+    r"""
+    .. deprecated:: v1.5
+        This function was deprecated in v1.5 in favor of
+        `pytorch_lightning.accelerators.gpu._get_nvidia_gpu_stats` and will be removed in v1.7.
 
     Get a profile of the current memory usage.
 
@@ -127,8 +129,10 @@ def get_memory_profile(mode: str) -> Dict[str, float]:
 
 
 def get_gpu_memory_map() -> Dict[str, float]:
-    """.. deprecated:: v1.5 This function was deprecated in v1.5 in favor of
-    `pytorch_lightning.accelerators.gpu._get_nvidia_gpu_stats` and will be removed in v1.7.
+    r"""
+    .. deprecated:: v1.5
+        This function was deprecated in v1.5 in favor of
+        `pytorch_lightning.accelerators.gpu._get_nvidia_gpu_stats` and will be removed in v1.7.
 
     Get the current gpu usage.
 
