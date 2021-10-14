@@ -40,6 +40,7 @@ class StochasticWeightAveraging(Callback):
         annealing_strategy: str = "cos",
         avg_fn: Optional[_AVG_FN] = None,
         device: Optional[Union[torch.device, str]] = torch.device("cpu"),
+        swa_validation: bool = False,
     ):
         r"""
 
@@ -93,6 +94,9 @@ class StochasticWeightAveraging(Callback):
                 When None is provided, it will infer the `device` from ``pl_module``.
                 (default: ``"cpu"``)
 
+            swa_validation: if True, then the averaged model weights are used during validation
+                (default: ``False``)
+
         """
 
         err_msg = "swa_epoch_start should be a >0 integer or a float between 0 and 1."
@@ -122,9 +126,11 @@ class StochasticWeightAveraging(Callback):
         self._annealing_epochs = annealing_epochs
         self._annealing_strategy = annealing_strategy
         self._avg_fn = avg_fn or self.avg_fn
+        self._swa_validation = swa_validation
         self._device = device
         self._model_contains_batch_norm = None
         self._average_model = None
+        self._temp_model = None
         self._initialized = False
         self._swa_scheduler = None
 
@@ -144,6 +150,9 @@ class StochasticWeightAveraging(Callback):
         # copy the model before moving it to accelerator device.
         with pl_module._prevent_trainer_and_dataloaders_deepcopy():
             self._average_model = deepcopy(pl_module)
+            if self._swa_validation:
+                # Also create a model for temporarily copying weights to during validation
+                self._temp_model = deepcopy(pl_module)
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
         optimizers = trainer.optimizers
@@ -172,6 +181,8 @@ class StochasticWeightAveraging(Callback):
 
             # move average model to request device.
             self._average_model = self._average_model.to(self._device or pl_module.device)
+            if self._temp_model:
+                self._temp_model = self._temp_model.to(self._device or pl_module.device)
 
             optimizer = trainer.optimizers[0]
             if self._swa_lrs is None:
@@ -242,6 +253,18 @@ class StochasticWeightAveraging(Callback):
         elif trainer.current_epoch == self.swa_end:
             # Last SWA epoch. Transfer weights from average model to pl_module
             self.transfer_weights(self._average_model, pl_module)
+
+    def on_validation_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        if self._swa_validation and (self.swa_start <= trainer.current_epoch <= self.swa_end):
+            # Take a temporary copy of the model parameters
+            self.transfer_weights(pl_module, self._temp_model)
+            # Update the model with the averaged parameters
+            self.transfer_weights(self._average_model, pl_module)
+
+    def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        if self._swa_validation and (self.swa_start <= trainer.current_epoch <= self.swa_end):
+            # Copy original model parameters back
+            self.transfer_weights(self._temp_model, pl_module)
 
     @staticmethod
     def transfer_weights(src_pl_module: "pl.LightningModule", dst_pl_module: "pl.LightningModule"):
