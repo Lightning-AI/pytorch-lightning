@@ -21,6 +21,7 @@ from pytorch_lightning import Callback, LightningDataModule, Trainer
 from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
 from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
+from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
@@ -368,6 +369,16 @@ def test_v1_7_0_weights_summary_trainer(tmpdir):
 
     with pytest.deprecated_call(match=r"Setting `Trainer.weights_summary` is deprecated in v1.5"):
         t.weights_summary = "blah"
+
+
+def test_v1_7_0_trainer_log_gpu_memory(tmpdir):
+    with pytest.deprecated_call(
+        match="Setting `log_gpu_memory` with the trainer flag is deprecated in v1.5 and will be removed"
+    ):
+        trainer = Trainer(log_gpu_memory="min_max")
+    with pytest.deprecated_call(match="The property `LoggerConnector.gpus_metrics` was deprecated in v1.5"):
+        lg = LoggerConnector(trainer)
+        _ = lg.gpus_metrics
 
 
 @RunIf(min_gpus=1)

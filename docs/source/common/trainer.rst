@@ -528,7 +528,7 @@ Example::
 checkpoint_callback
 ^^^^^^^^^^^^^^^^^^^
 
-Deprecated: This has been deprecated in v1.5 and will be removed in v.17. Please use ``enable_checkpointing`` instead.
+Deprecated: This has been deprecated in v1.5 and will be removed in v1.7. Please use ``enable_checkpointing`` instead.
 
 default_root_dir
 ^^^^^^^^^^^^^^^^
@@ -837,36 +837,6 @@ How often to add logging rows (does not write to disk)
 
 See Also:
     - :doc:`logging <../extensions/logging>`
-
-log_gpu_memory
-^^^^^^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/log_gpu_memory.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/log_gpu_memory.mp4"></video>
-
-|
-
-Options:
-
-- None
-- 'min_max'
-- 'all'
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(log_gpu_memory=None)
-
-    # log all the GPUs (on master node only)
-    trainer = Trainer(log_gpu_memory="all")
-
-    # log only the min and max memory on the master node
-    trainer = Trainer(log_gpu_memory="min_max")
-
-.. note:: Might slow performance because it uses the output of ``nvidia-smi``.
 
 logger
 ^^^^^^
