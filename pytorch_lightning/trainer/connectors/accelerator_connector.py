@@ -827,7 +827,10 @@ class AcceleratorConnector:
                     "`accelerator='ddp_cpu'` is not supported on TPU machines. "
                     "Learn more: https://github.com/PyTorchLightning/pytorch-lightning/issues/7810"
                 )
-            self._distrib_type = DistributedType.DDP_SPAWN
+            if self.num_processes == 1 and self.num_nodes > 1:
+                self._distrib_type = DistributedType.DDP
+            else:
+                self._distrib_type = DistributedType.DDP_SPAWN
             if self.num_gpus > 0:
                 rank_zero_warn(
                     "You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs."
