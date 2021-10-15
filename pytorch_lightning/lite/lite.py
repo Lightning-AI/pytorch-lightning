@@ -132,7 +132,7 @@ class LightningLite(ABC):
 
     def backward(self, tensor: Tensor, *args: Any, **kwargs: Any) -> None:
         # user will call self.backward(loss) instead of loss.backward()
-        self._accelerator.run_backward(tensor, *args, model=None, **kwargs)
+        self._accelerator.run_backward(tensor, None, *args, **kwargs)
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:

@@ -62,7 +62,7 @@ class _LiteModule(nn.Module):
         output = apply_to_collection(output, function=lambda t: t.to(torch.get_default_dtype()), dtype=Tensor)
         return output
 
-    def backward(self, loss, *args, **kwargs):
+    def backward(self, loss, *args: Any, **kwargs: Any) -> None:
         if not isinstance(self._accelerator.training_type_plugin, DeepSpeedPlugin):
             raise RuntimeError(
                 f"Calling `.backward()` on {self.module.__class__.__name__} is not allowed."
@@ -70,7 +70,7 @@ class _LiteModule(nn.Module):
             )
         self._accelerator.run_backward(loss, self.module, *args, **kwargs)
 
-    def step(self):
+    def step(self) -> None:
         if not isinstance(self._accelerator.training_type_plugin, DeepSpeedPlugin):
             raise RuntimeError(
                 f"Calling `.step()` on {self.module.__class__.__name__} is not allowed."
