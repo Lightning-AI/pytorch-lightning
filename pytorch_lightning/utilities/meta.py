@@ -192,6 +192,7 @@ def _set_meta_device() -> None:
     if not _TORCH_META_AVAILABLE:
         raise MisconfigurationException("`init_meta` is supported from PyTorch 1.10.0")
 
+    # author note: This can be optimized further by searching all subclasses at once.
     # Find all the nn.Module subclasses
     for subclass in get_all_subclasses(torch.nn.modules.module.Module):
 
