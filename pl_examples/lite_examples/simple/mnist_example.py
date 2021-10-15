@@ -67,6 +67,8 @@ class MNIST(LightningLite):
         assert isinstance(test_loader.sampler, DistributedSampler)
         model, optimizer = self.setup(model, optimizer)
 
+        print(type(optimizer.optimizer))
+
         scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
         for epoch in range(1, args.epochs + 1):
             self.train(args, model, train_loader, optimizer, epoch)
