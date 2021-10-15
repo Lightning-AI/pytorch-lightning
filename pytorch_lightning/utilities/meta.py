@@ -18,7 +18,8 @@ import threading
 from contextlib import contextmanager
 from functools import partial
 from itertools import chain
-from typing import Callable, Dict, Generator, Iterator, Optional
+from types import ModuleType
+from typing import Callable, Dict, Generator, Iterator, List, Optional, Set, Type
 
 import torch
 from torch import nn, Tensor
@@ -136,7 +137,7 @@ if _TORCH_META_AVAILABLE:
 
 
 # https://stackoverflow.com/a/63851681/9201239
-def get_all_subclasses(cls):
+def get_all_subclasses(cls: Type[nn.Module]) -> Set[nn.Module]:
     subclass_list = []
 
     def recurse(cl):
@@ -149,7 +150,7 @@ def get_all_subclasses(cls):
     return set(subclass_list)
 
 
-def recursively_setattr(root_module: nn.Module, prefix: str, materialized_module: nn.Module):
+def recursively_setattr(root_module: nn.Module, prefix: str, materialized_module: nn.Module) -> None:
     *path, name = prefix.split(".")
     for p in path:
         root_module = getattr(root_module, p)
@@ -161,10 +162,10 @@ def recursively_setattr(root_module: nn.Module, prefix: str, materialized_module
         setattr(root_module, name, materialized_module)
 
 
-def materialize_module(root_module: torch.nn.Module):
+def materialize_module(root_module: nn.Module) -> nn.Module:
     """This utility performs an in-place operation by materialize a module and its children."""
     if not _TORCH_META_AVAILABLE:
-        return
+        return root_module
     memo = []
     modules = list(root_module.named_modules())
     for prefix, mod in modules:
@@ -173,6 +174,7 @@ def materialize_module(root_module: torch.nn.Module):
             memo.append((prefix, materialize_fn()))
     for prefix, materialized_module in memo:
         recursively_setattr(root_module, prefix, materialized_module)
+    return root_module
 
 
 # cache to optimize the search while resetting later on.
@@ -259,7 +261,7 @@ def _set_meta_device() -> None:
                 obj.materialize = partial(cls.materialize, materialize_fn=obj.materialize)
                 return obj
 
-        def search(mod):
+        def search(mod: ModuleType) -> List[ModuleType]:
             out = []
             for _, obj in inspect.getmembers(mod):
                 if obj == subclass:
