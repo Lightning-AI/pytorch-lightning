@@ -386,7 +386,7 @@ class DeepSpeedPlugin(DDPPlugin):
     ) -> Tuple[Sequence[Module], Sequence[Optimizer]]:
         if not (len(models) == len(optimizers) == 1):
             raise ValueError(
-                f"Currently only model and one optimizer is supported with DeepSpeed."
+                f"Currently only one model and one optimizer is supported with DeepSpeed."
                 f" Got {len(models)} models and {len(optimizers)} optimizers instead."
             )
 
