@@ -129,7 +129,7 @@ def test_simple_profiler_distributed_files(tmpdir):
     profiler = SimpleProfiler(dirpath=tmpdir, filename="profiler")
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=2, strategy="ddp_cpu", num_processes=2, profiler=profiler, logger=False
+        default_root_dir=tmpdir, fast_dev_run=2, strategy="ddp_spawn", num_processes=2, profiler=profiler, logger=False
     )
     trainer.fit(model)
     trainer.validate(model)

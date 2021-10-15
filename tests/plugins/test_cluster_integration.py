@@ -83,7 +83,7 @@ def test_ranks_available_manual_plugin_selection(plugin_cls):
         dict(strategy="ddp", gpus=[1, 2]),
         dict(strategy="ddp_sharded", gpus=[1, 2]),
         dict(strategy="ddp2", gpus=[1, 2]),
-        dict(strategy="ddp_cpu", num_processes=2),
+        dict(strategy="ddp_spawn", num_processes=2),
         dict(strategy="ddp_spawn", gpus=[1, 2]),
     ],
 )

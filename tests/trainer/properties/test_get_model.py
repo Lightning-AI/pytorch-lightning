@@ -49,7 +49,7 @@ def test_get_model_ddp_cpu(tmpdir):
         limit_train_batches=limit_train_batches,
         limit_val_batches=2,
         max_epochs=1,
-        strategy="ddp_cpu",
+        strategy="ddp_spawn",
         num_processes=2,
     )
     trainer.fit(model)

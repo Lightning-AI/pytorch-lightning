@@ -233,7 +233,7 @@ def test_dataloader_reinit_for_subclass():
             self.dummy_kwarg = dummy_kwarg
             self.something_unrelated = 1
 
-    trainer = Trainer(num_processes=1, strategy="ddp_cpu")
+    trainer = Trainer(num_processes=1, strategy="ddp_spawn")
 
     class CustomDummyObj:
         sampler = None

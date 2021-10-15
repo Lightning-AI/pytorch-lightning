@@ -717,8 +717,8 @@ def test_amp_level_raises_error_with_native(tmpdir):
         _ = Trainer(default_root_dir=tmpdir, gpus=1, amp_level="O2", amp_backend="native", precision=16)
 
 
-def test_strategy_choice_ddp_cpu(tmpdir):
-    trainer = Trainer(fast_dev_run=True, strategy="ddp_cpu")
+def test_strategy_choice_ddp_spawn_cpu(tmpdir):
+    trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn")
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
     assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
@@ -885,7 +885,7 @@ def test_strategy_choice_ddp_cpu_te(device_count_mock, setup_distributed_mock):
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, strategy="ddp_cpu", num_processes=2, callbacks=[CB()])
+    trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", num_processes=2, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -945,7 +945,7 @@ def test_strategy_choice_ddp_cpu_kubeflow(device_count_mock, setup_distributed_m
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, strategy="ddp_cpu", num_processes=1, callbacks=[CB()])
+    trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", num_processes=1, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -975,7 +975,7 @@ def test_strategy_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_mock
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, strategy="ddp_cpu", num_processes=2, callbacks=[CB()])
+    trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", num_processes=2, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
