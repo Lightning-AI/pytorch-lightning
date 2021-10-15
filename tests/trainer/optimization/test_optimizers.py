@@ -657,7 +657,8 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir, save_on
     assert model.on_save_checkpoint_called
 
 
-def test_scheduler_in_order(tmpdir):
+def test_optimizer_step_before_lr_scheduler_step(tmpdir):
+    """Test `optimizer.step()` is called before `lr_scheduler.step()`."""
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -666,8 +667,9 @@ def test_scheduler_in_order(tmpdir):
         max_epochs=1,
         gpus=1,
         precision=16,
-        limit_train_batches=4,
-        limit_val_batches=1,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        limit_test_batches=0,
         callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )
 
@@ -680,7 +682,6 @@ def test_scheduler_in_order(tmpdir):
                 "interval": "step",
                 "frequency": 1,
             }
-
             return {"optimizer": optimizer, "lr_scheduler": scheduler}
 
     model = TestModel()
