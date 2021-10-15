@@ -69,9 +69,9 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         closure_loss = self.scaler.scale(closure_loss)
         return super().pre_backward(model, closure_loss)
 
-    def run_backward(self, tensor, *args, **kwargs):
+    def run_backward(self, tensor, model, *args, **kwargs):
         tensor = self.scaler.scale(tensor)
-        super().run_backward(tensor, *args, **kwargs)
+        super().run_backward(tensor, model, *args, **kwargs)
 
     def pre_optimizer_step(
         self,
