@@ -52,9 +52,11 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
                 "Skipping backward by returning `None` from your `training_step` is not supported by `DeepSpeed`"
             )
         # the following should be in a `optimizer_step` hook but we don't have one in the precision plugin.
-        deepspeed_engine = model.trainer.model if isinstance(model, pl.LightningModule) else model
-        deepspeed_engine.step()
-        return False
+        if isinstance(model, pl.LightningModule):
+            deepspeed_engine = model.trainer.model
+            deepspeed_engine.step()
+            return False
+        return True
 
     def backward(self, model: "pl.LightningModule", closure_loss: Tensor, *args: Any, **kwargs: Any) -> None:
         if is_overridden("backward", model):
