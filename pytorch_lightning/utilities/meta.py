@@ -239,21 +239,22 @@ def _set_meta_device() -> None:
         class _MetaClass(subclass):
             @classmethod
             @contextmanager
-            def instantiation_context(cls):
+            def instantiation_context(cls, materialize: bool):
                 _unset_meta_device(from_created=True)
                 yield
                 _set_meta_device_populated(from_created=True)
 
             @classmethod
             def materialize(cls, materialize_fn: Callable):
-                with cls.instantiation_context():
+                with cls.instantiation_context(materialize=True):
                     obj = materialize_fn()
                 return obj
 
             def __new__(cls, *args, **kwargs):
-                __CREATED_MODULES__.add(str(cls.__bases__[0]))
-                with cls.instantiation_context():
-                    obj = init_meta(cls.__bases__[0], *args, **kwargs)
+                subclass = cls.__bases__[0]
+                __CREATED_MODULES__.add(str(subclass))
+                with cls.instantiation_context(materialize=False):
+                    obj = init_meta(subclass, *args, **kwargs)
 
                 obj.materialize = partial(cls.materialize, materialize_fn=obj.materialize)
                 return obj
