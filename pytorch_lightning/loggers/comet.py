@@ -40,7 +40,7 @@ if _COMET_AVAILABLE:
 
     try:
         from comet_ml.api import API
-    except ImportError:  # pragma: no-cover
+    except ModuleNotFoundError:  # pragma: no-cover
         # For more information, see: https://www.comet.ml/docs/python-sdk/releases/#release-300
         from comet_ml.papi import API  # pragma: no-cover
 else:
@@ -120,7 +120,7 @@ class CometLogger(LightningLoggerBase):
             :class:`CometExperiment` can be passed as keyword arguments in this logger.
 
     Raises:
-        ImportError:
+        ModuleNotFoundError:
             If required Comet package is not installed on the device.
         MisconfigurationException:
             If neither ``api_key`` nor ``save_dir`` are passed as arguments.
@@ -141,7 +141,7 @@ class CometLogger(LightningLoggerBase):
         **kwargs,
     ):
         if comet_ml is None:
-            raise ImportError(
+            raise ModuleNotFoundError(
                 "You want to use `comet_ml` logger which is not installed yet, install it with `pip install comet-ml`."
             )
         super().__init__()

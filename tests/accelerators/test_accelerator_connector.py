@@ -26,6 +26,7 @@ from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import (
+    DataParallelPlugin,
     DDP2Plugin,
     DDPPlugin,
     DDPShardedPlugin,
@@ -42,7 +43,7 @@ from pytorch_lightning.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from pytorch_lightning.utilities import DistributedType
+from pytorch_lightning.utilities import DeviceType, DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -54,10 +55,12 @@ def test_accelerator_choice_cpu(tmpdir):
     assert isinstance(trainer.training_type_plugin, SingleDevicePlugin)
 
 
-def test_accelerator_choice_ddp_cpu(tmpdir):
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp_cpu")
+@pytest.mark.parametrize(("num_processes", "num_nodes"), ([(1, 1), (1, 2), (2, 1), (2, 2)]))
+def test_accelerator_choice_ddp_cpu(tmpdir, num_processes: int, num_nodes: int):
+    trainer = Trainer(fast_dev_run=True, accelerator="ddp_cpu", num_processes=num_processes, num_nodes=num_nodes)
     assert isinstance(trainer.accelerator, CPUAccelerator)
-    assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
+    no_spawn = num_processes == 1 and num_nodes > 1
+    assert isinstance(trainer.training_type_plugin, DDPPlugin if no_spawn else DDPSpawnPlugin)
     assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
 
 
@@ -631,8 +634,86 @@ def test_accelerator_ddp_for_cpu(tmpdir):
     assert isinstance(trainer.training_type_plugin, DDPPlugin)
 
 
+def test_exception_when_strategy_used_with_distributed_backend():
+    with pytest.raises(MisconfigurationException, match="but have also passed"):
+        Trainer(distributed_backend="ddp_cpu", strategy="ddp_spawn")
+
+
+def test_exception_when_strategy_used_with_accelerator():
+    with pytest.raises(MisconfigurationException, match="but have also passed"):
+        Trainer(accelerator="ddp", strategy="ddp_spawn")
+
+
+def test_exception_when_strategy_used_with_plugins():
+    with pytest.raises(MisconfigurationException, match="only specify one training type plugin, but you have passed"):
+        Trainer(plugins="ddp_find_unused_parameters_false", strategy="ddp_spawn")
+
+
+@pytest.mark.parametrize(
+    ["strategy", "plugin"],
+    [
+        ("ddp_spawn", DDPSpawnPlugin),
+        ("ddp_spawn_find_unused_parameters_false", DDPSpawnPlugin),
+        ("ddp", DDPPlugin),
+        ("ddp_find_unused_parameters_false", DDPPlugin),
+    ],
+)
+def test_strategy_choice_cpu_str(tmpdir, strategy, plugin):
+    trainer = Trainer(strategy=strategy, accelerator="cpu", devices=2)
+    assert isinstance(trainer.training_type_plugin, plugin)
+
+
+@pytest.mark.parametrize("plugin", [DDPSpawnPlugin, DDPPlugin])
+def test_strategy_choice_cpu_plugin(tmpdir, plugin):
+    trainer = Trainer(strategy=plugin(), accelerator="cpu", devices=2)
+    assert isinstance(trainer.training_type_plugin, plugin)
+
+
+@RunIf(min_gpus=2)
+@pytest.mark.parametrize(
+    ["strategy", "plugin"],
+    [
+        ("ddp_spawn", DDPSpawnPlugin),
+        ("ddp_spawn_find_unused_parameters_false", DDPSpawnPlugin),
+        ("ddp", DDPPlugin),
+        ("ddp_find_unused_parameters_false", DDPPlugin),
+        ("ddp2", DDP2Plugin),
+        ("dp", DataParallelPlugin),
+        ("ddp_sharded", DDPShardedPlugin),
+        ("ddp_sharded_spawn", DDPSpawnShardedPlugin),
+        pytest.param("deepspeed", DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
+    ],
+)
+def test_strategy_choice_gpu_str(tmpdir, strategy, plugin):
+    trainer = Trainer(strategy=strategy, accelerator="gpu", devices=2)
+    assert isinstance(trainer.training_type_plugin, plugin)
+
+
+@RunIf(min_gpus=2)
+@pytest.mark.parametrize("plugin", [DDPSpawnPlugin, DDPPlugin])
+def test_strategy_choice_gpu_plugin(tmpdir, plugin):
+    trainer = Trainer(strategy=plugin(), accelerator="gpu", devices=2)
+    assert isinstance(trainer.training_type_plugin, plugin)
+
+
+@RunIf(min_gpus=2)
+@pytest.mark.parametrize("plugin", [DDPSpawnPlugin, DDPPlugin])
+def test_device_type_when_training_plugin_gpu_passed(tmpdir, plugin):
+
+    trainer = Trainer(strategy=plugin(), gpus=2)
+    assert isinstance(trainer.training_type_plugin, plugin)
+    assert trainer._device_type == DeviceType.GPU
+    assert isinstance(trainer.accelerator, GPUAccelerator)
+
+
 @pytest.mark.parametrize("precision", [1, 12, "invalid"])
 def test_validate_precision_type(tmpdir, precision):
 
-    with pytest.raises(MisconfigurationException, match=f"Precision {precision} is invalid"):
+    with pytest.raises(MisconfigurationException, match=f"Precision {repr(precision)} is invalid"):
         Trainer(precision=precision)
+
+
+@RunIf(min_gpus=1, amp_native=True)
+def test_amp_level_raises_error_with_native(tmpdir):
+    with pytest.raises(MisconfigurationException, match="not supported with `amp_backend='native'`"):
+        _ = Trainer(default_root_dir=tmpdir, gpus=1, amp_level="O2", amp_backend="native", precision=16)

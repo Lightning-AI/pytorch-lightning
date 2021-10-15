@@ -11,6 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Any, Dict, Union
+
+import torch
+
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -29,3 +33,7 @@ class IPUAccelerator(Accelerator):
 
         if len(self.optimizers) > 1:
             raise MisconfigurationException("IPUs currently only support one optimizer.")
+
+    def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
+        """IPU device stats aren't supported yet."""
+        return {}

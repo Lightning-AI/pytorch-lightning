@@ -26,7 +26,7 @@ def test_min_max_steps_epochs(tmpdir, min_epochs, max_epochs, min_steps, max_ste
         max_epochs=max_epochs,
         min_steps=min_steps,
         max_steps=max_steps,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 

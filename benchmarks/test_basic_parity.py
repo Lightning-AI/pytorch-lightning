@@ -151,6 +151,7 @@ def vanilla_loop(cls_model, idx, device_type: str = "cuda", num_epochs=10):
 
 def lightning_loop(cls_model, idx, device_type: str = "cuda", num_epochs=10):
     seed_everything(idx)
+    torch.backends.cudnn.deterministic = True
 
     model = cls_model()
     # init model parts
@@ -158,10 +159,9 @@ def lightning_loop(cls_model, idx, device_type: str = "cuda", num_epochs=10):
         # as the first run is skipped, no need to run it long
         max_epochs=num_epochs if idx > 0 else 1,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
         gpus=1 if device_type == "cuda" else 0,
         checkpoint_callback=False,
-        deterministic=True,
         logger=False,
         replace_sampler_ddp=False,
     )

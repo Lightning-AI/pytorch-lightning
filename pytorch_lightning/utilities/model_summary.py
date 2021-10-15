@@ -309,8 +309,8 @@ class ModelSummary:
             ("Params", list(map(get_human_readable_count, self.param_nums))),
         ]
         if self._model.example_input_array is not None:
-            arrays.append(("In sizes", self.in_sizes))
-            arrays.append(("Out sizes", self.out_sizes))
+            arrays.append(("In sizes", [str(x) for x in self.in_sizes]))
+            arrays.append(("Out sizes", [str(x) for x in self.out_sizes]))
 
         return arrays
 

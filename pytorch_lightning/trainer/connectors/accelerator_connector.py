@@ -61,11 +61,6 @@ from pytorch_lightning.plugins.environments import (
     TorchElasticEnvironment,
 )
 from pytorch_lightning.utilities import (
-    _APEX_AVAILABLE,
-    _HOROVOD_AVAILABLE,
-    _IPU_AVAILABLE,
-    _NATIVE_AMP_AVAILABLE,
-    _TPU_AVAILABLE,
     AMPType,
     device_parser,
     DeviceType,
@@ -76,6 +71,14 @@ from pytorch_lightning.utilities import (
 )
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import (
+    _APEX_AVAILABLE,
+    _HOROVOD_AVAILABLE,
+    _IPU_AVAILABLE,
+    _TORCH_GREATER_EQUAL_1_7,
+    _TORCH_GREATER_EQUAL_1_8,
+    _TPU_AVAILABLE,
+)
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
@@ -92,13 +95,14 @@ class AcceleratorConnector:
         ipus,
         distributed_backend,
         accelerator,
+        strategy: Optional[Union[str, TrainingTypePlugin]],
         gpus,
         gpu_ids,
         num_nodes,
         sync_batchnorm,
         benchmark,
         replace_sampler_ddp,
-        deterministic,
+        deterministic: bool,
         precision,
         amp_type,
         amp_level,
@@ -109,12 +113,10 @@ class AcceleratorConnector:
         self._distrib_type = None
         self._accelerator_type = None
 
-        if distributed_backend is not None:
-            rank_zero_deprecation(
-                f"`Trainer(distributed_backend={distributed_backend})` has been deprecated and will be removed in v1.5."
-                f" Use `Trainer(accelerator={distributed_backend})` instead."
-            )
-        distributed_backend = distributed_backend or accelerator
+        self.strategy = strategy.lower() if isinstance(strategy, str) else strategy
+        self.distributed_backend = distributed_backend or accelerator
+
+        self._init_deterministic(deterministic)
 
         self.num_processes = num_processes
         self.devices = devices
@@ -123,12 +125,14 @@ class AcceleratorConnector:
         self.parallel_device_ids = gpu_ids
         self.tpu_cores = tpu_cores
         self.ipus = ipus
-        self.distributed_backend = distributed_backend
         self.num_nodes = num_nodes
         self.sync_batchnorm = sync_batchnorm
         self.benchmark = benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
-        self.deterministic = deterministic
+        if not PrecisionType.supported_type(precision):
+            raise MisconfigurationException(
+                f"Precision {repr(precision)} is invalid. Allowed precision values: {PrecisionType.supported_types()}"
+            )
         self.precision = precision
         self.amp_type = amp_type.lower() if isinstance(amp_type, str) else None
         self.amp_level = amp_level
@@ -149,16 +153,23 @@ class AcceleratorConnector:
 
         self.plugins = plugins
 
+        self._handle_accelerator_and_distributed_backend(distributed_backend, accelerator)
+
         self._validate_accelerator_and_devices()
 
         self._warn_if_devices_flag_ignored()
 
         self.select_accelerator_type()
-        self.set_distributed_mode()
+
+        if self.strategy is not None:
+            self._set_training_type_plugin()
+        else:
+            self.set_distributed_mode()
         self.configure_slurm_ddp()
 
         self.handle_given_plugins()
         self.update_device_type_if_ipu_plugin()
+        self.update_device_type_if_training_type_plugin_passed()
 
         self._validate_accelerator_type()
         self._set_devices_if_none()
@@ -179,15 +190,22 @@ class AcceleratorConnector:
         # TODO: should this be moved to GPU accelerator?
         torch.backends.cudnn.benchmark = self.benchmark
 
-        # determinism for cudnn
-        # TODO: should this be moved to GPU accelerator?
-        torch.backends.cudnn.deterministic = deterministic
+        self.replace_sampler_ddp = replace_sampler_ddp
+
+    def _init_deterministic(self, deterministic: bool) -> None:
+        self.deterministic = deterministic
+        if _TORCH_GREATER_EQUAL_1_8:
+            torch.use_deterministic_algorithms(deterministic)
+        elif _TORCH_GREATER_EQUAL_1_7:
+            torch.set_deterministic(deterministic)
+        else:  # the minimum version Lightning supports is PyTorch 1.6
+            torch._set_deterministic(deterministic)
         if deterministic:
             # fixing non-deterministic part of horovod
             # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
             os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
-
-        self.replace_sampler_ddp = replace_sampler_ddp
+            # https://docs.nvidia.com/cuda/cublas/index.html#cublasApi_reproducibility
+            os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
     def select_accelerator_type(self) -> None:
         if self.distributed_backend == "auto":
@@ -219,11 +237,11 @@ class AcceleratorConnector:
             self._set_devices_to_cpu_num_processes()
             self._accelerator_type = DeviceType.CPU
 
-        if self.distributed_backend in ["auto"] + list(DeviceType):
+        if self.distributed_backend in self.accelerator_types:
             self.distributed_backend = None
 
     def _validate_accelerator_and_devices(self) -> None:
-        if self.distributed_backend not in ["auto"] + list(DeviceType) and self.devices is not None:
+        if self.distributed_backend not in self.accelerator_types and self.devices is not None:
             raise MisconfigurationException(
                 f"You passed `devices={self.devices}` but haven't specified"
                 " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu')` for the devices mapping,"
@@ -276,9 +294,56 @@ class AcceleratorConnector:
         elif self._accelerator_type == DeviceType.CPU:
             self.devices = self.num_processes
 
+    def _handle_accelerator_and_distributed_backend(
+        self, distributed_backend: Optional[str], accelerator: Optional[Union[str, Accelerator]]
+    ) -> None:
+        if distributed_backend is not None:
+            rank_zero_deprecation(
+                f"`Trainer(distributed_backend={distributed_backend})` has been deprecated and will be removed in v1.5."
+                f" Use `Trainer(strategy={distributed_backend})` instead."
+            )
+            if self.strategy is not None:
+                raise MisconfigurationException(
+                    f"You have passed `Trainer(strategy={self.strategy})` but have"
+                    f" also passed `Trainer(distributed_backend={distributed_backend})`."
+                    f"HINT: Use just `Trainer(strategy={self.strategy})` instead."
+                )
+
+        if accelerator is not None and accelerator in list(DistributedType):
+            rank_zero_deprecation(
+                f"Passing {accelerator} `strategy` to the `accelerator` flag in Trainer has been deprecated"
+                f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={accelerator})` instead."
+            )
+            if self.strategy is not None:
+                raise MisconfigurationException(
+                    f"You have passed `Trainer(strategy={self.strategy})` but have"
+                    f" also passed `Trainer(accelerator={accelerator})`."
+                    f"HINT: Use just `Trainer(strategy={self.strategy})` instead."
+                )
+
+    def _set_training_type_plugin(self) -> None:
+        if isinstance(self.strategy, str) and self.strategy in TrainingTypePluginsRegistry:
+            self._training_type_plugin = TrainingTypePluginsRegistry.get(self.strategy)
+        if isinstance(self.strategy, str):
+            self.set_distributed_mode(self.strategy)
+        elif isinstance(self.strategy, TrainingTypePlugin):
+            self._training_type_plugin = self.strategy
+
     def handle_given_plugins(self) -> None:
 
-        training_type = None
+        for plug in self.plugins:
+            if self.strategy is not None and self._is_plugin_training_type(plug):
+                raise MisconfigurationException(
+                    f"You have passed `Trainer(strategy={self.strategy})`"
+                    f" and you can only specify one training type plugin, but you have passed {plug} as a plugin."
+                )
+            if self._is_plugin_training_type(plug):
+                rank_zero_deprecation(
+                    f"Passing {plug} `strategy` to the `plugins` flag in Trainer has been deprecated"
+                    f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={plug})` instead."
+                )
+
+        training_type = self._training_type_plugin or None
         checkpoint = None
         precision = None
         cluster_environment = None
@@ -340,6 +405,10 @@ class AcceleratorConnector:
         self._precision_plugin = precision
         self._checkpoint_io = checkpoint
         self._cluster_environment = cluster_environment or self.select_cluster_environment()
+
+    @property
+    def accelerator_types(self) -> List[str]:
+        return ["auto"] + list(DeviceType)
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
@@ -531,9 +600,18 @@ class AcceleratorConnector:
             else None
         )
 
+    @staticmethod
+    def _is_plugin_training_type(plugin: Union[str, TrainingTypePlugin]) -> bool:
+        if isinstance(plugin, str) and (plugin in TrainingTypePluginsRegistry or plugin in list(DistributedType)):
+            return True
+        return isinstance(plugin, TrainingTypePlugin)
+
     @property
     def is_training_type_in_plugins(self) -> bool:
-        return any(isinstance(plug, str) and plug in TrainingTypePluginsRegistry for plug in self.plugins)
+        return any(
+            (isinstance(plug, str) and plug in TrainingTypePluginsRegistry) or isinstance(plug, TrainingTypePlugin)
+            for plug in self.plugins
+        )
 
     def select_precision_plugin(self) -> PrecisionPlugin:
         # set precision type
@@ -566,24 +644,19 @@ class AcceleratorConnector:
             return DoublePrecisionPlugin()
         if self.precision in (16, "bf16"):
             if self.amp_type == AMPType.NATIVE:
-                if not _NATIVE_AMP_AVAILABLE:
-                    msg = (
-                        "You have asked for native AMP but your PyTorch version does not support it."
-                        " Consider upgrading with `pip install torch>=1.6`."
+                if self.amp_level is not None:
+                    raise MisconfigurationException(
+                        f"You have asked for `amp_level={repr(self.amp_level)}` which is not supported"
+                        " with `amp_backend='native'`."
                     )
-                    if _APEX_AVAILABLE:
-                        self.amp_type = AMPType.APEX
-                        msg += " We will attempt to use NVIDIA Apex for this session."
-                        rank_zero_warn(msg)
-                    else:
-                        raise MisconfigurationException(msg)
-                else:
-                    log.info(f"Using native {self.precision} bit Automatic Mixed Precision")
-                    if self._is_sharded_training_type:
-                        return ShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
-                    if self._is_fully_sharded_training_type:
-                        return FullyShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
-                    return NativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+
+                log.info(f"Using native {self.precision} bit Automatic Mixed Precision")
+                if self._is_sharded_training_type:
+                    return ShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+                if self._is_fully_sharded_training_type:
+                    return FullyShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+
+                return NativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
 
             if self.amp_type == AMPType.APEX:
                 if not _APEX_AVAILABLE:
@@ -596,11 +669,10 @@ class AcceleratorConnector:
                         "Sharded Plugin is not supported with Apex AMP, please using native AMP for 16-bit precision."
                     )
                 log.info("Using APEX 16bit precision.")
-                return ApexMixedPrecisionPlugin(self.amp_level)
 
-        raise MisconfigurationException(
-            f"Precision {self.precision} is invalid. Allowed precision values: {PrecisionType.supported_types()}"
-        )
+                self.amp_level = self.amp_level or "O2"
+
+                return ApexMixedPrecisionPlugin(self.amp_level)
 
     def select_training_type_plugin(self) -> TrainingTypePlugin:
         if (
@@ -768,7 +840,10 @@ class AcceleratorConnector:
                     "`accelerator='ddp_cpu'` is not supported on TPU machines. "
                     "Learn more: https://github.com/PyTorchLightning/pytorch-lightning/issues/7810"
                 )
-            self._distrib_type = DistributedType.DDP_SPAWN
+            if self.num_processes == 1 and self.num_nodes > 1:
+                self._distrib_type = DistributedType.DDP
+            else:
+                self._distrib_type = DistributedType.DDP_SPAWN
             if self.num_gpus > 0:
                 rank_zero_warn(
                     "You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs."
@@ -850,7 +925,9 @@ class AcceleratorConnector:
             raise MisconfigurationException(
                 f"Selected distributed backend {self._distrib_type} is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible backends:"
-                f" {', '.join(DistributedType.interactive_compatible_types())}"
+                f" {', '.join(DistributedType.interactive_compatible_types())}."
+                " In case you are spawning processes yourself, make sure to include the Trainer"
+                " creation inside the worker function."
             )
 
     def check_horovod(self):
@@ -877,6 +954,25 @@ class AcceleratorConnector:
         # which gives users the flexibility to not have to pass `ipus` flag directly to Trainer
         if isinstance(self._training_type_plugin, IPUPlugin) and self._device_type != DeviceType.IPU:
             self._device_type = DeviceType.IPU
+
+    def update_device_type_if_training_type_plugin_passed(self) -> None:
+        if isinstance(self.strategy, TrainingTypePlugin) or any(
+            isinstance(plug, TrainingTypePlugin) for plug in self.plugins
+        ):
+            if self._accelerator_type is not None:
+                if self.use_ipu:
+                    self._device_type = DeviceType.IPU
+                elif self.use_tpu:
+                    self._device_type = DeviceType.TPU
+                elif self.use_gpu:
+                    self._device_type = DeviceType.GPU
+            else:
+                if self.has_ipu:
+                    self._device_type = DeviceType.IPU
+                elif self.has_tpu:
+                    self._device_type = DeviceType.TPU
+                elif self.has_gpu:
+                    self._device_type = DeviceType.GPU
 
     def configure_slurm_ddp(self):
         # extract SLURM flag vars

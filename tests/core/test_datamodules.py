@@ -21,13 +21,15 @@ from unittest.mock import call, PropertyMock
 import pytest
 import torch
 from omegaconf import OmegaConf
+from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from tests.helpers import BoringDataModule, BoringModel
+from tests.helpers import BoringDataModule, BoringModel, RandomDataset
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
@@ -280,7 +282,7 @@ def test_train_loop_only(tmpdir):
     model.test_step_end = None
     model.test_epoch_end = None
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, weights_summary=None)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_model_summary=False)
 
     # fit model
     trainer.fit(model, datamodule=dm)
@@ -298,7 +300,7 @@ def test_train_val_loop_only(tmpdir):
     model.validation_step_end = None
     model.validation_epoch_end = None
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, weights_summary=None)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_model_summary=False)
 
     # fit model
     trainer.fit(model, datamodule=dm)
@@ -329,7 +331,7 @@ def test_dm_checkpoint_save(tmpdir):
         max_epochs=1,
         limit_train_batches=2,
         limit_val_batches=1,
-        weights_summary=None,
+        enable_model_summary=False,
         callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on")],
     )
 
@@ -348,7 +350,7 @@ def test_full_loop(tmpdir):
     dm = ClassifDataModule()
     model = ClassificationModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, weights_summary=None, deterministic=True)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_model_summary=False, deterministic=True)
 
     # fit model
     trainer.fit(model, dm)
@@ -564,13 +566,14 @@ def test_define_as_dataclass():
         batch_size: int
         dims: int = 2
 
-        def __post_init__(self):
-            super().__init__(dims=self.dims)
+        def train_dataloader(self):
+            return DataLoader(torch.randn(self.batch_size * 2, 10), batch_size=self.batch_size)
 
     # asserts for the different dunder methods added by dataclass, when __init__ is implemented, i.e.
     # __repr__, __eq__, __lt__, __le__, etc.
     assert BoringDataModule1(batch_size=64).dims == 2
     assert BoringDataModule1(batch_size=32)
+    assert len(BoringDataModule1(batch_size=32)) == 2
     assert hasattr(BoringDataModule1, "__repr__")
     assert BoringDataModule1(batch_size=32) == BoringDataModule1(batch_size=32)
 
@@ -581,7 +584,9 @@ def test_define_as_dataclass():
 
     # asserts for the different dunder methods added by dataclass, when super class is inherently initialized, i.e.
     # __init__, __repr__, __eq__, __lt__, __le__, etc.
-    assert BoringDataModule2(batch_size=32)
+    assert BoringDataModule2(batch_size=32) is not None
+    assert BoringDataModule2(batch_size=32).batch_size == 32
+    assert len(BoringDataModule2(batch_size=32)) == 0
     assert hasattr(BoringDataModule2, "__repr__")
     assert BoringDataModule2(batch_size=32).prepare_data() is None
     assert BoringDataModule2(batch_size=32) == BoringDataModule2(batch_size=32)
@@ -625,3 +630,69 @@ def test_inconsistent_prepare_data_per_node(tmpdir):
         trainer.model = model
         trainer.datamodule = dm
         trainer.data_connector.prepare_data()
+
+
+DATALOADER = DataLoader(RandomDataset(1, 32))
+
+
+@pytest.mark.parametrize("method_name", ["train_dataloader", "val_dataloader", "test_dataloader", "predict_dataloader"])
+@pytest.mark.parametrize(
+    ["dataloader", "expected"],
+    [
+        [DATALOADER, 32],
+        [[DATALOADER, DATALOADER], 64],
+        [[[DATALOADER], [DATALOADER, DATALOADER]], 96],
+        [[{"foo": DATALOADER}, {"foo": DATALOADER, "bar": DATALOADER}], 96],
+        [{"foo": DATALOADER, "bar": DATALOADER}, 64],
+        [{"foo": {"foo": DATALOADER}, "bar": {"foo": DATALOADER, "bar": DATALOADER}}, 96],
+        [{"foo": [DATALOADER], "bar": [DATALOADER, DATALOADER]}, 96],
+        [CombinedLoader({"foo": DATALOADER, "bar": DATALOADER}), 64],
+    ],
+)
+def test_len_different_types(method_name, dataloader, expected):
+    dm = LightningDataModule()
+    setattr(dm, method_name, lambda: dataloader)
+    assert len(dm) == expected
+
+
+@pytest.mark.parametrize("method_name", ["train_dataloader", "val_dataloader", "test_dataloader", "predict_dataloader"])
+def test_len_dataloader_no_len(method_name):
+    class CustomNotImplementedErrorDataloader(DataLoader):
+        def __len__(self):
+            raise NotImplementedError
+
+    dataloader = CustomNotImplementedErrorDataloader(RandomDataset(1, 32))
+    dm = LightningDataModule()
+    setattr(dm, method_name, lambda: dataloader)
+    with pytest.warns(UserWarning, match=f"The number of batches for a dataloader in `{method_name}` is counted as 0"):
+        assert len(dm) == 0
+
+
+def test_len_all_dataloader_methods_implemented():
+    class BoringDataModule(LightningDataModule):
+        def __init__(self, dataloader):
+            super().__init__()
+            self.dataloader = dataloader
+
+        def train_dataloader(self):
+            return {"foo": self.dataloader, "bar": self.dataloader}
+
+        def val_dataloader(self):
+            return self.dataloader
+
+        def test_dataloader(self):
+            return [self.dataloader]
+
+        def predict_dataloader(self):
+            return [self.dataloader, self.dataloader]
+
+    dm = BoringDataModule(DATALOADER)
+
+    # 6 dataloaders each producing 32 batches: 6 * 32 = 192
+    assert len(dm) == 192
+
+
+def test_len_no_dataloader_methods_implemented():
+    dm = LightningDataModule()
+    with pytest.warns(UserWarning, match="You datamodule does not have any valid dataloader"):
+        assert len(dm) == 0

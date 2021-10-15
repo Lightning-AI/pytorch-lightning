@@ -127,7 +127,7 @@ class Closure(AbstractClosure[ClosureResult]):
     def __init__(
         self,
         step_fn: Callable[[], ClosureResult],
-        backward_fn: Optional[Callable[[Tensor], Tensor]] = None,
+        backward_fn: Optional[Callable[[Tensor], None]] = None,
         zero_grad_fn: Optional[Callable[[], None]] = None,
         profiler: Optional[BaseProfiler] = None,
     ):
@@ -153,8 +153,7 @@ class Closure(AbstractClosure[ClosureResult]):
 
             if self._backward_fn is not None:
                 with self._profiler.profile("backward"):
-                    # FIXME: what is the point of this returning the loss? if modified, step_output.loss becomes stale
-                    step_output.closure_loss = self._backward_fn(step_output.closure_loss)
+                    self._backward_fn(step_output.closure_loss)
 
         return step_output
 
@@ -314,7 +313,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
 
         return zero_grad_fn
 
-    def _make_backward_fn(self, optimizer: Optimizer, opt_idx: int) -> Optional[Callable[[Tensor], Tensor]]:
+    def _make_backward_fn(self, optimizer: Optimizer, opt_idx: int) -> Optional[Callable[[Tensor], None]]:
         """Build a `backward` function that handles back-propagation through the output produced by the
         `training_step` function.
 
@@ -323,14 +322,12 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         if self._skip_backward:
             return None
 
-        def backward_fn(loss: Tensor) -> Tensor:
+        def backward_fn(loss: Tensor) -> None:
             self.trainer.accelerator.backward(loss, optimizer, opt_idx)
 
             # check if model weights are nan
-            if self.trainer.terminate_on_nan:
+            if self.trainer._terminate_on_nan:
                 detect_nan_parameters(self.trainer.lightning_module)
-
-            return loss
 
         return backward_fn
 
@@ -435,7 +432,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             lightning_module._current_fx_name = "training_step"
             with self.trainer.profiler.profile("training_step"):
                 training_step_output = self.trainer.accelerator.training_step(step_kwargs)
-                self.trainer.accelerator.post_training_step()
+                self.trainer.training_type_plugin.post_training_step()
 
             del step_kwargs
 
@@ -445,7 +442,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
 
             result = ClosureResult.from_training_step_output(training_step_output, self.trainer.accumulate_grad_batches)
 
-            if self.trainer.terminate_on_nan:
+            if self.trainer._terminate_on_nan:
                 check_finite_loss(result.closure_loss)
 
             if self.trainer.move_metrics_to_cpu:
