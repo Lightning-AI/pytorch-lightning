@@ -144,6 +144,10 @@ class LightningLite(ABC):
             return obj.to(self.device)
         return move_data_to_device(obj, device=self.device)
 
+    def print(self, *args: Any, **kwargs: Any) -> None:
+        if self.local_rank == 0:
+            print(*args, **kwargs)
+
     def reduce_decision(self, decision: bool) -> bool:
         return self._training_type_plugin.reduce_boolean_decision(decision)
 
