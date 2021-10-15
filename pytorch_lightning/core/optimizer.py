@@ -185,7 +185,7 @@ class LightningOptimizer:
             raise MisconfigurationException("When closure is provided, it should be a function")
         trainer = self._trainer
         with trainer.profiler.profile(f"optimizer_step_and_closure_{self._optimizer_idx}"):
-            trainer.accelerator.optimizer_step(self._optimizer, self._optimizer_idx, lambda_closure=closure, **kwargs)
+            trainer.accelerator.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
         self._total_optimizer_step_calls += 1
 
     def __repr__(self):
