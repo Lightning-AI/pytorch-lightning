@@ -141,17 +141,16 @@ class Closure(AbstractClosure[ClosureResult]):
         with self._profiler.profile("training_step_and_backward"):
             step_output = self._step_fn()
 
-            if self._zero_grad_fn is not None:
-                with self._profiler.profile("zero_grad"):
-                    self._zero_grad_fn()
-
             if step_output.closure_loss is None:
                 self.warning_cache.warn(
                     "`training_step` returned `None`. If this was on purpose, ignore this warning..."
                 )
-                return step_output
 
-            if self._backward_fn is not None:
+            if self._zero_grad_fn is not None:
+                with self._profiler.profile("zero_grad"):
+                    self._zero_grad_fn()
+
+            if self._backward_fn is not None and step_output.closure_loss is not None:
                 with self._profiler.profile("backward"):
                     self._backward_fn(step_output.closure_loss)
 
