@@ -223,10 +223,6 @@ def _set_meta_device() -> None:
     # Find all the nn.Module subclasses
     for subclass in get_all_subclasses(torch.nn.modules.module.Module):
 
-        # TODO: Why those layers can't be instantiated.
-        if issubclass(subclass, (torch.nn.modules.dropout._DropoutNd, torch.nn.modules.normalization.LayerNorm)):
-            continue
-
         # if a subclass has already been stored, we should use the cache
         if str(subclass) in __STORAGE_META__:
             # reset the class import package to its rightfull state.
@@ -252,9 +248,16 @@ def _set_meta_device() -> None:
                     obj = materialize_fn()
                 return obj
 
+            @staticmethod
+            def add_subclasses(subclass):
+                """This is used to unrol the instantion tree while creating the modules."""
+                __CREATED_MODULES__.add(str(subclass))
+                if subclass.__bases__[0] != torch.nn.modules.module.Module:
+                    _MetaClass.add_subclasses(subclass.__bases__[0])
+
             def __new__(cls, *args, **kwargs):
                 subclass = cls.__bases__[0]
-                __CREATED_MODULES__.add(str(subclass))
+                cls.add_subclasses(subclass)
                 with cls.instantiation_context(materialize=False):
                     obj = init_meta(subclass, *args, **kwargs)
 
