@@ -723,9 +723,9 @@ def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
             assert getattr(trainer, path_attr) == ckpt_path
 
 
-@pytest.mark.parametrize("enable_model_summary", (False, True))
+@pytest.mark.parametrize("enable_checkpointing", (False, True))
 @pytest.mark.parametrize("fn", ("validate", "test", "predict"))
-def test_tested_checkpoint_path_best(tmpdir, enable_model_summary, fn):
+def test_tested_checkpoint_path_best(tmpdir, enable_checkpointing, fn):
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx):
             self.log("foo", -batch_idx)
@@ -746,7 +746,7 @@ def test_tested_checkpoint_path_best(tmpdir, enable_model_summary, fn):
         limit_predict_batches=1,
         enable_progress_bar=False,
         default_root_dir=tmpdir,
-        enable_model_summary=enable_model_summary,
+        enable_checkpointing=enable_checkpointing,
     )
     trainer.fit(model)
 
@@ -754,7 +754,7 @@ def test_tested_checkpoint_path_best(tmpdir, enable_model_summary, fn):
     path_attr = f"{fn}{'d' if fn == 'validate' else 'ed'}_ckpt_path"
     assert getattr(trainer, path_attr) is None
 
-    if enable_model_summary:
+    if enable_checkpointing:
         trainer_fn(ckpt_path="best")
         assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
 
