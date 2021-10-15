@@ -92,12 +92,6 @@ class Accelerator:
             self.setup_optimizers(trainer)
         self.setup_precision_plugin()
 
-    def setup_dataloader(self, dataloader: DataLoader) -> DataLoader:
-        return self.training_type_plugin.setup_dataloader(dataloader)
-
-    def setup_model(self, model: Module) -> Module:
-        return self.training_type_plugin.setup_model_and_optimizers(model, None)
-
     def start_training(self, trainer: "pl.Trainer") -> None:
         """
         .. deprecated:: v1.5
