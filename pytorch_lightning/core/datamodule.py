@@ -465,7 +465,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
                 has_run = obj._has_prepared_data
                 obj._has_prepared_data = True
 
-            if has_run:
+            if has_run is True:
                 rank_zero_deprecation(
                     f"DataModule.{name} has already been called, so it will not be called again. "
                     f"In v1.6 this behavior will change to always call DataModule.{name}."
