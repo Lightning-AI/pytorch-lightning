@@ -945,7 +945,7 @@ def test_irrevelance_between_non_default_overfit_batches_and_non_default_batch_l
     # check that limit_xxx_batches won't be reset when they are non-default value and overfit_batches > 0
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.current_epoch == 1
-    assert trainer.limit_train_batches == 0.4
+    assert trainer.limit_train_batches == 1
     assert trainer.limit_val_batches == 0.0
     assert not model.validation_step_invoked, "`validation_step` should not run when `limit_val_batches=0`"
     assert not model.validation_epoch_end_invoked, "`validation_epoch_end` should not run when `limit_val_batches=0`"
