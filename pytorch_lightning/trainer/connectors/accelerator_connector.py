@@ -215,19 +215,17 @@ class AcceleratorConnector:
                 self._accelerator_type = DeviceType.CPU
         elif self.distributed_backend == DeviceType.TPU:
             if not self.has_tpu:
-                msg = "TPUs are not available" if not _TPU_AVAILABLE else "you didn't pass `devices` to `Trainer`"
+                msg = "TPUs are not available" if not _TPU_AVAILABLE else "you didn't pass `tpu_cores` to `Trainer`"
                 raise MisconfigurationException(f"You passed `accelerator='tpu'`, but {msg}.")
             self._accelerator_type = DeviceType.TPU
         elif self.distributed_backend == DeviceType.IPU:
             if not self.has_ipu:
-                msg = "IPUs are not available" if not _IPU_AVAILABLE else "you didn't pass `devices` to `Trainer`"
+                msg = "IPUs are not available" if not _IPU_AVAILABLE else "you didn't pass `ipus` to `Trainer`"
                 raise MisconfigurationException(f"You passed `accelerator='ipu'`, but {msg}.")
             self._accelerator_type = DeviceType.IPU
         elif self.distributed_backend == DeviceType.GPU:
             if not self.has_gpu:
-                msg = (
-                    "you didn't pass `devices` to `Trainer`" if torch.cuda.is_available() else "GPUs are not available"
-                )
+                msg = "you didn't pass `gpus` to `Trainer`" if torch.cuda.is_available() else "GPUs are not available"
                 raise MisconfigurationException(f"You passed `accelerator='gpu'`, but {msg}.")
             self._accelerator_type = DeviceType.GPU
         elif self.distributed_backend == DeviceType.CPU:
