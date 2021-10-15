@@ -172,5 +172,5 @@ class GANTrainer(LightningLite):
 
 
 if __name__ == "__main__":
-    gan = GANTrainer(gpus=2, accelerator="deepspeed")
+    gan = GANTrainer(gpus=1, accelerator="deepspeed")
     gan.run()
