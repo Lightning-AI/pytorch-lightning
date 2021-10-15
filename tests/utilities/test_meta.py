@@ -15,15 +15,19 @@ import pytest
 from torch import nn
 
 from pytorch_lightning.utilities.imports import _TORCH_META_AVAILABLE
-from pytorch_lightning.utilities.meta import init_meta_context, materialize_module
+from pytorch_lightning.utilities.meta import init_meta, init_meta_context, materialize_module
+
+
+class MLP(nn.Module):
+    def __init__(self, num_linears: int):
+        super().__init__()
+        self.layer = nn.Sequential(*[nn.Linear(1, 1) for _ in range(num_linears)] + [nn.Dropout(), nn.LayerNorm(1)])
 
 
 @pytest.mark.skipif(not _TORCH_META_AVAILABLE, reason="Support only with PyTorch 1.10")
 def test_init_meta_context():
-    class MLP(nn.Module):
-        def __init__(self, num_linears: int):
-            super().__init__()
-            self.layer = nn.Sequential(*[nn.Linear(1, 1) for _ in range(num_linears)] + [nn.Dropout(), nn.LayerNorm(1)])
+
+    init_meta(MLP, 4).materialize()
 
     with init_meta_context():
         m = nn.Linear(in_features=1, out_features=1)

@@ -196,12 +196,18 @@ def materialize_module(root_module: nn.Module) -> nn.Module:
     """This utility performs an in-place operation by materialize a module and its children."""
     if not _TORCH_META_AVAILABLE:
         return root_module
-    for name, child in root_module.named_children():
+
+    materialize_fn = getattr(root_module, "materialize", None)
+    if materialize_fn:
+        materialize_fn(in_place=True)
+        return root_module
+
+    for child in root_module.children():
         materialize_fn = getattr(child, "materialize", None)
         if not materialize_fn or isinstance(child, (Sequential, ModuleList, ModuleDict)):
             materialize_module(child)
         else:
-            setattr(root_module, name, materialize_fn())
+            materialize_fn(in_place=True)
     return root_module
 
 
@@ -259,7 +265,7 @@ def _set_meta_device() -> None:
         # if a subclass has already been stored, we should use the cache
         if str(subclass) in __STORAGE_META__:
             # reset the class import package to its rightfull state.
-            mods, subclass, meta_class = __STORAGE_META__[str(subclass)]
+            mods, subclass, meta_class = __STORAGE_META__[subclass]
             for mod in mods:
                 setattr(mod, subclass.__name__, meta_class)
             continue
@@ -276,15 +282,15 @@ def _set_meta_device() -> None:
                 _set_meta_device_populated(from_created=True)
 
             @classmethod
-            def materialize(cls, materialize_fn: Callable):
+            def materialize(cls, materialize_fn: Callable, in_place: bool = False):
                 with cls.instantiation_context(materialize=True):
-                    obj = materialize_fn()
+                    obj = materialize_fn(in_place=in_place)
                 return obj
 
             @staticmethod
             def add_subclasses(subclass):
                 """This is used to unrol the instantion tree while creating the modules."""
-                __CREATED_MODULES__.add(str(subclass))
+                __CREATED_MODULES__.add(subclass)
                 if subclass.__bases__[0] != torch.nn.modules.module.Module:
                     _MetaClass.add_subclasses(subclass.__bases__[0])
 
@@ -321,7 +327,7 @@ def _set_meta_device() -> None:
         mods = [mod for mod in chain(*out) if mod]
 
         # store the modules search so it doesn't have to be performed again for this class
-        __STORAGE_META__[str(subclass)] = (mods, subclass, _MetaClass)
+        __STORAGE_META__[subclass] = (mods, subclass, _MetaClass)
 
         # replace all subclass by its meta form
         for mod in mods:
