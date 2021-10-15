@@ -881,7 +881,7 @@ class AcceleratorConnector:
         if self.num_nodes > 1 and not using_valid_distributed:
             # throw error to force user to choose a supported distributed type such as ddp or ddp2
             raise MisconfigurationException(
-                "Your chosen strategy does not support `num_nodes > 1`. " "Please set `strategy=('ddp'|'ddp2')`."
+                "Your chosen strategy does not support `num_nodes > 1`. Please set `strategy=('ddp'|'ddp2')`."
             )
 
     def _set_horovod_backend(self):
