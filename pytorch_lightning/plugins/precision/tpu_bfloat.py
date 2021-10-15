@@ -21,7 +21,7 @@ from pytorch_lightning.plugins.precision import TPUPrecisionPlugin
 
 
 class TPUHalfPrecisionPlugin(TPUPrecisionPlugin):
-    """Plugin that enables bfloat on TPUs."""
+    """Plugin that enables bfloats on TPUs."""
 
     precision: int = 16
 
