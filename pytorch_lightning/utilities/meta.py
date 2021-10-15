@@ -165,7 +165,7 @@ def recursively_setattr(root_module: nn.Module, prefix: str, materialized_module
 def materialize_module(root_module: nn.Module) -> nn.Module:
     """This utility performs an in-place operation by materialize a module and its children."""
     if not _TORCH_META_AVAILABLE:
-        return root_module
+        raise MisconfigurationException("`init_meta` is supported from PyTorch 1.10.0")
     memo = []
     modules = list(root_module.named_modules())
     for prefix, mod in modules:
@@ -220,7 +220,9 @@ def _set_meta_device() -> None:
         raise MisconfigurationException("`init_meta` is supported from PyTorch 1.10.0")
 
     # Author note: This can be optimized further by searching all subclasses at once.
-    # Find all the nn.Module subclasses
+    # Its time complexity is O(n*m) where n is the number of all subclasses if there's no multiple inheritance
+    # and m the number of all subclasses belonging to its subclass module.
+
     for subclass in get_all_subclasses(torch.nn.modules.module.Module):
 
         # if a subclass has already been stored, we should use the cache
