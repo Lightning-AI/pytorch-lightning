@@ -19,7 +19,7 @@ from pytorch_lightning.utilities.meta import init_meta_context, materialize_modu
 
 
 @pytest.mark.skipif(not _TORCH_META_AVAILABLE, reason="Support only with PyTorch 1.10")
-def test_use_meta_device():
+def test_init_meta_context():
     class MLP(nn.Module):
         def __init__(self, num_convs: int):
             super().__init__()
