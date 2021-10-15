@@ -93,14 +93,6 @@ class LightningOptimizer:
             optimizer = trainer.lightning_optimizers[opt_idx]
         return optimizer
 
-    def _toggle_model(self):
-        model_ref = self._trainer.lightning_module
-        model_ref.toggle_optimizer(self, self._optimizer_idx)
-
-    def _untoggle_model(self):
-        model_ref = self._trainer.lightning_module
-        model_ref.untoggle_optimizer(self)
-
     @contextmanager
     def toggle_model(self, sync_grad: bool = True):
         """This function is just a helper for advanced users.
@@ -116,16 +108,12 @@ class LightningOptimizer:
         # local import here to avoid circular import
         from pytorch_lightning.loops.utilities import _block_parallel_sync_behavior
 
+        lightning_module = self._trainer.lightning_module
+
         with _block_parallel_sync_behavior(self._trainer, block=(not sync_grad)):
-            self._toggle_model()
+            lightning_module.toggle_optimizer(self, self._optimizer_idx)
             yield
-            self._untoggle_model()
-
-    def __optimizer_step(self, closure: Callable, profiler_name: str = None, **kwargs):
-        trainer = self._trainer
-
-        with trainer.profiler.profile(profiler_name):
-            trainer.accelerator.optimizer_step(self._optimizer, self._optimizer_idx, lambda_closure=closure, **kwargs)
+            lightning_module.untoggle_optimizer(self._optimizer_idx)
 
     def step(self, closure: Optional[Callable] = None, **kwargs):
         """Call this directly from your training_step when doing optimizations manually. By using this we can
@@ -192,15 +180,12 @@ class LightningOptimizer:
                 with opt_dis.toggle_model(sync_grad=accumulated_grad_batches):
                     opt_dis.step(closure=closure_dis)
         """
-        if closure is None:
-            profiler_name = f"closure_{self._optimizer_idx}"
-            closure = do_nothing_closure
-        else:
-            if not callable(closure):
-                raise MisconfigurationException("When closure is provided, it should be a function")
-            profiler_name = f"optimizer_step_and_closure_{self._optimizer_idx}"
-
-        self.__optimizer_step(closure=closure, profiler_name=profiler_name, **kwargs)
+        closure = closure or do_nothing_closure
+        if not callable(closure):
+            raise MisconfigurationException("When closure is provided, it should be a function")
+        trainer = self._trainer
+        with trainer.profiler.profile(f"optimizer_step_and_closure_{self._optimizer_idx}"):
+            trainer.accelerator.optimizer_step(self._optimizer, self._optimizer_idx, lambda_closure=closure, **kwargs)
         self._total_optimizer_step_calls += 1
 
     def __repr__(self):
