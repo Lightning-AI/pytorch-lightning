@@ -15,7 +15,7 @@ from contextlib import contextmanager
 from typing import Dict, Generator, Optional, Sequence, Tuple, List, Union
 
 import torch
-from torch import Module
+from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
