@@ -11,11 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import gc
+from unittest import mock
 
 import pytest
 import torch
+from torch.utils.data import DataLoader
 
+from kk import RandomDataset
 from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning.loops import TrainingEpochLoop
 from tests.helpers import BoringModel
 
 
@@ -142,3 +147,41 @@ def test_warning_valid_train_step_end(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
 
     trainer.fit(model)
+
+
+@mock.patch("torch.utils.data.dataloader._MultiProcessingDataLoaderIter._shutdown_workers")
+def test_training_loop_workers_are_shutdown(shutdown_mock, tmpdir):
+    # `num_workers == 1` uses `_MultiProcessingDataLoaderIter`
+    # `persistent_workers` makes sure `self._iterator` gets set on the `DataLoader` instance
+    train_dataloader = DataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=True)
+
+    class TestLoop(TrainingEpochLoop):
+        def on_run_end(self):
+            # this works - but this is the `enumerate` object, not the actual iterator
+            referrers = gc.get_referrers(self._dataloader_iter)
+            assert len(referrers) == 1, referrers
+
+            # this fails - there are 2 referrers
+            referrers = gc.get_referrers(train_dataloader._iterator)
+            assert len(referrers) == 1, referrers
+
+            out = super().on_run_end()
+
+            # no referrers after destruction
+            referrers = gc.get_referrers(train_dataloader._iterator)
+            assert len(referrers) == 0, referrers
+
+            shutdown_mock.assert_called_once()
+            shutdown_mock.reset_mock()
+
+            assert self._dataloader_iter is None
+            return out
+
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=0, max_epochs=2)
+
+    epoch_loop = TestLoop(trainer.fit_loop.epoch_loop.min_steps, trainer.fit_loop.epoch_loop.max_steps)
+    epoch_loop.connect(trainer.fit_loop.epoch_loop.batch_loop, trainer.fit_loop.epoch_loop.val_loop)
+    trainer.fit_loop.connect(epoch_loop)
+
+    trainer.fit(model, train_dataloader)
