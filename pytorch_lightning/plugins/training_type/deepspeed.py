@@ -19,9 +19,11 @@ import os
 import platform
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Union, Sequence
 
 import torch
+from deepspeed import DeepSpeedEngine
+from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -337,6 +339,7 @@ class DeepSpeedPlugin(DDPPlugin):
                 config = json.load(f)
         return config
 
+    # getting called by Lightning trainer AND Lite
     def setup_distributed(self):
         reset_seed()
 
@@ -376,6 +379,41 @@ class DeepSpeedPlugin(DDPPlugin):
     def pre_dispatch(self):
         self.init_deepspeed()
         self.barrier()
+
+    # TODO: avoid code duplication by letting the plugin reuse this method
+    def setup_models_and_optimizers(
+        self, models: Sequence[Module], optimizers: Sequence[Optimizer]
+    ) -> Tuple[Sequence[Module], Sequence[Optimizer]]:
+        if len(models) != len(optimizers):
+            raise ValueError(
+                f"DeepSpeed requires one optimizer per model."
+                f" Got {len(models)} models and {len(optimizers)} optimizers instead."
+            )
+
+        # TODO: is this the correct place to set this?
+        self.config["train_micro_batch_size_per_gpu"] = 1
+
+        models_and_optimizers = [
+            self._setup_model_and_optimizer(model, optimizer) for model, optimizer in zip(models, optimizers)
+        ]
+        models, optimizers = zip(*models_and_optimizers)
+
+        # TODO: do we need to call it here?
+        # self._set_deepspeed_activation_checkpointing()
+        return list(models), list(optimizers)
+
+    def _setup_model_and_optimizer(self, model: Module, optimizer: Optimizer) -> Tuple[DeepSpeedEngine, Optimizer]:
+        # TODO: shouldn't this be optimizer.parameters?
+        model_parameters = filter(lambda p: p.requires_grad, model.parameters())
+        deepspeed_engine, deepspeed_optimizer, _, _ = deepspeed.initialize(
+            args=argparse.Namespace(device_rank=self.root_device.index),
+            config=self.config,
+            model=model,
+            model_parameters=model_parameters,  # TODO: is the type correct here?
+            optimizer=optimizer,
+            dist_init_required=False,
+        )
+        return deepspeed_engine, deepspeed_optimizer
 
     def init_deepspeed(self):
         # check that `configure_gradient_clipping` hook isn't overriden since deepspeed handles
@@ -568,6 +606,9 @@ class DeepSpeedPlugin(DDPPlugin):
         self._format_precision_config()
 
     def _format_batch_size_and_grad_accum_config(self):
+        if self.lightning_module is None:
+            return
+
         if "gradient_accumulation_steps" in self.config:
             raise MisconfigurationException(
                 "Do not set `gradient_accumulation_steps` in the DeepSpeed config"
@@ -596,6 +637,8 @@ class DeepSpeedPlugin(DDPPlugin):
         return batch_size
 
     def _format_precision_config(self):
+        # TODO: support precision
+        return
         amp_type = self.lightning_module.trainer.accelerator_connector.amp_type
         amp_level = self.lightning_module.trainer.accelerator_connector.amp_level
         precision = self.lightning_module.trainer.accelerator_connector.precision

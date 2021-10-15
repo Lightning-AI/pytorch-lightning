@@ -145,21 +145,13 @@ class LightningLite(ABC):
         return dataloaders
 
     def backward(self, tensor: Tensor, *args: Any, **kwargs: Any) -> None:
-        # user will call automator.backward(loss) instead of loss.backward()
-        self._accelerator.run_backward(tensor, *args, **kwargs)
+        # user will call self.backward(loss) instead of loss.backward()
+        self._accelerator.run_backward(tensor, *args, model=None, **kwargs)
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
         with self._accelerator.forward_context():
             yield
-
-    # @contextmanager
-    # def optimizer_step_context(self, model=None, optimizer=None):
-    #     # necessary for deepspeed + scaling
-    #     temp = optimizer.step
-    #     optimizer.step = model.step
-    #     yield
-    #     optimizer.step = temp
 
     def to_device(self, obj: Union[nn.Module, Tensor, Any]) -> Union[nn.Module, Tensor, Any]:
         if isinstance(obj, nn.Module):

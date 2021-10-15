@@ -18,17 +18,26 @@ from torch import nn as nn, Tensor
 from torch.optim import Optimizer
 
 from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.plugins import DeepSpeedPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
+# TODO: add attributes and methods from Optimizer
 class _LiteOptimizer(Optimizer):
     def __init__(self, optimizer: Optimizer, accelerator: Accelerator) -> None:
-        super().__init__(params=optimizer.param_groups, defaults=optimizer.defaults)  # type: ignore[call-arg]
-        self.__dict__ = optimizer.__dict__
+        super().__init__(params=optimizer.param_groups, defaults=getattr(optimizer, "defaults", {}))  # type: ignore[call-arg]
         self._optimizer = optimizer
         self._accelerator = accelerator
 
+    @property
+    def optimizer(self) -> Optimizer:
+        return self._optimizer
+
     def step(self, closure: Optional[Callable] = None) -> None:
+        if isinstance(self._accelerator.training_type_plugin, DeepSpeedPlugin):
+            self._optimizer.step(closure)
+            return
+
         self._accelerator.optimizer_step(
             self._optimizer,
             lambda_closure=closure,
@@ -52,3 +61,19 @@ class _LiteModule(nn.Module):
 
         output = apply_to_collection(output, function=lambda t: t.to(torch.get_default_dtype()), dtype=Tensor)
         return output
+
+    def backward(self, loss, *args, **kwargs):
+        if not isinstance(self._accelerator.training_type_plugin, DeepSpeedPlugin):
+            raise RuntimeError(
+                f"Calling `.backward()` on {self.module.__class__.__name__} is not allowed."
+                f" Please change your code to call `backward()` on the loss tensor directly."
+            )
+        self._accelerator.run_backward(loss, self.module, *args, **kwargs)
+
+    def step(self):
+        if not isinstance(self._accelerator.training_type_plugin, DeepSpeedPlugin):
+            raise RuntimeError(
+                f"Calling `.step()` on {self.module.__class__.__name__} is not allowed."
+                f" Please change your code to call the optimizer's `step()` method instead."
+            )
+        self.module.step()
