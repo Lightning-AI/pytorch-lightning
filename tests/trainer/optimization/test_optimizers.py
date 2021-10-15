@@ -670,7 +670,6 @@ def test_optimizer_step_before_lr_scheduler_step(tmpdir):
         limit_train_batches=1,
         limit_val_batches=0,
         limit_test_batches=0,
-        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )
 
     class TestModel(BoringModel):
