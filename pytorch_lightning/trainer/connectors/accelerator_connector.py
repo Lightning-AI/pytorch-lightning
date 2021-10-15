@@ -133,6 +133,10 @@ class AcceleratorConnector:
         self.sync_batchnorm = sync_batchnorm
         self.benchmark = benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
+        if not PrecisionType.supported_type(precision):
+            raise MisconfigurationException(
+                f"Precision {repr(precision)} is invalid. Allowed precision values: {PrecisionType.supported_types()}"
+            )
         self.precision = precision
         self.amp_type = amp_type.lower() if isinstance(amp_type, str) else None
         self.amp_level = amp_level
@@ -661,10 +665,6 @@ class AcceleratorConnector:
                 self.amp_level = self.amp_level or "O2"
 
                 return ApexMixedPrecisionPlugin(self.amp_level)
-
-        raise MisconfigurationException(
-            f"Precision {self.precision} is invalid. Allowed precision values: {PrecisionType.supported_types()}"
-        )
 
     def select_training_type_plugin(self) -> TrainingTypePlugin:
         if isinstance(self.accelerator, Accelerator) and self.accelerator.training_type_plugin is not None:

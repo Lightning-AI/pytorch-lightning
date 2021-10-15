@@ -709,7 +709,7 @@ def test_device_type_when_training_plugin_gpu_passed(tmpdir, plugin):
 @pytest.mark.parametrize("precision", [1, 12, "invalid"])
 def test_validate_precision_type(tmpdir, precision):
 
-    with pytest.raises(MisconfigurationException, match=f"Precision {precision} is invalid"):
+    with pytest.raises(MisconfigurationException, match=f"Precision {repr(precision)} is invalid"):
         Trainer(precision=precision)
 
 
