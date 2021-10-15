@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-import operator
 import os
 from argparse import Namespace
 from unittest import mock
@@ -25,13 +24,11 @@ from omegaconf import OmegaConf
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.utilities.imports import _compare_version
+from tests import TENSORBOARD_VERSION_GE_2_6
 from tests.helpers import BoringModel
 
 
-@pytest.mark.skipif(
-    _compare_version("tensorboard", operator.ge, "2.6.0"), reason="cannot import EventAccumulator in >= 2.6.0"
-)
+@pytest.mark.skipif(TENSORBOARD_VERSION_GE_2_6, reason="cannot import EventAccumulator in >= 2.6.0")
 def test_tensorboard_hparams_reload(tmpdir):
     from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 

@@ -12,15 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import operator
 import os
 
 import numpy as np
+
+from pytorch_lightning.utilities.imports import _compare_version
 
 _TEST_ROOT = os.path.dirname(__file__)
 _PROJECT_ROOT = os.path.dirname(_TEST_ROOT)
 _TEMP_PATH = os.path.join(_PROJECT_ROOT, "test_temp")
 _PATH_DATASETS = os.path.join(_PROJECT_ROOT, "Datasets")
 _PATH_LEGACY = os.path.join(_PROJECT_ROOT, "legacy")
+
+PL_VERSION_LT_1_5 = _compare_version("pytorch_lightning", operator.lt, "1.5")
+TENSORBOARD_VERSION_GE_2_6 = _compare_version("tensorboard", operator.ge, "2.6.0")
 
 # todo: this setting `PYTHONPATH` may not be used by other evns like Conda for import packages
 if _PROJECT_ROOT not in os.getenv("PYTHONPATH", ""):
