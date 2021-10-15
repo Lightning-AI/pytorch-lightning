@@ -21,12 +21,9 @@ from pytorch_lightning.utilities.meta import init_meta_context, materialize_modu
 @pytest.mark.skipif(not _TORCH_META_AVAILABLE, reason="Support only with PyTorch 1.10")
 def test_init_meta_context():
     class MLP(nn.Module):
-        def __init__(self, num_convs: int):
+        def __init__(self, num_linears: int):
             super().__init__()
-            self.lins = []
-            for _ in range(num_convs):
-                self.lins.append(nn.Linear(1, 1))
-            self.layer = nn.Sequential(*self.lins)
+            self.layer = nn.Sequential(*[nn.Linear(1, 1) for _ in range(num_linears)])
 
     with init_meta_context():
         m = nn.Linear(in_features=1, out_features=1)
@@ -36,6 +33,10 @@ def test_init_meta_context():
 
         materialize_module(mlp)
         assert mlp.layer[0].weight.device.type == "cpu"
+
+    mlp = MLP(4)
+    materialize_module(mlp)
+    assert mlp.layer[0].weight.device.type == "cpu"
 
     m = nn.Linear(in_features=1, out_features=1)
     assert m.weight.device.type == "cpu"

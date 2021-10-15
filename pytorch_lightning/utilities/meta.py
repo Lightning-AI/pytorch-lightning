@@ -177,7 +177,7 @@ def materialize_module(root_module: nn.Module) -> nn.Module:
     return root_module
 
 
-# cache to optimize the search while resetting later on.
+# cache subclasses to optimize the search when resetting the meta device later on.
 __STORAGE_META__ = {}
 
 __CREATED_MODULES__ = set()
@@ -219,7 +219,7 @@ def _set_meta_device() -> None:
     if not _TORCH_META_AVAILABLE:
         raise MisconfigurationException("`init_meta` is supported from PyTorch 1.10.0")
 
-    # author note: This can be optimized further by searching all subclasses at once.
+    # Author note: This can be optimized further by searching all subclasses at once.
     # Find all the nn.Module subclasses
     for subclass in get_all_subclasses(torch.nn.modules.module.Module):
 
@@ -227,7 +227,7 @@ def _set_meta_device() -> None:
         if issubclass(subclass, (torch.nn.modules.dropout._DropoutNd, torch.nn.modules.normalization.LayerNorm)):
             continue
 
-        # if subclass has already been stored, use teh cache
+        # if a subclass has already been stored, we should use the cache
         if str(subclass) in __STORAGE_META__:
             # reset the class import package to its rightfull state.
             mods, subclass, meta_class = __STORAGE_META__[str(subclass)]
