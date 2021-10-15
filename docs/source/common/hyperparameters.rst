@@ -201,7 +201,7 @@ To recap, add ALL possible trainer flags to the argparser and init the ``Trainer
     trainer = Trainer.from_argparse_args(hparams)
 
     # or if you need to pass in callbacks
-    trainer = Trainer.from_argparse_args(hparams, checkpoint_callback=..., callbacks=[...])
+    trainer = Trainer.from_argparse_args(hparams, enable_checkpointing=..., callbacks=[...])
 
 ----------
 

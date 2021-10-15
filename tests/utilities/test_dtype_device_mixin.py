@@ -38,7 +38,7 @@ class TopModule(BoringModel):
 
 
 class DeviceAssertCallback(Callback):
-    def on_train_batch_start(self, trainer, model, batch, batch_idx, dataloader_idx):
+    def on_train_batch_start(self, trainer, model, batch, batch_idx):
         rank = trainer.local_rank
         assert isinstance(model, TopModule)
         # index = None also means first device
