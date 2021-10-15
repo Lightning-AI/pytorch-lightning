@@ -468,7 +468,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
         "max_epochs": 3,
         "max_steps": num_train_samples + 10,
         "logger": False,
-        "weights_summary": None,
+        "enable_model_summary": False,
         "enable_progress_bar": False,
     }
     trainer = Trainer(**trainer_kwargs)
@@ -555,7 +555,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
         # define less min steps than 1 epoch
         "min_steps": num_train_samples // 2,
         "logger": False,
-        "weights_summary": None,
+        "enable_model_summary": False,
         "enable_progress_bar": False,
     }
     trainer = Trainer(**trainer_kwargs)
@@ -723,9 +723,9 @@ def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
             assert getattr(trainer, path_attr) == ckpt_path
 
 
-@pytest.mark.parametrize("checkpoint_callback", (False, True))
+@pytest.mark.parametrize("enable_model_summary", (False, True))
 @pytest.mark.parametrize("fn", ("validate", "test", "predict"))
-def test_tested_checkpoint_path_best(tmpdir, checkpoint_callback, fn):
+def test_tested_checkpoint_path_best(tmpdir, enable_model_summary, fn):
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx):
             self.log("foo", -batch_idx)
@@ -746,7 +746,7 @@ def test_tested_checkpoint_path_best(tmpdir, checkpoint_callback, fn):
         limit_predict_batches=1,
         enable_progress_bar=False,
         default_root_dir=tmpdir,
-        checkpoint_callback=checkpoint_callback,
+        enable_model_summary=enable_model_summary,
     )
     trainer.fit(model)
 
@@ -754,7 +754,7 @@ def test_tested_checkpoint_path_best(tmpdir, checkpoint_callback, fn):
     path_attr = f"{fn}{'d' if fn == 'validate' else 'ed'}_ckpt_path"
     assert getattr(trainer, path_attr) is None
 
-    if checkpoint_callback:
+    if enable_model_summary:
         trainer_fn(ckpt_path="best")
         assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
 
