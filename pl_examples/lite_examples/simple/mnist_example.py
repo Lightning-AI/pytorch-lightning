@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torch.utils.data import DistributedSampler
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 
@@ -62,6 +63,8 @@ class MNIST(LightningLite):
         optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
 
         train_loader, test_loader = self.setup_dataloader(train_loader, test_loader)
+        assert isinstance(train_loader.sampler, DistributedSampler)
+        assert isinstance(test_loader.sampler, DistributedSampler)
         model, optimizer = self.setup(model, optimizer)
 
         scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
@@ -100,7 +103,7 @@ class MNIST(LightningLite):
         test_loss = 0
         correct = 0
         with torch.no_grad():
-            for data, target in test_loader:
+            for i, (data, target) in enumerate(test_loader):
                 data, target = data.to(self.device), target.to(self.device)
                 output = model(data)
                 test_loss += F.nll_loss(output, target, reduction="sum").item()  # sum up batch loss
