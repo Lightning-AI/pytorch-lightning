@@ -16,6 +16,7 @@ import importlib
 import inspect
 import threading
 from contextlib import contextmanager
+from functools import partial
 from itertools import chain
 from typing import Callable, Dict, Generator, Iterator, Optional
 
@@ -177,15 +178,37 @@ def materialize_module(root_module: torch.nn.Module):
 # cache to optimize the search while resetting later on.
 __STORAGE_META__ = {}
 
+__CREATED_MODULES__ = set()
 
-def _unset_meta_device() -> None:
+
+def _unset_meta_device(from_created: bool = False) -> None:
     """Replace all meta module by their original version."""
     if not _TORCH_META_AVAILABLE:
         raise MisconfigurationException("`init_meta` is supported from PyTorch 1.10.0")
 
-    for mods, subclass, _ in __STORAGE_META__.values():
+    if from_created:
+        values = [__STORAGE_META__[key] for key in __CREATED_MODULES__]
+    else:
+        values = __STORAGE_META__.values()
+
+    for mods, subclass, _ in values:
         for mod in mods:
             setattr(mod, subclass.__name__, subclass)
+
+
+def _set_meta_device_populated(from_created: bool = False) -> None:
+    """Replace all meta module by their original version."""
+    if not _TORCH_META_AVAILABLE:
+        raise MisconfigurationException("`init_meta` is supported from PyTorch 1.10.0")
+
+    if from_created:
+        values = [__STORAGE_META__[key] for key in __CREATED_MODULES__]
+    else:
+        values = __STORAGE_META__.values()
+
+    for mods, subclass, meta_class in values:
+        for mod in mods:
+            setattr(mod, subclass.__name__, meta_class)
 
 
 def _set_meta_device() -> None:
@@ -197,6 +220,10 @@ def _set_meta_device() -> None:
     # author note: This can be optimized further by searching all subclasses at once.
     # Find all the nn.Module subclasses
     for subclass in get_all_subclasses(torch.nn.modules.module.Module):
+
+        # TODO: Why those layers can't be instantiated.
+        if issubclass(subclass, (torch.nn.modules.dropout._DropoutNd, torch.nn.modules.normalization.LayerNorm)):
+            continue
 
         # if subclass has already been stored, use teh cache
         if str(subclass) in __STORAGE_META__:
@@ -210,36 +237,25 @@ def _set_meta_device() -> None:
         # this will enable use to use `torch.distributed.nn.utils.init_meta` to create a `meta`
         # version of the current subclass module
         class _MetaClass(subclass):
+            @classmethod
+            @contextmanager
+            def instantiation_context(cls):
+                _unset_meta_device(from_created=True)
+                yield
+                _set_meta_device_populated(from_created=True)
+
+            @classmethod
+            def materialize(cls, materialize_fn: Callable):
+                with cls.instantiation_context():
+                    obj = materialize_fn()
+                return obj
+
             def __new__(cls, *args, **kwargs):
-                # access the current subclass
-                subclass = cls.__bases__[0]
-                submodules = subclass.__module__.split(".")
-                # import its package
-                mod = importlib.import_module(submodules[0])
-                for name in submodules[1:]:
-                    mod = getattr(mod, name)
+                __CREATED_MODULES__.add(str(cls.__bases__[0]))
+                with cls.instantiation_context():
+                    obj = init_meta(cls.__bases__[0], *args, **kwargs)
 
-                # replace the package to its rightful form, so python instantiation
-                # works as expected.
-                setattr(mod, subclass.__name__, subclass)
-
-                # create meta module
-                obj = init_meta(subclass, *args, **kwargs)
-
-                obj._materialize = obj.materialize
-
-                # the `materialize` function need to be overridden as the same
-                # toggle logic need to be used to enable proper module instantiation.
-                def materialize():
-                    nonlocal obj
-                    setattr(mod, subclass.__name__, subclass)
-                    obj = obj._materialize()
-                    setattr(mod, subclass.__name__, cls)
-                    return obj
-
-                obj.materialize = materialize
-                # replace the package to its meta form, so future instantation are still in the meta form.
-                setattr(mod, subclass.__name__, cls)
+                obj.materialize = partial(cls.materialize, materialize_fn=obj.materialize)
                 return obj
 
         def search(mod):
