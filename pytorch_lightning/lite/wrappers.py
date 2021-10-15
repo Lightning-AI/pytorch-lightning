@@ -34,10 +34,6 @@ class _LiteOptimizer(Optimizer):
         return self._optimizer
 
     def step(self, closure: Optional[Callable] = None) -> None:
-        if isinstance(self._accelerator.training_type_plugin, DeepSpeedPlugin):
-            self._optimizer.step(closure)
-            return
-
         self._accelerator.optimizer_step(
             self._optimizer,
             lambda_closure=closure,
@@ -61,19 +57,3 @@ class _LiteModule(nn.Module):
 
         output = apply_to_collection(output, function=lambda t: t.to(torch.get_default_dtype()), dtype=Tensor)
         return output
-
-    def backward(self, loss, *args: Any, **kwargs: Any) -> None:
-        if not isinstance(self._accelerator.training_type_plugin, DeepSpeedPlugin):
-            raise RuntimeError(
-                f"Calling `.backward()` on {self.module.__class__.__name__} is not allowed."
-                f" Please change your code to call `backward()` on the loss tensor directly."
-            )
-        self._accelerator.run_backward(loss, self.module, *args, **kwargs)
-
-    def step(self) -> None:
-        if not isinstance(self._accelerator.training_type_plugin, DeepSpeedPlugin):
-            raise RuntimeError(
-                f"Calling `.step()` on {self.module.__class__.__name__} is not allowed."
-                f" Please change your code to call the optimizer's `step()` method instead."
-            )
-        self.module.step()

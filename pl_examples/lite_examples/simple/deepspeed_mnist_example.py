@@ -81,10 +81,11 @@ class DeepSpeedMNIST(LightningLite):
             optimizer.zero_grad()
             output = model(data)
             loss = F.nll_loss(output, target)
-            # DEEPSPEED requires you to change loss.backward() to model.backward(loss)
-            model.backward(loss)
-            # DEEPSPEED requires you to change optimizer.step() to model.backward(loss)
-            model.step()
+            # DEEPSPEED will call model.backward(loss) internally
+            self.backward(loss)
+            # DEEPSPEED will call model.step() internally
+            optimizer.step()
+
             if batch_idx % args.log_interval == 0:
                 print(
                     "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(

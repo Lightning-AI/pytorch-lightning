@@ -384,23 +384,20 @@ class DeepSpeedPlugin(DDPPlugin):
     def setup_models_and_optimizers(
         self, models: Sequence[Module], optimizers: Sequence[Optimizer]
     ) -> Tuple[Sequence[Module], Sequence[Optimizer]]:
-        if len(models) != len(optimizers):
+        if not (len(models) == len(optimizers) == 1):
             raise ValueError(
-                f"DeepSpeed requires one optimizer per model."
+                f"Currently only model and one optimizer is supported with DeepSpeed."
                 f" Got {len(models)} models and {len(optimizers)} optimizers instead."
             )
 
         # TODO: is this the correct place to set this?
         self.config["train_micro_batch_size_per_gpu"] = 1
 
-        models_and_optimizers = [
-            self._setup_model_and_optimizer(model, optimizer) for model, optimizer in zip(models, optimizers)
-        ]
-        models, optimizers = zip(*models_and_optimizers)
+        self._model, optimizer = self._setup_model_and_optimizer(models[0], optimizers[0])
 
         # TODO: do we need to call it here?
         # self._set_deepspeed_activation_checkpointing()
-        return list(models), list(optimizers)
+        return [self._model], [optimizer]
 
     def _setup_model_and_optimizer(self, model: Module, optimizer: Optimizer) -> Tuple[DeepSpeedEngine, Optimizer]:
         # TODO: shouldn't this be optimizer.parameters?

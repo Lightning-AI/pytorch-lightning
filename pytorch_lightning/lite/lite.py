@@ -28,7 +28,7 @@ from torch.utils.data import DataLoader, DistributedSampler, SequentialSampler, 
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import Accelerator, TPUAccelerator
 from pytorch_lightning.lite.wrappers import _LiteOptimizer, _LiteModule
-from pytorch_lightning.plugins import PLUGIN_INPUT, DDPSpawnPlugin, TrainingTypePlugin
+from pytorch_lightning.plugins import PLUGIN_INPUT, DDPSpawnPlugin, TrainingTypePlugin, DeepSpeedPlugin
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.utilities import move_data_to_device
@@ -132,7 +132,7 @@ class LightningLite(ABC):
 
     def backward(self, tensor: Tensor, *args: Any, **kwargs: Any) -> None:
         # user will call self.backward(loss) instead of loss.backward()
-        self._accelerator.run_backward(tensor, None, *args, **kwargs)
+        self._accelerator.run_backward(tensor, self._training_type_plugin.model, *args, **kwargs)
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
