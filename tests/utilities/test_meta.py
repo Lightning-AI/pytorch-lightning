@@ -23,7 +23,7 @@ def test_init_meta_context():
     class MLP(nn.Module):
         def __init__(self, num_linears: int):
             super().__init__()
-            self.layer = nn.Sequential(*[nn.Linear(1, 1) for _ in range(num_linears)] + [nn.Dropout()])
+            self.layer = nn.Sequential(*[nn.Linear(1, 1) for _ in range(num_linears)] + [nn.Dropout(), nn.LayerNorm(1)])
 
     with init_meta_context():
         m = nn.Linear(in_features=1, out_features=1)
