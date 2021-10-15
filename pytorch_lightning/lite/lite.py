@@ -102,17 +102,6 @@ class LightningLite(ABC):
     def run(self, *args: Any, **kwargs: Any) -> None:
         pass
 
-    def _run_wrapper(self, run_method: Callable) -> Callable:
-        return partial(self._run_impl, run_method)
-
-    def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> None:
-        self._training_type_plugin.setup_environment()
-        if isinstance(self._training_type_plugin, DDPSpawnPlugin):
-            self._training_type_plugin.spawn(run_method, *args, **kwargs)
-        else:
-            run_method(*args, **kwargs)
-        # TODO: any teardown needed here?
-
     def setup(
         self,
         models: Union[nn.Module, Sequence[nn.Module]],
@@ -125,17 +114,6 @@ class LightningLite(ABC):
 
         models = models[0] if len(models) == 1 else models
         optimizers = optimizers[0] if len(optimizers) == 1 else optimizers
-        return models, optimizers
-
-    def _setup_models_and_optimizers(
-        self,
-        models: Sequence[nn.Module],
-        optimizers: Sequence[Optimizer],
-    ) -> Tuple[Sequence[_LiteModule], Sequence[_LiteOptimizer]]:
-        # Let accelerator/plugin wrap and connect the models and optimizers
-        models, optimizers = self._training_type_plugin.setup_models_and_optimizers(models, optimizers)
-        models = [_LiteModule(module=model, accelerator=self._accelerator) for model in models]
-        optimizers = [_LiteOptimizer(optimizer=optimizer, accelerator=self._accelerator) for optimizer in optimizers]
         return models, optimizers
 
     def setup_dataloader(self, *dataloaders: DataLoader) -> Union[DataLoader, Sequence[DataLoader]]:
@@ -167,3 +145,25 @@ class LightningLite(ABC):
     def execute_on_rank(self, func: Callable, rank: int, *args: Any, **kwargs: Any) -> None:
         if self.global_rank == rank:
             func(*args, **kwargs)
+
+    def _run_wrapper(self, run_method: Callable) -> Callable:
+        return partial(self._run_impl, run_method)
+
+    def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> None:
+        self._training_type_plugin.setup_environment()
+        if isinstance(self._training_type_plugin, DDPSpawnPlugin):
+            self._training_type_plugin.spawn(run_method, *args, **kwargs)
+        else:
+            run_method(*args, **kwargs)
+        # TODO: any teardown needed here?
+
+    def _setup_models_and_optimizers(
+        self,
+        models: Sequence[nn.Module],
+        optimizers: Sequence[Optimizer],
+    ) -> Tuple[Sequence[_LiteModule], Sequence[_LiteOptimizer]]:
+        # Let accelerator/plugin wrap and connect the models and optimizers
+        models, optimizers = self._training_type_plugin.setup_models_and_optimizers(models, optimizers)
+        models = [_LiteModule(module=model, accelerator=self._accelerator) for model in models]
+        optimizers = [_LiteOptimizer(optimizer=optimizer, accelerator=self._accelerator) for optimizer in optimizers]
+        return models, optimizers
