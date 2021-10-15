@@ -147,7 +147,7 @@ def test_simple_profiler_logs(tmpdir, caplog, simple_profiler):
     """Ensure that the number of printed logs is correct."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2, profiler=simple_profiler, logger=False)
-    with caplog.at_level(logging.INFO, logger="pytorch_lightning.profiler.profilers"):
+    with caplog.at_level(logging.INFO, logger="pytorch_lightning.profiler"):
         trainer.fit(model)
         trainer.test(model)
 

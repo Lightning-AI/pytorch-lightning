@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from collections import Sequence
+from typing import Sequence
 from unittest import mock
 
 import pytest
