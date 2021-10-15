@@ -98,7 +98,7 @@ def test_ranks_available_automatic_plugin_selection(mock0, mock1, trainer_kwargs
 
         if trainer_kwargs["strategy"] == "ddp2":
             expected.update(global_rank=expected["node_rank"], world_size=num_nodes)
-        if trainer_kwargs["strategy"] in ("ddp_cpu", "ddp_spawn"):
+        if trainer_kwargs["strategy"] == "ddp_spawn":
             if isinstance(cluster, (SLURMEnvironment, TorchElasticEnvironment)):
                 # slurm and torchelastic do not work with spawn plugins
                 continue
