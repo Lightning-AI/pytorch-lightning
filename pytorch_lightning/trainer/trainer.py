@@ -1401,14 +1401,14 @@ class Trainer(
             if callable(model_fx):
                 output = model_fx(*args, **kwargs)
 
-            # call the accelerator hook
-            if hook_name not in ("setup", "teardown") and hasattr(self.accelerator, hook_name):
-                accelerator_hook = getattr(self.accelerator, hook_name)
-                accelerator_output = accelerator_hook(*args, **kwargs)
-                # Rely on the accelerator output if lightningModule hook returns nothing
+            # call the ttp hook
+            if hook_name not in ("setup", "teardown") and hasattr(self.training_type_plugin, hook_name):
+                ttp_hook = getattr(self.training_type_plugin, hook_name)
+                ttp_output = ttp_hook(*args, **kwargs)
+                # Rely on the TTP output if lightningModule hook returns nothing
                 # Required for cases such as DataParallel where we reduce the output for the user
                 # todo: move this data parallel logic into the data parallel plugin
-                output = accelerator_output if output is None else output
+                output = ttp_output if output is None else output
 
         if pl_module:
             # restore current_fx when nested context
