@@ -15,7 +15,7 @@ import pytest
 from torch import nn
 
 from pytorch_lightning.utilities.imports import _TORCH_META_AVAILABLE
-from pytorch_lightning.utilities.meta import materialize_module, set_meta_device, unset_meta_device
+from pytorch_lightning.utilities.meta import init_meta_context, materialize_module
 
 
 @pytest.mark.skipif(not _TORCH_META_AVAILABLE, reason="Support only with PyTorch 1.10")
@@ -28,28 +28,21 @@ def test_use_meta_device():
                 self.lins.append(nn.Linear(1, 1))
             self.layer = nn.Sequential(*self.lins)
 
-    set_meta_device()
+    with init_meta_context():
+        m = nn.Linear(in_features=1, out_features=1)
+        assert m.weight.device.type == "meta"
+        mlp = MLP(4)
+        assert mlp.layer[0].weight.device.type == "meta"
 
-    m = nn.Linear(in_features=1, out_features=1)
-
-    assert m.weight.device.type == "meta"
-
-    mlp = MLP(4)
-    assert mlp.layer[0].weight.device.type == "meta"
-
-    materialize_module(mlp)
-
-    assert mlp.layer[0].weight.device.type == "cpu"
-
-    unset_meta_device()
+        materialize_module(mlp)
+        assert mlp.layer[0].weight.device.type == "cpu"
 
     m = nn.Linear(in_features=1, out_features=1)
     assert m.weight.device.type == "cpu"
 
-    set_meta_device()
-    m = nn.Linear(in_features=1, out_features=1)
-    assert m.weight.device.type == "meta"
+    with init_meta_context():
+        m = nn.Linear(in_features=1, out_features=1)
+        assert m.weight.device.type == "meta"
 
-    unset_meta_device()
     m = nn.Linear(in_features=1, out_features=1)
     assert m.weight.device.type == "cpu"
