@@ -1415,7 +1415,7 @@ class Trainer(
                 # Rely on the accelerator output if lightningModule hook returns nothing
                 # Required for cases such as DataParallel where we reduce the output for the user
                 # todo: move this data parallel logic into the data parallel plugin
-                output = accelerator_output if output is None else output
+                output = ttp_output if output is None else output
 
             # call the ttp hook
             if hook_name not in ("setup", "teardown", "on_train_start") and hasattr(
