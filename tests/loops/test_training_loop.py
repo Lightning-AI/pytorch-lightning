@@ -35,9 +35,9 @@ def test_outputs_format(tmpdir):
             assert "foo" in output
             assert output["foo"] == 123
 
-        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+        def on_train_batch_end(self, outputs, batch, batch_idx):
             HookedModel._check_output(outputs)
-            super().on_train_batch_end(outputs, batch, batch_idx, dataloader_idx)
+            super().on_train_batch_end(outputs, batch, batch_idx)
 
         def training_epoch_end(self, outputs):
             assert len(outputs) == 2
@@ -54,7 +54,7 @@ def test_outputs_format(tmpdir):
         limit_train_batches=2,
         limit_test_batches=1,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 

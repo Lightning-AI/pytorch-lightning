@@ -71,7 +71,7 @@ def test_all_rank_logging_ddp_cpu(tmpdir):
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=1,
-        weights_summary=None,
+        enable_model_summary=False,
         logger=all_rank_logger,
         log_every_n_steps=1,
     )
@@ -92,7 +92,7 @@ def test_all_rank_logging_ddp_spawn(tmpdir):
         limit_val_batches=1,
         max_epochs=1,
         logger=all_rank_logger,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 

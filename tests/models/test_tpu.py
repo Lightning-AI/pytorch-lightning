@@ -26,7 +26,7 @@ from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.plugins import TPUSpawnPlugin
 from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync
-from pytorch_lightning.utilities import _TPU_AVAILABLE
+from pytorch_lightning.utilities import _TPU_AVAILABLE, DeviceType
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
@@ -399,11 +399,11 @@ def test_tpu_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
 @RunIf(tpu=True)
 @pl_multi_process_test
 def test_if_test_works_with_checkpoint_false(tmpdir):
-    """Ensure that model trains properly when `checkpoint_callback` is set to False."""
+    """Ensure that model trains properly when `enable_checkpointing` is set to False."""
 
     # Train a model on TPU
     model = BoringModel()
-    trainer = Trainer(max_epochs=1, tpu_cores=8, default_root_dir=tmpdir, fast_dev_run=True, checkpoint_callback=False)
+    trainer = Trainer(max_epochs=1, tpu_cores=8, default_root_dir=tmpdir, fast_dev_run=True, enable_checkpointing=False)
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -473,3 +473,13 @@ def test_tpu_host_world_size(tmpdir):
 
     model = DebugModel()
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+
+
+@RunIf(tpu=True)
+@pl_multi_process_test
+def test_device_type_when_training_plugin_tpu_passed(tmpdir):
+
+    trainer = Trainer(strategy=TPUSpawnPlugin(), tpu_cores=8)
+    assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
+    assert trainer._device_type == DeviceType.TPU
+    assert isinstance(trainer.accelerator, TPUAccelerator)

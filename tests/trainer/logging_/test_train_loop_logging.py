@@ -78,18 +78,18 @@ def test__training_step__log(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
         callbacks=[ModelCheckpoint(monitor="l_se")],
     )
     trainer.fit(model)
 
     logged_metrics = set(trainer.logged_metrics)
-    assert logged_metrics == {"epoch", "default", "l_e", "l_s", "l_se_step", "l_se_epoch"}
+    assert logged_metrics == {"default", "l_e", "l_s", "l_se_step", "l_se_epoch"}
 
     pbar_metrics = set(trainer.progress_bar_metrics)
     assert pbar_metrics == {"p_e", "p_s", "p_se_step", "p_se_epoch"}
 
-    assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"p_se", "l_se"}) - {"epoch"}
+    assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"p_se", "l_se"})
 
 
 def test__training_step__epoch_end__log(tmpdir):
@@ -116,17 +116,17 @@ def test__training_step__epoch_end__log(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
     logged_metrics = set(trainer.logged_metrics)
-    assert logged_metrics == {"epoch", "a_step", "a_epoch", "b", "b1", "a1", "a2"}
+    assert logged_metrics == {"a_step", "a_epoch", "b", "b1", "a1", "a2"}
 
     pbar_metrics = set(trainer.progress_bar_metrics)
     assert pbar_metrics == {"b"}
 
-    assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a"}) - {"epoch"}
+    assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a"})
 
 
 @pytest.mark.parametrize(["batches", "log_interval", "max_epochs"], [(1, 1, 1), (64, 32, 2)])
@@ -156,18 +156,18 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
         limit_val_batches=batches,
         max_epochs=max_epochs,
         log_every_n_steps=log_interval,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
     # make sure all the metrics are available for callbacks
     logged_metrics = set(trainer.logged_metrics)
-    assert logged_metrics == {"a_step", "a_epoch", "b_step", "b_epoch", "c", "d/e/f", "epoch"}
+    assert logged_metrics == {"a_step", "a_epoch", "b_step", "b_epoch", "c", "d/e/f"}
 
     pbar_metrics = set(trainer.progress_bar_metrics)
     assert pbar_metrics == {"c", "b_epoch", "b_step"}
 
-    assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a", "b"}) - {"epoch"}
+    assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a", "b"})
 
 
 @pytest.mark.parametrize(
@@ -194,7 +194,7 @@ def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
         limit_train_batches=batches,
         limit_val_batches=batches,
         max_epochs=2,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -232,12 +232,12 @@ def test_different_batch_types_for_sizing(tmpdir):
         limit_train_batches=1,
         limit_val_batches=2,
         max_epochs=1,
-        weights_summary=None,
+        enable_model_summary=False,
         fast_dev_run=True,
     )
     trainer.fit(model)
 
-    assert set(trainer.logged_metrics) == {"a_step", "a_epoch", "n_step", "n_epoch", "epoch"}
+    assert set(trainer.logged_metrics) == {"a_step", "a_epoch", "n_step", "n_epoch"}
 
 
 def test_log_works_in_train_callback(tmpdir):
@@ -403,7 +403,7 @@ def test_logging_sync_dist_true(tmpdir, gpus):
         default_root_dir=tmpdir,
         limit_train_batches=3,
         limit_val_batches=3,
-        weights_summary=None,
+        enable_model_summary=False,
         gpus=gpus,
     )
     trainer.fit(model)
@@ -451,7 +451,7 @@ def test_logging_sync_dist_true_ddp(tmpdir):
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=2,
-        weights_summary=None,
+        enable_model_summary=False,
         accelerator="ddp",
         gpus=2,
         profiler="pytorch",
@@ -493,9 +493,9 @@ def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmpdir: str):
         max_epochs=2,
         limit_train_batches=1,
         limit_val_batches=0,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
         logger=False,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     model = TestModel()
     trainer.fit(model)
@@ -513,7 +513,7 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         def on_train_epoch_start(self, trainer, pl_module):
             self.log("on_train_epoch_start", 2)
 
-        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
             self.log("on_train_batch_end", 3)
 
         def on_batch_end(self, trainer, pl_module):
@@ -531,7 +531,7 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=1,
-        weights_summary=None,
+        enable_model_summary=False,
         callbacks=[LoggingCallback()],
     )
     trainer.fit(model)
