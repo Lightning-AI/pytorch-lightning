@@ -36,7 +36,8 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import log, rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.enums import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
+from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE, _TORCH_META_AVAILABLE
+from pytorch_lightning.utilities.meta import materialize_module
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeTuple
@@ -373,7 +374,12 @@ class DeepSpeedPlugin(DDPPlugin):
     def restore_checkpoint_after_pre_dispatch(self) -> bool:
         return True
 
+    def materialize(self):
+        if _TORCH_META_AVAILABLE:
+            materialize_module(self.lightning_module)
+
     def pre_dispatch(self):
+        self.materialize()
         self.init_deepspeed()
         self.barrier()
 
