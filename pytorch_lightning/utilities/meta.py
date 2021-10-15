@@ -64,7 +64,6 @@ if _TORCH_META_AVAILABLE:
 
     def _handle_arange(func, args, kwargs):
         kwargs["device"] = torch.device("cpu")
-
         return torch.empty_like(func(*args, **kwargs), device="meta")
 
     def _handle_tril(func, args, kwargs):
@@ -74,7 +73,6 @@ if _TORCH_META_AVAILABLE:
         return NotImplemented
 
     class _MetaContext(Tensor):
-
         _op_handlers: Dict[Callable, Callable] = {}
 
         @classmethod
@@ -92,7 +90,6 @@ if _TORCH_META_AVAILABLE:
         @classmethod
         def __torch_dispatch__(cls, func, types, args=(), kwargs=None):
             cls._ensure_handlers_initialized()
-
             op_handler: Optional[Callable]
             try:
                 op_handler = cls._op_handlers[func]
@@ -113,21 +110,13 @@ if _TORCH_META_AVAILABLE:
     def _get_frame_args(frame) -> Tuple[List[Any], Dict[str, Any]]:
         """Extracts positional and keyword arguments from a call frame."""
         code = frame.f_code
-
-        # The `co_posonlyargcount` attribute is introduced in CPython 3.8; since we
-        # still support v3.6 we can't use it here.
         num_pos_args = code.co_argcount - code.co_kwonlyargcount
-
         args = []
-
         for arg_name in code.co_varnames[1:num_pos_args]:
             args.append(frame.f_locals[arg_name])
-
         kwargs = {}
-
         for arg_name in code.co_varnames[num_pos_args : code.co_argcount]:
             kwargs[arg_name] = frame.f_locals[arg_name]
-
         return args, kwargs
 
     def _trace_nn_modules(frame, event: str, arg: Any) -> None:
@@ -138,7 +127,6 @@ if _TORCH_META_AVAILABLE:
             self = frame.f_locals[self_param_name]
 
             if isinstance(self, Module):
-                # marker for that.
                 if not hasattr(self, "materialize"):
                     args, kwargs = _get_frame_args(frame)
 
@@ -156,13 +144,9 @@ if _TORCH_META_AVAILABLE:
             module = module_fn(*args, **kwargs)
         else:
             _tls.is_meta_init = True
-
-            # We use CPython tracing to inject `materialize()` to modules.
             sys.settrace(_trace_nn_modules)
 
             try:
-                # MetaContext forces all tensors to use the meta device regardless
-                # of their actual device.
                 with enable_python_mode(_MetaContext):
                     module = module_fn(*args, **kwargs)
             finally:
