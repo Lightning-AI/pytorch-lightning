@@ -181,7 +181,7 @@ __STORAGE_META__ = {}
 def _unset_meta_device() -> None:
     """Replace all meta module by their original version."""
     if not _TORCH_META_AVAILABLE:
-        raise MisconfigurationException("torch.device('meta') is supported from PyTorch 1.10.0")
+        raise MisconfigurationException("`init_meta` is supported from PyTorch 1.10.0")
 
     for mods, subclass, _ in __STORAGE_META__.values():
         for mod in mods:
@@ -192,8 +192,9 @@ def _set_meta_device() -> None:
     """Replace all torch.nn.Module by their meta replacement."""
 
     if not _TORCH_META_AVAILABLE:
-        raise MisconfigurationException("torch.device('meta') is supported from PyTorch 1.10.0")
+        raise MisconfigurationException("`init_meta` is supported from PyTorch 1.10.0")
 
+    # author note: This can be optimized further by searching all subclasses at once.
     # Find all the nn.Module subclasses
     for subclass in get_all_subclasses(torch.nn.modules.module.Module):
 
