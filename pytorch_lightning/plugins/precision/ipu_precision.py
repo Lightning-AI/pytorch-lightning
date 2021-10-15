@@ -47,12 +47,14 @@ class IPUPrecisionPlugin(PrecisionPlugin):
             raise MisconfigurationException(
                 f"IPUs and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
-        # FIXME: ask this to Sean or the Graphcore people
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if model.automatic_optimization and skipped_backward:
+            # we lack coverage here and IPUs are (currently) limited - something to explore if there's demand
             raise MisconfigurationException(
-                "Skipping backward by returning `None` from your `training_step` is not supported by IPUs"
+                "Skipping backward by returning `None` from your `training_step` is not implemented for IPUs."
+                " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`"
+                " requesting this feature."
             )
 
     def clip_gradients(
