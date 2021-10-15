@@ -582,7 +582,7 @@ class EarlyExitTestModel(BoringModel):
     "trainer_kwargs",
     (
         dict(strategy="ddp_spawn"),
-        dict(strategy="ddp_find_unused_parameters_false"),
+        dict(strategy="ddp"),
         pytest.param({"tpu_cores": 1}, marks=RunIf(tpu=True)),
     ),
 )
