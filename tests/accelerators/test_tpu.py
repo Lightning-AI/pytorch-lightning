@@ -13,6 +13,7 @@
 # limitations under the License
 import collections
 from copy import deepcopy
+from unittest.mock import patch
 
 import pytest
 import torch
@@ -21,7 +22,6 @@ from torch import nn
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
-from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import TPUSpawnPlugin
 from pytorch_lightning.utilities import find_shared_parameters
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -189,16 +189,18 @@ def test_manual_optimization_tpus(tmpdir):
             assert torch.all(self.layer.weight.grad == 0)
             self.count += 1
 
+        def on_train_start(self):
+            opt = self.optimizers()
+            self.opt_step_patch = patch.object(opt, "step", wraps=opt.step)
+            self.opt_step_mock = self.opt_step_patch.start()
+
         def on_train_end(self):
             assert self.called["training_step"] == 5
             assert self.called["on_train_batch_start"] == 5
             assert self.called["on_train_batch_end"] == 5
 
-    class TestManualOptimizationCallack(Callback):
-        def on_train_end(self, trainer, pl_module):
-
-            opt = pl_module.optimizers()
-            assert opt._total_optimizer_step_calls == 3
+            self.opt_step_patch.stop()
+            assert self.opt_step_mock.call_count == 3
 
     model = ManualOptimizationModel()
     model_copy = deepcopy(model)
@@ -212,7 +214,6 @@ def test_manual_optimization_tpus(tmpdir):
         limit_test_batches=0,
         limit_val_batches=0,
         tpu_cores=8,
-        callbacks=[TestManualOptimizationCallack()],
     )
     trainer.fit(model)
 
