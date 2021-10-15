@@ -202,6 +202,7 @@ def materialize_module(root_module: nn.Module) -> nn.Module:
             materialize_module(child)
         else:
             setattr(root_module, name, materialize_fn())
+    return root_module
 
 
 # cache subclasses to optimize the search when resetting the meta device later on.
