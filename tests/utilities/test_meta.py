@@ -14,14 +14,22 @@
 import pytest
 from torch import nn
 
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.imports import _TORCH_META_AVAILABLE
 from pytorch_lightning.utilities.meta import init_meta, init_meta_context, materialize_module
 
 
 class MLP(nn.Module):
-    def __init__(self, num_linears: int):
+    def __init__(self, num_layers: int):
         super().__init__()
-        self.layer = nn.Sequential(*[nn.Linear(1, 1) for _ in range(num_linears)] + [nn.Dropout(), nn.LayerNorm(1)])
+        self.layer = nn.Sequential(*[nn.Linear(1, 1) for _ in range(num_layers)] + [nn.Dropout(), nn.LayerNorm(1)])
+
+
+class BoringModel(LightningModule):
+    def __init__(self, num_layers: int):
+        super().__init__()
+        self.save_hyperparameters()
+        self.layer = nn.Sequential(*[nn.Linear(1, 1) for _ in range(self.hparams.num_layers)])
 
 
 @pytest.mark.skipif(not _TORCH_META_AVAILABLE, reason="Support only with PyTorch 1.10")
@@ -37,6 +45,11 @@ def test_init_meta_context():
 
         materialize_module(mlp)
         assert mlp.layer[0].weight.device.type == "cpu"
+
+        model = BoringModel(4)
+        assert model.layer[0].weight.device.type == "meta"
+        materialize_module(model)
+        assert model.layer[0].weight.device.type == "cpu"
 
     mlp = MLP(4)
     materialize_module(mlp)

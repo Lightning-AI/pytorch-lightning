@@ -198,7 +198,7 @@ def materialize_module(root_module: nn.Module) -> nn.Module:
         return root_module
 
     materialize_fn = getattr(root_module, "materialize", None)
-    if materialize_fn:
+    if materialize_fn and not isinstance(root_module, (Sequential, ModuleList, ModuleDict)):
         materialize_fn(in_place=True)
         return root_module
 
