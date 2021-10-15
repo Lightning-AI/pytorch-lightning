@@ -77,14 +77,14 @@ class DebuggingConnector:
 
     def determine_data_use_amount(self, overfit_batches: float) -> None:
         """Use less data for debugging purposes."""
-        if overfit_batches > 0.:
+        if overfit_batches > 0.0:
             # Avoid non-default value of ``limit_train/val/test_batches`` to be reset
             # by overfit_batches
-            if self.trainer.limit_train_batches > 0.:
+            if self.trainer.limit_train_batches > 0.0:
                 self.trainer.limit_train_batches = overfit_batches
-            if self.trainer.limit_val_batches > 0.:
+            if self.trainer.limit_val_batches > 0.0:
                 self.trainer.limit_val_batches = overfit_batches
-            if self.trainer.limit_test_batches > 0.:
+            if self.trainer.limit_test_batches > 0.0:
                 self.trainer.limit_test_batches = overfit_batches
 
 
