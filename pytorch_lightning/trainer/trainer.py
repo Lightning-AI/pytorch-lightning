@@ -134,7 +134,7 @@ class Trainer(
         auto_select_gpus: bool = False,
         tpu_cores: Optional[Union[List[int], str, int]] = None,
         ipus: Optional[int] = None,
-        log_gpu_memory: Optional[str] = None,
+        log_gpu_memory: Optional[str] = None,  # TODO: Remove in 1.7
         progress_bar_refresh_rate: Optional[int] = None,  # TODO: remove in v1.7
         enable_progress_bar: bool = True,
         overfit_batches: Union[int, float] = 0.0,
@@ -276,6 +276,10 @@ class Trainer(
                 of the individual loggers.
 
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance.
+
+                .. deprecated:: v1.5
+                    Deprecated in v1.5.0 and will be removed in v1.7.0
+                    Please use the ``DeviceStatsMonitor`` callback directly instead.
 
             log_every_n_steps: How often to log within steps (defaults to every 50 steps).
 
@@ -1020,13 +1024,13 @@ class Trainer(
         self.callback_connector.attach_model_logging_functions(model)
 
         # attach model to the training type plugin
-        self.accelerator.connect(model)
+        self.training_type_plugin.connect(model)
 
         # hook
         self.data_connector.prepare_data()
         self.callback_connector._attach_model_callbacks()
 
-        if self._ckpt_path and not self.accelerator.restore_checkpoint_after_pre_dispatch:
+        if self._ckpt_path and not self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
             self._load_checkpoint_weights()
 
         # ----------------------------
@@ -1037,7 +1041,7 @@ class Trainer(
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
         # check if we should delay restoring checkpoint till later
-        if not self.accelerator.restore_checkpoint_after_pre_dispatch:
+        if not self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
             self.checkpoint_connector.resume_start()
             self._restore_modules_and_callbacks()
 
@@ -1055,9 +1059,9 @@ class Trainer(
                                 |                             ||
                          {self._dispatch}                     ||
                                 |                             ||  LIGHTNING
-                  {self.accelerator.start_training}           ||
-                or {self.accelerator.start_evaluating}        ||
-                or {self.accelerator.start_predicting}        ||  FLOW
+         {self.training_type_plugin.start_training}           ||
+       or {self.training_type_plugin.start_evaluating}        ||
+       or {self.training_type_plugin.start_predicting}        ||  FLOW
                                 |                             ||
                          {self.run_stage}                     ||
                                 |                             ||  DIRECTION
@@ -1087,7 +1091,7 @@ class Trainer(
         # plugin will setup fitting (e.g. ddp will launch child processes)
         self._pre_dispatch()
 
-        if self.accelerator.restore_checkpoint_after_pre_dispatch:
+        if self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
             if self._ckpt_path:
                 self._load_checkpoint_weights()
 
@@ -1119,7 +1123,7 @@ class Trainer(
             self.state.status = TrainerStatus.FINISHED
         self.state.stage = None
 
-        return self.accelerator.results
+        return self.training_type_plugin.results
 
     def _pre_dispatch(self):
         self.accelerator.pre_dispatch(self)
@@ -1173,11 +1177,11 @@ class Trainer(
 
     def _dispatch(self):
         if self.evaluating:
-            self.accelerator.start_evaluating(self)
+            self.training_type_plugin.start_evaluating(self)
         elif self.predicting:
-            self.accelerator.start_predicting(self)
+            self.training_type_plugin.start_predicting(self)
         else:
-            self.accelerator.start_training(self)
+            self.training_type_plugin.start_training(self)
 
     def run_stage(self):
         self.accelerator.dispatch(self)
@@ -1509,22 +1513,26 @@ class Trainer(
 
     @property
     def global_rank(self) -> int:
-        return self.accelerator.training_type_plugin.global_rank
+        return self.training_type_plugin.global_rank
 
     @property
     def local_rank(self) -> int:
         # some training types define a local rank
-        return getattr(self.accelerator.training_type_plugin, "local_rank", 0)
+        return getattr(self.training_type_plugin, "local_rank", 0)
 
     @property
     def node_rank(self) -> int:
         # some training types define a node rank
-        return getattr(self.accelerator.training_type_plugin, "node_rank", 0)
+        return getattr(self.training_type_plugin, "node_rank", 0)
 
     @property
     def world_size(self) -> int:
         # some training types define a world size
-        return getattr(self.accelerator.training_type_plugin, "world_size", 1)
+        return getattr(self.training_type_plugin, "world_size", 1)
+
+    @property
+    def should_rank_save_checkpoint(self) -> bool:
+        return self.training_type_plugin.should_rank_save_checkpoint
 
     @property
     def _distrib_type(self) -> DistributedType:
