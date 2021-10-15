@@ -11,19 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import contextlib
 import importlib
 import inspect
+import sys
 import threading
+import types
 from contextlib import contextmanager
 from functools import partial
 from itertools import chain
 from types import ModuleType
-from typing import Callable, Dict, Generator, Iterator, List, Optional, Set, Type
+from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Set, Tuple, Type
 
 import torch
 from torch import nn, Tensor
 from torch.nn import Module
+from torch.nn.modules.container import ModuleDict, ModuleList, Sequential
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_META_AVAILABLE
@@ -36,7 +38,10 @@ if _TORCH_META_AVAILABLE:
     # TODO: Removed once merged and released on PyTorch side           #
     ####################################################################
 
-    @contextlib.contextmanager
+    _tls = threading.local()
+    _tls.is_meta_init = False
+
+    @contextmanager
     def enable_python_mode(cls) -> Iterator[None]:
         if not hasattr(cls, "__torch_dispatch__"):
             raise ValueError("The class passed to enable_python_mode " "must have a __torch_dispatch__ classmethod")
@@ -47,9 +52,6 @@ if _TORCH_META_AVAILABLE:
             yield
         finally:
             torch._C._exit_python_mode()
-
-    _tls = threading.local()
-    _tls.in_call = False
 
     @contextmanager
     def _no_dispatch() -> Iterator[None]:
@@ -62,6 +64,7 @@ if _TORCH_META_AVAILABLE:
 
     def _handle_arange(func, args, kwargs):
         kwargs["device"] = torch.device("cpu")
+
         return torch.empty_like(func(*args, **kwargs), device="meta")
 
     def _handle_tril(func, args, kwargs):
@@ -91,7 +94,6 @@ if _TORCH_META_AVAILABLE:
             cls._ensure_handlers_initialized()
 
             op_handler: Optional[Callable]
-
             try:
                 op_handler = cls._op_handlers[func]
             except KeyError:
@@ -108,27 +110,71 @@ if _TORCH_META_AVAILABLE:
 
                 return func(*args, **kwargs)
 
+    def _get_frame_args(frame) -> Tuple[List[Any], Dict[str, Any]]:
+        """Extracts positional and keyword arguments from a call frame."""
+        code = frame.f_code
+
+        # The `co_posonlyargcount` attribute is introduced in CPython 3.8; since we
+        # still support v3.6 we can't use it here.
+        num_pos_args = code.co_argcount - code.co_kwonlyargcount
+
+        args = []
+
+        for arg_name in code.co_varnames[1:num_pos_args]:
+            args.append(frame.f_locals[arg_name])
+
+        kwargs = {}
+
+        for arg_name in code.co_varnames[num_pos_args : code.co_argcount]:
+            kwargs[arg_name] = frame.f_locals[arg_name]
+
+        return args, kwargs
+
+    def _trace_nn_modules(frame, event: str, arg: Any) -> None:
+        """Traces `torch.nn.Module` instances and injects `materialize()`."""
+        if event == "call" and frame.f_code.co_name == "__init__":
+            self_param_name = frame.f_code.co_varnames[0]
+
+            self = frame.f_locals[self_param_name]
+
+            if isinstance(self, Module):
+                # marker for that.
+                if not hasattr(self, "materialize"):
+                    args, kwargs = _get_frame_args(frame)
+
+                    def materialize(self, *, in_place: bool = False):
+                        if in_place:
+                            self.__init__(*args, **kwargs)
+                            return self
+
+                        return type(self)(*args, **kwargs)
+
+                    self.materialize = types.MethodType(materialize, self)  # type: ignore[assignment]
+
     def init_meta(module_fn: Callable[..., Module], *args, **kwargs) -> Module:
-        def create_instance() -> Module:
-            return module_fn(*args, **kwargs)
-
-        if _tls.in_call:
-            module = create_instance()
+        if _tls.is_meta_init:
+            module = module_fn(*args, **kwargs)
         else:
-            _tls.in_call = True
-            try:
-                with enable_python_mode(_MetaContext):
-                    module = create_instance()
-            finally:
-                _tls.in_call = False
+            _tls.is_meta_init = True
 
-        module.materialize = create_instance  # type: ignore[assignment]
+            # We use CPython tracing to inject `materialize()` to modules.
+            sys.settrace(_trace_nn_modules)
+
+            try:
+                # MetaContext forces all tensors to use the meta device regardless
+                # of their actual device.
+                with enable_python_mode(_MetaContext):
+                    module = module_fn(*args, **kwargs)
+            finally:
+                sys.settrace(None)
+
+                _tls.is_meta_init = False
 
         return module
 
     def is_meta_init() -> bool:
         """Indicates whether the module is being instantiated by ``init_meta()``."""
-        return _tls.in_call
+        return _tls.is_meta_init
 
     ####################################################################
     # ABOVE: TAKEN FROM https://github.com/pytorch/pytorch/pull/66317. #
@@ -166,15 +212,12 @@ def materialize_module(root_module: nn.Module) -> nn.Module:
     """This utility performs an in-place operation by materialize a module and its children."""
     if not _TORCH_META_AVAILABLE:
         return root_module
-    memo = []
-    modules = list(root_module.named_modules())
-    for prefix, mod in modules:
-        materialize_fn = getattr(mod, "materialize", None)
-        if materialize_fn:
-            memo.append((prefix, materialize_fn()))
-    for prefix, materialized_module in memo:
-        recursively_setattr(root_module, prefix, materialized_module)
-    return root_module
+    for name, child in list(root_module.named_children()):
+        materialize_fn = getattr(child, "materialize", None)
+        if not materialize_fn or isinstance(child, (Sequential, ModuleList, ModuleDict)):
+            materialize_module(child)
+        else:
+            setattr(root_module, name, materialize_fn())
 
 
 # cache subclasses to optimize the search when resetting the meta device later on.
@@ -224,6 +267,9 @@ def _set_meta_device() -> None:
     # and m the number of all subclasses belonging to its subclass module.
 
     for subclass in get_all_subclasses(torch.nn.modules.module.Module):
+
+        if isinstance(subclass, (Sequential, ModuleList, ModuleDict)):
+            continue
 
         # if a subclass has already been stored, we should use the cache
         if str(subclass) in __STORAGE_META__:
