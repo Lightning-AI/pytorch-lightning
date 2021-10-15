@@ -16,9 +16,9 @@ from unittest import mock
 
 import pytest
 import torch
+from kk import RandomDataset
 from torch.utils.data import DataLoader
 
-from kk import RandomDataset
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.loops import TrainingEpochLoop
 from tests.helpers import BoringModel
