@@ -196,7 +196,7 @@ def materialize_module(root_module: nn.Module) -> nn.Module:
     """This utility performs an in-place operation by materialize a module and its children."""
     if not _TORCH_META_AVAILABLE:
         return root_module
-    for name, child in list(root_module.named_children()):
+    for name, child in root_module.named_children():
         materialize_fn = getattr(child, "materialize", None)
         if not materialize_fn or isinstance(child, (Sequential, ModuleList, ModuleDict)):
             materialize_module(child)
