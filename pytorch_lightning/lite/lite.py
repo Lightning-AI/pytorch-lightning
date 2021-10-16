@@ -44,13 +44,11 @@ class LightningLite(ABC):
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         gpus: Optional[Union[List[int], str, int]] = None,
         tpu_cores: Optional[Union[List[int], str, int]] = None,
-        ipus: Optional[int] = None,
         num_processes: int = 1,
         devices: Optional[Union[List[int], str, int]] = None,
         num_nodes: int = 1,
         precision: Union[int, str] = 32,
         amp_backend: str = "native",
-        amp_level: Optional[str] = None,
         replace_sampler_ddp: bool = True,
     ) -> None:
         gpu_ids, tpu_cores = Trainer._parse_devices(gpus=gpus, auto_select_gpus=False, tpu_cores=tpu_cores)
@@ -58,8 +56,8 @@ class LightningLite(ABC):
             num_processes=num_processes,
             devices=devices,
             tpu_cores=tpu_cores,
-            ipus=ipus,
-            distributed_backend=None,  # TODO: remove
+            ipus=None,
+            distributed_backend=None,
             accelerator=accelerator,
             strategy=strategy,
             gpus=gpus,
@@ -71,7 +69,7 @@ class LightningLite(ABC):
             deterministic=False,
             precision=precision,
             amp_type=amp_backend,
-            amp_level=amp_level,
+            amp_level=None,
             plugins=plugins,
         )
         self._accelerator = self._accelerator_connector.select_accelerator()
