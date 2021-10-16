@@ -74,4 +74,5 @@ class Discriminator(nn.Module):
     def forward(self, input):
         print("autocast enabled in discriminator: ", torch.is_autocast_enabled())
         output = self.main(input)
+        print("double precision: ", input.dtype == torch.double)
         return output.view(-1, 1).squeeze(1)

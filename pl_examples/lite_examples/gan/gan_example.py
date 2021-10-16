@@ -54,7 +54,8 @@ nz = 100
 
 class GANTrainer(LightningLite):
     def run(self):
-        print("selected plugin: ", self._strategy)
+        print("strategy: ", self._strategy)
+        print("precision plugin: ", self._precision_plugin)
         seed_everything(123)
 
         # TODO: how do we handle this in Accelerator?
@@ -66,6 +67,7 @@ class GANTrainer(LightningLite):
         if self.local_rank == 0:
             dset.MNIST(root=".", download=True)
 
+        self.barrier()
         dataset = dset.MNIST(
             root=".",
             transform=transforms.Compose(
@@ -106,6 +108,7 @@ class GANTrainer(LightningLite):
 
         assert isinstance(optimizerG, _LiteOptimizer)
         assert isinstance(netG, _LiteModule)
+        print("parameters dtype", next(netG.parameters()).dtype)
 
         for epoch in range(opt.niter):
             for i, data in enumerate(dataloader, 0):
