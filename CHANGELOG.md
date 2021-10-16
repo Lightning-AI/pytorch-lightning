@@ -423,6 +423,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fix #9944 ModelCheckpoint: save_top_k > 1 cannot recognize ordering of models from ckpt names #9962 ([#9962](https://github.com/PyTorchLightning/pytorch-lightning/pull/9962))
 
 - Fixed an issue with logger outputs not being finalized correctly after prediction runs ([#8685](https://github.com/PyTorchLightning/pytorch-lightning/pull/8685))
 
