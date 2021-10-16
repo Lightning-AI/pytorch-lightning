@@ -87,6 +87,9 @@ class KFoldLoop(Loop):
     def done(self) -> bool:
         return self.current_fold >= self.num_folds
 
+    def reset(self) -> None:
+        """Nothing to reset in this loop."""
+
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         assert isinstance(self.trainer.datamodule, BaseKFoldDataModule)
         self.trainer.datamodule.setup_folds(self.num_folds)
@@ -98,10 +101,10 @@ class KFoldLoop(Loop):
         self.trainer.datamodule.setup_fold_index(self.current_fold)
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
-        self._reset_fitting()
+        self._reset_fitting()  # requires to reset the tracking stage
         self.fit_loop.run()
 
-        self._reset_testing()
+        self._reset_testing()  # requires to reset the tracking stage
         self.trainer.test_loop.run()
         self.current_fold += 1
 
@@ -111,9 +114,6 @@ class KFoldLoop(Loop):
         self.trainer.lightning_module.load_state_dict(self.lightning_module_state_dict)
         self.trainer.accelerator.setup_optimizers(self.trainer)
         print()
-
-    def reset(self) -> None:
-        pass
 
     def on_save_checkpoint(self):
         return {"current_fold": self.current_fold}
@@ -135,6 +135,8 @@ class KFoldLoop(Loop):
 dataset = MNIST(_DATASETS_PATH, transform=T.Compose([T.ToTensor(), T.Normalize(mean=(0.5,), std=(0.5,))]))
 dm = KFoldDataModule(*random_split(dataset, [50000, 10000]))
 model = LitClassifier()
-trainer = Trainer(max_epochs=10, limit_train_batches=2, limit_val_batches=2, num_sanity_val_steps=0)
+trainer = Trainer(
+    max_epochs=10, limit_train_batches=2, limit_val_batches=2, limit_test_batches=2, num_sanity_val_steps=0
+)
 trainer.fit_loop = KFoldLoop(5, trainer.fit_loop, export_path=".")
 trainer.fit(model, dm)
