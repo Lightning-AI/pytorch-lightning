@@ -11,22 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Optional, Dict, Generator, Iterator, Union
+from typing import Any, Callable, Optional
 
 import torch
 from torch import nn as nn, Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
-from torch.utils.data.dataloader import _BaseDataLoaderIter
 
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 
 
 # TODO: add attributes and methods from Optimizer
-class _LiteOptimizer(Optimizer):
+class _LiteOptimizer:
     def __init__(self, optimizer: Optimizer, accelerator: Accelerator) -> None:
-        super().__init__(params=optimizer.param_groups, defaults=getattr(optimizer, "defaults", {}))  # type: ignore[call-arg]
+        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("step", "__del__")}
+        self.__class__ = type("Lite" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
         self._optimizer = optimizer
         self._accelerator = accelerator
 
@@ -56,18 +56,6 @@ class _LiteOptimizer(Optimizer):
             lambda_closure=closure,
             model=None,
         )
-
-    def state_dict(self) -> Dict[str, Any]:
-        return self._optimizer.state_dict()
-
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        self._optimizer.load_state_dict(state_dict)
-
-    def zero_grad(self, set_to_none: bool = False) -> None:
-        self._optimizer.zero_grad(set_to_none=set_to_none)
-
-    def add_param_group(self, param_group: Dict[str, Any]) -> None:
-        self._optimizer.add_param_group(param_group)
 
 
 class _LiteModule(nn.Module):
