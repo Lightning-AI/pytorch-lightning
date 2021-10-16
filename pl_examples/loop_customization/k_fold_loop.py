@@ -75,13 +75,8 @@ class KFoldLoop(Loop):
         super().__init__()
         self.num_folds = num_folds
         self.fit_loop = fit_loop
-        self.current_fold = 0
+        self.current_fold: int = 0
         self.export_path = export_path
-
-    def __getattr__(self, key):
-        if key not in self.__dict__:
-            return getattr(self.fit_loop, key)
-        return self.__dict__[key]
 
     @property
     def done(self) -> bool:
@@ -130,6 +125,12 @@ class KFoldLoop(Loop):
         self.trainer.reset_test_dataloader()
         self.trainer.state.fn = TrainerFn.TESTING
         self.trainer.testing = True
+
+    def __getattr__(self, key):
+        # requires to be overridden as attributes of the wrapped loop as being accessed.
+        if key not in self.__dict__:
+            return getattr(self.fit_loop, key)
+        return self.__dict__[key]
 
 
 dataset = MNIST(_DATASETS_PATH, transform=T.Compose([T.ToTensor(), T.Normalize(mean=(0.5,), std=(0.5,))]))
