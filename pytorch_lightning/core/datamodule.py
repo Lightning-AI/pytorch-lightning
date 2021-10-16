@@ -524,7 +524,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
         return num_batches
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
 
         str_repr = f"{self.__class__.__name__}("
         for dataloader_method, method_name in self._iterate_dataloader():
