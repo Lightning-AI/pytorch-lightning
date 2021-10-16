@@ -15,7 +15,7 @@
 
 import functools
 from argparse import ArgumentParser, Namespace
-from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union, Iterable
+from typing import Any, Iterable, List, Mapping, Optional, Sequence, Tuple, Union
 
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
@@ -534,12 +534,16 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
                 continue
 
             def get_repr_dataloader(dataloader: DataLoader) -> str:
-                return f"{dataloader.__class__.__name__}(batch_size: {dataloader.batch_size}, " \
-                       f"num_batches: {len(dataloader) if has_len(dataloader) else -1}, " \
-                       f"num_workers: {dataloader.num_workers})"
+                return (
+                    f"{dataloader.__class__.__name__}(batch_size: {dataloader.batch_size}, "
+                    f"num_batches: {len(dataloader) if has_len(dataloader) else -1}, "
+                    f"num_workers: {dataloader.num_workers})"
+                )
 
-            str_repr += f"\n\t{method_name}: " \
-                        f"{apply_to_collection(dataloader, DataLoader, get_repr_dataloader)}".replace("\'", '')
+            str_repr += (
+                f"\n\t{method_name}: "
+                f"{apply_to_collection(dataloader, DataLoader, get_repr_dataloader)}".replace("'", "")
+            )
 
         str_repr += "\n)"
 
