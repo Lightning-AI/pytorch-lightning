@@ -16,7 +16,7 @@ from torch import nn
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.imports import _TORCH_META_AVAILABLE
-from pytorch_lightning.utilities.meta import init_meta, init_meta_context, materialize_module
+from pytorch_lightning.utilities.meta import init_meta_context, materialize_module
 
 
 class MLP(nn.Module):
@@ -35,8 +35,6 @@ class BoringModel(LightningModule):
 @pytest.mark.skipif(not _TORCH_META_AVAILABLE, reason="Support only with PyTorch 1.10")
 def test_init_meta_context():
 
-    init_meta(MLP, 4).materialize()
-
     with init_meta_context():
         m = nn.Linear(in_features=1, out_features=1)
         assert m.weight.device.type == "meta"
@@ -52,6 +50,8 @@ def test_init_meta_context():
         assert model.layer[0].weight.device.type == "cpu"
 
     mlp = MLP(4)
+    assert mlp.layer[0].weight.device.type == "cpu"
+    # no-op as already materialized.
     materialize_module(mlp)
     assert mlp.layer[0].weight.device.type == "cpu"
 
