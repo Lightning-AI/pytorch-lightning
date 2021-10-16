@@ -216,20 +216,20 @@ class LightningLite(ABC):
     def _supported_device_types() -> Sequence[DeviceType]:
         return (
             None,
-            DeviceType.CPU,
-            DeviceType.GPU,
-            DeviceType.TPU,
+            DeviceType.CPU.value,
+            DeviceType.GPU.value,
+            DeviceType.TPU.value,
         )
 
     @staticmethod
-    def _supported_strategy_types() -> Sequence[DistributedType]:
+    def _supported_strategy_types() -> Sequence[str]:
         return (
             None,
-            DistributedType.DP,
-            DistributedType.DDP,
-            DistributedType.DDP_SPAWN,
-            DistributedType.TPU_SPAWN,
-            DistributedType.DP,
-            DistributedType.DEEPSPEED,
-            DistributedType.DDP_SHARDED,
+            DistributedType.DP.value,
+            DistributedType.DDP.value,
+            DistributedType.DDP_SPAWN.value,
+            DistributedType.TPU_SPAWN.value,
+            DistributedType.DP.value,
+            DistributedType.DEEPSPEED.value,
+            DistributedType.DDP_SHARDED.value,
         )
