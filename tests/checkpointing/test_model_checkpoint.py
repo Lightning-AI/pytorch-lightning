@@ -392,7 +392,7 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
     num_epochs = 4
     model_checkpoint = ModelCheckpointTestInvocations(monitor="early_stop_on", expected_count=num_epochs, save_top_k=-1)
     trainer = Trainer(
-        accelerator="ddp_cpu",
+        strategy="ddp_spawn",
         num_processes=2,
         default_root_dir=tmpdir,
         callbacks=[model_checkpoint],
