@@ -295,7 +295,7 @@ def test_manual_optimization_and_return_tensor(tmpdir):
         limit_val_batches=0,
         precision=16,
         amp_backend="native",
-        accelerator="ddp_spawn",
+        strategy="ddp_spawn",
         gpus=2,
     )
     trainer.fit(model)

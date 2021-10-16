@@ -808,7 +808,7 @@ def test_auto_add_worker_init_fn_distributed(tmpdir, monkeypatch):
 
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
     seed_everything(0, workers=True)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=2, accelerator="ddp_spawn")
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=2, strategy="ddp_spawn")
     model = MultiProcessModel()
     model.val_dataloader = None
     trainer.fit(model, train_dataloader=dataloader)
@@ -930,7 +930,7 @@ def test_dataloader_distributed_sampler(tmpdir):
     trainer = Trainer(
         gpus=[0, 1],
         num_nodes=1,
-        accelerator="ddp_spawn",
+        strategy="ddp_spawn",
         default_root_dir=tmpdir,
         max_steps=1,
         callbacks=[DistribSamplerCallback(expected_seeds=(123, 123, 123))],
@@ -957,7 +957,7 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
     trainer = Trainer(
         gpus=[0, 1],
         num_nodes=1,
-        accelerator="ddp_spawn",
+        strategy="ddp_spawn",
         default_root_dir=tmpdir,
         max_steps=100,
         callbacks=[DistribSamplerCallback(expected_seeds=(11, 123, 0))],

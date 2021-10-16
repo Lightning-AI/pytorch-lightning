@@ -46,7 +46,7 @@ def test_device_stats_gpu_from_torch(tmpdir):
         gpus=1,
         callbacks=[device_stats],
         logger=DebugLogger(tmpdir),
-        checkpoint_callback=False,
+        enable_checkpointing=False,
         enable_progress_bar=False,
     )
 
@@ -75,7 +75,7 @@ def test_device_stats_gpu_from_nvidia(tmpdir):
         gpus=1,
         callbacks=[device_stats],
         logger=DebugLogger(tmpdir),
-        checkpoint_callback=False,
+        enable_checkpointing=False,
         enable_progress_bar=False,
     )
 
@@ -104,7 +104,7 @@ def test_device_stats_monitor_tpu(tmpdir):
         log_every_n_steps=1,
         callbacks=[device_stats],
         logger=DebugLogger(tmpdir),
-        checkpoint_callback=False,
+        enable_checkpointing=False,
         enable_progress_bar=False,
     )
 
@@ -122,7 +122,7 @@ def test_device_stats_monitor_no_logger(tmpdir):
         callbacks=[device_stats],
         max_epochs=1,
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
         enable_progress_bar=False,
     )
 

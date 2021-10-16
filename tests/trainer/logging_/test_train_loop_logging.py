@@ -440,7 +440,7 @@ def test_logging_sync_dist_true_ddp(tmpdir):
         limit_val_batches=1,
         max_epochs=2,
         enable_model_summary=False,
-        accelerator="ddp",
+        strategy="ddp",
         gpus=2,
         profiler="pytorch",
     )
