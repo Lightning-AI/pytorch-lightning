@@ -42,6 +42,14 @@ class _LiteOptimizer:
         self._optimizer.state = state
 
     @property
+    def defaults(self):
+        return self._optimizer.defaults
+
+    @defaults.setter
+    def defaults(self, defaults):
+        self._optimizer.defaults = defaults
+
+    @property
     def param_groups(self):
         return self._optimizer.param_groups
 
