@@ -22,7 +22,6 @@ from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 
 
-# TODO: add attributes and methods from Optimizer
 class _LiteOptimizer:
     def __init__(self, optimizer: Optimizer, accelerator: Accelerator) -> None:
         self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("step", "__del__")}
