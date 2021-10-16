@@ -211,8 +211,7 @@ class LightningLite(ABC):
     @staticmethod
     def _get_distributed_sampler(dataloader: DataLoader, **kwargs: Any) -> DistributedSampler:
         kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
-        sampler = DistributedSampler(dataloader.dataset, **kwargs)
-        return sampler
+        return DistributedSampler(dataloader.dataset, **kwargs)
 
     def _check_accelerator_support(self, accelerator: Optional[Union[str, Accelerator]]) -> None:
         if accelerator is None:

@@ -11,12 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Optional, Dict
+from typing import Any, Callable, Optional, Dict, Generator, Iterator, Union
 
 import torch
 from torch import nn as nn, Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
+from torch.utils.data.dataloader import _BaseDataLoaderIter
 
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
@@ -60,37 +61,15 @@ class _LiteModule(nn.Module):
 
 
 class _LiteDataLoader(DataLoader):
-    def __init__(self, device: Optional[torch.device] = None, **dl_kwargs):
+    def __init__(self, device: Optional[torch.device] = None, **dl_kwargs: Any) -> None:
         super().__init__(**dl_kwargs)
         self._device = device
 
-    def __iter__(self):
+    # TODO: how to type this *angry face"
+    def __iter__(self):  # type: ignore
         iterator = super().__iter__()
         if self._device is None:
             return iterator
 
         for item in iterator:
             yield move_data_to_device(item, self._device)
-
-
-#
-# def iterator_wrapper(iter_method: Callable):
-#     iterator = iter_method()
-#     for item in iterator:
-#         print("additional")
-#         yield item
-#
-#
-# def iterator_decorator(fn):
-#     def _it():
-#         return iterator_wrapper(fn)
-#
-#     return _it
-#
-#
-# if __name__ == "__main__":
-#     dset = BoringModel().train_dataloader().dataset
-#     loader = DataLoader(dset, num_workers=2)
-#     loader.__iter__ = iterator_decorator(loader.__iter__)
-#     for x in iter(loader):
-#         print()
