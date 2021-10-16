@@ -128,6 +128,10 @@ class AcceleratorConnector:
         self.sync_batchnorm = sync_batchnorm
         self.benchmark = benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
+        if not PrecisionType.supported_type(precision):
+            raise MisconfigurationException(
+                f"Precision {repr(precision)} is invalid. Allowed precision values: {PrecisionType.supported_types()}"
+            )
         self.precision = precision
         self.amp_type = amp_type.lower() if isinstance(amp_type, str) else None
         self.amp_level = amp_level
@@ -657,10 +661,6 @@ class AcceleratorConnector:
 
                 return ApexMixedPrecisionPlugin(self.amp_level)
 
-        raise MisconfigurationException(
-            f"Precision {self.precision} is invalid. Allowed precision values: {PrecisionType.supported_types()}"
-        )
-
     def select_training_type_plugin(self) -> TrainingTypePlugin:
         if (
             isinstance(self.distributed_backend, Accelerator)
@@ -827,7 +827,10 @@ class AcceleratorConnector:
                     "`accelerator='ddp_cpu'` is not supported on TPU machines. "
                     "Learn more: https://github.com/PyTorchLightning/pytorch-lightning/issues/7810"
                 )
-            self._distrib_type = DistributedType.DDP_SPAWN
+            if self.num_processes == 1 and self.num_nodes > 1:
+                self._distrib_type = DistributedType.DDP
+            else:
+                self._distrib_type = DistributedType.DDP_SPAWN
             if self.num_gpus > 0:
                 rank_zero_warn(
                     "You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs."

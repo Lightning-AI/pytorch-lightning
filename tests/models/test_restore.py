@@ -153,7 +153,7 @@ def test_trainer_properties_restore_resume_from_checkpoint(tmpdir):
     state_dict = torch.load(resume_ckpt)
 
     trainer_args.update(
-        {"max_epochs": 3, "resume_from_checkpoint": resume_ckpt, "checkpoint_callback": False, "callbacks": []}
+        {"max_epochs": 3, "resume_from_checkpoint": resume_ckpt, "enable_checkpointing": False, "callbacks": []}
     )
 
     class CustomClassifModel(CustomClassifModel):
