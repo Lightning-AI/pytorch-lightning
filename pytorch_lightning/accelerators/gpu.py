@@ -46,6 +46,7 @@ class GPUAccelerator(Accelerator):
         return super().setup(trainer)
 
     def on_train_start(self) -> None:
+        super().on_train_start()
         # clear cache before training
         torch.cuda.empty_cache()
 
