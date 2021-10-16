@@ -48,16 +48,8 @@ class LightningLite(ABC):
         num_nodes: int = 1,
         precision: Union[int, str] = 32,
     ) -> None:
-        if not isinstance(accelerator, Accelerator) or accelerator not in self._supported_device_types():
-            raise MisconfigurationException(
-                f"`accelerator={repr(accelerator)}` is not a valid choice."
-                f" Choose one of {self._supported_device_types()} or pass in a `Accelerator` instance."
-            )
-        if not isinstance(strategy, TrainingTypePlugin) or strategy not in self._supported_strategy_types():
-            raise MisconfigurationException(
-                f"`strategy={repr(strategy)}` is not a valid choice."
-                f" Choose one of {self._supported_strategy_types()} or pass in a `TrainingTypePlugin` instance."
-            )
+        self._check_accelerator_support(accelerator)
+        self._check_strategy_support(strategy)
         gpu_ids, tpu_cores = Trainer._parse_devices(gpus=gpus, auto_select_gpus=False, tpu_cores=tpu_cores)
         self._accelerator_connector = AcceleratorConnector(
             num_processes=1,
@@ -80,7 +72,7 @@ class LightningLite(ABC):
             plugins=plugins,
         )
         self._accelerator = self._accelerator_connector.select_accelerator()
-        self._training_type_plugin = self._accelerator.training_type_plugin
+        self._strategy = self._accelerator.training_type_plugin
         self._precision_plugin = self._accelerator.precision_plugin
 
         # wrap the run method so we can inject setup logic or spawn processes for the user
@@ -92,19 +84,19 @@ class LightningLite(ABC):
 
     @property
     def global_rank(self) -> int:
-        return getattr(self._training_type_plugin, "global_rank", 0)
+        return getattr(self._strategy, "global_rank", 0)
 
     @property
     def local_rank(self) -> int:
-        return getattr(self._training_type_plugin, "local_rank", 0)
+        return getattr(self._strategy, "local_rank", 0)
 
     @property
     def node_rank(self) -> int:
-        return getattr(self._training_type_plugin, "node_rank", 0)
+        return getattr(self._strategy, "node_rank", 0)
 
     @property
     def world_size(self) -> int:
-        return getattr(self._training_type_plugin, "world_size", 1)
+        return getattr(self._strategy, "world_size", 1)
 
     @abstractmethod
     def run(self, *args: Any, **kwargs: Any) -> None:
@@ -128,7 +120,7 @@ class LightningLite(ABC):
         self, *dataloaders: DataLoader, replace_sampler: bool = True
     ) -> Union[DataLoader, Sequence[DataLoader]]:
         # user can call this method independently instead of the general purpose setup method
-        # dataloaders = [self._training_type_plugin.setup_dataloader(dataloader) for dataloader in dataloaders]
+        # dataloaders = [self._strategy.setup_dataloader(dataloader) for dataloader in dataloaders]
         dataloaders = [self.setup_dataloader(dataloader, replace_sampler=replace_sampler) for dataloader in dataloaders]
         dataloaders = dataloaders[0] if len(dataloaders) == 1 else dataloaders
         return dataloaders
@@ -146,12 +138,12 @@ class LightningLite(ABC):
                 " `replace_sampler=False` if you want to use your custom sampler."
             )
 
-        sampler = self._get_distributed_sampler(dataloader, **self._training_type_plugin.distributed_sampler_kwargs)
+        sampler = self._get_distributed_sampler(dataloader, **self._strategy.distributed_sampler_kwargs)
         return TrainerDataLoadingMixin._update_dataloader(dataloader, sampler)
 
     def backward(self, tensor: Tensor, *args: Any, **kwargs: Any) -> None:
         # user will call self.backward(loss) instead of loss.backward()
-        self._accelerator.run_backward(tensor, self._training_type_plugin.model, *args, **kwargs)
+        self._accelerator.run_backward(tensor, self._strategy.model, *args, **kwargs)
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
@@ -168,7 +160,7 @@ class LightningLite(ABC):
             print(*args, **kwargs)
 
     def reduce_decision(self, decision: bool) -> bool:
-        return self._training_type_plugin.reduce_boolean_decision(decision)
+        return self._strategy.reduce_boolean_decision(decision)
 
     def save_checkpoint(self, filepath: Union[str, Path], content: Dict[str, Any]) -> None:
         raise NotImplementedError()
@@ -181,9 +173,9 @@ class LightningLite(ABC):
         return partial(self._run_impl, run_method)
 
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> None:
-        self._training_type_plugin.setup_environment()
-        if isinstance(self._training_type_plugin, DDPSpawnPlugin):
-            self._training_type_plugin.spawn(run_method, *args, **kwargs)
+        self._strategy.setup_environment()
+        if isinstance(self._strategy, DDPSpawnPlugin):
+            self._strategy.spawn(run_method, *args, **kwargs)
         else:
             run_method(*args, **kwargs)
         # TODO: any teardown needed here?
@@ -194,7 +186,7 @@ class LightningLite(ABC):
         optimizers: Sequence[Optimizer],
     ) -> Tuple[Sequence[_LiteModule], Sequence[_LiteOptimizer]]:
         # Let accelerator/plugin wrap and connect the models and optimizers
-        models, optimizers = self._training_type_plugin.setup_models_and_optimizers(models, optimizers)
+        models, optimizers = self._strategy.setup_models_and_optimizers(models, optimizers)
         models = [_LiteModule(module=model, accelerator=self._accelerator) for model in models]
         optimizers = [_LiteOptimizer(optimizer=optimizer, accelerator=self._accelerator) for optimizer in optimizers]
         return models, optimizers
@@ -212,24 +204,42 @@ class LightningLite(ABC):
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler
 
+    def _check_accelerator_support(self, accelerator: Optional[Union[str, Accelerator]]) -> None:
+        if accelerator is None:
+            return
+        supported = [t.lower() for t in self._supported_device_types()]
+        if not isinstance(accelerator, (Accelerator, str)) or accelerator not in supported:
+            raise MisconfigurationException(
+                f"`accelerator={repr(accelerator)}` is not a valid choice."
+                f" Choose one of {supported} or pass in a `Accelerator` instance."
+            )
+
+    def _check_strategy_support(self, strategy: Optional[Union[str, TrainingTypePlugin]]) -> None:
+        if strategy is None:
+            return
+        supported = [t.lower() for t in self._supported_strategy_types()]
+        if not isinstance(strategy, (TrainingTypePlugin, str)) or strategy not in supported:
+            raise MisconfigurationException(
+                f"`strategy={repr(strategy)}` is not a valid choice."
+                f" Choose one of {supported} or pass in a `TrainingTypePlugin` instance."
+            )
+
     @staticmethod
     def _supported_device_types() -> Sequence[DeviceType]:
         return (
-            None,
-            DeviceType.CPU.value,
-            DeviceType.GPU.value,
-            DeviceType.TPU.value,
+            DeviceType.CPU,
+            DeviceType.GPU,
+            DeviceType.TPU,
         )
 
     @staticmethod
     def _supported_strategy_types() -> Sequence[str]:
         return (
-            None,
-            DistributedType.DP.value,
-            DistributedType.DDP.value,
-            DistributedType.DDP_SPAWN.value,
-            DistributedType.TPU_SPAWN.value,
-            DistributedType.DP.value,
-            DistributedType.DEEPSPEED.value,
-            DistributedType.DDP_SHARDED.value,
+            DistributedType.DP,
+            DistributedType.DDP,
+            DistributedType.DDP_SPAWN,
+            DistributedType.TPU_SPAWN,
+            DistributedType.DP,
+            DistributedType.DEEPSPEED,
+            DistributedType.DDP_SHARDED,
         )

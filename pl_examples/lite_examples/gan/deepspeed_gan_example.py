@@ -53,7 +53,7 @@ nz = 100
 
 class GANTrainer(LightningLite):
     def run(self):
-        print("selected plugin: ", self._training_type_plugin)
+        print("selected plugin: ", self._strategy)
         seed_everything(123)
 
         # TODO: how do we handle this in Accelerator?
