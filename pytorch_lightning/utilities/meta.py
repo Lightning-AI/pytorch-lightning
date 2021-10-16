@@ -27,6 +27,7 @@ from torch import nn, Tensor
 from torch.nn import Module
 from torch.nn.modules.container import ModuleDict, ModuleList, Sequential
 
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_META_AVAILABLE
 
@@ -342,6 +343,10 @@ def _set_meta_device() -> None:
 
 @contextmanager
 def init_meta_context() -> Generator:
+    rank_zero_warn(
+        "Be aware this feature is highly experimental and there are a number of weird edge cases "
+        "where it can internal assert and/or crash. A more stable version is to be expected for PyTorch 1.11."
+    )
     _set_meta_device()
     yield
     _unset_meta_device()
