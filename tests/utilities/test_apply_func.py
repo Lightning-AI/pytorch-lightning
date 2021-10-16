@@ -36,6 +36,10 @@ def test_recursive_application_to_collection():
         example_ids: List[str]
         feature: Feature
         label: torch.Tensor
+        some_constant: int = dataclasses.field(init=False)
+
+        def __post_init__(self):
+            self.some_constant = 7
 
     to_reduce = {
         "a": torch.tensor([1.0]),  # Tensor
