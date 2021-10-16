@@ -243,7 +243,7 @@ class BoringCallbackDDPSpawnModel(BoringModel):
 @RunIf(skip_windows=True)
 def test_v1_7_0_deprecate_add_get_queue(tmpdir):
     model = BoringCallbackDDPSpawnModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, num_processes=2, accelerator="ddp_cpu")
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, num_processes=2, strategy="ddp_spawn")
 
     with pytest.deprecated_call(match=r"`LightningModule.add_to_queue` method was deprecated in v1.5"):
         trainer.fit(model)
