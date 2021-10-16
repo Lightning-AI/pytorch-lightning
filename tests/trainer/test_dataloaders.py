@@ -1332,7 +1332,13 @@ def test_dataloaders_reset_and_attach(tmpdir):
     dataloader_2 = DataLoader(dataset=RandomDataset(32, 64))
     dataloader_3 = DataLoader(dataset=RandomDataset(32, 64))
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        limit_predict_batches=1,
+    )
 
     # 1st fit
     trainer.fit(model, train_dataloaders=dataloader_0, val_dataloaders=dataloader_1)
