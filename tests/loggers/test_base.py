@@ -21,8 +21,9 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
-from pytorch_lightning.loggers.base import DummyExperiment, DummyLogger
+from pytorch_lightning.loggers.base import DummyExperiment, DummyLogger, scan_checkpoints
 from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.callbacks import ModelCheckpoint
 from tests.helpers import BoringModel
 
 
@@ -290,3 +291,57 @@ def test_log_hyperparams_being_called(log_hyperparams_mock, tmpdir, logger):
         log_hyperparams_mock.assert_called()
     else:
         log_hyperparams_mock.assert_not_called()
+
+
+@pytest.mark.parametrize("save_top_k", [0, 1, 2, 5])
+def test_scan_checkpoints(tmpdir, save_top_k: int):
+    """Checks if the expected number of checkpoints is returned."""
+
+    class ExtendedBoringModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log("val_loss", loss)
+
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=tmpdir, filename="test_checkpoint", monitor="val_loss", mode="min", save_top_k=save_top_k
+    )
+
+    # Test first condition of scan_checkpoints: if c[1] not in logged_model_time.keys()
+    # Test if the returned list of checkpoints has length save_top_k
+    model = ExtendedBoringModel()
+    model.validation_epoch_end = None
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[checkpoint_callback],
+        val_check_interval=0.2,
+        max_epochs=1,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+        num_sanity_val_steps=0,
+    )
+    trainer.fit(model)
+    logged_model_time = {}
+    checkpoints = scan_checkpoints(checkpoint_callback, logged_model_time)
+    assert len(checkpoints) == save_top_k
+
+    # Test second condition of scan_checkpoints: or logged_model_time[c[1]] < c[0]]
+    # Test if the returned list of checkpoints has still size 0
+    model = ExtendedBoringModel()
+    model.validation_epoch_end = None
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[checkpoint_callback],
+        val_check_interval=0.2,
+        max_epochs=1,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+        num_sanity_val_steps=0,
+    )
+    trainer.fit(model)
+    # Update logged_model_time with the times of the models just returned,
+    # increased by 1000 (needed to test the second condition in scan_checkpoints)
+    for c in checkpoints:
+        logged_model_time[c[1]] = c[0] + 1000
+    checkpoints = scan_checkpoints(checkpoint_callback, logged_model_time)
+    assert len(checkpoints) == 0
