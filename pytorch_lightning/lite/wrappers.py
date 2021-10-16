@@ -34,12 +34,48 @@ class _LiteOptimizer(Optimizer):
     def optimizer(self) -> Optimizer:
         return self._optimizer
 
+    @property
+    def defaults(self):
+        return self._optimizer.defaults
+
+    @defaults.setter
+    def defaults(self, defaults):
+        self._optimizer.defaults = defaults
+
+    @property
+    def state(self):
+        return self._optimizer.state
+
+    @state.setter
+    def state(self, state):
+        self._optimizer.state = state
+
+    @property
+    def param_groups(self):
+        return self._optimizer.param_groups
+
+    @param_groups.setter
+    def param_groups(self, param_groups):
+        self._optimizer.param_groups = param_groups
+
     def step(self, closure: Optional[Callable] = None) -> None:
         self._accelerator.optimizer_step(
             self._optimizer,
             lambda_closure=closure,
             model=None,
         )
+
+    def state_dict(self) -> Dict[str, Any]:
+        return self._optimizer.state_dict()
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        self._optimizer.load_state_dict(state_dict)
+
+    def zero_grad(self, set_to_none: bool = False) -> None:
+        self._optimizer.zero_grad(set_to_none=set_to_none)
+
+    def add_param_group(self, param_group: Dict[str, Any]) -> None:
+        self._optimizer.add_param_group(param_group)
 
 
 class _LiteModule(nn.Module):
