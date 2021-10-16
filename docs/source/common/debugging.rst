@@ -56,19 +56,6 @@ argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
 ----------------
 
-Log GPU usage
--------------
-Logs (to a logger) the GPU usage for each GPU on the master machine.
-
-(See: :paramref:`~pytorch_lightning.trainer.trainer.Trainer.log_gpu_memory`
-argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
-
-.. testcode::
-
-    trainer = Trainer(log_gpu_memory=True)
-
-----------------
-
 Make model overfit on subset of data
 ------------------------------------
 
