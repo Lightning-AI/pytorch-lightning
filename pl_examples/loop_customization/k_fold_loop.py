@@ -30,7 +30,19 @@ from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.trainer.states import TrainerFn
 
+#############################################################################################
+#                           KFold Loop / Cross Validation Example                           #
+# This example demonstrates how to leverage Lightning Loop Customization introduced in v1.5 #
+#############################################################################################
+
+
 seed_everything(42)
+
+
+#############################################################################################
+#                           Step 1 / 4: Define your DataModule API                          #
+# Our KFold DataModule should implement a `setup_folds` and `setup_fold_index` function     #
+#############################################################################################
 
 
 class BaseKFoldDataModule(LightningDataModule, ABC):
@@ -41,6 +53,15 @@ class BaseKFoldDataModule(LightningDataModule, ABC):
     @abstractmethod
     def setup_fold_index(self, fold_index: int) -> LightningDataModule:
         pass
+
+
+#############################################################################################
+#                           Step 2 / 4: Implement the KFoldDataModule                       #
+# The `KFoldDataModule` will take a train and test dataset.                                 #
+# On `setup_folds`, folds will be created depending on the provided argument num_folds      #
+# Our `setup_fold_index`, the provided train dataset will be splitted accordingly to        #
+# the current fold split.                                                                   #
+#############################################################################################
 
 
 class KFoldDataModule(BaseKFoldDataModule):
@@ -68,6 +89,34 @@ class KFoldDataModule(BaseKFoldDataModule):
 
     def test_dataloader(self):
         return DataLoader(self._test_dataset)
+
+
+#############################################################################################
+#                           Step 3 / 4: Implement the  KFoldLoop                            #
+# From Lightning v1.5, it is possible to implement your own loop. There is several to do    #
+# so and refer to the documentation to learn more.                                          #
+# Here, we will implement an outter fit_loop. It means we will implement subclass the       #
+# base Loop and wrap the current trainer `fit_loop`.                                        #
+# Here is the base Loop structure.                                                          #
+#                                                                                           #
+#                                reset()                                                    #
+#                                on_run_start()                                             #
+#                                                                                           #
+#                                while not done:                                            #
+#                                   on_advance_start()                                      #
+#                                   advance()                                               #
+#                                   on_advance_end()                                        #
+#                                                                                           #
+#                                on_run_end()                                               #
+#                                                                                           #
+# On `on_run_start`, the `KFoldLoop` will call the `KFoldDataModule` `setup_folds` function #
+# and store the original weights of the model.                                              #
+# On `on_advance_start`, the `KFoldLoop` will call the `KFoldDataModule` `setup_fold_index` #
+# function.                                                                                 #
+# On `advance`, the `KFoldLoop` will run the original trainer `fit_loop` and                #
+# the trainer `test_loop`.                                                                  #
+# On `advance_end`, the `KFoldLoop` will reset the model weight and optimizers / schedulers #
+#############################################################################################
 
 
 class KFoldLoop(Loop):
@@ -132,6 +181,13 @@ class KFoldLoop(Loop):
             return getattr(self.fit_loop, key)
         return self.__dict__[key]
 
+
+#############################################################################################
+#                           Step 4 / 4: Connect the KFoldLoop to the Trainer                #
+# After creating the `KFoldDataModule` and our model, the `KFoldLoop` is being connected to #
+# the Trainer.                                                                              #
+# Finally, use `trainer.fit` to start the cross validation training.                        #
+#############################################################################################
 
 dataset = MNIST(_DATASETS_PATH, transform=T.Compose([T.ToTensor(), T.Normalize(mean=(0.5,), std=(0.5,))]))
 dm = KFoldDataModule(*random_split(dataset, [50000, 10000]))
