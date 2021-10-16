@@ -165,6 +165,12 @@ if _TORCH_META_AVAILABLE:
     # TODO: Removed once merged and released on PyTorch side           #
     ####################################################################
 
+else:
+
+    def init_meta(*_, **__):
+        if not _TORCH_META_AVAILABLE:
+            return MisconfigurationException("`init_meta` is supported from PyTorch 1.10.0")
+
 
 # https://stackoverflow.com/a/63851681/9201239
 def get_all_subclasses(cls: Type[nn.Module]) -> Set[nn.Module]:
