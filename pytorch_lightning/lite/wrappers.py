@@ -35,14 +35,6 @@ class _LiteOptimizer(Optimizer):
         return self._optimizer
 
     @property
-    def defaults(self):
-        return self._optimizer.defaults
-
-    @defaults.setter
-    def defaults(self, defaults):
-        self._optimizer.defaults = defaults
-
-    @property
     def state(self):
         return self._optimizer.state
 
