@@ -62,7 +62,7 @@ class MNIST(LightningLite):
         model = Net().to(self.device)
         optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
 
-        train_loader, test_loader = self.setup_dataloader(train_loader, test_loader)
+        train_loader, test_loader = self.setup_dataloaders(train_loader, test_loader)
         assert isinstance(train_loader.sampler, DistributedSampler)
         assert isinstance(test_loader.sampler, DistributedSampler)
         model, optimizer = self.setup(model, optimizer)

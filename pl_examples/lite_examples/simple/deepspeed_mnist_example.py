@@ -61,7 +61,7 @@ class DeepSpeedMNIST(LightningLite):
         model = Net().to(self.device)
         optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
 
-        train_loader, test_loader = self.setup_dataloader(train_loader, test_loader)
+        train_loader, test_loader = self.setup_dataloaders(train_loader, test_loader)
         model, optimizer = self.setup(model, optimizer)
 
         scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
