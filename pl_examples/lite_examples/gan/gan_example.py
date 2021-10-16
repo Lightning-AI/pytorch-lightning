@@ -114,7 +114,7 @@ class GANTrainer(LightningLite):
                 ###########################
                 # train with real
                 netD.zero_grad()
-                real_cpu = self.to_device(data[0])
+                real_cpu = data[0]
                 batch_size = real_cpu.size(0)
                 label = torch.full((batch_size,), real_label, dtype=real_cpu.dtype, device=self.device)
 

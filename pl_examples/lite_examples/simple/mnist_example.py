@@ -67,8 +67,6 @@ class MNIST(LightningLite):
         assert isinstance(test_loader.sampler, DistributedSampler)
         model, optimizer = self.setup(model, optimizer)
 
-        print(type(optimizer.optimizer))
-
         scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
         for epoch in range(1, args.epochs + 1):
             self.train(args, model, train_loader, optimizer, epoch)
@@ -81,7 +79,7 @@ class MNIST(LightningLite):
     def train(self, args, model, train_loader, optimizer, epoch):
         model.train()
         for batch_idx, (data, target) in enumerate(train_loader):
-            data, target = data.to(self.device), target.to(self.device)
+            # data, target = data.to(self.device), target.to(self.device)
             optimizer.zero_grad()
             output = model(data)
             loss = F.nll_loss(output, target)
