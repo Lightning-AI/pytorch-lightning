@@ -49,7 +49,6 @@ class LightningLite(ABC):
         num_nodes: int = 1,
         precision: Union[int, str] = 32,
         amp_backend: str = "native",
-        replace_sampler_ddp: bool = True,
     ) -> None:
         gpu_ids, tpu_cores = Trainer._parse_devices(gpus=gpus, auto_select_gpus=False, tpu_cores=tpu_cores)
         self._accelerator_connector = AcceleratorConnector(
@@ -65,7 +64,7 @@ class LightningLite(ABC):
             num_nodes=num_nodes,
             sync_batchnorm=False,  # TODO: add support?
             benchmark=False,
-            replace_sampler_ddp=replace_sampler_ddp,
+            replace_sampler_ddp=True,
             deterministic=False,
             precision=precision,
             amp_type=amp_backend,
@@ -117,16 +116,30 @@ class LightningLite(ABC):
         optimizers = optimizers[0] if len(optimizers) == 1 else optimizers
         return models, optimizers
 
-    def setup_dataloader(self, *dataloaders: DataLoader) -> Union[DataLoader, Sequence[DataLoader]]:
+    def setup_dataloaders(
+        self, *dataloaders: DataLoader, replace_sampler: bool = True
+    ) -> Union[DataLoader, Sequence[DataLoader]]:
         # user can call this method independently instead of the general purpose setup method
         # dataloaders = [self._training_type_plugin.setup_dataloader(dataloader) for dataloader in dataloaders]
-        dataloaders = [
-            TrainerDataLoadingMixin._update_dataloader(dataloader, sampler=self._resolve_sampler(dataloader))
-            for dataloader in dataloaders
-            if self._requires_distributed_sampler(dataloader) or isinstance(self._accelerator, TPUAccelerator)
-        ]
+        dataloaders = [self.setup_dataloader(dataloader, replace_sampler=replace_sampler) for dataloader in dataloaders]
         dataloaders = dataloaders[0] if len(dataloaders) == 1 else dataloaders
         return dataloaders
+
+    def setup_dataloader(self, dataloader: DataLoader, replace_sampler: bool = True) -> DataLoader:
+        if not replace_sampler or not (
+            self._requires_distributed_sampler(dataloader) or isinstance(self._accelerator, TPUAccelerator)
+        ):
+            return dataloader
+        if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
+            raise MisconfigurationException(
+                "You seem to have configured a sampler in your DataLoader. This will be replaced "
+                " by `DistributedSampler` since `replace_sampler_ddp` is True and you are using"
+                " distributed training. Either remove the sampler from your DataLoader or set"
+                " `replace_sampler=False` if you want to use your custom sampler."
+            )
+
+        sampler = self._get_distributed_sampler(dataloader, **self._training_type_plugin.distributed_sampler_kwargs)
+        return TrainerDataLoadingMixin._update_dataloader(dataloader, sampler)
 
     def backward(self, tensor: Tensor, *args: Any, **kwargs: Any) -> None:
         # user will call self.backward(loss) instead of loss.backward()
@@ -178,33 +191,15 @@ class LightningLite(ABC):
         optimizers = [_LiteOptimizer(optimizer=optimizer, accelerator=self._accelerator) for optimizer in optimizers]
         return models, optimizers
 
-    # TODO: copied from data_loading.py
     def _requires_distributed_sampler(self, dataloader: DataLoader) -> bool:
         return (
-            self._accelerator_connector.replace_sampler_ddp
-            and self._accelerator_connector.is_distributed
+            self._accelerator_connector.is_distributed
             and not isinstance(dataloader.sampler, DistributedSampler)
             and not has_iterable_dataset(dataloader)
         )
 
-    # TODO: copied and adapted from data_loading.py
-    def _resolve_sampler(self, dataloader: DataLoader) -> Sampler:
-        if self._requires_distributed_sampler(dataloader):
-            if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
-                raise MisconfigurationException(
-                    "You seem to have configured a sampler in your DataLoader. This will be replaced "
-                    " by `DistributedSampler` since `replace_sampler_ddp` is True and you are using"
-                    " distributed training. Either remove the sampler from your DataLoader or set"
-                    " `replace_sampler_ddp=False` if you want to use your custom sampler."
-                )
-            return self._get_distributed_sampler(dataloader, **self._training_type_plugin.distributed_sampler_kwargs)
-
-        return dataloader.sampler
-
-    # TODO: copied and adapted from data_loading.py
     @staticmethod
     def _get_distributed_sampler(dataloader: DataLoader, **kwargs: Any) -> DistributedSampler:
-        """This function is used to created the distributed sampler injected within the user DataLoader."""
         kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler
