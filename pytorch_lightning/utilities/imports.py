@@ -25,8 +25,6 @@ import torch
 from packaging.version import Version
 from pkg_resources import DistributionNotFound
 
-from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402
-
 
 def _module_available(module_path: str) -> bool:
     """Check if a path is available in your environment.
@@ -112,6 +110,7 @@ _TORCHMETRICS_LOWER_THAN_0_3 = _compare_version("torchmetrics", operator.lt, "0.
 _TORCHMETRICS_GREATER_EQUAL_0_3 = _compare_version("torchmetrics", operator.ge, "0.3.0")
 _XLA_AVAILABLE: bool = _module_available("torch_xla")
 
+from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402
 
 _TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 
