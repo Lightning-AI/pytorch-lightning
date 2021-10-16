@@ -15,7 +15,7 @@
 
 import functools
 from argparse import ArgumentParser, Namespace
-from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union, Iterable
 
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
@@ -485,6 +485,12 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
             del d[fn]
         return d
 
+    def _iterate_dataloader(self) -> Iterable[Tuple[classmethod, str]]:
+
+        for method_name in ("train_dataloader", "val_dataloader", "test_dataloader", "predict_dataloader"):
+            dataloader_method = getattr(self, method_name)
+            yield dataloader_method, method_name
+
     def __len__(self) -> int:
         """Returns the total number of batches in all dataloaders defined in the datamodule."""
 
@@ -503,8 +509,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
             else:
                 num_batches += len(dataloader)
 
-        for method_name in ("train_dataloader", "val_dataloader", "test_dataloader", "predict_dataloader"):
-            dataloader_method = getattr(self, method_name)
+        for dataloader_method, method_name in self._iterate_dataloader():
             try:
                 dataloader = dataloader_method()
             except NotImplementedError:
@@ -518,3 +523,24 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
             rank_zero_warn("You datamodule does not have any valid dataloader so `__len__` will be returned as 0.")
 
         return num_batches
+
+    def __repr__(self) -> str:
+
+        str_repr = f"{self.__class__.__name__}("
+        for dataloader_method, method_name in self._iterate_dataloader():
+            try:
+                dataloader = dataloader_method()
+            except NotImplementedError:
+                continue
+
+            def get_repr_dataloader(dataloader: DataLoader) -> str:
+                return f"{dataloader.__class__.__name__}(batch_size: {dataloader.batch_size}, " \
+                       f"num_batches: {len(dataloader) if has_len(dataloader) else -1}, " \
+                       f"num_workers: {dataloader.num_workers})"
+
+            str_repr += f"\n\t{method_name}: " \
+                        f"{apply_to_collection(dataloader, DataLoader, get_repr_dataloader)}".replace("\'", '')
+
+        str_repr += "\n)"
+
+        return str_repr
