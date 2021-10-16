@@ -169,6 +169,9 @@ class LightningLite(ABC):
         if self.local_rank == 0:
             print(*args, **kwargs)
 
+    def barrier(self) -> None:
+        self._strategy.barrier()
+
     def reduce_decision(self, decision: bool) -> bool:
         return self._strategy.reduce_boolean_decision(decision)
 
