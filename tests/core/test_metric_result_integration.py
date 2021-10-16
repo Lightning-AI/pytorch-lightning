@@ -480,14 +480,14 @@ def test_result_collection_reload(tmpdir):
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_7, reason="Requires at least PyTorch 1.7")
 def test_result_collection_reload_1_gpu_ddp(tmpdir):
-    result_collection_reload(default_root_dir=tmpdir, accelerator="ddp", gpus=1)
+    result_collection_reload(default_root_dir=tmpdir, strategy="ddp", gpus=1)
 
 
 @RunIf(min_gpus=2, special=True)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_7, reason="Requires at least PyTorch 1.7")
 def test_result_collection_reload_2_gpus(tmpdir):
-    result_collection_reload(default_root_dir=tmpdir, accelerator="ddp", gpus=2)
+    result_collection_reload(default_root_dir=tmpdir, strategy="ddp", gpus=2)
 
 
 def test_metric_collections(tmpdir):
