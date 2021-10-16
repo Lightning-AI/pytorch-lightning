@@ -376,9 +376,6 @@ def test_v1_7_0_trainer_log_gpu_memory(tmpdir):
         match="Setting `log_gpu_memory` with the trainer flag is deprecated in v1.5 and will be removed"
     ):
         trainer = Trainer(log_gpu_memory="min_max")
-    with pytest.deprecated_call(match="The property `LoggerConnector.gpus_metrics` was deprecated in v1.5"):
-        lg = LoggerConnector(trainer)
-        _ = lg.gpus_metrics
 
 
 @RunIf(min_gpus=1)
