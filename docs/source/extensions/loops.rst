@@ -100,7 +100,7 @@ Defining a loop within a class interface instead of hard-coding a raw Python for
 3. If needed, the state of a loop can be saved and resumed
 4. New hooks can be injected at any point
 
-.. image:: ../_static/images/extensions/loops/epoch-loop-steps.gif
+.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/loops/epoch-loop-steps.gif
     :alt: Animation showing how to convert a standard training loop to a Lightning loop
 
 
@@ -171,7 +171,7 @@ Now simply attach the correct loop in the trainer directly:
 
 Now your code is FULLY flexible and you can still leverage ALL the best parts of Lightning!
 
-.. image:: ../_static/images/extensions/loops/replace-fit-loop.gif
+.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/loops/replace-fit-loop.gif
     :alt: Animation showing how to replace a loop on the Trainer
 
 Creating a new loop from scratch
@@ -270,6 +270,9 @@ When you want to customize nested loops within loops, use the :meth:`~pytorch_li
     trainer.fit(model)
 
 More about the built-in loops and how they are composed is explained in the next section.
+
+.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/loops/connect-epoch-loop.gif
+    :alt: Animation showing how to connect a custom subloop
 
 .. _loop structure:
 
