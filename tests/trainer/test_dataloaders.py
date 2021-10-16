@@ -1329,19 +1329,20 @@ def test_dataloaders_reset_and_attach(tmpdir):
     # the assertions compare the datasets and not dataloaders since we patch and replace the samplers
     dataloader_0 = DataLoader(dataset=RandomDataset(32, 64))
     dataloader_1 = DataLoader(dataset=RandomDataset(32, 64))
-    # dataloader_2 = DataLoader(dataset=RandomDataset(32, 64))
-    # dataloader_3 = DataLoader(dataset=RandomDataset(32, 64))
+    dataloader_2 = DataLoader(dataset=RandomDataset(32, 64))
+    dataloader_3 = DataLoader(dataset=RandomDataset(32, 64))
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1)
 
     # 1st fit
     trainer.fit(model, train_dataloaders=dataloader_0, val_dataloaders=dataloader_1)
     assert trainer.train_dataloader.loaders.dataset is dataloader_0.dataset
     assert trainer.val_dataloaders[0].dataset is dataloader_1.dataset
     # 2nd fit
-    # trainer.fit(model, train_dataloaders=dataloader_2, val_dataloaders=dataloader_3)
-    # assert trainer.train_dataloader.loaders.dataset is dataloader_2.dataset
-    # assert trainer.val_dataloaders[0].dataset is dataloader_3.dataset
+    trainer.fit_loop.max_steps += 1
+    trainer.fit(model, train_dataloaders=dataloader_2, val_dataloaders=dataloader_3)
+    assert trainer.train_dataloader.loaders.dataset is dataloader_2.dataset
+    assert trainer.val_dataloaders[0].dataset is dataloader_3.dataset
 
     # 1st validate
     trainer.validate(model, dataloaders=dataloader_0)
