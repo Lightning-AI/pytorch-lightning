@@ -345,7 +345,7 @@ def _set_meta_device() -> None:
 def init_meta_context() -> Generator:
     rank_zero_warn(
         "Be aware this feature is highly experimental and there are a number of weird edge cases "
-        "where it can internal assert and/or crash. A more stable version is to be expected for PyTorch 1.11."
+        "where it can internal assert and/or crash. A more stable version is to be expected from PyTorch 1.11."
     )
     _set_meta_device()
     yield
