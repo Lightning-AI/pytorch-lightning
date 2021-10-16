@@ -89,8 +89,8 @@ class GANTrainer(LightningLite):
         netD = Discriminator()
         netD.apply(weights_init)
 
-        self.to_device(netG)
-        self.to_device(netD)
+        # self.to_device(netG)
+        # self.to_device(netD)
 
         criterion = nn.BCELoss()
 

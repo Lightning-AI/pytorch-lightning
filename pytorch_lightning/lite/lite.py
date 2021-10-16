@@ -106,11 +106,15 @@ class LightningLite(ABC):
         self,
         models: Union[nn.Module, Sequence[nn.Module]],
         optimizers: Union[Optimizer, Sequence[Optimizer]],
+        move_to_device: bool = True,
     ) -> Tuple[Union[nn.Module, Sequence[nn.Module]], Union[Optimizer, Sequence[Optimizer]]]:
         # wrap all objects passed in and return them in the same order
         models = [models] if isinstance(models, nn.Module) else models
         optimizers = [optimizers] if isinstance(optimizers, Optimizer) else optimizers
         models, optimizers = self._setup_models_and_optimizers(models, optimizers)
+
+        if move_to_device:
+            models = [self.to_device(model) for model in models]
 
         models = models[0] if len(models) == 1 else models
         optimizers = optimizers[0] if len(optimizers) == 1 else optimizers

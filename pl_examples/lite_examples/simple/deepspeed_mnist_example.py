@@ -58,7 +58,7 @@ class DeepSpeedMNIST(LightningLite):
         train_loader = torch.utils.data.DataLoader(dataset1, **train_kwargs)
         test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
 
-        model = Net().to(self.device)
+        model = Net()
         optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
 
         train_loader, test_loader = self.setup_dataloaders(train_loader, test_loader)
