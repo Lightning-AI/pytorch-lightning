@@ -17,7 +17,7 @@ The Lightning Trainer is built on top of the standard gradient descent optimizat
         loss.backward()
         optimizer.step()
 
-However, for new research use cases such as meta-learning, active learning, recommendation systems, etc., this loop structure can differ.
+However, some new research use cases such as meta-learning, active learning, recommendation systems, etc., require a different loop structure.
 For example here is a simple loop that guides the weight updates with a loss from a special validation split:
 
 .. code-block:: python
@@ -39,8 +39,7 @@ For example here is a simple loop that guides the weight updates with a loss fro
         optimizer.step()
 
 
-As a result, Lightning can feel unflexible and difficult to use for non standard gradient descent optimization.
-With loop customization, you can now implement the above logic directly in Lightning to get the same loop above:
+With Lightning Loops extensions, you can customize to non-standard gradient descent optimizations to get the same loop above:
 
 .. code-block:: python
 
@@ -52,7 +51,7 @@ Think of this as swapping out the engine in a car!
 Understanding the default Trainer loop
 --------------------------------------
 
-The Lightning Trainer does nothing more than automate the standard optimization loop, every PyTorch user is familiar with:
+The Lightning Trainer automates the standard optimization loop which every PyTorch user is familiar with:
 
 .. code-block:: python
 
@@ -111,20 +110,27 @@ Overriding the default loops
 ----------------------------
 
 The fastest way to get started with loops, is to override functionality of an existing loop.
-Lightning has 4 main loops it uses: fit, validate, test, predict.
+Lightning has 4 main loops it uses: :class:`~pytorch_lightning.loops.fit_loop.FitLoop` for training and validating,
+:class:`~pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop` for testing,
+:class:`~pytorch_lightning.loops.dataloader.evaluation_loop.PredictionLoop` for predicting.
+
 For simple changes that don't require a custom loop, you can modify each of these loops.
 
-Each loop has a series of methods that can be modified, for example the :code:`FitLoop`:
+Each loop has a series of methods that can be modified.
+For example with the :class:`~pytorch_lightning.loops.fit_loop.FitLoop`.
 
-.. code-block:: python
+.. code-block::
 
     from pytorch_lightning.loops import FitLoop
 
     class MyLoop(FitLoop):
+
         def advance():
             ...
+
         def on_advance_end(self)
             ...
+
         def on_run_end(self):
             ...
 
@@ -152,7 +158,7 @@ Now simply attach the correct loop in the trainer directly:
 .. code-block:: python
 
     trainer = Trainer(...)
-    trainer.fit_loop=CustomFitLoop()
+    trainer.fit_loop = CustomFitLoop()
 
     # fit() now uses the new FitLoop!
     trainer.fit(...)
@@ -171,10 +177,10 @@ Now your code is FULLY flexible and you can still leverage ALL the best parts of
 Creating a new loop from scratch
 --------------------------------
 
-You can also go wild and implement a full loop from scratch by subclassing the Loop base class.
+You can also go wild and implement a full loop from scratch by sub-classing the Loop base class.
 You will need to override a minimum of two things:
 
-.. code-block:: python
+.. code-block::
 
     from pytorch_lightning.loop import Loop
 
