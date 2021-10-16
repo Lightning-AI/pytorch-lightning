@@ -72,6 +72,7 @@ class LightningLoggerBase(ABC):
         self._metrics_to_agg: List[Dict[str, float]] = []
         self._agg_key_funcs = agg_key_funcs if agg_key_funcs else {}
         self._agg_default_func = agg_default_func
+        self._logged_model_time = {}
 
     def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
         """
@@ -351,9 +352,7 @@ class LightningLoggerBase(ABC):
         return metrics
 
     def _log_checkpoints(
-        self,
-        checkpoint_callback: "ReferenceType[ModelCheckpoint]",
-        checkpoints: List[ModelCheckpoint],
+        self, checkpoint_callback: "ReferenceType[ModelCheckpoint]", checkpoints: List[ModelCheckpoint],
     ) -> None:
         """Log the given checkpoints.
 
@@ -362,17 +361,14 @@ class LightningLoggerBase(ABC):
             checkpoints: list of checkpoints.
         """
 
-    def _scan_and_log_checkpoints(
-        self, checkpoint_callback: "ReferenceType[ModelCheckpoint]", logged_model_time: dict
-    ) -> None:
+    def _scan_and_log_checkpoints(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
         """Get and log the checkpoints to be logged.
 
         Args:
             checkpoint_callback: ModelCheckpoint callback reference.
-            logged_model_time: dictionary containing the logged model times.
         """
         # Get the checkpoints
-        checkpoints = scan_checkpoints(checkpoint_callback, logged_model_time)
+        checkpoints = scan_checkpoints(checkpoint_callback, self._logged_model_time)
         # Log the checkpoints
         self._log_checkpoints(checkpoint_callback, checkpoints)
 
