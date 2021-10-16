@@ -37,16 +37,31 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class LightningLite(ABC):
+    """Lite accelerates your PyTorch training or inference code with minimal changes required.
+
+    Args:
+        accelerator: The hardware to run on. Possible choices are: cpu, gpu, tpu.
+        strategy: Strategy for how to run across multiple devices. Possible choices are:
+            dp, ddp, ddp_spawn, tpu_spawn, deepspeed, ddp_sharded.
+        devices: Number of devices to train on (int) or which GPUs to train on (list or str). The value applies
+            per node.
+        num_nodes: Number of GPU nodes for distributed training.
+        precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
+        plugins: One or several custom plugins
+        gpus: Provides the same function as the ``devices`` argument but implies ``accelerator="gpu"``.
+        tpu_cores: Provides the same function as the ``devices`` argument but implies ``accelerator="tpu"``.
+    """
+
     def __init__(
         self,
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, TrainingTypePlugin]] = None,
-        plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
-        gpus: Optional[Union[List[int], str, int]] = None,
-        tpu_cores: Optional[Union[List[int], str, int]] = None,
         devices: Optional[Union[List[int], str, int]] = None,
         num_nodes: int = 1,
         precision: Union[int, str] = 32,
+        plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
+        gpus: Optional[Union[List[int], str, int]] = None,
+        tpu_cores: Optional[Union[List[int], str, int]] = None,
     ) -> None:
         self._check_accelerator_support(accelerator)
         self._check_strategy_support(strategy)
@@ -80,27 +95,37 @@ class LightningLite(ABC):
 
     @property
     def device(self) -> torch.device:
+        """The current device this process runs on. Use this to create tensors directly on the device if needed."""
         return self._accelerator.root_device
 
     @property
     def global_rank(self) -> int:
+        """The global index of the current process across all devices and nodes."""
         return getattr(self._strategy, "global_rank", 0)
 
     @property
     def local_rank(self) -> int:
+        """The index of the current process among the processes running on the local node."""
         return getattr(self._strategy, "local_rank", 0)
 
     @property
     def node_rank(self) -> int:
+        """The index of the current node."""
         return getattr(self._strategy, "node_rank", 0)
 
     @property
     def world_size(self) -> int:
+        """The total number of processes running across all devices and nodes."""
         return getattr(self._strategy, "world_size", 1)
 
     @abstractmethod
     def run(self, *args: Any, **kwargs: Any) -> None:
-        pass
+        """All the code inside this run method gets accelerated by Lite.
+
+        Args:
+            *args: Add any positional arguments you need, e.g., the hyperparameters for your model
+            **kwargs: Add any keyword arguments you need, e.g., the hyperparameters for your model
+        """
 
     def setup(
         self,
@@ -108,6 +133,17 @@ class LightningLite(ABC):
         optimizers: Union[Optimizer, Sequence[Optimizer]],
         move_to_device: bool = True,
     ) -> Tuple[Union[nn.Module, Sequence[nn.Module]], Union[Optimizer, Sequence[Optimizer]]]:
+        """Setup models and optimizers for accelerated training.
+
+        Args:
+            models: A list of models to setup
+            optimizers: A list of optimizers to setup
+            move_to_device: If set ``True`` (default), moves the model(s) to the correct device. Set this to ``False``
+                and alternatively use :meth:`to_device` manually.
+
+        Returns:
+            The tuple of wrapped models and optimizers, in the same order they were passed in.
+        """
         # wrap all objects passed in and return them in the same order
         models = [models] if isinstance(models, nn.Module) else models
         optimizers = [optimizers] if isinstance(optimizers, Optimizer) else optimizers
@@ -123,6 +159,20 @@ class LightningLite(ABC):
     def setup_dataloaders(
         self, *dataloaders: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
     ) -> Union[DataLoader, Sequence[DataLoader]]:
+        """Setup one or multiple dataloaders for accelerated training. If you need different settings for each
+        dataloader, use :meth:`setup_dataloader` individually.
+
+        Args:
+            *dataloaders: A single dataloader or a sequence of dataloaders.
+            replace_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the dataloader(s)
+                for distributed training. If you have a custom sampler defined, set this to this argument to ``False``.
+            move_to_device: If set ``True`` (default), moves the data returned by the dataloader(s) automatially to
+                the correct device. Set this to ``False`` and alternatively use :meth:`to_device` manually on the
+                returned data.
+
+        Returns:
+            The wrapped dataloaders, in the same order they were passed in.
+        """
         # user can call this method independently instead of the general purpose setup method
         dataloaders = [
             self.setup_dataloader(dataloader, replace_sampler=replace_sampler, move_to_device=move_to_device)
@@ -134,6 +184,19 @@ class LightningLite(ABC):
     def setup_dataloader(
         self, dataloader: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
     ) -> DataLoader:
+        """Setup a single dataloader for accelerated training.
+
+        Args:
+            dataloader: The dataloader to accelerate.
+            replace_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the dataloader
+                for distributed training. If you have a custom sampler defined, set this to this argument to ``False``.
+            move_to_device: If set ``True`` (default), moves the data returned by the dataloader automatially to
+                the correct device. Set this to ``False`` and alternatively use :meth:`to_device` manually on the
+                returned data.
+
+        Returns:
+            The wrapped dataloader.
+        """
         if not replace_sampler or not (
             self._requires_distributed_sampler(dataloader) or isinstance(self._accelerator, TPUAccelerator)
         ):
@@ -152,24 +215,61 @@ class LightningLite(ABC):
         return _LiteDataLoader(device=device, **kwargs)
 
     def backward(self, tensor: Tensor, *args: Any, **kwargs: Any) -> None:
-        # user will call self.backward(loss) instead of loss.backward()
+        """Replaces ``loss.backward()`` in your training loop. Handles precision and automatically for you.
+
+        Args:
+            tensor: The tensor (loss) to back-propagate gradients from.
+            *args: Optional positional arguments passed to the underlying backward function.
+            **kwargs: Optional named keyword arguments passed to the underlying backward function.
+        """
         self._accelerator.run_backward(tensor, self._strategy.model, *args, **kwargs)
 
     @contextmanager
-    def forward_context(self) -> Generator[None, None, None]:
+    def cast(self) -> Generator[None, None, None]:
+        """A context manager to automatically convert operations for the chosen precision.
+
+        Use this only if the `forward` method of your model does not cover all operations you wish to run with
+        the chosen precision setting.
+        """
         with self._accelerator.forward_context():
             yield
 
     def to_device(self, obj: Union[nn.Module, Tensor, Any]) -> Union[nn.Module, Tensor, Any]:
+        """Move a :class:`torch.nn.Module` or a collection of tensors to the current device, if it is not already
+        on that device.
+
+        Args:
+            obj: An object to move to the device. Can be an instance of :class:`torch.nn.Module`, a tensor, or a
+                 (nested) collection of tensors (e.g., a dictionary).
+
+        Returns:
+            A reference to the object that was moved to the new device.
+        """
         if isinstance(obj, nn.Module):
             return obj.to(self.device)
         return move_data_to_device(obj, device=self.device)
 
     def print(self, *args: Any, **kwargs: Any) -> None:
+        """Print something only on the first process. Arguments passed to this method are forwarded to the
+        Python built-in :func:`print` function."""
         if self.local_rank == 0:
             print(*args, **kwargs)
 
     def barrier(self) -> None:
+        """Wait for all processes to enter this call. Use this to synchronize all parallel processes, but only if
+        necessary, otherwhise the overhead of synchronization will cause your program to slow down.
+
+        Example::
+
+            if self.global_rank == 0:
+                # let process 0 download the dataset
+                dataset.download_files()
+
+            # let all processes wait before reading the dataset
+            self.barrier()
+
+            # now all processes can read the files and start training
+        """
         self._strategy.barrier()
 
     def reduce_decision(self, decision: bool) -> bool:
