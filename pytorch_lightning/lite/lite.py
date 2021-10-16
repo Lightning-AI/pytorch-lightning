@@ -27,7 +27,7 @@ from torch.utils.data import DataLoader, DistributedSampler, SequentialSampler, 
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import Accelerator, TPUAccelerator
-from pytorch_lightning.lite.wrappers import _LiteOptimizer, _LiteModule
+from pytorch_lightning.lite.wrappers import _LiteOptimizer, _LiteModule, _LiteDataLoader
 from pytorch_lightning.plugins import PLUGIN_INPUT, DDPSpawnPlugin, TrainingTypePlugin, DeepSpeedPlugin
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
@@ -121,15 +121,19 @@ class LightningLite(ABC):
         return models, optimizers
 
     def setup_dataloaders(
-        self, *dataloaders: DataLoader, replace_sampler: bool = True
+        self, *dataloaders: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
     ) -> Union[DataLoader, Sequence[DataLoader]]:
         # user can call this method independently instead of the general purpose setup method
-        # dataloaders = [self._strategy.setup_dataloader(dataloader) for dataloader in dataloaders]
-        dataloaders = [self.setup_dataloader(dataloader, replace_sampler=replace_sampler) for dataloader in dataloaders]
+        dataloaders = [
+            self.setup_dataloader(dataloader, replace_sampler=replace_sampler, move_to_device=move_to_device)
+            for dataloader in dataloaders
+        ]
         dataloaders = dataloaders[0] if len(dataloaders) == 1 else dataloaders
         return dataloaders
 
-    def setup_dataloader(self, dataloader: DataLoader, replace_sampler: bool = True) -> DataLoader:
+    def setup_dataloader(
+        self, dataloader: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
+    ) -> DataLoader:
         if not replace_sampler or not (
             self._requires_distributed_sampler(dataloader) or isinstance(self._accelerator, TPUAccelerator)
         ):
@@ -143,7 +147,9 @@ class LightningLite(ABC):
             )
 
         sampler = self._get_distributed_sampler(dataloader, **self._strategy.distributed_sampler_kwargs)
-        return TrainerDataLoadingMixin._update_dataloader(dataloader, sampler)
+        kwargs = TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler)
+        device = self.device if move_to_device else None
+        return _LiteDataLoader(device=device, **kwargs)
 
     def backward(self, tensor: Tensor, *args: Any, **kwargs: Any) -> None:
         # user will call self.backward(loss) instead of loss.backward()
@@ -205,8 +211,7 @@ class LightningLite(ABC):
     @staticmethod
     def _get_distributed_sampler(dataloader: DataLoader, **kwargs: Any) -> DistributedSampler:
         kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
-        sampler = DistributedSampler(dataloader.dataset, **kwargs)
-        return sampler
+        return DistributedSampler(dataloader.dataset, **kwargs)
 
     def _check_accelerator_support(self, accelerator: Optional[Union[str, Accelerator]]) -> None:
         if accelerator is None:

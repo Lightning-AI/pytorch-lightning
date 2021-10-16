@@ -11,15 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Dict, Generator, Iterator, Union
 
 import torch
 from torch import nn as nn, Tensor
 from torch.optim import Optimizer
+from torch.utils.data import DataLoader
+from torch.utils.data.dataloader import _BaseDataLoaderIter
 
 from pytorch_lightning.accelerators import Accelerator
-from pytorch_lightning.plugins import DeepSpeedPlugin
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 
 
 # TODO: add attributes and methods from Optimizer
@@ -57,3 +58,18 @@ class _LiteModule(nn.Module):
 
         output = apply_to_collection(output, function=lambda t: t.to(torch.get_default_dtype()), dtype=Tensor)
         return output
+
+
+class _LiteDataLoader(DataLoader):
+    def __init__(self, device: Optional[torch.device] = None, **dl_kwargs: Any) -> None:
+        super().__init__(**dl_kwargs)
+        self._device = device
+
+    # TODO: how to type this *angry face"
+    def __iter__(self):  # type: ignore
+        iterator = super().__iter__()
+        if self._device is None:
+            return iterator
+
+        for item in iterator:
+            yield move_data_to_device(item, self._device)
