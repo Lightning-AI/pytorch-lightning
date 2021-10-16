@@ -63,7 +63,9 @@ class DDPShardedPlugin(DDPPlugin):
         trainer.optimizers = optimizers
         trainer.convert_to_lightning_optimizers()
 
-    def _reinit_optimizers_with_oss(self, optimizers: Sequence[Union[Optimizer, LightningOptimizer]]) -> Sequence[OSS]:
+    def _reinit_optimizers_with_oss(
+        self, optimizers: Sequence[Union[Optimizer, LightningOptimizer]]
+    ) -> Sequence["OSS"]:
         for x, optimizer in enumerate(optimizers):
             if isinstance(optimizer, LightningOptimizer):
                 optimizer = optimizer._optimizer
@@ -83,7 +85,7 @@ class DDPShardedPlugin(DDPPlugin):
                 del optimizer
         return optimizers
 
-    def _wrap_optimizers(self, optimizers: Sequence[Optimizer]) -> Sequence[OSS]:
+    def _wrap_optimizers(self, optimizers: Sequence[Optimizer]) -> Sequence["OSS"]:
         if self.model is not None and self.model.trainer.state.fn != TrainerFn.FITTING:
             return optimizers
 
