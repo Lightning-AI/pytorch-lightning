@@ -31,7 +31,7 @@ from pytorch_lightning.lite.wrappers import _LiteOptimizer, _LiteModule
 from pytorch_lightning.plugins import PLUGIN_INPUT, DDPSpawnPlugin, TrainingTypePlugin, DeepSpeedPlugin
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.utilities import move_data_to_device
+from pytorch_lightning.utilities import move_data_to_device, DistributedType, DeviceType
 from pytorch_lightning.utilities.data import has_iterable_dataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -44,15 +44,23 @@ class LightningLite(ABC):
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         gpus: Optional[Union[List[int], str, int]] = None,
         tpu_cores: Optional[Union[List[int], str, int]] = None,
-        num_processes: int = 1,
         devices: Optional[Union[List[int], str, int]] = None,
         num_nodes: int = 1,
         precision: Union[int, str] = 32,
-        amp_backend: str = "native",
     ) -> None:
+        if not isinstance(accelerator, Accelerator) or accelerator not in self._supported_device_types():
+            raise MisconfigurationException(
+                f"`accelerator={repr(accelerator)}` is not a valid choice."
+                f" Choose one of {self._supported_device_types()} or pass in a `Accelerator` instance."
+            )
+        if not isinstance(strategy, TrainingTypePlugin) or strategy not in self._supported_strategy_types():
+            raise MisconfigurationException(
+                f"`strategy={repr(strategy)}` is not a valid choice."
+                f" Choose one of {self._supported_strategy_types()} or pass in a `TrainingTypePlugin` instance."
+            )
         gpu_ids, tpu_cores = Trainer._parse_devices(gpus=gpus, auto_select_gpus=False, tpu_cores=tpu_cores)
         self._accelerator_connector = AcceleratorConnector(
-            num_processes=num_processes,
+            num_processes=1,
             devices=devices,
             tpu_cores=tpu_cores,
             ipus=None,
@@ -67,7 +75,7 @@ class LightningLite(ABC):
             replace_sampler_ddp=True,
             deterministic=False,
             precision=precision,
-            amp_type=amp_backend,
+            amp_type="native",
             amp_level=None,
             plugins=plugins,
         )
@@ -203,3 +211,25 @@ class LightningLite(ABC):
         kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler
+
+    @staticmethod
+    def _supported_device_types() -> Sequence[DeviceType]:
+        return (
+            None,
+            DeviceType.CPU,
+            DeviceType.GPU,
+            DeviceType.TPU,
+        )
+
+    @staticmethod
+    def _supported_strategy_types() -> Sequence[DistributedType]:
+        return (
+            None,
+            DistributedType.DP,
+            DistributedType.DDP,
+            DistributedType.DDP_SPAWN,
+            DistributedType.TPU_SPAWN,
+            DistributedType.DP,
+            DistributedType.DEEPSPEED,
+            DistributedType.DDP_SHARDED,
+        )

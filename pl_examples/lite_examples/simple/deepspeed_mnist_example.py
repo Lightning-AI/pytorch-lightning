@@ -148,7 +148,7 @@ def main():
     parser.add_argument("--precision", type=int, default=32)
     args = parser.parse_args()
 
-    mnist = DeepSpeedMNIST(gpus=2, strategy="deepspeed", num_processes=1, precision=args.precision)
+    mnist = DeepSpeedMNIST(devices=2, strategy="deepspeed", precision=args.precision)
     mnist.run(args)
 
 

@@ -144,13 +144,18 @@ def main():
     )
     parser.add_argument("--save-model", action="store_true", default=False, help="For Saving the current Model")
     parser.add_argument("--accelerator", type=str, default=None)
+    parser.add_argument("--strategy", type=str, default=None)
     parser.add_argument("--gpus", type=int, default=None)
-    parser.add_argument("--num_processes", type=int, default=1)
+    parser.add_argument("--devices", type=int, default=1)
     parser.add_argument("--precision", type=int, default=32)
     args = parser.parse_args()
 
     mnist = MNIST(
-        gpus=args.gpus, accelerator=args.accelerator, num_processes=args.num_processes, precision=args.precision
+        gpus=args.gpus,
+        devices=args.devices,
+        accelerator=args.accelerator,
+        strategy=args.strategy,
+        precision=args.precision,
     )
     mnist.run(args)
 

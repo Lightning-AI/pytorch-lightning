@@ -173,5 +173,5 @@ class GANTrainer(LightningLite):
 
 
 if __name__ == "__main__":
-    gan = GANTrainer(accelerator="ddp", num_processes=2)
+    gan = GANTrainer(accelerator="ddp", devices=2)
     gan.run()
