@@ -104,7 +104,8 @@ class GANTrainer(LightningLite):
         optimizerD = optim.Adam(netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
         optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 
-        (netG, netD), (optimizerG, optimizerD) = self.setup(models=(netG, netD), optimizers=(optimizerG, optimizerD))
+        netG, optimizerG = self.setup(netG, optimizerG)
+        netD, optimizerD = self.setup(netD, optimizerD)
 
         assert isinstance(optimizerG, _LiteOptimizer)
         assert isinstance(netG, _LiteModule)

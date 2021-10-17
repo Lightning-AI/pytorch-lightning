@@ -382,8 +382,8 @@ class DeepSpeedPlugin(DDPPlugin):
 
     # TODO: avoid code duplication by letting the plugin reuse this method
     def setup_models_and_optimizers(
-        self, models: Sequence[Module], optimizers: Sequence[Optimizer]
-    ) -> Tuple[Sequence[Module], Sequence[Optimizer]]:
+        self, models: List[Module], optimizers: List[Optimizer]
+    ) -> Tuple[List[Module], List[Optimizer]]:
         if not (len(models) == len(optimizers) == 1):
             raise ValueError(
                 f"Currently only one model and one optimizer is supported with DeepSpeed."

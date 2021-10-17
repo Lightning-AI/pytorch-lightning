@@ -129,32 +129,30 @@ class LightningLite(ABC):
 
     def setup(
         self,
-        models: Union[nn.Module, Sequence[nn.Module]],
-        optimizers: Union[Optimizer, Sequence[Optimizer]],
+        model: nn.Module,
+        optimizers: Union[Optimizer, List[Optimizer]],
         move_to_device: bool = True,
-    ) -> Tuple[Union[nn.Module, Sequence[nn.Module]], Union[Optimizer, Sequence[Optimizer]]]:
-        """Setup models and optimizers for accelerated training.
+    ) -> Tuple[nn.Module, Union[_LiteOptimizer, List[_LiteOptimizer]]]:
+        """Setup a model and its optimizers for accelerated training.
 
         Args:
-            models: A list of models to setup
+            model: A model to setup
             optimizers: A list of optimizers to setup
-            move_to_device: If set ``True`` (default), moves the model(s) to the correct device. Set this to ``False``
+            move_to_device: If set ``True`` (default), moves the model to the correct device. Set this to ``False``
                 and alternatively use :meth:`to_device` manually.
 
         Returns:
-            The tuple of wrapped models and optimizers, in the same order they were passed in.
+            The tuple of the wrapped model and list of optimizers, in the same order they were passed in.
         """
         # wrap all objects passed in and return them in the same order
-        models = [models] if isinstance(models, nn.Module) else models
         optimizers = [optimizers] if isinstance(optimizers, Optimizer) else optimizers
-        models, optimizers = self._setup_models_and_optimizers(models, optimizers)
+        model, optimizers = self._setup_model_and_optimizers(model, optimizers)
 
         if move_to_device:
-            models = [self.to_device(model) for model in models]
+            model = self.to_device(model)
 
-        models = models[0] if len(models) == 1 else models
         optimizers = optimizers[0] if len(optimizers) == 1 else optimizers
-        return models, optimizers
+        return model, optimizers
 
     def setup_dataloaders(
         self, *dataloaders: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
@@ -293,16 +291,16 @@ class LightningLite(ABC):
             run_method(*args, **kwargs)
         # TODO: any teardown needed here?
 
-    def _setup_models_and_optimizers(
+    def _setup_model_and_optimizers(
         self,
-        models: Sequence[nn.Module],
-        optimizers: Sequence[Optimizer],
-    ) -> Tuple[Sequence[_LiteModule], Sequence[_LiteOptimizer]]:
+        model: nn.Module,
+        optimizers: Union[Optimizer, List[Optimizer]],
+    ) -> Tuple[_LiteModule, Union[_LiteOptimizer, List[_LiteOptimizer]]]:
         # Let accelerator/plugin wrap and connect the models and optimizers
-        models, optimizers = self._strategy.setup_models_and_optimizers(models, optimizers)
-        models = [_LiteModule(module=model, accelerator=self._accelerator) for model in models]
+        [model], optimizers = self._strategy.setup_models_and_optimizers([model], optimizers)
+        model = _LiteModule(module=model, accelerator=self._accelerator)
         optimizers = [_LiteOptimizer(optimizer=optimizer, accelerator=self._accelerator) for optimizer in optimizers]
-        return models, optimizers
+        return model, optimizers
 
     def _requires_distributed_sampler(self, dataloader: DataLoader) -> bool:
         return (

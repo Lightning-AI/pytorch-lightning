@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Dict, Generator, Optional, Sequence, Tuple, List, Union
+from typing import Dict, Generator, Optional, Tuple, List, Union
 
 import torch
 from torch.nn import Module
@@ -38,8 +38,8 @@ class DDPShardedPlugin(DDPPlugin):
     _REDUCE_BUFFER_SIZE_DEFAULT = 2 ** 23  # 8M
 
     def setup_models_and_optimizers(
-        self, models: Sequence[Module], optimizers: Sequence[Optimizer]
-    ) -> Tuple[Sequence[Module], Sequence[Optimizer]]:
+        self, models: List[Module], optimizers: List[Optimizer]
+    ) -> Tuple[List[Module], List[Optimizer]]:
         if len(models) > 1:
             raise ValueError(
                 f"DDPSharded only supports a single model with one or several optimizers. Got {len(models)} models."
@@ -63,9 +63,7 @@ class DDPShardedPlugin(DDPPlugin):
         trainer.optimizers = optimizers
         trainer.convert_to_lightning_optimizers()
 
-    def _reinit_optimizers_with_oss(
-        self, optimizers: Sequence[Union[Optimizer, LightningOptimizer]]
-    ) -> Sequence["OSS"]:
+    def _reinit_optimizers_with_oss(self, optimizers: List[Union[Optimizer, LightningOptimizer]]) -> List["OSS"]:
         for x, optimizer in enumerate(optimizers):
             if isinstance(optimizer, LightningOptimizer):
                 optimizer = optimizer._optimizer
@@ -85,7 +83,7 @@ class DDPShardedPlugin(DDPPlugin):
                 del optimizer
         return optimizers
 
-    def _wrap_optimizers(self, optimizers: Sequence[Optimizer]) -> Sequence["OSS"]:
+    def _wrap_optimizers(self, optimizers: List[Optimizer]) -> List["OSS"]:
         if self.model is not None and self.model.trainer.state.fn != TrainerFn.FITTING:
             return optimizers
 

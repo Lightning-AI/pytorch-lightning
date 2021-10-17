@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Sequence, Union, Tuple
+from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Sequence, Union, Tuple, List
 
 import torch
 from torch import Tensor
@@ -66,8 +66,8 @@ class TrainingTypePlugin(ABC):
         return dataloader
 
     def setup_models_and_optimizers(
-        self, models: Sequence[Module], optimizers: Sequence[Optimizer]
-    ) -> Tuple[Sequence[Module], Sequence[Optimizer]]:
+        self, models: List[Module], optimizers: List[Optimizer]
+    ) -> Tuple[List[Module], List[Optimizer]]:
         models = [self.setup_model(model) for model in models]
         optimizers = [self.setup_optimizer(optimizer) for optimizer in optimizers]
         return models, optimizers
