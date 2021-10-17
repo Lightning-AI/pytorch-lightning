@@ -296,7 +296,7 @@ def test_manual_optimization_and_return_tensor(tmpdir):
         limit_val_batches=0,
         precision=16,
         amp_backend="native",
-        accelerator="ddp_spawn",
+        strategy="ddp_spawn",
         gpus=2,
     )
     trainer.fit(model)
@@ -788,7 +788,7 @@ class TesManualOptimizationDDPModel(BoringModel):
         return [optimizer_gen, optimizer_dis]
 
 
-def train_manual_optimization(tmpdir, accelerator, model_cls=TesManualOptimizationDDPModel):
+def train_manual_optimization(tmpdir, strategy, model_cls=TesManualOptimizationDDPModel):
 
     seed_everything(42)
 
@@ -805,7 +805,7 @@ def train_manual_optimization(tmpdir, accelerator, model_cls=TesManualOptimizati
         max_epochs=1,
         log_every_n_steps=1,
         gpus=2,
-        accelerator=accelerator,
+        strategy=strategy,
         callbacks=[TestManualOptimizationDDPCallack()],
     )
 
