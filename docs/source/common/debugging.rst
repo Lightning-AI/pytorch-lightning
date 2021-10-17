@@ -56,6 +56,20 @@ argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
 ----------------
 
+Log device stats
+----------------
+Monitors and logs device stats during training.
+
+(See: :class:`~pytorch_lightning.callbacks.device_stats_monitor.DeviceStatsMonitor`)
+
+.. testcode::
+
+    from pytorch_lightning.callbacks import DeviceStatsMonitor
+
+    trainer = Trainer(callbacks=[DeviceStatsMonitor()])
+
+----------------
+
 Make model overfit on subset of data
 ------------------------------------
 
