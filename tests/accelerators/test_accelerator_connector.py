@@ -447,10 +447,10 @@ def test_dist_backend_accelerator_mapping(device_count_mock, setup_distributed_m
 @mock.patch("pytorch_lightning.utilities._IS_INTERACTIVE", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=2)
 def test_ipython_incompatible_backend_error(*_):
-    with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)` is not compatible"):
+    with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
         Trainer(accelerator="ddp", gpus=2)
 
-    with pytest.raises(MisconfigurationException, match=r"strategy='ddp2'\)` is not compatible"):
+    with pytest.raises(MisconfigurationException, match=r"strategy='ddp2'\)`.*is not compatible"):
         Trainer(accelerator="ddp2", gpus=2)
 
 
