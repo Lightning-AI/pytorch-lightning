@@ -82,7 +82,7 @@ class GANTrainer(LightningLite):
             dataset, batch_size=opt.batchSize, shuffle=True, num_workers=opt.workers
         )
 
-        dataloader = self.setup_dataloader(dataloader)
+        dataloader = self.setup_dataloaders(dataloader)
         # assert isinstance(dataloader.sampler, DistributedSampler)
 
         netG = Generator()

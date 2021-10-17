@@ -156,9 +156,9 @@ class LightningLite(ABC):
 
     def setup_dataloaders(
         self, *dataloaders: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
-    ) -> Union[DataLoader, Sequence[DataLoader]]:
+    ) -> Union[DataLoader, List[DataLoader]]:
         """Setup one or multiple dataloaders for accelerated training. If you need different settings for each
-        dataloader, use :meth:`setup_dataloader` individually.
+        dataloader, call this method individually for each one.
 
         Args:
             *dataloaders: A single dataloader or a sequence of dataloaders.
@@ -173,13 +173,13 @@ class LightningLite(ABC):
         """
         # user can call this method independently instead of the general purpose setup method
         dataloaders = [
-            self.setup_dataloader(dataloader, replace_sampler=replace_sampler, move_to_device=move_to_device)
+            self._setup_dataloader(dataloader, replace_sampler=replace_sampler, move_to_device=move_to_device)
             for dataloader in dataloaders
         ]
         dataloaders = dataloaders[0] if len(dataloaders) == 1 else dataloaders
         return dataloaders
 
-    def setup_dataloader(
+    def _setup_dataloader(
         self, dataloader: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
     ) -> DataLoader:
         """Setup a single dataloader for accelerated training.
