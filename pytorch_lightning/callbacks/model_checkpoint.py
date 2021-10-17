@@ -193,7 +193,7 @@ class ModelCheckpoint(Callback):
         *monitor, mode, every_n_train_steps, every_n_epochs, train_time_interval, save_on_train_epoch_end*
 
         Read more: :ref:`Persisting Callback State`
-        
+
     """
 
     CHECKPOINT_JOIN_CHAR = "-"
@@ -519,11 +519,11 @@ class ModelCheckpoint(Callback):
             # filename is not set, use default name
             if self.more_in_depth_save is True:
                 metrics_str = ""
-                for metric_key,metric_val in zip(metrics.keys(),metrics.values()):
-                    metrics_str = metrics_str + "-" + str(metric_key) + '-' + str(metric_val)
+                for metric_key, metric_val in zip(metrics.keys(), metrics.values()):
+                    metrics_str = metrics_str + "-" + str(metric_key) + "-" + str(metric_val)
                 filename = metrics_str + cls.CHECKPOINT_JOIN_CHAR
-            else:    
-                filename = "{epoch}" + "{step}" + cls.CHECKPOINT_JOIN_CHAR 
+            else:
+                filename = "{epoch}" + "{step}" + cls.CHECKPOINT_JOIN_CHAR
         # check and parse user passed keys in the string
         groups = re.findall(r"(\{.*?)[:\}]", filename)
         if len(groups) >= 0:
@@ -578,9 +578,9 @@ class ModelCheckpoint(Callback):
 
         if ver is not None:
             filename = self.CHECKPOINT_JOIN_CHAR.join((filename, f"v{ver}"))
-        
+
         ckpt_name = f"{filename}{self.FILE_EXTENSION}"
-        
+
         return os.path.join(self.dirpath, ckpt_name) if self.dirpath else ckpt_name
 
     def __resolve_ckpt_dir(self, trainer: "pl.Trainer") -> None:
