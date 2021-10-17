@@ -22,12 +22,12 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
 from pytorch_lightning.loggers.base import DummyExperiment, DummyLogger, scan_checkpoints
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringDataModule, BoringModel
-from pytorch_lightning.callbacks import ModelCheckpoint
 
 
 def test_logger_collection():
@@ -293,7 +293,7 @@ def test_log_hyperparams_being_called(log_hyperparams_mock, tmpdir, logger):
     else:
         log_hyperparams_mock.assert_not_called()
 
-        
+
 @patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_hyperparams")
 def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
     class TestModel(BoringModel):
@@ -338,7 +338,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
     model = TestModel(same_params)
     dm = TestDataModule(diff_params)
     trainer = Trainer(
-        default_root_dir=tmpdir,  
+        default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=0.1,
         limit_val_batches=0.1,
@@ -367,7 +367,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
     with pytest.raises(MisconfigurationException, match="Error while merging hparams"):
         trainer.fit(model, dm)
 
- 
+
 @pytest.mark.parametrize("save_top_k", [0, 1, 2, 5])
 def test_scan_checkpoints(tmpdir, save_top_k: int):
     """Checks if the expected number of checkpoints is returned."""
