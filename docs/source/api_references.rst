@@ -70,7 +70,7 @@ Loggers API
 Loop API
 --------
 
-Base classes
+Base Classes
 ^^^^^^^^^^^^
 
 .. currentmodule:: pytorch_lightning.loops
@@ -81,16 +81,16 @@ Base classes
     :template: classtemplate.rst
 
     ~base.Loop
+    ~dataloader.dataloader_loop.DataLoaderLoop
 
 
 Default Loop Implementations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-
 Training
 """"""""
 
-.. currentmodule:: pytorch_lightning.loops.fit_loop
+.. currentmodule:: pytorch_lightning.loops
 
 .. autosummary::
     :toctree: api
@@ -98,78 +98,38 @@ Training
     :template: classtemplate.rst
 
     FitLoop
-
-.. currentmodule:: pytorch_lightning.loops.epoch
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-    :template: classtemplate.rst
-
-    TrainingEpochLoop
-
-.. currentmodule:: pytorch_lightning.loops.batch
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-    :template: classtemplate.rst
-
-    TrainingBatchLoop
-
-.. currentmodule:: pytorch_lightning.loops.optimization
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-    :template: classtemplate.rst
-
-    OptimizerLoop
-    ManualOptimization
+    ~epoch.TrainingEpochLoop
+    ~batch.TrainingBatchLoop
+    ~optimization.OptimizerLoop
+    ~optimization.ManualOptimization
 
 
 Validation and Testing
 """"""""""""""""""""""
 
-.. currentmodule:: pytorch_lightning.loops.dataloader
+.. currentmodule:: pytorch_lightning.loops
 
 .. autosummary::
     :toctree: api
     :nosignatures:
     :template: classtemplate.rst
 
-    EvaluationLoop
-
-.. currentmodule:: pytorch_lightning.loops.epoch
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-    :template: classtemplate.rst
-
-    EvaluationEpochLoop
+    ~dataloader.EvaluationLoop
+    ~epoch.EvaluationEpochLoop
 
 
 Prediction
 """"""""""
 
-.. currentmodule:: pytorch_lightning.loops.dataloader
+.. currentmodule:: pytorch_lightning.loops
 
 .. autosummary::
     :toctree: api
     :nosignatures:
     :template: classtemplate.rst
 
-    PredictionLoop
-
-.. currentmodule:: pytorch_lightning.loops.epoch
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-    :template: classtemplate.rst
-
-    PredictionEpochLoop
+    ~dataloader.PredictionLoop
+    ~epoch.PredictionEpochLoop
 
 
 Plugins API
