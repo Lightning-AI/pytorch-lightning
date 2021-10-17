@@ -902,7 +902,8 @@ class AcceleratorConnector:
 
         if _IS_INTERACTIVE and self._distrib_type is not None and not self._distrib_type.is_interactive_compatible():
             raise MisconfigurationException(
-                f"`Trainer(strategy={self._distrib_type.value!r})` is not compatible with an interactive"
+                f"`Trainer(strategy={self._distrib_type.value!r})` or"
+                f" `Trainer(accelerator={self._distrib_type.value!r})` is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible backends:"
                 f" {', '.join(DistributedType.interactive_compatible_types())}."
                 " In case you are spawning processes yourself, make sure to include the Trainer"
