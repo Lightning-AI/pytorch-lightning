@@ -80,8 +80,7 @@ Base classes
     :nosignatures:
     :template: classtemplate.rst
 
-    Loop
-    DataLoaderLoop
+    ~base.Loop
 
 
 Default Loop Implementations

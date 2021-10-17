@@ -51,7 +51,7 @@ Think of this as swapping out the engine in a car!
 Understanding the default Trainer loop
 --------------------------------------
 
-The Lightning Trainer automates the standard optimization loop which every PyTorch user is familiar with:
+The Lightning :class:`~pytorch_lightning.trainer.trainer.Trainer` automates the standard optimization loop which every PyTorch user is familiar with:
 
 .. code-block:: python
 
@@ -63,7 +63,7 @@ The Lightning Trainer automates the standard optimization loop which every PyTor
         loss.backward()
         optimizer.step()
 
-The core research logic is simply shifted to the LightningModule:
+The core research logic is simply shifted to the :class:`~pytorch_lightning.core.lightning.LightningModule`:
 
 .. code-block:: python
 
@@ -78,7 +78,7 @@ The core research logic is simply shifted to the LightningModule:
         loss.backward()
         optimizer.step()
 
-Under the hood, the above loop is implemented using the Loop API like so:
+Under the hood, the above loop is implemented using the :class:`~pytorch_lightning.loops.base.Loop` API like so:
 
 .. code-block:: python
 
@@ -95,10 +95,10 @@ Under the hood, the above loop is implemented using the Loop API like so:
 
 Defining a loop within a class interface instead of hard-coding a raw Python for/while loop has several benefits:
 
-1. You can have full control over the data flow through loops
-2. You can add new loops and nest as many of them as you want
-3. If needed, the state of a loop can be saved and resumed
-4. New hooks can be injected at any point
+1. You can have full control over the data flow through loops.
+2. You can add new loops and nest as many of them as you want.
+3. If needed, the state of a loop can be :ref:`saved and resumed <persisting loop state>`.
+4. New hooks can be injected at any point.
 
 .. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/loops/epoch-loop-steps.gif
     :alt: Animation showing how to convert a standard training loop to a Lightning loop
@@ -112,12 +112,12 @@ Overriding the default loops
 The fastest way to get started with loops, is to override functionality of an existing loop.
 Lightning has 4 main loops it uses: :class:`~pytorch_lightning.loops.fit_loop.FitLoop` for training and validating,
 :class:`~pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop` for testing,
-:class:`~pytorch_lightning.loops.dataloader.evaluation_loop.PredictionLoop` for predicting.
+:class:`~pytorch_lightning.loops.dataloader.prediction_loop.PredictionLoop` for predicting.
 
 For simple changes that don't require a custom loop, you can modify each of these loops.
 
 Each loop has a series of methods that can be modified.
-For example with the :class:`~pytorch_lightning.loops.fit_loop.FitLoop`.
+For example with the :class:`~pytorch_lightning.loops.fit_loop.FitLoop`:
 
 .. code-block::
 
@@ -177,7 +177,7 @@ Now your code is FULLY flexible and you can still leverage ALL the best parts of
 Creating a new loop from scratch
 --------------------------------
 
-You can also go wild and implement a full loop from scratch by sub-classing the Loop base class.
+You can also go wild and implement a full loop from scratch by sub-classing the :class:`~pytorch_lightning.loops.base.Loop` base class.
 You will need to override a minimum of two things:
 
 .. code-block::
@@ -195,25 +195,25 @@ You will need to override a minimum of two things:
             # do your fancy optimization things
             # call the lightning module methods at your leisure
 
-Finally, attach it into the Trainer:
+Finally, attach it into the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
 .. code-block:: python
 
     trainer = Trainer(...)
-    trainer.fit_loop = fit_loop
+    trainer.fit_loop = MyFancyLoop()
 
     # fit() now uses your fancy loop!
     trainer.fit(...)
 
 Now you have full control over the Trainer.
 But beware: The power of loop customization comes with great responsibility.
-We recommend that you familiarize yourself with :ref:`overriding the default loops <override default loops>` first before you start building a new loop from ground up.
+We recommend that you familiarize yourself with :ref:`overriding the default loops <override default loops>` first before you start building a new loop from the ground up.
 
 Loop API
 --------
 Here is the full API of methods available in the Loop base class.
 
-The :class:`~pytorch_lightning.loops.base.Loop` class is the base for all loops in Lighting just like the LightningModule is the base for all models.
+The :class:`~pytorch_lightning.loops.base.Loop` class is the base for all loops in Lighting just like the :class:`~pytorch_lightning.core.lightning.LightningModule` is the base for all models.
 It defines a public interface that each loop implementation must follow, the key ones are:
 
 Properties

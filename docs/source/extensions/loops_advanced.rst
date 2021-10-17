@@ -37,9 +37,8 @@ Take as an example the following training step of a DCGAN from the `Lightning Bo
 
 
 We notice here that the same generator `fake` outputs are needed in both optimizer cases, but if we wanted to share that computation between the two optimization steps for efficiency, there would be no elegant way to do so.
-However, if we could :code:`yield` from the training step instead of returning, we can retain the local variables across training_step boundaries when we switch from one optimizer to the next in a natural way.
+However, if we could :code:`yield` from the training step instead of returning, we can retain the local variables across training step boundaries when we switch from one optimizer to the next in a natural way.
 But such a mechanism does not exist in Lightning, therefore we need to build a custom loop for it!
-
 
 .. code-block:: python
 
@@ -107,7 +106,7 @@ There must be as many :code:`yield` statements as there are optimizers.
 
 The alternative to this example *manual optimization* where the same can be achieved, but with the generator loop we can still get all benefits of manual optimization without having to call backward or zero grad ourselves.
 
-Given this new loop definition, here is how you connect it to the :code:`Trainer`:
+Given this new loop definition, here is how you connect it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
 .. code-block:: python
 
@@ -144,6 +143,8 @@ Finally, we can rewrite the GAN training step using the new yield mechanism:
         gen_loss = self.criterion(fake_pred, fake_gt)
         yield gen_loss
 
+.. _persisting loop state:
+
 Persisting the state of loops
 -----------------------------
 
@@ -169,7 +170,7 @@ The two hooks :class:`~pytorch_lightning.loops.base.Loop.on_save_checkpoint` and
     def on_load_checkpoint(self, state_dict):
         self.iteration = state_dict["iteration"]
 
-When the Trainer is restarting from a checkpoint (e.g., through :code:`Trainer(resume_from_checkpoint=...)`), the loop exposes a boolean :attr:`~pytorch_lightning.loops.base.Loop.restarting`.
+When the Trainer is restarting from a checkpoint (e.g., through :code:`Trainer(resume_from_checkpoint=...)`), the loop exposes a boolean attribute :attr:`~pytorch_lightning.loops.base.Loop.restarting`.
 Based around the value of this variable, the user can write the loop in such a way that it can restart from an arbitrary point given the state loaded from the checkpoint.
 For example, the implementation of the :meth:`~pytorch_lightning.loops.base.Loop.reset` method could look like this given our previous example:
 
