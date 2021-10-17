@@ -342,7 +342,7 @@ Available Loops in Lightning Flash
 
 `Active Learning <https://en.wikipedia.org/wiki/Active_learning_(machine_learning)>`__ is a machine learning practice in which the user interacts with the learner in order to provide new labels when required.
 
-You can find a real use case in `Lightning Flash <https://github.com/PyTorchLightning/lightning-flash>`__
+You can find a real use case in `Lightning Flash <https://github.com/PyTorchLightning/lightning-flash>`_.
 
 Flash implements the :code:`ActiveLearningLoop` that you can use together with the :code:`ActiveLearningDataModule` to label new data on the fly.
 To run the following demo, install Flash and `BaaL <https://github.com/ElementAI/baal>`__  first:
