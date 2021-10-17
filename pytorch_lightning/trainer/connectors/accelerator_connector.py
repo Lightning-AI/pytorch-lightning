@@ -245,9 +245,10 @@ class AcceleratorConnector:
 
     def _validate_accelerator_type(self) -> None:
         if self._accelerator_type and self._accelerator_type != self._device_type:
-            raise MisconfigurationException(
-                f"Mismatch between the requested `strategy={self._accelerator_type.value!r}`"
-                f" and `accelerator={self._device_type.value!r}`."
+            # internal error: should not happen.
+            raise ValueError(
+                f"Mismatch between the requested accelerator type ({self._accelerator_type})"
+                f" and assigned device type ({self._device_type})."
             )
         self._accelerator_type = self._device_type
 
