@@ -667,7 +667,7 @@ def test_optimizer_step_before_lr_scheduler_step(tmpdir):
         max_epochs=1,
         gpus=1,
         precision=16,
-        limit_train_batches=1,
+        limit_train_batches=4,
         limit_val_batches=0,
         limit_test_batches=0,
     )
@@ -681,6 +681,38 @@ def test_optimizer_step_before_lr_scheduler_step(tmpdir):
                 "interval": "step",
                 "frequency": 1,
             }
+            return {"optimizer": optimizer, "lr_scheduler": scheduler}
+
+    model = TestModel()
+    model.training_epoch_end = None
+
+    # capture all warnings
+    with pytest.warns(None) as record:
+        trainer.fit(model)
+
+    for r in record:
+        assert "Detected call of `lr_scheduler.step()` before `optimizer.step()`." not in str(r.message)
+
+
+def test_optimizer_step_before_lr_scheduler_step_2(tmpdir):
+    """Test `optimizer.step()` is called before `lr_scheduler.step()`."""
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        logger=False,
+        max_epochs=1,
+        gpus=1,
+        precision=16,
+        limit_train_batches=4,
+        limit_val_batches=0,
+        limit_test_batches=0,
+    )
+
+    class TestModel(BoringModel):
+        def configure_optimizers_1(model):
+            optimizer = torch.optim.SGD(model.layer.parameters(), lr=0.1)
+            scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
             return {"optimizer": optimizer, "lr_scheduler": scheduler}
 
     model = TestModel()
