@@ -29,7 +29,16 @@ log = logging.getLogger(__name__)
 
 
 class XLACheckpointIO(TorchCheckpointIO):
+    """CheckpointIO that utilizes :func:`xm.save` to save checkpoints for TPU training strategies."""
+
     def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
+        """Save model/training states as a checkpoint file through state-dump and file-write.
+
+        Args:
+            checkpoint: dict containing model and trainer state
+            path: write-target path
+            storage_options: Optional parameters when saving the model/training states.
+        """
         # Todo: TypeError: 'mappingproxy' object does not support item assignment
         # Ref: https://github.com/pytorch/xla/issues/2773
         if _OMEGACONF_AVAILABLE:
