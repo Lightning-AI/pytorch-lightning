@@ -184,7 +184,7 @@ class LightningOptimizer:
             closure = do_nothing_closure
             profiler_action = "optimizer_step_without_closure"
         elif not callable(closure):
-            raise MisconfigurationException("When closure is provided, it should be callable")
+            raise MisconfigurationException("When `optimizer.step(closure)` is called, the closure should be callable")
         else:
             profiler_action = "optimizer_step_with_closure"
         profiler_action += f"_{self._optimizer_idx}"
