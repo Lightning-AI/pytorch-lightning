@@ -129,8 +129,7 @@ class ModelCheckpoint(Callback):
                This argument has been deprecated in v1.4 and will be removed in v1.6.
 
             Use ``every_n_epochs`` instead.
-        more_in_depth_save : this will save the files with more information like epoch step train_loss valid_loss
-            'epoch'-'step'-'train_loss'-'valid_loss'
+
     Note:
         For extra customization, ModelCheckpoint includes the following attributes:
 
@@ -193,7 +192,6 @@ class ModelCheckpoint(Callback):
         *monitor, mode, every_n_train_steps, every_n_epochs, train_time_interval, save_on_train_epoch_end*
 
         Read more: :ref:`Persisting Callback State`
-
     """
 
     CHECKPOINT_JOIN_CHAR = "-"
@@ -217,7 +215,6 @@ class ModelCheckpoint(Callback):
         every_n_epochs: Optional[int] = None,
         save_on_train_epoch_end: Optional[bool] = None,
         every_n_val_epochs: Optional[int] = None,
-        more_in_depth_save: Optional[bool] = False,
     ):
         super().__init__()
         self.monitor = monitor
@@ -233,7 +230,6 @@ class ModelCheckpoint(Callback):
         self.best_k_models = {}
         self.kth_best_model_path = ""
         self.best_model_score = None
-        self.more_in_depth_save = more_in_depth_save
         self.best_model_path = ""
         self.last_model_path = ""
 
@@ -517,13 +513,8 @@ class ModelCheckpoint(Callback):
     ) -> str:
         if not filename:
             # filename is not set, use default name
-            if self.more_in_depth_save is True:
-                metrics_str = ""
-                for metric_key, metric_val in zip(metrics.keys(), metrics.values()):
-                    metrics_str = metrics_str + "-" + str(metric_key) + "-" + str(metric_val)
-                filename = metrics_str + cls.CHECKPOINT_JOIN_CHAR
-            else:
-                filename = "{epoch}" + "{step}" + cls.CHECKPOINT_JOIN_CHAR
+            filename = "{epoch}" + cls.CHECKPOINT_JOIN_CHAR + "{step}"
+
         # check and parse user passed keys in the string
         groups = re.findall(r"(\{.*?)[:\}]", filename)
         if len(groups) >= 0:
@@ -580,7 +571,6 @@ class ModelCheckpoint(Callback):
             filename = self.CHECKPOINT_JOIN_CHAR.join((filename, f"v{ver}"))
 
         ckpt_name = f"{filename}{self.FILE_EXTENSION}"
-
         return os.path.join(self.dirpath, ckpt_name) if self.dirpath else ckpt_name
 
     def __resolve_ckpt_dir(self, trainer: "pl.Trainer") -> None:
