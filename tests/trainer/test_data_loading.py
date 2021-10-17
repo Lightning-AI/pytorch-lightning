@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import sys
+from io import StringIO
 from re import escape
 
 import pytest
@@ -101,21 +102,43 @@ def test_replace_distributed_sampler(tmpdir, mode):
         trainer.test(model)
 
 
+class TestSpawnBoringModel(BoringModel):
+    def __init__(self, num_workers):
+        super().__init__()
+        self.num_workers = num_workers
+
+    def train_dataloader(self):
+        return DataLoader(RandomDataset(32, 64), num_workers=self.num_workers)
+
+    def on_pretrain_routine_start(self):
+        self._sys_out = sys.stderr
+        self._resout = sys.stderr = StringIO()
+
+    def on_train_end(self):
+        def _get_warning_msg():
+            dl = self.trainer.train_dataloader.loaders
+            if hasattr(dl, "persistent_workers"):
+                if self.num_workers == 0:
+                    warn_str = "Consider setting num_workers>0 and persistent_workers=True"
+                else:
+                    warn_str = "Consider setting persistent_workers=True"
+            else:
+                warn_str = "Consider setting accelerator=ddp"
+
+            return warn_str
+
+        if self.trainer.is_global_zero:
+            msg = self._resout.getvalue()
+            sys.stderr = self._sys_out
+            warn_str = _get_warning_msg()
+            assert warn_str in msg
+
+
 @pytest.mark.parametrize("num_workers", [0, 1])
 def test_dataloader_warnings(tmpdir, num_workers):
-    dl = DataLoader(RandomDataset(32, 64), num_workers=num_workers)
-    if hasattr(dl, "persistent_workers"):
-        if num_workers == 0:
-            warn_str = "Consider setting num_workers>0 and persistent_workers=True"
-        else:
-            warn_str = "Consider setting persistent_workers=True"
-    else:
-        warn_str = "Consider setting accelerator=ddp"
-
     trainer = Trainer(default_root_dir=tmpdir, accelerator="ddp_spawn", num_processes=2, fast_dev_run=4)
     assert trainer.accelerator_connector._distrib_type == DistributedType.DDP_SPAWN
-    with pytest.warns(UserWarning, match=warn_str):
-        trainer.fit(BoringModel(), dl)
+    trainer.fit(TestSpawnBoringModel(num_workers))
 
 
 def test_update_dataloader_raises():
