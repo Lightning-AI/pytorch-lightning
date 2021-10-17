@@ -64,17 +64,19 @@ class TensorBoardLogger(LightningLoggerBase):
             directory for existing versions, then automatically assigns the next available version.
             If it is a string then it is used as the run-specific subdirectory name,
             otherwise ``'version_${version}'`` is used.
-        sub_dir: Sub-directory to group TensorBoard logs. If a sub_dir argument is passed
-            then logs are saved in ``/save_dir/version/sub_dir/``. Defaults to ``None`` in which
-            logs are saved in ``/save_dir/version/``.
         log_graph: Adds the computational graph to tensorboard. This requires that
             the user has defined the `self.example_input_array` attribute in their
             model.
         default_hp_metric: Enables a placeholder metric with key `hp_metric` when `log_hyperparams` is
             called without a metric (otherwise calls to log_hyperparams without a metric are ignored).
         prefix: A string to put at the beginning of metric keys.
-        \**kwargs: Additional arguments like `comment`, `filename_suffix`, etc. used by
-            :class:`SummaryWriter` can be passed as keyword arguments in this logger.
+        sub_dir: Sub-directory to group TensorBoard logs. If a sub_dir argument is passed
+            then logs are saved in ``/save_dir/version/sub_dir/``. Defaults to ``None`` in which
+            logs are saved in ``/save_dir/version/``.
+        \**kwargs: Additional arguments used by :class:`SummaryWriter` can be passed as keyword
+            arguments in this logger. To automatically flush to disk, `max_queue` sets the size
+            of the queue for pending logs before flushing. `flush_secs` determines how many seconds
+            elapses before flushing.
 
     """
     NAME_HPARAMS_FILE = "hparams.yaml"
@@ -107,10 +109,10 @@ class TensorBoardLogger(LightningLoggerBase):
 
     @property
     def root_dir(self) -> str:
-        """
-        Parent directory for all tensorboard checkpoint subdirectories.
-        If the experiment name parameter is ``None`` or the empty string, no experiment subdirectory is used
-        and the checkpoint will be saved in "save_dir/version_dir"
+        """Parent directory for all tensorboard checkpoint subdirectories.
+
+        If the experiment name parameter is ``None`` or the empty string, no experiment subdirectory is used and the
+        checkpoint will be saved in "save_dir/version_dir"
         """
         if self.name is None or len(self.name) == 0:
             return self.save_dir
@@ -118,10 +120,10 @@ class TensorBoardLogger(LightningLoggerBase):
 
     @property
     def log_dir(self) -> str:
-        """
-        The directory for this run's tensorboard checkpoint. By default, it is named
-        ``'version_${self.version}'`` but it can be overridden by passing a string value
-        for the constructor's version parameter instead of ``None`` or an int.
+        """The directory for this run's tensorboard checkpoint.
+
+        By default, it is named ``'version_${self.version}'`` but it can be overridden by passing a string value for the
+        constructor's version parameter instead of ``None`` or an int.
         """
         # create a pseudo standard path ala test-tube
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
@@ -134,8 +136,7 @@ class TensorBoardLogger(LightningLoggerBase):
 
     @property
     def save_dir(self) -> Optional[str]:
-        """
-        Gets the save directory where the TensorBoard experiments are saved.
+        """Gets the save directory where the TensorBoard experiments are saved.
 
         Returns:
             The local path to the save directory where the TensorBoard experiments are saved.
@@ -144,8 +145,7 @@ class TensorBoardLogger(LightningLoggerBase):
 
     @property
     def sub_dir(self) -> Optional[str]:
-        """
-        Gets the sub directory where the TensorBoard experiments are saved.
+        """Gets the sub directory where the TensorBoard experiments are saved.
 
         Returns:
             The local path to the sub directory where the TensorBoard experiments are saved.
@@ -177,10 +177,9 @@ class TensorBoardLogger(LightningLoggerBase):
     def log_hyperparams(
         self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
     ) -> None:
-        """
-        Record hyperparameters. TensorBoard logs with and without saved hyperparameters
-        are incompatible, the hyperparameters are then not displayed in the TensorBoard.
-        Please delete or move the previously saved logs to display the new ones with hyperparameters.
+        """Record hyperparameters. TensorBoard logs with and without saved hyperparameters are incompatible, the
+        hyperparameters are then not displayed in the TensorBoard. Please delete or move the previously saved logs
+        to display the new ones with hyperparameters.
 
         Args:
             params: a dictionary-like container with the hyperparameters
@@ -270,8 +269,7 @@ class TensorBoardLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        """
-        Get the name of the experiment.
+        """Get the name of the experiment.
 
         Returns:
             The name of the experiment.
@@ -280,8 +278,7 @@ class TensorBoardLogger(LightningLoggerBase):
 
     @property
     def version(self) -> int:
-        """
-        Get the experiment version.
+        """Get the experiment version.
 
         Returns:
             The experiment version if specified else the next version.

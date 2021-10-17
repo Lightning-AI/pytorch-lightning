@@ -36,9 +36,8 @@ class Interval(LightningEnum):
 
 
 class Timer(Callback):
-    """
-    The Timer callback tracks the time spent in the training, validation, and test loops and interrupts the Trainer
-    if the given time limit for the training loop is reached.
+    """The Timer callback tracks the time spent in the training, validation, and test loops and interrupts the
+    Trainer if the given time limit for the training loop is reached.
 
     Args:
         duration: A string in the format DD:HH:MM:SS (days, hours, minutes seconds), or a :class:`datetime.timedelta`,
@@ -166,7 +165,7 @@ class Timer(Callback):
 
     def _check_time_remaining(self, trainer: "pl.Trainer") -> None:
         should_stop = self.time_elapsed() >= self._duration
-        should_stop = trainer.accelerator.broadcast(should_stop)
+        should_stop = trainer.training_type_plugin.broadcast(should_stop)
         trainer.should_stop = trainer.should_stop or should_stop
         if should_stop and self._verbose:
             elapsed = timedelta(seconds=int(self.time_elapsed(RunningStage.TRAINING)))

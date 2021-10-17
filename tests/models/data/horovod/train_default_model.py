@@ -1,5 +1,4 @@
-"""
-This script is meant to be executed from `../../test_horovod.py`.
+"""This script is meant to be executed from `../../test_horovod.py`.
 
 Because Horovod uses a parallel programming model similar to MPI, unit tests for collective
 ops like allreduce need to be run in parallel. The most common approach for running parallel
@@ -97,7 +96,7 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
     trainer.checkpoint_connector.restore(checkpoint_path)
 
     if on_gpu:
-        trainer = Trainer(gpus=1, accelerator="horovod", max_epochs=1)
+        trainer = Trainer(gpus=1, strategy="horovod", max_epochs=1)
         # Test the root_gpu property
         assert trainer.root_gpu == hvd.local_rank()
 

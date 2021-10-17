@@ -19,7 +19,7 @@ from tests.helpers import BoringModel
 
 
 def test_initialize_state():
-    """Tests that state is INITIALIZING after Trainer creation"""
+    """Tests that state is INITIALIZING after Trainer creation."""
     trainer = Trainer()
     assert trainer.state == TrainerState(status=TrainerStatus.INITIALIZING, fn=None, stage=None)
 
@@ -80,7 +80,7 @@ def test_trainer_fn_while_running(tmpdir, extra_params):
     [pytest.param(dict(fast_dev_run=True), id="Fast-Run"), pytest.param(dict(max_steps=1), id="Single-Step")],
 )
 def test_interrupt_state_on_keyboard_interrupt(tmpdir, extra_params):
-    """Tests that state is set to INTERRUPTED on KeyboardInterrupt"""
+    """Tests that state is set to INTERRUPTED on KeyboardInterrupt."""
     model = BoringModel()
 
     class InterruptCallback(Callback):

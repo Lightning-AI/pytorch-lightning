@@ -20,8 +20,8 @@ from pytorch_lightning.utilities import DistributedType
 
 class TestEpochEndVariations(ABC):
     def test_epoch_end(self, outputs):
-        """
-        Called at the end of test epoch to aggregate outputs
+        """Called at the end of test epoch to aggregate outputs.
+
         :param outputs: list of individual outputs of each validation step
         :return:
         """
@@ -53,8 +53,8 @@ class TestEpochEndVariations(ABC):
         return result
 
     def test_epoch_end__multiple_dataloaders(self, outputs):
-        """
-        Called at the end of test epoch to aggregate outputs
+        """Called at the end of test epoch to aggregate outputs.
+
         :param outputs: list of individual outputs of each validation step
         :return:
         """

@@ -96,7 +96,12 @@ def garbage_collection_cuda() -> None:
 
 
 def get_memory_profile(mode: str) -> Dict[str, float]:
-    """Get a profile of the current memory usage.
+    r"""
+    .. deprecated:: v1.5
+        This function was deprecated in v1.5 in favor of
+        `pytorch_lightning.accelerators.gpu._get_nvidia_gpu_stats` and will be removed in v1.7.
+
+    Get a profile of the current memory usage.
 
     Args:
         mode: There are two modes:
@@ -124,7 +129,11 @@ def get_memory_profile(mode: str) -> Dict[str, float]:
 
 
 def get_gpu_memory_map() -> Dict[str, float]:
-    """
+    r"""
+    .. deprecated:: v1.5
+        This function was deprecated in v1.5 in favor of
+        `pytorch_lightning.accelerators.gpu._get_nvidia_gpu_stats` and will be removed in v1.7.
+
     Get the current gpu usage.
 
     Return:
@@ -154,8 +163,7 @@ def get_gpu_memory_map() -> Dict[str, float]:
 
 
 def get_model_size_mb(model: Module) -> float:
-    """
-    Calculates the size of a Module in megabytes by saving the model to a temporary file and reading its size.
+    """Calculates the size of a Module in megabytes by saving the model to a temporary file and reading its size.
 
     The computation includes everything in the :meth:`~torch.nn.Module.state_dict`,
     i.e., by default the parameteters and buffers.

@@ -42,9 +42,13 @@ def test_trainer_flag(caplog):
         trainer.fit(TestModel())
     assert "callbacks list already contains a Timer" in caplog.text
 
-    seconds = 1
-    trainer = Trainer(max_time=dict(seconds=seconds))
-    assert trainer.max_epochs is None
+    # Make sure max_time still honored even if max_epochs == -1
+    trainer = Trainer(max_time=dict(seconds=1), max_epochs=-1)
+    with pytest.raises(SystemExit):
+        trainer.fit(TestModel())
+    timer = [c for c in trainer.callbacks if isinstance(c, Timer)][0]
+    assert timer._duration == 1
+    assert trainer.max_epochs == -1
     assert trainer.max_steps is None
 
 
@@ -100,7 +104,7 @@ def test_timer_time_remaining(time_mock):
 
 
 def test_timer_stops_training(tmpdir, caplog):
-    """Test that the timer stops training before reaching max_epochs"""
+    """Test that the timer stops training before reaching max_epochs."""
     model = BoringModel()
     duration = timedelta(milliseconds=100)
     timer = Timer(duration=duration)
@@ -153,7 +157,11 @@ def test_timer_resume_training(tmpdir):
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1)
 
     # initial training
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=100, callbacks=[timer, checkpoint_callback])
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=100,
+        callbacks=[timer, checkpoint_callback],
+    )
     trainer.fit(model)
     assert not timer._offset
     assert timer.time_remaining() <= 0

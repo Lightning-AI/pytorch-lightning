@@ -18,8 +18,8 @@ import torch.nn.functional as F
 
 
 class UNet(nn.Module):
-    """
-    Architecture based on U-Net: Convolutional Networks for Biomedical Image Segmentation
+    """Architecture based on U-Net: Convolutional Networks for Biomedical Image Segmentation.
+
     Link - https://arxiv.org/abs/1505.04597
 
     >>> UNet(num_classes=2, num_layers=3)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
@@ -73,9 +73,7 @@ class UNet(nn.Module):
 
 
 class DoubleConv(nn.Module):
-    """
-    Double Convolution and BN and ReLU
-    (3x3 conv -> BN -> ReLU) ** 2
+    """Double Convolution and BN and ReLU (3x3 conv -> BN -> ReLU) ** 2.
 
     >>> DoubleConv(4, 4)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     DoubleConv(
@@ -99,8 +97,7 @@ class DoubleConv(nn.Module):
 
 
 class Down(nn.Module):
-    """
-    Combination of MaxPool2d and DoubleConv in series
+    """Combination of MaxPool2d and DoubleConv in series.
 
     >>> Down(4, 8)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     Down(
@@ -122,10 +119,8 @@ class Down(nn.Module):
 
 
 class Up(nn.Module):
-    """
-    Upsampling (by either bilinear interpolation or transpose convolutions)
-    followed by concatenation of feature map from contracting path,
-    followed by double 3x3 convolution.
+    """Upsampling (by either bilinear interpolation or transpose convolutions) followed by concatenation of feature
+    map from contracting path, followed by double 3x3 convolution.
 
     >>> Up(8, 4)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     Up(

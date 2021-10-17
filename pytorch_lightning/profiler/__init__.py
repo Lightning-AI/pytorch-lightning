@@ -1,6 +1,4 @@
-"""
-Profiling your training run can help you understand if there are any bottlenecks in your code.
-
+"""Profiling your training run can help you understand if there are any bottlenecks in your code.
 
 Built-in checks
 ---------------
@@ -194,7 +192,6 @@ Use::
 Or::
 
     python -c 'import torch; print(torch.autograd.profiler.load_nvprof("trace_name.prof"))'
-
 """
 from pytorch_lightning.profiler.advanced import AdvancedProfiler
 from pytorch_lightning.profiler.base import AbstractProfiler, BaseProfiler, PassThroughProfiler

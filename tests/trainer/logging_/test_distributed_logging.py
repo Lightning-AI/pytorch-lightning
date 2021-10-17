@@ -23,8 +23,8 @@ from tests.helpers.runif import RunIf
 
 
 class AllRankLogger(LightningLoggerBase):
-    """
-    Logger to test all-rank logging (i.e. not just rank 0).
+    """Logger to test all-rank logging (i.e. not just rank 0).
+
     Logs are saved to local variable `logs`.
     """
 
@@ -61,19 +61,17 @@ class TestModel(BoringModel):
 
 @RunIf(skip_windows=True)
 def test_all_rank_logging_ddp_cpu(tmpdir):
-    """
-    Check that all ranks can be logged from
-    """
+    """Check that all ranks can be logged from."""
     model = TestModel()
     all_rank_logger = AllRankLogger()
     trainer = Trainer(
-        accelerator="ddp_cpu",
+        strategy="ddp_spawn",
         num_processes=2,
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=1,
-        weights_summary=None,
+        enable_model_summary=False,
         logger=all_rank_logger,
         log_every_n_steps=1,
     )
@@ -82,29 +80,27 @@ def test_all_rank_logging_ddp_cpu(tmpdir):
 
 @RunIf(min_gpus=2)
 def test_all_rank_logging_ddp_spawn(tmpdir):
-    """
-    Check that all ranks can be logged from
-    """
+    """Check that all ranks can be logged from."""
     model = TestModel()
     all_rank_logger = AllRankLogger()
     model.training_epoch_end = None
     trainer = Trainer(
-        accelerator="ddp_spawn",
+        strategy="ddp_spawn",
         gpus=2,
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=1,
         logger=all_rank_logger,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
 
 def test_first_logger_call_in_subprocess(tmpdir):
-    """
-    Test that the Trainer does not call the logger too early. Only when the worker processes are initialized
-    do we have access to the rank and know which one is the main process.
+    """Test that the Trainer does not call the logger too early.
+
+    Only when the worker processes are initialized do we have access to the rank and know which one is the main process.
     """
 
     class LoggerCallsObserver(Callback):
@@ -137,9 +133,7 @@ def test_first_logger_call_in_subprocess(tmpdir):
 
 
 def test_logger_after_fit_predict_test_calls(tmpdir):
-    """
-    Make sure logger outputs are finalized after fit, prediction, and test calls.
-    """
+    """Make sure logger outputs are finalized after fit, prediction, and test calls."""
 
     class BufferLogger(LightningLoggerBase):
         def __init__(self):

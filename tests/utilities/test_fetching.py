@@ -21,7 +21,7 @@ import torch
 from torch import tensor
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Callback, LightningDataModule, Trainer
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher, DataLoaderIterDataFetcher, InterBatchParallelDataFetcher
@@ -97,16 +97,16 @@ def test_misconfiguration_error():
 
 
 def get_cycles_per_ms() -> float:
-    """
-    Get 10 values and remove the 2 max and 2 min and return the avg.
+    """Get 10 values and remove the 2 max and 2 min and return the avg.
+
     This is to avoid system disturbance that skew the results, e.g. the very first cuda call likely does a bunch of
     init, which takes much longer than subsequent calls.
     """
 
     def measure() -> float:
-        """
-        Measure and return approximate number of cycles per millisecond for `torch.cuda._sleep`
-        Copied from: https://github.com/pytorch/pytorch/blob/v1.9.0/test/test_cuda.py#L81
+        """Measure and return approximate number of cycles per millisecond for `torch.cuda._sleep` Copied from:
+
+        https://github.com/pytorch/pytorch/blob/v1.9.0/test/test_cuda.py#L81.
         """
         start = torch.cuda.Event(enable_timing=True)
         end = torch.cuda.Event(enable_timing=True)
@@ -179,6 +179,16 @@ def test_trainer_num_prefetch_batches(tmpdir):
 
     model = RecommenderModel()
 
+    class AssertFetcher(Callback):
+        def __init__(self, check_inter_batch: bool):
+            self._check_inter_batch = check_inter_batch
+
+        def on_train_epoch_end(self, trainer, lightning_module):
+            if self._check_inter_batch:
+                assert isinstance(trainer.data_connector.train_data_fetcher, InterBatchParallelDataFetcher)
+            else:
+                assert isinstance(trainer.data_connector.train_data_fetcher, DataFetcher)
+
     trainer_kwargs = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -186,6 +196,7 @@ def test_trainer_num_prefetch_batches(tmpdir):
         limit_train_batches=4,
         limit_val_batches=0,
         num_sanity_val_steps=0,
+        callbacks=[AssertFetcher(check_inter_batch=True)],
     )
 
     with mock.patch.dict(os.environ, {"PL_INTER_BATCH_PARALLELISM": "1"}):
@@ -193,16 +204,16 @@ def test_trainer_num_prefetch_batches(tmpdir):
         trainer = Trainer(**trainer_kwargs)
         trainer.fit(model)
         t1 = time()
-        assert isinstance(trainer.data_connector.train_data_fetcher, InterBatchParallelDataFetcher)
         global_step = trainer.global_step
 
     torch.cuda.synchronize()
+
+    trainer_kwargs["callbacks"] = [AssertFetcher(check_inter_batch=False)]
 
     t2 = time()
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
     t3 = time()
-    assert isinstance(trainer.data_connector.train_data_fetcher, DataFetcher)
 
     assert global_step == trainer.global_step == 4
     ratio = (t3 - t2) / (t1 - t0)
@@ -302,9 +313,7 @@ class AsyncBoringModel(BoringModel):
 
 
 def test_training_step_with_dataloader_access(tmpdir) -> None:
-    """
-    A baseline functional test for `training_step` with dataloader access.
-    """
+    """A baseline functional test for `training_step` with dataloader access."""
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
     m = AsyncBoringModel()
     trainer.fit(m)
@@ -313,10 +322,8 @@ def test_training_step_with_dataloader_access(tmpdir) -> None:
 
 @pytest.mark.parametrize("trigger_stop_iteration", [False, True])
 def test_stop_iteration(trigger_stop_iteration, tmpdir):
-    """
-    Verify that StopIteration properly terminates the training when this is trigged
-    from the current `dataloader_iter`
-    """
+    """Verify that StopIteration properly terminates the training when this is trigged from the current
+    `dataloader_iter`"""
     EXPECT_NUM_BATCHES_PROCESSED = 2
 
     class TestModel(AsyncBoringModel):
@@ -345,13 +352,11 @@ def test_stop_iteration(trigger_stop_iteration, tmpdir):
 
 
 def test_on_train_batch_start_overridden(tmpdir) -> None:
-    """
-    Verify that a `MisconfigurationException` is raised when
-    `on_train_batch_start` is overridden on the `LightningModule`.
-    """
+    """Verify that a `MisconfigurationException` is raised when `on_train_batch_start` is overridden on the
+    `LightningModule`."""
 
     class InvalidModel(AsyncBoringModel):
-        def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
+        def on_train_batch_start(self, batch, batch_idx):
             pass
 
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
@@ -361,13 +366,11 @@ def test_on_train_batch_start_overridden(tmpdir) -> None:
 
 
 def test_on_train_batch_end_overridden(tmpdir) -> None:
-    """
-    Verify that a `MisconfigurationException` is raised when
-    `on_train_batch_end` is overridden on the `LightningModule`.
-    """
+    """Verify that a `MisconfigurationException` is raised when `on_train_batch_end` is overridden on the
+    `LightningModule`."""
 
     class InvalidModel(AsyncBoringModel):
-        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+        def on_train_batch_end(self, outputs, batch, batch_idx):
             pass
 
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
@@ -377,10 +380,8 @@ def test_on_train_batch_end_overridden(tmpdir) -> None:
 
 
 def test_tbptt_split_batch_overridden(tmpdir) -> None:
-    """
-    Verify that a `MisconfigurationException` is raised when
-    `tbptt_split_batch` is overridden on the `LightningModule`.
-    """
+    """Verify that a `MisconfigurationException` is raised when `tbptt_split_batch` is overridden on the
+    `LightningModule`."""
 
     class InvalidModel(AsyncBoringModel):
         def __init__(self) -> None:
@@ -391,3 +392,52 @@ def test_tbptt_split_batch_overridden(tmpdir) -> None:
     m = InvalidModel()
     with pytest.raises(MisconfigurationException, match="is incompatible with `truncated_bptt_steps > 0`."):
         trainer.fit(m)
+
+
+def test_transfer_hooks_with_unpacking(tmpdir):
+
+    """This test asserts the `transfer_batch` hooks are called only once per batch."""
+
+    class RandomDictDataset(RandomDataset):
+        def __getitem__(self, index):
+            return {"x": self.data[index], "y_true": torch.ones((2,)), "other": torch.ones((1,))}
+
+    class BoringDataModule(LightningDataModule):
+
+        count_called_on_before_batch_transfer = 0
+        count_called_transfer_batch_to_device = 0
+        count_called_on_after_batch_transfer = 0
+
+        def train_dataloader(self):
+            return DataLoader(RandomDictDataset(32, 2))
+
+        def val_dataloader(self):
+            return DataLoader(RandomDictDataset(32, 2))
+
+        def on_before_batch_transfer(self, batch, dataloader_idx: int):
+            self.count_called_on_before_batch_transfer += 1
+            return batch["x"], batch["y_true"]
+
+        def transfer_batch_to_device(self, *args, **kwargs):
+            self.count_called_transfer_batch_to_device += 1
+            return super().transfer_batch_to_device(*args, **kwargs)
+
+        def on_after_batch_transfer(self, batch, dataloader_idx: int):
+            self.count_called_on_after_batch_transfer += 1
+            return super().on_after_batch_transfer(batch, dataloader_idx)
+
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            x, _ = batch
+            return super().training_step(x, batch_idx)
+
+        def validation_step(self, batch, batch_idx):
+            x, _ = batch
+            return super().validation_step(x, batch_idx)
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, num_sanity_val_steps=0)
+    dm = BoringDataModule()
+    trainer.fit(TestModel(), datamodule=dm)
+    assert dm.count_called_on_before_batch_transfer == 4
+    assert dm.count_called_transfer_batch_to_device == 4
+    assert dm.count_called_on_after_batch_transfer == 4

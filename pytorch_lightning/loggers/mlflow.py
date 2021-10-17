@@ -33,7 +33,7 @@ try:
     from mlflow.tracking import context, MlflowClient
     from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
 # todo: there seems to be still some remaining import error with Conda env
-except ImportError:
+except ModuleNotFoundError:
     _MLFLOW_AVAILABLE = False
     mlflow, MlflowClient, context = None, None, None
     MLFLOW_RUN_NAME = "mlflow.runName"
@@ -53,8 +53,7 @@ else:
 
 
 class MLFlowLogger(LightningLoggerBase):
-    """
-    Log using `MLflow <https://mlflow.org>`_.
+    """Log using `MLflow <https://mlflow.org>`_.
 
     Install it with pip:
 
@@ -101,7 +100,7 @@ class MLFlowLogger(LightningLoggerBase):
             default.
 
     Raises:
-        ImportError:
+        ModuleNotFoundError:
             If required MLFlow package is not installed on the device.
     """
 
@@ -118,7 +117,7 @@ class MLFlowLogger(LightningLoggerBase):
         artifact_location: Optional[str] = None,
     ):
         if mlflow is None:
-            raise ImportError(
+            raise ModuleNotFoundError(
                 "You want to use `mlflow` logger which is not installed yet, install it with `pip install mlflow`."
             )
         super().__init__()
@@ -172,8 +171,7 @@ class MLFlowLogger(LightningLoggerBase):
 
     @property
     def run_id(self) -> str:
-        """
-        Create the experiment if it does not exist to get the run id.
+        """Create the experiment if it does not exist to get the run id.
 
         Returns:
             The run id.
@@ -183,8 +181,7 @@ class MLFlowLogger(LightningLoggerBase):
 
     @property
     def experiment_id(self) -> str:
-        """
-        Create the experiment if it does not exist to get the experiment id.
+        """Create the experiment if it does not exist to get the experiment id.
 
         Returns:
             The experiment id.
@@ -237,8 +234,7 @@ class MLFlowLogger(LightningLoggerBase):
 
     @property
     def save_dir(self) -> Optional[str]:
-        """
-        The root file directory in which MLflow experiments are saved.
+        """The root file directory in which MLflow experiments are saved.
 
         Return:
             Local path to the root experiment directory if the tracking uri is local.
@@ -249,8 +245,7 @@ class MLFlowLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        """
-        Get the experiment id.
+        """Get the experiment id.
 
         Returns:
             The experiment id.
@@ -259,8 +254,7 @@ class MLFlowLogger(LightningLoggerBase):
 
     @property
     def version(self) -> str:
-        """
-        Get the run id.
+        """Get the run id.
 
         Returns:
             The run id.

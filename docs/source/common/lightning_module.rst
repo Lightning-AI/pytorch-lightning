@@ -80,7 +80,7 @@ Notice a few things.
         out = net(x)
 
 Thus, to use Lightning, you just need to organize your code which takes about 30 minutes,
-(and let's be real, you probably should do anyhow).
+(and let's be real, you probably should do anyway).
 
 ------------
 
@@ -267,8 +267,8 @@ The matching pseudocode is:
 
 Training with DataParallel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-When training using a `accelerator` that splits data from each batch across GPUs, sometimes you might
-need to aggregate them on the master GPU for processing (dp, or ddp2).
+When training using an `accelerator` that splits data from each batch across GPUs, sometimes you might
+need to aggregate them on the main GPU for processing (dp, or ddp2).
 
 In this case, implement the `training_step_end` method
 
@@ -379,8 +379,8 @@ If you need to do something with all the outputs of each `validation_step`, over
 
 Validating with DataParallel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-When training using a `accelerator` that splits data from each batch across GPUs, sometimes you might
-need to aggregate them on the master GPU for processing (dp, or ddp2).
+When training using an `accelerator` that splits data from each batch across GPUs, sometimes you might
+need to aggregate them on the main GPU for processing (dp, or ddp2).
 
 In this case, implement the `validation_step_end` method
 
@@ -1195,6 +1195,7 @@ for more information.
             on_after_backward()
 
             on_before_optimizer_step()
+            configure_gradient_clipping()
             optimizer_step()
 
             on_train_batch_end()
@@ -1240,12 +1241,6 @@ backward
 ~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.backward
-    :noindex:
-
-get_progress_bar_dict
-~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.get_progress_bar_dict
     :noindex:
 
 on_before_backward
@@ -1456,6 +1451,12 @@ on_before_optimizer_step
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_before_optimizer_step
+    :noindex:
+
+configure_gradient_clipping
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.configure_gradient_clipping
     :noindex:
 
 optimizer_step

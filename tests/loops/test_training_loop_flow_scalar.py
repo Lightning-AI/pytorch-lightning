@@ -18,7 +18,7 @@ from torch.utils.data._utils.collate import default_collate
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.loops.closure import Closure
+from pytorch_lightning.loops.optimization.optimizer_loop import Closure
 from pytorch_lightning.trainer.states import RunningStage
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.deterministic_model import DeterministicModel
@@ -47,7 +47,7 @@ def test__training_step__flow_scalar(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -86,7 +86,7 @@ def test__training_step__tr_step_end__flow_scalar(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -131,7 +131,7 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -150,15 +150,15 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx)
     assert out.signal == 0
 
-    train_step_out = out.training_step_output
+    train_step_out = out.outputs
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out.minimize, torch.Tensor)
-    assert train_step_out.minimize.item() == 171
+    assert isinstance(train_step_out["loss"], torch.Tensor)
+    assert train_step_out["loss"].item() == 171
 
     # make sure the optimizer closure returns the correct things
     opt_closure = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._make_closure(
-        batch, batch_idx, 0, trainer.optimizers[0], hiddens=None
+        batch, batch_idx, 0, trainer.optimizers[0]
     )
     opt_closure_result = opt_closure()
     assert opt_closure_result.item() == 171
@@ -205,7 +205,7 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -224,22 +224,23 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx)
     assert out.signal == 0
 
-    train_step_out = out.training_step_output
+    train_step_out = out.outputs
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out.minimize, torch.Tensor)
-    assert train_step_out.minimize.item() == 171
+    assert isinstance(train_step_out["loss"], torch.Tensor)
+    assert train_step_out["loss"].item() == 171
 
     # make sure the optimizer closure returns the correct things
     opt_closure = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._make_closure(
-        batch, batch_idx, 0, trainer.optimizers[0], hiddens=None
+        batch, batch_idx, 0, trainer.optimizers[0]
     )
     opt_closure_result = opt_closure()
     assert opt_closure_result.item() == 171
 
 
 def test_train_step_no_return(tmpdir):
-    """Tests that only training_step raises a warning when nothing is returned in case of automatic_optimization."""
+    """Tests that only training_step raises a warning when nothing is returned in case of
+    automatic_optimization."""
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -248,22 +249,21 @@ def test_train_step_no_return(tmpdir):
             self.log("a", loss, on_step=True, on_epoch=True)
 
         def training_epoch_end(self, outputs) -> None:
-            assert len(outputs) == 0
+            assert len(outputs) == 0, outputs
 
         def validation_step(self, batch, batch_idx):
             self.validation_step_called = True
 
         def validation_epoch_end(self, outputs):
-            assert len(outputs) == 0
+            assert len(outputs) == 0, outputs
 
     model = TestModel()
     trainer_args = dict(default_root_dir=tmpdir, fast_dev_run=2)
-
     trainer = Trainer(**trainer_args)
 
     Closure.warning_cache.clear()
 
-    with pytest.warns(UserWarning, match=r"training_step returned None.*"):
+    with pytest.warns(UserWarning, match=r"training_step` returned `None"):
         trainer.fit(model)
 
     assert model.training_step_called
@@ -275,7 +275,7 @@ def test_train_step_no_return(tmpdir):
 
     Closure.warning_cache.clear()
 
-    with no_warning_call(UserWarning, match=r"training_step returned None.*"):
+    with no_warning_call(UserWarning, match=r"training_step` returned `None"):
         trainer.fit(model)
 
 
@@ -295,14 +295,14 @@ def test_training_step_no_return_when_even(tmpdir):
         limit_train_batches=4,
         limit_val_batches=1,
         max_epochs=4,
-        weights_summary=None,
+        enable_model_summary=False,
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
 
     Closure.warning_cache.clear()
 
-    with pytest.warns(UserWarning, match=r".*training_step returned None.*"):
+    with pytest.warns(UserWarning, match=r".*training_step` returned `None.*"):
         trainer.fit(model)
 
     trainer.state.stage = RunningStage.TRAINING
@@ -311,7 +311,7 @@ def test_training_step_no_return_when_even(tmpdir):
     for batch_idx, batch in enumerate(model.train_dataloader()):
         out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx)
         if not batch_idx % 2:
-            assert out.training_step_output == [[]]
+            assert out.outputs == []
         assert out.signal == 0
 
 
@@ -341,9 +341,9 @@ def test_training_step_none_batches(tmpdir):
         limit_train_batches=4,
         limit_val_batches=1,
         max_epochs=4,
-        weights_summary=None,
+        enable_model_summary=False,
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
 
     with pytest.warns(UserWarning, match=r".*train_dataloader yielded None.*"):
@@ -355,5 +355,5 @@ def test_training_step_none_batches(tmpdir):
     for batch_idx, batch in enumerate(model.train_dataloader()):
         out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx)
         if not batch_idx % 2:
-            assert out.training_step_output == [[]]
+            assert out.outputs == []
         assert out.signal == 0

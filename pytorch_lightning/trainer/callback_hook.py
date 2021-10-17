@@ -21,6 +21,7 @@ from packaging.version import Version
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
@@ -161,15 +162,23 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_batch_end(self, self.lightning_module)
 
-    def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
+    # TODO: Update this in v1.7 (deprecation: #9816)
+    def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
         """Called when the training batch begins."""
         for callback in self.callbacks:
-            callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx, dataloader_idx)
+            if is_param_in_hook_signature(callback.on_train_batch_start, "dataloader_idx", explicit=True):
+                callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx, 0)
+            else:
+                callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx)
 
-    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx):
+    # TODO: Update this in v1.7 (deprecation: #9816)
+    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx=0):
         """Called when the training batch ends."""
         for callback in self.callbacks:
-            callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx, dataloader_idx)
+            if is_param_in_hook_signature(callback.on_train_batch_end, "dataloader_idx", explicit=True):
+                callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx, 0)
+            else:
+                callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx)
 
     def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
         """Called when the validation batch begins."""
@@ -232,7 +241,12 @@ class TrainerCallbackHookMixin(ABC):
             callback.on_predict_end(self, self.lightning_module)
 
     def on_keyboard_interrupt(self):
-        """Called when the training is interrupted by KeyboardInterrupt."""
+        r"""
+        .. deprecated:: v1.5
+            This callback hook was deprecated in v1.5 in favor of `on_exception` and will be removed in v1.7.
+
+        Called when any trainer execution is interrupted by KeyboardInterrupt.
+        """
         for callback in self.callbacks:
             callback.on_keyboard_interrupt(self, self.lightning_module)
 
@@ -283,22 +297,16 @@ class TrainerCallbackHookMixin(ABC):
             callback.on_before_backward(self, self.lightning_module, loss)
 
     def on_after_backward(self):
-        """
-        Called after loss.backward() and before optimizers do anything.
-        """
+        """Called after loss.backward() and before optimizers do anything."""
         for callback in self.callbacks:
             callback.on_after_backward(self, self.lightning_module)
 
     def on_before_optimizer_step(self, optimizer, optimizer_idx):
-        """
-        Called after on_after_backward() once the gradient is accumulated and before optimizer.step().
-        """
+        """Called after on_after_backward() once the gradient is accumulated and before optimizer.step()."""
         for callback in self.callbacks:
             callback.on_before_optimizer_step(self, self.lightning_module, optimizer, optimizer_idx)
 
     def on_before_zero_grad(self, optimizer):
-        """
-        Called after optimizer.step() and before optimizer.zero_grad().
-        """
+        """Called after optimizer.step() and before optimizer.zero_grad()."""
         for callback in self.callbacks:
             callback.on_before_zero_grad(self, self.lightning_module, optimizer)

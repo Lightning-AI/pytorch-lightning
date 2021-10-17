@@ -21,7 +21,7 @@ from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADER
 
 
 class Tuner:
-    """Tuner class to tune your model"""
+    """Tuner class to tune your model."""
 
     def __init__(self, trainer: "pl.Trainer") -> None:
         self.trainer = trainer
@@ -57,7 +57,7 @@ class Tuner:
         return result
 
     def _run(self, *args: Any, **kwargs: Any) -> None:
-        """`_run` wrapper to set the proper state during tuning, as this can be called multiple times"""
+        """`_run` wrapper to set the proper state during tuning, as this can be called multiple times."""
         self.trainer.state.status = TrainerStatus.RUNNING  # last `_run` call might have set it to `FINISHED`
         self.trainer.training = True
         self.trainer._run(*args, **kwargs)
@@ -76,9 +76,8 @@ class Tuner:
         batch_arg_name: str = "batch_size",
         train_dataloader=None,  # TODO: remove with 1.6
     ) -> Optional[int]:
-        """
-        Iteratively try to find the largest batch size for a given model
-        that does not give an out of memory (OOM) error.
+        """Iteratively try to find the largest batch size for a given model that does not give an out of memory
+        (OOM) error.
 
         Args:
             model: Model to tune.
@@ -146,9 +145,8 @@ class Tuner:
         update_attr: bool = False,
         train_dataloader=None,  # TODO: remove with 1.6
     ) -> Optional[_LRFinder]:
-        """
-        Enables the user to do a range test of good initial learning rates,
-        to reduce the amount of guesswork in picking a good starting learning rate.
+        """Enables the user to do a range test of good initial learning rates, to reduce the amount of guesswork in
+        picking a good starting learning rate.
 
         Args:
             model: Model to tune.

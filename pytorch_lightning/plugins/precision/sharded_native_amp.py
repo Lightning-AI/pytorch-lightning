@@ -14,15 +14,15 @@
 from typing import Union
 
 from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
-from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
+from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
 
-if _NATIVE_AMP_AVAILABLE and _FAIRSCALE_AVAILABLE:
+if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
     from fairscale.optim.grad_scaler import ShardedGradScaler
 
 
 class ShardedNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
-    """Mixed Precision for Sharded Training"""
+    """Mixed Precision for Sharded Training."""
 
     def __init__(self, precision: Union[int, str] = 16, use_cpu: bool = False) -> None:
         super().__init__(precision, use_cpu=use_cpu)

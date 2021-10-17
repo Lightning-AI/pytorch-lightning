@@ -26,9 +26,7 @@ class TrainerGetModel(BoringModel):
 
 
 def test_get_model(tmpdir):
-    """
-    Tests that `trainer.lightning_module` extracts the model correctly
-    """
+    """Tests that `trainer.lightning_module` extracts the model correctly."""
 
     model = TrainerGetModel()
 
@@ -41,9 +39,7 @@ def test_get_model(tmpdir):
 
 @RunIf(skip_windows=True)
 def test_get_model_ddp_cpu(tmpdir):
-    """
-    Tests that `trainer.lightning_module` extracts the model correctly when using ddp on cpu
-    """
+    """Tests that `trainer.lightning_module` extracts the model correctly when using ddp on cpu."""
 
     model = TrainerGetModel()
 
@@ -53,7 +49,7 @@ def test_get_model_ddp_cpu(tmpdir):
         limit_train_batches=limit_train_batches,
         limit_val_batches=2,
         max_epochs=1,
-        accelerator="ddp_cpu",
+        strategy="ddp_spawn",
         num_processes=2,
     )
     trainer.fit(model)
@@ -61,9 +57,7 @@ def test_get_model_ddp_cpu(tmpdir):
 
 @RunIf(min_gpus=1)
 def test_get_model_gpu(tmpdir):
-    """
-    Tests that `trainer.lightning_module` extracts the model correctly when using GPU
-    """
+    """Tests that `trainer.lightning_module` extracts the model correctly when using GPU."""
 
     model = TrainerGetModel()
 

@@ -11,9 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Test logging in the training loop
-"""
+"""Test logging in the training loop."""
 
 import collections
 import itertools
@@ -25,16 +23,15 @@ import torch
 from torchmetrics import Accuracy
 
 from pytorch_lightning import callbacks, Trainer
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBar
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDictDataset
 from tests.helpers.runif import RunIf
 
 
 def test__training_step__log(tmpdir):
-    """
-    Tests that only training_step can be used
-    """
+    """Tests that only training_step can be used."""
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -81,24 +78,22 @@ def test__training_step__log(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
         callbacks=[ModelCheckpoint(monitor="l_se")],
     )
     trainer.fit(model)
 
     logged_metrics = set(trainer.logged_metrics)
-    assert logged_metrics == {"epoch", "default", "l_e", "l_s", "l_se_step", "l_se_epoch"}
+    assert logged_metrics == {"default", "l_e", "l_s", "l_se_step", "l_se_epoch"}
 
     pbar_metrics = set(trainer.progress_bar_metrics)
     assert pbar_metrics == {"p_e", "p_s", "p_se_step", "p_se_epoch"}
 
-    assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"p_se", "l_se"}) - {"epoch"}
+    assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"p_se", "l_se"})
 
 
 def test__training_step__epoch_end__log(tmpdir):
-    """
-    Tests that training_epoch_end can log
-    """
+    """Tests that training_epoch_end can log."""
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -121,24 +116,22 @@ def test__training_step__epoch_end__log(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
     logged_metrics = set(trainer.logged_metrics)
-    assert logged_metrics == {"epoch", "a_step", "a_epoch", "b", "b1", "a1", "a2"}
+    assert logged_metrics == {"a_step", "a_epoch", "b", "b1", "a1", "a2"}
 
     pbar_metrics = set(trainer.progress_bar_metrics)
     assert pbar_metrics == {"b"}
 
-    assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a"}) - {"epoch"}
+    assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a"})
 
 
 @pytest.mark.parametrize(["batches", "log_interval", "max_epochs"], [(1, 1, 1), (64, 32, 2)])
 def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval, max_epochs):
-    """
-    Tests that training_step_end and training_epoch_end can log
-    """
+    """Tests that training_step_end and training_epoch_end can log."""
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -163,27 +156,25 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
         limit_val_batches=batches,
         max_epochs=max_epochs,
         log_every_n_steps=log_interval,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
     # make sure all the metrics are available for callbacks
     logged_metrics = set(trainer.logged_metrics)
-    assert logged_metrics == {"a_step", "a_epoch", "b_step", "b_epoch", "c", "d/e/f", "epoch"}
+    assert logged_metrics == {"a_step", "a_epoch", "b_step", "b_epoch", "c", "d/e/f"}
 
     pbar_metrics = set(trainer.progress_bar_metrics)
     assert pbar_metrics == {"c", "b_epoch", "b_step"}
 
-    assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a", "b"}) - {"epoch"}
+    assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a", "b"})
 
 
 @pytest.mark.parametrize(
     ["batches", "fx", "result"], [(3, min, 0), (3, torch.max, 2), (11, max, 10), (5, "avg", 2), (5, "SUM", 10)]
 )
 def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
-    """
-    Tests that log works correctly with different tensor types
-    """
+    """Tests that log works correctly with different tensor types."""
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -203,7 +194,7 @@ def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
         limit_train_batches=batches,
         limit_val_batches=batches,
         max_epochs=2,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -241,18 +232,16 @@ def test_different_batch_types_for_sizing(tmpdir):
         limit_train_batches=1,
         limit_val_batches=2,
         max_epochs=1,
-        weights_summary=None,
+        enable_model_summary=False,
         fast_dev_run=True,
     )
     trainer.fit(model)
 
-    assert set(trainer.logged_metrics) == {"a_step", "a_epoch", "n_step", "n_epoch", "epoch"}
+    assert set(trainer.logged_metrics) == {"a_step", "a_epoch", "n_step", "n_epoch"}
 
 
 def test_log_works_in_train_callback(tmpdir):
-    """
-    Tests that log can be called within callback
-    """
+    """Tests that log can be called within callback."""
 
     class TestCallback(callbacks.Callback):
 
@@ -327,7 +316,7 @@ def test_log_works_in_train_callback(tmpdir):
     trainer.fit(model)
 
     # Make sure the func_name output equals the average from all logged values when on_epoch true
-    assert trainer.progress_bar_dict["train_loss"] == model.seen_losses[-1]
+    assert trainer.progress_bar_callback.get_metrics(trainer, model)["train_loss"] == model.seen_losses[-1]
     assert trainer.callback_metrics["train_loss"] == model.seen_losses[-1]
 
     assert cb.call_counter == {
@@ -394,9 +383,7 @@ class LoggingSyncDistModel(BoringModel):
     "gpus", [None, pytest.param(1, marks=RunIf(min_gpus=1)), pytest.param(2, marks=RunIf(min_gpus=2))]
 )
 def test_logging_sync_dist_true(tmpdir, gpus):
-    """
-    Tests to ensure that the sync_dist flag works (should just return the original value)
-    """
+    """Tests to ensure that the sync_dist flag works (should just return the original value)"""
     fake_result = 1
     model = LoggingSyncDistModel(fake_result)
     trainer = Trainer(
@@ -404,7 +391,7 @@ def test_logging_sync_dist_true(tmpdir, gpus):
         default_root_dir=tmpdir,
         limit_train_batches=3,
         limit_val_batches=3,
-        weights_summary=None,
+        enable_model_summary=False,
         gpus=gpus,
     )
     trainer.fit(model)
@@ -431,9 +418,7 @@ def test_logging_sync_dist_true(tmpdir, gpus):
 
 @RunIf(min_gpus=2, special=True)
 def test_logging_sync_dist_true_ddp(tmpdir):
-    """
-    Tests to ensure that the sync_dist flag works with ddp
-    """
+    """Tests to ensure that the sync_dist flag works with ddp."""
 
     class TestLoggingSyncDistModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -454,8 +439,8 @@ def test_logging_sync_dist_true_ddp(tmpdir):
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=2,
-        weights_summary=None,
-        accelerator="ddp",
+        enable_model_summary=False,
+        strategy="ddp",
         gpus=2,
         profiler="pytorch",
     )
@@ -465,7 +450,7 @@ def test_logging_sync_dist_true_ddp(tmpdir):
     assert trainer.logged_metrics["bar"] == 2
 
 
-def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
+def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmpdir: str):
     class TestModel(BoringModel):
         def training_step(self, *args):
             self.log("foo", torch.tensor(self.current_epoch), on_step=False, on_epoch=True, prog_bar=True)
@@ -477,20 +462,28 @@ def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
             )
             self.on_train_epoch_end_called = True
 
-        def on_epoch_end(self):
-            assert self.trainer.progress_bar_dict["foo"] == self.current_epoch
-            assert self.trainer.progress_bar_dict["foo_2"] == self.current_epoch
-            self.on_epoch_end_called = True
+    class TestProgressBar(ProgressBar):
+        def get_metrics(self, trainer: Trainer, model: LightningModule):
+            items = super().get_metrics(trainer, model)
+            items.pop("v_num", None)
+            return items
 
+        def on_epoch_end(self, trainer: Trainer, model: LightningModule):
+            metrics = self.get_metrics(trainer, model)
+            assert metrics["foo"] == self.trainer.current_epoch
+            assert metrics["foo_2"] == self.trainer.current_epoch
+            model.on_epoch_end_called = True
+
+    progress_bar = TestProgressBar()
     trainer = Trainer(
         default_root_dir=tmpdir,
+        callbacks=[progress_bar],
         max_epochs=2,
         limit_train_batches=1,
         limit_val_batches=0,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
         logger=False,
-        weights_summary=None,
-        progress_bar_refresh_rate=0,
+        enable_model_summary=False,
     )
     model = TestModel()
     trainer.fit(model)
@@ -499,9 +492,7 @@ def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
 
 
 def test_logging_in_callbacks_with_log_function(tmpdir):
-    """
-    Tests ensure self.log can be used directly in callbacks.
-    """
+    """Tests ensure self.log can be used directly in callbacks."""
 
     class LoggingCallback(callbacks.Callback):
         def on_train_start(self, trainer, pl_module):
@@ -510,7 +501,7 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         def on_train_epoch_start(self, trainer, pl_module):
             self.log("on_train_epoch_start", 2)
 
-        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
             self.log("on_train_batch_end", 3)
 
         def on_batch_end(self, trainer, pl_module):
@@ -528,7 +519,7 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=1,
-        weights_summary=None,
+        enable_model_summary=False,
         callbacks=[LoggingCallback()],
     )
     trainer.fit(model)
@@ -701,3 +692,20 @@ def test_log_gpu_memory_without_logging_on_step(tmpdir, log_gpu_memory):
         assert "max_gpu_mem" in trainer.logged_metrics
     else:
         assert "gpu_id: 1/memory.used (MB)" in trainer.logged_metrics
+
+
+@RunIf(min_gpus=1)
+def test_move_metrics_to_cpu(tmpdir):
+    class TestModel(BoringModel):
+        def on_before_backward(self, loss: torch.Tensor) -> None:
+            assert loss.device.type == "cuda"
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        amp_backend="native",
+        precision=16,
+        move_metrics_to_cpu=True,
+        gpus=1,
+    )
+    trainer.fit(TestModel())

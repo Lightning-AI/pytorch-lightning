@@ -11,9 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-XLA Profiler will help you debug and optimize training workload performance
-for your models using Cloud TPU performance tools.
+"""XLA Profiler will help you debug and optimize training workload performance for your models using Cloud TPU
+performance tools.
 
 Manual capture via TensorBoard
 
@@ -38,7 +37,6 @@ performance insights if the profiling duration is longer than the step time
 
 4. Once the capture is finished, the page will refresh and you could browse through the insights using the
 ``Tools`` dropdown at the top left
-
 """
 import logging
 from typing import Dict
@@ -65,10 +63,8 @@ class XLAProfiler(BaseProfiler):
     }
 
     def __init__(self, port: int = 9012) -> None:
-        """
-        This Profiler will help you debug and optimize training workload performance
-        for your models using Cloud TPU performance tools.
-        """
+        """This Profiler will help you debug and optimize training workload performance for your models using Cloud
+        TPU performance tools."""
         super().__init__(dirpath=None, filename=None)
         self.port = port
         self._recording_map: Dict = {}

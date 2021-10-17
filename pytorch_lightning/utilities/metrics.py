@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Helper functions to operate on metric values. """
+"""Helper functions to operate on metric values."""
 import numbers
 from typing import Any
 
@@ -22,8 +22,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def metrics_to_scalars(metrics: Any) -> Any:
-    """
-    Recursively walk through a collection and convert single-item tensors to scalar values
+    """Recursively walk through a collection and convert single-item tensors to scalar values.
 
     Raises:
         MisconfigurationException:

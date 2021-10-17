@@ -11,11 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-MNIST backbone image classifier example.
+"""MNIST backbone image classifier example.
 
-To run:
-python backbone_image_classifier.py --trainer.max_epochs=50
+To run: python backbone_image_classifier.py --trainer.max_epochs=50
 """
 from typing import Optional
 

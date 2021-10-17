@@ -80,11 +80,11 @@ def test_ranks_available_manual_plugin_selection(plugin_cls):
 @pytest.mark.parametrize(
     "trainer_kwargs",
     [
-        dict(accelerator="ddp", gpus=[1, 2]),
-        dict(accelerator="ddp_sharded", gpus=[1, 2]),
-        dict(accelerator="ddp2", gpus=[1, 2]),
-        dict(accelerator="ddp_cpu", num_processes=2),
-        dict(accelerator="ddp_spawn", gpus=[1, 2]),
+        dict(strategy="ddp", gpus=[1, 2]),
+        dict(strategy="ddp_sharded", gpus=[1, 2]),
+        dict(strategy="ddp2", gpus=[1, 2]),
+        dict(strategy="ddp_spawn", num_processes=2),
+        dict(strategy="ddp_spawn", gpus=[1, 2]),
     ],
 )
 @mock.patch("torch.cuda.is_available", return_value=True)
@@ -96,9 +96,9 @@ def test_ranks_available_automatic_plugin_selection(mock0, mock1, trainer_kwargs
 
     for cluster, variables, expected in environment_combinations():
 
-        if trainer_kwargs["accelerator"] == "ddp2":
+        if trainer_kwargs["strategy"] == "ddp2":
             expected.update(global_rank=expected["node_rank"], world_size=num_nodes)
-        if trainer_kwargs["accelerator"] in ("ddp_cpu", "ddp_spawn"):
+        if trainer_kwargs["strategy"] == "ddp_spawn":
             if isinstance(cluster, (SLURMEnvironment, TorchElasticEnvironment)):
                 # slurm and torchelastic do not work with spawn plugins
                 continue

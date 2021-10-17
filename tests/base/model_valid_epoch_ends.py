@@ -17,13 +17,10 @@ import torch
 
 
 class ValidationEpochEndVariations(ABC):
-    """
-    Houses all variations of validation_epoch_end steps
-    """
+    """Houses all variations of validation_epoch_end steps."""
 
     def validation_epoch_end(self, outputs):
-        """
-        Called at the end of validation to aggregate outputs
+        """Called at the end of validation to aggregate outputs.
 
         Args:
             outputs: list of individual outputs of each validation step
@@ -47,8 +44,7 @@ class ValidationEpochEndVariations(ABC):
         self.log("val_acc", val_acc_mean, prog_bar=True)
 
     def validation_epoch_end__multiple_dataloaders(self, outputs):
-        """
-        Called at the end of validation to aggregate outputs
+        """Called at the end of validation to aggregate outputs.
 
         Args:
             outputs: list of individual outputs of each validation step

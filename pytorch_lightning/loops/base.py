@@ -13,21 +13,21 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Generic, Optional, TypeVar
 
 from deprecate import void
 from torchmetrics import Metric
 
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import BaseProgress, Progress
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
+T = TypeVar("T")  # the output type of `run`
 
-class Loop(ABC):
-    """
-    Basic Loops interface. All classes derived from this must implement the following properties and methods:
+
+class Loop(ABC, Generic[T]):
+    """Basic Loops interface. All classes derived from this must implement the following properties and methods:
 
         * :attr:`done` (property): Condition to break the loop
         * :attr:`reset` (method): Resets the internal state between multiple calls of :attr:`run`
@@ -52,12 +52,14 @@ class Loop(ABC):
         self._trainer: Optional["pl.Trainer"] = None
 
     @property
-    def trainer(self) -> Optional["pl.Trainer"]:
+    def trainer(self) -> "pl.Trainer":
+        if self._trainer is None:
+            raise RuntimeError("The loop is not attached to a Trainer.")
         return self._trainer
 
     @trainer.setter
     def trainer(self, trainer: "pl.Trainer"):
-        """Connects this loop's trainer and its children"""
+        """Connects this loop's trainer and its children."""
         if not isinstance(trainer, pl.Trainer):
             raise MisconfigurationException(
                 f"Loop {self.__class__.__name__} should be connected to a `Trainer`, found: {trainer}."
@@ -70,7 +72,7 @@ class Loop(ABC):
     @property
     @abstractmethod
     def done(self) -> bool:
-        """Property indicating when loop is finished"""
+        """Property indicating when loop is finished."""
 
     @property
     def skip(self) -> bool:
@@ -78,19 +80,20 @@ class Loop(ABC):
         return False
 
     def connect(self, **kwargs: "Loop") -> None:
-        """Optionally connect one or multiple loops to this one. Linked loops should form a tree."""
+        """Optionally connect one or multiple loops to this one.
+
+        Linked loops should form a tree.
+        """
 
     def on_skip(self) -> Optional[Any]:
-        """
-        The function to run when :meth:`run` should be skipped, determined by the condition in :attr:`skip`.
+        """The function to run when :meth:`run` should be skipped, determined by the condition in :attr:`skip`.
 
         Returns:
             the default output value of :meth:`on_run_end`
         """
 
-    def run(self, *args: Any, **kwargs: Any) -> Optional[Any]:
-        """
-        The main entry point to the loop.
+    def run(self, *args: Any, **kwargs: Any) -> T:
+        """The main entry point to the loop.
 
         Will frequently check the :attr:`done` condition and calls :attr:`advance`
         until :attr:`done` evaluates to ``True``.
@@ -122,35 +125,40 @@ class Loop(ABC):
         """Resets the internal state of the loop at the beginning of each call to :attr:`run`."""
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
-        """
-        Hook to be called as the first thing after entering :attr:`run` (except the state reset).
+        """Hook to be called as the first thing after entering :attr:`run` (except the state reset).
 
         Accepts all arguments passed to :attr:`run`.
         """
         void(*args, **kwargs)
 
     def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
-        """
-        Hook to be called each time before :attr:`advance` is called. Accepts all arguments passed to :attr`run`.
+        """Hook to be called each time before :attr:`advance` is called.
+
+        Accepts all arguments passed to :attr`run`.
         """
         void(*args, **kwargs)
 
     @abstractmethod
     def advance(self, *args: Any, **kwargs: Any) -> None:
-        """Performs a single step. Accepts all arguments passed to :attr:`run`."""
+        """Performs a single step.
+
+        Accepts all arguments passed to :attr:`run`.
+        """
 
     def on_advance_end(self) -> None:
         """Hook to be called each time after :attr:`advance` is called."""
 
-    def on_run_end(self) -> Any:
-        """Hook to be called at the end of the run. Its return argument is returned from :attr:`run`."""
+    def on_run_end(self) -> T:
+        """Hook to be called at the end of the run.
+
+        Its return argument is returned from :attr:`run`.
+        """
 
     def teardown(self) -> None:
         """Use to release memory etc."""
 
     def on_save_checkpoint(self) -> Dict:
-        """
-        Called when saving a model checkpoint, use to persist loop state.
+        """Called when saving a model checkpoint, use to persist loop state.
 
         Returns:
             The current loop state.
@@ -161,8 +169,7 @@ class Loop(ABC):
         """Called when loading a model checkpoint, use to reload loop state."""
 
     def state_dict(self, destination: Optional[Dict] = None, prefix: Optional[str] = "") -> Dict:
-        """
-        The state dict is determined by the state and progress of this loop and all its children.
+        """The state dict is determined by the state and progress of this loop and all its children.
 
         Args:
             destination: An existing dictionary to update with this loop's state. By default a new dictionary
@@ -192,25 +199,19 @@ class Loop(ABC):
         self,
         state_dict: Dict,
         prefix: str = "",
-        restart_progress: bool = True,
         metrics: Optional[Dict[str, Metric]] = None,
     ) -> None:
         """Loads the state of this loop and all its children."""
-        self._load_from_state_dict(state_dict.copy(), prefix, restart_progress, metrics)
+        self._load_from_state_dict(state_dict.copy(), prefix, metrics)
         for k, v in self.__dict__.items():
             if isinstance(v, Loop):
-                v.load_state_dict(state_dict.copy(), prefix + k + ".", restart_progress)
+                v.load_state_dict(state_dict.copy(), prefix + k + ".")
 
-    def _load_from_state_dict(
-        self, state_dict: Dict, prefix: str, restart_progress: bool, metrics: Optional[Dict[str, Metric]] = None
-    ) -> None:
+    def _load_from_state_dict(self, state_dict: Dict, prefix: str, metrics: Optional[Dict[str, Metric]] = None) -> None:
         for k, v in self.__dict__.items():
             key = prefix + k
             if isinstance(v, BaseProgress):
                 v.load_state_dict(state_dict[key])
-                if restart_progress:
-                    apply_to_collection(v, Progress, lambda p: p.current.reset_on_restart())
-
             elif (
                 isinstance(v, ResultCollection)
                 and self.trainer is not None

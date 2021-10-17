@@ -26,8 +26,8 @@ from tests.helpers.utils import no_warning_call
 def test_callbacks_configured_in_model(tmpdir):
     """Test the callback system with callbacks added through the model hook."""
 
-    model_callback_mock = Mock()
-    trainer_callback_mock = Mock()
+    model_callback_mock = Mock(spec=Callback, model=Callback())
+    trainer_callback_mock = Mock(spec=Callback, model=Callback())
 
     class TestModel(BoringModel):
         def configure_callbacks(self):
@@ -35,7 +35,7 @@ def test_callbacks_configured_in_model(tmpdir):
 
     model = TestModel()
     trainer_options = dict(
-        default_root_dir=tmpdir, checkpoint_callback=False, fast_dev_run=True, progress_bar_refresh_rate=0
+        default_root_dir=tmpdir, enable_checkpointing=False, fast_dev_run=True, enable_progress_bar=False
     )
 
     def assert_expected_calls(_trainer, model_callback, trainer_callback):
@@ -79,16 +79,14 @@ def test_callbacks_configured_in_model(tmpdir):
 
 def test_configure_callbacks_hook_multiple_calls(tmpdir):
     """Test that subsequent calls to `configure_callbacks` do not change the callbacks list."""
-    model_callback_mock = Mock()
+    model_callback_mock = Mock(spec=Callback, model=Callback())
 
     class TestModel(BoringModel):
         def configure_callbacks(self):
             return [model_callback_mock]
 
     model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=True, checkpoint_callback=False, progress_bar_refresh_rate=1
-    )
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, enable_checkpointing=False)
 
     callbacks_before_fit = trainer.callbacks.copy()
     assert callbacks_before_fit

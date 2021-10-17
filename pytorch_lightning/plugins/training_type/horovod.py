@@ -146,8 +146,7 @@ class HorovodPlugin(ParallelPlugin):
             hvd.join()
 
     def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"):
-        """
-        Reduces a tensor from several distributed processes to one aggregated tensor.
+        """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
             tensor: the tensor to sync and reduce
@@ -173,7 +172,7 @@ class HorovodPlugin(ParallelPlugin):
         return hvd.allreduce(tensor, op=reduce_op)
 
     def all_gather(
-        self, result: Union[torch.Tensor], group: Optional[Any] = dist_group.WORLD, sync_grads: bool = False
+        self, result: torch.Tensor, group: Optional[Any] = dist_group.WORLD, sync_grads: bool = False
     ) -> torch.Tensor:
         if group is not None and group != dist_group.WORLD:
             raise ValueError("Horovod does not support allgather using a subcommunicator at this time. Unset `group`.")
@@ -184,9 +183,7 @@ class HorovodPlugin(ParallelPlugin):
 
         # sync and gather all
         self.join()
-        gathered = hvd.allgather(result)
-        gathered_result = list(gathered.split(1, dim=0))
-        return gathered_result
+        return hvd.allgather(result)
 
     def post_backward(self, closure_loss: torch.Tensor) -> None:
         # synchronize all horovod optimizers.

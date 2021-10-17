@@ -80,14 +80,12 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir, as_module):
 @RunIf(skip_windows=True)
 @pytest.mark.skipif(torch.cuda.is_available(), reason="test doesn't requires GPU machine")
 def test_torch_distributed_backend_env_variables(tmpdir):
-    """
-    This test set `undefined` as torch backend and should raise an `Backend.UNDEFINED` ValueError.
-    """
+    """This test set `undefined` as torch backend and should raise an `Backend.UNDEFINED` ValueError."""
     _environ = {"PL_TORCH_DISTRIBUTED_BACKEND": "undefined", "CUDA_VISIBLE_DEVICES": "0,1", "WORLD_SIZE": "2"}
     with patch.dict(os.environ, _environ), patch("torch.cuda.device_count", return_value=2):
         with pytest.raises(ValueError, match="Invalid backend: 'undefined'"):
             model = BoringModel()
-            trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="ddp", gpus=2, logger=False)
+            trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", gpus=2, logger=False)
             trainer.fit(model)
 
 
@@ -97,9 +95,7 @@ def test_torch_distributed_backend_env_variables(tmpdir):
 @mock.patch("torch.cuda.set_device")
 @mock.patch.dict(os.environ, {"PL_TORCH_DISTRIBUTED_BACKEND": "gloo"}, clear=True)
 def test_ddp_torch_dist_is_available_in_setup(mock_set_device, mock_is_available, mock_device_count, tmpdir):
-    """
-    Test to ensure torch distributed is available within the setup hook using ddp
-    """
+    """Test to ensure torch distributed is available within the setup hook using ddp."""
 
     class TestModel(BoringModel):
         def setup(self, stage: Optional[str] = None) -> None:
@@ -107,7 +103,7 @@ def test_ddp_torch_dist_is_available_in_setup(mock_set_device, mock_is_available
             raise SystemExit()
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="ddp", gpus=1)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", gpus=1)
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
@@ -123,9 +119,7 @@ def test_ddp_wrapper_32(tmpdir):
 
 
 def _test_ddp_wrapper(tmpdir, precision):
-    """
-    Test parameters to ignore are carried over for DDP.
-    """
+    """Test parameters to ignore are carried over for DDP."""
 
     class WeirdModule(torch.nn.Module):
         def _save_to_state_dict(self, destination, prefix, keep_vars):
@@ -150,7 +144,7 @@ def _test_ddp_wrapper(tmpdir, precision):
         default_root_dir=tmpdir,
         fast_dev_run=True,
         precision=precision,
-        accelerator="ddp",
+        strategy="ddp",
         gpus=2,
         callbacks=CustomCallback(),
     )

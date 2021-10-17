@@ -20,14 +20,12 @@ from torch.optim import Adam, Optimizer, SGD
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.loops.closure import Closure
+from pytorch_lightning.loops.optimization.optimizer_loop import Closure
 from tests.helpers.boring_model import BoringModel
 
 
 def test_lightning_optimizer(tmpdir):
-    """
-    Test that optimizer are correctly wrapped by our LightningOptimizer
-    """
+    """Test that optimizer are correctly wrapped by our LightningOptimizer."""
 
     class TestModel(BoringModel):
         def configure_optimizers(self):
@@ -37,7 +35,7 @@ def test_lightning_optimizer(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=1, max_epochs=1, weights_summary=None
+        default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=1, max_epochs=1, enable_model_summary=False
     )
     trainer.fit(model)
 
@@ -47,8 +45,9 @@ def test_lightning_optimizer(tmpdir):
 
 
 def test_lightning_optimizer_from_user(tmpdir):
-    """
-    Test that the user can use our LightningOptimizer. Not recommended.
+    """Test that the user can use our LightningOptimizer.
+
+    Not recommended.
     """
 
     class TestModel(BoringModel):
@@ -60,7 +59,7 @@ def test_lightning_optimizer_from_user(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=1, max_epochs=1, weights_summary=None
+        default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=1, max_epochs=1, enable_model_summary=False
     )
     trainer.fit(model)
 
@@ -70,8 +69,9 @@ def test_lightning_optimizer_from_user(tmpdir):
 
 
 def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(tmpdir):
-    """
-    Test that the user can use our LightningOptimizer. Not recommended.
+    """Test that the user can use our LightningOptimizer.
+
+    Not recommended.
     """
 
     class TestModel(BoringModel):
@@ -108,7 +108,7 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(tmpdi
     model.training_step_end = None
     model.training_epoch_end = None
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=8, limit_val_batches=1, max_epochs=1, weights_summary=None
+        default_root_dir=tmpdir, limit_train_batches=8, limit_val_batches=1, max_epochs=1, enable_model_summary=False
     )
 
     with patch.multiple(torch.optim.SGD, zero_grad=DEFAULT, step=DEFAULT) as sgd, patch.multiple(
@@ -174,9 +174,7 @@ def test_state(tmpdir):
 
 
 def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
-    """
-    Test overriding zero_grad works in automatic_optimization
-    """
+    """Test overriding zero_grad works in automatic_optimization."""
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx=None):
@@ -199,7 +197,7 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=20, limit_val_batches=1, max_epochs=1, weights_summary=None
+        default_root_dir=tmpdir, limit_train_batches=20, limit_val_batches=1, max_epochs=1, enable_model_summary=False
     )
 
     with patch("torch.optim.Adam.zero_grad") as adam_zero_grad, patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
@@ -210,9 +208,7 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
 
 
 def test_lightning_optimizer_automatic_optimization_optimizer_step(tmpdir):
-    """
-    Test overriding step works in automatic_optimization
-    """
+    """Test overriding step works in automatic_optimization."""
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx=None):
@@ -223,14 +219,13 @@ def test_lightning_optimizer_automatic_optimization_optimizer_step(tmpdir):
 
         def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, **_):
             assert isinstance(optimizer_closure, Closure)
-            # not passing the closure to the optimizer because step is mocked
             # zero_grad is called inside the closure
+            optimizer_closure()
+            # not passing the closure to the optimizer because step is mocked
             if isinstance(optimizer, SGD) and batch_idx % 2 == 0:
-                optimizer_closure()
                 optimizer.step()
             if isinstance(optimizer, Adam) and batch_idx % 4 == 0:
-                optimizer_closure()
-                optimizer.step()  # not passing the closure here because it's a mock
+                optimizer.step()
 
         def configure_optimizers(self):
             optimizer_1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -240,8 +235,13 @@ def test_lightning_optimizer_automatic_optimization_optimizer_step(tmpdir):
 
     model = TestModel()
 
+    limit_train_batches = 8
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=8, limit_val_batches=1, max_epochs=1, weights_summary=None
+        default_root_dir=tmpdir,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=1,
+        max_epochs=1,
+        enable_model_summary=False,
     )
 
     with patch.multiple(torch.optim.SGD, zero_grad=DEFAULT, step=DEFAULT) as sgd, patch.multiple(
@@ -249,18 +249,16 @@ def test_lightning_optimizer_automatic_optimization_optimizer_step(tmpdir):
     ) as adam:
         trainer.fit(model)
 
-    assert sgd["step"].call_count == 4
-    assert adam["step"].call_count == 2
+    assert sgd["step"].call_count == limit_train_batches // 2
+    assert adam["step"].call_count == limit_train_batches // 4
 
-    assert sgd["zero_grad"].call_count == 4
-    assert adam["zero_grad"].call_count == 2
+    assert sgd["zero_grad"].call_count == limit_train_batches
+    assert adam["zero_grad"].call_count == limit_train_batches
 
 
 def test_lightning_optimizer_automatic_optimization_lbfgs_zero_grad(tmpdir):
-    """
-    Test zero_grad is called the same number of times as LBFGS requires
-    for reevaluation of the loss in automatic_optimization.
-    """
+    """Test zero_grad is called the same number of times as LBFGS requires for reevaluation of the loss in
+    automatic_optimization."""
 
     class TestModel(BoringModel):
         def configure_optimizers(self):
@@ -268,7 +266,7 @@ def test_lightning_optimizer_automatic_optimization_lbfgs_zero_grad(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=1, max_epochs=1, weights_summary=None
+        default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=1, max_epochs=1, enable_model_summary=False
     )
 
     with patch("torch.optim.LBFGS.zero_grad") as zero_grad:
@@ -306,15 +304,13 @@ class OptimizerWithHooks(Optimizer):
         super().__init__(self.params, {"lr": 0.01})
 
     def _save_input(self, mod, i):
-        """Saves input of layer"""
+        """Saves input of layer."""
         if mod.training:
             self.state[mod]["x"] = i[0]
 
     def _save_grad_output(self, mod, _, grad_output):
-        """
-        Saves grad on output of layer to
-        grad is scaled with batch_size since gradient is spread over samples in mini batch
-        """
+        """Saves grad on output of layer to grad is scaled with batch_size since gradient is spread over samples in
+        mini batch."""
         batch_size = grad_output[0].shape[0]
         if mod.training:
             self.state[mod]["grad"] = grad_output[0] * batch_size
@@ -335,12 +331,12 @@ def test_lightning_optimizer_keeps_hooks(tmpdir):
         def configure_optimizers(self):
             return OptimizerWithHooks(self)
 
-        def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+        def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
             self.count_on_train_batch_start += 1
             optimizer = self.optimizers(use_pl_optimizer=False)
             assert len(optimizer._fwd_handles) == 1
 
-        def on_train_batch_end(self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+        def on_train_batch_end(self, outputs: Any, batch: Any, batch_idx: int) -> None:
             self.count_on_train_batch_end += 1
             del self.trainer._lightning_optimizers
             gc.collect()  # not necessary, just in case

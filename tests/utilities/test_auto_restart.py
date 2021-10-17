@@ -15,6 +15,7 @@ import math
 import os
 import random
 import random as python_random
+from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import suppress
 from copy import deepcopy
@@ -44,10 +45,10 @@ from pytorch_lightning.utilities.auto_restart import (
     MergedIteratorState,
 )
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
-from tests.helpers.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 
@@ -118,10 +119,8 @@ def test_fast_forward_getattr():
 
 
 def test_fast_forward_on_batch_sampler():
-    """
-    This test ensures ``FastForwardSampler`` applied to ``BatchSampler`` correctly retrived
-    the right next batch on restart.
-    """
+    """This test ensures ``FastForwardSampler`` applied to ``BatchSampler`` correctly retrived the right next batch
+    on restart."""
     dataset = range(15)
     sampler = SequentialSampler(dataset)
     batch_sampler = BatchSampler(sampler, 3, False)
@@ -144,10 +143,8 @@ def test_fast_forward_on_batch_sampler():
 
 
 def test_fast_forward_on_sequential_sampler():
-    """
-    This test ensures ``FastForwardSampler`` applied to ``SequentialSampler`` correctly retrived
-    the right next batch on restart.
-    """
+    """This test ensures ``FastForwardSampler`` applied to ``SequentialSampler`` correctly retrived the right next
+    batch on restart."""
     dataset = range(15)
     sequential_sampler = SequentialSampler(dataset)
     sampler = FastForwardSampler(sequential_sampler)
@@ -170,10 +167,8 @@ def test_fast_forward_on_sequential_sampler():
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="todo (tchaton) Need more investigation")
 def test_fast_forward_on_random_sampler():
-    """
-    This test ensures ``FastForwardSampler`` applied to ``RandomSampler`` correctly retrived
-    the right next batch on restart.
-    """
+    """This test ensures ``FastForwardSampler`` applied to ``RandomSampler`` correctly retrived the right next
+    batch on restart."""
     seed = 42
     seed_everything(42)
 
@@ -250,10 +245,8 @@ class RangeIterableDataset(IterableDataset):
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 30 sec and should be skipped in Azure CI")
 @pytest.mark.parametrize("num_workers", [0, 1, 2])
 def test_fast_forward_sampler_over_iterable_dataset(num_workers):
-    """
-    This test ensures ``FastForwardSampler`` and ``CaptureIterableDataset`` are properly being
-    used to capture workers states.
-    """
+    """This test ensures ``FastForwardSampler`` and ``CaptureIterableDataset`` are properly being used to capture
+    workers states."""
     batch_size = 3
     initial_seed = seed_everything(42)
     generator = torch.Generator()
@@ -364,7 +357,7 @@ def _test_fast_forward_sampler_with_distributed_sampler(rank, worldsize):
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 25 sec and should be skipped in Azure CI")
 @RunIf(skip_windows=True)
 def test_fast_forward_sampler_with_distributed_sampler():
-    """Make sure result logging works with DDP"""
+    """Make sure result logging works with DDP."""
     tutils.set_random_master_port()
     worldsize = 2
     mp.spawn(_test_fast_forward_sampler_with_distributed_sampler, args=(worldsize,), nprocs=worldsize)
@@ -638,7 +631,7 @@ def test_fast_forward_sampler_iterative_dataset():
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 55 sec and should be skipped in Azure CI")
 @RunIf(skip_windows=True)
 def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
-    """Make sure result logging works with DDP"""
+    """Make sure result logging works with DDP."""
     tutils.set_random_master_port()
     worldsize = 2
     mp.spawn(
@@ -700,9 +693,7 @@ def test_dataloader_to_state_dict_and_reload():
 @RunIf(min_torch="1.7.0")
 @pytest.mark.parametrize("use_fault_tolerant", ["0", "1"])
 def test_data_loading_wraps_dataset_and_samplers(use_fault_tolerant, tmpdir):
-    """
-    This test ensures the dataset and sampler are properly wrapped when fault tolerant is enabled.
-    """
+    """This test ensures the dataset and sampler are properly wrapped when fault tolerant is enabled."""
 
     class CustomBatchSampler(BatchSampler):
         pass
@@ -807,8 +798,7 @@ class RandomGetItemDataset(Dataset):
 @pytest.mark.parametrize("batch_size", [1, 2, 3])
 def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     """Test that the sequence of batches coming from a random number generator continues with the correct sequence
-    after reloading the state.
-    """
+    after reloading the state."""
 
     def create_dataset_sampler():
         dset = CaptureMapDataset(dataset_class(16, 8))
@@ -927,7 +917,7 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1):
     trainer = Trainer(**trainer_kwargs)
     with suppress(CustomException):
         trainer.fit(model, train_dataloader=train_dataloader)
-    return model.seen_batches
+    return model.seen_batches, model.parameters()
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
@@ -951,17 +941,17 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir, dataset_classes, mult
     trainer_kwargs = dict(
         default_root_dir=tmpdir,
         max_epochs=3,
-        weights_summary=None,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
+        enable_model_summary=False,
         multiple_trainloader_mode=multiple_trainloader_mode,
     )
 
-    all_batches = _run_training(trainer_kwargs, dataset_classes)
+    all_batches, weights0 = _run_training(trainer_kwargs, dataset_classes)
     all_batches = torch.stack(all_batches)
     assert len(all_batches) == 9
 
     # Simulate 1st failure
-    complete_batches = _run_training(trainer_kwargs, dataset_classes, fail_on_step=4)
+    complete_batches, _ = _run_training(trainer_kwargs, dataset_classes, fail_on_step=4)
     assert len(complete_batches) == 4
 
     checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
@@ -969,10 +959,240 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir, dataset_classes, mult
 
     # Resume after failure
     trainer_kwargs.update(resume_from_checkpoint=checkpoint_path)
-    resumed_batches = _run_training(trainer_kwargs, dataset_classes, fail_on_step=-1)
+    resumed_batches, weights1 = _run_training(trainer_kwargs, dataset_classes, fail_on_step=-1)
     assert len(resumed_batches) == 5
 
     # the resumed batches should match the batches of the successful training
     all_batches_resumed = torch.stack(complete_batches + resumed_batches)
     assert len(all_batches_resumed) == 9
     assert torch.equal(all_batches, all_batches_resumed)
+
+    # the final weights of a resumed training should equal the weights of an uninterrupted training
+    for w0, w1 in zip(weights0, weights1):
+        assert w0 is not w1
+        assert torch.allclose(w0, w1)
+
+
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+@RunIf(min_torch="1.7.0")
+@pytest.mark.parametrize(
+    ["train_datasets", "val_datasets"],
+    [
+        ([RandomGetItemDataset], [RandomGetItemDataset]),
+        ([RandomGetItemDataset], [RandomGetItemDataset, RandomGetItemDataset]),
+    ],
+)
+@pytest.mark.parametrize(
+    "val_check_interval",
+    [
+        pytest.param(
+            0.5,
+            marks=pytest.mark.xfail(
+                reason=(
+                    "TODO: the `train_dataloader` random state overrides the validation state when restarting training"
+                )
+            ),
+        ),
+        1.0,
+    ],
+)
+def test_auto_restart_within_validation_loop(train_datasets, val_datasets, val_check_interval, tmpdir):
+    n_val_dataloaders = len(val_datasets)
+    stop_dataloader = n_val_dataloaders - 1
+    stop_batch = 1
+
+    class ValidationLoopTestModel(LightningModule):
+        def __init__(self, should_fail):
+            super().__init__()
+            self.layer = torch.nn.Linear(1, 2)
+            self.should_fail = should_fail
+            self.training_batches = []
+            self.validation_batches = defaultdict(list)
+
+        def step(self, batch):
+            return sum(self.layer(b).sum() for b in batch)
+
+        def training_step(self, batch, batch_idx):
+            self.training_batches.append(batch)
+            return self.step(batch)
+
+        def validation_step(self, batch, batch_idx, dataloader_idx=0):
+            if self.should_fail and stop_dataloader == dataloader_idx and batch_idx == stop_batch:
+                raise CustomException
+            self.validation_batches[dataloader_idx].append(batch)
+            return self.step(batch)
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.layer.parameters(), lr=0.1)
+
+        def train_dataloader(self):
+            return [DataLoader(cls(4, 1)) for cls in train_datasets]
+
+        def val_dataloader(self):
+            return [DataLoader(cls(4, 1)) for cls in val_datasets]
+
+    def run(should_fail, resume):
+        if not resume:
+            seed_everything(42)
+
+        model = ValidationLoopTestModel(should_fail)
+
+        resume_from_checkpoint = str(tmpdir / ".pl_auto_save.ckpt") if resume else None
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            val_check_interval=val_check_interval,
+            num_sanity_val_steps=0,
+            resume_from_checkpoint=resume_from_checkpoint,
+        )
+        if should_fail:
+            with pytest.raises(CustomException):
+                trainer.fit(model)
+        else:
+            trainer.fit(model)
+
+        return model.training_batches, model.validation_batches
+
+    total_train_batches, total_val_batches = run(should_fail=False, resume=False)
+    pre_fail_train_batches, pre_fail_val_batches = run(should_fail=True, resume=False)
+    post_fail_train_batches, post_fail_val_batches = run(should_fail=False, resume=True)
+
+    torch.testing.assert_allclose(total_train_batches, pre_fail_train_batches + post_fail_train_batches)
+    for k in total_val_batches:
+        torch.testing.assert_allclose(total_val_batches[k], pre_fail_val_batches[k] + post_fail_val_batches[k])
+
+
+class TestAutoRestartModelUnderSignal(BoringModel):
+    def __init__(self, should_signal: bool, failure_on_step: bool, failure_on_training: bool, on_last_batch: bool):
+        super().__init__()
+        self.should_signal = should_signal
+        self.failure_on_step = failure_on_step
+        self.failure_on_training = failure_on_training
+        self.on_last_batch = on_last_batch
+        self.seen_train_batches = []
+
+    def _signal(self):
+        if self.should_signal:
+            # simulate `os.kill(os.getpid(), signal.SIGUSR1)`
+            self.trainer._terminate_gracefully = True
+
+    def training_step(self, batch, batch_idx):
+        self.seen_train_batches.append(batch)
+        should_signal = self.trainer.fit_loop.epoch_loop._is_training_done if self.on_last_batch else batch_idx == 2
+        if self.failure_on_step and self.failure_on_training and should_signal:
+            self._signal()
+        return super().training_step(batch, batch_idx)
+
+    def validation_step(self, batch, batch_idx):
+        should_signal = (
+            self.trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.is_last_batch
+            if self.on_last_batch
+            else batch_idx == 2
+        )
+        if self.failure_on_step and not self.failure_on_training and should_signal:
+            self._signal()
+        return super().validation_step(batch, batch_idx)
+
+    def training_epoch_end(self, outputs) -> None:
+        if not self.failure_on_step and self.failure_on_training:
+            self._signal()
+
+    def validation_epoch_end(self, outputs) -> None:
+        if not self.failure_on_step and not self.failure_on_training:
+            self._signal()
+
+    def train_dataloader(self):
+        return DataLoader(RandomDataset(32, 4))
+
+    def val_dataloader(self):
+        return DataLoader(RandomDataset(32, 4))
+
+
+def _fit_model(
+    tmpdir, should_signal, val_check_interval, failure_on_step, failure_on_training, on_last_batch, status=None
+):
+    seed_everything(42)
+    model = TestAutoRestartModelUnderSignal(should_signal, failure_on_step, failure_on_training, on_last_batch)
+
+    trainer_kwargs = dict(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=4,
+        limit_val_batches=4,
+        val_check_interval=val_check_interval,
+        num_sanity_val_steps=0,
+    )
+
+    trainer = Trainer(**trainer_kwargs)
+    if should_signal:
+        with pytest.raises(ExitGracefullyException, match=status):
+            trainer.fit(model)
+    else:
+        trainer.fit(model)
+    assert trainer._terminate_gracefully == should_signal
+
+    return model
+
+
+@pytest.mark.parametrize("on_last_batch", [False, True])
+@pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
+@pytest.mark.parametrize("failure_on_training", [False, True])
+@pytest.mark.parametrize("failure_on_step", [False, True])
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+@RunIf(min_torch="1.7.0", skip_windows=True)
+def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on_training, failure_on_step, tmpdir):
+    """This test asserts that if a signal is being sent during the training / validation phase, the model should
+    restart in a reproducible way."""
+
+    model_total = _fit_model(tmpdir, False, val_check_interval, failure_on_step, failure_on_training, on_last_batch)
+
+    if failure_on_step:
+        if on_last_batch:
+            if failure_on_training:
+                # Breaking on first validation batch.
+                # This is done to capture the random state of the validation dataloader.
+                status = "EvaluationEpochLoop:advance"
+            else:
+                # when breaking on last batch of validation, we should exist on `run_end` val_check_interval == 1.0
+                status = (
+                    "TrainingEpochLoop:on_run_end" if val_check_interval == 1.0 else "TrainingEpochLoop:on_advance_end"
+                )
+        else:
+            status = "TrainingEpochLoop:on_advance_end" if failure_on_training else "EvaluationEpochLoop:advance"
+    else:
+        if val_check_interval == 1.0:
+            status = "TrainingEpochLoop:on_run_end"
+        else:
+            # `training_epoch_end` happens after `validation_epoch_end` since Lightning v1.4
+            status = "TrainingEpochLoop:on_run_end" if failure_on_training else "TrainingEpochLoop:on_advance_end"
+
+    model_signaled = _fit_model(
+        tmpdir, True, val_check_interval, failure_on_step, failure_on_training, on_last_batch, status=status
+    )
+    checkpoint_path = str(tmpdir / ".pl_auto_save.ckpt")
+    assert os.path.exists(checkpoint_path)
+    model_restarted = _fit_model(tmpdir, False, val_check_interval, failure_on_step, failure_on_training, on_last_batch)
+
+    # check the batches
+    actual = torch.cat(model_signaled.seen_train_batches + model_restarted.seen_train_batches)
+    expected = torch.cat(model_total.seen_train_batches)
+    assert torch.equal(actual, expected)
+
+    # FIXME: why `on_last_batch` doesn't work ?
+    if failure_on_step and failure_on_training and not on_last_batch:
+        assert not torch.equal(model_total.layer.weight, model_signaled.layer.weight)
+    assert torch.equal(model_restarted.layer.weight, model_total.layer.weight)
+
+    checkpoint = torch.load(checkpoint_path)["loops"]["fit_loop"]
+    p = checkpoint["epoch_loop.batch_progress"]
+    if p["is_last_batch"] and p["current"]["completed"] == 4:
+        assert "dataloader_state_dict" not in checkpoint["epoch_loop.state_dict"]
+    else:
+        assert "dataloader_state_dict" in checkpoint["epoch_loop.state_dict"]
+
+    state_dict = checkpoint["epoch_loop.val_loop.epoch_loop.state_dict"]
+    p = checkpoint["epoch_loop.val_loop.epoch_loop.batch_progress"]
+    if (p["is_last_batch"] and p["current"]["completed"] == 4) or p["current"]["ready"] == 0:
+        assert "dataloader_state_dict" not in state_dict
+    else:
+        assert "dataloader_state_dict" in state_dict

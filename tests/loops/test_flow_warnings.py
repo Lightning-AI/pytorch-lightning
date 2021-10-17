@@ -24,9 +24,7 @@ class TestModel(BoringModel):
 
 
 def test_no_depre_without_epoch_end(tmpdir):
-    """
-    Tests that only training_step can be used
-    """
+    """Tests that only training_step can be used."""
 
     model = TestModel()
     model.validation_epoch_end = None
@@ -37,7 +35,7 @@ def test_no_depre_without_epoch_end(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
 
     with warnings.catch_warnings(record=True) as w:

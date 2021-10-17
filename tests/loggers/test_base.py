@@ -13,18 +13,21 @@
 # limitations under the License.
 import pickle
 from argparse import Namespace
-from typing import Optional
+from copy import deepcopy
+from typing import Any, Dict, Optional
 from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
+import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
 from pytorch_lightning.loggers.base import DummyExperiment, DummyLogger, scan_checkpoints
 from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.helpers.boring_model import BoringDataModule, BoringModel
 from pytorch_lightning.callbacks import ModelCheckpoint
-from tests.helpers import BoringModel
 
 
 def test_logger_collection():
@@ -49,9 +52,9 @@ def test_logger_collection():
     mock1.agg_and_log_metrics.assert_called_once_with({"test": 2.0}, 4)
     mock2.agg_and_log_metrics.assert_called_once_with({"test": 2.0}, 4)
 
-    logger.close()
-    mock1.close.assert_called_once()
-    mock2.close.assert_called_once()
+    logger.finalize("success")
+    mock1.finalize.assert_called_once()
+    mock2.finalize.assert_called_once()
 
 
 class CustomLogger(LightningLoggerBase):
@@ -80,10 +83,8 @@ class CustomLogger(LightningLoggerBase):
 
     @property
     def save_dir(self) -> Optional[str]:
-        """
-        Return the root directory where experiment logs get saved, or `None` if the logger does not
-        save data locally.
-        """
+        """Return the root directory where experiment logs get saved, or `None` if the logger does not save data
+        locally."""
         return None
 
     @property
@@ -211,7 +212,7 @@ def test_with_accumulate_grad_batches():
         logger.agg_and_log_metrics({"loss": loss}, step=int(i / 5))
 
     assert logger.history == {0: {"loss": 0.5623850983416314}}
-    logger.close()
+    logger.save()
     assert logger.history == {0: {"loss": 0.5623850983416314}, 1: {"loss": 0.4778883735637184}}
 
 
@@ -292,7 +293,81 @@ def test_log_hyperparams_being_called(log_hyperparams_mock, tmpdir, logger):
     else:
         log_hyperparams_mock.assert_not_called()
 
+        
+@patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_hyperparams")
+def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
+    class TestModel(BoringModel):
+        def __init__(self, hparams: Dict[str, Any]) -> None:
+            super().__init__()
+            self.save_hyperparameters(hparams)
 
+    class TestDataModule(BoringDataModule):
+        def __init__(self, hparams: Dict[str, Any]) -> None:
+            super().__init__()
+            self.save_hyperparameters(hparams)
+
+    class _Test:
+        ...
+
+    same_params = {1: 1, "2": 2, "three": 3.0, "test": _Test(), "4": torch.tensor(4)}
+    model = TestModel(same_params)
+    dm = TestDataModule(same_params)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+        num_sanity_val_steps=0,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    # there should be no exceptions raised for the same key/value pair in the hparams of both
+    # the lightning module and data module
+    trainer.fit(model)
+
+    obj_params = deepcopy(same_params)
+    obj_params["test"] = _Test()
+    model = TestModel(same_params)
+    dm = TestDataModule(obj_params)
+    trainer.fit(model)
+
+    diff_params = deepcopy(same_params)
+    diff_params.update({1: 0, "test": _Test()})
+    model = TestModel(same_params)
+    dm = TestDataModule(diff_params)
+    trainer = Trainer(
+        default_root_dir=tmpdir,  
+        max_epochs=1,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+        num_sanity_val_steps=0,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    with pytest.raises(MisconfigurationException, match="Error while merging hparams"):
+        trainer.fit(model, dm)
+
+    tensor_params = deepcopy(same_params)
+    tensor_params.update({"4": torch.tensor(3)})
+    model = TestModel(same_params)
+    dm = TestDataModule(tensor_params)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+        num_sanity_val_steps=0,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    with pytest.raises(MisconfigurationException, match="Error while merging hparams"):
+        trainer.fit(model, dm)
+
+ 
 @pytest.mark.parametrize("save_top_k", [0, 1, 2, 5])
 def test_scan_checkpoints(tmpdir, save_top_k: int):
     """Checks if the expected number of checkpoints is returned."""

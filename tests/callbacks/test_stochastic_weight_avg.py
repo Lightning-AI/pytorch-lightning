@@ -110,7 +110,7 @@ class SwaTestCallback(StochasticWeightAveraging):
 
 
 def train_with_swa(
-    tmpdir, batchnorm=True, accelerator=None, gpus=None, num_processes=1, interval="epoch", iterable_dataset=False
+    tmpdir, batchnorm=True, strategy=None, gpus=None, num_processes=1, interval="epoch", iterable_dataset=False
 ):
     model = SwaTestModel(batchnorm=batchnorm, interval=interval, iterable_dataset=iterable_dataset)
     swa_start = 2
@@ -121,13 +121,13 @@ def train_with_swa(
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=max_epochs,
         limit_train_batches=5,
         limit_val_batches=0,
         callbacks=[swa_callback],
         accumulate_grad_batches=2,
-        accelerator=accelerator,
+        strategy=strategy,
         gpus=gpus,
         num_processes=num_processes,
     )
@@ -141,17 +141,17 @@ def train_with_swa(
 
 @RunIf(min_gpus=2, special=True)
 def test_swa_callback_ddp(tmpdir):
-    train_with_swa(tmpdir, accelerator="ddp", gpus=2)
+    train_with_swa(tmpdir, strategy="ddp", gpus=2)
 
 
 @RunIf(min_gpus=2)
 def test_swa_callback_ddp_spawn(tmpdir):
-    train_with_swa(tmpdir, accelerator="ddp_spawn", gpus=2)
+    train_with_swa(tmpdir, strategy="ddp_spawn", gpus=2)
 
 
 @RunIf(skip_windows=True)
 def test_swa_callback_ddp_cpu(tmpdir):
-    train_with_swa(tmpdir, accelerator="ddp_cpu", num_processes=2)
+    train_with_swa(tmpdir, strategy="ddp_spawn", num_processes=2)
 
 
 @RunIf(min_gpus=1)
@@ -192,7 +192,7 @@ def test_swa_raises():
 @pytest.mark.parametrize("stochastic_weight_avg", [False, True])
 @pytest.mark.parametrize("use_callbacks", [False, True])
 def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks: bool, stochastic_weight_avg: bool):
-    """Test to ensure SWA Callback is injected when `stochastic_weight_avg` is provided to the Trainer"""
+    """Test to ensure SWA Callback is injected when `stochastic_weight_avg` is provided to the Trainer."""
 
     class TestModel(BoringModel):
         def configure_optimizers(self):
@@ -217,7 +217,7 @@ def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks: bool, stochast
 
 
 def test_swa_deepcopy(tmpdir):
-    """Test to ensure SWA Callback doesn't deepcopy dataloaders and datamodule potentially leading to OOM"""
+    """Test to ensure SWA Callback doesn't deepcopy dataloaders and datamodule potentially leading to OOM."""
 
     class TestSWA(StochasticWeightAveraging):
         def __init__(self, *args, **kwargs):

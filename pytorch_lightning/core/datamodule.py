@@ -22,13 +22,15 @@ from torch.utils.data import DataLoader, Dataset, IterableDataset
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
 from pytorch_lightning.core.mixins import HyperparametersMixin
 from pytorch_lightning.utilities import rank_zero_deprecation
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.argparse import add_argparse_args, from_argparse_args, get_init_arguments_and_types
+from pytorch_lightning.utilities.data import has_len
+from pytorch_lightning.utilities.warnings import rank_zero_warn
 
 
 class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
-    """
-    A DataModule standardizes the training, val, test splits, data preparation and transforms.
-    The main advantage is consistent data splits, data preparation and transforms across models.
+    """A DataModule standardizes the training, val, test splits, data preparation and transforms. The main
+    advantage is consistent data splits, data preparation and transforms across models.
 
     Example::
 
@@ -107,11 +109,9 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
     @property
     def train_transforms(self):
-        """
-        Optional transforms (or collection of transforms) you can apply to train dataset
+        """Optional transforms (or collection of transforms) you can apply to train dataset.
 
-        .. deprecated:: v1.5
-            Will be removed in v1.7.0.
+        .. deprecated:: v1.5     Will be removed in v1.7.0.
         """
 
         rank_zero_deprecation(
@@ -128,11 +128,9 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
     @property
     def val_transforms(self):
-        """
-        Optional transforms (or collection of transforms) you can apply to validation dataset
+        """Optional transforms (or collection of transforms) you can apply to validation dataset.
 
-        .. deprecated:: v1.5
-            Will be removed in v1.7.0.
+        .. deprecated:: v1.5     Will be removed in v1.7.0.
         """
 
         rank_zero_deprecation(
@@ -149,11 +147,9 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
     @property
     def test_transforms(self):
-        """
-        Optional transforms (or collection of transforms) you can apply to test dataset
+        """Optional transforms (or collection of transforms) you can apply to test dataset.
 
-        .. deprecated:: v1.5
-            Will be removed in v1.7.0.
+        .. deprecated:: v1.5     Will be removed in v1.7.0.
         """
 
         rank_zero_deprecation(
@@ -170,11 +166,9 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
     @property
     def dims(self):
-        """
-        A tuple describing the shape of your data. Extra functionality exposed in ``size``.
+        """A tuple describing the shape of your data. Extra functionality exposed in ``size``.
 
-        .. deprecated:: v1.5
-            Will be removed in v1.7.0.
+        .. deprecated:: v1.5     Will be removed in v1.7.0.
         """
         rank_zero_deprecation("DataModule property `dims` was deprecated in v1.5 and will be removed in v1.7.")
         return self._dims
@@ -185,12 +179,10 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         self._dims = d
 
     def size(self, dim=None) -> Union[Tuple, List[Tuple]]:
-        """
-        Return the dimension of each input either as a tuple or list of tuples. You can index this
-        just as you would with a torch tensor.
+        """Return the dimension of each input either as a tuple or list of tuples. You can index this just as you
+        would with a torch tensor.
 
-        .. deprecated:: v1.5
-            Will be removed in v1.7.0.
+        .. deprecated:: v1.5     Will be removed in v1.7.0.
         """
         rank_zero_deprecation("DataModule property `size` was deprecated in v1.5 and will be removed in v1.7.")
 
@@ -433,8 +425,8 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
     def _track_data_hook_calls(obj: "LightningDataModule", fn: callable) -> callable:
         """A decorator that checks if prepare_data/setup/teardown has been called.
 
-        - When ``dm.prepare_data()`` is called, ``dm.has_prepared_data`` gets set to True
-        - When ``dm.setup()``, ``dm.has_setup_{fit,validate,test}`` get set to True
+        - When ``dm.prepare_data()`` is called, ``dm._has_prepared_data`` gets set to True
+        - When ``dm.setup()``, ``dm._has_setup_{fit,validate,test}`` get set to True
         - When ``dm.setup(stage)`` is called, where stage is any of ``{fit,validate,test,predict}``.
           Its corresponding `dm_has_setup_{stage}` attribute gets set to True
         - ``dm.teardown()`` and ``dm.teardown(stage)`` act exactly like ``dm.setup``
@@ -492,3 +484,37 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         for fn in ("prepare_data", "setup", "teardown"):
             del d[fn]
         return d
+
+    def __len__(self) -> int:
+        """Returns the total number of batches in all dataloaders defined in the datamodule."""
+
+        from pytorch_lightning.trainer.supporters import CombinedLoader
+
+        num_batches = 0
+        not_implemented_count = 0
+
+        def get_num_batches(dataloader: DataLoader, name: str) -> None:
+            nonlocal num_batches
+            if not has_len(dataloader):
+                rank_zero_warn(
+                    f"The number of batches for a dataloader in `{name}` is counted as 0 "
+                    "because it does not have `__len__` defined."
+                )
+            else:
+                num_batches += len(dataloader)
+
+        for method_name in ("train_dataloader", "val_dataloader", "test_dataloader", "predict_dataloader"):
+            dataloader_method = getattr(self, method_name)
+            try:
+                dataloader = dataloader_method()
+            except NotImplementedError:
+                not_implemented_count += 1
+                continue
+            if isinstance(dataloader, CombinedLoader):
+                dataloader = dataloader.loaders
+            apply_to_collection(dataloader, DataLoader, get_num_batches, method_name)
+
+        if not_implemented_count == 4:
+            rank_zero_warn("You datamodule does not have any valid dataloader so `__len__` will be returned as 0.")
+
+        return num_batches

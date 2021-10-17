@@ -72,8 +72,7 @@ def apply_to_collection(
     include_none: bool = True,
     **kwargs: Any,
 ) -> Any:
-    """
-    Recursively applies a function to all elements of a certain dtype.
+    """Recursively applies a function to all elements of a certain dtype.
 
     Args:
         data: the collection to apply the function to
@@ -119,18 +118,19 @@ def apply_to_collection(
 
     if _is_dataclass_instance(data):
         out_dict = {}
-        for field in data.__dataclass_fields__:
-            v = apply_to_collection(
-                getattr(data, field),
-                dtype,
-                function,
-                *args,
-                wrong_dtype=wrong_dtype,
-                include_none=include_none,
-                **kwargs,
-            )
-            if include_none or v is not None:
-                out_dict[field] = v
+        for field in dataclasses.fields(data):
+            if field.init:
+                v = apply_to_collection(
+                    getattr(data, field.name),
+                    dtype,
+                    function,
+                    *args,
+                    wrong_dtype=wrong_dtype,
+                    include_none=include_none,
+                    **kwargs,
+                )
+                if include_none or v is not None:
+                    out_dict[field.name] = v
         return elem_type(**out_dict)
 
     # data is neither of dtype, nor a collection
@@ -146,8 +146,7 @@ def apply_to_collections(
     wrong_dtype: Optional[Union[type, Tuple[type]]] = None,
     **kwargs: Any,
 ) -> Any:
-    """
-    Zips two collections and applies a function to their items of a certain dtype.
+    """Zips two collections and applies a function to their items of a certain dtype.
 
     Args:
         data1: The first collection
@@ -227,9 +226,8 @@ class TransferableDataType(ABC):
 
 
 def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
-    """
-    Transfers a collection of data to the given device. Any object that defines a method
-    ``to(device)`` will be moved and all other objects in the collection will be left untouched.
+    """Transfers a collection of data to the given device. Any object that defines a method ``to(device)`` will be
+    moved and all other objects in the collection will be left untouched.
 
     Args:
         batch: A tensor or collection of tensors or anything that has a method `.to(...)`.

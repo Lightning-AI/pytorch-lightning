@@ -1,6 +1,8 @@
 API References
 ==============
 
+.. include:: links.rst
+
 Accelerator API
 ---------------
 

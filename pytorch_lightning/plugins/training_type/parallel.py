@@ -84,12 +84,10 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         return distributed_sampler_kwargs
 
     def reconciliate_processes(self, trace: str):
-        """
-        Function to re-conciliate processes on failure
-        """
+        """Function to re-conciliate processes on failure."""
 
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
-        """Perform a all_gather on all processes"""
+        """Perform a all_gather on all processes."""
         return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
@@ -107,8 +105,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
 
     @staticmethod
     def configure_sync_batchnorm(model: "pl.LightningModule") -> "pl.LightningModule":
-        """
-        Add global batchnorm for a model spread across multiple GPUs and nodes.
+        """Add global batchnorm for a model spread across multiple GPUs and nodes.
 
         Override to synchronize batchnorm between specific process groups instead
         of the whole world or use a different sync_bn like `apex`'s version.
@@ -123,8 +120,8 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
 
     @contextmanager
     def block_backward_sync(self):
-        """
-        Blocks ddp sync gradients behaviour on backwards pass.
+        """Blocks ddp sync gradients behaviour on backwards pass.
+
         This is useful for skipping sync when accumulating gradients, reducing communication overhead
         Returns: context manager with sync behaviour off
         """

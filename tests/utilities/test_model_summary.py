@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Any
+
 import pytest
 import torch
 import torch.nn as nn
@@ -25,7 +27,7 @@ from tests.helpers.runif import RunIf
 
 
 class EmptyModule(LightningModule):
-    """A module that has no layers"""
+    """A module that has no layers."""
 
     def __init__(self):
         super().__init__()
@@ -54,7 +56,7 @@ class PreCalculatedModel(BoringModel):
 
 
 class UnorderedModel(LightningModule):
-    """A model in which the layers not defined in order of execution"""
+    """A model in which the layers not defined in order of execution."""
 
     def __init__(self):
         super().__init__()
@@ -158,10 +160,7 @@ def test_empty_model_summary_shapes(mode: str):
 
 @RunIf(min_gpus=1)
 @pytest.mark.parametrize("mode", ["full", "top"])
-@pytest.mark.parametrize(
-    ["device"],
-    [pytest.param(torch.device("cpu")), pytest.param(torch.device("cuda", 0)), pytest.param(torch.device("cuda", 0))],
-)
+@pytest.mark.parametrize("device", [torch.device("cpu"), torch.device("cuda", 0)])
 def test_linear_model_summary_shapes(device, mode):
     """Test that the model summary correctly computes the input- and output shapes."""
     model = UnorderedModel().to(device)
@@ -245,13 +244,13 @@ def test_summary_with_scripted_modules(mode):
 @pytest.mark.parametrize(
     ["example_input", "expected_size"],
     [
-        pytest.param([], UNKNOWN_SIZE),
-        pytest.param((1, 2, 3), [UNKNOWN_SIZE] * 3),
-        pytest.param(torch.tensor(0), UNKNOWN_SIZE),
-        pytest.param(dict(tensor=torch.zeros(1, 2, 3)), UNKNOWN_SIZE),
-        pytest.param(torch.zeros(2, 3, 4), [2, 3, 4]),
-        pytest.param([torch.zeros(2, 3), torch.zeros(4, 5)], [[2, 3], [4, 5]]),
-        pytest.param((torch.zeros(2, 3), torch.zeros(4, 5)), [[2, 3], [4, 5]]),
+        ([], UNKNOWN_SIZE),
+        ((1, 2, 3), [UNKNOWN_SIZE] * 3),
+        (torch.tensor(0), UNKNOWN_SIZE),
+        (dict(tensor=torch.zeros(1, 2, 3)), UNKNOWN_SIZE),
+        (torch.zeros(2, 3, 4), [2, 3, 4]),
+        ([torch.zeros(2, 3), torch.zeros(4, 5)], [[2, 3], [4, 5]]),
+        ((torch.zeros(2, 3), torch.zeros(4, 5)), [[2, 3], [4, 5]]),
     ],
 )
 def test_example_input_array_types(example_input, expected_size, mode):
@@ -292,7 +291,7 @@ def test_empty_model_size(mode):
     assert 0.0 == summary.model_size
 
 
-@RunIf(min_gpus=1, amp_native=True)
+@RunIf(min_gpus=1)
 def test_model_size_precision(tmpdir):
     """Test model size for half and full precision."""
     model = PreCalculatedModel()
@@ -326,7 +325,7 @@ def test_lazy_model_summary():
 
 
 def test_max_depth_equals_mode_interface():
-    """Test summarize(model, full/top) interface mapping matches max_depth"""
+    """Test summarize(model, full/top) interface mapping matches max_depth."""
     model = DeepNestedModel()
 
     summary_top = summarize(model, mode="top")
@@ -340,7 +339,7 @@ def test_max_depth_equals_mode_interface():
 
 @pytest.mark.parametrize("max_depth", [-1, 0, 1, 3, 999])
 def test_max_depth_param(max_depth):
-    """Test that only the modules up to the desired depth are shown"""
+    """Test that only the modules up to the desired depth are shown."""
     model = DeepNestedModel()
     summary = ModelSummary(model, max_depth=max_depth)
     for lname in summary.layer_names:
@@ -352,3 +351,18 @@ def test_max_depth_param(max_depth):
 def test_raise_invalid_max_depth_value(max_depth):
     with pytest.raises(ValueError, match=f"`max_depth` can be -1, 0 or > 0, got {max_depth}"):
         summarize(DeepNestedModel(), max_depth=max_depth)
+
+
+@pytest.mark.parametrize("example_input", [None, torch.randn(4, 32)])
+def test_summary_data_output(example_input):
+    """Ensure all items are converted to strings when getting summary data."""
+
+    class TestModel(BoringModel):
+        @property
+        def example_input_array(self) -> Any:
+            return example_input
+
+    summary = summarize(TestModel())
+    summary_data = summary._get_summary_data()
+    for column_name, entries in summary_data:
+        assert all(isinstance(entry, str) for entry in entries)

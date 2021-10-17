@@ -15,10 +15,8 @@ from tests.helpers.boring_model import BoringModel
 
 @pytest.mark.parametrize("delay_dispatch", [True, False])
 def test_plugin_setup_optimizers_in_pre_dispatch(tmpdir, delay_dispatch):
-    """
-    Test when using a custom training type plugin that delays setup optimizers,
-    we do not call setup optimizers till ``pre_dispatch``.
-    """
+    """Test when using a custom training type plugin that delays setup optimizers, we do not call setup optimizers
+    till ``pre_dispatch``."""
 
     class TestModel(BoringModel):
         def on_fit_start(self):
@@ -42,21 +40,17 @@ def test_plugin_setup_optimizers_in_pre_dispatch(tmpdir, delay_dispatch):
 
 
 def test_restore_checkpoint_after_pre_dispatch_default():
-    """
-    Assert default for restore_checkpoint_after_pre_dispatch is False.
-    """
+    """Assert default for restore_checkpoint_after_pre_dispatch is False."""
     plugin = SingleDevicePlugin(torch.device("cpu"))
     accelerator = CPUAccelerator(training_type_plugin=plugin, precision_plugin=PrecisionPlugin())
-    assert not accelerator.restore_checkpoint_after_pre_dispatch
+    assert not accelerator.training_type_plugin.restore_checkpoint_after_pre_dispatch
     assert not plugin.restore_checkpoint_after_pre_dispatch
 
 
 @pytest.mark.parametrize("restore_after_pre_dispatch", [True, False])
 def test_restore_checkpoint_after_pre_dispatch(tmpdir, restore_after_pre_dispatch):
-    """
-    Test to ensure that if restore_checkpoint_after_pre_dispatch is True, then we only load the state after
-    pre-dispatch is called.
-    """
+    """Test to ensure that if restore_checkpoint_after_pre_dispatch is True, then we only load the state after pre-
+    dispatch is called."""
 
     class TestPlugin(SingleDevicePlugin):
         predispatched_called = False
@@ -83,7 +77,7 @@ def test_restore_checkpoint_after_pre_dispatch(tmpdir, restore_after_pre_dispatc
     plugin = TestPlugin(torch.device("cpu"), checkpoint_io=TorchCheckpointIO())
     accelerator = CPUAccelerator(training_type_plugin=plugin, precision_plugin=PrecisionPlugin())
 
-    assert accelerator.restore_checkpoint_after_pre_dispatch == restore_after_pre_dispatch
+    assert accelerator.training_type_plugin.restore_checkpoint_after_pre_dispatch == restore_after_pre_dispatch
     assert plugin.restore_checkpoint_after_pre_dispatch == restore_after_pre_dispatch
 
     trainer = Trainer(

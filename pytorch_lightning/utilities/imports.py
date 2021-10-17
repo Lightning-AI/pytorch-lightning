@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""General utilities"""
+"""General utilities."""
 import importlib
 import operator
 import os
@@ -19,14 +19,14 @@ import platform
 import sys
 from importlib.util import find_spec
 
+import pkg_resources
 import torch
 from packaging.version import Version
 from pkg_resources import DistributionNotFound
 
 
 def _module_available(module_path: str) -> bool:
-    """
-    Check if a path is available in your environment
+    """Check if a path is available in your environment.
 
     >>> _module_available('os')
     True
@@ -44,8 +44,7 @@ def _module_available(module_path: str) -> bool:
 
 
 def _compare_version(package: str, op, version) -> bool:
-    """
-    Compare package version with some requirements
+    """Compare package version with some requirements.
 
     >>> _compare_version("torch", operator.ge, "0.1")
     True
@@ -55,11 +54,15 @@ def _compare_version(package: str, op, version) -> bool:
     except (ModuleNotFoundError, DistributionNotFound):
         return False
     try:
-        pkg_version = Version(pkg.__version__)
+        if hasattr(pkg, "__version__"):
+            pkg_version = Version(pkg.__version__)
+        else:
+            # try pkg_resources to infer version
+            pkg_version = Version(pkg_resources.get_distribution(pkg).version)
     except TypeError:
         # this is mock by sphinx, so it shall return True ro generate all summaries
         return True
-    return op(pkg_version, Version(version))
+    return op(Version(pkg_version.base_version), Version(version))
 
 
 _IS_WINDOWS = platform.system() == "Windows"
@@ -82,15 +85,16 @@ _HYDRA_AVAILABLE = _module_available("hydra")
 _HYDRA_EXPERIMENTAL_AVAILABLE = _module_available("hydra.experimental")
 _JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
 _KINETO_AVAILABLE = _TORCH_GREATER_EQUAL_1_8_1 and torch.profiler.kineto_available()
-_NATIVE_AMP_AVAILABLE = _module_available("torch.cuda.amp") and hasattr(torch.cuda.amp, "autocast")
+_NEPTUNE_AVAILABLE = _module_available("neptune")
+_NEPTUNE_GREATER_EQUAL_0_9 = _NEPTUNE_AVAILABLE and _compare_version("neptune", operator.ge, "0.9.0")
 _OMEGACONF_AVAILABLE = _module_available("omegaconf")
 _POPTORCH_AVAILABLE = _module_available("poptorch")
-_RICH_AVAILABLE = _module_available("rich")
+_RICH_AVAILABLE = _module_available("rich") and _compare_version("rich", operator.ge, "10.2.2")
 _TORCH_CPU_AMP_AVAILABLE = _compare_version(
-    "torch", operator.ge, "1.10.0dev20210501"
+    "torch", operator.ge, "1.10.dev20210902"
 )  # todo: swap to 1.10.0 once released
 _TORCH_BFLOAT_AVAILABLE = _compare_version(
-    "torch", operator.ge, "1.10.0.dev20210820"
+    "torch", operator.ge, "1.10.0.dev20210902"
 )  # todo: swap to 1.10.0 once released
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
 _TORCH_SHARDED_TENSOR_AVAILABLE = _compare_version(
