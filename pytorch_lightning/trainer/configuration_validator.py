@@ -24,6 +24,7 @@ def verify_loop_configurations(trainer: "pl.Trainer", model: "pl.LightningModule
     Checks that the model is configured correctly before the run is started.
 
     Args:
+        trainer: Lightning Trainer
         model: The model to check the configuration.
 
     """
@@ -218,7 +219,7 @@ def __verify_manual_optimization_support(trainer: "pl.Trainer", model: "pl.Light
 
 def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule"):
     """Check if the current `training_step` is requesting `dataloader_iter`."""
-    training_step_fx = getattr(model, "training_step")
+    training_step_fx = model.training_step
     if is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):
 
         if is_overridden("on_train_batch_start", model):
