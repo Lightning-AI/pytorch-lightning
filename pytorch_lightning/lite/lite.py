@@ -239,7 +239,7 @@ class LightningLite(ABC):
         Use this only if the `forward` method of your model does not cover all operations you wish to run with the
         chosen precision setting.
         """
-        with self._accelerator.forward_context():
+        with self._precision_plugin.forward_context():
             yield
 
     def to_device(self, obj: Union[nn.Module, Tensor, Any]) -> Union[nn.Module, Tensor, Any]:
