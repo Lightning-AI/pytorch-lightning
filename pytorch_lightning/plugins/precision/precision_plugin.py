@@ -76,7 +76,7 @@ class PrecisionPlugin(CheckpointHooks):
         if model is not None and isinstance(model, pl.LightningModule):
             model.backward(closure_loss, optimizer, *args, **kwargs)
         else:
-            self.run_backward(closure_loss, *args, **kwargs)
+            self._run_backward(closure_loss, *args, **kwargs)
 
     def post_backward(self, model: "pl.LightningModule", closure_loss: Tensor) -> Tensor:
         """Run after precision plugin executes backward.
@@ -90,8 +90,8 @@ class PrecisionPlugin(CheckpointHooks):
         model.trainer.call_hook("on_after_backward")
         return closure_loss
 
-    def run_backward(self, tensor, model, *args, **kwargs) -> None:
-        """Lightning-independent backward logic."""
+    def _run_backward(self, tensor: Tensor, model: Module, *args: Any, **kwargs: Any) -> None:
+        """Lightning-independent backward logic. Currently only used by Lightning Lite. Subject to further refactors."""
         tensor.backward(*args, **kwargs)
 
     def pre_optimizer_step(

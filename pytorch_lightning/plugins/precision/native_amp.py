@@ -15,6 +15,7 @@ from contextlib import contextmanager
 from typing import Any, Callable, Dict, Generator, Union
 
 import torch
+from torch import Tensor
 from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 
@@ -69,9 +70,9 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         closure_loss = self.scaler.scale(closure_loss)
         return super().pre_backward(model, closure_loss)
 
-    def run_backward(self, tensor, model, *args, **kwargs):
+    def _run_backward(self, tensor: Tensor, model: Module, *args: Any, **kwargs: Any) -> None:
         tensor = self.scaler.scale(tensor)
-        super().run_backward(tensor, model, *args, **kwargs)
+        super()._run_backward(tensor, model, *args, **kwargs)
 
     def pre_optimizer_step(
         self,
