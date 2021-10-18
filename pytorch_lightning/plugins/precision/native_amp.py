@@ -123,30 +123,6 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         with self.autocast_context_manager():
             yield
 
-    @contextmanager
-    def train_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context."""
-        with self.autocast_context_manager():
-            yield
-
-    @contextmanager
-    def val_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context."""
-        with self.autocast_context_manager():
-            yield
-
-    @contextmanager
-    def test_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context."""
-        with self.autocast_context_manager():
-            yield
-
-    @contextmanager
-    def predict_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context."""
-        with self.autocast_context_manager():
-            yield
-
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         if "native_amp_scaling_state" in checkpoint and not self.is_bfloat16:
             self.scaler.load_state_dict(checkpoint["native_amp_scaling_state"])
