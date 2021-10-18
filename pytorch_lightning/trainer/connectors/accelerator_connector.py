@@ -64,6 +64,7 @@ from pytorch_lightning.utilities import (
     device_parser,
     DeviceType,
     DistributedType,
+    rank_zero_deprecation,
     rank_zero_info,
     rank_zero_warn,
 )
@@ -149,7 +150,7 @@ class AcceleratorConnector:
 
         self.plugins = plugins
 
-        self._handle_accelerator_and_distributed_backend(distributed_backend, accelerator)
+        self._handle_accelerator()
 
         self._validate_accelerator_and_devices()
 
@@ -283,31 +284,16 @@ class AcceleratorConnector:
         elif self._accelerator_type == DeviceType.CPU:
             self.devices = self.num_processes
 
-    def _handle_accelerator_and_distributed_backend(
-        self, distributed_backend: Optional[str], accelerator: Optional[Union[str, Accelerator]]
-    ) -> None:
-        if distributed_backend is not None:
+    def _handle_accelerator(self) -> None:
+        if self.accelerator is not None and self.accelerator in list(DistributedType):
             rank_zero_deprecation(
-                f"`Trainer(distributed_backend={distributed_backend!r})` "
-                "has been deprecated and will be removed in v1.5."
-                f" Use `Trainer(strategy={distributed_backend!r})` instead."
+                f"Passing `Trainer(accelerator={self.accelerator!r})` has been deprecated"
+                f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={self.accelerator!r})` instead."
             )
             if self.strategy is not None:
                 raise MisconfigurationException(
                     f"You have passed `Trainer(strategy={self.strategy!r})` but have"
-                    f" also passed `Trainer(distributed_backend={distributed_backend!r})`."
-                    f" HINT: Use just `Trainer(strategy={self.strategy!r})` instead."
-                )
-
-        if accelerator is not None and accelerator in list(DistributedType):
-            rank_zero_deprecation(
-                f"Passing `Trainer(accelerator={accelerator!r})` has been deprecated"
-                f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={accelerator!r})` instead."
-            )
-            if self.strategy is not None:
-                raise MisconfigurationException(
-                    f"You have passed `Trainer(strategy={self.strategy!r})` but have"
-                    f" also passed `Trainer(accelerator={accelerator!r})`."
+                    f" also passed `Trainer(accelerator={self.accelerator!r})`."
                     f" HINT: Use just `Trainer(strategy={self.strategy!r})` instead."
                 )
 

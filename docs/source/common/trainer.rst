@@ -553,10 +553,6 @@ will need to be set up to use remote filepaths.
     # default used by the Trainer
     trainer = Trainer(default_root_dir=os.getcwd())
 
-distributed_backend
-^^^^^^^^^^^^^^^^^^^
-Deprecated: This has been renamed ``accelerator``.
-
 enable_checkpointing
 ^^^^^^^^^^^^^^^^^^^^
 
