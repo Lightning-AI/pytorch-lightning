@@ -14,7 +14,6 @@
 import logging
 import os
 import re
-from functools import partial
 from multiprocessing.queues import SimpleQueue
 from typing import Any, Callable, Dict, List, Optional, Union
 
@@ -39,7 +38,7 @@ from pytorch_lightning.utilities import (
     rank_zero_deprecation,
     rank_zero_warn,
 )
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import distributed_available
@@ -179,11 +178,22 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> None:
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        mp.spawn(self._wrapped_function, args=(function, args, kwargs), nprocs=self.num_processes)
+        smp = mp.get_context("spawn")
+        self.mp_queue = smp.SimpleQueue()
+        mp.spawn(self._wrapped_function, args=(function, args, kwargs, self.mp_queue), nprocs=self.num_processes)
 
-    def _wrapped_function(self, process_idx: int, function: Callable, args: Any, kwargs: Any) -> None:
+    def _wrapped_function(
+        self, process_idx: int, function: Callable, args: Any, kwargs: Any, mp_queue: SimpleQueue
+    ) -> None:
+        os.environ["LOCAL_RANK"] = str(process_idx)
         self._worker_setup(process_idx)
-        function(*args, **kwargs)
+        self.mp_queue = mp_queue
+        result = function(*args, **kwargs)
+        self._add_to_queue(result)
+
+    def _add_to_queue(self, *args):
+        if self.is_global_zero:
+            self.mp_queue.put(move_data_to_device(args, "cpu"))
 
     def _worker_setup(self, process_idx: int):
         reset_seed()

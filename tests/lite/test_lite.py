@@ -11,18 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from contextlib import contextmanager
 from copy import deepcopy
+from functools import partial
 from typing import Callable, Generator
 
 import pytest
 import torch
+import torch.multiprocessing as mp
 from torch import nn
 from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning import seed_everything
 from pytorch_lightning.lite import LightningLite
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
+from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
+from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
+from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.imports import _TORCH_BFLOAT_AVAILABLE
 from tests.helpers.boring_model import RandomDataset
 from tests.helpers.runif import RunIf
@@ -64,8 +71,8 @@ def main(
     return model.state_dict()
 
 
-class LiteTrainer(LightningLite):
-    def run(self, model: nn.Module, train_dataloader: DataLoader, num_epochs: int = 10):
+class LiteRunner(LightningLite):
+    def run(self, model: nn.Module, train_dataloader: DataLoader, num_epochs: int = 10, tmpdir: str = None):
         optimizer = configure_optimizers(model)
         model, optimizer = self.setup(model=model, optimizers=optimizer)
         train_dataloader = self.setup_dataloaders(train_dataloader)
@@ -78,6 +85,11 @@ class LiteTrainer(LightningLite):
                 loss = model(batch)
                 self.backward(loss)
                 optimizer.step()
+
+        if isinstance(self._strategy, DDPSpawnPlugin) and tmpdir:
+            checkpoint_path = os.path.join(tmpdir, "model.pt")
+            atomic_save(model.state_dict(), checkpoint_path)
+            return checkpoint_path
 
 
 @contextmanager
@@ -96,7 +108,7 @@ def precision_context(precision, accelerator) -> Generator[None, None, None]:
             yield
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_gpus=1)
 @pytest.mark.parametrize(
     "precision, strategy, devices, accelerator",
     [
@@ -119,7 +131,7 @@ def test_boring_lite_model_single_device(precision, strategy, devices, accelerat
     num_epochs = 1
     state_dict = deepcopy(model.state_dict())
 
-    lite = LiteTrainer(precision=precision, strategy=strategy, devices=devices, accelerator=accelerator)
+    lite = LiteRunner(precision=precision, strategy=strategy, devices=devices, accelerator=accelerator)
     lite.run(model, train_dataloader, num_epochs=num_epochs)
     lite_state_dict = model.state_dict()
 
@@ -132,4 +144,62 @@ def test_boring_lite_model_single_device(precision, strategy, devices, accelerat
         assert not torch.equal(o_pure, w_lite)
 
     for w_pure, w_lite in zip(pure_state_dict.values(), lite_state_dict.values()):
+        assert torch.equal(w_pure, w_lite)
+
+
+def run(rank, model, train_dataloader, num_epochs, precision, accelerator, mp_queue, tmpdir):
+    os.environ["LOCAL_RANK"] = str(rank)
+    os.environ["MASTER_ADDR"] = "127.0.0.1"
+    os.environ["MASTER_PORT"] = str(find_free_network_port())
+    if torch.distributed.is_available() and not torch.distributed.is_initialized():
+        torch.distributed.init_process_group("gloo", rank=rank, world_size=2)
+
+    data_fn = partial(move_data_to_device, device=torch.device(f"cuda:{rank}"))
+    sampler = DistributedSampler(train_dataloader.dataset, rank=rank, num_replicas=2)
+    train_dataloader = DataLoader(train_dataloader.dataset, sampler=sampler)
+    with precision_context(precision, accelerator):
+        main(data_fn, model, train_dataloader, num_epochs=num_epochs)
+
+    if rank == 0:
+        checkpoint_path = os.path.join(tmpdir, "model.pt")
+        atomic_save(model.state_dict(), checkpoint_path)
+        mp_queue.put(checkpoint_path)
+
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        torch.distributed.destroy_process_group()
+
+
+@RunIf(min_gpus=2)
+@pytest.mark.parametrize(
+    "precision, strategy, devices, accelerator",
+    [
+        pytest.param(32, "ddp_spawn", 2, "gpu"),
+    ],
+)
+def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, tmpdir):
+    seed_everything(42)
+    train_dataloader = DataLoader(RandomDataset(32, 64))
+    model = BoringModel()
+    num_epochs = 1
+    state_dict = deepcopy(model.state_dict())
+
+    if False:
+        lite = LiteRunner(precision=precision, strategy=strategy, devices=devices, accelerator=accelerator)
+        checkpoint_path = lite.run(model, train_dataloader, num_epochs=num_epochs, tmpdir=tmpdir)
+        spawn_model_state_dict = torch.load(checkpoint_path[0])
+
+        state_dict = apply_to_collection(state_dict, torch.Tensor, lite.to_device)
+        for o_pure, w_lite in zip(state_dict.values(), spawn_model_state_dict.values()):
+            assert not torch.equal(o_pure, w_lite)
+
+    model.load_state_dict(state_dict)
+    smp = mp.get_context("spawn")
+    mp_queue = smp.SimpleQueue()
+    mp.spawn(
+        run, args=(model, train_dataloader, num_epochs, precision, accelerator, smp.SimpleQueue(), tmpdir), nprocs=2
+    )
+    checkpoint_path = mp_queue.get()
+    spawn_pure_model_state_dict = torch.load(checkpoint_path)
+
+    for w_pure, w_lite in zip(spawn_pure_model_state_dict.values(), spawn_model_state_dict.values()):
         assert torch.equal(w_pure, w_lite)
