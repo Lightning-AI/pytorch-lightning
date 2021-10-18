@@ -78,11 +78,16 @@ class YieldLoop(OptimizerLoop):
 
 
 class GAN(Yield, GANTemplate):
+
+    # This training_step method is now a generator
     def training_step(self, batch, batch_idx, optimizer_idx=0):
         imgs, _ = batch
         z = torch.randn(imgs.shape[0], self.hparams.latent_dim)
         z = z.type_as(imgs)
 
+        # Here, we compute the generator output once and reuse it later.
+        # It gets saved as part of the generator
+        # use it in both the generator update and the discriminator update
         generator_output = self(z)
 
         # train generator
@@ -91,12 +96,13 @@ class GAN(Yield, GANTemplate):
         g_loss = self.adversarial_loss(self.discriminator(generator_output), valid)
         self.log("g_loss", g_loss)
 
+        # Yield instead of return: This makes the training_step a generator.
+        # Once we call it again, it will continue the execution with the block below
         yield g_loss
 
         # train discriminator
         valid = torch.ones(imgs.size(0), 1)
         valid = valid.type_as(imgs)
-
         real_loss = self.adversarial_loss(self.discriminator(imgs), valid)
         fake = torch.zeros(imgs.size(0), 1)
         fake = fake.type_as(imgs)
