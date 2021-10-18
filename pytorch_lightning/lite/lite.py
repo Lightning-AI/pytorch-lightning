@@ -236,7 +236,7 @@ class LightningLite(ABC):
             *args: Optional positional arguments passed to the underlying backward function.
             **kwargs: Optional named keyword arguments passed to the underlying backward function.
         """
-        self._accelerator.run_backward(tensor, self._strategy.model, *args, **kwargs)
+        self._precision_plugin.run_backward(tensor, self._strategy.model, *args, **kwargs)
 
     @contextmanager
     def cast(self) -> Generator[None, None, None]:

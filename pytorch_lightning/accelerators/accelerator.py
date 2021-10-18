@@ -314,10 +314,6 @@ class Accelerator:
 
         return closure_loss
 
-    def run_backward(self, tensor: Tensor, model, *args, **kwargs) -> None:
-        """Lightning-independent backward logic."""
-        self.precision_plugin.run_backward(tensor, model, *args, **kwargs)
-
     def optimizer_step(
         self,
         optimizer: Optimizer,
