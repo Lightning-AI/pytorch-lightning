@@ -29,7 +29,6 @@ import torch
 import torch.distributed
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
-from torch.utils.data import DataLoader, DistributedSampler
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
