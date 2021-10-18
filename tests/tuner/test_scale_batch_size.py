@@ -274,10 +274,11 @@ def test_scale_batch_size_fails_with_unavailable_mode(tmpdir):
         trainer.tuner.scale_batch_size(model, mode="ThisModeDoesNotExist")
 
 
-def test_dataloader_reset_with_scale_batch_size(tmpdir):
+@pytest.mark.parametrize("scale_method", ["power", "binsearch"])
+def test_dataloader_reset_with_scale_batch_size(tmpdir, scale_method):
     """Test that train and val dataloaders are reset at every update in scale batch size."""
     model = BatchSizeModel(batch_size=16)
-    scale_batch_size_kwargs = {"max_trials": 5, "init_val": 4}
+    scale_batch_size_kwargs = {"max_trials": 5, "init_val": 4, "mode": scale_method}
 
     trainer = Trainer(max_epochs=2, auto_scale_batch_size=True)
     new_batch_size = trainer.tune(model, scale_batch_size_kwargs=scale_batch_size_kwargs)["scale_batch_size"]
