@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import sys
+from contextlib import redirect_stderr
 from io import StringIO
 from re import escape
 
@@ -112,8 +113,9 @@ class TestSpawnBoringModel(BoringModel):
         return DataLoader(RandomDataset(32, 64), num_workers=self.num_workers)
 
     def on_pretrain_routine_start(self):
-        self._sys_out = sys.stderr
-        self._resout = sys.stderr = StringIO()
+        self._resout = StringIO()
+        self.ctx = redirect_stderr(self._resout)
+        self.ctx.__enter__()
 
     def on_train_end(self):
         def _get_warning_msg():
@@ -129,8 +131,8 @@ class TestSpawnBoringModel(BoringModel):
             return warn_str
 
         if self.trainer.is_global_zero:
+            self.ctx.__exit__(None, None, None)
             msg = self._resout.getvalue()
-            sys.stderr = self._sys_out
             warn_str = _get_warning_msg()
             assert warn_str in msg
 
