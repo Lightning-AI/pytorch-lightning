@@ -395,7 +395,17 @@ To run the following demo, install Flash and `BaaL <https://github.com/ElementAI
     # 5. Save the model!
     trainer.save_checkpoint("image_classification_model.pt")
 
-Here is the `runnable example <https://github.com/PyTorchLightning/lightning-flash/blob/master/flash_examples/integrations/baal/image_classification_active_learning.py>`_ and the `code for the active learning loop <https://github.com/PyTorchLightning/lightning-flash/blob/master/flash/image/classification/integrations/baal/loop.py#L31>`_.
+Here is the `Active Learning Loop example <https://github.com/PyTorchLightning/lightning-flash/blob/master/flash_examples/integrations/baal/image_classification_active_learning.py>`_ and the `code for the active learning loop <https://github.com/PyTorchLightning/lightning-flash/blob/master/flash/image/classification/integrations/baal/loop.py#L31>`_.
+
+
+`KFold / Cross Validation <https://en.wikipedia.org/wiki/Cross-validation_(statistics)>`__ is a machine learning practice in which the training dataset is being partitioned into `num_folds` complementary subsets.
+One cross validation round will perform fitting where one fold is left out for validation and the other folds are used for training.
+To reduce variability, once all rounds are performed using the different folds, the trained models are ensembled and their predictions are
+averaged when estimating the model's predictive performance on the test dataset.
+KFold can elegantly be implemented with `Lightning Loop Customization` as follows:
+
+Here is the `KFold Loop example <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/loops/kfold.py>`_.
+
 
 Advanced Topics and Examples
 ----------------------------
