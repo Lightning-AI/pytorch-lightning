@@ -21,13 +21,14 @@ import os
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, overload, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
+from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress import base as progress_base
@@ -119,6 +120,14 @@ class LightningModule(
 
         # deprecated, will be removed in 1.6
         self._loaded_optimizer_states_dict = {}
+
+    @overload
+    def optimizers(self, use_pl_optimizer: Literal[True] = True) -> Union[LightningOptimizer, List[LightningOptimizer]]:
+        ...
+
+    @overload
+    def optimizers(self, use_pl_optimizer: Literal[False]) -> Union[Optimizer, List[Optimizer]]:
+        ...
 
     def optimizers(
         self, use_pl_optimizer: bool = True
@@ -1426,17 +1435,16 @@ class LightningModule(
         """
         loss.backward(*args, **kwargs)
 
-    def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):
+    def toggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer], optimizer_idx: int) -> None:
         """Makes sure only the gradients of the current optimizer's parameters are calculated in the training step
-        to prevent dangling gradients in multiple-optimizer setup. It works with :meth:`untoggle_optimizer` to make
-        sure ``param_requires_grad_state`` is properly reset. Override for your own behavior.
+        to prevent dangling gradients in multiple-optimizer setup.
+
+        This is only called automatically when automatic optimization is enabled and multiple optimizers are used.
+        It works with :meth:`untoggle_optimizer` to make sure ``param_requires_grad_state`` is properly reset.
 
         Args:
-            optimizer: Current optimizer used in the training loop
-            optimizer_idx: Current optimizer idx in the training loop
-
-        Note:
-            Only called when using multiple optimizers
+            optimizer: The optimizer to toggle.
+            optimizer_idx: The index of the optimizer to toggle.
         """
         # Iterate over all optimizer parameters to preserve their `requires_grad` information
         # in case these are pre-defined during `configure_optimizers`
@@ -1457,15 +1465,13 @@ class LightningModule(
                 param.requires_grad = param_requires_grad_state[param]
         self._param_requires_grad_state = param_requires_grad_state
 
-    def untoggle_optimizer(self, optimizer_idx: int):
-        """Resets the state of required gradients that were toggled with :meth:`toggle_optimizer`. Override for
-        your own behavior.
+    def untoggle_optimizer(self, optimizer_idx: int) -> None:
+        """Resets the state of required gradients that were toggled with :meth:`toggle_optimizer`.
+
+        This is only called automatically when automatic optimization is enabled and multiple optimizers are used.
 
         Args:
-            optimizer_idx: Current optimizer idx in the training loop
-
-        Note:
-            Only called when using multiple_optimizers
+            optimizer_idx: The index of the optimizer to untoggle.
         """
         for opt_idx, opt in enumerate(self.optimizers(use_pl_optimizer=False)):
             if optimizer_idx != opt_idx:
@@ -1568,14 +1574,14 @@ class LightningModule(
 
     def optimizer_step(
         self,
-        epoch: int = None,
-        batch_idx: int = None,
-        optimizer: Optimizer = None,
-        optimizer_idx: int = None,
-        optimizer_closure: Optional[Callable] = None,
-        on_tpu: bool = None,
-        using_native_amp: bool = None,
-        using_lbfgs: bool = None,
+        epoch: int,
+        batch_idx: int,
+        optimizer: Union[Optimizer, LightningOptimizer],
+        optimizer_idx: int = 0,
+        optimizer_closure: Optional[Callable[[], Any]] = None,
+        on_tpu: bool = False,
+        using_native_amp: bool = False,
+        using_lbfgs: bool = False,
     ) -> None:
         r"""
         Override this method to adjust the default way the
@@ -1583,10 +1589,6 @@ class LightningModule(
         By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example
         once per optimizer. This method (and ``zero_grad()``) won't be called during the
         accumulation phase when ``Trainer(accumulate_grad_batches != 1)``.
-
-        Warning:
-            If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter
-            to ``optimizer.step()`` function as shown in the examples.
 
         Args:
             epoch: Current epoch
