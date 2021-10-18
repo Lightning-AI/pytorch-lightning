@@ -13,11 +13,12 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Mapping, Optional, Sequence, Tuple, Union
 
 import torch
 from torch import Tensor
 from torch.nn import Module
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
@@ -59,6 +60,19 @@ class TrainingTypePlugin(ABC):
 
     def setup(self) -> None:
         """Called by the accelerator to finish setup."""
+
+    def setup_models_and_optimizers(
+        self, models: List[Module], optimizers: List[Optimizer]
+    ) -> Tuple[List[Module], List[Optimizer]]:
+        models = [self.setup_model(model) for model in models]
+        optimizers = [self.setup_optimizer(optimizer) for optimizer in optimizers]
+        return models, optimizers
+
+    def setup_model(self, model: Module) -> Module:
+        return model
+
+    def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
+        return optimizer
 
     @property
     @abstractmethod

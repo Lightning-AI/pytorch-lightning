@@ -27,7 +27,9 @@ import __main__
 import numpy as np
 import torch
 import torch.distributed
+from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
+from torch.utils.data import DataLoader, DistributedSampler
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -180,6 +182,14 @@ class DDPPlugin(ParallelPlugin):
         self.task_idx = self.cluster_environment.local_rank()
 
         self.setup_distributed()
+
+    def setup_model(self, model: Module) -> Module:
+        model = DistributedDataParallel(
+            module=model.to(self.root_device),
+            device_ids=self.determine_ddp_device_ids(),
+            **self._ddp_kwargs,
+        )
+        return model
 
     def _call_children_scripts(self):
         # bookkeeping of spawned processes
