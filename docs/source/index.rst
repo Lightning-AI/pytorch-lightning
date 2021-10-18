@@ -85,7 +85,7 @@ PyTorch Lightning
    extensions/logging
    extensions/metrics
    extensions/plugins
-
+   extensions/loops
 
 .. toctree::
    :maxdepth: 1

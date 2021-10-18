@@ -156,11 +156,11 @@ class LightningLite(ABC):
         """
         # wrap all objects passed in and return them in the same order
         optimizers = [optimizers] if isinstance(optimizers, Optimizer) else optimizers
-        model, optimizers = self._setup_model_and_optimizers(model, optimizers)
 
         if move_to_device:
             model = self.to_device(model)
 
+        model, optimizers = self._setup_model_and_optimizers(model, optimizers)
         optimizers = optimizers[0] if len(optimizers) == 1 else optimizers
         return model, optimizers
 
