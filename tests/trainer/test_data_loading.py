@@ -24,6 +24,7 @@ from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7
 from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 @pytest.mark.skipif(
@@ -134,6 +135,7 @@ class TestSpawnBoringModel(BoringModel):
             assert warn_str in msg
 
 
+@RunIf(skip_windows=True)
 @pytest.mark.parametrize("num_workers", [0, 1])
 def test_dataloader_warnings(tmpdir, num_workers):
     trainer = Trainer(default_root_dir=tmpdir, accelerator="ddp_spawn", num_processes=2, fast_dev_run=4)
