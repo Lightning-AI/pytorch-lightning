@@ -128,13 +128,13 @@ def precision_context(precision, accelerator) -> Generator[None, None, None]:
     [
         pytest.param(32, None, 1, "gpu"),
         pytest.param(16, None, 1, "gpu"),
-        #pytest.param(
+        # pytest.param(
         #    "bf16",
         #    None,
         #    1,
         #    "gpu",
         #    marks=pytest.mark.skipif(not _TORCH_BFLOAT_AVAILABLE, reason="bfloat16 isn't available."),
-        #),
+        # ),
         pytest.param(32, None, 1, "cpu"),
     ],
 )
