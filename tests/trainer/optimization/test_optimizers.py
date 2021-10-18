@@ -665,6 +665,7 @@ def test_optimizer_step_before_lr_scheduler_step_native_amp(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
+        enable_checkpointing=False,
         enable_progress_bar=False,
         logger=False,
         max_epochs=1,
