@@ -164,7 +164,17 @@ class LightningLite(ABC):
         optimizers = [optimizers] if isinstance(optimizers, Optimizer) else optimizers
 
         if move_to_device:
+            params_on_cpu = dict(model.named_parameters())
             model = self.to_device(model)
+            params_on_device = dict(model.named_parameters())
+
+            # When the user creates the optimizer, they reference the parameters on the CPU.
+            # However, when running with TPU the parameters get copied and the reference in the optimizer
+            # remains invalid. We need to update the references to point to the parameter tensors on the device.
+            mapping = {param: params_on_device[name] for name, param in params_on_cpu.items()}
+            for optimizer in optimizers:
+                for param_group in optimizer.param_groups:
+                    param_group["params"] = [mapping.get(p, p) for p in param_group["params"]]
 
         model, optimizers = self._setup_model_and_optimizers(model, optimizers)
         optimizers = optimizers[0] if len(optimizers) == 1 else optimizers
