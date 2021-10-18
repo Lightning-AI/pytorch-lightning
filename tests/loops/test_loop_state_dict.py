@@ -55,7 +55,6 @@ def test_loops_state_dict_structure():
                 "total": {"ready": 0, "completed": 0},
                 "current": {"ready": 0, "completed": 0},
             },
-            "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
             "epoch_loop.batch_loop.state_dict": {},
             "epoch_loop.batch_loop.manual_loop.state_dict": {},
             "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
