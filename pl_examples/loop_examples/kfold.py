@@ -111,9 +111,6 @@ class MNISTKFoldDataModule(BaseKFoldDataModule):
 #                           Step 3 / 5: Implement the EnsembleVotingModel module            #
 # The `EnsembleVotingModel` will take our custom LightningModule and                        #
 # several checkpoint_paths.                                                                 #
-# On `__init__`, it would create multiple models by reloading the fold weights              #
-# On `test_step`, the model will perform a forward through all the models and take          #
-# the average logits produced by the `num_folds` models, and loss the enssembling loss      #
 #                                                                                           #
 #############################################################################################
 
@@ -121,9 +118,11 @@ class MNISTKFoldDataModule(BaseKFoldDataModule):
 class EnsembleVotingModel(LightningModule):
     def __init__(self, model_cls: Type[LightningModule], checkpoint_paths: List[str]):
         super().__init__()
+        # Create `num_folds` models with their associated fold weights
         self.models = torch.nn.ModuleList([model_cls.load_from_checkpoint(p) for p in checkpoint_paths])
 
     def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
+        # Compute the averaged predictions over the `num_folds` models.
         logits = torch.stack([m(batch[0]) for m in self.models]).mean(0)
         loss = F.cross_entropy(logits, batch[1])
         self.log("test_loss", loss)
@@ -136,13 +135,6 @@ class EnsembleVotingModel(LightningModule):
 # https://pytorch-lightning.readthedocs.io/en/latest/extensions/loops.html.                 #
 # Here, we will implement an outer fit_loop. It means we will implement subclass the        #
 # base Loop and wrap the current trainer `fit_loop`.                                        #
-# On `on_run_start`, the `KFoldLoop` will call the `KFoldDataModule` `setup_folds` function #
-# and store the original weights of the model.                                              #
-# On `on_advance_start`, the `KFoldLoop` will call the `KFoldDataModule` `setup_fold_index` #
-# function.                                                                                 #
-# On `advance`, the `KFoldLoop` will run the original trainer `fit_loop` and                #
-# the trainer `test_loop`.                                                                  #
-# On `advance_end`, the `KFoldLoop` will reset the model weight and optimizers / schedulers #
 #############################################################################################
 
 
@@ -162,33 +154,40 @@ class KFoldLoop(Loop):
         """Nothing to reset in this loop."""
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
+        """Used to call `setup_folds` from the `BaseKFoldDataModule` instance and store the original weights of the
+        model."""
         assert isinstance(self.trainer.datamodule, BaseKFoldDataModule)
         self.trainer.datamodule.setup_folds(self.num_folds)
         self.lightning_module_state_dict = deepcopy(self.trainer.lightning_module.state_dict())
 
     def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
+        """Used to call `setup_fold_index` from the `BaseKFoldDataModule` instance."""
         print(f"STARTING FOLD {self.current_fold}")
         assert isinstance(self.trainer.datamodule, BaseKFoldDataModule)
         self.trainer.datamodule.setup_fold_index(self.current_fold)
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
-        self._reset_fitting()  # requires to reset the tracking stage
+        """Used to the run a fitting and testing on the current hold."""
+        self._reset_fitting()  # requires to reset the tracking stage.
         self.fit_loop.run()
 
-        self._reset_testing()  # requires to reset the tracking stage
+        self._reset_testing()  # requires to reset the tracking stage.
         self.trainer.test_loop.run()
-        self.current_fold += 1
+        self.current_fold += 1  # increment fold tracking number.
 
     def on_advance_end(self) -> None:
+        """Used to save the weights of the current fold and reset the LightningModule and its optimizers."""
         self.trainer.save_checkpoint(osp.join(self.export_path, f"model.{self.current_fold}.pt"))
         # restore the original weights + optimizers and schedulers.
         self.trainer.lightning_module.load_state_dict(self.lightning_module_state_dict)
         self.trainer.accelerator.setup_optimizers(self.trainer)
 
     def on_run_end(self) -> None:
+        """Used to compute the performance of the ensemble model on the test set."""
         checkpoint_paths = [osp.join(self.export_path, f"model.{f_idx + 1}.pt") for f_idx in range(self.num_folds)]
         voting_model = EnsembleVotingModel(type(self.trainer.lightning_module), checkpoint_paths)
         voting_model.trainer = self.trainer
+        # This requires to connect the new model and move it the right device.
         self.trainer.accelerator.connect(voting_model)
         self.trainer.training_type_plugin.model_to_device()
         self.trainer.test_loop.run()
