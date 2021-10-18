@@ -47,8 +47,8 @@ seed_everything(42)
 
 #############################################################################################
 #                           Step 1 / 5: Define KFold DataModule API                         #
-# Our KFold DataModule should require to implement `setup_folds` and `setup_fold_index`    #
-# function.                                                                                 #
+# Our KFold DataModule requires to implement the `setup_folds` and `setup_fold_index`       #
+# methods.                                                                                  #
 #############################################################################################
 
 
