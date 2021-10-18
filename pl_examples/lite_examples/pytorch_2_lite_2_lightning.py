@@ -24,13 +24,13 @@ from pytorch_lightning.lite import LightningLite
 #                               What is LightningLite ?                                     #
 #                                                                                           #
 # `LightningLite` is a python class you can override to get access to Lightning             #
-# accelerators and scale your training, but furthermore, it is intentend to be the safe     #
+# accelerators and scale your training, but furthermore, it is intended to be the safest    #
 # route to fully transition to Lightning.                                                   #
 #                                                                                           #
 #                         Does LightningLite requires code changes ?                        #
 #                                                                                           #
-# `LightningLite` code changes are minimal and this tutorial will show you easy it is to    #
-# convert using a BoringModel to `LightningLite`.                                           #
+# `LightningLite` code changes are minimal and this tutorial will show you how easy it      #
+# is to convert to `lite` using a `BoringModel`.                                            #
 #                                                                                           #
 #############################################################################################
 
@@ -39,7 +39,7 @@ from pytorch_lightning.lite import LightningLite
 #############################################################################################
 
 
-# 1 / 6: Implement a BoringModel with only one layer.
+# 1 / 6: Implement a `BoringModel` with only one layer.
 class BoringModel(nn.Module):
     def __init__(self):
         super().__init__()
@@ -50,16 +50,12 @@ class BoringModel(nn.Module):
         return torch.nn.functional.mse_loss(x, torch.ones_like(x))
 
 
-# 2 / 6: Implement a `configure_optimizers` taking a  and returning an optimizer
-
-
+# 2 / 6: Implement a `configure_optimizers` taking a module and returning an optimizer.
 def configure_optimizers(module: nn.Module):
     return torch.optim.SGD(module.parameters(), lr=0.001)
 
 
-# 3 / 6: Implement a simple dataset returning random data with the specificed shape
-
-
+# 3 / 6: Implement a simple dataset returning random data with the specified shape.
 class RandomDataset(Dataset):
     def __init__(self, length: int, size: int):
         self.len = length
@@ -73,8 +69,6 @@ class RandomDataset(Dataset):
 
 
 # 4 / 6: Implement the functions to create the dataloaders.
-
-
 def train_dataloader():
     return DataLoader(RandomDataset(64, 32))
 
@@ -84,8 +78,6 @@ def val_dataloader():
 
 
 # 5 / 6: Our main PyTorch Loop to train our `BoringModel` on our random data.
-
-
 def main(model: nn.Module, train_dataloader: DataLoader, val_dataloader: DataLoader, num_epochs: int = 10):
     optimizer = configure_optimizers(model)
 
@@ -93,6 +85,7 @@ def main(model: nn.Module, train_dataloader: DataLoader, val_dataloader: DataLoa
         train_losses = []
         val_losses = []
 
+        model.train()
         for batch in train_dataloader:
             optimizer.zero_grad()
             loss = model(batch)
@@ -100,8 +93,10 @@ def main(model: nn.Module, train_dataloader: DataLoader, val_dataloader: DataLoa
             loss.backward()
             optimizer.step()
 
-        for batch in val_dataloader:
-            val_losses.append(model(batch))
+        model.eval()
+        with torch.no_grad():
+            for batch in val_dataloader:
+                val_losses.append(model(batch))
 
         train_epoch_loss = torch.stack(train_losses).mean()
         val_epoch_loss = torch.stack(val_losses).mean()
@@ -121,7 +116,7 @@ pure_model_weights = main(model, train_dataloader(), val_dataloader())
 #############################################################################################
 #                                 Convert to LightningLite                                  #
 #                                                                                           #
-# By converting the `LightningLite`, you get the full power of Lightning accelerators       #
+# By converting to `LightningLite`, you get the full power of Lightning accelerators       #
 # while conversing your original code !                                                     #
 # To get started, you would need to `from pytorch_lightning.lite import LightningLite`      #
 # and override its `run` method.                                                            #
@@ -137,13 +132,14 @@ class LiteTrainer(LightningLite):
         # and `optimizer`. If you have multiple models (c.f GAN),        #
         # call `setup` for each one of them and their associated         #
         # optimizers                                                     #
-        model, optimizer = self.setup(model=model, optimizers=optimizer)  #
+        model, optimizer = self.setup(model=model, optimizers=optimizer) #
         ##################################################################
 
         for epoch in range(num_epochs):
             train_losses = []
             val_losses = []
 
+            model.train()
             for batch in train_dataloader:
                 optimizer.zero_grad()
                 loss = model(batch)
@@ -151,20 +147,22 @@ class LiteTrainer(LightningLite):
                 ##################################################################
                 # By calling `self.backward` directly, `LightningLite` will      #
                 # automate precision and distributions.                          #
-                self.backward(loss)  #                                           #
+                self.backward(loss)                                              #
                 ##################################################################
                 optimizer.step()
 
-            for batch in val_dataloader:
-                val_losses.append(model(batch))
+            model.eval()
+            with torch.no_grad():
+                for batch in val_dataloader:
+                    val_losses.append(model(batch))
 
             train_epoch_loss = torch.stack(train_losses).mean()
             val_epoch_loss = torch.stack(val_losses).mean()
 
             #######################################################################################
             # Optional: Utility to print only one rank 0 (when using distributed setting )        #
-            self.print(f"{epoch}/{num_epochs}| Train Epoch Loss: {torch.mean(train_epoch_loss)}")  #
-            self.print(f"{epoch}/{num_epochs}| Valid Epoch Loss: {torch.mean(val_epoch_loss)}")  #
+            self.print(f"{epoch}/{num_epochs}| Train Epoch Loss: {torch.mean(train_epoch_loss)}") #
+            self.print(f"{epoch}/{num_epochs}| Valid Epoch Loss: {torch.mean(val_epoch_loss)}")   #
             #######################################################################################
 
 
@@ -203,20 +201,20 @@ class LightningBoringModel(LightningModule):
 
     #############################################################################################
     #                                 LightningModule hooks                                     #
-    #
-    def training_step(self, batch, batch_idx):
-        x = self.forward(batch)
-        self.log("train_loss", x)
-        return x
-
-    def validation_step(self, batch, batch_idx):
-        x = self.forward(batch)
-        self.log("val_loss", x)
-        return x
-
-    def configure_optimizers(self):
-        return configure_optimizers(self)
-
+    #                                                                                           #
+    def training_step(self, batch, batch_idx):                                                  #
+        x = self.forward(batch)                                                                 #
+        self.log("train_loss", x)                                                               #
+        return x                                                                                #
+                                                                                                #
+    def validation_step(self, batch, batch_idx):                                                #
+        x = self.forward(batch)                                                                 #
+        self.log("val_loss", x)                                                                 #
+        return x                                                                                #
+                                                                                                #
+    def configure_optimizers(self):                                                             #
+        return configure_optimizers(self)                                                       #
+    #                                                                                           #
     #############################################################################################
 
 
