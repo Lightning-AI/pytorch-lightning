@@ -89,7 +89,7 @@ class Loop(ABC, Generic[T]):
 
             @property
             def skip(self):
-                return len(self.trainer.train_dataloaders) == 0
+                return len(self.trainer.train_dataloader) == 0
         """
         return False
 
