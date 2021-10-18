@@ -39,6 +39,13 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 class LightningLite(ABC):
     """Lite accelerates your PyTorch training or inference code with minimal changes required.
 
+    - Automatic placement of models and data onto the device
+    - Automatic support for mixed and double precision (smaller memory footprint)
+    - Seamless switching between hardware (CPU, GPU, TPU) and distributed training strategies
+      (data-parallel training, sharded training, etc.)
+    - Automated spawning of processes, no launch utilities required
+    - Multi-node support
+
     Args:
         accelerator: The hardware to run on. Possible choices are: cpu, gpu, tpu.
         strategy: Strategy for how to run across multiple devices. Possible choices are:
