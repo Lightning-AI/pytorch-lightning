@@ -198,9 +198,7 @@ class LightningBoringModel(LightningModule):
         x = self.layer(x)
         return torch.nn.functional.mse_loss(x, torch.ones_like(x))
 
-    #########################################################################################
-    #                                 LightningModule hooks                                 #
-    #                                                                                       #
+    # LightningModule hooks
     def training_step(self, batch, batch_idx):
         x = self.forward(batch)
         self.log("train_loss", x)
@@ -213,9 +211,6 @@ class LightningBoringModel(LightningModule):
 
     def configure_optimizers(self):
         return configure_optimizers(self)
-
-    #                                                                                       #
-    #########################################################################################
 
 
 class BoringDataModule(LightningDataModule):
