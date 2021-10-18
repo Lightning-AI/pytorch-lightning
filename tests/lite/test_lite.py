@@ -109,10 +109,11 @@ def precision_context(precision, use_cpu, dype) -> Generator[None, None, None]:
             yield
 
 
-@pytest.mark.parametrize("dype", [torch.float16])
-@pytest.mark.parametrize("use_cpu", [True])
-@pytest.mark.parametrize("precision", [32])
-def test_boring_lite_model(dype, use_cpu, precision, tmpdir):
+@pytest.mark.parametrize(
+    "dype,use_cpu,precision",
+    [pytest.param(torch.bfloat16, True, "bf16"), pytest.param(torch.float32, True, 32)],
+)
+def test_boring_lite_model_cpu(dype, use_cpu, precision, tmpdir):
 
     seed_everything(42)
     train_dataloader = DataLoader(RandomDataset(32, 64))
