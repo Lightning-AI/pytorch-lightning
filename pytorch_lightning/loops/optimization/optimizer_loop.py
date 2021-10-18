@@ -170,6 +170,8 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
     This loop implements what is known in Lightning as Automatic Optimization.
     """
 
+    output_result_cls = ClosureResult
+
     def __init__(self) -> None:
         super().__init__()
         self.optim_progress: OptimizationProgress = OptimizationProgress()
@@ -458,7 +460,9 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
 
             self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
 
-            result = ClosureResult.from_training_step_output(training_step_output, self.trainer.accumulate_grad_batches)
+            result = self.output_result_cls.from_training_step_output(
+                training_step_output, self.trainer.accumulate_grad_batches
+            )
 
             if self.trainer._terminate_on_nan:
                 check_finite_loss(result.closure_loss)
