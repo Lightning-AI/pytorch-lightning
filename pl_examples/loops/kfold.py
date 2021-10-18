@@ -131,9 +131,10 @@ class EnsembleVotingModel(LightningModule):
 
 #############################################################################################
 #                           Step 4 / 5: Implement the  KFoldLoop                            #
-# From Lightning v1.5, it is possible to implement your own loop. There is several to do    #
-# so and refer to the documentation to learn more.                                          #
-# Here, we will implement an outter fit_loop. It means we will implement subclass the       #
+# From Lightning v1.5, it is possible to implement your own loop. There is several steps    #
+# to do so which are described in detail within the documentation                           #
+# https://pytorch-lightning.readthedocs.io/en/latest/extensions/loops.html.                 #
+# Here, we will implement an outer fit_loop. It means we will implement subclass the        #
 # base Loop and wrap the current trainer `fit_loop`.                                        #
 # On `on_run_start`, the `KFoldLoop` will call the `KFoldDataModule` `setup_folds` function #
 # and store the original weights of the model.                                              #
