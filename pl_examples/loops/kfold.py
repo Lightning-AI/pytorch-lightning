@@ -37,6 +37,8 @@ from pytorch_lightning.trainer.states import TrainerFn
 #############################################################################################
 #                           KFold Loop / Cross Validation Example                           #
 # This example demonstrates how to leverage Lightning Loop Customization introduced in v1.5 #
+# Learn more about the loop structure from the documentation:                               #
+# https://pytorch-lightning.readthedocs.io/en/latest/extensions/loops.html                  #
 #############################################################################################
 
 
@@ -45,7 +47,7 @@ seed_everything(42)
 
 #############################################################################################
 #                           Step 1 / 5: Define KFold DataModule API                         #
-# Our KFold DataModule should requires to implement `setup_folds` and `setup_fold_index`    #
+# Our KFold DataModule should require to implement `setup_folds` and `setup_fold_index`    #
 # function.                                                                                 #
 #############################################################################################
 
@@ -63,7 +65,7 @@ class BaseKFoldDataModule(LightningDataModule, ABC):
 #############################################################################################
 #                           Step 2 / 5: Implement the KFoldDataModule                       #
 # The `KFoldDataModule` will take a train and test dataset.                                 #
-# On `setup_folds`, folds will be created depending on the provided argument num_folds      #
+# On `setup_folds`, folds will be created depending on the provided argument `num_folds`    #
 # Our `setup_fold_index`, the provided train dataset will be splitted accordingly to        #
 # the current fold split.                                                                   #
 #############################################################################################
@@ -119,7 +121,7 @@ class MNISTKFoldDataModule(BaseKFoldDataModule):
 class EnsembleVotingModel(LightningModule):
     def __init__(self, model_cls: Type[LightningModule], checkpoint_paths: List[str]):
         super().__init__()
-        self.models = [model_cls.load_from_checkpoint(p) for p in checkpoint_paths]
+        self.models = torch.nn.ModuleList([model_cls.load_from_checkpoint(p) for p in checkpoint_paths])
 
     def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         logits = torch.stack([m(batch[0]) for m in self.models]).mean(0)
@@ -133,18 +135,6 @@ class EnsembleVotingModel(LightningModule):
 # so and refer to the documentation to learn more.                                          #
 # Here, we will implement an outter fit_loop. It means we will implement subclass the       #
 # base Loop and wrap the current trainer `fit_loop`.                                        #
-# Here is the base Loop structure.                                                          #
-#                                                                                           #
-#                                reset()                                                    #
-#                                on_run_start()                                             #
-#                                                                                           #
-#                                while not done:                                            #
-#                                   on_advance_start()                                      #
-#                                   advance()                                               #
-#                                   on_advance_end()                                        #
-#                                                                                           #
-#                                on_run_end()                                               #
-#                                                                                           #
 # On `on_run_start`, the `KFoldLoop` will call the `KFoldDataModule` `setup_folds` function #
 # and store the original weights of the model.                                              #
 # On `on_advance_start`, the `KFoldLoop` will call the `KFoldDataModule` `setup_fold_index` #
@@ -196,11 +186,12 @@ class KFoldLoop(Loop):
 
     def on_run_end(self) -> None:
         checkpoint_paths = [
-            os.path.join(self.export_path, f"model.{fold_index}.pt") for fold_index in range(1, self.num_folds)
+            os.path.join(self.export_path, f"model.{fold_index + 1}.pt") for fold_index in range(self.num_folds)
         ]
         voting_model = EnsembleVotingModel(type(self.trainer.lightning_module), checkpoint_paths)
         voting_model.trainer = self.trainer
         self.trainer.accelerator.connect(voting_model)
+        self.trainer.training_type_plugin.model_to_device()
         self.trainer.test_loop.run()
 
     def on_save_checkpoint(self) -> Dict[str, int]:
@@ -228,7 +219,7 @@ class KFoldLoop(Loop):
 
 
 #############################################################################################
-#                           Step 5 / : Connect the KFoldLoop to the Trainer                #
+#                           Step 5 / 5: Connect the KFoldLoop to the Trainer                #
 # After creating the `KFoldDataModule` and our model, the `KFoldLoop` is being connected to #
 # the Trainer.                                                                              #
 # Finally, use `trainer.fit` to start the cross validation training.                        #
@@ -237,7 +228,14 @@ class KFoldLoop(Loop):
 model = LitClassifier()
 datamodule = MNISTKFoldDataModule()
 trainer = Trainer(
-    max_epochs=10, limit_train_batches=2, limit_val_batches=2, limit_test_batches=2, num_sanity_val_steps=0
+    max_epochs=10,
+    limit_train_batches=2,
+    limit_val_batches=2,
+    limit_test_batches=2,
+    num_sanity_val_steps=0,
+    devices=1,
+    accelerator="auto",
+    strategy="ddp",
 )
 trainer.fit_loop = KFoldLoop(5, trainer.fit_loop, export_path="./")
 trainer.fit(model, datamodule)
