@@ -52,11 +52,11 @@ seed_everything(42)
 
 class BaseKFoldDataModule(LightningDataModule, ABC):
     @abstractmethod
-    def setup_folds(self, num_folds: int):
+    def setup_folds(self, num_folds: int) -> None:
         pass
 
     @abstractmethod
-    def setup_fold_index(self, fold_index: int) -> LightningDataModule:
+    def setup_fold_index(self, fold_index: int) -> None:
         pass
 
 
@@ -70,7 +70,7 @@ class BaseKFoldDataModule(LightningDataModule, ABC):
 
 
 @dataclass
-class MnistKFoldDataModule(BaseKFoldDataModule):
+class MNISTKFoldDataModule(BaseKFoldDataModule):
 
     train_dataset: Optional[Dataset] = None
     test_dataset: Optional[Dataset] = None
@@ -78,9 +78,11 @@ class MnistKFoldDataModule(BaseKFoldDataModule):
     val_fold: Optional[Dataset] = None
 
     def prepare_data(self) -> None:
+        # download the data.
         MNIST(_DATASETS_PATH, transform=T.Compose([T.ToTensor(), T.Normalize(mean=(0.5,), std=(0.5,))]))
 
     def setup(self, stage: Optional[str] = None) -> None:
+        # load the data
         dataset = MNIST(_DATASETS_PATH, transform=T.Compose([T.ToTensor(), T.Normalize(mean=(0.5,), std=(0.5,))]))
         self.train_dataset, self.test_dataset = random_split(dataset, [50000, 10000])
 
@@ -93,13 +95,13 @@ class MnistKFoldDataModule(BaseKFoldDataModule):
         self.train_fold = Subset(self.train_dataset, train_indices)
         self.val_fold = Subset(self.train_dataset, val_indices)
 
-    def train_dataloader(self):
+    def train_dataloader(self) -> DataLoader:
         return DataLoader(self.train_fold)
 
-    def val_dataloader(self):
+    def val_dataloader(self) -> DataLoader:
         return DataLoader(self.val_fold)
 
-    def test_dataloader(self):
+    def test_dataloader(self) -> DataLoader:
         return DataLoader(self.test_dataset)
 
 
@@ -119,7 +121,7 @@ class EnsembleVotingModel(LightningModule):
         super().__init__()
         self.models = [model_cls.load_from_checkpoint(p) for p in checkpoint_paths]
 
-    def test_step(self, batch, batch_idx, dataloader_idx: int = 0):
+    def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         logits = torch.stack([m(batch[0]) for m in self.models]).mean(0)
         loss = F.cross_entropy(logits, batch[1])
         self.log("test_loss", loss)
@@ -201,24 +203,24 @@ class KFoldLoop(Loop):
         self.trainer.accelerator.connect(voting_model)
         self.trainer.test_loop.run()
 
-    def on_save_checkpoint(self):
+    def on_save_checkpoint(self) -> Dict[str, int]:
         return {"current_fold": self.current_fold}
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         self.current_fold = state_dict["current_fold"]
 
-    def _reset_fitting(self):
+    def _reset_fitting(self) -> None:
         self.trainer.reset_train_dataloader()
         self.trainer.reset_val_dataloader()
         self.trainer.state.fn = TrainerFn.FITTING
         self.trainer.training = True
 
-    def _reset_testing(self):
+    def _reset_testing(self) -> None:
         self.trainer.reset_test_dataloader()
         self.trainer.state.fn = TrainerFn.TESTING
         self.trainer.testing = True
 
-    def __getattr__(self, key):
+    def __getattr__(self, key) -> Any:
         # requires to be overridden as attributes of the wrapped loop as being accessed.
         if key not in self.__dict__:
             return getattr(self.fit_loop, key)
@@ -233,10 +235,9 @@ class KFoldLoop(Loop):
 #############################################################################################
 
 model = LitClassifier()
-trainer_kwargs = dict(
+datamodule = MNISTKFoldDataModule()
+trainer = Trainer(
     max_epochs=10, limit_train_batches=2, limit_val_batches=2, limit_test_batches=2, num_sanity_val_steps=0
 )
-trainer = Trainer(**trainer_kwargs)
-# replace the current trainer `fit_loop`
 trainer.fit_loop = KFoldLoop(5, trainer.fit_loop, export_path="./")
-trainer.fit(model, MnistKFoldDataModule())
+trainer.fit(model, datamodule)
