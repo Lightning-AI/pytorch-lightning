@@ -184,8 +184,8 @@ for pure_w, lite_w in zip(pure_model_weights.values(), lite_model.state_dict().v
 # By converting to Lightning, not-only your research code becomes inter-operable            #
 # (can easily be shared), but you get access to hundreds of extra features to make your     #
 # research faster.                                                                          #
-# Check Facebook blogpost about `Lightning` enabled them to scale their research in         #
-# production: https://ai.facebook.com/blog                                                  #
+# Check `Facebook` blogpost on how `Lightning` enabled their research to scale at scale     #
+# On https://ai.facebook.com/blog                                                           #
 # /reengineering-facebook-ais-deep-learning-platforms-for-interoperability/                 #
 #############################################################################################
 
