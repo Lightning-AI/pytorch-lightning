@@ -37,7 +37,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 #############################################################################################
 #                           KFold Loop / Cross Validation Example                           #
 # This example demonstrates how to leverage Lightning Loop Customization introduced in v1.5 #
-# Learn more about the loop structure from the documentation                                #
+# Learn more about the loop structure from the documentation:                               #
 # https://pytorch-lightning.readthedocs.io/en/latest/extensions/loops.html                  #
 #############################################################################################
 
