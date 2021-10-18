@@ -616,8 +616,11 @@ class AcceleratorConnector:
             if self.precision == 32:
                 return TPUPrecisionPlugin()
             elif self.precision == 64:
-                # FIXME: this is really bad because we need both a `TPUPrecisionPlugin` and a `DoublePrecisionPlugin`
-                pass
+                raise MisconfigurationException(
+                    "`Trainer(accelerator='tpu', precision=64)` is not implemented."
+                    " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`"
+                    " requesting this feature."
+                )
             elif self.precision in (16, "bf16"):
                 return TPUHalfPrecisionPlugin()
 
