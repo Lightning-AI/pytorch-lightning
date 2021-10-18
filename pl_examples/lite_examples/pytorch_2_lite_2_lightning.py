@@ -167,19 +167,17 @@ class LiteTrainer(LightningLite):
             self.print(f"{epoch}/{num_epochs}| Valid Epoch Loss: {torch.mean(val_epoch_loss)}")  #
             #######################################################################################
 
-        return model.state_dict()
-
 
 seed_everything(42)
-model = BoringModel()
+lite_model = BoringModel()
 lite = LiteTrainer()
-lite_model_weights = lite.run(model, train_dataloader(), val_dataloader())
+lite.run(lite_model, train_dataloader(), val_dataloader())
 
 #############################################################################################
 #                           Assert the weights are the same                                 #
 #############################################################################################
 
-for pure_w, lite_w in zip(pure_model_weights.values(), lite_model_weights.values()):
+for pure_w, lite_w in zip(pure_model_weights.values(), lite_model.state_dict().values()):
     torch.equal(pure_w, lite_w)
 
 
@@ -194,7 +192,18 @@ for pure_w, lite_w in zip(pure_model_weights.values(), lite_model_weights.values
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer  # noqa E402
 
 
-class LightningBoringModel(LightningModule, BoringModel):
+class LightningBoringModel(LightningModule):
+    def __init__(self):
+        super().__init__()
+        self.layer = torch.nn.Linear(32, 2)
+
+    def forward(self, x):
+        x = self.layer(x)
+        return torch.nn.functional.mse_loss(x, torch.ones_like(x))
+
+    #############################################################################################
+    #                                 LightningModule hooks                                     #
+    #
     def training_step(self, batch, batch_idx):
         x = self.forward(batch)
         self.log("train_loss", x)
@@ -207,6 +216,8 @@ class LightningBoringModel(LightningModule, BoringModel):
 
     def configure_optimizers(self):
         return configure_optimizers(self)
+
+    #############################################################################################
 
 
 class BoringDataModule(LightningDataModule):

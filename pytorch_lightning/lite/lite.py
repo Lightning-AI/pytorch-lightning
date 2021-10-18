@@ -300,7 +300,7 @@ class LightningLite(ABC):
         if isinstance(self._strategy, DDPSpawnPlugin):
             self._strategy.spawn(run_method, *args, **kwargs)
         else:
-            return run_method(*args, **kwargs)
+            run_method(*args, **kwargs)
 
     def _setup_model_and_optimizers(
         self,
