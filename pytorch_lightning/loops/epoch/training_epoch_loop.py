@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import defaultdict
-from typing import Any, Dict, Generator, List, Optional, overload, Tuple, Union
+from typing import Any, Dict, Generator, Iterator, List, Optional, overload, Tuple, Union
 
 import numpy as np
 import torch
@@ -59,6 +59,9 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self._results = ResultCollection(training=True)
         self._outputs: _OUTPUTS_TYPE = []
         self._warning_cache = WarningCache()
+        self._dataloader_iter: Optional[Iterator] = None
+        # caches the loaded dataloader state until dataloader objects are available
+        self._dataloader_state_dict: Dict[str, Any] = {}
 
     @property
     def total_batch_idx(self) -> int:
