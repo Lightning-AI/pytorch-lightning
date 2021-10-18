@@ -240,20 +240,20 @@ class ModelPruning(Callback):
         IF use_global_unstructured, pruning_fn will be resolved into its associated ``PyTorch BasePruningMethod`` ELSE,
         pruning_fn will be resolved into its function counterpart from `torch.nn.utils.prune`.
         """
-        pruning_fn = (
+        pruning_meth = (
             _PYTORCH_PRUNING_METHOD[pruning_fn]
             if self._use_global_unstructured
             else _PYTORCH_PRUNING_FUNCTIONS[pruning_fn]
         )
-        assert callable(pruning_fn)
+        assert callable(pruning_meth)
         if self._use_global_unstructured:
             self._global_kwargs = kwargs
         # save the function __name__ now because partial does not include it
         # and there are issues setting the attribute manually in ddp.
-        self._pruning_fn_name = pruning_fn.__name__
+        self._pruning_fn_name = pruning_meth.__name__
         if self._use_global_unstructured:
-            return pruning_fn
-        return ModelPruning._wrap_pruning_fn(pruning_fn, **kwargs)
+            return pruning_meth
+        return ModelPruning._wrap_pruning_fn(pruning_meth, **kwargs)
 
     @staticmethod
     def _wrap_pruning_fn(pruning_fn: Callable, **kwargs: Any) -> Callable:
