@@ -46,7 +46,6 @@ class LightningOptimizer:
         self._optimizer = optimizer
         self._trainer = None
         self._optimizer_idx = None
-        self._total_optimizer_step_calls = 0
 
     @property
     def optimizer(self):
@@ -192,7 +191,6 @@ class LightningOptimizer:
         trainer = self._trainer
         with trainer.profiler.profile(profiler_action):
             trainer.accelerator.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
-        self._total_optimizer_step_calls += 1
 
     def __repr__(self):
         groups = [
