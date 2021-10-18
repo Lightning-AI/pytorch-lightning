@@ -89,7 +89,7 @@ class _LiteDataLoader(DataLoader):
         super().__init__(**dl_kwargs)
         self._device = device
 
-    def __iter__(self) -> Union[Iterator[Any], Generator[Any, None, None]]:
+    def __iter__(self) -> Union[Iterator[Any], Generator[Any, None, None]]:  # type: ignore[override]
         iterator = super().__iter__()
         if self._device is None:
             return iterator
