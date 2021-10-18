@@ -131,7 +131,7 @@ class LiteTrainer(LightningLite):
         # You would need to call `self.setup` to wrap `model` and `optimizer`. If you     #
         # have multiple models (c.f GAN), call `setup` for each one of them and their     #
         # associated optimizers.                                                          #
-        model, optimizer = self.setup(model=model, optimizers=optimizer)                  #
+        model, optimizer = self.setup(model=model, optimizers=optimizer)  #
         ###################################################################################
 
         for epoch in range(num_epochs):
@@ -146,7 +146,7 @@ class LiteTrainer(LightningLite):
                 ###########################################################################
                 # By calling `self.backward` directly, `LightningLite` will automate      #
                 # precision and distributions.                                            #
-                self.backward(loss)                                                       #
+                self.backward(loss)
                 ###########################################################################
                 optimizer.step()
 
@@ -159,9 +159,9 @@ class LiteTrainer(LightningLite):
             val_epoch_loss = torch.stack(val_losses).mean()
 
             ################################################################################
-            # Optional: Utility to print only one rank 0 (when using distributed setting)  #
-            self.print(f"{epoch}/{num_epochs}| Train Epoch Loss: {train_epoch_loss}")      #
-            self.print(f"{epoch}/{num_epochs}| Valid Epoch Loss: {val_epoch_loss}")        #
+            # Optional: Utility to print only on rank 0 (when using distributed setting)   #
+            self.print(f"{epoch}/{num_epochs}| Train Epoch Loss: {train_epoch_loss}")
+            self.print(f"{epoch}/{num_epochs}| Valid Epoch Loss: {val_epoch_loss}")
             ################################################################################
 
 
@@ -201,18 +201,19 @@ class LightningBoringModel(LightningModule):
     #########################################################################################
     #                                 LightningModule hooks                                 #
     #                                                                                       #
-    def training_step(self, batch, batch_idx):                                              #
-        x = self.forward(batch)                                                             #
-        self.log("train_loss", x)                                                           #
-        return x                                                                            #
-                                                                                            #
-    def validation_step(self, batch, batch_idx):                                            #
-        x = self.forward(batch)                                                             #
-        self.log("val_loss", x)                                                             #
-        return x                                                                            #
-                                                                                            #
-    def configure_optimizers(self):                                                         #
-        return configure_optimizers(self)                                                   #
+    def training_step(self, batch, batch_idx):
+        x = self.forward(batch)
+        self.log("train_loss", x)
+        return x
+
+    def validation_step(self, batch, batch_idx):
+        x = self.forward(batch)
+        self.log("val_loss", x)
+        return x
+
+    def configure_optimizers(self):
+        return configure_optimizers(self)
+
     #                                                                                       #
     #########################################################################################
 
