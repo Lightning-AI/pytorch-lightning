@@ -184,7 +184,7 @@ def test_early_stopping_patience_train(
 
 
 def test_pickling(tmpdir):
-    early_stopping = EarlyStopping()
+    early_stopping = EarlyStopping("foo")
 
     early_stopping_pickled = pickle.dumps(early_stopping)
     early_stopping_loaded = pickle.loads(early_stopping_pickled)
