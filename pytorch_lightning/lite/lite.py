@@ -93,7 +93,7 @@ class LightningLite(ABC):
             amp_level=None,
             plugins=plugins,
         )
-        self._accelerator = self._accelerator_connector.select_accelerator()
+        self._accelerator = self._accelerator_connector.accelerator
         self._strategy = self._accelerator.training_type_plugin
         self._precision_plugin = self._accelerator.precision_plugin
 
