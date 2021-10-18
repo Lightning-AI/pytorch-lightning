@@ -285,7 +285,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         files = [file for file in files if file.endswith(".json")]
         assert len(files) == 2, files
         local_rank = trainer.local_rank
-        assert any(f"{local_rank}-optimizer_step_and_closure_" in f for f in files)
+        assert any(f"{local_rank}-optimizer_step_with_closure_" in f for f in files)
         assert any(f"{local_rank}-validation_step" in f for f in files)
 
 
