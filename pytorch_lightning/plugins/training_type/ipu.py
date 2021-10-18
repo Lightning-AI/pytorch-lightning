@@ -113,7 +113,7 @@ class IPUPlugin(ParallelPlugin):
         # patch the dataloader creation function with the custom `poptorch.DataLoader`.
         # this violates the intended control flow for the plugins, but since this is experimental, we have chosen
         # to use the simpler solution before adding abstractions to override the `DataLoader` class
-        self.lightning_module.trainer.replace_sampler = self._convert_to_poptorch_loader
+        self.lightning_module.trainer._update_dataloader = self._convert_to_poptorch_loader
 
     def pre_dispatch(self) -> None:
         precision = self.lightning_module.trainer.precision
@@ -193,7 +193,7 @@ class IPUPlugin(ParallelPlugin):
 
         if accumulation_scheduler.epochs != [0]:
             raise MisconfigurationException(
-                "IPUs currently does not support different `accumulate_grad_batches` at different epoch."
+                "IPUs currently does not support different `accumulate_grad_batches` at different epochs."
             )
 
         # TODO(@tchaton): Add support for accumulate_grad_batches being a dictionary
@@ -236,7 +236,7 @@ class IPUPlugin(ParallelPlugin):
 
     def teardown(self) -> None:
         # undo dataloader patching
-        self.lightning_module.trainer.replace_sampler = pl.trainer.trainer.TrainerDataLoadingMixin.replace_sampler
+        self.lightning_module.trainer._update_dataloader = pl.trainer.trainer.TrainerDataLoadingMixin._update_dataloader
         for model in self.poptorch_models.values():
             model.destroy()
 
@@ -285,7 +285,7 @@ class IPUPlugin(ParallelPlugin):
     def on_predict_end(self):
         self._detach_models()
 
-    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         # Updates optimizer stats if LR scheduler modified the optimizer state
         optimizer = self.lightning_module.trainer.optimizers[0]
         self.poptorch_models[RunningStage.TRAINING].setOptimizer(optimizer)

@@ -35,9 +35,9 @@ def test_outputs_format(tmpdir):
             assert "foo" in output
             assert output["foo"] == 123
 
-        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+        def on_train_batch_end(self, outputs, batch, batch_idx):
             HookedModel._check_output(outputs)
-            super().on_train_batch_end(outputs, batch, batch_idx, dataloader_idx)
+            super().on_train_batch_end(outputs, batch, batch_idx)
 
         def training_epoch_end(self, outputs):
             assert len(outputs) == 2
@@ -54,7 +54,7 @@ def test_outputs_format(tmpdir):
         limit_train_batches=2,
         limit_test_batches=1,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -84,14 +84,14 @@ def test_training_starts_with_seed(tmpdir):
 
 
 @pytest.mark.parametrize(["max_epochs", "batch_idx_"], [(2, 5), (3, 8), (4, 12)])
-def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_):
+def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_, tmpdir):
     class CurrentModel(BoringModel):
-        def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
+        def on_train_batch_start(self, batch, batch_idx):
             if batch_idx == batch_idx_:
                 return -1
 
     model = CurrentModel()
-    trainer = Trainer(max_epochs=max_epochs, limit_train_batches=10)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=max_epochs, limit_train_batches=10)
     trainer.fit(model)
     if batch_idx_ > trainer.num_training_batches - 1:
         assert trainer.fit_loop.batch_idx == trainer.num_training_batches - 1

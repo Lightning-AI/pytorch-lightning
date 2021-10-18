@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import argparse
 import contextlib
 import json
 import logging
@@ -33,8 +34,10 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import log, rank_zero_info, rank_zero_only
+from pytorch_lightning.utilities.enums import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeTuple
 from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
@@ -375,11 +378,23 @@ class DeepSpeedPlugin(DDPPlugin):
         self.barrier()
 
     def init_deepspeed(self):
-        accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
-        if not isinstance(accumulate_grad_batches, int):
+        # check that `configure_gradient_clipping` hook isn't overriden since deepspeed handles
+        # gradient clipping internally
+        if is_overridden("configure_gradient_clipping", self.lightning_module):
+            rank_zero_warn(
+                "Since deepspeed handles gradient clipping internally, this hook will"
+                " be ignored. Consider setting `gradient_clip_val` and `gradient_clip_algorithm`"
+                " inside `Trainer`."
+            )
+
+        if self.lightning_module.trainer.gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
+            raise MisconfigurationException("Deepspeed does not support clipping gradients by value.")
+
+        accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
+
+        if accumulation_scheduler.epochs != [0]:
             raise MisconfigurationException(
-                "DeepSpeed currently only supports `Trainer.accumulate_grad_batches` being an integer."
-                f" Received {accumulate_grad_batches}"
+                "DeepSpeed currently does not support different `accumulate_grad_batches` at different epochs."
             )
 
         precision = self.lightning_module.trainer.accelerator.precision
@@ -429,6 +444,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
         model_parameters = filter(lambda p: p.requires_grad, self.model.parameters())
         model, deepspeed_optimizer, _, deepspeed_scheduler = deepspeed.initialize(
+            args=argparse.Namespace(device_rank=self.root_device.index),
             config=self.config,
             model=model,
             model_parameters=model_parameters,
@@ -441,7 +457,11 @@ class DeepSpeedPlugin(DDPPlugin):
 
         # although we set these here, deepspeed manages the specific optimizer logic
         self.lightning_module.trainer.optimizers = [deepspeed_optimizer]
+
+        deepspeed_scheduler = model.lr_scheduler
         if deepspeed_scheduler is not None:
+            # disable deepspeed lr scheduling as lightning manages scheduling
+            model.lr_scheduler = None
             lr_scheduler["scheduler"] = deepspeed_scheduler
             self.lightning_module.trainer.lr_schedulers = [lr_scheduler]
         self.model = model
@@ -501,6 +521,7 @@ class DeepSpeedPlugin(DDPPlugin):
         # Remove all module hooks before initializing new model
         remove_module_hooks(model)
         model, _, _, _ = deepspeed.initialize(
+            args=argparse.Namespace(device_rank=self.root_device.index),
             config=inference_config,
             model=model,
             optimizer=optimizer,
@@ -562,7 +583,7 @@ class DeepSpeedPlugin(DDPPlugin):
             batch_size = self._auto_select_batch_size()
             self.config["train_micro_batch_size_per_gpu"] = batch_size
         if "gradient_clipping" not in self.config:
-            self.config["gradient_clipping"] = self.lightning_module.trainer.gradient_clip_val
+            self.config["gradient_clipping"] = self.lightning_module.trainer.gradient_clip_val or 0.0
 
     def _auto_select_batch_size(self):
         # train_micro_batch_size_per_gpu is used for throughput logging purposes

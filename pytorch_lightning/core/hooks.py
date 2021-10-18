@@ -79,7 +79,7 @@ class ModelHooks:
         - training_start
         """
 
-    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_train_batch_start(self, batch: Any, batch_idx: int, unused: Optional[int] = 0) -> None:
         """Called in the training loop before anything happens for that batch.
 
         If you return -1 here, you will skip training for the rest of the current epoch.
@@ -87,17 +87,17 @@ class ModelHooks:
         Args:
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
-            dataloader_idx: the index of the dataloader
+            unused: Deprecated argument. Will be removed in v1.7.
         """
 
-    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, unused: Optional[int] = 0) -> None:
         """Called in the training loop after the batch.
 
         Args:
             outputs: The outputs of training_step_end(training_step(x))
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
-            dataloader_idx: the index of the dataloader
+            unused: Deprecated argument. Will be removed in v1.7.
         """
 
     def on_validation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:

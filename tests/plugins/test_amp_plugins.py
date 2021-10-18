@@ -52,8 +52,8 @@ class MyApexPlugin(ApexMixedPrecisionPlugin):
 @pytest.mark.parametrize(
     "amp,custom_plugin,plugin_cls",
     [
-        pytest.param("native", False, NativeMixedPrecisionPlugin, marks=RunIf(amp_native=True)),
-        pytest.param("native", True, MyNativeAMP, marks=RunIf(amp_native=True)),
+        ("native", False, NativeMixedPrecisionPlugin),
+        ("native", True, MyNativeAMP),
         pytest.param("apex", False, ApexMixedPrecisionPlugin, marks=RunIf(amp_apex=True)),
         pytest.param("apex", True, MyApexPlugin, marks=RunIf(amp_apex=True)),
     ],
@@ -67,7 +67,7 @@ def test_amp_apex_ddp(
         precision=16,
         amp_backend=amp,
         gpus=gpus,
-        accelerator=ddp_backend,
+        strategy=ddp_backend,
         plugins=[plugin_cls()] if custom_plugin else None,
     )
     assert isinstance(trainer.precision_plugin, plugin_cls)
@@ -82,7 +82,7 @@ class GradientUnscaleBoringModel(BoringModel):
             assert norm.item() < 15.0
 
 
-@RunIf(min_gpus=2, amp_native=True)
+@RunIf(min_gpus=2)
 @pytest.mark.parametrize("accum", [1, 2])
 def test_amp_gradient_unscale(tmpdir, accum: int):
     model = GradientUnscaleBoringModel()
@@ -94,7 +94,7 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
         limit_test_batches=2,
         limit_val_batches=2,
         amp_backend="native",
-        accelerator="ddp_spawn",
+        strategy="ddp_spawn",
         gpus=2,
         precision=16,
         track_grad_norm=2,
@@ -104,7 +104,7 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=1, amp_native=True)
+@RunIf(min_gpus=1)
 def test_amp_skip_optimizer(tmpdir):
     """Test that optimizers can be skipped when using amp."""
 
@@ -151,7 +151,7 @@ def test_amp_apex_ddp_fit(amp_level, tmpdir):
         precision=16,
         amp_backend="apex",
         gpus=2,
-        accelerator="ddp",
+        strategy="ddp",
         plugins=ApexMixedPrecisionPlugin(amp_level=amp_level),
     )
     assert isinstance(trainer.precision_plugin, ApexMixedPrecisionPlugin)
@@ -170,7 +170,7 @@ def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
         precision=16,
         amp_backend="apex",
         gpus=2,
-        accelerator="ddp_spawn",
+        strategy="ddp_spawn",
         plugins=ApexMixedPrecisionPlugin(amp_level=amp_level),
     )
     assert isinstance(trainer.precision_plugin, ApexMixedPrecisionPlugin)
@@ -178,7 +178,7 @@ def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=1, amp_native=True, max_torch="1.9")
+@RunIf(min_gpus=1, max_torch="1.9")
 def test_amp_precision_16_bfloat_throws_error(tmpdir):
     with pytest.raises(
         MisconfigurationException,
@@ -191,7 +191,7 @@ def test_amp_precision_16_bfloat_throws_error(tmpdir):
         )
 
 
-@RunIf(amp_native=True, max_torch="1.9")
+@RunIf(max_torch="1.9")
 def test_cpu_amp_precision_throws_error(tmpdir):
     with pytest.raises(
         MisconfigurationException,
@@ -201,10 +201,6 @@ def test_cpu_amp_precision_throws_error(tmpdir):
 
 
 @pytest.mark.skipif(not _TORCH_CPU_AMP_AVAILABLE, reason="Torch CPU AMP is not available.")
-@RunIf(
-    min_gpus=1,
-    amp_native=True,
-)
 def test_cpu_amp_precision_context_manager(tmpdir):
     """Test to ensure that the context manager correctly is set to CPU + bfloat16, and a scaler isn't set."""
 
@@ -213,14 +209,10 @@ def test_cpu_amp_precision_context_manager(tmpdir):
     assert not hasattr(plugin, "scaler")
     context_manager = plugin.autocast_context_manager()
     assert isinstance(context_manager, torch.cpu.amp.autocast)
-    assert context_manager.dtype == torch.bfloat16
+    assert context_manager.fast_dtype == torch.bfloat16
 
 
 @pytest.mark.skipif(not _TORCH_CPU_AMP_AVAILABLE, reason="Torch CPU AMP is not available.")
-@RunIf(
-    min_gpus=1,
-    amp_native=True,
-)
 def test_cpu_amp_precision_16_throws_error(tmpdir):
     """Throw error when using 16 as Native CPU AMP only supports bfloat16."""
 

@@ -233,7 +233,7 @@ def test_dataloader_reinit_for_subclass():
             self.dummy_kwarg = dummy_kwarg
             self.something_unrelated = 1
 
-    trainer = Trainer(num_processes=1, accelerator="ddp_cpu")
+    trainer = Trainer(num_processes=2, strategy="ddp_spawn")
 
     class CustomDummyObj:
         sampler = None
@@ -267,19 +267,19 @@ def test_loader_detaching():
 
     class LoaderTestModel(BoringModel):
         def training_step(self, batch, batch_idx):
-            assert len(model.train_dataloader()) == 10
+            assert len(self.trainer.train_dataloader.loaders) == 10
             return super().training_step(batch, batch_idx)
 
         def validation_step(self, batch, batch_idx):
-            assert len(model.val_dataloader()) == 10
+            assert len(self.trainer.val_dataloaders[0]) == 10
             return super().validation_step(batch, batch_idx)
 
         def test_step(self, batch, batch_idx):
-            assert len(model.test_dataloader()) == 10
+            assert len(self.trainer.test_dataloaders[0]) == 10
             return super().test_step(batch, batch_idx)
 
         def predict_step(self, batch, batch_idx, dataloader_idx=None):
-            assert len(model.predict_dataloader()) == 10
+            assert len(self.trainer.predict_dataloaders[0]) == 10
             return super().predict_step(batch, batch_idx, dataloader_idx=dataloader_idx)
 
     loader = DataLoader(RandomDataset(32, 10), batch_size=1)

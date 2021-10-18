@@ -36,7 +36,12 @@ from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, Hyperparameter
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from pytorch_lightning.utilities import _TORCH_SHARDED_TENSOR_AVAILABLE, rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities import (
+    _TORCH_SHARDED_TENSOR_AVAILABLE,
+    GradClipAlgorithmType,
+    rank_zero_deprecation,
+    rank_zero_warn,
+)
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
@@ -391,10 +396,12 @@ class LightningModule(
         on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
         if self.trainer is None:
-            raise MisconfigurationException(
+            # not an error to support testing the `*_step` methods without a `Trainer` reference
+            rank_zero_warn(
                 "You are trying to `self.log()` but the `self.trainer` reference is not registered on the model yet."
                 " This is most likely because the model hasn't been passed to the `Trainer`"
             )
+            return
         results = self.trainer._results
         if results is None:
             raise MisconfigurationException(
@@ -1262,6 +1269,9 @@ class LightningModule(
                     "lr_scheduler": {
                         "scheduler": ReduceLROnPlateau(optimizer, ...),
                         "monitor": "metric_to_track",
+                        "frequency": "indicates how often the metric is updated"
+                        # If "monitor" references validation metrics, then "frequency" should be set to a
+                        # multiple of "trainer.check_val_every_n_epoch".
                     },
                 }
 
@@ -1462,6 +1472,96 @@ class LightningModule(
                             param.requires_grad = self._param_requires_grad_state[param]
         # save memory
         self._param_requires_grad_state = {}
+
+    def clip_gradients(
+        self,
+        optimizer: Optimizer,
+        gradient_clip_val: Optional[Union[int, float]] = None,
+        gradient_clip_algorithm: Optional[Union[str, GradClipAlgorithmType]] = None,
+    ):
+        """Handles gradient clipping internally.
+
+        Note:
+            Do not override this method. If you want to customize gradient clipping, consider
+            using :meth:`configure_gradient_clipping` method.
+
+        Args:
+            optimizer: Current optimizer being used.
+            gradient_clip_val: The value at which to clip gradients.
+            gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
+                to clip by value, and ``gradient_clip_algorithm="norm"`` to clip by norm.
+        """
+        if gradient_clip_val is None:
+            gradient_clip_val = self.trainer.gradient_clip_val or 0.0
+        elif self.trainer.gradient_clip_val is not None and self.trainer.gradient_clip_val != gradient_clip_val:
+            raise MisconfigurationException(
+                "You have set `Trainer(gradient_clip_val)` and have passed"
+                " `gradient_clip_val` inside `clip_gradients`. Please use only one of them."
+            )
+
+        if gradient_clip_algorithm is None:
+            gradient_clip_algorithm = self.trainer.gradient_clip_algorithm or "norm"
+        else:
+            gradient_clip_algorithm = gradient_clip_algorithm.lower()
+            if (
+                self.trainer.gradient_clip_algorithm is not None
+                and self.trainer.gradient_clip_algorithm != gradient_clip_algorithm
+            ):
+                raise MisconfigurationException(
+                    "You have set `Trainer(gradient_clip_algorithm)` and have passed"
+                    " `gradient_clip_algorithm` inside `clip_gradients`. Please use only one of them."
+                )
+
+        if not isinstance(gradient_clip_val, (int, float)):
+            raise TypeError(f"`gradient_clip_val` should be an int or a float. Got {gradient_clip_val}.")
+
+        if not GradClipAlgorithmType.supported_type(gradient_clip_algorithm.lower()):
+            raise MisconfigurationException(
+                f"`gradient_clip_algorithm` {gradient_clip_algorithm} is invalid."
+                f" Allowed algorithms: {GradClipAlgorithmType.supported_types()}."
+            )
+
+        gradient_clip_algorithm = GradClipAlgorithmType(gradient_clip_algorithm)
+        self.trainer.accelerator.clip_gradients(optimizer, gradient_clip_val, gradient_clip_algorithm)
+
+    def configure_gradient_clipping(
+        self,
+        optimizer: Optimizer,
+        optimizer_idx: int,
+        gradient_clip_val: Optional[Union[int, float]] = None,
+        gradient_clip_algorithm: Optional[str] = None,
+    ):
+        """Perform gradient clipping for the optimizer parameters. Called before :meth:`optimizer_step`.
+
+        Note:
+            This hook won't be called when using deepspeed since it handles gradient clipping internally.
+            Consider setting ``gradient_clip_val`` and ``gradient_clip_algorithm`` inside ``Trainer``."
+
+        Args:
+            optimizer: Current optimizer being used.
+            optimizer_idx: Index of the current optimizer being used.
+            gradient_clip_val: The value at which to clip gradients. By default value passed in Trainer
+                will be available here.
+            gradient_clip_algorithm: The gradient clipping algorithm to use. By default value
+                passed in Trainer will be available here.
+
+        Example::
+
+            # Perform gradient clipping on gradients associated with discriminator (optimizer_idx=1) in GAN
+            def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
+                if optimizer_idx == 1:
+                    # Lightning will handle the gradient clipping
+                    self.clip_gradients(
+                        optimizer,
+                        gradient_clip_val=gradient_clip_val,
+                        gradient_clip_algorithm=gradient_clip_algorithm
+                    )
+                else:
+                    # implement your own custom logic to clip gradients for generator (optimizer_idx=0)
+        """
+        self.clip_gradients(
+            optimizer, gradient_clip_val=gradient_clip_val, gradient_clip_algorithm=gradient_clip_algorithm
+        )
 
     def optimizer_step(
         self,

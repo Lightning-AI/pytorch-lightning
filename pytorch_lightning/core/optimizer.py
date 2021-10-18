@@ -172,13 +172,20 @@ class LightningOptimizer:
                 with opt_dis.toggle_model(sync_grad=accumulated_grad_batches):
                     opt_dis.step(closure=closure_dis)
         """
-        closure = closure or do_nothing_closure
-        if not callable(closure):
-            raise MisconfigurationException("When closure is provided, it should be a function")
+        if closure is None:
+            closure = do_nothing_closure
+            profiler_action = "optimizer_step_without_closure"
+        elif not callable(closure):
+            raise MisconfigurationException("When `optimizer.step(closure)` is called, the closure should be callable")
+        else:
+            profiler_action = "optimizer_step_with_closure"
+        profiler_action += f"_{self._optimizer_idx}"
+
         trainer = self._trainer
         assert trainer is not None
-        with trainer.profiler.profile(f"optimizer_step_and_closure_{self._optimizer_idx}"):
-            trainer.accelerator.optimizer_step(self._optimizer, self._optimizer_idx, lambda_closure=closure, **kwargs)
+        with trainer.profiler.profile(profiler_action):
+            trainer.accelerator.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
+        self._total_optimizer_step_calls += 1
 
     def __repr__(self) -> str:
         groups = [
