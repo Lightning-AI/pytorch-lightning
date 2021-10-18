@@ -25,7 +25,6 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
-
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import Accelerator, TPUAccelerator
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
