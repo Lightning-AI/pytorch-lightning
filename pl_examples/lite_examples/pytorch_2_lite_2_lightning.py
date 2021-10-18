@@ -127,13 +127,12 @@ class LiteTrainer(LightningLite):
     def run(self, model: nn.Module, train_dataloader: DataLoader, val_dataloader: DataLoader, num_epochs: int = 10):
         optimizer = configure_optimizers(model)
 
-        ##################################################################
-        # You would need to call `self.setup` to wrap `model`            #
-        # and `optimizer`. If you have multiple models (c.f GAN),        #
-        # call `setup` for each one of them and their associated         #
-        # optimizers                                                     #
-        model, optimizer = self.setup(model=model, optimizers=optimizer)  #
-        ##################################################################
+        ###################################################################################
+        # You would need to call `self.setup` to wrap `model` and `optimizer`. If you     #
+        # have multiple models (c.f GAN), call `setup` for each one of them and their     #
+        # associated optimizers.                                                          #
+        model, optimizer = self.setup(model=model, optimizers=optimizer)                  #
+        ###################################################################################
 
         for epoch in range(num_epochs):
             train_losses = []
@@ -144,11 +143,11 @@ class LiteTrainer(LightningLite):
                 optimizer.zero_grad()
                 loss = model(batch)
                 train_losses.append(loss)
-                ##################################################################
-                # By calling `self.backward` directly, `LightningLite` will      #
-                # automate precision and distributions.                          #
-                self.backward(loss)  #
-                ##################################################################
+                ###########################################################################
+                # By calling `self.backward` directly, `LightningLite` will automate      #
+                # precision and distributions.                                            #
+                self.backward(loss)                                                       #
+                ###########################################################################
                 optimizer.step()
 
             model.eval()
@@ -159,11 +158,11 @@ class LiteTrainer(LightningLite):
             train_epoch_loss = torch.stack(train_losses).mean()
             val_epoch_loss = torch.stack(val_losses).mean()
 
-            #######################################################################################
-            # Optional: Utility to print only one rank 0 (when using distributed setting )        #
-            self.print(f"{epoch}/{num_epochs}| Train Epoch Loss: {torch.mean(train_epoch_loss)}")  #
-            self.print(f"{epoch}/{num_epochs}| Valid Epoch Loss: {torch.mean(val_epoch_loss)}")  #
-            #######################################################################################
+            ################################################################################
+            # Optional: Utility to print only one rank 0 (when using distributed setting)  #
+            self.print(f"{epoch}/{num_epochs}| Train Epoch Loss: {train_epoch_loss}")      #
+            self.print(f"{epoch}/{num_epochs}| Valid Epoch Loss: {val_epoch_loss}")        #
+            ################################################################################
 
 
 seed_everything(42)
@@ -199,26 +198,23 @@ class LightningBoringModel(LightningModule):
         x = self.layer(x)
         return torch.nn.functional.mse_loss(x, torch.ones_like(x))
 
-    #############################################################################################
-    #                                 LightningModule hooks                                     #
-    #                                                                                           #
-    def training_step(self, batch, batch_idx):  #
-        x = self.forward(batch)  #
-        self.log("train_loss", x)  #
-        return x  #
-        #
-
-    def validation_step(self, batch, batch_idx):  #
-        x = self.forward(batch)  #
-        self.log("val_loss", x)  #
-        return x  #
-        #
-
-    def configure_optimizers(self):  #
-        return configure_optimizers(self)  #
-
-    #                                                                                           #
-    #############################################################################################
+    #########################################################################################
+    #                                 LightningModule hooks                                 #
+    #                                                                                       #
+    def training_step(self, batch, batch_idx):                                              #
+        x = self.forward(batch)                                                             #
+        self.log("train_loss", x)                                                           #
+        return x                                                                            #
+                                                                                            #
+    def validation_step(self, batch, batch_idx):                                            #
+        x = self.forward(batch)                                                             #
+        self.log("val_loss", x)                                                             #
+        return x                                                                            #
+                                                                                            #
+    def configure_optimizers(self):                                                         #
+        return configure_optimizers(self)                                                   #
+    #                                                                                       #
+    #########################################################################################
 
 
 class BoringDataModule(LightningDataModule):
