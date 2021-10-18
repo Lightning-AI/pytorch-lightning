@@ -20,10 +20,11 @@ Monitor and logs learning rate for lr schedulers during training.
 
 """
 from collections import defaultdict
-from typing import Any, DefaultDict, Dict, List, Optional, Set, Type
+from typing import Any, DefaultDict, Dict, List, Optional, Set, Tuple, Type
 
 from torch.optim.optimizer import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -90,10 +91,10 @@ class LearningRateMonitor(Callback):
 
         self.logging_interval = logging_interval
         self.log_momentum = log_momentum
-        self.lrs = None
-        self.lr_sch_names = []
+        self.lrs: Dict[str, List[float]] = {}
+        self.lr_sch_names: List[str] = []
 
-    def on_train_start(self, trainer, *args, **kwargs):
+    def on_train_start(self, trainer: "pl.Trainer", *args, **kwargs) -> None:
         """Called before training, determines unique names for all lr schedulers in the case of multiple of the
         same type or in the case of multiple parameter groups.
 
@@ -122,7 +123,7 @@ class LearningRateMonitor(Callback):
                 )
 
         # Find names for schedulers
-        names = []
+        names: List[str] = []
         (
             sched_hparam_keys,
             optimizers_with_scheduler,
@@ -142,7 +143,7 @@ class LearningRateMonitor(Callback):
         self.lrs = {name: [] for name in names}
         self.last_momentum_values = {name + "-momentum": None for name in names}
 
-    def on_train_batch_start(self, trainer, *args, **kwargs):
+    def on_train_batch_start(self, trainer: "pl.Trainer", *args, **kwargs) -> None:
         if not self._should_log(trainer):
             return
 
@@ -153,7 +154,7 @@ class LearningRateMonitor(Callback):
             if latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
-    def on_train_epoch_start(self, trainer, *args, **kwargs):
+    def on_train_epoch_start(self, trainer: "pl.Trainer", *args, **kwargs) -> None:
         if self.logging_interval != "step":
             interval = "epoch" if self.logging_interval is None else "any"
             latest_stat = self._extract_stats(trainer, interval)
@@ -161,7 +162,7 @@ class LearningRateMonitor(Callback):
             if latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
-    def _extract_stats(self, trainer, interval: str) -> Dict[str, float]:
+    def _extract_stats(self, trainer: "pl.Trainer", interval: str) -> Dict[str, float]:
         latest_stat = {}
 
         (
@@ -191,7 +192,7 @@ class LearningRateMonitor(Callback):
 
         return latest_stat
 
-    def _get_lr_momentum_stat(self, optimizer: Optimizer, name: str) -> None:
+    def _get_lr_momentum_stat(self, optimizer: Optimizer, name: str) -> Dict[str, float]:
         lr_momentum_stat = {}
         param_groups = optimizer.param_groups
         use_betas = "betas" in optimizer.defaults
@@ -208,7 +209,7 @@ class LearningRateMonitor(Callback):
         return lr_momentum_stat
 
     def _extract_lr(self, param_group: Dict[str, Any], name: str) -> Dict[str, Any]:
-        lr = param_group.get("lr")
+        lr = param_group["lr"]
         self.lrs[name].append(lr)
         return {name: lr}
 
@@ -221,11 +222,11 @@ class LearningRateMonitor(Callback):
             elif new_name not in self.lrs:
                 self.lrs[new_name] = []
 
-    def _extract_momentum(self, param_group: Dict[str, Any], name: str, use_betas: bool) -> Dict[str, float]:
+    def _extract_momentum(self, param_group: Dict[str, List], name: str, use_betas: bool) -> Dict[str, float]:
         if not self.log_momentum:
             return {}
 
-        momentum = param_group.get("betas")[0] if use_betas else param_group.get("momentum", 0)
+        momentum = param_group["betas"][0] if use_betas else param_group.get("momentum", 0)
         self.last_momentum_values[name] = momentum
         return {name: momentum}
 
@@ -255,12 +256,14 @@ class LearningRateMonitor(Callback):
             return set()
         return {n for n in names if names.count(n) > 1}
 
-    def _find_names_from_schedulers(self, lr_schedulers: List, add_lr_sch_names: bool = True) -> List[str]:
+    def _find_names_from_schedulers(
+        self, lr_schedulers: List, add_lr_sch_names: bool = True
+    ) -> Tuple[List[str], List[Optimizer], DefaultDict[Type[Optimizer], int]]:
         # Create unique names in the case we have multiple of the same learning
         # rate scheduler + multiple parameter groups
         names = []
-        seen_optimizers = []
-        seen_optimizer_types = defaultdict(int)
+        seen_optimizers: List[Optimizer] = []
+        seen_optimizer_types: DefaultDict[Type[Optimizer], int] = defaultdict(int)
         for scheduler in lr_schedulers:
             sch = scheduler["scheduler"]
             if scheduler["name"] is not None:
@@ -275,8 +278,12 @@ class LearningRateMonitor(Callback):
         return names, seen_optimizers, seen_optimizer_types
 
     def _find_names_from_optimizers(
-        self, optimizers, seen_optimizers, seen_optimizer_types, add_lr_sch_names: bool = True
-    ) -> List[str]:
+        self,
+        optimizers: List[Any],
+        seen_optimizers: List[Optimizer],
+        seen_optimizer_types: DefaultDict[Type[Optimizer], int],
+        add_lr_sch_names: bool = True,
+    ) -> Tuple[List[str], List[Optimizer]]:
         names = []
         optimizers_without_scheduler = []
 
@@ -298,11 +305,11 @@ class LearningRateMonitor(Callback):
         self,
         optimizer: Optimizer,
         name: str,
-        seen_optimizers: List,
-        seen_optimizer_types: List,
+        seen_optimizers: List[Optimizer],
+        seen_optimizer_types: DefaultDict[Type[Optimizer], int],
         scheduler: Dict[str, Any] = None,
         add_lr_sch_names: bool = True,
-    ) -> List:
+    ) -> List[str]:
         seen_optimizers.append(optimizer)
         optimizer_cls = type(optimizer)
         if scheduler is not None and scheduler["name"] is None:
