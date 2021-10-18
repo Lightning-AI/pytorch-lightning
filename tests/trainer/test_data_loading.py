@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import sys
 from contextlib import redirect_stderr
 from io import StringIO
 from re import escape
@@ -23,14 +22,11 @@ from torch.utils.data.sampler import BatchSampler, Sampler, SequentialSampler
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 
-@pytest.mark.skipif(
-    sys.platform == "win32" and not _TORCH_GREATER_EQUAL_1_7, reason="Bad `torch.distributed` support on Windows"
-)
+@RunIf(skip_windows=True, min_torch="1.7.0")
 @pytest.mark.parametrize("mode", (1, 2, 3))
 def test_replace_distributed_sampler(tmpdir, mode):
     class IndexedRandomDataset(RandomDataset):
