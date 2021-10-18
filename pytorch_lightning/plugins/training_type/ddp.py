@@ -183,7 +183,7 @@ class DDPPlugin(ParallelPlugin):
 
         self.setup_distributed()
 
-    def setup_model(self, model: Module) -> Module:
+    def setup_model(self, model: Module) -> DistributedDataParallel:
         return DistributedDataParallel(module=model, device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs)
 
     def _call_children_scripts(self):
