@@ -19,10 +19,9 @@ import os
 import platform
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Union, Sequence
+from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import torch
-from deepspeed import DeepSpeedEngine
 from torch.nn import Module
 from torch.optim import Optimizer
 
@@ -399,7 +398,7 @@ class DeepSpeedPlugin(DDPPlugin):
         # self._set_deepspeed_activation_checkpointing()
         return [self._model], [optimizer]
 
-    def _setup_model_and_optimizer(self, model: Module, optimizer: Optimizer) -> Tuple[DeepSpeedEngine, Optimizer]:
+    def _setup_model_and_optimizer(self, model: Module, optimizer: Optimizer):
         # TODO: shouldn't this be optimizer.parameters?
         model_parameters = filter(lambda p: p.requires_grad, model.parameters())
         deepspeed_engine, deepspeed_optimizer, _, _ = deepspeed.initialize(

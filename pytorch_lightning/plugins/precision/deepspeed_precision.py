@@ -13,7 +13,6 @@
 # limitations under the License.
 from typing import Any, Callable, Optional, Union
 
-import deepspeed
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
