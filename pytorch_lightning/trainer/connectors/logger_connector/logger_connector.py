@@ -256,9 +256,10 @@ class LoggerConnector:
     def on_new_batch(self, batch: Any) -> int:
         # when the user requests `dataloader_iter`, we can't track the batch_size
         # and this is left to user responsibility.
-        if not isinstance(batch, pl.utilities.fetching.DataLoaderIterDataFetcher):
+        if not isinstance(batch, pl.utilities.fetching.StepFuncDataLoaderIter):
             assert self.trainer._results is not None
             return self.trainer._results.extract_batch_size(batch)
+        return 1
 
     def on_epoch_start(self) -> None:
         self._epoch_end_reached = False
