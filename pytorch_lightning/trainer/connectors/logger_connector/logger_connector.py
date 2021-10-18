@@ -29,6 +29,11 @@ from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 class LoggerConnector:
     def __init__(self, trainer: "pl.Trainer", log_gpu_memory: Optional[str] = None) -> None:
         self.trainer = trainer
+        if log_gpu_memory is not None:
+            rank_zero_deprecation(
+                "Setting `log_gpu_memory` with the trainer flag is deprecated in v1.5 and will be removed in v1.7. "
+                "Please monitor GPU stats with the `DeviceStatsMonitor` callback directly instead."
+            )
         self.log_gpu_memory = log_gpu_memory
         self.eval_loop_results: List[_OUT_DICT] = []
         self._val_log_step: int = 0
@@ -222,6 +227,7 @@ class LoggerConnector:
         if self.trainer.fit_loop._should_accumulate() and self.trainer.lightning_module.automatic_optimization:
             return
 
+        # TODO: remove this call in v1.7
         self._log_gpus_metrics()
 
         # when metrics should be logged
@@ -239,6 +245,11 @@ class LoggerConnector:
         self.trainer._results.reset(metrics=True)
 
     def _log_gpus_metrics(self) -> None:
+        """
+        .. deprecated:: v1.5
+            This function was deprecated in v1.5 in favor of
+            `pytorch_lightning.accelerators.gpu._get_nvidia_gpu_stats` and will be removed in v1.7.
+        """
         for key, mem in self.gpus_metrics.items():
             if self.log_gpu_memory == "min_max":
                 self.trainer.lightning_module.log(key, mem, prog_bar=False, logger=True)
@@ -309,6 +320,14 @@ class LoggerConnector:
 
     @property
     def gpus_metrics(self) -> Dict[str, float]:
+        """
+        .. deprecated:: v1.5
+            Will be removed in v1.7.
+        """
+        rank_zero_deprecation(
+            "The property `LoggerConnector.gpus_metrics` was deprecated in v1.5"
+            " and will be removed in 1.7. Use the `DeviceStatsMonitor` callback instead."
+        )
         if self.trainer._device_type == DeviceType.GPU and self.log_gpu_memory:
             mem_map = memory.get_memory_profile(self.log_gpu_memory)
             self._gpus_metrics.update(mem_map)

@@ -330,7 +330,7 @@ def test_epoch_results_cache_dp(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, accelerator="dp", gpus=2, limit_train_batches=2, limit_val_batches=2, max_epochs=1
+        default_root_dir=tmpdir, strategy="dp", gpus=2, limit_train_batches=2, limit_val_batches=2, max_epochs=1
     )
     trainer.fit(model)
     trainer.test(model)

@@ -550,7 +550,7 @@ def _test_progress_bar_max_val_check_interval(
         enable_model_summary=False,
         val_check_interval=val_check_interval,
         gpus=world_size,
-        accelerator="ddp",
+        strategy="ddp",
     )
     trainer.fit(model, train_dataloader=train_data, val_dataloaders=val_data)
 

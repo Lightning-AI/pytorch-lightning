@@ -134,7 +134,7 @@ class Trainer(
         auto_select_gpus: bool = False,
         tpu_cores: Optional[Union[List[int], str, int]] = None,
         ipus: Optional[int] = None,
-        log_gpu_memory: Optional[str] = None,
+        log_gpu_memory: Optional[str] = None,  # TODO: Remove in 1.7
         progress_bar_refresh_rate: Optional[int] = None,  # TODO: remove in v1.7
         enable_progress_bar: bool = True,
         overfit_batches: Union[int, float] = 0.0,
@@ -276,6 +276,10 @@ class Trainer(
                 of the individual loggers.
 
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance.
+
+                .. deprecated:: v1.5
+                    Deprecated in v1.5.0 and will be removed in v1.7.0
+                    Please use the ``DeviceStatsMonitor`` callback directly instead.
 
             log_every_n_steps: How often to log within steps (defaults to every 50 steps).
 
@@ -1392,14 +1396,29 @@ class Trainer(
             if callable(model_fx):
                 output = model_fx(*args, **kwargs)
 
+            # *Bad code alert*
+            # The `Accelerator` mostly calls the `TrainingTypePlugin` but some of those calls are deprecated.
+            # The following logic selectively chooses which hooks are called on each object.
+            # In the case of `setup` and `teardown`, the hooks on the `LightningModule` should not call the hooks of the
+            # same name in these objects as they are meant to be managed outside of the `LightningModule` lifecycle.
+            # All of this should be fixed by #8506
+
             # call the accelerator hook
-            if hook_name not in ("setup", "teardown") and hasattr(self.accelerator, hook_name):
+            if hook_name in ("on_train_start",) and hasattr(self.accelerator, hook_name):
                 accelerator_hook = getattr(self.accelerator, hook_name)
                 accelerator_output = accelerator_hook(*args, **kwargs)
                 # Rely on the accelerator output if lightningModule hook returns nothing
                 # Required for cases such as DataParallel where we reduce the output for the user
                 # todo: move this data parallel logic into the data parallel plugin
                 output = accelerator_output if output is None else output
+
+            # call the ttp hook
+            if hook_name not in ("setup", "teardown", "on_train_start") and hasattr(
+                self.training_type_plugin, hook_name
+            ):
+                ttp_hook = getattr(self.training_type_plugin, hook_name)
+                ttp_output = ttp_hook(*args, **kwargs)
+                output = ttp_output if output is None else output
 
         if pl_module:
             # restore current_fx when nested context
