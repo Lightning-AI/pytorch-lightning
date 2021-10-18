@@ -657,6 +657,7 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir, save_on
     assert model.on_save_checkpoint_called
 
 
+@RunIf(min_gpus=1)
 def test_optimizer_step_before_lr_scheduler_step_native_amp(tmpdir):
     """Test `optimizer.step()` is called before `lr_scheduler.step()`.
 
