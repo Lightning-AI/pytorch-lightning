@@ -150,15 +150,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         pass
 
     def new_process(self, process_idx: int, trainer, mp_queue) -> None:
+        self._worker_setup(process_idx)
         self.mp_queue = mp_queue
-
-        reset_seed()
-
-        self.tpu_local_core_rank = xm.get_local_ordinal()
-        self.tpu_global_core_rank = xm.get_ordinal()
-
-        # set warning rank
-        rank_zero_only.rank = self.global_rank
 
         if self.tpu_global_core_rank != 0 and trainer.progress_bar_callback is not None:
             trainer.progress_bar_callback.disable()
@@ -271,6 +264,19 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def optimizer_step(self, optimizer: Optimizer, lambda_closure: Callable, **kwargs):
         xm.optimizer_step(optimizer, barrier=False, optimizer_args={"closure": lambda_closure, **kwargs})
+
+    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> None:
+        xmp.spawn(self._wrapped_function, args=(function, args, kwargs), nprocs=self.num_processes)
+
+    def _wrapped_function(self, process_idx: int, function: Callable, args: Any, kwargs: Any) -> None:
+        self._worker_setup(process_idx)
+        function(*args, **kwargs)
+
+    def _worker_setup(self, process_idx: int):
+        reset_seed()
+        self.tpu_local_core_rank = xm.get_local_ordinal()
+        self.tpu_global_core_rank = xm.get_ordinal()
+        rank_zero_only.rank = self.global_rank
 
     def start_training(self, trainer: "pl.Trainer") -> None:
         # todo: precision pluging is call in accelerator setup and should be moved
