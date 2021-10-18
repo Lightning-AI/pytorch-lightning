@@ -34,6 +34,9 @@ the classifier is trained with lr = 1e-4.
 
 Note:
     See: https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
+
+To run:
+    python computer_vision_fine_tuning.py fit
 """
 
 import logging
@@ -265,7 +268,7 @@ class TransferLearningModel(pl.LightningModule):
 
 class MyLightningCLI(LightningCLI):
     def add_arguments_to_parser(self, parser):
-        parser.add_class_arguments(MilestonesFinetuning, "finetuning")
+        parser.add_lightning_class_args(MilestonesFinetuning, "finetuning")
         parser.link_arguments("data.batch_size", "model.batch_size")
         parser.link_arguments("finetuning.milestones", "model.milestones")
         parser.link_arguments("finetuning.train_bn", "model.train_bn")
@@ -276,11 +279,6 @@ class MyLightningCLI(LightningCLI):
                 "trainer.num_sanity_val_steps": 0,
             }
         )
-
-    def instantiate_trainer(self, *args):
-        finetuning_callback = MilestonesFinetuning(**self._get(self.config_init, "finetuning"))
-        self.trainer_defaults["callbacks"] = [finetuning_callback]
-        return super().instantiate_trainer(*args)
 
 
 def cli_main():

@@ -67,7 +67,7 @@ def test_amp_apex_ddp(
         precision=16,
         amp_backend=amp,
         gpus=gpus,
-        accelerator=ddp_backend,
+        strategy=ddp_backend,
         plugins=[plugin_cls()] if custom_plugin else None,
     )
     assert isinstance(trainer.precision_plugin, plugin_cls)
@@ -95,7 +95,7 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
         limit_test_batches=2,
         limit_val_batches=2,
         amp_backend="native",
-        accelerator="ddp_spawn",
+        strategy="ddp_spawn",
         gpus=2,
         precision=16,
         track_grad_norm=2,
@@ -153,7 +153,7 @@ def test_amp_apex_ddp_fit(amp_level, tmpdir):
         precision=16,
         amp_backend="apex",
         gpus=2,
-        accelerator="ddp",
+        strategy="ddp",
         plugins=ApexMixedPrecisionPlugin(amp_level=amp_level),
     )
     assert isinstance(trainer.precision_plugin, ApexMixedPrecisionPlugin)
@@ -172,7 +172,7 @@ def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
         precision=16,
         amp_backend="apex",
         gpus=2,
-        accelerator="ddp_spawn",
+        strategy="ddp_spawn",
         plugins=ApexMixedPrecisionPlugin(amp_level=amp_level),
     )
     assert isinstance(trainer.precision_plugin, ApexMixedPrecisionPlugin)
