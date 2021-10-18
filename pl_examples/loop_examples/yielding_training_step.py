@@ -26,7 +26,6 @@ from pytorch_lightning.loops.optimization.optimizer_loop import ClosureResult
 from pytorch_lightning.loops.utilities import _build_training_step_kwargs
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-
 #############################################################################################
 #                                    Yield Loop                                             #
 #                                                                                           #
