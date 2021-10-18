@@ -211,7 +211,7 @@ class KFoldLoop(Loop):
         self.trainer.testing = True
 
     def __getattr__(self, key) -> Any:
-        # requires to be overridden as attributes of the wrapped loop as being accessed.
+        # requires to be overridden as attributes of the wrapped loop are being accessed.
         if key not in self.__dict__:
             return getattr(self.fit_loop, key)
         return self.__dict__[key]
