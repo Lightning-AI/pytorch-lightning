@@ -18,7 +18,7 @@ def weights_init(m):
 
 class Generator(nn.Module):
     def __init__(self):
-        super(Generator, self).__init__()
+        super().__init__()
         self.main = nn.Sequential(
             # input is Z, going into a convolution
             nn.ConvTranspose2d(nz, ngf * 8, 4, 1, 0, bias=False),
@@ -49,7 +49,7 @@ class Generator(nn.Module):
 
 class Discriminator(nn.Module):
     def __init__(self):
-        super(Discriminator, self).__init__()
+        super().__init__()
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
             nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),

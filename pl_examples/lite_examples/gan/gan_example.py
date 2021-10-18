@@ -6,7 +6,6 @@ Launch it with this command:
 python -m torch.distributed.run --nproc_per_node=2 gan_example.py
 
 """
-from __future__ import print_function
 
 import argparse
 import os
@@ -25,7 +24,7 @@ from torch.utils.data import DistributedSampler
 from pl_examples.lite_examples.gan.models import Discriminator, Generator, weights_init
 from pytorch_lightning import seed_everything
 from pytorch_lightning.lite import LightningLite
-from pytorch_lightning.lite.wrappers import _LiteOptimizer, _LiteModule
+from pytorch_lightning.lite.wrappers import _LiteModule, _LiteOptimizer
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--workers", type=int, help="number of data loading workers", default=0)

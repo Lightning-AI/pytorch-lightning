@@ -14,7 +14,8 @@
 from typing import Any, Callable, Optional
 
 import torch
-from torch import nn as nn, Tensor
+from torch import nn as nn
+from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 

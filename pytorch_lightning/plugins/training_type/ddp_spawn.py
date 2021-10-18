@@ -16,7 +16,7 @@ import os
 import re
 from functools import partial
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Dict, List, Optional, Union, Callable
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import numpy as np
 import torch

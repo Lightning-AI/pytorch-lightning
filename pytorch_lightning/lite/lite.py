@@ -12,26 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from collections import Callable
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import Any, Optional, Sequence, Union, List, Dict, Tuple, Generator
+from typing import Any, Dict, Generator, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, DistributedSampler, SequentialSampler, RandomSampler, Sampler
+from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import Accelerator, TPUAccelerator
-from pytorch_lightning.lite.wrappers import _LiteOptimizer, _LiteModule, _LiteDataLoader
-from pytorch_lightning.plugins import PLUGIN_INPUT, DDPSpawnPlugin, TrainingTypePlugin, DeepSpeedPlugin
+from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
+from pytorch_lightning.plugins import DDPSpawnPlugin, DeepSpeedPlugin, PLUGIN_INPUT, TrainingTypePlugin
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.utilities import move_data_to_device, DistributedType, DeviceType
+from pytorch_lightning.utilities import DeviceType, DistributedType, move_data_to_device
 from pytorch_lightning.utilities.data import has_iterable_dataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -102,7 +102,10 @@ class LightningLite(ABC):
 
     @property
     def device(self) -> torch.device:
-        """The current device this process runs on. Use this to create tensors directly on the device if needed."""
+        """The current device this process runs on.
+
+        Use this to create tensors directly on the device if needed.
+        """
         return self._accelerator.root_device
 
     @property
@@ -233,8 +236,8 @@ class LightningLite(ABC):
     def cast(self) -> Generator[None, None, None]:
         """A context manager to automatically convert operations for the chosen precision.
 
-        Use this only if the `forward` method of your model does not cover all operations you wish to run with
-        the chosen precision setting.
+        Use this only if the `forward` method of your model does not cover all operations you wish to run with the
+        chosen precision setting.
         """
         with self._accelerator.forward_context():
             yield
@@ -255,8 +258,10 @@ class LightningLite(ABC):
         return move_data_to_device(obj, device=self.device)
 
     def print(self, *args: Any, **kwargs: Any) -> None:
-        """Print something only on the first process. Arguments passed to this method are forwarded to the
-        Python built-in :func:`print` function."""
+        """Print something only on the first process.
+
+        Arguments passed to this method are forwarded to the Python built-in :func:`print` function.
+        """
         if self.local_rank == 0:
             print(*args, **kwargs)
 

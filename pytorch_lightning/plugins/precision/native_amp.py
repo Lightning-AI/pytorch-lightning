@@ -100,7 +100,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         return False
 
     def post_optimizer_step(self, optimizer: "Optimizer", optimizer_idx: int) -> None:
-        """Updates the GradScaler"""
+        """Updates the GradScaler."""
         self.run_post_optimizer_step(optimizer)
 
     def run_pre_optimizer_step(self, optimizer: "Optimizer") -> None:
@@ -119,7 +119,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
-        """Enable autocast context"""
+        """Enable autocast context."""
         with self.autocast_context_manager():
             yield
 

@@ -158,7 +158,7 @@ class PrecisionPlugin(CheckpointHooks):
 
     @contextlib.contextmanager
     def forward_context(self) -> Generator:
-        """A contextmanager for managing model forward/training_step/evaluation_step/predict_step"""
+        """A contextmanager for managing model forward/training_step/evaluation_step/predict_step."""
         yield
 
     @contextlib.contextmanager

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Dict, Generator, Optional, Tuple, List, Union
+from typing import Dict, Generator, List, Optional, Tuple, Union
 
 import torch
 from torch.nn import Module

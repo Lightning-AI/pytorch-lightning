@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Sequence, Union, Tuple, List
+from typing import Any, Callable, Dict, Generator, Iterable, List, Mapping, Optional, Sequence, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -62,7 +62,10 @@ class TrainingTypePlugin(ABC):
         """Called by the accelerator to finish setup."""
 
     def setup_dataloader(self, dataloader: DataLoader) -> DataLoader:
-        """Called by the accelerator. The plugin wraps and modifies the dataloader as needed."""
+        """Called by the accelerator.
+
+        The plugin wraps and modifies the dataloader as needed.
+        """
         return dataloader
 
     def setup_models_and_optimizers(
@@ -306,7 +309,7 @@ class TrainingTypePlugin(ABC):
 
     @contextlib.contextmanager
     def forward_context(self) -> Generator:
-        """A contextmanager for managing model forward/training_step/evaluation_step/predict_step"""
+        """A contextmanager for managing model forward/training_step/evaluation_step/predict_step."""
         yield
 
     @contextlib.contextmanager
