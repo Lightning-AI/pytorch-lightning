@@ -35,7 +35,11 @@ if _FAIRSCALE_AVAILABLE:
 class DDPShardedPlugin(DDPPlugin):
     """Optimizer and gradient sharded training provided by FairScale."""
 
-    _REDUCE_BUFFER_SIZE_DEFAULT = 2 ** 23  # 8M
+    _REDUCE_BUFFER_SIZE_DEFAULT: int = 2 ** 23  # 8M
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._precision = None
 
     def setup_models_and_optimizers(
         self, models: List[Module], optimizers: List[Optimizer]
@@ -71,9 +75,9 @@ class DDPShardedPlugin(DDPPlugin):
                 optim_class = type(optimizer)
                 zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
                 if _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE:
-                    precision = (
+                    precision = self._precision or (
                         32 if self.lightning_module is None else self.lightning_module.trainer.precision
-                    )  # TODO: how to handle this?!
+                    )
                     is_fp16 = precision in ("mixed", 16)
                     # For multi-node training, compressing the model shards in fp16 before broadcasting
                     # improves performance. When using PyTorch AMP, it will not degrade
