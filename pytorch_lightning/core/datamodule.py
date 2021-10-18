@@ -505,6 +505,8 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
         for method_name in ("train_dataloader", "val_dataloader", "test_dataloader", "predict_dataloader"):
             dataloader_method = getattr(self, method_name)
+            if not callable(dataloader_method):
+                continue
             try:
                 dataloader = dataloader_method()
             except NotImplementedError:

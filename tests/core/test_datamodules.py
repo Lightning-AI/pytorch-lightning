@@ -635,6 +635,19 @@ def test_inconsistent_prepare_data_per_node(tmpdir):
 DATALOADER = DataLoader(RandomDataset(1, 32))
 
 
+class CustomDataModule(LightningDataModule):
+    pass
+
+
+def test_datamodule_not_properly_defined_has_zero_length():
+    dm = CustomDataModule()
+    dm.train_dataloader = None
+    dm.val_dataloader = None
+    dm.test_dataloader = None
+    dm.predict_dataloader = None
+    assert len(dm) == 0
+
+
 @pytest.mark.parametrize("method_name", ["train_dataloader", "val_dataloader", "test_dataloader", "predict_dataloader"])
 @pytest.mark.parametrize(
     ["dataloader", "expected"],
