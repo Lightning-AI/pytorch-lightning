@@ -1,10 +1,6 @@
-import os
-
 import torch
-from torch.utils.data import DataLoader, Dataset
 
-from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.loops.optimization.yield_loop import Yield, YieldLoop
+from pytorch_lightning import Trainer
 
 
 import inspect
@@ -18,6 +14,9 @@ from pytorch_lightning.loops.optimization.optimizer_loop import ClosureResult
 from pytorch_lightning.loops.utilities import _build_training_step_kwargs
 from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+from pl_examples.domain_templates.generative_adversarial_net import GAN as GANTemplate
+from pl_examples.domain_templates.generative_adversarial_net import MNISTDataModule
 
 
 class Yield:
@@ -78,72 +77,42 @@ class YieldLoop(OptimizerLoop):
         return result
 
 
-class RandomDataset(Dataset):
-    def __init__(self, size, length):
-        self.len = length
-        self.data = torch.randn(length, size)
-
-    def __getitem__(self, index):
-        return self.data[index]
-
-    def __len__(self):
-        return self.len
-
-
-class BoringModel(Yield, LightningModule):
-    def __init__(self):
-        super().__init__()
-        self.layer1 = torch.nn.Linear(32, 32)
-        self.layer2 = torch.nn.Linear(32, 32)
-        self.head = torch.nn.Linear(32, 2)
-
-    # potential future directions
-    # 1) yield loss + optimizer
-    # 2) last statement must be a return
-    # 3) yield loss + extras for step_end and epoch_end
+class GAN(Yield, GANTemplate):
     def training_step(self, batch, batch_idx, optimizer_idx=0):
-        loss0 = self.layer1(batch).sum()
-        yield loss0
+        imgs, _ = batch
+        z = torch.randn(imgs.shape[0], self.hparams.latent_dim)
+        z = z.type_as(imgs)
 
-        print("yield 0")
+        generator_output = self(z)
 
-        loss1 = self.layer2(batch).sum()
+        # train generator
+        valid = torch.ones(imgs.size(0), 1)
+        valid = valid.type_as(imgs)
+        g_loss = self.adversarial_loss(self.discriminator(generator_output), valid)
+        self.log("g_loss", g_loss)
 
-        print("yield 1")
+        yield g_loss
 
-        yield loss1
+        # train discriminator
+        valid = torch.ones(imgs.size(0), 1)
+        valid = valid.type_as(imgs)
 
-    def configure_optimizers(self):
-        # scheduler dict?
-        opt1 = torch.optim.SGD(self.layer1.parameters(), lr=0.1)
-        opt2 = torch.optim.SGD(self.layer2.parameters(), lr=0.1)
-        return opt1, opt2
+        real_loss = self.adversarial_loss(self.discriminator(imgs), valid)
+        fake = torch.zeros(imgs.size(0), 1)
+        fake = fake.type_as(imgs)
+        fake_loss = self.adversarial_loss(self.discriminator(generator_output.detach()), fake)
+        d_loss = (real_loss + fake_loss) / 2
+        self.log("d_loss", d_loss)
+
+        yield d_loss
 
 
 def run():
-    train_data = DataLoader(RandomDataset(32, 64), batch_size=2)
-    val_data = DataLoader(RandomDataset(32, 64), batch_size=2)
-    test_data = DataLoader(RandomDataset(32, 64), batch_size=2)
-
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=os.getcwd(),
-        limit_train_batches=1,
-        limit_val_batches=1,
-        num_sanity_val_steps=0,
-        max_epochs=1,
-        weights_summary=None,
-        # gpus=1,
-        # accelerator="ddp",
-        # accelerator="ddp_cpu",
-        # plugins=DDPPlugin(),
-        # num_processes=1,
-    )
-
-    yield_batch_loop = YieldLoop()
-    trainer.fit_loop.epoch_loop.batch_loop.connect(optimizer_loop=yield_batch_loop)
-
-    trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
+    model = GAN()
+    dm = MNISTDataModule()
+    trainer = Trainer()
+    trainer.fit_loop.epoch_loop.batch_loop.connect(optimizer_loop=YieldLoop())
+    trainer.fit(model, dm)
 
 
 if __name__ == "__main__":
