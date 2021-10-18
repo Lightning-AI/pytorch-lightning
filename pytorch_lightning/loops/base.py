@@ -158,7 +158,8 @@ class Loop(ABC, Generic[T]):
         Example::
 
             def reset(self):
-                # reset your internal state or add custom logic if you expect run() to be called multiple times
+                # reset your internal state or add custom logic
+                # if you expect run() to be called multiple times
                 self.current_iteration = 0
                 self.outputs = []
         """
