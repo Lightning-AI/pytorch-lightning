@@ -191,12 +191,6 @@ class DDPPlugin(ParallelPlugin):
         )
         return model
 
-    def setup_dataloader(self, dataloader: DataLoader) -> DataLoader:
-        kwargs = self.distributed_sampler_kwargs
-        sampler = DistributedSampler(dataloader.dataset, **kwargs)
-        # dataloader = replace_sampler(dataloader, sampler)
-        return dataloader
-
     def _call_children_scripts(self):
         # bookkeeping of spawned processes
         self._check_can_spawn_children()

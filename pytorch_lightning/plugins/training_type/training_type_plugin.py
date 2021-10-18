@@ -61,13 +61,6 @@ class TrainingTypePlugin(ABC):
     def setup(self) -> None:
         """Called by the accelerator to finish setup."""
 
-    def setup_dataloader(self, dataloader: DataLoader) -> DataLoader:
-        """Called by the accelerator.
-
-        The plugin wraps and modifies the dataloader as needed.
-        """
-        return dataloader
-
     def setup_models_and_optimizers(
         self, models: List[Module], optimizers: List[Optimizer]
     ) -> Tuple[List[Module], List[Optimizer]]:
