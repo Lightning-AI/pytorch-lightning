@@ -184,12 +184,7 @@ class DDPPlugin(ParallelPlugin):
         self.setup_distributed()
 
     def setup_model(self, model: Module) -> Module:
-        model = DistributedDataParallel(
-            module=model.to(self.root_device),
-            device_ids=self.determine_ddp_device_ids(),
-            **self._ddp_kwargs,
-        )
-        return model
+        return DistributedDataParallel(module=model, device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs)
 
     def _call_children_scripts(self):
         # bookkeeping of spawned processes
@@ -365,9 +360,7 @@ class DDPPlugin(ParallelPlugin):
 
     def configure_ddp(self) -> None:
         self.pre_configure_ddp()
-        self._model = DistributedDataParallel(
-            LightningDistributedModule(self.model), device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
-        )
+        self._model = self.setup_model(LightningDistributedModule(self.model))
         self._register_ddp_hooks()
 
     def determine_ddp_device_ids(self):
