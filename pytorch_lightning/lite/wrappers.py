@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Union, Iterator, Generator
 
 import torch
 from torch import nn as nn
@@ -89,7 +89,7 @@ class _LiteDataLoader(DataLoader):
         super().__init__(**dl_kwargs)
         self._device = device
 
-    def __iter__(self) -> Union[Iterator[Any], Generator[Any, None, None]]
+    def __iter__(self) -> Union[Iterator[Any], Generator[Any, None, None]]:
         iterator = super().__iter__()
         if self._device is None:
             return iterator
