@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
+import os.path as osp
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass
@@ -180,15 +180,13 @@ class KFoldLoop(Loop):
         self.current_fold += 1
 
     def on_advance_end(self) -> None:
-        self.trainer.save_checkpoint(os.path.join(self.export_path, f"model.{self.current_fold}.pt"))
+        self.trainer.save_checkpoint(osp.join(self.export_path, f"model.{self.current_fold}.pt"))
         # restore the original weights + optimizers and schedulers.
         self.trainer.lightning_module.load_state_dict(self.lightning_module_state_dict)
         self.trainer.accelerator.setup_optimizers(self.trainer)
 
     def on_run_end(self) -> None:
-        checkpoint_paths = [
-            os.path.join(self.export_path, f"model.{fold_index + 1}.pt") for fold_index in range(self.num_folds)
-        ]
+        checkpoint_paths = [osp.join(self.export_path, f"model.{f_idx + 1}.pt") for f_idx in range(self.num_folds)]
         voting_model = EnsembleVotingModel(type(self.trainer.lightning_module), checkpoint_paths)
         voting_model.trainer = self.trainer
         self.trainer.accelerator.connect(voting_model)
