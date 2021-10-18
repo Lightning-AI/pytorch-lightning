@@ -23,7 +23,8 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler
+from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, SequentialSampler
+
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import Accelerator, TPUAccelerator
@@ -296,12 +297,21 @@ class LightningLite(ABC):
         return partial(self._run_impl, run_method)
 
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> None:
+        if isinstance(self._strategy, DeepSpeedPlugin):
+            # todo: this is a hack as deepspeed currently relies on the precision plugin
+            self._set_deepspeed_precision_variables()
         self._strategy.setup_environment()
         if isinstance(self._strategy, DDPSpawnPlugin):
             self._strategy.spawn(run_method, *args, **kwargs)
         else:
             run_method(*args, **kwargs)
         # TODO: any teardown needed here?
+
+    def _set_deepspeed_precision_variables(self):
+        amp_type = self._accelerator_connector.amp_type
+        amp_level = self._accelerator_connector.amp_level
+        precision = self._accelerator_connector.precision
+        self._strategy.amp_level, self._strategy.amp_type, self._strategy._precision = amp_level, amp_type, precision
 
     def _setup_model_and_optimizers(
         self,
