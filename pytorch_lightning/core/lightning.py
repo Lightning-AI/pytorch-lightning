@@ -21,13 +21,14 @@ import os
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Literal, Mapping, Optional, overload, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, overload, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
+from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress import base as progress_base
