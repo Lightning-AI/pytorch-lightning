@@ -162,7 +162,7 @@ class LiteTrainer(LightningLite):
             val_epoch_loss = torch.stack(val_losses).mean()
 
             #######################################################################################
-            # Optional: Utility to print only one rank 0 (when using distributed setting )        #
+            # Optional: Utility to print only on rank 0 (when using distributed setting )        #
             self.print(f"{epoch}/{num_epochs}| Train Epoch Loss: {torch.mean(train_epoch_loss)}")  #
             self.print(f"{epoch}/{num_epochs}| Valid Epoch Loss: {torch.mean(val_epoch_loss)}")  #
             #######################################################################################
