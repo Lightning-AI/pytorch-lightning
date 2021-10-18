@@ -308,7 +308,7 @@ class RankZeroLoggerCheck(Callback):
     # this class has to be defined outside the test function, otherwise we get pickle error
     # due to the way ddp process is launched
 
-    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
         is_dummy = isinstance(trainer.logger.experiment, DummyExperiment)
         if trainer.is_global_zero:
             assert not is_dummy
@@ -335,10 +335,9 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
     trainer = Trainer(
         logger=logger,
         default_root_dir=tmpdir,
-        accelerator="ddp_cpu",
+        strategy="ddp_spawn",
         num_processes=2,
         max_steps=1,
-        checkpoint_callback=True,
         callbacks=[RankZeroLoggerCheck()],
     )
     trainer.fit(model)

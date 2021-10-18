@@ -29,6 +29,11 @@ from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 class LoggerConnector:
     def __init__(self, trainer: "pl.Trainer", log_gpu_memory: Optional[str] = None) -> None:
         self.trainer = trainer
+        if log_gpu_memory is not None:
+            rank_zero_deprecation(
+                "Setting `log_gpu_memory` with the trainer flag is deprecated in v1.5 and will be removed in v1.7. "
+                "Please monitor GPU stats with the `DeviceStatsMonitor` callback directly instead."
+            )
         self.log_gpu_memory = log_gpu_memory
         self.eval_loop_results: List[_OUT_DICT] = []
         self._val_log_step: int = 0
@@ -103,6 +108,9 @@ class LoggerConnector:
 
         if step is None:
             step = scalar_metrics.pop("step", None)
+
+        self._logged_metrics.update(scalar_metrics)
+
         if step is None:
             # added metrics for convenience
             scalar_metrics.setdefault("epoch", self.trainer.current_epoch)
@@ -111,8 +119,6 @@ class LoggerConnector:
         # log actual metrics
         self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
         self.trainer.logger.save()
-
-        self._logged_metrics.update(scalar_metrics)
 
     """
     Evaluation metric updates
@@ -181,7 +187,7 @@ class LoggerConnector:
 
         # log results of evaluation
         if (
-            self.trainer.state.fn != TrainerFn.FITTING
+            self.trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING)
             and self.trainer.evaluating
             and self.trainer.is_global_zero
             and self.trainer.verbose_evaluate
@@ -221,6 +227,7 @@ class LoggerConnector:
         if self.trainer.fit_loop._should_accumulate() and self.trainer.lightning_module.automatic_optimization:
             return
 
+        # TODO: remove this call in v1.7
         self._log_gpus_metrics()
 
         # when metrics should be logged
@@ -238,6 +245,11 @@ class LoggerConnector:
         self.trainer._results.reset(metrics=True)
 
     def _log_gpus_metrics(self) -> None:
+        """
+        .. deprecated:: v1.5
+            This function was deprecated in v1.5 in favor of
+            `pytorch_lightning.accelerators.gpu._get_nvidia_gpu_stats` and will be removed in v1.7.
+        """
         for key, mem in self.gpus_metrics.items():
             if self.log_gpu_memory == "min_max":
                 self.trainer.lightning_module.log(key, mem, prog_bar=False, logger=True)
@@ -286,14 +298,15 @@ class LoggerConnector:
             is_first_batch = bool(self._batch_idx) + self._split_idx == 0
         return is_different_fx and is_first_batch
 
-    def reset(self, metrics: Optional[bool] = None) -> None:
-        if self.trainer.sanity_checking:
-            # reset metrics
-            self._progress_bar_metrics = {}
-            self._logged_metrics = {}
-            self._callback_metrics = {}
-        assert self.trainer._results is not None
-        self.trainer._results.reset(metrics=metrics)
+    def reset_metrics(self) -> None:
+        self._progress_bar_metrics = {}
+        self._logged_metrics = {}
+        self._callback_metrics = {}
+
+    def reset_results(self) -> None:
+        if self.trainer._results is not None:
+            self.trainer._results.reset()
+
         self._batch_idx = None
         self._split_idx = None
         self._current_fx = None
@@ -307,6 +320,14 @@ class LoggerConnector:
 
     @property
     def gpus_metrics(self) -> Dict[str, float]:
+        """
+        .. deprecated:: v1.5
+            Will be removed in v1.7.
+        """
+        rank_zero_deprecation(
+            "The property `LoggerConnector.gpus_metrics` was deprecated in v1.5"
+            " and will be removed in 1.7. Use the `DeviceStatsMonitor` callback instead."
+        )
         if self.trainer._device_type == DeviceType.GPU and self.log_gpu_memory:
             mem_map = memory.get_memory_profile(self.log_gpu_memory)
             self._gpus_metrics.update(mem_map)

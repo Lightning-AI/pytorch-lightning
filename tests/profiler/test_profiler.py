@@ -52,9 +52,7 @@ def simple_profiler():
     return SimpleProfiler()
 
 
-@pytest.mark.parametrize(
-    ["action", "expected"], [pytest.param("a", [3, 1]), pytest.param("b", [2]), pytest.param("c", [1])]
-)
+@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_simple_profiler_durations(simple_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
 
@@ -67,9 +65,7 @@ def test_simple_profiler_durations(simple_profiler, action: str, expected: list)
     np.testing.assert_allclose(simple_profiler.recorded_durations[action], expected, rtol=0.2)
 
 
-@pytest.mark.parametrize(
-    ["action", "expected"], [pytest.param("a", [3, 1]), pytest.param("b", [2]), pytest.param("c", [1])]
-)
+@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_simple_profiler_iterable_durations(simple_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
     iterable = _sleep_generator(expected)
@@ -133,7 +129,7 @@ def test_simple_profiler_distributed_files(tmpdir):
     profiler = SimpleProfiler(dirpath=tmpdir, filename="profiler")
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=2, accelerator="ddp_cpu", num_processes=2, profiler=profiler, logger=False
+        default_root_dir=tmpdir, fast_dev_run=2, strategy="ddp_spawn", num_processes=2, profiler=profiler, logger=False
     )
     trainer.fit(model)
     trainer.validate(model)
@@ -163,9 +159,7 @@ def advanced_profiler(tmpdir):
     return AdvancedProfiler(dirpath=tmpdir, filename="profiler")
 
 
-@pytest.mark.parametrize(
-    ["action", "expected"], [pytest.param("a", [3, 1]), pytest.param("b", [2]), pytest.param("c", [1])]
-)
+@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_advanced_profiler_durations(advanced_profiler, action: str, expected: list):
 
     for duration in expected:
@@ -179,9 +173,7 @@ def test_advanced_profiler_durations(advanced_profiler, action: str, expected: l
     np.testing.assert_allclose(recored_total_duration, expected_total_duration, rtol=0.2)
 
 
-@pytest.mark.parametrize(
-    ["action", "expected"], [pytest.param("a", [3, 1]), pytest.param("b", [2]), pytest.param("c", [1])]
-)
+@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_advanced_profiler_iterable_durations(advanced_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
     iterable = _sleep_generator(expected)
@@ -265,12 +257,12 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=1,
         limit_train_batches=5,
         limit_val_batches=5,
         profiler=pytorch_profiler,
-        accelerator="ddp",
+        strategy="ddp",
         gpus=2,
     )
     trainer.fit(model)
@@ -293,7 +285,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         files = [file for file in files if file.endswith(".json")]
         assert len(files) == 2, files
         local_rank = trainer.local_rank
-        assert any(f"{local_rank}-optimizer_step_and_closure_" in f for f in files)
+        assert any(f"{local_rank}-optimizer_step_with_closure_" in f for f in files)
         assert any(f"{local_rank}-validation_step" in f for f in files)
 
 

@@ -95,7 +95,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     )
 
     with pytest.raises(MisconfigurationException, match=r"You restored a checkpoint with current_epoch"):
-        new_trainer.fit(model)
+        new_trainer.fit(model, datamodule=dm)
 
 
 def test_early_stopping_no_extraneous_invocations(tmpdir):
@@ -111,7 +111,7 @@ def test_early_stopping_no_extraneous_invocations(tmpdir):
         limit_train_batches=4,
         limit_val_batches=4,
         max_epochs=expected_count,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model, datamodule=dm)
 
@@ -141,7 +141,7 @@ def test_early_stopping_patience(tmpdir, loss_values: list, patience: int, expec
         callbacks=[early_stop_callback],
         num_sanity_val_steps=0,
         max_epochs=10,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
     trainer.fit(model)
     assert trainer.current_epoch == expected_stop_epoch
@@ -177,7 +177,7 @@ def test_early_stopping_patience_train(
         callbacks=[early_stop_callback],
         num_sanity_val_steps=0,
         max_epochs=10,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
     trainer.fit(model)
     assert trainer.current_epoch == expected_stop_epoch
@@ -386,7 +386,7 @@ _NO_WIN = dict(marks=RunIf(skip_windows=True))
 
 
 @pytest.mark.parametrize(
-    "callbacks, expected_stop_epoch, check_on_train_epoch_end, accelerator, num_processes",
+    "callbacks, expected_stop_epoch, check_on_train_epoch_end, strategy, num_processes",
     [
         ([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, None, 1),
         ([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, None, 1),
@@ -407,7 +407,7 @@ def test_multiple_early_stopping_callbacks(
     callbacks: List[EarlyStopping],
     expected_stop_epoch: int,
     check_on_train_epoch_end: bool,
-    accelerator: Optional[str],
+    strategy: Optional[str],
     num_processes: int,
 ):
     """Ensure when using multiple early stopping callbacks we stop if any signals we should stop."""
@@ -419,7 +419,7 @@ def test_multiple_early_stopping_callbacks(
         callbacks=callbacks,
         overfit_batches=0.20,
         max_epochs=20,
-        accelerator=accelerator,
+        strategy=strategy,
         num_processes=num_processes,
     )
     trainer.fit(model)
@@ -444,7 +444,7 @@ def test_check_on_train_epoch_end_smart_handling(tmpdir, case):
         default_root_dir=tmpdir,
         limit_val_batches=1,
         callbacks=EarlyStopping(monitor="foo"),
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         **kwargs,
     )
 

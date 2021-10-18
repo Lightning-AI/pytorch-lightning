@@ -99,6 +99,7 @@ Lightning has a few built-in callbacks.
     BaseFinetuning
     BasePredictionWriter
     Callback
+    DeviceStatsMonitor
     EarlyStopping
     GPUStatsMonitor
     GradientAccumulationScheduler
@@ -106,8 +107,10 @@ Lightning has a few built-in callbacks.
     LearningRateMonitor
     ModelCheckpoint
     ModelPruning
+    ModelSummary
     ProgressBar
     ProgressBarBase
+    RichModelSummary
     RichProgressBar
     QuantizationAwareTraining
     StochasticWeightAveraging

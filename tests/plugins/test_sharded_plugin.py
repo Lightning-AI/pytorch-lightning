@@ -18,12 +18,12 @@ if _FAIRSCALE_AVAILABLE:
 
 
 @pytest.mark.parametrize("clip_val", [0, 10])
-@RunIf(min_gpus=1, skip_windows=True, amp_native=True, fairscale=True)
+@RunIf(min_gpus=1, skip_windows=True, fairscale=True)
 @mock.patch("fairscale.optim.oss.OSS.clip_grad_norm")
 def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_val, tmpdir):
     """Ensure that clip gradients is only called if the value is greater than 0."""
     model = BoringModel()
-    trainer = Trainer(accelerator="ddp_sharded", gpus=1, precision=16, fast_dev_run=True, gradient_clip_val=clip_val)
+    trainer = Trainer(strategy="ddp_sharded", gpus=1, precision=16, fast_dev_run=True, gradient_clip_val=clip_val)
     trainer.fit(model)
     if clip_val > 0:
         mock_oss_clip_grad_norm.assert_called()
@@ -32,20 +32,20 @@ def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_v
 
 
 @RunIf(fairscale=True)
-@pytest.mark.parametrize(["accelerator"], [("ddp_sharded",), ("ddp_sharded_spawn",)])
-def test_sharded_ddp_choice(tmpdir, accelerator):
+@pytest.mark.parametrize(["strategy"], [("ddp_sharded",), ("ddp_sharded_spawn",)])
+def test_sharded_ddp_choice(tmpdir, strategy):
     """Test to ensure that plugin is correctly chosen."""
 
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            if accelerator == "ddp_sharded":
+            if strategy == "ddp_sharded":
                 assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
-            elif accelerator == "ddp_sharded_spawn":
+            elif strategy == "ddp_sharded_spawn":
                 assert isinstance(trainer.accelerator.training_type_plugin, DDPSpawnShardedPlugin)
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, accelerator=accelerator, callbacks=[CB()])
+    trainer = Trainer(fast_dev_run=True, strategy=strategy, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -57,26 +57,26 @@ def test_invalid_apex_sharded(tmpdir):
 
     model = BoringModel()
     with pytest.raises(MisconfigurationException, match="Sharded Plugin is not supported with Apex AMP"):
-        trainer = Trainer(fast_dev_run=True, accelerator="ddp_sharded_spawn", precision=16, amp_backend="apex")
+        trainer = Trainer(fast_dev_run=True, strategy="ddp_sharded_spawn", precision=16, amp_backend="apex")
 
         trainer.fit(model)
 
 
-@RunIf(min_gpus=2, amp_native=True, fairscale=True)
-@pytest.mark.parametrize(["accelerator"], [("ddp_sharded",), ("ddp_sharded_spawn",)])
-def test_ddp_choice_sharded_amp(tmpdir, accelerator):
+@RunIf(min_gpus=1, fairscale=True)
+@pytest.mark.parametrize(["strategy"], [("ddp_sharded",), ("ddp_sharded_spawn",)])
+def test_ddp_choice_sharded_amp(tmpdir, strategy):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
 
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            if accelerator == "ddp_sharded":
+            if strategy == "ddp_sharded":
                 assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
-            elif accelerator == "ddp_sharded_spawn":
+            elif strategy == "ddp_sharded_spawn":
                 assert isinstance(trainer.accelerator.training_type_plugin, DDPSpawnShardedPlugin)
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, gpus=1, precision=16, accelerator=accelerator, callbacks=[CB()])
+    trainer = Trainer(fast_dev_run=True, gpus=1, precision=16, strategy=strategy, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -86,7 +86,7 @@ def test_ddp_choice_sharded_amp(tmpdir, accelerator):
 def test_ddp_sharded_plugin_checkpoint_cpu(tmpdir):
     """Test to ensure that checkpoint is saved correctly."""
     model = BoringModel()
-    trainer = Trainer(accelerator="ddp_sharded_spawn", num_processes=2, fast_dev_run=True)
+    trainer = Trainer(strategy="ddp_sharded_spawn", num_processes=2, fast_dev_run=True)
 
     trainer.fit(model)
 
@@ -103,7 +103,7 @@ def test_ddp_sharded_plugin_checkpoint_cpu(tmpdir):
 def test_ddp_sharded_plugin_checkpoint_multi_gpu(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs."""
     model = BoringModel()
-    trainer = Trainer(gpus=2, accelerator="ddp_sharded_spawn", fast_dev_run=True)
+    trainer = Trainer(gpus=2, strategy="ddp_sharded_spawn", fast_dev_run=True)
 
     trainer.fit(model)
 
@@ -120,7 +120,7 @@ def test_ddp_sharded_plugin_checkpoint_multi_gpu(tmpdir):
 def test_ddp_sharded_plugin_finetune(tmpdir):
     """Test to ensure that we can save and restart training (simulate fine-tuning)"""
     model = BoringModel()
-    trainer = Trainer(gpus=2, accelerator="ddp_sharded_spawn", fast_dev_run=True)
+    trainer = Trainer(gpus=2, strategy="ddp_sharded_spawn", fast_dev_run=True)
     trainer.fit(model)
 
     checkpoint_path = os.path.join(tmpdir, "model.pt")
@@ -135,7 +135,7 @@ def test_ddp_sharded_plugin_finetune(tmpdir):
 def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
     """Test to ensure that resuming from checkpoint works."""
     model = BoringModel()
-    trainer = Trainer(accelerator="ddp_sharded_spawn", num_processes=2, fast_dev_run=True)
+    trainer = Trainer(strategy="ddp_sharded_spawn", num_processes=2, fast_dev_run=True)
 
     trainer.fit(model)
 
@@ -145,7 +145,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
     model = BoringModel()
 
     trainer = Trainer(
-        accelerator="ddp_sharded_spawn", num_processes=2, fast_dev_run=True, resume_from_checkpoint=checkpoint_path
+        strategy="ddp_sharded_spawn", num_processes=2, fast_dev_run=True, resume_from_checkpoint=checkpoint_path
     )
 
     trainer.fit(model)
@@ -157,7 +157,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
 def test_ddp_sharded_plugin_resume_from_checkpoint_downsize_gpus(tmpdir):
     """Test to ensure that resuming from checkpoint works when downsizing number of GPUS."""
     model = BoringModel()
-    trainer = Trainer(accelerator="ddp_sharded_spawn", fast_dev_run=True, gpus=2)
+    trainer = Trainer(strategy="ddp_sharded_spawn", fast_dev_run=True, gpus=2)
 
     trainer.fit(model)
 
@@ -166,9 +166,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_downsize_gpus(tmpdir):
 
     model = BoringModel()
 
-    trainer = Trainer(
-        accelerator="ddp_sharded_spawn", fast_dev_run=True, gpus=1, resume_from_checkpoint=checkpoint_path
-    )
+    trainer = Trainer(strategy="ddp_sharded_spawn", fast_dev_run=True, gpus=1, resume_from_checkpoint=checkpoint_path)
 
     trainer.fit(model)
 
@@ -177,7 +175,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_downsize_gpus(tmpdir):
 def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
     """Test to ensure that resuming from checkpoint works when going from GPUs- > CPU."""
     model = BoringModel()
-    trainer = Trainer(accelerator="ddp_sharded_spawn", gpus=1, fast_dev_run=True)
+    trainer = Trainer(strategy="ddp_sharded_spawn", gpus=1, fast_dev_run=True)
 
     trainer.fit(model)
 
@@ -187,7 +185,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
     model = BoringModel()
 
     trainer = Trainer(
-        accelerator="ddp_sharded_spawn", num_processes=2, fast_dev_run=True, resume_from_checkpoint=checkpoint_path
+        strategy="ddp_sharded_spawn", num_processes=2, fast_dev_run=True, resume_from_checkpoint=checkpoint_path
     )
 
     trainer.fit(model)
@@ -198,7 +196,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
 def test_ddp_sharded_plugin_test_multigpu(tmpdir, trainer_kwargs):
     """Test to ensure we can use validate and test without fit."""
     model = BoringModel()
-    trainer = Trainer(accelerator="ddp_sharded_spawn", fast_dev_run=True, **trainer_kwargs)
+    trainer = Trainer(strategy="ddp_sharded_spawn", fast_dev_run=True, **trainer_kwargs)
 
     trainer.validate(model)
     trainer.test(model)
@@ -223,14 +221,14 @@ class ManualBoringModel(BoringModel):
 def test_ddp_sharded_plugin_manual_optimization_spawn(tmpdir):
     # todo (sean): this test has been split out as running both tests using parametrize causes "Address in use"
     model = ManualBoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, accelerator="ddp_sharded_spawn", fast_dev_run=2, gpus=2)
+    trainer = Trainer(default_root_dir=tmpdir, strategy="ddp_sharded_spawn", fast_dev_run=2, gpus=2)
     trainer.fit(model)
 
 
 @RunIf(skip_windows=True, special=True, fairscale=True, min_gpus=2)
 def test_ddp_sharded_plugin_manual_optimization(tmpdir):
     model = ManualBoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, accelerator="ddp_sharded", fast_dev_run=2, gpus=2)
+    trainer = Trainer(default_root_dir=tmpdir, strategy="ddp_sharded", fast_dev_run=2, gpus=2)
     trainer.fit(model)
 
 
@@ -258,7 +256,7 @@ class BoringModelSharded(BoringModel):
 @RunIf(skip_windows=True, fairscale=True)
 def test_configure_ddp(tmpdir):
     """Tests with ddp sharded plugin."""
-    trainer = Trainer(default_root_dir=tmpdir, accelerator="ddp_sharded", fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmpdir, strategy="ddp_sharded", fast_dev_run=True)
 
     model = BoringModelSharded()
 
@@ -309,3 +307,13 @@ def test_custom_kwargs_sharded_reduce_buffer_size(tmpdir, params, expected_buffe
         assert kwargs["reduce_buffer_size"] == DDPShardedPlugin._REDUCE_BUFFER_SIZE_DEFAULT
     else:
         assert kwargs["reduce_buffer_size"] == expected_buffer_size
+
+
+@RunIf(skip_windows=True, fairscale=True)
+def test_block_backward_sync(tmpdir):
+    plugin = DDPShardedPlugin()
+    model = mock.MagicMock(spec=ShardedDataParallel)
+    with mock.patch.object(plugin, "_model", model):
+        with plugin.block_backward_sync():
+            pass
+    model.no_sync.assert_called_once()

@@ -11,10 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, Union
+from typing import Optional, Union
 
-from pytorch_lightning.callbacks import GradientAccumulationScheduler
-from pytorch_lightning.utilities import GradClipAlgorithmType
+from pytorch_lightning.utilities import GradClipAlgorithmType, rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -24,35 +23,42 @@ class TrainingTricksConnector:
 
     def on_trainer_init(
         self,
-        gradient_clip_val: float,
-        gradient_clip_algorithm: str,
+        gradient_clip_val: Optional[Union[int, float]],
+        gradient_clip_algorithm: Optional[str],
         track_grad_norm: Union[int, float, str],
-        accumulate_grad_batches: Union[int, Dict[int, int]],
-        terminate_on_nan: bool,
+        terminate_on_nan: Optional[bool],
     ):
-
-        self.trainer.terminate_on_nan = terminate_on_nan
+        if terminate_on_nan is not None:
+            rank_zero_deprecation(
+                "Trainer argument `terminate_on_nan` was deprecated in v1.5 and will be removed in 1.7."
+                " Please use `Trainer(detect_anomaly=True)` instead."
+            )
+            if not isinstance(terminate_on_nan, bool):
+                raise TypeError(f"`terminate_on_nan` should be a bool, got {terminate_on_nan}.")
 
         # gradient clipping
-        if gradient_clip_algorithm not in list(GradClipAlgorithmType):
-            raise MisconfigurationException(f"gradient_clip_algorithm should be in {list(GradClipAlgorithmType)}")
-        self.trainer.gradient_clip_val = gradient_clip_val
-        self.trainer.gradient_clip_algorithm = GradClipAlgorithmType(gradient_clip_algorithm)
+        if gradient_clip_val is not None and not isinstance(gradient_clip_val, (int, float)):
+            raise TypeError(f"`gradient_clip_val` should be an int or a float. Got {gradient_clip_val}.")
+
+        if gradient_clip_algorithm is not None and not GradClipAlgorithmType.supported_type(
+            gradient_clip_algorithm.lower()
+        ):
+            raise MisconfigurationException(
+                f"`gradient_clip_algorithm` {gradient_clip_algorithm} is invalid. "
+                f"Allowed algorithms: {GradClipAlgorithmType.supported_types()}."
+            )
 
         # gradient norm tracking
         if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != "inf":
-            raise MisconfigurationException("track_grad_norm can be an int, a float or 'inf' (infinity norm).")
+            raise MisconfigurationException(
+                f"`track_grad_norm` should be an int, a float or 'inf' (infinity norm). Got {track_grad_norm}."
+            )
+
+        self.trainer._terminate_on_nan = terminate_on_nan
+        self.trainer.gradient_clip_val = gradient_clip_val
+        self.trainer.gradient_clip_algorithm = (
+            GradClipAlgorithmType(gradient_clip_algorithm.lower())
+            if gradient_clip_algorithm is not None
+            else gradient_clip_algorithm
+        )
         self.trainer.track_grad_norm = float(track_grad_norm)
-
-        # accumulated grads
-        self.trainer.accumulate_grad_batches = accumulate_grad_batches
-        self.configure_accumulated_gradients(accumulate_grad_batches)
-
-    def configure_accumulated_gradients(self, accumulate_grad_batches: Union[int, Dict[int, int]]) -> None:
-        if isinstance(accumulate_grad_batches, dict):
-            self.trainer.accumulation_scheduler = GradientAccumulationScheduler(accumulate_grad_batches)
-        elif isinstance(accumulate_grad_batches, int):
-            schedule = {0: accumulate_grad_batches}
-            self.trainer.accumulation_scheduler = GradientAccumulationScheduler(schedule)
-        else:
-            raise TypeError("Gradient accumulation supports only int and dict types")

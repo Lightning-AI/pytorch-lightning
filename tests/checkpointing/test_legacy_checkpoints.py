@@ -79,13 +79,12 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
             default_root_dir=str(tmpdir),
             gpus=int(torch.cuda.is_available()),
             precision=(16 if torch.cuda.is_available() else 32),
-            checkpoint_callback=True,
             callbacks=[es, stop],
             max_epochs=21,
             accumulate_grad_batches=2,
-            deterministic=True,
             resume_from_checkpoint=path_ckpt,
         )
+        torch.backends.cudnn.deterministic = True
         trainer.fit(model, datamodule=dm)
         res = trainer.test(model, datamodule=dm)
         assert res[0]["test_loss"] <= 0.7

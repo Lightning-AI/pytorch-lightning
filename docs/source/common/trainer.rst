@@ -528,45 +528,7 @@ Example::
 checkpoint_callback
 ^^^^^^^^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/checkpoint_callback.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/checkpoint_callback.mp4"></video>
-
-|
-
-By default Lightning saves a checkpoint for you in your current working directory, with the state of your last training epoch,
-Checkpoints capture the exact value of all parameters used by a model.
-To disable automatic checkpointing, set this to `False`.
-
-.. code-block:: python
-
-    # default used by Trainer
-    trainer = Trainer(checkpoint_callback=True)
-
-    # turn off automatic checkpointing
-    trainer = Trainer(checkpoint_callback=False)
-
-
-You can override the default behavior by initializing the :class:`~pytorch_lightning.callbacks.ModelCheckpoint`
-callback, and adding it to the :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks` list.
-See :doc:`Saving and Loading Weights <../common/weights_loading>` for how to customize checkpointing.
-
-.. testcode::
-
-    from pytorch_lightning.callbacks import ModelCheckpoint
-
-    # Init ModelCheckpoint callback, monitoring 'val_loss'
-    checkpoint_callback = ModelCheckpoint(monitor="val_loss")
-
-    # Add your callback to the callbacks list
-    trainer = Trainer(callbacks=[checkpoint_callback])
-
-
-.. warning:: Passing a ModelCheckpoint instance to this argument is deprecated since
-    v1.1 and will be unsupported from v1.3. Use `callbacks` argument instead.
-
+Deprecated: This has been deprecated in v1.5 and will be removed in v1.7. Please use ``enable_checkpointing`` instead.
 
 default_root_dir
 ^^^^^^^^^^^^^^^^
@@ -594,6 +556,44 @@ will need to be set up to use remote filepaths.
 distributed_backend
 ^^^^^^^^^^^^^^^^^^^
 Deprecated: This has been renamed ``accelerator``.
+
+enable_checkpointing
+^^^^^^^^^^^^^^^^^^^^
+
+.. raw:: html
+
+    <video width="50%" max-width="400px" controls
+    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/checkpoint_callback.jpg"
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/checkpoint_callback.mp4"></video>
+
+|
+
+By default Lightning saves a checkpoint for you in your current working directory, with the state of your last training epoch,
+Checkpoints capture the exact value of all parameters used by a model.
+To disable automatic checkpointing, set this to `False`.
+
+.. code-block:: python
+
+    # default used by Trainer, saves the most recent model to a single checkpoint after each epoch
+    trainer = Trainer(enable_checkpointing=True)
+
+    # turn off automatic checkpointing
+    trainer = Trainer(enable_checkpointing=False)
+
+
+You can override the default behavior by initializing the :class:`~pytorch_lightning.callbacks.ModelCheckpoint`
+callback, and adding it to the :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks` list.
+See :doc:`Saving and Loading Weights <../common/weights_loading>` for how to customize checkpointing.
+
+.. testcode::
+
+    from pytorch_lightning.callbacks import ModelCheckpoint
+
+    # Init ModelCheckpoint callback, monitoring 'val_loss'
+    checkpoint_callback = ModelCheckpoint(monitor="val_loss")
+
+    # Add your callback to the callbacks list
+    trainer = Trainer(callbacks=[checkpoint_callback])
 
 fast_dev_run
 ^^^^^^^^^^^^
@@ -838,36 +838,6 @@ How often to add logging rows (does not write to disk)
 See Also:
     - :doc:`logging <../extensions/logging>`
 
-log_gpu_memory
-^^^^^^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/log_gpu_memory.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/log_gpu_memory.mp4"></video>
-
-|
-
-Options:
-
-- None
-- 'min_max'
-- 'all'
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(log_gpu_memory=None)
-
-    # log all the GPUs (on master node only)
-    trainer = Trainer(log_gpu_memory="all")
-
-    # log only the min and max memory on the master node
-    trainer = Trainer(log_gpu_memory="min_max")
-
-.. note:: Might slow performance because it uses the output of ``nvidia-smi``.
-
 logger
 ^^^^^^
 
@@ -1032,7 +1002,9 @@ when using ``accelerator="ddp"``. Set to a number greater than 1 when
 using ``accelerator="ddp_cpu"`` to mimic distributed training on a
 machine without GPUs. This is useful for debugging, but **will not** provide
 any speedup, since single-process Torch already makes efficient use of multiple
-CPUs.
+CPUs. While ``ddp_cpu`` typically spawns subprocesses for training, setting
+``num_nodes > 1`` and keeping ``num_processes = 1`` runs training in the main
+process.
 
 .. testcode::
 
@@ -1172,7 +1144,7 @@ Lightning supports either double precision (64), full precision (32), or half pr
 Half precision, or mixed precision, is the combined use of 32 and 16 bit floating points to reduce memory footprint during model training. This can result in improved performance, achieving +3X speedups on modern GPUs.
 
 .. testcode::
-    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
+    :skipif: not torch.cuda.is_available()
 
     # default used by the Trainer
     trainer = Trainer(precision=32, gpus=1)
@@ -1221,7 +1193,7 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
     2. Set the `precision` trainer flag to 16. You can customize the `Apex optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`_ by setting the `amp_level` flag.
 
     .. testcode::
-        :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
+        :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
 
         # turn on 16-bit
         trainer = Trainer(amp_backend="apex", amp_level="O2", precision=16)
@@ -1281,6 +1253,10 @@ See the :doc:`profiler documentation <../advanced/profiler>`. for more details.
 
 progress_bar_refresh_rate
 ^^^^^^^^^^^^^^^^^^^^^^^^^
+``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
+Please pass :class:`~pytorch_lightning.callbacks.progress.ProgressBar` with ``refresh_rate``
+directly to the Trainer's ``callbacks`` argument instead. To disable the progress bar,
+pass ``enable_progress_bar = False`` to the Trainer.
 
 .. raw:: html
 
@@ -1304,6 +1280,19 @@ Note:
     - In Google Colab notebooks, faster refresh rates (lower number) is known to crash them because of their screen refresh rates.
       Lightning will set it to 20 in these environments if the user does not provide a value.
     - This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
+
+enable_progress_bar
+^^^^^^^^^^^^^^^^^^^
+
+Whether to enable or disable the progress bar. Defaults to True.
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(enable_progress_bar=True)
+
+    # disable progress bar
+    trainer = Trainer(enable_progress_bar=False)
 
 reload_dataloaders_every_n_epochs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1572,6 +1561,11 @@ Example::
 weights_summary
 ^^^^^^^^^^^^^^^
 
+.. warning:: `weights_summary` is deprecated in v1.5 and will be removed in v1.7. Please pass :class:`~pytorch_lightning.callbacks.model_summary.ModelSummary`
+    directly to the Trainer's ``callbacks`` argument instead. To disable the model summary,
+    pass ``enable_model_summary = False`` to the Trainer.
+
+
 .. raw:: html
 
     <video width="50%" max-width="400px" controls
@@ -1593,6 +1587,25 @@ Options: 'full', 'top', None.
 
     # don't print a summary
     trainer = Trainer(weights_summary=None)
+
+
+enable_model_summary
+^^^^^^^^^^^^^^^^^^^^
+
+Whether to enable or disable the model summarization. Defaults to True.
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(enable_model_summary=True)
+
+    # disable summarization
+    trainer = Trainer(enable_model_summary=False)
+
+    # enable custom summarization
+    from pytorch_lightning.callbacks import ModelSummary
+
+    trainer = Trainer(enable_model_summary=True, callbacks=[ModelSummary(max_depth=-1)])
 
 -----
 
@@ -1689,7 +1702,7 @@ The metrics sent to the logger (visualizer).
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        self.log("a_val", 2, log=True)
+        self.log("a_val", 2, logger=True)
 
 
     logged_metrics = trainer.logged_metrics
