@@ -116,7 +116,7 @@ pure_model_weights = main(model, train_dataloader(), val_dataloader())
 #############################################################################################
 #                                 Convert to LightningLite                                  #
 #                                                                                           #
-# By converting to `LightningLite`, you get the full power of Lightning accelerators       #
+# By converting to `LightningLite`, you get the full power of Lightning accelerators        #
 # while conversing your original code !                                                     #
 # To get started, you would need to `from pytorch_lightning.lite import LightningLite`      #
 # and override its `run` method.                                                            #
