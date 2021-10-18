@@ -185,7 +185,6 @@ class LightningOptimizer:
         assert trainer is not None
         with trainer.profiler.profile(profiler_action):
             trainer.accelerator.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
-        self._total_optimizer_step_calls += 1
 
     def __repr__(self) -> str:
         groups = [
