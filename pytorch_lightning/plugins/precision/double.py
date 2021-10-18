@@ -91,6 +91,7 @@ class DoublePrecisionPlugin(PrecisionPlugin):
 
         return super().connect(model, optimizers, lr_schedulers)
 
+    @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
         """A context manager to change the default tensor type.
 
