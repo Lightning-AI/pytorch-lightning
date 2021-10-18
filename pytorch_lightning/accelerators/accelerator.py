@@ -211,7 +211,7 @@ class Accelerator:
 
         See :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` for more details
         """
-        with self.precision_plugin.forward_context(), self.training_type_plugin.forward_context():
+        with self.precision_plugin.train_step_context():
             return self.training_type_plugin.training_step(*step_kwargs.values())
 
     def post_training_step(self) -> None:
@@ -231,7 +231,7 @@ class Accelerator:
 
         See :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` for more details
         """
-        with self.precision_plugin.forward_context(), self.training_type_plugin.forward_context():
+        with self.precision_plugin.val_step_context():
             return self.training_type_plugin.validation_step(*step_kwargs.values())
 
     def test_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> Optional[STEP_OUTPUT]:
@@ -239,7 +239,7 @@ class Accelerator:
 
         See :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step` for more details
         """
-        with self.precision_plugin.forward_context(), self.training_type_plugin.forward_context():
+        with self.precision_plugin.test_step_context():
             return self.training_type_plugin.test_step(*step_kwargs.values())
 
     def predict_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> STEP_OUTPUT:
@@ -247,7 +247,7 @@ class Accelerator:
 
         See :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` for more details
         """
-        with self.precision_plugin.forward_context(), self.training_type_plugin.forward_context():
+        with self.precision_plugin.predict_step_context():
             return self.training_type_plugin.predict_step(*step_kwargs.values())
 
     def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
@@ -315,7 +315,7 @@ class Accelerator:
         return closure_loss
 
     def run_backward(self, tensor: Tensor, model, *args, **kwargs) -> None:
-        """Lightning-independent backward logic"""
+        """Lightning-independent backward logic."""
         self.precision_plugin.run_backward(tensor, model, *args, **kwargs)
 
     def optimizer_step(
@@ -709,8 +709,3 @@ class Accelerator:
             "`on_train_batch_start` logic is implemented directly in the `TrainingTypePlugin` implementations."
         )
         return self.training_type_plugin.on_train_batch_start(batch, batch_idx)
-
-    @contextlib.contextmanager
-    def forward_context(self):
-        with self.precision_plugin.forward_context(), self.training_type_plugin.forward_context():
-            yield

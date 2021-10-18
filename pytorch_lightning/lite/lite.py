@@ -25,6 +25,7 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import Accelerator, TPUAccelerator
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
@@ -93,7 +94,7 @@ class LightningLite(ABC):
             amp_level=None,
             plugins=plugins,
         )
-        self._accelerator = self._accelerator_connector.select_accelerator()
+        self._accelerator = self._accelerator_connector.accelerator
         self._strategy = self._accelerator.training_type_plugin
         self._precision_plugin = self._accelerator.precision_plugin
 
@@ -156,11 +157,11 @@ class LightningLite(ABC):
         """
         # wrap all objects passed in and return them in the same order
         optimizers = [optimizers] if isinstance(optimizers, Optimizer) else optimizers
-        model, optimizers = self._setup_model_and_optimizers(model, optimizers)
 
         if move_to_device:
             model = self.to_device(model)
 
+        model, optimizers = self._setup_model_and_optimizers(model, optimizers)
         optimizers = optimizers[0] if len(optimizers) == 1 else optimizers
         return model, optimizers
 
@@ -239,7 +240,7 @@ class LightningLite(ABC):
         Use this only if the `forward` method of your model does not cover all operations you wish to run with the
         chosen precision setting.
         """
-        with self._accelerator.forward_context():
+        with self._precision_plugin.forward_context():
             yield
 
     def to_device(self, obj: Union[nn.Module, Tensor, Any]) -> Union[nn.Module, Tensor, Any]:
@@ -315,8 +316,8 @@ class LightningLite(ABC):
     def _setup_model_and_optimizers(
         self,
         model: nn.Module,
-        optimizers: Union[Optimizer, List[Optimizer]],
-    ) -> Tuple[_LiteModule, Union[_LiteOptimizer, List[_LiteOptimizer]]]:
+        optimizers: List[Optimizer],
+    ) -> Tuple[_LiteModule, List[_LiteOptimizer]]:
         # Let accelerator/plugin wrap and connect the models and optimizers
         [model], optimizers = self._strategy.setup_models_and_optimizers([model], optimizers)
         model = _LiteModule(module=model, accelerator=self._accelerator)

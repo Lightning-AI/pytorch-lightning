@@ -40,11 +40,6 @@ class MNISTDataModule(LightningDataModule):
         # TrialMNIST is a constrained MNIST dataset
         self.dataset_cls = TrialMNIST if use_trials else MNIST
 
-        # self.dims is returned when you call dm.size()
-        # Setting default dims here because we know them.
-        # Could optionally be assigned dynamically in dm.setup()
-        self.dims = (1, 28, 28)
-
     def prepare_data(self):
         # download only
         self.dataset_cls(self.data_dir, train=True, download=True)

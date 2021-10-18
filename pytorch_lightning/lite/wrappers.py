@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Generator, Iterator, Optional, Union
 
 import torch
-from torch import nn as nn, Tensor
+from torch import nn as nn
+from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
@@ -76,7 +77,7 @@ class _LiteModule(nn.Module):
         return self._module
 
     def forward(self, *args: Any, **kwargs: Any) -> Any:
-        with self._accelerator.forward_context():
+        with self._accelerator.precision_plugin.forward_context():
             output = self.module.forward(*args, **kwargs)
 
         output = apply_to_collection(output, function=lambda t: t.to(torch.get_default_dtype()), dtype=Tensor)
@@ -88,8 +89,7 @@ class _LiteDataLoader(DataLoader):
         super().__init__(**dl_kwargs)
         self._device = device
 
-    # TODO: how to type this *angry face"
-    def __iter__(self):  # type: ignore
+    def __iter__(self) -> Union[Iterator[Any], Generator[Any, None, None]]:  # type: ignore[override]
         iterator = super().__iter__()
         if self._device is None:
             return iterator
