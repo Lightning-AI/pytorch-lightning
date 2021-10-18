@@ -58,8 +58,7 @@ argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
 Log device stats
 ----------------
-Monitor and log device stats during training with the :class:`~pytorch_lightning.callbacks.device_stats_monitor.DeviceStatsMonitor`. 
-
+Monitor and log device stats during training with the :class:`~pytorch_lightning.callbacks.device_stats_monitor.DeviceStatsMonitor`.
 
 .. testcode::
 
