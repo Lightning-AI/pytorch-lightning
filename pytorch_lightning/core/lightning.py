@@ -21,7 +21,7 @@ import os
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Literal, Mapping, Optional, overload, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -119,6 +119,14 @@ class LightningModule(
 
         # deprecated, will be removed in 1.6
         self._loaded_optimizer_states_dict = {}
+
+    @overload
+    def optimizers(self, use_pl_optimizer: Literal[True] = True) -> Union[LightningOptimizer, List[LightningOptimizer]]:
+        ...
+
+    @overload
+    def optimizers(self, use_pl_optimizer: Literal[False]) -> Union[Optimizer, List[Optimizer]]:
+        ...
 
     def optimizers(
         self, use_pl_optimizer: bool = True
