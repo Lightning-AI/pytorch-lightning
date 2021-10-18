@@ -47,7 +47,7 @@ def test__training_step__flow_scalar(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -86,7 +86,7 @@ def test__training_step__tr_step_end__flow_scalar(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -131,7 +131,7 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -203,7 +203,7 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -291,9 +291,9 @@ def test_training_step_no_return_when_even(tmpdir):
         limit_train_batches=4,
         limit_val_batches=1,
         max_epochs=4,
-        weights_summary=None,
+        enable_model_summary=False,
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
 
     Closure.warning_cache.clear()
@@ -340,10 +340,9 @@ def test_training_step_none_batches(tmpdir):
         default_root_dir=tmpdir,
         limit_val_batches=1,
         max_epochs=4,
-        weights_summary=None,
+        enable_model_summary=False,
         logger=False,
-        checkpoint_callback=False,
-        progress_bar_refresh_rate=0,
+        enable_checkpointing=False,
     )
 
     with pytest.warns(UserWarning, match=r".*train_dataloader yielded None.*"):

@@ -67,7 +67,7 @@ def test_amp_apex_ddp(
         precision=16,
         amp_backend=amp,
         gpus=gpus,
-        accelerator=ddp_backend,
+        strategy=ddp_backend,
         plugins=[plugin_cls()] if custom_plugin else None,
     )
     assert isinstance(trainer.precision_plugin, plugin_cls)
@@ -94,7 +94,7 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
         limit_test_batches=2,
         limit_val_batches=2,
         amp_backend="native",
-        accelerator="ddp_spawn",
+        strategy="ddp_spawn",
         gpus=2,
         precision=16,
         track_grad_norm=2,
@@ -151,7 +151,7 @@ def test_amp_apex_ddp_fit(amp_level, tmpdir):
         precision=16,
         amp_backend="apex",
         gpus=2,
-        accelerator="ddp",
+        strategy="ddp",
         plugins=ApexMixedPrecisionPlugin(amp_level=amp_level),
     )
     assert isinstance(trainer.precision_plugin, ApexMixedPrecisionPlugin)
@@ -170,7 +170,7 @@ def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
         precision=16,
         amp_backend="apex",
         gpus=2,
-        accelerator="ddp_spawn",
+        strategy="ddp_spawn",
         plugins=ApexMixedPrecisionPlugin(amp_level=amp_level),
     )
     assert isinstance(trainer.precision_plugin, ApexMixedPrecisionPlugin)
@@ -209,7 +209,7 @@ def test_cpu_amp_precision_context_manager(tmpdir):
     assert not hasattr(plugin, "scaler")
     context_manager = plugin.autocast_context_manager()
     assert isinstance(context_manager, torch.cpu.amp.autocast)
-    assert context_manager.dtype == torch.bfloat16
+    assert context_manager.fast_dtype == torch.bfloat16
 
 
 @pytest.mark.skipif(not _TORCH_CPU_AMP_AVAILABLE, reason="Torch CPU AMP is not available.")

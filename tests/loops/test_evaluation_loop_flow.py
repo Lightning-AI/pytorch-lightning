@@ -52,7 +52,7 @@ def test__eval_step__flow(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -115,7 +115,7 @@ def test__eval_step__eval_step_end__flow(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -184,7 +184,7 @@ def test__eval_step__epoch_end__flow(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
 
     trainer.fit(model)
@@ -242,7 +242,7 @@ def test__validation_step__step_end__epoch_end__flow(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
 
     trainer.fit(model)

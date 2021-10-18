@@ -29,7 +29,7 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import DeviceType, rank_zero_only
+from pytorch_lightning.utilities import DeviceType, rank_zero_deprecation, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -37,6 +37,10 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 class GPUStatsMonitor(Callback):
     r"""
+    .. deprecated:: v1.5
+        The `GPUStatsMonitor` callback was deprecated in v1.5 and will be removed in v1.7.
+        Please use the `DeviceStatsMonitor` callback instead.
+
     Automatically monitors and logs GPU stats during training stage. ``GPUStatsMonitor``
     is a callback and in order to use it you need to assign a logger in the ``Trainer``.
 
@@ -91,6 +95,11 @@ class GPUStatsMonitor(Callback):
     ):
         super().__init__()
 
+        rank_zero_deprecation(
+            "The `GPUStatsMonitor` callback was deprecated in v1.5 and will be removed in v1.7."
+            " Please use the `DeviceStatsMonitor` callback instead."
+        )
+
         if shutil.which("nvidia-smi") is None:
             raise MisconfigurationException(
                 "Cannot use GPUStatsMonitor callback because NVIDIA driver is not installed."
@@ -135,7 +144,7 @@ class GPUStatsMonitor(Callback):
 
     @rank_zero_only
     def on_train_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int
     ) -> None:
         if self._log_stats.intra_step_time:
             self._snap_intra_step_time = time.time()
@@ -161,7 +170,6 @@ class GPUStatsMonitor(Callback):
         outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
-        dataloader_idx: int,
     ) -> None:
         if self._log_stats.inter_step_time:
             self._snap_inter_step_time = time.time()
