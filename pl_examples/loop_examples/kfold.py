@@ -138,6 +138,23 @@ class EnsembleVotingModel(LightningModule):
 #############################################################################################
 
 
+#############################################################################################
+#                     Here is the `Pseudo Code` for the base Loop.                          #
+# class Loop:                                                                               #
+#                                                                                           #
+#   def run(self, ...):                                                                     #
+#       self.reset(...)                                                                     #
+#       self.on_run_start(...)                                                              #
+#                                                                                           #
+#        while not self.done:                                                               #
+#            self.on_advance_start(...)                                                     #
+#            self.advance(...)                                                              #
+#            self.on_advance_end(...)                                                       #
+#                                                                                           #
+#        return self.on_run_end(...)                                                        #
+#############################################################################################
+
+
 class KFoldLoop(Loop):
     def __init__(self, num_folds: int, fit_loop: FitLoop, export_path: str):
         super().__init__()
