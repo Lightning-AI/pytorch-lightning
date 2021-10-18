@@ -77,7 +77,7 @@ class _LiteModule(nn.Module):
         return self._module
 
     def forward(self, *args: Any, **kwargs: Any) -> Any:
-        with self._accelerator.forward_context():
+        with self._accelerator.precision_plugin.forward_context():
             output = self.module.forward(*args, **kwargs)
 
         output = apply_to_collection(output, function=lambda t: t.to(torch.get_default_dtype()), dtype=Tensor)
