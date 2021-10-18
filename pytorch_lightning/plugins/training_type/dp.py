@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Optional, Sequence
+from typing import List, Optional
 
 import torch
 from torch.nn import DataParallel, Module
-from torch.optim import Optimizer
 
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
