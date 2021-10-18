@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import inspect
+from abc import ABC, abstractmethod
 from functools import partial
 from typing import Generator
 
@@ -27,10 +27,11 @@ from pytorch_lightning.loops.utilities import _build_training_step_kwargs
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-class Yield:
+class YieldingLightningModule(ABC):
     """Interface for the LightningModule to define a flavor for automatic optimization where the training step
     method yields losses for each optimizer instead of returning them."""
 
+    @abstractmethod
     def training_step(self, batch, batch_idx, optimizer_idx=0) -> Generator:
         pass
 
@@ -45,7 +46,7 @@ class YieldLoop(OptimizerLoop):
 
     def on_run_start(self, batch, optimizers, batch_idx):
         super().on_run_start(batch, optimizers, batch_idx)
-        if not isinstance(self.trainer.lightning_module, Yield):
+        if not isinstance(self.trainer.lightning_module, YieldingLightningModule):
             raise MisconfigurationException(
                 "Given LightingModule does not inherit the Yield interface for automatic optimization, but a"
                 " YieldLoop was requested."
@@ -84,10 +85,10 @@ class YieldLoop(OptimizerLoop):
         return result
 
 
-class GAN(Yield, GANTemplate):
+class GAN(YieldingLightningModule, GANTemplate):
 
     # This training_step method is now a generator
-    def training_step(self, batch, batch_idx, optimizer_idx=0):
+    def training_step(self, batch, batch_idx, optimizer_idx=0) -> Generator:
         imgs, _ = batch
         z = torch.randn(imgs.shape[0], self.hparams.latent_dim)
         z = z.type_as(imgs)
