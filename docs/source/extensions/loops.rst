@@ -400,7 +400,7 @@ Here is the `runnable example <https://github.com/PyTorchLightning/lightning-fla
 
 `KFold / Cross Validation <https://en.wikipedia.org/wiki/Cross-validation_(statistics)>`__ is a machine learning practice in which the training dataset is being partitioned into `num_folds` complementary subsets.
 One cross validation round will perform fitting where one fold is left out for validation and the other folds are used for training.
-To reduce variability, once all rounds are performed using the different folds, the trained models are essembled and their predictions are
+To reduce variability, once all rounds are performed using the different folds, the trained models are ensembled and their predictions are
 averaged when estimating the model's predictive performance on the test dataset.
 KFold can elegantly be implemented with `Lightning Loop Customization` as follows:
 
