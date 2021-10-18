@@ -657,8 +657,11 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir, save_on
     assert model.on_save_checkpoint_called
 
 
-def test_optimizer_step_before_lr_scheduler_step(tmpdir):
-    """Test `optimizer.step()` is called before `lr_scheduler.step()`."""
+def test_optimizer_step_before_lr_scheduler_step_amp(tmpdir):
+    """Test `optimizer.step()` is called before `lr_scheduler.step()`.
+
+    This is a known issue with PyTorch amp. See https://github.com/pytorch/pytorch/issues/44511.
+    """
 
     trainer = Trainer(
         default_root_dir=tmpdir,
