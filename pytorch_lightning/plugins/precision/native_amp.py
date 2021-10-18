@@ -102,25 +102,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         return torch.cuda.amp.autocast()
 
     @contextmanager
-    def train_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context."""
-        with self.autocast_context_manager():
-            yield
-
-    @contextmanager
-    def val_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context."""
-        with self.autocast_context_manager():
-            yield
-
-    @contextmanager
-    def test_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context."""
-        with self.autocast_context_manager():
-            yield
-
-    @contextmanager
-    def predict_step_context(self) -> Generator[None, None, None]:
+    def forward_context(self) -> Generator[None, None, None]:
         """Enable autocast context."""
         with self.autocast_context_manager():
             yield
