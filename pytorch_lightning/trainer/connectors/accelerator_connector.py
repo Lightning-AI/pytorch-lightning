@@ -611,7 +611,6 @@ class AcceleratorConnector:
         self.amp_type = AMPType.from_str(self.amp_type)
 
         if self.use_ipu:
-            # FIXME: what about bfloat here?
             return IPUPrecisionPlugin(self.precision)
         if self.use_tpu:
             if self.precision == 32:
@@ -621,12 +620,6 @@ class AcceleratorConnector:
                 pass
             elif self.precision in (16, "bf16"):
                 return TPUHalfPrecisionPlugin()
-            else:
-                # FIXME: this validation should be done before, same below
-                raise MisconfigurationException(
-                    f"Precision {self.precision} is invalid."
-                    f" Allowed precision values: {PrecisionType.supported_types()}"
-                )
 
         if self._distrib_type == DistributedType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedPlugin):
             return DeepSpeedPrecisionPlugin(self.precision)
