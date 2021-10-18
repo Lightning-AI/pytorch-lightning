@@ -47,7 +47,7 @@ seed_everything(42)
 
 #############################################################################################
 #                           Step 1 / 5: Define KFold DataModule API                         #
-# Our KFold DataModule should requires to implement `setup_folds` and `setup_fold_index`    #
+# Our KFold DataModule should require to implement `setup_folds` and `setup_fold_index`    #
 # function.                                                                                 #
 #############################################################################################
 
@@ -65,7 +65,7 @@ class BaseKFoldDataModule(LightningDataModule, ABC):
 #############################################################################################
 #                           Step 2 / 5: Implement the KFoldDataModule                       #
 # The `KFoldDataModule` will take a train and test dataset.                                 #
-# On `setup_folds`, folds will be created depending on the provided argument num_folds      #
+# On `setup_folds`, folds will be created depending on the provided argument `num_folds`    #
 # Our `setup_fold_index`, the provided train dataset will be splitted accordingly to        #
 # the current fold split.                                                                   #
 #############################################################################################
@@ -186,7 +186,7 @@ class KFoldLoop(Loop):
 
     def on_run_end(self) -> None:
         checkpoint_paths = [
-            os.path.join(self.export_path, f"model.{fold_index}.pt") for fold_index in range(1, self.num_folds)
+            os.path.join(self.export_path, f"model.{fold_index + 1}.pt") for fold_index in range(self.num_folds)
         ]
         voting_model = EnsembleVotingModel(type(self.trainer.lightning_module), checkpoint_paths)
         voting_model.trainer = self.trainer
