@@ -23,12 +23,12 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler
+from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import Accelerator, TPUAccelerator
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
-from pytorch_lightning.plugins import DDPSpawnPlugin, DeepSpeedPlugin, PLUGIN_INPUT, TrainingTypePlugin
+from pytorch_lightning.plugins import DDPSpawnPlugin, PLUGIN_INPUT, TrainingTypePlugin
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.utilities import DeviceType, DistributedType, move_data_to_device
@@ -129,7 +129,7 @@ class LightningLite(ABC):
         return getattr(self._strategy, "world_size", 1)
 
     @abstractmethod
-    def run(self, *args: Any, **kwargs: Any) -> None:
+    def run(self, *args: Any, **kwargs: Any) -> Any:
         """All the code inside this run method gets accelerated by Lite.
 
         Args:
@@ -300,8 +300,7 @@ class LightningLite(ABC):
         if isinstance(self._strategy, DDPSpawnPlugin):
             self._strategy.spawn(run_method, *args, **kwargs)
         else:
-            run_method(*args, **kwargs)
-        # TODO: any teardown needed here?
+            return run_method(*args, **kwargs)
 
     def _setup_model_and_optimizers(
         self,
