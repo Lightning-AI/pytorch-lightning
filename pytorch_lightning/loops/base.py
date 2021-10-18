@@ -72,11 +72,25 @@ class Loop(ABC, Generic[T]):
     @property
     @abstractmethod
     def done(self) -> bool:
-        """Property indicating when loop is finished."""
+        """Property indicating when the loop is finished.
+
+        Example::
+
+            @property
+            def done(self):
+                return self.trainer.global_step >= self.trainer.max_steps
+        """
 
     @property
     def skip(self) -> bool:
-        """Determine whether to return immediately from the call to :meth:`run`."""
+        """Determine whether to return immediately from the call to :meth:`run`.
+
+        Example::
+
+            @property
+            def skip(self):
+                return len(self.trainer.train_dataloader) == 0
+        """
         return False
 
     def connect(self, **kwargs: "Loop") -> None:
@@ -98,8 +112,25 @@ class Loop(ABC, Generic[T]):
         Will frequently check the :attr:`done` condition and calls :attr:`advance`
         until :attr:`done` evaluates to ``True``.
 
+        Override this if you wish to change the default behavior. The default implementation is:
+
+        Example::
+
+            def run(self, *args, **kwargs):
+                if self.skip:
+                    return self.on_skip()
+
+                self.reset()
+                self.on_run_start(*args, **kwargs)
+
+                while not self.done:
+                    self.advance(*args, **kwargs)
+
+                output = self.on_run_end()
+                return output
+
         Returns:
-            the output of :attr:`on_run_end` (often outputs collected from each step of the loop)
+            The output of :attr:`on_run_end` (often outputs collected from each step of the loop)
         """
         if self.skip:
             return self.on_skip()
@@ -122,7 +153,16 @@ class Loop(ABC, Generic[T]):
 
     @abstractmethod
     def reset(self) -> None:
-        """Resets the internal state of the loop at the beginning of each call to :attr:`run`."""
+        """Resets the internal state of the loop at the beginning of each call to :attr:`run`.
+
+        Example::
+
+            def reset(self):
+                # reset your internal state or add custom logic
+                # if you expect run() to be called multiple times
+                self.current_iteration = 0
+                self.outputs = []
+        """
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         """Hook to be called as the first thing after entering :attr:`run` (except the state reset).
@@ -143,6 +183,13 @@ class Loop(ABC, Generic[T]):
         """Performs a single step.
 
         Accepts all arguments passed to :attr:`run`.
+
+        Example::
+
+            def advance(self, iterator):
+                batch = next(iterator)
+                loss = self.trainer.lightning_module.training_step(batch, batch_idx)
+                ...
         """
 
     def on_advance_end(self) -> None:

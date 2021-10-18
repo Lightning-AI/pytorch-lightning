@@ -1225,7 +1225,8 @@ class Trainer(
         # reload data when needed
         model = self.lightning_module
 
-        self.reset_train_val_dataloaders(model)
+        if isinstance(self.fit_loop, FitLoop):
+            self.reset_train_val_dataloaders(model)
 
         self.fit_loop.trainer = self
         with torch.autograd.set_detect_anomaly(self._detect_anomaly):
