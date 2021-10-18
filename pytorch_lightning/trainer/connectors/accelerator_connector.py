@@ -817,7 +817,7 @@ class AcceleratorConnector:
         if self.distributed_backend == DistributedType.DDP_CPU:
             if _TPU_AVAILABLE:
                 raise MisconfigurationException(
-                    "`strategy='ddp_cpu'` is not supported on TPU machines. "
+                    "`accelerator='ddp_cpu'` is not supported on TPU machines. "
                     "Learn more: https://github.com/PyTorchLightning/pytorch-lightning/issues/7810"
                 )
             if self.num_processes == 1 and self.num_nodes > 1:
@@ -826,7 +826,7 @@ class AcceleratorConnector:
                 self._distrib_type = DistributedType.DDP_SPAWN
             if self.num_gpus > 0:
                 rank_zero_warn(
-                    "You requested one or more GPUs, but set `strategy='ddp_cpu'`. Training will not use GPUs."
+                    "You requested one or more GPUs, but set `accelerator='ddp_cpu'`. Training will not use GPUs."
                 )
                 self.parallel_device_ids = None
             if self.num_processes is None:
