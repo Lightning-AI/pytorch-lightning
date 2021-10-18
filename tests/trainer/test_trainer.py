@@ -174,68 +174,6 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     assert not failed, "Model should be loaded due to strict=False."
 
 
-@pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))
-def test_trainer_accumulate_grad_batches_zero_grad(tmpdir, accumulate_grad_batches):
-    with patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
-        model = BoringModel()
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            limit_train_batches=20,
-            limit_val_batches=1,
-            max_epochs=1,
-            weights_summary=None,
-            accumulate_grad_batches=accumulate_grad_batches,
-        )
-        assert trainer.accumulate_grad_batches == accumulate_grad_batches
-        trainer.fit(model)
-
-        assert sum(isinstance(cb, GradientAccumulationScheduler) for cb in trainer.callbacks) == 1
-        assert sgd_zero_grad.call_count == math.ceil(trainer.limit_train_batches / accumulate_grad_batches)
-
-
-@pytest.mark.parametrize(
-    ["accumulate_grad_batches", "expected_call_count"],
-    [
-        ({1: 2, 3: 4}, 10 + 5 + 5 + 3),
-        ({0: 2, 2: 1}, 5 + 5 + 10 + 10),
-    ],
-)
-def test_trainer_accumulate_grad_batches_dict_zero_grad(tmpdir, accumulate_grad_batches, expected_call_count):
-    with patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
-        model = BoringModel()
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            limit_train_batches=10,
-            limit_val_batches=1,
-            max_epochs=4,
-            weights_summary=None,
-            accumulate_grad_batches=accumulate_grad_batches,
-        )
-        assert trainer.accumulate_grad_batches == accumulate_grad_batches.get(0, 1)
-        trainer.fit(model)
-
-        assert sum(isinstance(cb, GradientAccumulationScheduler) for cb in trainer.callbacks) == 1
-        assert sgd_zero_grad.call_count == expected_call_count
-
-
-def test_trainer_accumulate_grad_batches_with_callback(tmpdir):
-    with patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
-        model = BoringModel()
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            limit_train_batches=10,
-            limit_val_batches=1,
-            max_epochs=4,
-            weights_summary=None,
-            callbacks=[GradientAccumulationScheduler({1: 2, 3: 4})],
-        )
-        assert trainer.accumulate_grad_batches == 1
-        trainer.fit(model)
-
-        assert sum(isinstance(cb, GradientAccumulationScheduler) for cb in trainer.callbacks) == 1
-        assert sgd_zero_grad.call_count == 10 + 5 + 5 + 3
-
-
 def test_trainer_accumulate_grad_batches_incorrect_value(tmpdir):
     with pytest.raises(MisconfigurationException, match=".*should be an int or a dict.*"):
         Trainer(default_root_dir=tmpdir, accumulate_grad_batches=(2, 5))
@@ -491,7 +429,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         val_check_interval=1.0,
         enable_progress_bar=False,
         logger=False,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -530,7 +468,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
         "max_epochs": 3,
         "max_steps": num_train_samples + 10,
         "logger": False,
-        "weights_summary": None,
+        "enable_model_summary": False,
         "enable_progress_bar": False,
     }
     trainer = Trainer(**trainer_kwargs)
@@ -617,7 +555,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
         # define less min steps than 1 epoch
         "min_steps": num_train_samples // 2,
         "logger": False,
-        "weights_summary": None,
+        "enable_model_summary": False,
         "enable_progress_bar": False,
     }
     trainer = Trainer(**trainer_kwargs)
@@ -683,8 +621,8 @@ def test_trainer_max_steps_accumulate_batches(tmpdir):
         max_steps=num_train_samples + 10,
         accumulate_grad_batches=10,
         logger=False,
-        weights_summary=None,
         enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -783,6 +721,50 @@ def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
 
             trainer_fn(model, ckpt_path=ckpt_path)
             assert getattr(trainer, path_attr) == ckpt_path
+
+
+@pytest.mark.parametrize("enable_checkpointing", (False, True))
+@pytest.mark.parametrize("fn", ("validate", "test", "predict"))
+def test_tested_checkpoint_path_best(tmpdir, enable_checkpointing, fn):
+    class TestModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            self.log("foo", -batch_idx)
+            return super().validation_step(batch, batch_idx)
+
+        def test_step(self, *args):
+            return self.validation_step(*args)
+
+        def predict_step(self, batch, *_):
+            return self(batch)
+
+    model = TestModel()
+    model.test_epoch_end = None
+    trainer = Trainer(
+        max_epochs=2,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        limit_predict_batches=1,
+        enable_progress_bar=False,
+        default_root_dir=tmpdir,
+        enable_checkpointing=enable_checkpointing,
+    )
+    trainer.fit(model)
+
+    trainer_fn = getattr(trainer, fn)
+    path_attr = f"{fn}{'d' if fn == 'validate' else 'ed'}_ckpt_path"
+    assert getattr(trainer, path_attr) is None
+
+    if enable_checkpointing:
+        trainer_fn(ckpt_path="best")
+        assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
+
+        trainer_fn(model, ckpt_path="best")
+        assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
+    else:
+        with pytest.raises(MisconfigurationException, match="`ModelCheckpoint` is not configured."):
+            trainer_fn(ckpt_path="best")
+        with pytest.raises(MisconfigurationException, match="`ModelCheckpoint` is not configured."):
+            trainer_fn(model, ckpt_path="best")
 
 
 def test_disabled_training(tmpdir):
@@ -1407,7 +1389,7 @@ def predict(
         default_root_dir=tmpdir,
         max_epochs=1,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
         accelerator=accelerator,
         gpus=gpus,
         num_processes=num_processes,
@@ -2095,3 +2077,110 @@ def test_detect_anomaly_nan(tmpdir):
             UserWarning, match=r".*Error detected in.* Traceback of forward call that caused the error.*"
         ):
             trainer.fit(model)
+
+
+@pytest.mark.parametrize(
+    "trainer_kwargs,expected",
+    [
+        (
+            dict(strategy=None, gpus=None),
+            dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+        ),
+        (
+            dict(strategy="dp", gpus=None),
+            dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+        ),
+        (
+            dict(strategy="ddp", gpus=None),
+            dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+        ),
+        (
+            dict(strategy="ddp", num_processes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
+        (
+            dict(strategy="ddp", num_nodes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+        ),
+        (
+            dict(strategy="ddp2", gpus=None),
+            dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+        ),
+        (
+            dict(strategy=None, gpus=1),
+            dict(_distrib_type=None, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+        ),
+        (
+            dict(strategy="dp", gpus=1),
+            dict(_distrib_type=DistributedType.DP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+        ),
+        (
+            dict(strategy="ddp", gpus=1),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+        ),
+        (
+            dict(strategy="ddp_spawn", gpus=1),
+            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+        ),
+        (
+            dict(strategy="ddp2", gpus=1),
+            dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+        ),
+        (
+            dict(strategy=None, gpus=2),
+            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
+        ),
+        (
+            dict(strategy="dp", gpus=2),
+            dict(_distrib_type=DistributedType.DP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+        ),
+        (
+            dict(strategy="ddp", gpus=2),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
+        ),
+        (
+            dict(strategy="ddp2", gpus=2),
+            dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+        ),
+        (
+            dict(strategy="ddp2", num_processes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
+        (
+            dict(strategy="dp", num_processes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
+        (
+            dict(strategy="ddp_spawn", num_processes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
+        (
+            dict(strategy="ddp_spawn", num_processes=1, gpus=None),
+            dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+        ),
+        (
+            dict(strategy="ddp_cpu", num_processes=1, num_nodes=1, gpus=None),
+            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+        ),
+        (
+            dict(strategy="ddp_cpu", num_processes=2, num_nodes=1, gpus=None),
+            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
+        (
+            dict(strategy="ddp_cpu", num_processes=1, num_nodes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+        ),
+        (
+            dict(strategy="ddp_cpu", num_processes=2, num_nodes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
+    ],
+)
+def test_trainer_config_strategy(trainer_kwargs, expected, monkeypatch):
+    if trainer_kwargs["gpus"] is not None:
+        monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+        monkeypatch.setattr(torch.cuda, "device_count", lambda: trainer_kwargs["gpus"])
+    trainer = Trainer(**trainer_kwargs)
+    assert len(expected) == 4
+    for k, v in expected.items():
+        assert getattr(trainer, k) == v, f"Failed {k}: {v}"

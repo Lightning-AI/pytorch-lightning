@@ -118,7 +118,7 @@ def test_multiple_optimizers_manual_no_return(tmpdir, kwargs):
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
         **kwargs,
     )
 
@@ -160,7 +160,7 @@ def test_multiple_optimizers_manual_return(tmpdir):
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
 
     with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward) as bwd_mock:
@@ -187,13 +187,13 @@ def test_multiple_optimizers_manual_log(tmpdir):
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
 
     with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward) as bwd_mock:
         trainer.fit(model)
     assert bwd_mock.call_count == limit_train_batches * 3
-    assert set(trainer.logged_metrics) == {"a_step", "a_epoch", "epoch"}
+    assert set(trainer.logged_metrics) == {"a_step", "a_epoch"}
 
 
 @RunIf(min_gpus=1)
@@ -208,7 +208,7 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
         precision=16,
         gpus=1,
     )
@@ -296,7 +296,7 @@ def test_manual_optimization_and_return_tensor(tmpdir):
         limit_val_batches=0,
         precision=16,
         amp_backend="native",
-        accelerator="ddp_spawn",
+        strategy="ddp_spawn",
         gpus=2,
     )
     trainer.fit(model)
@@ -447,7 +447,7 @@ def test_multiple_optimizers_step(tmpdir):
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
         precision=16,
         amp_backend="native",
         gpus=1,
@@ -788,7 +788,7 @@ class TesManualOptimizationDDPModel(BoringModel):
         return [optimizer_gen, optimizer_dis]
 
 
-def train_manual_optimization(tmpdir, accelerator, model_cls=TesManualOptimizationDDPModel):
+def train_manual_optimization(tmpdir, strategy, model_cls=TesManualOptimizationDDPModel):
 
     seed_everything(42)
 
@@ -805,7 +805,7 @@ def train_manual_optimization(tmpdir, accelerator, model_cls=TesManualOptimizati
         max_epochs=1,
         log_every_n_steps=1,
         gpus=2,
-        accelerator=accelerator,
+        strategy=strategy,
         callbacks=[TestManualOptimizationDDPCallack()],
     )
 
@@ -1048,14 +1048,14 @@ def test_multiple_optimizers_logging(precision, tmpdir):
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
         gpus=1,
         precision=precision,
     )
 
     trainer.fit(model)
 
-    assert set(trainer.logged_metrics) == {"epoch", "loss_d", "loss_g"}
+    assert set(trainer.logged_metrics) == {"loss_d", "loss_g"}
     assert set(trainer.progress_bar_metrics) == {"loss_d", "loss_g"}
 
 

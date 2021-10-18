@@ -125,7 +125,7 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
         ("--tpu_cores=1,", dict(tpu_cores="1,")),
         ("--limit_train_batches=100", dict(limit_train_batches=100)),
         ("--limit_train_batches 0.8", dict(limit_train_batches=0.8)),
-        ("--weights_summary=null", dict(weights_summary=None)),
+        ("--enable_model_summary FALSE", dict(enable_model_summary=False)),
         (
             "",
             dict(
@@ -337,7 +337,7 @@ def test_lightning_cli_args(tmpdir):
         f"--data.data_dir={tmpdir}",
         f"--trainer.default_root_dir={tmpdir}",
         "--trainer.max_epochs=1",
-        "--trainer.weights_summary=null",
+        "--trainer.enable_model_summary=False",
         "--seed_everything=1234",
     ]
 
@@ -384,7 +384,7 @@ def test_lightning_cli_config_and_subclass_mode(tmpdir):
         "fit": {
             "model": {"class_path": "tests.helpers.BoringModel"},
             "data": {"class_path": "tests.helpers.BoringDataModule", "init_args": {"data_dir": str(tmpdir)}},
-            "trainer": {"default_root_dir": str(tmpdir), "max_epochs": 1, "weights_summary": None},
+            "trainer": {"default_root_dir": str(tmpdir), "max_epochs": 1, "enable_model_summary": False},
         }
     }
     config_path = tmpdir / "config.yaml"
@@ -581,8 +581,8 @@ class EarlyExitTestModel(BoringModel):
 @pytest.mark.parametrize(
     "trainer_kwargs",
     (
-        dict(accelerator="ddp_cpu"),
-        dict(accelerator="ddp_cpu", plugins="ddp_find_unused_parameters_false"),
+        dict(strategy="ddp_spawn"),
+        dict(strategy="ddp"),
         pytest.param({"tpu_cores": 1}, marks=RunIf(tpu=True)),
     ),
 )

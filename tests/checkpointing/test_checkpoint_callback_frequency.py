@@ -40,7 +40,7 @@ def test_default_checkpoint_freq(save_mock, tmpdir, epochs: int, val_check_inter
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=epochs,
-        weights_summary=None,
+        enable_model_summary=False,
         val_check_interval=val_check_interval,
         limit_val_batches=1,
         enable_progress_bar=False,
@@ -75,7 +75,7 @@ def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float
         callbacks=[callbacks.ModelCheckpoint(dirpath=tmpdir, monitor="my_loss", save_top_k=k, save_last=save_last)],
         default_root_dir=tmpdir,
         max_epochs=epochs,
-        weights_summary=None,
+        enable_model_summary=False,
         val_check_interval=val_check_interval,
     )
     trainer.fit(model)
@@ -121,9 +121,9 @@ def _top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
         default_root_dir=tmpdir,
         enable_progress_bar=False,
         max_epochs=epochs,
-        weights_summary=None,
+        enable_model_summary=False,
         val_check_interval=val_check_interval,
-        accelerator="ddp",
+        strategy="ddp",
         gpus=2,
         limit_train_batches=64,
         limit_val_batches=32,
