@@ -85,7 +85,7 @@ def test_torch_distributed_backend_env_variables(tmpdir):
     with patch.dict(os.environ, _environ), patch("torch.cuda.device_count", return_value=2):
         with pytest.raises(ValueError, match="Invalid backend: 'undefined'"):
             model = BoringModel()
-            trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="ddp", gpus=2, logger=False)
+            trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", gpus=2, logger=False)
             trainer.fit(model)
 
 
@@ -103,7 +103,7 @@ def test_ddp_torch_dist_is_available_in_setup(mock_set_device, mock_is_available
             raise SystemExit()
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="ddp", gpus=1)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", gpus=1)
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
@@ -144,7 +144,7 @@ def _test_ddp_wrapper(tmpdir, precision):
         default_root_dir=tmpdir,
         fast_dev_run=True,
         precision=precision,
-        accelerator="ddp",
+        strategy="ddp",
         gpus=2,
         callbacks=CustomCallback(),
     )

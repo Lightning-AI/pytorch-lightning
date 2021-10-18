@@ -67,6 +67,71 @@ Loggers API
     test_tube
     wandb
 
+Loop API
+--------
+
+Base Classes
+^^^^^^^^^^^^
+
+.. currentmodule:: pytorch_lightning.loops
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    ~base.Loop
+    ~dataloader.dataloader_loop.DataLoaderLoop
+
+
+Default Loop Implementations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Training
+""""""""
+
+.. currentmodule:: pytorch_lightning.loops
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    FitLoop
+    ~epoch.TrainingEpochLoop
+    ~batch.TrainingBatchLoop
+    ~optimization.OptimizerLoop
+    ~optimization.ManualOptimization
+
+
+Validation and Testing
+""""""""""""""""""""""
+
+.. currentmodule:: pytorch_lightning.loops
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    ~dataloader.EvaluationLoop
+    ~epoch.EvaluationEpochLoop
+
+
+Prediction
+""""""""""
+
+.. currentmodule:: pytorch_lightning.loops
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    ~dataloader.PredictionLoop
+    ~epoch.PredictionEpochLoop
+
+
 Plugins API
 -----------
 

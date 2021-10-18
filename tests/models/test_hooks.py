@@ -198,8 +198,8 @@ def test_transfer_batch_hook_ddp(tmpdir):
         limit_train_batches=2,
         limit_val_batches=0,
         max_epochs=1,
-        weights_summary=None,
-        accelerator="ddp",
+        enable_model_summary=False,
+        strategy="ddp",
         gpus=2,
     )
     trainer.fit(model)
@@ -281,6 +281,24 @@ class HookedModel(BoringModel):
             dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY, 0)),
             dict(name="on_before_optimizer_step", args=(ANY, 0)),
         ]
+
+        # deepspeed handles gradient clipping internally
+        configure_gradient_clipping = (
+            []
+            if using_deepspeed
+            else [
+                dict(
+                    name="clip_gradients",
+                    args=(ANY,),
+                    kwargs=dict(gradient_clip_val=None, gradient_clip_algorithm=None),
+                ),
+                dict(
+                    name="configure_gradient_clipping",
+                    args=(ANY, 0),
+                    kwargs=dict(gradient_clip_val=None, gradient_clip_algorithm=None),
+                ),
+            ]
+        )
         for i in range(batches):
             out.extend(
                 [
@@ -305,6 +323,7 @@ class HookedModel(BoringModel):
                     *([dict(name="backward", args=(ANY, ANY, 0))] if not using_deepspeed else []),
                     dict(name="Callback.on_after_backward", args=(trainer, model)),
                     dict(name="on_after_backward"),
+                    *configure_gradient_clipping,
                     *(on_before_optimizer_step if using_plugin else []),
                     dict(
                         name="optimizer_step",
@@ -472,7 +491,7 @@ def _run_trainer_model_hook_system_fit(kwargs, tmpdir, automatic_optimization):
         limit_train_batches=train_batches,
         limit_val_batches=val_batches,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
         callbacks=[callback],
         **kwargs,
     )
@@ -579,7 +598,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         max_steps=1,
         limit_val_batches=0,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
         callbacks=[HookedCallback([])],
     )
     trainer.fit(model)
@@ -596,7 +615,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         max_steps=(1 + train_batches),
         limit_val_batches=0,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
         resume_from_checkpoint=best_model_path,
         callbacks=[callback],
     )
@@ -691,7 +710,7 @@ def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader,
         limit_val_batches=batches,
         limit_test_batches=batches,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
         callbacks=[callback],
     )
     assert called == [
@@ -858,7 +877,7 @@ def test_trainer_datamodule_hook_system(tmpdir):
         limit_test_batches=batches,
         limit_predict_batches=batches,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
         reload_dataloaders_every_epoch=True,
     )
 

@@ -18,7 +18,10 @@ import pytest
 import torch
 
 from pytorch_lightning import Callback, LightningDataModule, Trainer
+from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
+from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
+from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
@@ -131,6 +134,13 @@ def test_v1_7_0_trainer_terminate_on_nan(tmpdir, terminate_on_nan):
         assert trainer.terminate_on_nan is terminate_on_nan
         assert trainer._detect_anomaly is False
 
+    trainer = Trainer()
+    with pytest.deprecated_call(match=r"`Trainer.terminate_on_nan` is deprecated in v1.5"):
+        _ = trainer.terminate_on_nan
+
+    with pytest.deprecated_call(match=r"Setting `Trainer.terminate_on_nan = True` is deprecated in v1.5"):
+        trainer.terminate_on_nan = True
+
 
 def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
     class CustomBoringModel(BoringModel):
@@ -233,7 +243,7 @@ class BoringCallbackDDPSpawnModel(BoringModel):
 @RunIf(skip_windows=True)
 def test_v1_7_0_deprecate_add_get_queue(tmpdir):
     model = BoringCallbackDDPSpawnModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, num_processes=2, accelerator="ddp_cpu")
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, num_processes=2, strategy="ddp_spawn")
 
     with pytest.deprecated_call(match=r"`LightningModule.add_to_queue` method was deprecated in v1.5"):
         trainer.fit(model)
@@ -265,6 +275,11 @@ def test_v1_7_0_deprecate_lightning_distributed(tmpdir):
         from pytorch_lightning.distributed.dist import LightningDistributed
 
         _ = LightningDistributed()
+
+
+def test_v1_7_0_checkpoint_callback_trainer_constructor(tmpdir):
+    with pytest.deprecated_call(match=r"Setting `Trainer\(checkpoint_callback=True\)` is deprecated in v1.5"):
+        _ = Trainer(checkpoint_callback=True)
 
 
 def test_v1_7_0_old_on_train_batch_start(tmpdir):
@@ -329,3 +344,50 @@ def test_v1_7_0_deprecate_parameter_validation():
         match="Using `pytorch_lightning.core.decorators.parameter_validation` is deprecated in v1.5"
     ):
         from pytorch_lightning.core.decorators import parameter_validation  # noqa: F401
+
+
+def test_v1_7_0_passing_strategy_to_accelerator_trainer_flag():
+    with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.7."):
+        Trainer(accelerator="ddp_spawn")
+
+
+def test_v1_7_0_passing_strategy_to_plugins_flag():
+    with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.7."):
+        Trainer(plugins="ddp_spawn")
+
+
+def test_v1_7_0_weights_summary_trainer(tmpdir):
+    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_summary=full\)` is deprecated in v1.5"):
+        t = Trainer(weights_summary="full")
+
+    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_summary=None\)` is deprecated in v1.5"):
+        t = Trainer(weights_summary=None)
+
+    t = Trainer(weights_summary="top")
+    with pytest.deprecated_call(match=r"`Trainer.weights_summary` is deprecated in v1.5"):
+        _ = t.weights_summary
+
+    with pytest.deprecated_call(match=r"Setting `Trainer.weights_summary` is deprecated in v1.5"):
+        t.weights_summary = "blah"
+
+
+def test_v1_7_0_trainer_log_gpu_memory(tmpdir):
+    with pytest.deprecated_call(
+        match="Setting `log_gpu_memory` with the trainer flag is deprecated in v1.5 and will be removed"
+    ):
+        trainer = Trainer(log_gpu_memory="min_max")
+    with pytest.deprecated_call(match="The property `LoggerConnector.gpus_metrics` was deprecated in v1.5"):
+        lg = LoggerConnector(trainer)
+        _ = lg.gpus_metrics
+
+
+@RunIf(min_gpus=1)
+def test_v1_7_0_deprecate_gpu_stats_monitor(tmpdir):
+    with pytest.deprecated_call(match="The `GPUStatsMonitor` callback was deprecated in v1.5"):
+        _ = GPUStatsMonitor()
+
+
+@RunIf(tpu=True)
+def test_v1_7_0_deprecate_xla_stats_monitor(tmpdir):
+    with pytest.deprecated_call(match="The `XLAStatsMonitor` callback was deprecated in v1.5"):
+        _ = XLAStatsMonitor()

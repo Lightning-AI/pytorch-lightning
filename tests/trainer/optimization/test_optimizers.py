@@ -370,7 +370,7 @@ def test_multiple_optimizers_callbacks(tmpdir):
         limit_train_batches=1,
         limit_val_batches=2,
         max_epochs=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -552,7 +552,7 @@ def test_optimizer_state_on_device(tmpdir):
             assert state["sum"].device == torch.device("cuda", self.local_rank) == self.device
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, gpus=2, accelerator="ddp", fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmpdir, gpus=2, strategy="ddp", fast_dev_run=True)
     trainer.fit(model)
 
 

@@ -204,7 +204,7 @@ class FitLoop(Loop):
 
     def advance(self) -> None:
         """Runs one whole epoch."""
-        dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
+        dataloader = self.trainer.training_type_plugin.process_dataloader(self.trainer.train_dataloader)
         data_fetcher = self.trainer.data_connector.get_profiled_dataloader(dataloader)
 
         with self.trainer.profiler.profile("run_training_epoch"):
@@ -234,7 +234,7 @@ class FitLoop(Loop):
         self.trainer.call_hook("on_train_end")
 
         # give accelerators a chance to finish
-        self.trainer.accelerator.on_train_end()
+        self.trainer.training_type_plugin.on_train_end()
 
     def teardown(self) -> None:
         self.epoch_loop.teardown()

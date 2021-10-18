@@ -335,10 +335,9 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
     trainer = Trainer(
         logger=logger,
         default_root_dir=tmpdir,
-        accelerator="ddp_cpu",
+        strategy="ddp_spawn",
         num_processes=2,
         max_steps=1,
-        checkpoint_callback=True,
         callbacks=[RankZeroLoggerCheck()],
     )
     trainer.fit(model)
