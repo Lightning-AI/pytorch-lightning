@@ -228,7 +228,7 @@ class LoggerConnector:
             return
 
         # TODO: remove this call in v1.7
-        # self._log_gpus_metrics()
+        self._log_gpus_metrics()
 
         # when metrics should be logged
         assert not self._epoch_end_reached
