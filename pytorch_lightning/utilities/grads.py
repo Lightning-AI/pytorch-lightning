@@ -18,7 +18,7 @@ import torch
 from torch.nn import Module
 
 
-def grad_norm(module: Module, norm_type: Union[float, int, str], group_separator: str = '/') -> Dict[str, float]:
+def grad_norm(module: Module, norm_type: Union[float, int, str], group_separator: str = "/") -> Dict[str, float]:
     """Compute each parameter's gradient's norm and their overall norm.
 
     The overall norm is computed over all gradients together, as if they

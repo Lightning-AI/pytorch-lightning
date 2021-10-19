@@ -348,7 +348,7 @@ class LightningLoggerBase(ABC):
     @property
     def group_separator(self):
         """Return the default separator used by the logger to group the data into subfolders."""
-        return '/'
+        return "/"
 
     @property
     @abstractmethod
