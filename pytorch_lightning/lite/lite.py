@@ -304,7 +304,7 @@ class LightningLite(ABC):
 
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> None:
         self._set_plugin_specific_precision_variables()
-        self._strategy.setup_environment()
+        self._accelerator.setup_environment()
         if isinstance(self._strategy, DDPSpawnPlugin):
             self._strategy.spawn(run_method, *args, **kwargs)
         else:
