@@ -154,7 +154,7 @@ jobs:
     - name: Tests
       run: |
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-        coverage run --source pytorch_lightning -m pytest pytorch_lightning -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+        coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
     - name: Examples
       run: |
