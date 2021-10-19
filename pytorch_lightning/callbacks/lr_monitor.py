@@ -94,7 +94,7 @@ class LearningRateMonitor(Callback):
         self.lrs: Dict[str, List[float]] = {}
         self.lr_sch_names: List[str] = []
 
-    def on_train_start(self, trainer: "pl.Trainer", *args, **kwargs) -> None:
+    def on_train_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         """Called before training, determines unique names for all lr schedulers in the case of multiple of the
         same type or in the case of multiple parameter groups.
 
@@ -109,7 +109,7 @@ class LearningRateMonitor(Callback):
 
         if self.log_momentum:
 
-            def _check_no_key(key):
+            def _check_no_key(key: "str"):
                 if trainer.lr_schedulers:
                     return any(key not in sch["scheduler"].optimizer.defaults for sch in trainer.lr_schedulers)
 
@@ -143,8 +143,8 @@ class LearningRateMonitor(Callback):
         self.lrs = {name: [] for name in names}
         self.last_momentum_values = {name + "-momentum": None for name in names}
 
-    def on_train_batch_start(self, trainer: "pl.Trainer", *args, **kwargs) -> None:
-        if not self._should_log(trainer):
+    def on_train_batch_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
+        if not trainer.logger_connector.should_update_logs:
             return
 
         if self.logging_interval != "epoch":
@@ -154,7 +154,7 @@ class LearningRateMonitor(Callback):
             if latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
-    def on_train_epoch_start(self, trainer: "pl.Trainer", *args, **kwargs) -> None:
+    def on_train_epoch_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         if self.logging_interval != "step":
             interval = "epoch" if self.logging_interval is None else "any"
             latest_stat = self._extract_stats(trainer, interval)
@@ -333,7 +333,3 @@ class LearningRateMonitor(Callback):
             self.lr_sch_names.append(name)
 
         return name_list
-
-    @staticmethod
-    def _should_log(trainer) -> bool:
-        return (trainer.global_step + 1) % trainer.log_every_n_steps == 0 or trainer.should_stop

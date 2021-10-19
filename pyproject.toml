@@ -63,6 +63,7 @@ ignore_errors = "True"
 module = [
     "pytorch_lightning.callbacks.device_stats_monitor",
     "pytorch_lightning.callbacks.early_stopping",
+    "pytorch_lightning.callbacks.gpu_stats_monitor",
     "pytorch_lightning.callbacks.gradient_accumulation_scheduler",
     "pytorch_lightning.callbacks.lr_monitor",
     "pytorch_lightning.callbacks.model_summary",

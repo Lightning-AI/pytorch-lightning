@@ -133,14 +133,14 @@ class GPUStatsMonitor(Callback):
             )
 
         # The logical device IDs for selected devices
-        self._device_ids: List[int] = sorted(set(trainer.data_parallel_device_ids))
+        self._device_ids = sorted(set(trainer.data_parallel_device_ids))
 
         # The unmasked real GPU IDs
-        self._gpu_ids: List[int] = self._get_gpu_ids(self._device_ids)
+        self._gpu_ids = self._get_gpu_ids(self._device_ids)
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        self._snap_intra_step_time = None
-        self._snap_inter_step_time = None
+        self._snap_intra_step_time: Optional[float] = None
+        self._snap_inter_step_time: Optional[float] = None
 
     @rank_zero_only
     def on_train_batch_start(
@@ -203,7 +203,12 @@ class GPUStatsMonitor(Callback):
         format = "csv,nounits,noheader"
         gpu_ids = ",".join(self._gpu_ids)
         result = subprocess.run(
-            [shutil.which("nvidia-smi"), f"--query-gpu={gpu_query}", f"--format={format}", f"--id={gpu_ids}"],
+            [
+                shutil.which("nvidia-smi"),  # type: ignore
+                f"--query-gpu={gpu_query}",
+                f"--format={format}",
+                f"--id={gpu_ids}",
+            ],
             encoding="utf-8",
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
@@ -216,8 +221,7 @@ class GPUStatsMonitor(Callback):
             except ValueError:
                 return 0.0
 
-        stats = result.stdout.strip().split(os.linesep)
-        stats = [[_to_float(x) for x in s.split(", ")] for s in stats]
+        stats = [[_to_float(x) for x in s.split(", ")] for s in result.stdout.strip().split(os.linesep)]
         return stats
 
     @staticmethod
