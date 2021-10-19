@@ -1538,7 +1538,7 @@ class Trainer(
 
     @property
     def node_rank(self) -> int:
-        # some training types define a local rank
+        # some training types define a node rank
         return getattr(self.training_type_plugin, "node_rank", 0)
 
     @property
