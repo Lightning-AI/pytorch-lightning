@@ -22,6 +22,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TORCH_BFLOAT_AVAILABLE:
     from torch import autocast
+else:
+    autocast = object
 
 
 class Bf16PrecisionPlugin(MixedPrecisionPlugin):
