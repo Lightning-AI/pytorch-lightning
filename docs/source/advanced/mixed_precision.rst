@@ -57,7 +57,7 @@ Since BFloat16 is more stable than FP16 during training, we do not need to worry
 It is also possible to use BFloat16 mixed precision on the CPU, relying on MKLDNN under the hood.
 
 .. testcode::
-    :skipif: not _TORCH_CPU_AMP_AVAILABLE
+    :skipif: not _TORCH_GREATER_EQUAL_DEV_1_10
 
     Trainer(precision="bf16")
 
