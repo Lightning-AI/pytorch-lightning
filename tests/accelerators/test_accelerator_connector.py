@@ -986,3 +986,17 @@ def test_unsupported_tpu_choice(monkeypatch):
     monkeypatch.setattr(AcceleratorConnector, "has_tpu", True)
     with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision=64\)` is not implemented"):
         Trainer(accelerator="tpu", precision=64)
+
+
+def test_unsupported_ipu_choice(monkeypatch):
+    import pytorch_lightning.plugins.training_type.ipu as ipu
+    import pytorch_lightning.utilities.imports as imports
+    from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
+
+    monkeypatch.setattr(imports, "_IPU_AVAILABLE", True)
+    monkeypatch.setattr(ipu, "_IPU_AVAILABLE", True)
+    monkeypatch.setattr(AcceleratorConnector, "has_ipu", True)
+    with pytest.raises(MisconfigurationException, match=r"accelerator='ipu', precision='bf16'\)` is not supported"):
+        Trainer(accelerator="ipu", precision="bf16")
+    with pytest.raises(MisconfigurationException, match=r"accelerator='ipu', precision=64\)` is not supported"):
+        Trainer(accelerator="ipu", precision=64)

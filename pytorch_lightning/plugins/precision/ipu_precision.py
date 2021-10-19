@@ -29,8 +29,8 @@ warning_cache = WarningCache()
 class IPUPrecisionPlugin(PrecisionPlugin):
     def __init__(self, precision: Union[int, str]) -> None:
         super().__init__()
-        if precision == "bf16":
-            raise MisconfigurationException("`Trainer(accelerator='ipu', precision='bf16')` is not supported.")
+        if precision in ("bf16", 64):
+            raise MisconfigurationException(f"`Trainer(accelerator='ipu', precision={precision!r})` is not supported.")
         self.precision = precision
 
     def backward(self, model: "pl.LightningModule", *args: Any, **kwargs: Any) -> None:
