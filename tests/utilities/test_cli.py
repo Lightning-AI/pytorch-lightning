@@ -134,8 +134,7 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
                 # interface.
                 min_steps=None,
                 max_steps=None,
-                log_gpu_memory=None,
-                distributed_backend=None,
+                accelerator=None,
                 weights_save_path=None,
                 resume_from_checkpoint=None,
                 profiler=None,
