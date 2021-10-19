@@ -396,6 +396,9 @@ class DeepSpeedPlugin(DDPPlugin):
                 f" Got {len(models)} models and {len(optimizers)} optimizers instead."
             )
 
+        # train_micro_batch_size_per_gpu is used for throughput logging purposes
+        # normally we set this to the batch size, but it is not available here unless the user provides it
+        # as part of the config
         self.config.setdefault("train_micro_batch_size_per_gpu", 1)
         self._model, optimizer = self._setup_model_and_optimizer(models[0], optimizers[0])
         self._set_deepspeed_activation_checkpointing()
