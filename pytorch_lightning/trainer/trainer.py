@@ -48,7 +48,7 @@ from pytorch_lightning.profiler import (
     XLAProfiler,
 )
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
-from pytorch_lightning.trainer.configuration_validator import ConfigValidator
+from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
@@ -176,7 +176,6 @@ class Trainer(
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         amp_backend: str = "native",
         amp_level: Optional[str] = None,
-        distributed_backend: Optional[str] = None,
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         stochastic_weight_avg: bool = False,
@@ -244,8 +243,6 @@ class Trainer(
 
             devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,
                 based on the accelerator type.
-
-            distributed_backend: Deprecated. Please use ``accelerator``.
 
             fast_dev_run: Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
                 of train, val and test to find any bugs (ie: a sort of unit test).
@@ -426,7 +423,6 @@ class Trainer(
         gpu_ids, tpu_cores = self._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
         # init connectors
-        self._config_validator = ConfigValidator(self)
         self.data_connector = DataConnector(self, multiple_trainloader_mode)
         self.optimizer_connector = OptimizerConnector(self)
 
@@ -435,7 +431,6 @@ class Trainer(
             devices,
             tpu_cores,
             ipus,
-            distributed_backend,
             accelerator,
             strategy,
             gpus,
@@ -1022,7 +1017,7 @@ class Trainer(
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
 
-        self._config_validator.verify_loop_configurations(model)
+        verify_loop_configurations(self, model)
 
         # attach model log function to callback
         self.callback_connector.attach_model_logging_functions(model)
@@ -1519,11 +1514,6 @@ class Trainer(
         return self.accelerator_connector.accelerator
 
     @property
-    def distributed_backend(self) -> Optional[str]:
-        # for backward compatibility
-        return self.accelerator_connector.distributed_backend
-
-    @property
     def training_type_plugin(self) -> TrainingTypePlugin:
         return self.accelerator.training_type_plugin
 
@@ -1542,7 +1532,7 @@ class Trainer(
 
     @property
     def node_rank(self) -> int:
-        # some training types define a local rank
+        # some training types define a node rank
         return getattr(self.training_type_plugin, "node_rank", 0)
 
     @property

@@ -14,7 +14,7 @@
 from typing import List, Optional
 
 import torch
-from torch.nn import DataParallel
+from torch.nn import DataParallel, Module
 
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
@@ -54,7 +54,11 @@ class DataParallelPlugin(ParallelPlugin):
     def setup(self) -> None:
         # model needs to be moved to the device before it is wrapped
         self.model_to_device()
-        self._model = DataParallel(LightningParallelModule(self._model), self.parallel_devices)
+        self._model = self._setup_model(LightningParallelModule(self._model))
+
+    def _setup_model(self, model: Module) -> DataParallel:
+        """Wraps the given model into a :class:`~torch.nn.parallel.DataParallel` module."""
+        return DataParallel(module=model, device_ids=self.parallel_devices)
 
     def reduce(self, collection: _METRIC_COLLECTION, *args, **kwargs) -> _METRIC_COLLECTION:
         """Reduces a collection of tensors from all processes. It can be applied to just a single tensor.
