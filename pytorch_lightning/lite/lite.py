@@ -33,6 +33,7 @@ from pytorch_lightning.plugins import (
     DDPSpawnPlugin,
     DeepSpeedPlugin,
     PLUGIN_INPUT,
+    TPUSpawnPlugin,
     TrainingTypePlugin,
 )
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
@@ -164,7 +165,17 @@ class LightningLite(ABC):
         optimizers = [optimizers] if isinstance(optimizers, Optimizer) else optimizers
 
         if move_to_device:
+            params_on_cpu = dict(model.named_parameters())
             model = self.to_device(model)
+            params_on_device = dict(model.named_parameters())
+
+            # When the user creates the optimizer, they reference the parameters on the CPU.
+            # However, when running with TPU the parameters get copied and the reference in the optimizer
+            # remains invalid. We need to update the references to point to the parameter tensors on the device.
+            mapping = {param: params_on_device[name] for name, param in params_on_cpu.items()}
+            for optimizer in optimizers:
+                for param_group in optimizer.param_groups:
+                    param_group["params"] = [mapping.get(p, p) for p in param_group["params"]]
 
         model, optimizers = self._setup_model_and_optimizers(model, optimizers)
         optimizers = optimizers[0] if len(optimizers) == 1 else optimizers
@@ -226,8 +237,11 @@ class LightningLite(ABC):
 
         kwargs = TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler)
         device = self.device if move_to_device else None
-        lite_dataloader = _LiteDataLoader(device=device, **kwargs)
-        return self._strategy.process_dataloader(lite_dataloader)
+        if isinstance(self._strategy, TPUSpawnPlugin):
+            dataloader = DataLoader(**kwargs)
+        else:
+            dataloader = _LiteDataLoader(device=device, **kwargs)
+        return self._strategy.process_dataloader(dataloader)
 
     def backward(self, tensor: Tensor, *args: Any, **kwargs: Any) -> None:
         """Replaces ``loss.backward()`` in your training loop. Handles precision and automatically for you.
