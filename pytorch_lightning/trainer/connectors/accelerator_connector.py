@@ -93,7 +93,6 @@ class AcceleratorConnector:
         devices,
         tpu_cores,
         ipus,
-        distributed_backend,
         accelerator,
         strategy: Optional[Union[str, TrainingTypePlugin]],
         gpus,
@@ -114,7 +113,8 @@ class AcceleratorConnector:
         self._accelerator_type = None
 
         self.strategy = strategy.lower() if isinstance(strategy, str) else strategy
-        self.distributed_backend = distributed_backend or accelerator
+        # TODO: Rename this to something else once all the distributed flags are moved to strategy
+        self.distributed_backend = accelerator
 
         self._init_deterministic(deterministic)
 
@@ -153,7 +153,7 @@ class AcceleratorConnector:
 
         self.plugins = plugins
 
-        self._handle_accelerator_and_distributed_backend(distributed_backend, accelerator)
+        self._handle_accelerator_and_strategy()
 
         self._validate_accelerator_and_devices()
 
@@ -176,10 +176,6 @@ class AcceleratorConnector:
 
         self._training_type_plugin_resolved = False
         self.accelerator = self.select_accelerator()
-
-        # override dist backend when using tpus
-        if self.use_tpu:
-            self.distributed_backend = "tpu"
 
         # init flags for SLURM+DDP to work
         self.world_size = 1
@@ -286,31 +282,16 @@ class AcceleratorConnector:
         elif self._accelerator_type == DeviceType.CPU:
             self.devices = self.num_processes
 
-    def _handle_accelerator_and_distributed_backend(
-        self, distributed_backend: Optional[str], accelerator: Optional[Union[str, Accelerator]]
-    ) -> None:
-        if distributed_backend is not None:
+    def _handle_accelerator_and_strategy(self) -> None:
+        if self.distributed_backend is not None and self.distributed_backend in list(DistributedType):
             rank_zero_deprecation(
-                f"`Trainer(distributed_backend={distributed_backend!r})` "
-                "has been deprecated and will be removed in v1.5."
-                f" Use `Trainer(strategy={distributed_backend!r})` instead."
+                f"Passing `Trainer(accelerator={self.distributed_backend!r})` has been deprecated"
+                f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={self.distributed_backend!r})` instead."
             )
             if self.strategy is not None:
                 raise MisconfigurationException(
                     f"You have passed `Trainer(strategy={self.strategy!r})` but have"
-                    f" also passed `Trainer(distributed_backend={distributed_backend!r})`."
-                    f" HINT: Use just `Trainer(strategy={self.strategy!r})` instead."
-                )
-
-        if accelerator is not None and accelerator in list(DistributedType):
-            rank_zero_deprecation(
-                f"Passing `Trainer(accelerator={accelerator!r})` has been deprecated"
-                f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={accelerator!r})` instead."
-            )
-            if self.strategy is not None:
-                raise MisconfigurationException(
-                    f"You have passed `Trainer(strategy={self.strategy!r})` but have"
-                    f" also passed `Trainer(accelerator={accelerator!r})`."
+                    f" also passed `Trainer(accelerator={self.distributed_backend!r})`."
                     f" HINT: Use just `Trainer(strategy={self.strategy!r})` instead."
                 )
 
@@ -792,15 +773,15 @@ class AcceleratorConnector:
             env = LightningEnvironment()
         return env
 
-    def set_distributed_mode(self, distributed_backend: Optional[str] = None):
+    def set_distributed_mode(self, strategy: Optional[str] = None):
 
-        if distributed_backend is None and self.is_training_type_in_plugins:
+        if strategy is None and self.is_training_type_in_plugins:
             return
 
-        if distributed_backend is not None and distributed_backend in TrainingTypePluginsRegistry:
-            self.distributed_backend = TrainingTypePluginsRegistry[distributed_backend]["distributed_backend"]
-        elif distributed_backend is not None:
-            self.distributed_backend = distributed_backend
+        if strategy is not None and strategy in TrainingTypePluginsRegistry:
+            self.distributed_backend = TrainingTypePluginsRegistry[strategy]["distributed_backend"]
+        elif strategy is not None:
+            self.distributed_backend = strategy
 
         if isinstance(self.distributed_backend, Accelerator):
             return

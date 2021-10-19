@@ -66,6 +66,9 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         deepspeed_engine = model.trainer.model
         deepspeed_engine.step(**kwargs)
 
+    def _run_backward(self, tensor: Tensor, model: Module, *args: Any, **kwargs: Any) -> None:
+        model.backward(tensor, *args, **kwargs)
+
     def clip_gradients(
         self,
         optimizer: Optimizer,
