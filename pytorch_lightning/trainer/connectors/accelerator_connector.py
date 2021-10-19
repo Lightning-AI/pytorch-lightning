@@ -301,7 +301,10 @@ class AcceleratorConnector:
                     f" HINT: Use just `Trainer(strategy={self.strategy!r})` instead."
                 )
 
-        if accelerator is not None and accelerator in list(DistributedType):
+        deprecated_accelerators = [
+            t for t in DistributedType if t not in (DistributedType.TPU_SPAWN, DistributedType.DDP_CPU)
+        ]
+        if accelerator is not None and accelerator in deprecated_accelerators:
             rank_zero_deprecation(
                 f"Passing `Trainer(accelerator={accelerator!r})` has been deprecated"
                 f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={accelerator!r})` instead."

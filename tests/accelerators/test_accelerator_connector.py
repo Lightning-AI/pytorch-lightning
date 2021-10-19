@@ -68,7 +68,8 @@ def test_accelerator_choice_ddp_cpu(tmpdir, num_processes: int, num_nodes: int):
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("torch.cuda.is_available", return_value=True)
 def test_accelerator_choice_ddp(cuda_available_mock, device_count_mock):
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=1)
+    with pytest.deprecated_call(match=r"accelerator='ddp'\)` has been deprecated"):
+        trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=1)
     assert isinstance(trainer.accelerator, GPUAccelerator)
     assert isinstance(trainer.training_type_plugin, DDPPlugin)
     assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
@@ -78,7 +79,8 @@ def test_accelerator_choice_ddp(cuda_available_mock, device_count_mock):
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("torch.cuda.is_available", return_value=True)
 def test_accelerator_choice_ddp_spawn(cuda_available_mock, device_count_mock):
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp_spawn", gpus=1)
+    with pytest.deprecated_call(match=r"accelerator='ddp_spawn'\)` has been deprecated"):
+        trainer = Trainer(fast_dev_run=True, accelerator="ddp_spawn", gpus=1)
     assert isinstance(trainer.accelerator, GPUAccelerator)
     assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
     assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
@@ -311,7 +313,7 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_m
             assert isinstance(trainer.accelerator, CPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
-            assert trainer.training_type_plugin.task_idx == 0
+            assert trainer.training_type_plugin.local_rank == 0
             raise SystemExit()
 
     model = BoringModel()
@@ -434,7 +436,7 @@ def test_dist_backend_accelerator_mapping(device_count_mock, setup_distributed_m
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator, CPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
-            assert trainer.training_type_plugin.task_idx == 0
+            assert trainer.training_type_plugin.local_rank == 0
             raise SystemExit()
 
     model = BoringModel()
@@ -448,10 +450,10 @@ def test_dist_backend_accelerator_mapping(device_count_mock, setup_distributed_m
 @mock.patch("torch.cuda.device_count", return_value=2)
 def test_ipython_incompatible_backend_error(*_):
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
-        Trainer(accelerator="ddp", gpus=2)
+        Trainer(strategy="ddp", gpus=2)
 
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp2'\)`.*is not compatible"):
-        Trainer(accelerator="ddp2", gpus=2)
+        Trainer(strategy="ddp2", gpus=2)
 
 
 @mock.patch("pytorch_lightning.utilities._IS_INTERACTIVE", return_value=True)
@@ -462,10 +464,16 @@ def test_ipython_compatible_backend(*_):
 @pytest.mark.parametrize(["accelerator", "plugin"], [("ddp_spawn", "ddp_sharded"), (None, "ddp_sharded")])
 def test_plugin_accelerator_choice(accelerator: Optional[str], plugin: str):
     """Ensure that when a plugin and accelerator is passed in, that the plugin takes precedent."""
-    trainer = Trainer(accelerator=accelerator, plugins=plugin, num_processes=2)
+    if accelerator is None:
+        with pytest.deprecated_call(match="Passing .* `strategy` to the `plugins`"):
+            trainer = Trainer(accelerator=accelerator, plugins=plugin, num_processes=2)
+    else:
+        with pytest.deprecated_call(match=r"accelerator=.*\)` has been deprecated"):
+            trainer = Trainer(accelerator=accelerator, plugins=plugin, num_processes=2)
     assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
 
-    trainer = Trainer(plugins=plugin, num_processes=2)
+    with pytest.deprecated_call(match="Passing .* `strategy` to the `plugins`"):
+        trainer = Trainer(plugins=plugin, num_processes=2)
     assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
 
 
@@ -485,7 +493,8 @@ def test_plugin_accelerator_choice(accelerator: Optional[str], plugin: str):
 def test_accelerator_choice_multi_node_gpu(
     mock_is_available, mock_device_count, tmpdir, accelerator: str, plugin: ParallelPlugin, gpus: int
 ):
-    trainer = Trainer(accelerator=accelerator, default_root_dir=tmpdir, num_nodes=2, gpus=gpus)
+    with pytest.deprecated_call(match=r"accelerator=.*\)` has been deprecated"):
+        trainer = Trainer(accelerator=accelerator, default_root_dir=tmpdir, num_nodes=2, gpus=gpus)
     assert isinstance(trainer.training_type_plugin, plugin)
 
 
@@ -629,18 +638,23 @@ def test_unsupported_distrib_types_on_cpu(training_type):
 
 
 def test_accelerator_ddp_for_cpu(tmpdir):
-    trainer = Trainer(accelerator="ddp", num_processes=2)
+    with pytest.deprecated_call(match=r"accelerator='ddp'\)` has been deprecated"):
+        trainer = Trainer(accelerator="ddp", num_processes=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.training_type_plugin, DDPPlugin)
 
 
 def test_exception_when_strategy_used_with_distributed_backend():
-    with pytest.raises(MisconfigurationException, match="but have also passed"):
+    with pytest.raises(MisconfigurationException, match="but have also passed"), pytest.deprecated_call(
+        match=r"distributed_backend='ddp_cpu'\)` has been deprecated"
+    ):
         Trainer(distributed_backend="ddp_cpu", strategy="ddp_spawn")
 
 
 def test_exception_when_strategy_used_with_accelerator():
-    with pytest.raises(MisconfigurationException, match="but have also passed"):
+    with pytest.raises(MisconfigurationException, match="but have also passed"), pytest.deprecated_call(
+        match=r"accelerator='ddp'\)` has been deprecated"
+    ):
         Trainer(accelerator="ddp", strategy="ddp_spawn")
 
 
@@ -973,7 +987,7 @@ def test_strategy_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_mock
             assert isinstance(trainer.accelerator, CPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
-            assert trainer.training_type_plugin.task_idx == 0
+            assert trainer.training_type_plugin.local_rank == 0
             raise SystemExit()
 
     model = BoringModel()
