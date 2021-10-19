@@ -684,28 +684,6 @@ def test_sanity_metrics_are_reset(tmpdir):
     assert "val_loss" not in trainer.progress_bar_metrics
 
 
-@RunIf(min_gpus=2)
-@pytest.mark.parametrize("log_gpu_memory", ["all", "min_max"])
-def test_log_gpu_memory_without_logging_on_step(tmpdir, log_gpu_memory):
-
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=1,
-        limit_val_batches=0,
-        log_gpu_memory=log_gpu_memory,
-        log_every_n_steps=1,
-        gpus=[1],
-    )
-    trainer.fit(model)
-    if log_gpu_memory == "min_max":
-        assert "min_gpu_mem" in trainer.logged_metrics
-        assert "max_gpu_mem" in trainer.logged_metrics
-    else:
-        assert "gpu_id: 1/memory.used (MB)" in trainer.logged_metrics
-
-
 @RunIf(min_gpus=1)
 def test_move_metrics_to_cpu(tmpdir):
     class TestModel(BoringModel):

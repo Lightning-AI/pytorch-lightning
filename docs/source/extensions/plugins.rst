@@ -131,12 +131,16 @@ Precision Plugins
     :template: classtemplate.rst
 
     PrecisionPlugin
+    MixedPrecisionPlugin
     NativeMixedPrecisionPlugin
     ShardedNativeMixedPrecisionPlugin
     ApexMixedPrecisionPlugin
     DeepSpeedPrecisionPlugin
+    TPUPrecisionPlugin
     TPUHalfPrecisionPlugin
     DoublePrecisionPlugin
+    FullyShardedNativeMixedPrecisionPlugin
+    IPUPrecisionPlugin
 
 
 Cluster Environments

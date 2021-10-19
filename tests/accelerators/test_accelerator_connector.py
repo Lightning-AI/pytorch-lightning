@@ -634,11 +634,6 @@ def test_accelerator_ddp_for_cpu(tmpdir):
     assert isinstance(trainer.training_type_plugin, DDPPlugin)
 
 
-def test_exception_when_strategy_used_with_distributed_backend():
-    with pytest.raises(MisconfigurationException, match="but have also passed"):
-        Trainer(distributed_backend="ddp_cpu", strategy="ddp_spawn")
-
-
 def test_exception_when_strategy_used_with_accelerator():
     with pytest.raises(MisconfigurationException, match="but have also passed"):
         Trainer(accelerator="ddp", strategy="ddp_spawn")
@@ -981,3 +976,13 @@ def test_strategy_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_mock
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
+
+
+def test_unsupported_tpu_choice(monkeypatch):
+    import pytorch_lightning.utilities.imports as imports
+    from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
+
+    monkeypatch.setattr(imports, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(AcceleratorConnector, "has_tpu", True)
+    with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision=64\)` is not implemented"):
+        Trainer(accelerator="tpu", precision=64)
