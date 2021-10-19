@@ -127,7 +127,6 @@ class PrecisionPlugin(CheckpointHooks):
         if gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
             self.clip_grad_by_value(optimizer, clip_val)
         elif gradient_clip_algorithm == GradClipAlgorithmType.NORM:
-            # TODO: there should be a mechanism to set `norm_type`
             self.clip_grad_by_norm(optimizer, clip_val)
 
     def clip_grad_by_value(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:

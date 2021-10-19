@@ -12,13 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Generator, Union
+from typing import Generator
 
 import torch
 
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _TORCH_BFLOAT_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+if _TORCH_BFLOAT_AVAILABLE:
+    from torch import autocast
 
 
 class Bf16PrecisionPlugin(MixedPrecisionPlugin):
@@ -30,12 +33,8 @@ class Bf16PrecisionPlugin(MixedPrecisionPlugin):
             raise MisconfigurationException("To use `precision='bf16' you must install torch greater or equal to 1.10.")
         self.use_cpu = use_cpu
 
-    def autocast_context_manager(self) -> Union[torch.cuda.amp.autocast, "torch.cpu.amp.autocast"]:
-        if self.use_cpu:
-            return torch.cpu.amp.autocast(
-                dtype=torch.bfloat16
-            )  # Only reached in pytorch==1.10 where this is ok. skipcq
-        return torch.cuda.amp.autocast(dtype=torch.bfloat16)  # Only reached in pytorch==1.10 where this is ok. skipcq
+    def autocast_context_manager(self) -> autocast:
+        return autocast("cpu" if self.use_cpu else "cuda", dtype=torch.bfloat16)
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
