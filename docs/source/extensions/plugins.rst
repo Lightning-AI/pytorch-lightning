@@ -137,7 +137,7 @@ Precision Plugins
     ApexMixedPrecisionPlugin
     DeepSpeedPrecisionPlugin
     TPUPrecisionPlugin
-    TPUHalfPrecisionPlugin
+    TPUBf16PrecisionPlugin
     DoublePrecisionPlugin
     FullyShardedNativeMixedPrecisionPlugin
     IPUPrecisionPlugin
