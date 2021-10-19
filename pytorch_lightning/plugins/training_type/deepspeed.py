@@ -406,8 +406,7 @@ class DeepSpeedPlugin(DDPPlugin):
     ):
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 
-        This calls
-        :func:`deepspeed.initialize` internally.
+        This calls :func:`deepspeed.initialize` internally.
         """
         model_parameters = filter(lambda p: p.requires_grad, model.parameters())
         deepspeed_engine, deepspeed_optimizer, _, _ = deepspeed.initialize(
