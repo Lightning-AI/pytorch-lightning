@@ -15,6 +15,7 @@ import io
 import os
 import re
 import time
+from multiprocessing.queues import SimpleQueue
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
@@ -149,8 +150,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def set_world_ranks(self, process_idx: int = 0) -> None:
         pass
 
-    def new_process(self, process_idx: int, trainer, mp_queue) -> None:
-        self._worker_setup(process_idx)
+    def new_process(self, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
         self.mp_queue = mp_queue
 
         if self.tpu_global_core_rank != 0 and trainer.progress_bar_callback is not None:
@@ -262,7 +262,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         }
 
     def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> None:
-        xmp.spawn(self._wrapped_function, args=(function, args, kwargs), nprocs=self.num_processes)
+        xmp.spawn(self._wrapped_function, args=(function, args, kwargs), **self.get_mp_spawn_kwargs())
 
     def _wrapped_function(self, process_idx: int, function: Callable, args: Any, kwargs: Any) -> None:
         self._worker_setup(process_idx)
@@ -287,9 +287,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def start_predicting(self, trainer: "pl.Trainer") -> None:
         return super().start_training(trainer)
-
-    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> None:
-        xmp.spawn(self._wrapped_function, args=(function, args, kwargs), **self.get_mp_spawn_kwargs())
 
     def training_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
