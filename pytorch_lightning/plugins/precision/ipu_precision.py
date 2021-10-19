@@ -27,8 +27,10 @@ warning_cache = WarningCache()
 
 
 class IPUPrecisionPlugin(PrecisionPlugin):
-    def __init__(self, precision: int) -> None:
+    def __init__(self, precision: Union[int, str]) -> None:
         super().__init__()
+        if precision in ("bf16", 64):
+            raise MisconfigurationException(f"`Trainer(accelerator='ipu', precision={precision!r})` is not supported.")
         self.precision = precision
 
     def backward(self, model: "pl.LightningModule", *args: Any, **kwargs: Any) -> None:
@@ -46,11 +48,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
         model: Optional[Module] = None,
     ) -> None:
         """Clips the gradients."""
-        if clip_val is None:
-            return
-
-        clip_val = float(clip_val)
-        if clip_val <= 0:
+        if clip_val is None or float(clip_val) <= 0:
             return
 
         raise MisconfigurationException("IPUs currently do not support clipping gradients.")
