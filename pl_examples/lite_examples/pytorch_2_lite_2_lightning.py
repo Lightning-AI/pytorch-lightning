@@ -131,7 +131,14 @@ class LiteTrainer(LightningLite):
         # You would need to call `self.setup` to wrap `model` and `optimizer`. If you     #
         # have multiple models (c.f GAN), call `setup` for each one of them and their     #
         # associated optimizers.                                                          #
-        model, optimizer = self.setup(model=model, optimizers=optimizer)  #
+        model, optimizer = self.setup(model=model, optimizers=optimizer)
+        ###################################################################################
+
+        ###################################################################################
+        # You would need to call `self.setup_dataloaders` to prepare the dataloaders      #
+        # in case you are running in a distributed setting.                               #
+        train_dataloader = self.setup_dataloaders(train_dataloader)
+        val_dataloader = self.setup_dataloaders(val_dataloader)
         ###################################################################################
 
         for epoch in range(num_epochs):
