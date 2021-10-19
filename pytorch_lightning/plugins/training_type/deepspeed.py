@@ -379,7 +379,7 @@ class DeepSpeedPlugin(DDPPlugin):
         self.init_deepspeed()
         self.barrier()
 
-    def setup_models_and_optimizers(
+    def _setup_models_and_optimizers(
         self, models: List[Module], optimizers: List[Optimizer]
     ) -> Tuple[List[Module], List[Optimizer]]:
         if not (len(models) == len(optimizers) == 1):
