@@ -9,13 +9,17 @@ from pytorch_lightning.plugins.plugins_registry import (  # noqa: F401
     TrainingTypePluginsRegistry,
 )
 from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin
+from pytorch_lightning.plugins.precision.bf16 import Bf16PrecisionPlugin
 from pytorch_lightning.plugins.precision.deepspeed_precision import DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.precision.double import DoublePrecisionPlugin
-from pytorch_lightning.plugins.precision.fully_sharded_native_amp import FullyShardedNativeMixedPrecisionPlugin
+from pytorch_lightning.plugins.precision.fully_sharded import (
+    FullyShardedBf16PrecisionPlugin,
+    FullyShardedNativeMixedPrecisionPlugin,
+)
 from pytorch_lightning.plugins.precision.ipu_precision import IPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
-from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
+from pytorch_lightning.plugins.precision.sharded import ShardedBf16PrecisionPlugin, ShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.tpu import TPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.tpu_bf16 import TPUBf16PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
@@ -53,6 +57,9 @@ __all__ = [
     "IPUPlugin",
     "IPUPrecisionPlugin",
     "NativeMixedPrecisionPlugin",
+    "Bf16PrecisionPlugin",
+    "ShardedBf16PrecisionPlugin",
+    "FullyShardedBf16PrecisionPlugin",
     "PrecisionPlugin",
     "ShardedNativeMixedPrecisionPlugin",
     "FullyShardedNativeMixedPrecisionPlugin",

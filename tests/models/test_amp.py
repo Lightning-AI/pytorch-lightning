@@ -22,7 +22,7 @@ from torch.utils.data import DataLoader
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins.environments import SLURMEnvironment
-from pytorch_lightning.utilities import _TORCH_BFLOAT_AVAILABLE, _TORCH_CPU_AMP_AVAILABLE
+from pytorch_lightning.utilities import _TORCH_BFLOAT_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -63,13 +63,13 @@ class AMPTestModel(BoringModel):
         return output
 
     def _assert_autocast_enabled(self):
-        if self.trainer.precision_plugin.use_cpu:
+        if self.trainer.accelerator_connector.use_cpu:
             assert torch.is_autocast_cpu_enabled()
         else:
             assert torch.is_autocast_enabled()
 
 
-@pytest.mark.skipif(not _TORCH_CPU_AMP_AVAILABLE, reason="CPU AMP not available")
+@pytest.mark.skipif(not _TORCH_BFLOAT_AVAILABLE, reason="Needs bfloat16 support")
 @pytest.mark.parametrize(
     "strategy",
     [
@@ -78,13 +78,7 @@ class AMPTestModel(BoringModel):
         "ddp_spawn",
     ],
 )
-@pytest.mark.parametrize(
-    "precision",
-    [
-        pytest.param(16, marks=pytest.mark.skip("CPU precision 16 is not supported in PyTorch yet.")),  # TODO
-        "bf16",
-    ],
-)
+@pytest.mark.parametrize("precision", [16, "bf16"])
 @pytest.mark.parametrize("num_processes", [1, 2])
 def test_amp_cpus(tmpdir, strategy, precision, num_processes):
     """Make sure combinations of AMP and training types work if supported."""

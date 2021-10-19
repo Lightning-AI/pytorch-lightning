@@ -16,14 +16,23 @@ from typing import Optional, Union
 from torch.nn import Module
 from torch.optim import Optimizer
 
-from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
-from pytorch_lightning.utilities import GradClipAlgorithmType
+from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, GradClipAlgorithmType
+
+if _FAIRSCALE_AVAILABLE:
+    from fairscale.optim import OSS
 
 
-class FullyShardedNativeMixedPrecisionPlugin(ShardedNativeMixedPrecisionPlugin):
-    """Mixed Precision for Full Sharded Training."""
+class ShardedMixin:
+    """Mixing to implement limitations of Sharded across precision plugins."""
 
-    precision = "mixed"
+    def clip_grad_by_norm(
+        self, optimizer: "OSS", clip_val: Union[int, float], norm_type: float = 2.0, eps: float = 1e-6
+    ) -> None:
+        optimizer.clip_grad_norm(clip_val, norm_type=norm_type)
+
+
+class FullyShardedMixin(ShardedMixin):
+    """Mixing to implement limitations of Fully Sharded across precision plugins."""
 
     def clip_gradients(
         self,

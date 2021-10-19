@@ -199,7 +199,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - `torch.bfloat16` support:
   * Added bfloat16 support for Lightning Trainer ([#9049](https://github.com/PyTorchLightning/pytorch-lightning/pull/9049))
   * Rename `TPUHalfPrecisionPlugin` to `TPUBf16PrecisionPlugin` ([#10026](https://github.com/PyTorchLightning/pytorch-lightning/pull/10026))
-
+  * Added `Bf16PrecisionPlugin` ([#TODO](https://github.com/PyTorchLightning/pytorch-lightning/pull/TODO))
+  * Added `ShardedBf16PrecisionPlugin` ([#TODO](https://github.com/PyTorchLightning/pytorch-lightning/pull/TODO))
+  * Added `FullyShardedBf16PrecisionPlugin` ([#TODO](https://github.com/PyTorchLightning/pytorch-lightning/pull/TODO))
 
 
 - Added `kfold` example for loop customization ([#9965](https://github.com/PyTorchLightning/pytorch-lightning/pull/9965))

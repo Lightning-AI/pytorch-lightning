@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 import os
 from typing import List, Optional, Sequence, Union
 from weakref import proxy
@@ -26,6 +25,7 @@ from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
+    Bf16PrecisionPlugin,
     CheckpointIO,
     DataParallelPlugin,
     DDP2Plugin,
@@ -37,12 +37,14 @@ from pytorch_lightning.plugins import (
     DeepSpeedPlugin,
     DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
+    FullyShardedBf16PrecisionPlugin,
     FullyShardedNativeMixedPrecisionPlugin,
     HorovodPlugin,
     IPUPlugin,
     IPUPrecisionPlugin,
     NativeMixedPrecisionPlugin,
     PrecisionPlugin,
+    ShardedBf16PrecisionPlugin,
     ShardedNativeMixedPrecisionPlugin,
     SingleDevicePlugin,
     SingleTPUPlugin,
@@ -72,7 +74,6 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import (
-    _APEX_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _IPU_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_7,
@@ -82,8 +83,6 @@ from pytorch_lightning.utilities.imports import (
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
-
-log = logging.getLogger(__name__)
 
 
 class AcceleratorConnector:
@@ -624,31 +623,40 @@ class AcceleratorConnector:
             return PrecisionPlugin()
         if self.precision == 64:
             return DoublePrecisionPlugin()
-        if self.precision in (16, "bf16"):
-            if self.amp_type == AMPType.NATIVE:
-                log.info(f"Using native {self.precision} bit Automatic Mixed Precision")
-                if self._is_sharded_training_type:
-                    return ShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
-                if self._is_fully_sharded_training_type:
-                    return FullyShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
 
-                return NativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+        # these plugins are only supported on GPU
+        if self.precision == 16 and self.use_gpu:
+            rank_zero_info(f"Using 16bit {self.amp_type.value} Mixed Precision (AMP)")
+
+            if self.amp_type == AMPType.NATIVE:
+                if self._is_sharded_training_type:
+                    return ShardedNativeMixedPrecisionPlugin()
+                if self._is_fully_sharded_training_type:
+                    return FullyShardedNativeMixedPrecisionPlugin()
+                return NativeMixedPrecisionPlugin()
 
             if self.amp_type == AMPType.APEX:
-                if not _APEX_AVAILABLE:
-                    raise MisconfigurationException(
-                        "You have asked for Apex AMP but you have not installed it yet."
-                        " Install apex first using this guide: https://github.com/NVIDIA/apex#linux"
-                    )
                 if self._is_sharded_training_type or self._is_fully_sharded_training_type:
                     raise MisconfigurationException(
-                        "Sharded Plugin is not supported with Apex AMP, please using native AMP for 16-bit precision."
+                        "Sharded plugins are not supported with apex, please switch to `amp_backend='native'`."
                     )
-                log.info("Using APEX 16bit precision.")
-
                 self.amp_level = self.amp_level or "O2"
-
                 return ApexMixedPrecisionPlugin(self.amp_level)
+
+        if self.precision in (16, "bf16"):
+            if self.precision == 16:
+                assert self.use_cpu
+                rank_zero_warn(
+                    f"You passed `Trainer(accelerator='cpu', precision=16)` but {self.amp_type.value} AMP"
+                    f" is not supported on CPU. Using `precision='bf16` instead."
+                )
+            rank_zero_info("Using bfloat16 precision")
+
+            if self._is_sharded_training_type:
+                return ShardedBf16PrecisionPlugin(use_cpu=self.use_cpu)
+            if self._is_fully_sharded_training_type:
+                return FullyShardedBf16PrecisionPlugin(use_cpu=self.use_cpu)
+            return Bf16PrecisionPlugin(use_cpu=self.use_cpu)
 
     def select_training_type_plugin(self) -> TrainingTypePlugin:
         if (
