@@ -382,6 +382,14 @@ class DeepSpeedPlugin(DDPPlugin):
     def _setup_models_and_optimizers(
         self, models: List[Module], optimizers: List[Optimizer]
     ) -> Tuple[List[Module], List[Optimizer]]:
+        """Setup multiple models and multiple optimizers together.
+
+        Currently only one model paired with a single optimizer is supported.
+
+        Return:
+            A list with one model wrapped into a :class:`deepspeed.DeepSpeedEngine` and list with a single
+            deepspeed optimizer.
+        """
         if not (len(models) == len(optimizers) == 1):
             raise ValueError(
                 f"Currently only one model and one optimizer is supported with DeepSpeed."
@@ -396,6 +404,8 @@ class DeepSpeedPlugin(DDPPlugin):
     def _setup_model_and_optimizer(
         self, model: Module, optimizer: Optimizer, lr_scheduler: Optional[_LRScheduler] = None
     ):
+        """Initialize one model and one optimizer with an optional learning rate scheduler. This calls
+        :func:`deepspeed.initialize` internally."""
         model_parameters = filter(lambda p: p.requires_grad, model.parameters())
         deepspeed_engine, deepspeed_optimizer, _, _ = deepspeed.initialize(
             args=argparse.Namespace(device_rank=self.root_device.index),
