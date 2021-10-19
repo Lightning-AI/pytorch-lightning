@@ -51,7 +51,6 @@ class IPUPrecisionPlugin(PrecisionPlugin):
         """IPUs handle the optimizer step internally."""
         super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
         if isinstance(optimizer, LBFGS):
-            # IPU does not support closures
             raise MisconfigurationException(
                 f"IPUs and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )

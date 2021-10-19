@@ -57,7 +57,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         """Hook to do something before each optimizer step."""
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
-                f"apex AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
+                f"DeepSpeed and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
         result = lambda_closure()  # DeepSpeed does not support closures
         super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
