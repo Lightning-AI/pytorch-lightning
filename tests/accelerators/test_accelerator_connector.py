@@ -991,3 +991,6 @@ def test_unsupported_tpu_choice(monkeypatch):
         Trainer(accelerator="tpu", precision=16)
     with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but apex AMP is not supported"):
         Trainer(accelerator="tpu", precision=16, amp_backend="apex")
+
+    with pytest.raises(MisconfigurationException, match=r"O3'` but it's only supported with `amp_backend='apex"):
+        Trainer(accelerator="tpu", precision=16, amp_level="O3")
