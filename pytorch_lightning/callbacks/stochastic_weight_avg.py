@@ -21,10 +21,13 @@ from typing import Any, Callable, Dict, IO, List, Optional, Type, Union
 import torch
 from torch import nn
 from torch.optim.swa_utils import SWALR
+from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -251,14 +254,25 @@ class StochasticWeightAveraging(Callback):
     def _update_batch_norm_moments(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", store_moments: bool = True
     ):
-        """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L140-L166."""
-        prev_momenta = {}
         self._batch_norm_moments = {}
 
-        train_data_fetcher = trainer.data_connector.train_data_fetcher
-        if train_data_fetcher is None:
+        train_dataloader = trainer.train_dataloader
+        if train_dataloader is None:
             # Training data not yet connected, could be in a validation sanity check
             return
+
+        self._update_module_batch_norm_moments(
+            train_dataloader, pl_module, self._batch_norm_moments if store_moments else None
+        )
+
+    @staticmethod
+    def _update_module_batch_norm_moments(
+        data_loader: Union[DataLoader, CombinedLoader],
+        pl_module: "pl.LightningModule",
+        moment_cache: Optional[Dict[nn.Module, Any]] = None,
+    ):
+        """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L140-L166."""
+        prev_momenta = {}
 
         was_training = pl_module.training
         pl_module.train()
@@ -267,8 +281,8 @@ class StochasticWeightAveraging(Callback):
             if not isinstance(module, nn.modules.batchnorm._BatchNorm):
                 continue
             prev_momenta[module] = module.momentum
-            if store_moments:
-                self._batch_norm_moments[module] = (module.running_mean, module.running_var)
+            if moment_cache is not None:
+                moment_cache[module] = (module.running_mean, module.running_var)
             module.running_mean = torch.zeros_like(
                 module.running_mean, device=pl_module.device, dtype=module.running_mean.dtype
             )
@@ -279,7 +293,7 @@ class StochasticWeightAveraging(Callback):
             module.num_batches_tracked *= 0
 
         # Recompute mean and variance for all batch norm layers by doing a full pass over the training data
-        for batch, _ in train_data_fetcher:
+        for batch in data_loader:
             batch = batch.to(pl_module.device)
             pl_module(batch)
 
@@ -345,17 +359,23 @@ class StochasticWeightAveraging(Callback):
         pl_module: "pl.LightningModule",
         checkpoint_path: Union[str, IO],
         map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
+        datamodule: Optional[LightningDataModule] = None,
     ) -> bool:
         r"""
         Set model weights to the SWA averaged weights saved in a checkpoint.
 
         Arguments:
             pl_module: The module to set weights on
+
             checkpoint_path: Path to checkpoint. This can also be a URL, or file-like object
-            map_location:
-                If your checkpoint saved a GPU model and you now load on CPUs
+
+            map_location: If your checkpoint saved a GPU model and you now load on CPUs
                 or a different number of GPUs, use this to map to the new setup.
                 The behaviour is the same as in :func:`torch.load`.
+
+            datamodule: If the module uses batch normalization and does not implement the train_dataloder method,
+                a data module must be provided in order to allow recomputing the batch normalization parameters after
+                loading the SWA weights.
 
         Return:
             A `bool` indicating whether averaged weights were loaded. If `False`, this means the checkpoint is
@@ -383,6 +403,15 @@ class StochasticWeightAveraging(Callback):
             device = p_model.device
             p_swa_ = p_swa.detach().to(device)
             p_model.detach().copy_(p_swa_)
+
+        if cls.pl_module_contains_batch_norm(pl_module):
+            if datamodule is not None:
+                train_dataloaders = datamodule.train_dataloader()
+            else:
+                train_dataloaders = pl_module.train_dataloader()
+            train_dataloaders = CombinedLoader(train_dataloaders, mode="max_size_cycle")
+            cls._update_module_batch_norm_moments(train_dataloaders, pl_module)
+
         return True
 
     def _get_average_model_parameters(self, trainer: "pl.Trainer") -> Any:

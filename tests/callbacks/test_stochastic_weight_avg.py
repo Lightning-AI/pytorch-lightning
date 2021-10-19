@@ -25,6 +25,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import ModelCheckpoint, StochasticWeightAveraging
+from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -369,7 +370,8 @@ def test_swa_resume_training_from_checkpoint(tmpdir):
 
 @pytest.mark.parametrize("batchnorm", (True, False))
 @pytest.mark.parametrize("within_swa_epochs", (True, False))
-def test_swa_load_best_checkpoint(tmpdir, batchnorm: bool, within_swa_epochs: bool):
+@pytest.mark.parametrize("use_datamodule", (True, False))
+def test_swa_load_best_checkpoint(tmpdir, batchnorm: bool, within_swa_epochs: bool, use_datamodule: bool):
     model = SwaTestModel(batchnorm=batchnorm)
     if within_swa_epochs:
         # Start at epoch 1 so we can guarantee the best checkpoint should be saved with SWA weights
@@ -397,8 +399,20 @@ def test_swa_load_best_checkpoint(tmpdir, batchnorm: bool, within_swa_epochs: bo
     with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward):
         trainer.fit(model)
 
+    if use_datamodule:
+
+        class TestDataModule(LightningDataModule):
+            def train_dataloader(self):
+                return model.train_dataloader()
+
+        datamodule = TestDataModule()
+    else:
+        datamodule = None
+
     checkpoint_path = checkpoint_callback.best_model_path
     new_model = SwaTestModel.load_from_checkpoint(checkpoint_path)
-    parameters_loaded = SwaTestCallback.restore_average_parameters_from_checkpoint(new_model, checkpoint_path)
+    parameters_loaded = SwaTestCallback.restore_average_parameters_from_checkpoint(
+        new_model, checkpoint_path, datamodule=datamodule
+    )
 
     assert parameters_loaded == within_swa_epochs
