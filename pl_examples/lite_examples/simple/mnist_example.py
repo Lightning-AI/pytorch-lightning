@@ -62,13 +62,13 @@ class MNIST(LightningLite):
 
         model = Net()
         optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
 
         train_loader, test_loader = self.setup_dataloaders(train_loader, test_loader)
         assert isinstance(train_loader.sampler, DistributedSampler)
         assert isinstance(test_loader.sampler, DistributedSampler)
         model, optimizer = self.setup(model, optimizer)
 
-        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
         for epoch in range(1, args.epochs + 1):
             self.train(args, model, train_loader, optimizer, epoch)
             self.test(model, test_loader)
