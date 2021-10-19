@@ -178,8 +178,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         """Spawn processes that run the given function.
 
         Args:
-            function: The function to spawn processes from. It must at least accept one positional argument for the
-                process index.
+            function: The function to spawn processes from.
             *args: Optional positional arguments that will be passed to the function in addition to the process index.
                 These arguments must be pickleable.
             **kwargs: Optional named arguments that will be passed to the function in addition to the process index.

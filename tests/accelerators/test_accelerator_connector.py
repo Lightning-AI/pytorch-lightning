@@ -634,11 +634,6 @@ def test_accelerator_ddp_for_cpu(tmpdir):
     assert isinstance(trainer.training_type_plugin, DDPPlugin)
 
 
-def test_exception_when_strategy_used_with_distributed_backend():
-    with pytest.raises(MisconfigurationException, match="but have also passed"):
-        Trainer(distributed_backend="ddp_cpu", strategy="ddp_spawn")
-
-
 def test_exception_when_strategy_used_with_accelerator():
     with pytest.raises(MisconfigurationException, match="but have also passed"):
         Trainer(accelerator="ddp", strategy="ddp_spawn")

@@ -216,7 +216,7 @@ accelerator
 
 |
 
-The accelerator backend to use (previously known as distributed_backend).
+The accelerator backend to use:
 
 - (``'dp'``) is DataParallel (split batch among GPUs of same machine)
 - (``'ddp'``) is DistributedDataParallel (each gpu on each node trains, and syncs grads)
@@ -552,10 +552,6 @@ will need to be set up to use remote filepaths.
 
     # default used by the Trainer
     trainer = Trainer(default_root_dir=os.getcwd())
-
-distributed_backend
-^^^^^^^^^^^^^^^^^^^
-Deprecated: This has been renamed ``accelerator``.
 
 enable_checkpointing
 ^^^^^^^^^^^^^^^^^^^^
