@@ -436,17 +436,22 @@ In the previous examples :class:`~pytorch_lightning.utilities.cli.LightningCLI` 
 datamodule class. However, there are many cases in which the objective is to easily be able to run many experiments for
 multiple models and datasets.
 
-The model argument can be left unset if a model has been registered first, this is particularly interesting for library
-authors who want to provide their users a range of models to choose from:
+The model and datamodule arguments can be left unset if a class has been registered first,
+this is particularly interesting for library authors who want to provide their users a range of models to choose from:
 
 .. code-block:: python
 
     import flash.image
-    from pytorch_lightning.utilities.cli import MODEL_REGISTRY
+    from pytorch_lightning.utilities.cli import MODEL_REGISTRY, DATAMODULE_REGISTRY
 
 
     @MODEL_REGISTRY
     class MyModel(LightningModule):
+        ...
+
+
+    @DATAMODULE_REGISTRY
+    class MyData(LightningDataModule):
         ...
 
 
@@ -459,7 +464,7 @@ authors who want to provide their users a range of models to choose from:
 
 .. code-block:: bash
 
-    $ python trainer.py fit --model=MyModel --model.feat_dim=64
+    $ python trainer.py fit --model=MyModel --model.feat_dim=64 --data=MyData
 
 .. note::
 
