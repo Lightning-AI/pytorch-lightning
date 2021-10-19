@@ -125,7 +125,7 @@ def precision_context(precision, accelerator) -> Generator[None, None, None]:
 )
 def test_boring_lite_model_single_device(precision, strategy, devices, accelerator, tmpdir):
     seed_everything(42)
-    train_dataloader = DataLoader(RandomDataset(32, 64))
+    train_dataloader = DataLoader(RandomDataset(32, 8))
     model = BoringModel()
     num_epochs = 1
     state_dict = deepcopy(model.state_dict())
@@ -177,7 +177,7 @@ def run(rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdi
 )
 def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, tmpdir):
     seed_everything(42)
-    train_dataloader = DataLoader(RandomDataset(32, 64))
+    train_dataloader = DataLoader(RandomDataset(32, 8))
     model = BoringModel()
     num_epochs = 1
     state_dict = deepcopy(model.state_dict())
