@@ -77,7 +77,7 @@ can then be passed into the Trainer directly or via a (custom) accelerator:
 .. code-block:: python
 
     # custom plugins
-    trainer = Trainer(plugins=[CustomDDPPlugin(), CustomPrecisionPlugin()])
+    trainer = Trainer(strategy=CustomDDPPlugin(), plugins=[CustomPrecisionPlugin()])
 
     # fully custom accelerator and plugins
     accelerator = MyAccelerator(
