@@ -204,6 +204,9 @@ def test_precision_selection_raises(monkeypatch):
     with pytest.raises(MisconfigurationException, match="must install torch greater or equal to 1.10"):
         Trainer(precision="bf16")
 
+    with pytest.raises(MisconfigurationException, match=r"amp_type='apex', precision='bf16'\)` but it's not supported"):
+        Trainer(amp_backend="apex", precision="bf16")
+
     with mock.patch("torch.cuda.device_count", return_value=1), pytest.raises(
         MisconfigurationException, match="Sharded plugins are not supported with apex"
     ):

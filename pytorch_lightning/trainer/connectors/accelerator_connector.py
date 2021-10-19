@@ -624,8 +624,22 @@ class AcceleratorConnector:
         if self.precision == 64:
             return DoublePrecisionPlugin()
 
-        # these plugins are only supported on GPU
-        if self.precision == 16 and self.use_gpu:
+        # maybe convert the precision value
+        if self.precision == 16 and self.use_cpu:
+            if self.amp_type == AMPType.APEX:
+                # apex was explicitly passed, not a good idea to silently switch to native AMP
+                raise MisconfigurationException(
+                    "You passed `Trainer(accelerator='cpu', precision=16, amp_type='apex')`"
+                    " but apex AMP not supported on CPU."
+                )
+            # this automatic switch is to ease transition between accelerator environments
+            rank_zero_warn(
+                "You passed `Trainer(accelerator='cpu', precision=16)` but native AMP is not supported on CPU."
+                " Using `precision='bf16'` instead."
+            )
+            self.precision = "bf16"
+
+        if self.precision == 16:
             rank_zero_info(f"Using 16bit {self.amp_type.value} Native Mixed Precision (AMP)")
 
             if self.amp_type == AMPType.NATIVE:
@@ -644,28 +658,19 @@ class AcceleratorConnector:
                 self.amp_level = self.amp_level or "O2"
                 return ApexMixedPrecisionPlugin(self.amp_level)
 
-        if self.precision in (16, "bf16"):
-            if self.precision == 16:
-                assert self.use_cpu
-                if self.amp_type == AMPType.APEX:
-                    # apex was explicitly passed, not a good idea to silently switch to native AMP
-                    raise MisconfigurationException(
-                        "You passed `Trainer(accelerator='cpu', precision=16, amp_type='apex')`"
-                        " but apex AMP not supported on CPU."
-                    )
-                # this automatic switch is to ease transition between accelerator environments
-                rank_zero_warn(
-                    "You passed `Trainer(accelerator='cpu', precision=16)` but native AMP is not supported on CPU."
-                    " Using `precision='bf16` instead."
+        if self.precision == "bf16":
+            if self.amp_type != AMPType.NATIVE:
+                raise MisconfigurationException(
+                    "You passed `Trainer(amp_type='apex', precision='bf16')` but it's not supported."
+                    " Try using `amp_type='native'` instead."
                 )
-                self.precision = "bf16"
-            rank_zero_info("Using bfloat16 precision")
-
             if self._is_sharded_training_type:
                 return ShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
             if self._is_fully_sharded_training_type:
                 return FullyShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
             return NativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+
+        raise RuntimeError("No precision set")
 
     def select_training_type_plugin(self) -> TrainingTypePlugin:
         if (
