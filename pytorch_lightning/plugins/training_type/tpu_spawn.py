@@ -15,12 +15,12 @@ import io
 import os
 import re
 import time
-from multiprocessing.queues import SimpleQueue
-from typing import Any, Dict, List, Optional, Union, Callable
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 import torch.multiprocessing as mp
 from torch.nn import Module
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
@@ -149,16 +149,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def set_world_ranks(self, process_idx: int = 0) -> None:
         pass
 
-    def new_process(self, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
+    def new_process(self, process_idx: int, trainer, mp_queue) -> None:
+        self._worker_setup(process_idx)
         self.mp_queue = mp_queue
-
-        reset_seed()
-
-        self.tpu_local_core_rank = xm.get_local_ordinal()
-        self.tpu_global_core_rank = xm.get_ordinal()
-
-        # set warning rank
-        rank_zero_only.rank = self.global_rank
 
         if self.tpu_global_core_rank != 0 and trainer.progress_bar_callback is not None:
             trainer.progress_bar_callback.disable()
@@ -267,6 +260,19 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             "nprocs": len(self.parallel_devices),
             "start_method": self.start_method,
         }
+
+    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> None:
+        xmp.spawn(self._wrapped_function, args=(function, args, kwargs), nprocs=self.num_processes)
+
+    def _wrapped_function(self, process_idx: int, function: Callable, args: Any, kwargs: Any) -> None:
+        self._worker_setup(process_idx)
+        function(*args, **kwargs)
+
+    def _worker_setup(self, process_idx: int):
+        reset_seed()
+        self.tpu_local_core_rank = xm.get_local_ordinal()
+        self.tpu_global_core_rank = xm.get_ordinal()
+        rank_zero_only.rank = self.global_rank
 
     def start_training(self, trainer: "pl.Trainer") -> None:
         # todo: precision pluging is call in accelerator setup and should be moved
