@@ -91,14 +91,14 @@ def __verify_train_loop_configuration(trainer: "pl.Trainer", model: "pl.Lightnin
     has_on_train_dataloader = is_overridden("on_train_dataloader", model)
     if has_on_train_dataloader:
         rank_zero_deprecation(
-            "Method `on_train_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+            "Method `on_train_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
             " Please use `train_dataloader()` directly."
         )
 
     has_on_val_dataloader = is_overridden("on_val_dataloader", model)
     if has_on_val_dataloader:
         rank_zero_deprecation(
-            "Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+            "Method `on_val_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
             " Please use `val_dataloader()` directly."
         )
 
