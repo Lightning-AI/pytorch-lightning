@@ -33,6 +33,7 @@ from pytorch_lightning.plugins import (
     DDPSpawnPlugin,
     DeepSpeedPlugin,
     PLUGIN_INPUT,
+    TPUSpawnPlugin,
     TrainingTypePlugin,
 )
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
@@ -236,7 +237,11 @@ class LightningLite(ABC):
         sampler = self._get_distributed_sampler(dataloader, **self._strategy.distributed_sampler_kwargs)
         kwargs = TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler)
         device = self.device if move_to_device else None
-        return _LiteDataLoader(device=device, **kwargs)
+        if isinstance(self._strategy, TPUSpawnPlugin):
+            dataloader = DataLoader(**kwargs)
+        else:
+            dataloader = _LiteDataLoader(device=device, **kwargs)
+        return self._strategy.process_dataloader(dataloader)
 
     def backward(self, tensor: Tensor, *args: Any, **kwargs: Any) -> None:
         """Replaces ``loss.backward()`` in your training loop. Handles precision and automatically for you.
