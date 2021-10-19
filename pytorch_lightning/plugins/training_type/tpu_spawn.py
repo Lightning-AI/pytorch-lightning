@@ -15,7 +15,8 @@ import io
 import os
 import re
 import time
-from typing import Any, Dict, List, Optional, Union
+from multiprocessing.queues import SimpleQueue
+from typing import Any, Dict, List, Optional, Union, Callable
 
 import torch
 import torch.multiprocessing as mp
@@ -148,7 +149,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def set_world_ranks(self, process_idx: int = 0) -> None:
         pass
 
-    def new_process(self, process_idx: int, trainer, mp_queue) -> None:
+    def new_process(self, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
         self.mp_queue = mp_queue
 
         reset_seed()
@@ -261,9 +262,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if trainer.logger is not None:
             trainer.logger.finalize("success")
 
-    def get_mp_spawn_kwargs(self, trainer: "pl.Trainer") -> dict:
+    def get_mp_spawn_kwargs(self, trainer: Optional["pl.Trainer"] = None) -> Dict[str, Any]:
         return {
-            "args": (trainer, self.mp_queue),
             "nprocs": len(self.parallel_devices),
             "start_method": self.start_method,
         }
@@ -273,14 +273,17 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if "XLA_USE_BF16" in os.environ:
             del os.environ["XLA_USE_BF16"]
         self._close_logger(trainer)
-        xmp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
+        return super().start_training(trainer)
 
     def start_evaluating(self, trainer: "pl.Trainer") -> None:
         self._close_logger(trainer)
-        xmp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
+        return super().start_training(trainer)
 
     def start_predicting(self, trainer: "pl.Trainer") -> None:
-        xmp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
+        return super().start_training(trainer)
+
+    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> None:
+        xmp.spawn(self._wrapped_function, args=(function, args, kwargs), **self.get_mp_spawn_kwargs())
 
     def training_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
