@@ -109,7 +109,7 @@ class LearningRateMonitor(Callback):
 
         if self.log_momentum:
 
-            def _check_no_key(key: str):
+            def _check_no_key(key: str) -> bool:
                 if trainer.lr_schedulers:
                     return any(key not in sch["scheduler"].optimizer.defaults for sch in trainer.lr_schedulers)
 
