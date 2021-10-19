@@ -554,7 +554,7 @@ class Trainer(
 
         self.should_stop = False
         self.state = TrainerState()
-        self.num_training_batches = 0
+        self.num_training_batches = float("inf")
         self.train_dataloader = None
 
         if num_sanity_val_steps == -1:
@@ -1217,12 +1217,6 @@ class Trainer(
         self.model.train()
         torch.set_grad_enabled(True)
 
-        # reload data when needed
-        model = self.lightning_module
-
-        if isinstance(self.fit_loop, FitLoop):
-            self.reset_train_val_dataloaders(model)
-
         self.fit_loop.trainer = self
         with torch.autograd.set_detect_anomaly(self._detect_anomaly):
             self.fit_loop.run()
@@ -1528,7 +1522,7 @@ class Trainer(
 
     @property
     def node_rank(self) -> int:
-        # some training types define a local rank
+        # some training types define a node rank
         return getattr(self.training_type_plugin, "node_rank", 0)
 
     @property

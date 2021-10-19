@@ -17,11 +17,11 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.plugins.precision import TPUPrecisionPlugin
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.utilities import _XLA_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -33,11 +33,19 @@ class TPUAccelerator(Accelerator):
     def setup(self, trainer: "pl.Trainer") -> None:
         """
         Raises:
-            MisconfigurationException:
-                If TPUs are not using a single TPU core or TPU spawn training.
+            ValueError:
+                If the precision or training type plugin are unsupported.
         """
+        if not isinstance(self.precision_plugin, TPUPrecisionPlugin):
+            # this configuration should have been avoided in the accelerator connector
+            raise ValueError(
+                f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`, found: {self.precision_plugin}."
+            )
         if not isinstance(self.training_type_plugin, (SingleTPUPlugin, TPUSpawnPlugin)):
-            raise MisconfigurationException("TPUs only support a single TPU core or TPU spawn training.")
+            raise ValueError(
+                "The `TPUAccelerator` can only be used with a `SingleTPUPlugin` or `TPUSpawnPlugin,"
+                f" found {self.training_type_plugin}."
+            )
         return super().setup(trainer)
 
     def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
