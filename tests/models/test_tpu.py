@@ -442,7 +442,7 @@ def test_tpu_debug_mode(tmpdir):
         tpu_cores=8,
         limit_train_batches=0.4,
         limit_val_batches=0.4,
-        plugins=TPUSpawnPlugin(debug=True),
+        strategy=TPUSpawnPlugin(debug=True),
     )
 
     model = DebugModel()

@@ -578,7 +578,7 @@ class DeepSpeedPlugin(DDPPlugin):
             rank_zero_warn(
                 "Inferring the batch size for internal deepspeed logging from the `train_dataloader()`. "
                 "If you require skipping this, please pass "
-                "`Trainer(plugins=DeepSpeedPlugin(logging_batch_size_per_gpu=batch_size))`"
+                "`Trainer(strategy=DeepSpeedPlugin(logging_batch_size_per_gpu=batch_size))`"
             )
             batch_size = self._auto_select_batch_size()
             self.config["train_micro_batch_size_per_gpu"] = batch_size
@@ -730,7 +730,7 @@ class DeepSpeedPlugin(DDPPlugin):
         if client_state is None:
             raise MisconfigurationException(
                 "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint "
-                "or a single checkpoint file with `Trainer(plugins=DeepSpeedPlugin(load_full_weights=True))`."
+                "or a single checkpoint file with `Trainer(strategy=DeepSpeedPlugin(load_full_weights=True))`."
             )
         return client_state
 

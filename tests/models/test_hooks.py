@@ -438,14 +438,14 @@ class HookedModel(BoringModel):
 @RunIf(deepspeed=True, min_gpus=1, special=True)
 def test_trainer_model_hook_system_fit_deepspeed_automatic_optimization(tmpdir):
     _run_trainer_model_hook_system_fit(
-        dict(gpus=1, precision=16, plugins="deepspeed"), tmpdir, automatic_optimization=True
+        dict(gpus=1, precision=16, strategy="deepspeed"), tmpdir, automatic_optimization=True
     )
 
 
 @RunIf(deepspeed=True, min_gpus=1, special=True)
 def test_trainer_model_hook_system_fit_deepspeed_manual_optimization(tmpdir):
     _run_trainer_model_hook_system_fit(
-        dict(gpus=1, precision=16, plugins="deepspeed"), tmpdir, automatic_optimization=False
+        dict(gpus=1, precision=16, strategy="deepspeed"), tmpdir, automatic_optimization=False
     )
 
 

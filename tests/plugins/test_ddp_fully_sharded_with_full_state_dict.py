@@ -22,7 +22,7 @@ def test_invalid_on_cpu(tmpdir):
     with pytest.raises(
         MisconfigurationException, match="You selected accelerator to be `ddp_fully_sharded`, but GPU is not available."
     ):
-        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, plugins="fsdp")
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp")
         assert isinstance(trainer.accelerator.training_type_plugin, DDPFullyShardedPlugin)
         trainer.accelerator.setup_environment()
 
@@ -34,7 +34,7 @@ def test_invalid_on_cpu(tmpdir):
 def test_invalid_apex_sharded(device_count_mock, mock_cuda_available, tmpdir):
     """Test to ensure that we raise an error when we try to use apex and fully sharded."""
     with pytest.raises(MisconfigurationException, match="Sharded Plugin is not supported with Apex AMP"):
-        Trainer(default_root_dir=tmpdir, fast_dev_run=True, plugins="fsdp", gpus=1, precision=16, amp_backend="apex")
+        Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp", gpus=1, precision=16, amp_backend="apex")
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
@@ -43,7 +43,7 @@ def test_invalid_apex_sharded(device_count_mock, mock_cuda_available, tmpdir):
 @RunIf(fairscale_fully_sharded=True)
 def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, plugins="fsdp", gpus=1, precision=16)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp", gpus=1, precision=16)
     assert isinstance(trainer.accelerator.training_type_plugin, DDPFullyShardedPlugin)
     assert isinstance(trainer.accelerator.precision_plugin, FullyShardedNativeMixedPrecisionPlugin)
 
@@ -104,7 +104,7 @@ def test_fully_sharded_plugin_checkpoint(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
 
     model = TestFSDPModel()
-    trainer = Trainer(default_root_dir=tmpdir, gpus=1, plugins="fsdp", precision=16, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmpdir, gpus=1, strategy="fsdp", precision=16, max_epochs=1)
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
@@ -114,7 +114,7 @@ def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
 
     model = TestFSDPModel()
     ck = ModelCheckpoint(save_last=True)
-    trainer = Trainer(default_root_dir=tmpdir, gpus=2, plugins="fsdp", precision=16, max_epochs=1, callbacks=[ck])
+    trainer = Trainer(default_root_dir=tmpdir, gpus=2, strategy="fsdp", precision=16, max_epochs=1, callbacks=[ck])
     _run_multiple_stages(trainer, model)
 
 

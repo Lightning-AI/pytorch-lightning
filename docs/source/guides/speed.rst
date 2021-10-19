@@ -90,7 +90,7 @@ This by default comes with a performance hit, and can be disabled in most cases.
 
     trainer = pl.Trainer(
         gpus=2,
-        plugins=DDPPlugin(find_unused_parameters=False),
+        strategy=DDPPlugin(find_unused_parameters=False),
     )
 
 .. code-block:: python
@@ -99,7 +99,7 @@ This by default comes with a performance hit, and can be disabled in most cases.
 
     trainer = pl.Trainer(
         gpus=2,
-        plugins=DDPSpawnPlugin(find_unused_parameters=False),
+        strategy=DDPSpawnPlugin(find_unused_parameters=False),
     )
 
 When using DDP on a multi-node cluster, set NCCL parameters
