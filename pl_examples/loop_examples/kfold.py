@@ -240,17 +240,18 @@ class KFoldLoop(Loop):
 # Finally, use `trainer.fit` to start the cross validation training.                        #
 #############################################################################################
 
-model = LitClassifier()
-datamodule = MNISTKFoldDataModule()
-trainer = Trainer(
-    max_epochs=10,
-    limit_train_batches=2,
-    limit_val_batches=2,
-    limit_test_batches=2,
-    num_sanity_val_steps=0,
-    devices=1,
-    accelerator="auto",
-    strategy="ddp",
-)
-trainer.fit_loop = KFoldLoop(5, trainer.fit_loop, export_path="./")
-trainer.fit(model, datamodule)
+if __name__ == "__main__":
+    model = LitClassifier()
+    datamodule = MNISTKFoldDataModule()
+    trainer = Trainer(
+        max_epochs=10,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        num_sanity_val_steps=0,
+        devices=2,
+        accelerator="auto",
+        strategy="ddp",
+    )
+    trainer.fit_loop = KFoldLoop(5, trainer.fit_loop, export_path="./")
+    trainer.fit(model, datamodule)
