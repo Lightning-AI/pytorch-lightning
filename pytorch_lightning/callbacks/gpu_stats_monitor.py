@@ -133,7 +133,7 @@ class GPUStatsMonitor(Callback):
             )
 
         # The logical device IDs for selected devices
-        self._device_ids = sorted(set(trainer.data_parallel_device_ids))  # type: ignore
+        self._device_ids = sorted(list(set(trainer.data_parallel_device_ids)))
 
         # The unmasked real GPU IDs
         self._gpu_ids = self._get_gpu_ids(self._device_ids)
