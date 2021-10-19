@@ -1003,3 +1003,4 @@ def test_unsupported_ipu_choice(monkeypatch):
     with pytest.raises(MisconfigurationException, match=r"accelerator='ipu', precision='bf16'\)` is not supported"):
         Trainer(accelerator="ipu", precision="bf16")
     with pytest.raises(MisconfigurationException, match=r"accelerator='ipu', precision=64\)` is not supported"):
+        Trainer(accelerator="ipu", precision=64)
