@@ -384,16 +384,27 @@ class DeepSpeedPlugin(DDPPlugin):
         self.init_deepspeed()
         self.barrier()
 
-    def setup_models_and_optimizers(
+    def _setup_models_and_optimizers(
         self, models: List[Module], optimizers: List[Optimizer]
     ) -> Tuple[List[Module], List[Optimizer]]:
+        """Setup multiple models and multiple optimizers together.
+
+        Currently only one model paired with a single optimizer is supported.
+
+        Return:
+            A list with one model wrapped into a :class:`deepspeed.DeepSpeedEngine` and list with a single
+            deepspeed optimizer.
+        """
         if not (len(models) == len(optimizers) == 1):
             raise ValueError(
                 f"Currently only one model and one optimizer is supported with DeepSpeed."
                 f" Got {len(models)} models and {len(optimizers)} optimizers instead."
             )
 
-        self.config["train_micro_batch_size_per_gpu"] = 1
+        # train_micro_batch_size_per_gpu is used for throughput logging purposes
+        # normally we set this to the batch size, but it is not available here unless the user provides it
+        # as part of the config
+        self.config.setdefault("train_micro_batch_size_per_gpu", 1)
         self._model, optimizer = self._setup_model_and_optimizer(models[0], optimizers[0])
         self._set_deepspeed_activation_checkpointing()
         return [self._model], [optimizer]
@@ -401,6 +412,10 @@ class DeepSpeedPlugin(DDPPlugin):
     def _setup_model_and_optimizer(
         self, model: Module, optimizer: Optimizer, lr_scheduler: Optional[_LRScheduler] = None
     ):
+        """Initialize one model and one optimizer with an optional learning rate scheduler.
+
+        This calls :func:`deepspeed.initialize` internally.
+        """
         model_parameters = filter(lambda p: p.requires_grad, model.parameters())
         deepspeed_engine, deepspeed_optimizer, _, _ = deepspeed.initialize(
             args=argparse.Namespace(device_rank=self.root_device.index),
@@ -593,6 +608,7 @@ class DeepSpeedPlugin(DDPPlugin):
         self._format_precision_config()
 
     def _format_batch_size_and_grad_accum_config(self):
+        # todo: using lite, we do not support these variables within the config
         if self.lightning_module is None:
             return
 
