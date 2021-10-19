@@ -86,7 +86,7 @@ class LiteRunner(LightningLite):
                 self.backward(loss)
                 optimizer.step()
 
-        if isinstance(self._strategy, DDPSpawnPlugin) and tmpdir and self._strategy.is_global_zero:
+        if isinstance(self._strategy, DDPSpawnPlugin) and tmpdir and self.global_rank == 0:
             checkpoint_path = os.path.join(tmpdir, "model.pt")
             atomic_save(model.state_dict(), checkpoint_path)
             return checkpoint_path
@@ -108,12 +108,12 @@ def precision_context(precision, accelerator) -> Generator[None, None, None]:
             yield
 
 
-@RunIf(min_gpus=1)
 @pytest.mark.parametrize(
     "precision, strategy, devices, accelerator",
     [
-        pytest.param(32, None, 1, "gpu"),
-        pytest.param(16, None, 1, "gpu"),
+        pytest.param(32, None, 1, "cpu"),
+        pytest.param(32, None, 1, "gpu", marks=RunIf(min_gpus=1)),
+        pytest.param(16, None, 1, "gpu", marks=RunIf(min_gpus=1)),
         pytest.param(
             "bf16",
             None,
@@ -121,7 +121,6 @@ def precision_context(precision, accelerator) -> Generator[None, None, None]:
             "gpu",
             marks=pytest.mark.skipif(not _TORCH_BFLOAT_AVAILABLE, reason="bfloat16 isn't available."),
         ),
-        pytest.param(32, None, 1, "cpu"),
     ],
 )
 def test_boring_lite_model_single_device(precision, strategy, devices, accelerator, tmpdir):
