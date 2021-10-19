@@ -38,14 +38,14 @@ class TPUAccelerator(Accelerator):
                 If the precision or training type plugin are unsupported.
         """
         if not isinstance(self.precision_plugin, TPUPrecisionPlugin):
-            # should be avoided in the accelerator connector
+            # this configuration should have been avoided in the accelerator connector
             raise ValueError(
-                f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`, found: {self.precision_plugin}"
+                f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`, found: {self.precision_plugin}."
             )
         if not isinstance(self.training_type_plugin, (SingleTPUPlugin, TPUSpawnPlugin)):
             raise ValueError(
                 "The `TPUAccelerator` can only be used with a `SingleTPUPlugin` or `TPUSpawnPlugin,"
-                f" found {self.training_type_plugin}"
+                f" found {self.training_type_plugin}."
             )
         return super().setup(trainer)
 
