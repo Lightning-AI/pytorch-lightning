@@ -202,9 +202,7 @@ def test_apex_precision_unavailable_raises(monkeypatch):
         Trainer(amp_backend="apex", precision=16)
 
     import pytorch_lightning.plugins.precision.apex_amp as apex
-    import pytorch_lightning.utilities.imports as imports
 
-    monkeypatch.setattr(imports, "_APEX_AVAILABLE", False)
     monkeypatch.setattr(apex, "_APEX_AVAILABLE", False)
     with mock.patch("torch.cuda.device_count", return_value=1), pytest.raises(
         MisconfigurationException, match="asked for Apex AMP but you have not installed it"
