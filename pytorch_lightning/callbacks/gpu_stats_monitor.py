@@ -133,7 +133,7 @@ class GPUStatsMonitor(Callback):
             )
 
         # The logical device IDs for selected devices
-        self._device_ids = sorted(set(trainer.data_parallel_device_ids))
+        self._device_ids = sorted(set(trainer.data_parallel_device_ids))  # type: ignore
 
         # The unmasked real GPU IDs
         self._gpu_ids = self._get_gpu_ids(self._device_ids)
@@ -149,7 +149,7 @@ class GPUStatsMonitor(Callback):
         if self._log_stats.intra_step_time:
             self._snap_intra_step_time = time.time()
 
-        if not self._should_log(trainer):
+        if not trainer.logger_connector.should_update_logs:
             return
 
         gpu_stat_keys = self._get_gpu_stat_keys()
@@ -174,7 +174,7 @@ class GPUStatsMonitor(Callback):
         if self._log_stats.inter_step_time:
             self._snap_inter_step_time = time.time()
 
-        if not self._should_log(trainer):
+        if not trainer.logger_connector.should_update_logs:
             return
 
         gpu_stat_keys = self._get_gpu_stat_keys() + self._get_gpu_device_stat_keys()
@@ -258,7 +258,3 @@ class GPUStatsMonitor(Callback):
             stat_keys.extend([("temperature.gpu", "°C"), ("temperature.memory", "°C")])
 
         return stat_keys
-
-    @staticmethod
-    def _should_log(trainer) -> bool:
-        return (trainer.global_step + 1) % trainer.log_every_n_steps == 0 or trainer.should_stop
