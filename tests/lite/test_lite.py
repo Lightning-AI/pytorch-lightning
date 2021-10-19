@@ -77,13 +77,6 @@ class LiteRunner(LightningLite):
         model, optimizer = self.setup(model=model, optimizers=optimizer)
         train_dataloader = self.setup_dataloaders(train_dataloader)
 
-        # TODO: Understand why it is required
-        if isinstance(self._strategy, DDPSpawnPlugin):
-            train_dataloader = DataLoader(
-                train_dataloader.dataset,
-                sampler=DistributedSampler(train_dataloader.dataset, rank=self.global_rank, num_replicas=2, seed=42),
-            )
-
         model.train()
         for _ in range(num_epochs):
             for batch in train_dataloader:
@@ -95,8 +88,7 @@ class LiteRunner(LightningLite):
 
         if isinstance(self._strategy, DDPSpawnPlugin) and tmpdir and self._strategy.is_global_zero:
             checkpoint_path = os.path.join(tmpdir, "model.pt")
-            state_dict = move_data_to_device(model.state_dict(), torch.device("cpu"))
-            atomic_save(state_dict, checkpoint_path)
+            atomic_save(model.state_dict(), checkpoint_path)
             return checkpoint_path
 
 
@@ -173,12 +165,10 @@ def run(rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdi
         main(to_device, model, train_dataloader, num_epochs=num_epochs)
 
     if rank == 0:
-        checkpoint_path = os.path.join(tmpdir, "model_spawn.pt")
-        state_dict = move_data_to_device(model.state_dict(), torch.device("cpu"))
-        atomic_save(state_dict, checkpoint_path)
+        atomic_save(model.state_dict(), os.path.join(tmpdir, "model_spawn.pt"))
 
 
-@pytest.mark.skipif(True, reason="Requires some investigation")
+@pytest.mark.skipif(True, reason="Skipping as it takes 80 seconds.")
 @RunIf(min_gpus=2)
 @pytest.mark.parametrize(
     "precision, strategy, devices, accelerator",
@@ -198,7 +188,7 @@ def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, 
     spawn_model_state_dict = torch.load(checkpoint_path[0])
 
     for o_pure, w_lite in zip(state_dict.values(), spawn_model_state_dict.values()):
-        assert not torch.equal(o_pure, w_lite)
+        assert not torch.equal(o_pure.cpu(), w_lite.cpu())
 
     model.load_state_dict(state_dict)
     os.environ["MASTER_ADDR"] = "127.0.0.1"
@@ -207,7 +197,7 @@ def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, 
     spawn_pure_model_state_dict = torch.load(os.path.join(tmpdir, "model_spawn.pt"))
 
     for w_pure, w_lite in zip(spawn_pure_model_state_dict.values(), spawn_model_state_dict.values()):
-        assert torch.equal(w_pure, w_lite)
+        assert torch.equal(w_pure.cpu(), w_lite.cpu())
 
 
 @RunIf(min_gpus=2, special=True)
@@ -219,23 +209,24 @@ def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, 
 )
 def test_boring_lite_model_ddp(precision, strategy, devices, accelerator, tmpdir):
     seed_everything(42)
-    train_dataloader = DataLoader(RandomDataset(32, 8))
+    train_dataloader = DataLoader(RandomDataset(32, 4))
     model = BoringModel()
     num_epochs = 1
     state_dict = deepcopy(model.state_dict())
 
     lite = LiteRunner(precision=precision, strategy=strategy, devices=devices, accelerator=accelerator)
     lite.run(model, train_dataloader, num_epochs=num_epochs, tmpdir=tmpdir)
-    lite_model_state_dict = deepcopy(move_data_to_device(model.state_dict(), torch.device("cpu")))
+
+    lite_model_state_dict = model.state_dict()
 
     for o_pure, w_lite in zip(state_dict.values(), lite_model_state_dict.values()):
-        assert not torch.equal(o_pure, w_lite)
+        assert not torch.equal(o_pure.cpu(), w_lite.cpu())
 
     seed_everything(42)
+    train_dataloader = DataLoader(RandomDataset(32, 4))
+    model = BoringModel()
     run(lite.global_rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdir)
-    pure_model_state_dict = deepcopy(move_data_to_device(model.state_dict(), torch.device("cpu")))
+    pure_model_state_dict = model.state_dict()
 
-    # TODO: Understand why it is required
-    if not lite._strategy.is_global_zero:
-        for w_pure, w_lite in zip(pure_model_state_dict.values(), lite_model_state_dict.values()):
-            assert torch.equal(w_pure, w_lite)
+    for w_pure, w_lite in zip(pure_model_state_dict.values(), lite_model_state_dict.values()):
+        assert torch.equal(w_pure.cpu(), w_lite.cpu())
