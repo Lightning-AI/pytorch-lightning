@@ -15,11 +15,12 @@ import io
 import os
 import re
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Callable
 
 import torch
 import torch.multiprocessing as mp
 from torch.nn import Module
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
@@ -187,6 +188,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         # ensure that spawned processes go through teardown before joining
         trainer._call_teardown_hook()
+
+    def optimizer_step(self, optimizer: Optimizer, lambda_closure: Callable, **kwargs) -> None:
+        xm.optimizer_step(optimizer, optimizer_args={"closure": lambda_closure, **kwargs})
 
     def model_to_device(self) -> None:
         self.model = self.wrapped_model.to(self.root_device)

@@ -49,9 +49,6 @@ class TPUAccelerator(Accelerator):
             raise MisconfigurationException("TPUs only support a single tpu core or tpu spawn training.")
         return super().setup(trainer)
 
-    def run_optimizer_step(self, optimizer: Optimizer, lambda_closure: Callable, **kwargs: Any) -> None:
-        xm.optimizer_step(optimizer, optimizer_args={"closure": lambda_closure, **kwargs})
-
     def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
         """Moves the state of the optimizers to the TPU if needed."""
         # TODO: `self.root_device` would raise error if called outside the spawn process

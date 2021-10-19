@@ -225,7 +225,7 @@ class TrainingTypePlugin(ABC):
     def init_optimizers(self, trainer: "pl.Trainer", model: "pl.LightningModule"):
         return trainer.init_optimizers(model)
 
-    def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
+    def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs) -> None:
         optimizer.step(closure=lambda_closure, **kwargs)
 
     @property
