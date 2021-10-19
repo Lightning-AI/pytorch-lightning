@@ -401,4 +401,5 @@ class LightningLite(ABC):
             DistributedType.DP,
             DistributedType.DEEPSPEED,
             DistributedType.DDP_SHARDED,
+            DistributedType.DDP_SHARDED_SPAWN,
         )
