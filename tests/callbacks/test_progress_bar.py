@@ -92,7 +92,7 @@ def test_progress_bar_totals(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, progress_bar_refresh_rate=1, max_epochs=1)
     bar = trainer.progress_bar_callback
-    assert 0 == bar.total_train_batches
+    assert float("inf") == bar.total_train_batches
     assert 0 == bar.total_val_batches
     assert 0 == bar.total_test_batches
 
