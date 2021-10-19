@@ -69,19 +69,19 @@ class TrainingTypePlugin(ABC):
         The returned objects are expected to be in the same order they were passed in.
         The default implementation will call :meth:`setup_model` and :meth:`setup_optimizer` on the input lists.
         """
-        # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite
+        # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
         models = [self.setup_model(model) for model in models]
         optimizers = [self.setup_optimizer(optimizer) for optimizer in optimizers]
         return models, optimizers
 
     def setup_model(self, model: Module) -> Module:
         """Performs setup for the model, e.g., by wrapping it by another class."""
-        # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite
+        # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
         return model
 
     def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
         """Performs setup for the optimizer, e.g., by wrapping it by another class."""
-        # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite
+        # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
         return optimizer
 
     @property
