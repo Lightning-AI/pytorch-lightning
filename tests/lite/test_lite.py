@@ -39,7 +39,7 @@ from tests.helpers.runif import RunIf
 class BoringModel(nn.Module):
     def __init__(self):
         super().__init__()
-        self.layer = torch.nn.Linear(32, 2)
+        self.layer = torch.nn.Linear(32, 2, bias=False)
 
     def forward(self, x):
         x = self.layer(x)
@@ -47,7 +47,7 @@ class BoringModel(nn.Module):
 
 
 def configure_optimizers(module: nn.Module):
-    return torch.optim.SGD(module.parameters(), lr=0.001)
+    return torch.optim.SGD(module.parameters(), lr=0.0001)
 
 
 def main(
@@ -59,12 +59,9 @@ def main(
     model = move_to_device(model)
     optimizer = configure_optimizers(model)
 
-    print(train_dataloader.sampler)
-
     for _ in range(num_epochs):
         model.train()
-        for idx, batch in enumerate(train_dataloader):
-            print(os.getenv("LOCAL_RANK"), batch[0][0])
+        for batch in train_dataloader:
             batch = move_to_device(batch)
             optimizer.zero_grad()
             loss = model(batch)
@@ -80,10 +77,16 @@ class LiteRunner(LightningLite):
         model, optimizer = self.setup(model=model, optimizers=optimizer)
         train_dataloader = self.setup_dataloaders(train_dataloader)
 
+        # TODO: Understand why it is required
+        if isinstance(self._strategy, DDPSpawnPlugin):
+            train_dataloader = DataLoader(
+                train_dataloader.dataset,
+                sampler=DistributedSampler(train_dataloader.dataset, rank=self.global_rank, num_replicas=2, seed=42),
+            )
+
         model.train()
         for _ in range(num_epochs):
             for batch in train_dataloader:
-                print(self.global_rank, batch[0][0])
                 batch = self.to_device(batch)
                 optimizer.zero_grad()
                 loss = model(batch)
@@ -162,12 +165,10 @@ def run(rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdi
         to_device(model),
         device_ids=[rank],
     )
-    seed_everything(42)
     train_dataloader = DataLoader(
         train_dataloader.dataset,
-        sampler=DistributedSampler(train_dataloader.dataset, rank=rank, num_replicas=2, shuffle=False),
+        sampler=DistributedSampler(train_dataloader.dataset, rank=rank, num_replicas=2, seed=42, drop_last=False),
     )
-    print(train_dataloader.dataset[0])
     with precision_context(precision, accelerator):
         main(to_device, model, train_dataloader, num_epochs=num_epochs)
 
@@ -186,7 +187,7 @@ def run(rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdi
 )
 def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, tmpdir):
     seed_everything(42)
-    train_dataloader = DataLoader(RandomDataset(32, 64), shuffle=False)
+    train_dataloader = DataLoader(RandomDataset(32, 64))
     model = BoringModel()
     num_epochs = 1
     state_dict = deepcopy(model.state_dict())
@@ -204,5 +205,38 @@ def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, 
     mp.spawn(run, args=(model, train_dataloader, num_epochs, precision, accelerator, tmpdir), nprocs=2)
     spawn_pure_model_state_dict = torch.load(os.path.join(tmpdir, "model_spawn.pt"))
 
+    breakpoint()
+
     for w_pure, w_lite in zip(spawn_pure_model_state_dict.values(), spawn_model_state_dict.values()):
         assert torch.equal(w_pure, w_lite)
+
+
+@RunIf(min_gpus=2, special=True)
+@pytest.mark.parametrize(
+    "precision, strategy, devices, accelerator",
+    [
+        pytest.param(32, "ddp", 2, "gpu"),
+    ],
+)
+def test_boring_lite_model_ddp(precision, strategy, devices, accelerator, tmpdir):
+    seed_everything(42)
+    train_dataloader = DataLoader(RandomDataset(32, 8))
+    model = BoringModel()
+    num_epochs = 1
+    state_dict = deepcopy(model.state_dict())
+
+    lite = LiteRunner(precision=precision, strategy=strategy, devices=devices, accelerator=accelerator)
+    lite.run(model, train_dataloader, num_epochs=num_epochs, tmpdir=tmpdir)
+    lite_model_state_dict = deepcopy(move_data_to_device(model.state_dict(), torch.device("cpu")))
+
+    for o_pure, w_lite in zip(state_dict.values(), lite_model_state_dict.values()):
+        assert not torch.equal(o_pure, w_lite)
+
+    seed_everything(42)
+    run(lite.global_rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdir)
+    pure_model_state_dict = deepcopy(move_data_to_device(model.state_dict(), torch.device("cpu")))
+
+    # TODO: Understand why it is required
+    if not lite._strategy.is_global_zero:
+        for w_pure, w_lite in zip(pure_model_state_dict.values(), lite_model_state_dict.values()):
+            assert torch.equal(w_pure, w_lite)
