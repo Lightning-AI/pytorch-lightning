@@ -56,7 +56,7 @@ class DataParallelPlugin(ParallelPlugin):
         self.model_to_device()
         self._model = self.setup_model(LightningParallelModule(self._model))
 
-    def setup_model(self, model: Module) -> Module:
+    def setup_model(self, model: Module) -> DataParallel:
         return DataParallel(module=model, device_ids=self.parallel_devices)
 
     def reduce(self, collection: _METRIC_COLLECTION, *args, **kwargs) -> _METRIC_COLLECTION:
