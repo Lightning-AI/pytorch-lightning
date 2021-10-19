@@ -54,9 +54,10 @@ class DataParallelPlugin(ParallelPlugin):
     def setup(self) -> None:
         # model needs to be moved to the device before it is wrapped
         self.model_to_device()
-        self._model = self.setup_model(LightningParallelModule(self._model))
+        self._model = self._setup_model(LightningParallelModule(self._model))
 
-    def setup_model(self, model: Module) -> DataParallel:
+    def _setup_model(self, model: Module) -> DataParallel:
+        """Wraps the given model into a :class:`~torch.nn.parallel.DataParallel` module."""
         return DataParallel(module=model, device_ids=self.parallel_devices)
 
     def reduce(self, collection: _METRIC_COLLECTION, *args, **kwargs) -> _METRIC_COLLECTION:
