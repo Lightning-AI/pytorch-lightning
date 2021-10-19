@@ -315,7 +315,7 @@ def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
             Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores)
     else:
         trainer = Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores)
-        assert trainer.accelerator_connector.tpu_id == expected_tpu_id
+        assert trainer._accelerator_connector.tpu_id == expected_tpu_id
 
 
 @pytest.mark.parametrize(

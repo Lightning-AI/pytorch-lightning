@@ -422,7 +422,7 @@ class Trainer(
         self.data_connector = DataConnector(self, multiple_trainloader_mode)
         self.optimizer_connector = OptimizerConnector(self)
 
-        self.accelerator_connector = AcceleratorConnector(
+        self._accelerator_connector = AcceleratorConnector(
             num_processes,
             devices,
             tpu_cores,
@@ -1501,7 +1501,7 @@ class Trainer(
 
     @property
     def accelerator(self) -> Accelerator:
-        return self.accelerator_connector.accelerator
+        return self._accelerator_connector.accelerator
 
     @property
     def training_type_plugin(self) -> TrainingTypePlugin:
@@ -1536,43 +1536,43 @@ class Trainer(
 
     @property
     def _distrib_type(self) -> DistributedType:
-        return self.accelerator_connector._distrib_type
+        return self._accelerator_connector._distrib_type
 
     @property
     def _device_type(self) -> DeviceType:
-        return self.accelerator_connector._device_type
+        return self._accelerator_connector._device_type
 
     @property
     def num_nodes(self) -> int:
-        return self.accelerator_connector.num_nodes
+        return self._accelerator_connector.num_nodes
 
     @property
     def num_processes(self) -> int:
-        return self.accelerator_connector.num_processes
+        return self._accelerator_connector.num_processes
 
     @property
     def root_gpu(self) -> Optional[int]:
-        return self.accelerator_connector.root_gpu
+        return self._accelerator_connector.root_gpu
 
     @property
     def tpu_cores(self) -> int:
-        return self.accelerator_connector.tpu_cores
+        return self._accelerator_connector.tpu_cores
 
     @property
     def ipus(self) -> int:
-        return self.accelerator_connector.num_ipus
+        return self._accelerator_connector.num_ipus
 
     @property
     def num_gpus(self) -> int:
-        return self.accelerator_connector.num_gpus
+        return self._accelerator_connector.num_gpus
 
     @property
     def devices(self) -> Optional[Union[List[int], str, int]]:
-        return self.accelerator_connector.devices
+        return self._accelerator_connector.devices
 
     @property
     def data_parallel_device_ids(self) -> Optional[List[int]]:
-        return self.accelerator_connector.parallel_device_ids
+        return self._accelerator_connector.parallel_device_ids
 
     @property
     def lightning_module(self) -> "pl.LightningModule":
@@ -1621,7 +1621,7 @@ class Trainer(
 
     @property
     def gpus(self) -> Optional[Union[List[int], str, int]]:
-        return self.accelerator_connector.gpus
+        return self._accelerator_connector.gpus
 
     @property
     def model(self) -> torch.nn.Module:
