@@ -91,7 +91,10 @@ class PrecisionPlugin(CheckpointHooks):
         return closure_loss
 
     def _run_backward(self, tensor: Tensor, model: Module, *args: Any, **kwargs: Any) -> None:
-        """Lightning-independent backward logic. Currently only used by Lightning Lite. Subject to further refactors."""
+        """Lightning-independent backward logic.
+
+        Currently only used by Lightning Lite. Subject to further refactors.
+        """
         tensor.backward(*args, **kwargs)
 
     def pre_optimizer_step(
