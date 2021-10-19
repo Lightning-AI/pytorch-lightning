@@ -47,6 +47,14 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
     def _setup_models_and_optimizers(
         self, models: List[Module], optimizers: List[Optimizer]
     ) -> Tuple[List[Module], List[Optimizer]]:
+        """Wraps the model and optimizers with fairscale components.
+
+        Currently only one model can be setup at once.
+
+        Return:
+            A list with one model wrapped into a :class:`~fairscale.nn.data_parallel.ShardedDataParallel` module
+            and a list of optimizer wrapped in :class:~`fairscale.optim.OSS`.
+        """
         if len(models) > 1:
             raise ValueError(
                 f"DDPShardedSpawn only supports setting up a single model with one or several optimizers."
