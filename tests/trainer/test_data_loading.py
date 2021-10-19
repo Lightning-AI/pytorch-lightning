@@ -90,7 +90,7 @@ def test_replace_distributed_sampler(tmpdir, mode):
     model.test_epoch_end = None
 
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_test_batches=2, plugins="ddp_find_unused_parameters_false", num_processes=1
+        default_root_dir=tmpdir, limit_test_batches=2, strategy="ddp_find_unused_parameters_false", num_processes=1
     )
     if mode == 1:
         match = escape("missing attributes are ['num_features']")

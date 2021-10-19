@@ -187,8 +187,12 @@ class Trainer(
 
         Args:
 
-            accelerator: Previously known as distributed_backend (dp, ddp, ddp2, etc...).
-                Can also take in an accelerator object for custom hardware.
+            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "auto")
+                as well as custom accelerator instances.
+
+                .. deprecated:: v1.5
+                    Passing training strategies to ``accelerator`` has been deprecated in v1.5.0
+                    and will be removed in v1.7.0. Please use the ``strategy`` argument instead.
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
 
