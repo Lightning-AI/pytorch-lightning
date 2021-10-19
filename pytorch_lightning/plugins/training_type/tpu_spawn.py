@@ -265,7 +265,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             "start_method": self.start_method,
         }
 
-    def optimizer_step(self, optimizer: Optimizer, lambda_closure: Callable, **kwargs):
+    def optimizer_step(self, optimizer: Optimizer, lambda_closure: Callable, **kwargs) -> None:
         xm.optimizer_step(optimizer, barrier=False, optimizer_args={"closure": lambda_closure, **kwargs})
 
     def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> None:

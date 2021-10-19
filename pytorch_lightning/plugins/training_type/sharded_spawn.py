@@ -13,9 +13,11 @@
 # limitations under the License.
 from contextlib import contextmanager
 from multiprocessing.queues import SimpleQueue
-from typing import Dict, Generator, Optional
+from typing import Dict, Generator, Optional, List, Tuple
 
 import torch
+from torch.nn import Module
+from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
@@ -36,29 +38,40 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
     """Optimizer sharded training provided by FairScale."""
 
     def configure_ddp(self) -> None:
-        self._wrap_optimizers()
-        self._model = ShardedDataParallel(
-            LightningShardedDataParallel(self.model),
-            sharded_optimizer=self.lightning_module.trainer.optimizers,
-            **self._ddp_kwargs
+        [self._model], optimizers = self._setup_models_and_optimizers(
+            models=[LightningShardedDataParallel(self.model)],
+            optimizers=self.lightning_module.trainer.optimizers,
         )
-        setattr(self._model, "require_backward_grad_sync", False)
+        self.lightning_module.trainer.optimizers = optimizers
 
-    def _reinit_optimizers_with_oss(self):
-        optimizers = self.lightning_module.trainer.optimizers
+    def _setup_models_and_optimizers(
+        self, models: List[Module], optimizers: List[Optimizer]
+    ) -> Tuple[List[Module], List[Optimizer]]:
+        if len(models) > 1:
+            raise ValueError(
+                f"DDPShardedSpawn only supports setting up a single model with one or several optimizers."
+                f" Got {len(models)} models."
+            )
+
+        optimizers = self._wrap_optimizers(optimizers)
+        model = ShardedDataParallel(models[0], sharded_optimizer=optimizers, **self._ddp_kwargs)
+        setattr(model, "require_backward_grad_sync", False)  # TODO: needed?
+        return [model], optimizers
+
+    def _reinit_optimizers_with_oss(self, optimizers: List[Optimizer]) -> List["OSS"]:
         for x, optimizer in enumerate(optimizers):
             if not isinstance(optimizer, OSS):
                 optim_class = type(optimizer)
                 zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
                 optimizers[x] = zero_optimizer
                 del optimizer
-        trainer = self.lightning_module.trainer
-        trainer.optimizers = optimizers
+        return optimizers
 
-    def _wrap_optimizers(self):
-        if self.model.trainer.state.fn != TrainerFn.FITTING:
-            return
-        self._reinit_optimizers_with_oss()
+    def _wrap_optimizers(self, optimizers: List[Optimizer]) -> List["OSS"]:
+        if self.model is not None and self.model.trainer.state.fn != TrainerFn.FITTING:
+            return optimizers
+
+        return self._reinit_optimizers_with_oss(optimizers)
 
     def optimizer_state(self, optimizer: "OSS") -> Optional[dict]:
         if isinstance(optimizer, OSS):

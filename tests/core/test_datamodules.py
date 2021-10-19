@@ -696,3 +696,10 @@ def test_len_no_dataloader_methods_implemented():
     dm = LightningDataModule()
     with pytest.warns(UserWarning, match="You datamodule does not have any valid dataloader"):
         assert len(dm) == 0
+
+    dm.train_dataloader = None
+    dm.val_dataloader = None
+    dm.test_dataloader = None
+    dm.predict_dataloader = None
+    with pytest.warns(UserWarning, match="You datamodule does not have any valid dataloader"):
+        assert len(dm) == 0

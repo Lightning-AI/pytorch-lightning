@@ -148,7 +148,8 @@ class DDPSpawnPlugin(ParallelPlugin):
         smp = mp.get_context("spawn")
         self.mp_queue = smp.SimpleQueue()
 
-    def setup_model(self, model: Module) -> Module:
+    def _setup_model(self, model: Module) -> DistributedDataParallel:
+        """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         return DistributedDataParallel(module=model, device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs)
 
     def set_world_ranks(self, process_idx: int = 0) -> None:
@@ -278,7 +279,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def configure_ddp(self) -> None:
         self.pre_configure_ddp()
-        self._model = self.setup_model(LightningDistributedModule(self.model))
+        self._model = self._setup_model(LightningDistributedModule(self.model))
         self._register_ddp_hooks()
 
     def determine_ddp_device_ids(self):
