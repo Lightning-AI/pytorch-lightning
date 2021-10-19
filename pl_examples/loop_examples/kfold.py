@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os.path as osp
-import sys
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass
@@ -241,18 +240,18 @@ class KFoldLoop(Loop):
 # Finally, use `trainer.fit` to start the cross validation training.                        #
 #############################################################################################
 
-model = LitClassifier()
-datamodule = MNISTKFoldDataModule()
-strategy = None if sys.platform == "win32" else "ddp"
-trainer = Trainer(
-    max_epochs=10,
-    limit_train_batches=2,
-    limit_val_batches=2,
-    limit_test_batches=2,
-    num_sanity_val_steps=0,
-    devices=1,
-    accelerator="auto",
-    strategy=strategy,
-)
-trainer.fit_loop = KFoldLoop(5, trainer.fit_loop, export_path="./")
-trainer.fit(model, datamodule)
+if __name__ == "__main__":
+    model = LitClassifier()
+    datamodule = MNISTKFoldDataModule()
+    trainer = Trainer(
+        max_epochs=10,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        num_sanity_val_steps=0,
+        devices=1,
+        accelerator="auto",
+        strategy="ddp",
+    )
+    trainer.fit_loop = KFoldLoop(5, trainer.fit_loop, export_path="./")
+    trainer.fit(model, datamodule)
