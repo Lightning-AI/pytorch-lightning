@@ -41,19 +41,6 @@ class DDPShardedPlugin(DDPPlugin):
         super().__init__(*args, **kwargs)
         self._precision = None
 
-    def _setup_models_and_optimizers(
-        self, models: List[Module], optimizers: List[Optimizer]
-    ) -> Tuple[List[Module], List[Optimizer]]:
-        if len(models) > 1:
-            raise ValueError(
-                f"DDPSharded only supports a single model with one or several optimizers. Got {len(models)} models."
-            )
-
-        optimizers = self._wrap_optimizers(optimizers)
-        model = ShardedDataParallel(models[0], sharded_optimizer=optimizers, **self._ddp_kwargs)
-        setattr(model, "require_backward_grad_sync", False)  # TODO: needed?
-        return [model], optimizers
-
     def configure_ddp(self) -> None:
         if "reduce_buffer_size" not in self._ddp_kwargs:
             # For multi-node training, enabling bucketing will improve performance.
@@ -66,6 +53,20 @@ class DDPShardedPlugin(DDPPlugin):
         trainer = self.lightning_module.trainer
         trainer.optimizers = optimizers
         trainer.convert_to_lightning_optimizers()
+
+    def _setup_models_and_optimizers(
+        self, models: List[Module], optimizers: List[Optimizer]
+    ) -> Tuple[List[Module], List[Optimizer]]:
+        if len(models) > 1:
+            raise ValueError(
+                f"DDPSharded only supports setting up a single model with one or several optimizers."
+                f" Got {len(models)} models."
+            )
+
+        optimizers = self._wrap_optimizers(optimizers)
+        model = ShardedDataParallel(models[0], sharded_optimizer=optimizers, **self._ddp_kwargs)
+        setattr(model, "require_backward_grad_sync", False)  # TODO: needed?
+        return [model], optimizers
 
     def _reinit_optimizers_with_oss(self, optimizers: List[Union[Optimizer, LightningOptimizer]]) -> List["OSS"]:
         for x, optimizer in enumerate(optimizers):
