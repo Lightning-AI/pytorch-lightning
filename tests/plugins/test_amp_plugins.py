@@ -21,8 +21,8 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, Bf16PrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
-from pytorch_lightning.utilities import _TORCH_BFLOAT_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_DEV_1_10
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -178,29 +178,13 @@ def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=1, max_torch="1.9")
-def test_amp_precision_16_bfloat_throws_error(tmpdir):
-    with pytest.raises(
-        MisconfigurationException,
-        match="To use bfloat16 with native amp you must install torch greater or equal to 1.10",
-    ):
-        Trainer(
-            default_root_dir=tmpdir,
-            precision="bf16",
-            gpus=1,
-        )
+@RunIf(max_torch="1.10")
+def test_bf16_precision_unsupported_raises(monkeypatch):
+    with pytest.raises(MisconfigurationException, match=r"precision='bf16' you must install torch"):
+        Trainer(precision="bf16")
 
 
-@RunIf(max_torch="1.9")
-def test_cpu_amp_precision_throws_error(tmpdir):
-    with pytest.raises(
-        MisconfigurationException,
-        match="To use native AMP on CPU, install PyTorch 1.10 or later.",
-    ):
-        NativeMixedPrecisionPlugin(use_cpu=True)
-
-
-@pytest.mark.skipif(not _TORCH_BFLOAT_AVAILABLE, reason="Needs bfloat16 support")
+@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_DEV_1_10, reason="Needs bfloat16 support")
 def test_cpu_amp_precision_context_manager():
     """Test to ensure that the context manager correctly is set to CPU + bfloat16, and a scaler isn't set."""
     plugin = Bf16PrecisionPlugin(use_cpu=True)

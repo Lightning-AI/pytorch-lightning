@@ -17,10 +17,10 @@ from typing import Generator
 import torch
 
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
-from pytorch_lightning.utilities import _TORCH_BFLOAT_AVAILABLE
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_DEV_1_10
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if _TORCH_BFLOAT_AVAILABLE:
+if _TORCH_GREATER_EQUAL_DEV_1_10:
     from torch import autocast
 else:
     autocast = object
@@ -31,7 +31,7 @@ class Bf16PrecisionPlugin(MixedPrecisionPlugin):
 
     def __init__(self, use_cpu: bool) -> None:
         super().__init__()
-        if not _TORCH_BFLOAT_AVAILABLE:
+        if not _TORCH_GREATER_EQUAL_DEV_1_10:
             raise MisconfigurationException("To use `precision='bf16' you must install torch greater or equal to 1.10.")
         self.use_cpu = use_cpu
 
