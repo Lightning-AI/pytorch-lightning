@@ -635,15 +635,6 @@ def test_inconsistent_prepare_data_per_node(tmpdir):
 DATALOADER = DataLoader(RandomDataset(1, 32))
 
 
-def test_datamodule_not_properly_defined_has_zero_length():
-    dm = LightningDataModule()
-    dm.train_dataloader = None
-    dm.val_dataloader = None
-    dm.test_dataloader = None
-    dm.predict_dataloader = None
-    assert len(dm) == 0
-
-
 @pytest.mark.parametrize("method_name", ["train_dataloader", "val_dataloader", "test_dataloader", "predict_dataloader"])
 @pytest.mark.parametrize(
     ["dataloader", "expected"],
@@ -703,5 +694,12 @@ def test_len_all_dataloader_methods_implemented():
 
 def test_len_no_dataloader_methods_implemented():
     dm = LightningDataModule()
+    with pytest.warns(UserWarning, match="You datamodule does not have any valid dataloader"):
+        assert len(dm) == 0
+
+    dm.train_dataloader = None
+    dm.val_dataloader = None
+    dm.test_dataloader = None
+    dm.predict_dataloader = None
     with pytest.warns(UserWarning, match="You datamodule does not have any valid dataloader"):
         assert len(dm) == 0
