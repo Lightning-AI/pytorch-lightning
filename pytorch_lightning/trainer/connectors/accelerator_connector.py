@@ -612,7 +612,7 @@ class AcceleratorConnector:
                     # this is not deprecated to ease transition between accelerator environments
                     rank_zero_warn(
                         f"You passed `Trainer(accelerator='tpu', precision=16)` but {self.amp_type.value} AMP"
-                        f" is not supported with TPUs. Using `precision='bf16` instead."
+                        f" is not supported with TPUs. Using `precision='bf16'` instead."
                     )
                 return TPUBf16PrecisionPlugin()
 
