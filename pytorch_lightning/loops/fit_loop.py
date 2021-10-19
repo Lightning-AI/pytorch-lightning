@@ -235,7 +235,7 @@ class FitLoop(Loop):
         # Lightning today does not increment the current epoch at the last epoch run in Trainer.fit
         # To simulate that current behavior, we decrement here.
         # TODO: must be fixed by https://github.com/PyTorchLightning/pytorch-lightning/issues/5007
-        self.current_epoch = min(self.current_epoch - 1, 0)
+        self.current_epoch = max(self.current_epoch - 1, 0)
 
         # hook
         self.trainer.call_hook("on_train_end")
