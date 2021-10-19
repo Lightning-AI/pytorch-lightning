@@ -1986,7 +1986,7 @@ class TrainerStagesErrorsModel(BoringModel):
     "accelerator,num_processes",
     [
         (None, 1),
-        pytest.param("ddp_cpu", 2, marks=RunIf(skip_windows=True)),
+        pytest.param("ddp_spawn", 2, marks=RunIf(skip_windows=True)),
     ],
 )
 def test_error_handling_all_stages(tmpdir, accelerator, num_processes):
