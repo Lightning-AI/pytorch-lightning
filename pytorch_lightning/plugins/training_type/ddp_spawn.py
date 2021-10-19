@@ -198,8 +198,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         rank_zero_only.rank = self.global_rank
         init_ddp_connection(self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size)
 
-    def new_process(self, process_idx: int, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
-        self._worker_setup(process_idx)
+    def new_process(self, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
         self.mp_queue = mp_queue
 
         # move the model to the correct device
