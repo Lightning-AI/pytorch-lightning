@@ -20,10 +20,10 @@ from torch.optim import Optimizer
 from pytorch_lightning.plugins.precision import TPUPrecisionPlugin
 
 
-class TPUHalfPrecisionPlugin(TPUPrecisionPlugin):
+class TPUBf16PrecisionPlugin(TPUPrecisionPlugin):
     """Plugin that enables bfloats on TPUs."""
 
-    precision: int = 16
+    precision: str = "bf16"
 
     def connect(
         self, model: nn.Module, optimizers: List[Optimizer], lr_schedulers: List[Any]
