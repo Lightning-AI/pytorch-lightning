@@ -664,6 +664,7 @@ class AcceleratorConnector:
                     "You passed `Trainer(amp_type='apex', precision='bf16')` but it's not supported."
                     " Try using `amp_type='native'` instead."
                 )
+            rank_zero_info("Using bfloat16 precision")
             if self._is_sharded_training_type:
                 return ShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
             if self._is_fully_sharded_training_type:
