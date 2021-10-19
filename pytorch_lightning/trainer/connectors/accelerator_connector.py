@@ -46,7 +46,7 @@ from pytorch_lightning.plugins import (
     ShardedNativeMixedPrecisionPlugin,
     SingleDevicePlugin,
     SingleTPUPlugin,
-    TPUHalfPrecisionPlugin,
+    TPUBf16PrecisionPlugin,
     TPUPrecisionPlugin,
     TPUSpawnPlugin,
     TrainingTypePlugin,
@@ -591,6 +591,12 @@ class AcceleratorConnector:
         # set precision type
         self.amp_type = AMPType.from_str(self.amp_type)
 
+        # validation for all plugins
+        if self.amp_level is not None and self.amp_type != AMPType.APEX:
+            raise MisconfigurationException(
+                f"You have asked for `amp_level={self.amp_level!r}` which is only supported with `amp_backend='apex'`."
+            )
+
         if self.use_ipu:
             return IPUPrecisionPlugin(self.precision)
         if self.use_tpu:
@@ -603,7 +609,12 @@ class AcceleratorConnector:
                     " requesting this feature."
                 )
             elif self.precision in (16, "bf16"):
-                return TPUHalfPrecisionPlugin()
+                if self.precision == 16:
+                    rank_zero_warn(
+                        f"You passed `Trainer(accelerator='tpu', precision=16)` but {self.amp_type.value} AMP"
+                        f" is not supported with TPUs. Using `precision='bf16` instead."
+                    )
+                return TPUBf16PrecisionPlugin()
 
         if self._distrib_type == DistributedType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedPlugin):
             return DeepSpeedPrecisionPlugin(self.precision)
