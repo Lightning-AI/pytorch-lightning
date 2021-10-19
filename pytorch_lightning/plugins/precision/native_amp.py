@@ -71,7 +71,8 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         return super().pre_backward(model, closure_loss)
 
     def _run_backward(self, tensor: Tensor, model: Module, *args: Any, **kwargs: Any) -> None:
-        tensor = self.scaler.scale(tensor)
+        if not self.is_bfloat16:
+                tensor = self.scaler.scale(tensor)
         super()._run_backward(tensor, model, *args, **kwargs)
 
     def pre_optimizer_step(
