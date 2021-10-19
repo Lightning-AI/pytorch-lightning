@@ -283,10 +283,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def start_evaluating(self, trainer: "pl.Trainer") -> None:
         self._close_logger(trainer)
-        return super().start_training(trainer)
+        return super().start_evaluating(trainer)
 
     def start_predicting(self, trainer: "pl.Trainer") -> None:
-        return super().start_training(trainer)
+        return super().start_predicting(trainer)
 
     def training_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
