@@ -42,15 +42,15 @@ class DDPShardedPlugin(DDPPlugin):
         self._precision = None
 
     def configure_ddp(self) -> None:
+        trainer = self.lightning_module.trainer
         if "reduce_buffer_size" not in self._ddp_kwargs:
             # For multi-node training, enabling bucketing will improve performance.
             self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
 
         [self._model], optimizers = self._setup_models_and_optimizers(
             models=[LightningShardedDataParallel(self.model)],
-            optimizers=self.lightning_module.trainer.optimizers,
+            optimizers=trainer.optimizers,
         )
-        trainer = self.lightning_module.trainer
         trainer.optimizers = optimizers
         trainer.convert_to_lightning_optimizers()
 
