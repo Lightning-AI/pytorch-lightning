@@ -66,6 +66,8 @@ class TrainingTypePlugin(ABC):
     ) -> Tuple[List[Module], List[Optimizer]]:
         """Setup multiple models and multiple optimizers together.
 
+        Primarily used by Lightning Lite.
+
         The returned objects are expected to be in the same order they were passed in.
         The default implementation will call :meth:`_setup_model` and :meth:`_setup_optimizer` on the input lists.
         """
@@ -75,12 +77,12 @@ class TrainingTypePlugin(ABC):
         return models, optimizers
 
     def _setup_model(self, model: Module) -> Module:
-        """Performs setup for the model, e.g., by wrapping it by another class."""
+        """Performs setup for the model, e.g., by wrapping it by another class. Primarily used by Lightning Lite."""
         # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
         return model
 
     def _setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
-        """Performs setup for the optimizer, e.g., by wrapping it by another class."""
+        """Performs setup for the optimizer, e.g., by wrapping it by another class. Primarily used by Lightning Lite."""
         # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
         return optimizer
 
