@@ -183,6 +183,7 @@ class DDPPlugin(ParallelPlugin):
         self.setup_distributed()
 
     def setup_model(self, model: Module) -> DistributedDataParallel:
+        """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         return DistributedDataParallel(module=model, device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs)
 
     def _call_children_scripts(self):
