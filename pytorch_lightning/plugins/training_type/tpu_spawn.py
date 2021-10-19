@@ -264,10 +264,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> None:
         xmp.spawn(self._wrapped_function, args=(function, args, kwargs), **self.get_mp_spawn_kwargs())
 
-    def _wrapped_function(self, process_idx: int, function: Callable, args: Any, kwargs: Any) -> None:
-        self._worker_setup(process_idx)
-        function(*args, **kwargs)
-
     def _worker_setup(self, process_idx: int):
         reset_seed()
         self.tpu_local_core_rank = xm.get_local_ordinal()
