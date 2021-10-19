@@ -211,19 +211,19 @@ class LightningLite(ABC):
         Returns:
             The wrapped dataloader.
         """
-        if not replace_sampler or not (
+        sampler = dataloader.sampler
+        if replace_sampler and (
             self._requires_distributed_sampler(dataloader) or isinstance(self._accelerator, TPUAccelerator)
         ):
-            return dataloader
-        if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
-            raise MisconfigurationException(
-                "You seem to have configured a sampler in your DataLoader. This will be replaced "
-                " by `DistributedSampler` since `replace_sampler_ddp` is True and you are using"
-                " distributed training. Either remove the sampler from your DataLoader or set"
-                " `replace_sampler=False` if you want to use your custom sampler."
-            )
+            if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
+                raise MisconfigurationException(
+                    "You seem to have configured a sampler in your DataLoader. This will be replaced "
+                    " by `DistributedSampler` since `replace_sampler_ddp` is True and you are using"
+                    " distributed training. Either remove the sampler from your DataLoader or set"
+                    " `replace_sampler=False` if you want to use your custom sampler."
+                )
+            sampler = self._get_distributed_sampler(dataloader, **self._strategy.distributed_sampler_kwargs)
 
-        sampler = self._get_distributed_sampler(dataloader, **self._strategy.distributed_sampler_kwargs)
         kwargs = TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler)
         device = self.device if move_to_device else None
         return _LiteDataLoader(device=device, **kwargs)

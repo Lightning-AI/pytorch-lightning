@@ -15,7 +15,6 @@ from typing import List, Optional, Sequence
 
 import torch
 from torch.nn import DataParallel, Module
-from torch.optim import Optimizer
 
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
