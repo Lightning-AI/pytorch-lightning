@@ -626,7 +626,7 @@ class AcceleratorConnector:
 
         # these plugins are only supported on GPU
         if self.precision == 16 and self.use_gpu:
-            rank_zero_info(f"Using 16bit {self.amp_type.value} Mixed Precision (AMP)")
+            rank_zero_info(f"Using 16bit {self.amp_type.value} Native Mixed Precision (AMP)")
 
             if self.amp_type == AMPType.NATIVE:
                 if self._is_sharded_training_type:
