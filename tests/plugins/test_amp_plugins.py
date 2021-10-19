@@ -190,7 +190,7 @@ def test_cpu_amp_precision_context_manager(tmpdir):
     assert context_manager.fast_dtype == torch.bfloat16
 
 
-def test_bf16_precision_raises(monkeypatch):
+def test_precision_selection_raises(monkeypatch):
     with pytest.raises(
         MisconfigurationException, match=r"precision=16, amp_type='apex'\)` but apex AMP not supported on CPU"
     ):
@@ -203,6 +203,11 @@ def test_bf16_precision_raises(monkeypatch):
 
     with pytest.raises(MisconfigurationException, match="must install torch greater or equal to 1.10"):
         Trainer(precision="bf16")
+
+    with mock.patch("torch.cuda.device_count", return_value=1), pytest.raises(
+        MisconfigurationException, match="Sharded plugins are not supported with apex"
+    ):
+        Trainer(amp_backend="apex", precision=16, gpus=1, accelerator="ddp_fully_sharded")
 
     import pytorch_lightning.plugins.precision.apex_amp as apex
 
