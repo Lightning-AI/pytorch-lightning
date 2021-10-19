@@ -160,26 +160,33 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
         rank_zero_only.rank = self.cluster_environment.global_rank()
 
-    def get_mp_spawn_kwargs(self, trainer: "pl.Trainer") -> dict:
-        return {"args": (trainer, self.mp_queue), "nprocs": self.num_processes}
+    def get_mp_spawn_kwargs(self, trainer: Optional["pl.Trainer"] = None) -> Dict[str, Any]:
+        return {"nprocs": self.num_processes}
 
     def start_training(self, trainer: "pl.Trainer") -> None:
-        # TODO: refactor: call self.spawn() here
-        mp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
+        self.spawn(self.new_process, trainer, self.mp_queue)
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
 
     def start_evaluating(self, trainer: "pl.Trainer") -> None:
-        # TODO: refactor: call self.spawn() here
-        mp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
+        self.spawn(self.new_process, trainer, self.mp_queue)
 
     def start_predicting(self, trainer: "pl.Trainer") -> None:
-        # TODO: refactor: call self.spawn() here
-        mp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
+        self.spawn(self.new_process, trainer, self.mp_queue)
 
     def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> None:
+        """Spawn processes that run the given function.
+
+        Args:
+            function: The function to spawn processes from. It must at least accept one positional argument for the
+                process index.
+            *args: Optional positional arguments that will be passed to the function in addition to the process index.
+                These arguments must be pickleable.
+            **kwargs: Optional named arguments that will be passed to the function in addition to the process index.
+                These arguments must be pickleable.
+        """
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        mp.spawn(self._wrapped_function, args=(function, args, kwargs), nprocs=self.num_processes)
+        mp.spawn(self._wrapped_function, args=(function, args, kwargs), **self.get_mp_spawn_kwargs())
 
     def _wrapped_function(self, process_idx: int, function: Callable, args: Any, kwargs: Any) -> None:
         self._worker_setup(process_idx)
