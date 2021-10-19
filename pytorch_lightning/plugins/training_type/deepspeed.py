@@ -396,7 +396,7 @@ class DeepSpeedPlugin(DDPPlugin):
                 f" Got {len(models)} models and {len(optimizers)} optimizers instead."
             )
 
-        self.config["train_micro_batch_size_per_gpu"] = 1
+        self.config.setdefault("train_micro_batch_size_per_gpu", 1)
         self._model, optimizer = self._setup_model_and_optimizer(models[0], optimizers[0])
         self._set_deepspeed_activation_checkpointing()
         return [self._model], [optimizer]
