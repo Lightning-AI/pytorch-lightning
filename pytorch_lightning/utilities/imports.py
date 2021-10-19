@@ -18,7 +18,7 @@ import os
 import platform
 import sys
 from importlib.util import find_spec
-from typing import Callable, Optional
+from typing import Callable
 
 import pkg_resources
 import torch
