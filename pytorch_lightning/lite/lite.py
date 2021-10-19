@@ -135,7 +135,7 @@ class LightningLite(ABC):
         return getattr(self._strategy, "world_size", 1)
 
     @abstractmethod
-    def run(self, *args: Any, **kwargs: Any) -> None:
+    def run(self, *args: Any, **kwargs: Any) -> Any:
         """All the code inside this run method gets accelerated by Lite.
 
         Args:
@@ -308,7 +308,6 @@ class LightningLite(ABC):
             self._strategy.spawn(run_method, *args, **kwargs)
         else:
             run_method(*args, **kwargs)
-        # TODO: any teardown needed here?
 
     def _set_plugin_specific_precision_variables(self) -> None:
         # todo: these are hacks as plugins rely on access to the precision plugin
