@@ -77,12 +77,18 @@ class TrainingTypePlugin(ABC):
         return models, optimizers
 
     def _setup_model(self, model: Module) -> Module:
-        """Performs setup for the model, e.g., by wrapping it by another class. Primarily used by Lightning Lite."""
+        """Performs setup for the model, e.g., by wrapping it by another class.
+
+        Primarily used by Lightning Lite.
+        """
         # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
         return model
 
     def _setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
-        """Performs setup for the optimizer, e.g., by wrapping it by another class. Primarily used by Lightning Lite."""
+        """Performs setup for the optimizer, e.g., by wrapping it by another class.
+
+        Primarily used by Lightning Lite.
+        """
         # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
         return optimizer
 
