@@ -249,7 +249,7 @@ if __name__ == "__main__":
         limit_val_batches=2,
         limit_test_batches=2,
         num_sanity_val_steps=0,
-        devices=1,
+        devices=2,
         accelerator="auto",
         strategy="ddp",
     )

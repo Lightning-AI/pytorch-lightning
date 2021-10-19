@@ -48,6 +48,8 @@ With Lightning Loops, you can customize to non-standard gradient descent optimiz
 
 Think of this as swapping out the engine in a car!
 
+----------
+
 Understanding the default Trainer loop
 --------------------------------------
 
@@ -103,6 +105,7 @@ Defining a loop within a class interface instead of hard-coding a raw Python for
 .. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/loops/epoch-loop-steps.gif
     :alt: Animation showing how to convert a standard training loop to a Lightning loop
 
+----------
 
 .. _override default loops:
 
@@ -174,6 +177,8 @@ Now your code is FULLY flexible and you can still leverage ALL the best parts of
 .. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/loops/replace-fit-loop.gif
     :alt: Animation showing how to replace a loop on the Trainer
 
+----------
+
 Creating a new loop from scratch
 --------------------------------
 
@@ -208,6 +213,8 @@ Finally, attach it into the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 Now you have full control over the Trainer.
 But beware: The power of loop customization comes with great responsibility.
 We recommend that you familiarize yourself with :ref:`overriding the default loops <override default loops>` first before you start building a new loop from the ground up.
+
+----------
 
 Loop API
 --------
@@ -253,6 +260,8 @@ run (optional)
     :noindex:
 
 
+----------
+
 Subloops
 --------
 
@@ -273,6 +282,8 @@ More about the built-in loops and how they are composed is explained in the next
 
 .. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/loops/connect-epoch-loop.gif
     :alt: Animation showing how to connect a custom subloop
+
+----------
 
 .. _loop structure:
 
@@ -336,6 +347,8 @@ Each of these :code:`for`-loops represents a class implementing the :class:`~pyt
    * - :class:`~pytorch_lightning.loops.optimization.manual_loop.ManualOptimization`
      - Substitutes the :class:`~pytorch_lightning.loops.optimization.optimizer_loop.OptimizerLoop` in case of :ref:`manual_optimization` and implements the manual optimization step.
 
+
+----------
 
 Available Loops in Lightning Flash
 ----------------------------------
@@ -406,6 +419,8 @@ KFold can elegantly be implemented with `Lightning Loop Customization` as follow
 
 Here is the `KFold Loop example <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/loops/kfold.py>`_.
 
+
+----------
 
 Advanced Topics and Examples
 ----------------------------
