@@ -14,7 +14,6 @@
 import logging
 import os
 import re
-from functools import partial
 from multiprocessing.queues import SimpleQueue
 from typing import Any, Callable, Dict, List, Optional, Union
 
