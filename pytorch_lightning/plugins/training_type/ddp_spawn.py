@@ -159,24 +159,30 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
         rank_zero_only.rank = self.cluster_environment.global_rank()
 
-    def get_mp_spawn_kwargs(self, trainer: "pl.Trainer") -> dict:
-        return {"args": (trainer, self.mp_queue), "nprocs": self.num_processes}
+    def get_mp_spawn_kwargs(self, trainer: Optional["pl.Trainer"] = None) -> Dict[str, Any]:
+        return {"nprocs": self.num_processes}
 
     def start_training(self, trainer: "pl.Trainer") -> None:
-        # TODO: refactor: call self.spawn() here
-        mp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
+        self.spawn(self.new_process, trainer, self.mp_queue)
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
 
     def start_evaluating(self, trainer: "pl.Trainer") -> None:
-        # TODO: refactor: call self.spawn() here
-        mp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
+        self.spawn(self.new_process, trainer, self.mp_queue)
 
     def start_predicting(self, trainer: "pl.Trainer") -> None:
-        # TODO: refactor: call self.spawn() here
-        mp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
+        self.spawn(self.new_process, trainer, self.mp_queue)
 
     def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> None:
+        """Spawn processes that run the given function.
+
+        Args:
+            function: The function to spawn processes from.
+            *args: Optional positional arguments that will be passed to the function in addition to the process index.
+                These arguments must be pickleable.
+            **kwargs: Optional named arguments that will be passed to the function in addition to the process index.
+                These arguments must be pickleable.
+        """
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
         smp = mp.get_context("spawn")
         self.mp_queue = smp.SimpleQueue()
@@ -201,8 +207,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         rank_zero_only.rank = self.global_rank
         init_ddp_connection(self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size)
 
-    def new_process(self, process_idx: int, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
-        self._worker_setup(process_idx)
+    def new_process(self, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
         self.mp_queue = mp_queue
 
         # move the model to the correct device

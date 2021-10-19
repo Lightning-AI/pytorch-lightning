@@ -21,6 +21,7 @@ import pytest
 import torch
 import torch.multiprocessing as mp
 from torch import nn
+from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
@@ -58,10 +59,12 @@ def main(
     model = move_to_device(model)
     optimizer = configure_optimizers(model)
 
-    for _ in range(num_epochs):
+    print(train_dataloader.sampler)
 
+    for _ in range(num_epochs):
         model.train()
-        for batch in train_dataloader:
+        for idx, batch in enumerate(train_dataloader):
+            print(os.getenv("LOCAL_RANK"), batch[0][0])
             batch = move_to_device(batch)
             optimizer.zero_grad()
             loss = model(batch)
@@ -80,15 +83,17 @@ class LiteRunner(LightningLite):
         model.train()
         for _ in range(num_epochs):
             for batch in train_dataloader:
+                print(self.global_rank, batch[0][0])
                 batch = self.to_device(batch)
                 optimizer.zero_grad()
                 loss = model(batch)
                 self.backward(loss)
                 optimizer.step()
 
-        if isinstance(self._strategy, DDPSpawnPlugin) and tmpdir:
+        if isinstance(self._strategy, DDPSpawnPlugin) and tmpdir and self._strategy.is_global_zero:
             checkpoint_path = os.path.join(tmpdir, "model.pt")
-            atomic_save(model.state_dict(), checkpoint_path)
+            state_dict = move_data_to_device(model.state_dict(), torch.device("cpu"))
+            atomic_save(state_dict, checkpoint_path)
             return checkpoint_path
 
 
@@ -147,26 +152,29 @@ def test_boring_lite_model_single_device(precision, strategy, devices, accelerat
         assert torch.equal(w_pure, w_lite)
 
 
-def run(rank, model, train_dataloader, num_epochs, precision, accelerator, mp_queue, tmpdir):
+def run(rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdir):
     os.environ["LOCAL_RANK"] = str(rank)
-    os.environ["MASTER_ADDR"] = "127.0.0.1"
-    os.environ["MASTER_PORT"] = str(find_free_network_port())
     if torch.distributed.is_available() and not torch.distributed.is_initialized():
         torch.distributed.init_process_group("gloo", rank=rank, world_size=2)
 
-    data_fn = partial(move_data_to_device, device=torch.device(f"cuda:{rank}"))
-    sampler = DistributedSampler(train_dataloader.dataset, rank=rank, num_replicas=2)
-    train_dataloader = DataLoader(train_dataloader.dataset, sampler=sampler)
+    to_device = partial(move_data_to_device, device=torch.device(f"cuda:{rank}"))
+    model = DistributedDataParallel(
+        to_device(model),
+        device_ids=[rank],
+    )
+    seed_everything(42)
+    train_dataloader = DataLoader(
+        train_dataloader.dataset,
+        sampler=DistributedSampler(train_dataloader.dataset, rank=rank, num_replicas=2, shuffle=False),
+    )
+    print(train_dataloader.dataset[0])
     with precision_context(precision, accelerator):
-        main(data_fn, model, train_dataloader, num_epochs=num_epochs)
+        main(to_device, model, train_dataloader, num_epochs=num_epochs)
 
     if rank == 0:
-        checkpoint_path = os.path.join(tmpdir, "model.pt")
-        atomic_save(model.state_dict(), checkpoint_path)
-        mp_queue.put(checkpoint_path)
-
-    if torch.distributed.is_available() and torch.distributed.is_initialized():
-        torch.distributed.destroy_process_group()
+        checkpoint_path = os.path.join(tmpdir, "model_spawn.pt")
+        state_dict = move_data_to_device(model.state_dict(), torch.device("cpu"))
+        atomic_save(state_dict, checkpoint_path)
 
 
 @RunIf(min_gpus=2)
@@ -178,28 +186,23 @@ def run(rank, model, train_dataloader, num_epochs, precision, accelerator, mp_qu
 )
 def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, tmpdir):
     seed_everything(42)
-    train_dataloader = DataLoader(RandomDataset(32, 64))
+    train_dataloader = DataLoader(RandomDataset(32, 64), shuffle=False)
     model = BoringModel()
     num_epochs = 1
     state_dict = deepcopy(model.state_dict())
 
-    if False:
-        lite = LiteRunner(precision=precision, strategy=strategy, devices=devices, accelerator=accelerator)
-        checkpoint_path = lite.run(model, train_dataloader, num_epochs=num_epochs, tmpdir=tmpdir)
-        spawn_model_state_dict = torch.load(checkpoint_path[0])
+    lite = LiteRunner(precision=precision, strategy=strategy, devices=devices, accelerator=accelerator)
+    checkpoint_path = lite.run(model, train_dataloader, num_epochs=num_epochs, tmpdir=tmpdir)
+    spawn_model_state_dict = torch.load(checkpoint_path[0])
 
-        state_dict = apply_to_collection(state_dict, torch.Tensor, lite.to_device)
-        for o_pure, w_lite in zip(state_dict.values(), spawn_model_state_dict.values()):
-            assert not torch.equal(o_pure, w_lite)
+    for o_pure, w_lite in zip(state_dict.values(), spawn_model_state_dict.values()):
+        assert not torch.equal(o_pure, w_lite)
 
     model.load_state_dict(state_dict)
-    smp = mp.get_context("spawn")
-    mp_queue = smp.SimpleQueue()
-    mp.spawn(
-        run, args=(model, train_dataloader, num_epochs, precision, accelerator, smp.SimpleQueue(), tmpdir), nprocs=2
-    )
-    checkpoint_path = mp_queue.get()
-    spawn_pure_model_state_dict = torch.load(checkpoint_path)
+    os.environ["MASTER_ADDR"] = "127.0.0.1"
+    os.environ["MASTER_PORT"] = str(find_free_network_port())
+    mp.spawn(run, args=(model, train_dataloader, num_epochs, precision, accelerator, tmpdir), nprocs=2)
+    spawn_pure_model_state_dict = torch.load(os.path.join(tmpdir, "model_spawn.pt"))
 
     for w_pure, w_lite in zip(spawn_pure_model_state_dict.values(), spawn_model_state_dict.values()):
         assert torch.equal(w_pure, w_lite)

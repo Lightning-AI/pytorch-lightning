@@ -33,6 +33,7 @@ from pytorch_lightning.plugins import (
     DDPSpawnPlugin,
     DeepSpeedPlugin,
     PLUGIN_INPUT,
+    TPUSpawnPlugin,
     TrainingTypePlugin,
 )
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
@@ -84,7 +85,6 @@ class LightningLite(ABC):
             devices=devices,
             tpu_cores=tpu_cores,
             ipus=None,
-            distributed_backend=None,
             accelerator=accelerator,
             strategy=strategy,
             gpus=gpus,
@@ -135,7 +135,7 @@ class LightningLite(ABC):
         return getattr(self._strategy, "world_size", 1)
 
     @abstractmethod
-    def run(self, *args: Any, **kwargs: Any) -> None:
+    def run(self, *args: Any, **kwargs: Any) -> Any:
         """All the code inside this run method gets accelerated by Lite.
 
         Args:
@@ -164,7 +164,17 @@ class LightningLite(ABC):
         optimizers = [optimizers] if isinstance(optimizers, Optimizer) else optimizers
 
         if move_to_device:
+            params_on_cpu = dict(model.named_parameters())
             model = self.to_device(model)
+            params_on_device = dict(model.named_parameters())
+
+            # When the user creates the optimizer, they reference the parameters on the CPU.
+            # However, when running with TPU the parameters get copied and the reference in the optimizer
+            # remains invalid. We need to update the references to point to the parameter tensors on the device.
+            mapping = {param: params_on_device[name] for name, param in params_on_cpu.items()}
+            for optimizer in optimizers:
+                for param_group in optimizer.param_groups:
+                    param_group["params"] = [mapping.get(p, p) for p in param_group["params"]]
 
         model, optimizers = self._setup_model_and_optimizers(model, optimizers)
         optimizers = optimizers[0] if len(optimizers) == 1 else optimizers
@@ -211,22 +221,26 @@ class LightningLite(ABC):
         Returns:
             The wrapped dataloader.
         """
-        if not replace_sampler or not (
+        sampler = dataloader.sampler
+        if replace_sampler and (
             self._requires_distributed_sampler(dataloader) or isinstance(self._accelerator, TPUAccelerator)
         ):
-            return dataloader
-        if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
-            raise MisconfigurationException(
-                "You seem to have configured a sampler in your DataLoader. This will be replaced "
-                " by `DistributedSampler` since `replace_sampler_ddp` is True and you are using"
-                " distributed training. Either remove the sampler from your DataLoader or set"
-                " `replace_sampler=False` if you want to use your custom sampler."
-            )
+            if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
+                raise MisconfigurationException(
+                    "You seem to have configured a sampler in your DataLoader. This will be replaced "
+                    " by `DistributedSampler` since `replace_sampler_ddp` is True and you are using"
+                    " distributed training. Either remove the sampler from your DataLoader or set"
+                    " `replace_sampler=False` if you want to use your custom sampler."
+                )
+            sampler = self._get_distributed_sampler(dataloader, **self._strategy.distributed_sampler_kwargs)
 
-        sampler = self._get_distributed_sampler(dataloader, **self._strategy.distributed_sampler_kwargs)
         kwargs = TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler)
         device = self.device if move_to_device else None
-        return _LiteDataLoader(device=device, **kwargs)
+        if isinstance(self._strategy, TPUSpawnPlugin):
+            dataloader = DataLoader(**kwargs)
+        else:
+            dataloader = _LiteDataLoader(device=device, **kwargs)
+        return self._strategy.process_dataloader(dataloader)
 
     def backward(self, tensor: Tensor, *args: Any, **kwargs: Any) -> None:
         """Replaces ``loss.backward()`` in your training loop. Handles precision and automatically for you.
@@ -236,7 +250,7 @@ class LightningLite(ABC):
             *args: Optional positional arguments passed to the underlying backward function.
             **kwargs: Optional named keyword arguments passed to the underlying backward function.
         """
-        self._precision_plugin.run_backward(tensor, self._strategy.model, *args, **kwargs)
+        self._precision_plugin._run_backward(tensor, self._strategy.model, *args, **kwargs)
 
     @contextmanager
     def cast(self) -> Generator[None, None, None]:
@@ -260,6 +274,10 @@ class LightningLite(ABC):
             A reference to the object that was moved to the new device.
         """
         if isinstance(obj, nn.Module):
+            if self.device.type == "cuda":
+                # need to call this manually here again in case we spawned with DDPSpawnPlugin
+                # TODO: refactor to let plugin handle this cleanly
+                torch.cuda.set_device(self.device)
             return obj.to(self.device)
         return move_data_to_device(obj, device=self.device)
 
@@ -303,7 +321,7 @@ class LightningLite(ABC):
 
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
         self._set_plugin_specific_precision_variables()
-        self._strategy.setup_environment()
+        self._accelerator.setup_environment()
         if isinstance(self._strategy, DDPSpawnPlugin):
             self._strategy.spawn(run_method, *args, **kwargs)
             return self._strategy.mp_queue.get()

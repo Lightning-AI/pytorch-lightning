@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import argparse
 
 import torch
@@ -62,13 +75,13 @@ class MNIST(LightningLite):
 
         model = Net()
         optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
 
         train_loader, test_loader = self.setup_dataloaders(train_loader, test_loader)
         assert isinstance(train_loader.sampler, DistributedSampler)
         assert isinstance(test_loader.sampler, DistributedSampler)
         model, optimizer = self.setup(model, optimizer)
 
-        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
         for epoch in range(1, args.epochs + 1):
             self.train(args, model, train_loader, optimizer, epoch)
             self.test(model, test_loader)
@@ -87,7 +100,7 @@ class MNIST(LightningLite):
             self.backward(loss)
             optimizer.step()
             if batch_idx % args.log_interval == 0:
-                print(
+                self.print(
                     "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
                         epoch,
                         batch_idx * len(data),
@@ -113,7 +126,7 @@ class MNIST(LightningLite):
 
         test_loss /= len(test_loader.dataset)
 
-        print(
+        self.print(
             "\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n".format(
                 test_loss, correct, len(test_loader.dataset), 100.0 * correct / len(test_loader.dataset)
             )

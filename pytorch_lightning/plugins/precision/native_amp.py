@@ -15,6 +15,7 @@ from contextlib import contextmanager
 from typing import Any, Callable, Dict, Generator, Union
 
 import torch
+from torch import Tensor
 from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 
@@ -69,10 +70,10 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         closure_loss = self.scaler.scale(closure_loss)
         return super().pre_backward(model, closure_loss)
 
-    def run_backward(self, tensor, model, *args, **kwargs):
+    def _run_backward(self, tensor: Tensor, model: Module, *args: Any, **kwargs: Any) -> None:
         if not self.is_bfloat16:
             tensor = self.scaler.scale(tensor)
-        super().run_backward(tensor, model, *args, **kwargs)
+        super()._run_backward(tensor, model, *args, **kwargs)
 
     def pre_optimizer_step(
         self,
@@ -99,17 +100,6 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             self.scaler.step(optimizer)
             self.scaler.update()
         return False
-
-    def post_optimizer_step(self, optimizer: "Optimizer", optimizer_idx: int) -> None:
-        """Updates the GradScaler."""
-        self.run_post_optimizer_step(optimizer)
-
-    def run_pre_optimizer_step(self, optimizer: "Optimizer") -> None:
-        self.scaler.unscale_(optimizer)
-
-    def run_post_optimizer_step(self, optimizer: "Optimizer") -> None:
-        self.scaler.step(optimizer)
-        self.scaler.update()
 
     def autocast_context_manager(self) -> torch.cuda.amp.autocast:
         if self.use_cpu:
