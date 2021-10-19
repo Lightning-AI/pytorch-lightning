@@ -48,7 +48,7 @@ from pytorch_lightning.profiler import (
     XLAProfiler,
 )
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
-from pytorch_lightning.trainer.configuration_validator import ConfigValidator
+from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
@@ -357,7 +357,7 @@ class Trainer(
                 you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
 
             resume_from_checkpoint: Path/URL of the checkpoint from which training is resumed. If there is
-                no checkpoint file at the path, start from scratch. If resuming from mid-epoch checkpoint,
+                no checkpoint file at the path, an exception is raised. If resuming from mid-epoch checkpoint,
                 training will start from the beginning of the next epoch.
 
             strategy: Supports different training strategies with aliases
@@ -422,7 +422,6 @@ class Trainer(
         gpu_ids, tpu_cores = self._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
         # init connectors
-        self._config_validator = ConfigValidator(self)
         self.data_connector = DataConnector(self, multiple_trainloader_mode)
         self.optimizer_connector = OptimizerConnector(self)
 
@@ -1018,7 +1017,7 @@ class Trainer(
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
 
-        self._config_validator.verify_loop_configurations(model)
+        verify_loop_configurations(self, model)
 
         # attach model log function to callback
         self.callback_connector.attach_model_logging_functions(model)
@@ -1225,7 +1224,8 @@ class Trainer(
         # reload data when needed
         model = self.lightning_module
 
-        self.reset_train_val_dataloaders(model)
+        if isinstance(self.fit_loop, FitLoop):
+            self.reset_train_val_dataloaders(model)
 
         self.fit_loop.trainer = self
         with torch.autograd.set_detect_anomaly(self._detect_anomaly):

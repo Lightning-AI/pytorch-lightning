@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import sys
+from contextlib import redirect_stderr
+from io import StringIO
 from re import escape
 
 import pytest
@@ -19,14 +20,13 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torch.utils.data.sampler import BatchSampler, Sampler, SequentialSampler
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7
 from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
-@pytest.mark.skipif(
-    sys.platform == "win32" and not _TORCH_GREATER_EQUAL_1_7, reason="Bad `torch.distributed` support on Windows"
-)
+@RunIf(skip_windows=True, min_torch="1.7.0")
 @pytest.mark.parametrize("mode", (1, 2, 3))
 def test_replace_distributed_sampler(tmpdir, mode):
     class IndexedRandomDataset(RandomDataset):
@@ -100,24 +100,45 @@ def test_replace_distributed_sampler(tmpdir, mode):
         trainer.test(model)
 
 
+class TestSpawnBoringModel(BoringModel):
+    def __init__(self, num_workers):
+        super().__init__()
+        self.num_workers = num_workers
+
+    def train_dataloader(self):
+        return DataLoader(RandomDataset(32, 64), num_workers=self.num_workers)
+
+    def on_pretrain_routine_start(self):
+        self._resout = StringIO()
+        self.ctx = redirect_stderr(self._resout)
+        self.ctx.__enter__()
+
+    def on_train_end(self):
+        def _get_warning_msg():
+            dl = self.trainer.train_dataloader.loaders
+            if hasattr(dl, "persistent_workers"):
+                if self.num_workers == 0:
+                    warn_str = "Consider setting num_workers>0 and persistent_workers=True"
+                else:
+                    warn_str = "Consider setting persistent_workers=True"
+            else:
+                warn_str = "Consider setting accelerator=ddp"
+
+            return warn_str
+
+        if self.trainer.is_global_zero:
+            self.ctx.__exit__(None, None, None)
+            msg = self._resout.getvalue()
+            warn_str = _get_warning_msg()
+            assert warn_str in msg
+
+
+@RunIf(skip_windows=True)
 @pytest.mark.parametrize("num_workers", [0, 1])
-def test_dataloader_warnings(num_workers):
-    class TestModel(BoringModel):
-        def on_train_start(self, *_) -> None:
-            raise SystemExit()
-
-    dl = DataLoader(RandomDataset(32, 64), num_workers=num_workers)
-    if hasattr(dl, "persistent_workers"):
-        if num_workers == 0:
-            warn_str = "Consider setting num_workers>0 and persistent_workers=True"
-        else:
-            warn_str = "Consider setting persistent_workers=True"
-    else:
-        warn_str = "Consider setting accelerator=ddp"
-
-    trainer = Trainer(accelerator="ddp_spawn")
-    with pytest.warns(UserWarning, match=warn_str), pytest.raises(SystemExit):
-        trainer.fit(TestModel(), dl)
+def test_dataloader_warnings(tmpdir, num_workers):
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="ddp_spawn", num_processes=2, fast_dev_run=4)
+    assert trainer.accelerator_connector._distrib_type == DistributedType.DDP_SPAWN
+    trainer.fit(TestSpawnBoringModel(num_workers))
 
 
 def test_update_dataloader_raises():

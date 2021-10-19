@@ -143,21 +143,30 @@ class PrecisionPlugin(CheckpointHooks):
         """Hook to do something after the training/evaluation/prediction finishes."""
 
     @contextlib.contextmanager
-    def train_step_context(self) -> Generator:
+    def forward_context(self) -> Generator[None, None, None]:
+        """A contextmanager for managing model forward/training_step/evaluation_step/predict_step."""
+        yield
+
+    @contextlib.contextmanager
+    def train_step_context(self) -> Generator[None, None, None]:
         """A contextmanager for the training step."""
-        yield
+        with self.forward_context():
+            yield
 
     @contextlib.contextmanager
-    def val_step_context(self) -> Generator:
+    def val_step_context(self) -> Generator[None, None, None]:
         """A contextmanager for the validation step."""
-        yield
+        with self.forward_context():
+            yield
 
     @contextlib.contextmanager
-    def test_step_context(self) -> Generator:
+    def test_step_context(self) -> Generator[None, None, None]:
         """A contextmanager for the test step."""
-        yield
+        with self.forward_context():
+            yield
 
     @contextlib.contextmanager
-    def predict_step_context(self) -> Generator:
+    def predict_step_context(self) -> Generator[None, None, None]:
         """A contextmanager for the predict step."""
-        yield
+        with self.forward_context():
+            yield
