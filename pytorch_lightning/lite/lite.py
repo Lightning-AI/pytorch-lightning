@@ -226,7 +226,8 @@ class LightningLite(ABC):
 
         kwargs = TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler)
         device = self.device if move_to_device else None
-        return _LiteDataLoader(device=device, **kwargs)
+        lite_dataloader = _LiteDataLoader(device=device, **kwargs)
+        return self._strategy.process_dataloader(lite_dataloader)
 
     def backward(self, tensor: Tensor, *args: Any, **kwargs: Any) -> None:
         """Replaces ``loss.backward()`` in your training loop. Handles precision and automatically for you.
