@@ -101,17 +101,6 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             self.scaler.update()
         return False
 
-    def post_optimizer_step(self, optimizer: "Optimizer", optimizer_idx: int) -> None:
-        """Updates the GradScaler."""
-        self.run_post_optimizer_step(optimizer)
-
-    def run_pre_optimizer_step(self, optimizer: "Optimizer") -> None:
-        self.scaler.unscale_(optimizer)
-
-    def run_post_optimizer_step(self, optimizer: "Optimizer") -> None:
-        self.scaler.step(optimizer)
-        self.scaler.update()
-
     def autocast_context_manager(self) -> torch.cuda.amp.autocast:
         if self.use_cpu:
             return torch.cpu.amp.autocast(dtype=self._dtype)  # Only reached in pytorch==1.10 where this is ok. skipcq
