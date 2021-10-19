@@ -986,3 +986,8 @@ def test_unsupported_tpu_choice(monkeypatch):
     monkeypatch.setattr(AcceleratorConnector, "has_tpu", True)
     with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision=64\)` is not implemented"):
         Trainer(accelerator="tpu", precision=64)
+
+    with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but native AMP is not supported"):
+        Trainer(accelerator="tpu", precision=16)
+    with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but apex AMP is not supported"):
+        Trainer(accelerator="tpu", precision=16, amp_backend="apex")
