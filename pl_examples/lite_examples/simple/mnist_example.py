@@ -87,7 +87,7 @@ class MNIST(LightningLite):
             self.backward(loss)
             optimizer.step()
             if batch_idx % args.log_interval == 0:
-                print(
+                self.print(
                     "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
                         epoch,
                         batch_idx * len(data),
