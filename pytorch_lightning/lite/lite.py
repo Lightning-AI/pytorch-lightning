@@ -346,7 +346,7 @@ class LightningLite(ABC):
         optimizers: List[Optimizer],
     ) -> Tuple[_LiteModule, List[_LiteOptimizer]]:
         # Let accelerator/plugin wrap and connect the models and optimizers
-        [model], optimizers = self._strategy.setup_models_and_optimizers([model], optimizers)
+        [model], optimizers = self._strategy._setup_models_and_optimizers([model], optimizers)
         model = _LiteModule(module=model, accelerator=self._accelerator)
         optimizers = [_LiteOptimizer(optimizer=optimizer, accelerator=self._accelerator) for optimizer in optimizers]
         return model, optimizers
