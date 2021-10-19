@@ -24,6 +24,7 @@ from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tupl
 import torch
 from torch.nn import Module
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
@@ -383,7 +384,6 @@ class DeepSpeedPlugin(DDPPlugin):
         self.init_deepspeed()
         self.barrier()
 
-    # TODO: avoid code duplication by letting the plugin reuse this method
     def setup_models_and_optimizers(
         self, models: List[Module], optimizers: List[Optimizer]
     ) -> Tuple[List[Module], List[Optimizer]]:
@@ -393,24 +393,22 @@ class DeepSpeedPlugin(DDPPlugin):
                 f" Got {len(models)} models and {len(optimizers)} optimizers instead."
             )
 
-        # TODO: is this the correct place to set this?
         self.config["train_micro_batch_size_per_gpu"] = 1
-
         self._model, optimizer = self._setup_model_and_optimizer(models[0], optimizers[0])
-
-        # TODO: do we need to call it here?
-        # self._set_deepspeed_activation_checkpointing()
+        self._set_deepspeed_activation_checkpointing()
         return [self._model], [optimizer]
 
-    def _setup_model_and_optimizer(self, model: Module, optimizer: Optimizer):
-        # TODO: shouldn't this be optimizer.parameters?
+    def _setup_model_and_optimizer(
+        self, model: Module, optimizer: Optimizer, lr_scheduler: Optional[_LRScheduler] = None
+    ):
         model_parameters = filter(lambda p: p.requires_grad, model.parameters())
         deepspeed_engine, deepspeed_optimizer, _, _ = deepspeed.initialize(
             args=argparse.Namespace(device_rank=self.root_device.index),
             config=self.config,
             model=model,
-            model_parameters=model_parameters,  # TODO: is the type correct here?
+            model_parameters=model_parameters,  # type: ignore
             optimizer=optimizer,
+            lr_scheduler=lr_scheduler,
             dist_init_required=False,
         )
         return deepspeed_engine, deepspeed_optimizer
@@ -479,18 +477,7 @@ class DeepSpeedPlugin(DDPPlugin):
             optimizer, lr_scheduler, _ = self._init_optimizers()
 
         scheduler = lr_scheduler["scheduler"]
-
-        model_parameters = filter(lambda p: p.requires_grad, self.model.parameters())
-        model, deepspeed_optimizer, _, deepspeed_scheduler = deepspeed.initialize(
-            args=argparse.Namespace(device_rank=self.root_device.index),
-            config=self.config,
-            model=model,
-            model_parameters=model_parameters,
-            optimizer=optimizer,
-            lr_scheduler=scheduler,
-            dist_init_required=False,
-        )
-
+        model, deepspeed_optimizer = self._setup_model_and_optimizer(model, optimizer, scheduler)
         self._set_deepspeed_activation_checkpointing()
 
         # although we set these here, deepspeed manages the specific optimizer logic
