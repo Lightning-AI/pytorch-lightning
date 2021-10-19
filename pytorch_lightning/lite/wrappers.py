@@ -77,6 +77,17 @@ class _LiteModule(nn.Module):
         return self._module
 
     def forward(self, *args: Any, **kwargs: Any) -> Any:
+        precision = self._accelerator.precision_plugin.precision
+        precision_to_type = {
+            "mixed": torch.half,
+            16: torch.half,
+            32: torch.float,
+            64: torch.double,
+        }
+        # TODO (@awaelchli): let the precision plugin handle the conversion
+        to_type = precision_to_type[precision]
+        args, kwargs = apply_to_collection([args, kwargs], function=lambda t: t.to(to_type), dtype=Tensor)
+
         with self._accelerator.precision_plugin.forward_context():
             output = self.module.forward(*args, **kwargs)
 
