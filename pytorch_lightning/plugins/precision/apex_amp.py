@@ -20,6 +20,7 @@ from torch.optim import Optimizer
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _PARAMETERS
 
 if _APEX_AVAILABLE:
@@ -30,6 +31,11 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     """Mixed Precision Plugin based on Nvidia/Apex (https://github.com/NVIDIA/apex)"""
 
     def __init__(self, amp_level: str = "O2") -> None:
+        if not _APEX_AVAILABLE:
+            raise MisconfigurationException(
+                "You have asked for Apex AMP but you have not installed it."
+                " Install `apex` using this guide: https://github.com/NVIDIA/apex"
+            )
         super().__init__()
         self.backend = AMPType.APEX
         self.amp_level = amp_level

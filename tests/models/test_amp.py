@@ -22,8 +22,8 @@ from torch.utils.data import DataLoader
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins.environments import SLURMEnvironment
-from pytorch_lightning.utilities import _TORCH_BFLOAT_AVAILABLE, _TORCH_CPU_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_DEV_1_10
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -69,7 +69,7 @@ class AMPTestModel(BoringModel):
             assert torch.is_autocast_enabled()
 
 
-@pytest.mark.skipif(not _TORCH_CPU_AMP_AVAILABLE, reason="CPU AMP not available")
+@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_DEV_1_10, reason="Needs bfloat16 support")
 @pytest.mark.parametrize(
     "strategy",
     [
@@ -78,13 +78,7 @@ class AMPTestModel(BoringModel):
         "ddp_spawn",
     ],
 )
-@pytest.mark.parametrize(
-    "precision",
-    [
-        pytest.param(16, marks=pytest.mark.skip("CPU precision 16 is not supported in PyTorch yet.")),  # TODO
-        "bf16",
-    ],
-)
+@pytest.mark.parametrize("precision", [16, "bf16"])
 @pytest.mark.parametrize("num_processes", [1, 2])
 def test_amp_cpus(tmpdir, strategy, precision, num_processes):
     """Make sure combinations of AMP and training types work if supported."""
@@ -95,7 +89,6 @@ def test_amp_cpus(tmpdir, strategy, precision, num_processes):
     )
 
     model = AMPTestModel()
-    # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
     trainer.test(model)
     trainer.predict(model, DataLoader(RandomDataset(32, 64)))
@@ -104,20 +97,9 @@ def test_amp_cpus(tmpdir, strategy, precision, num_processes):
 
 
 @RunIf(min_gpus=2)
-@pytest.mark.parametrize(
-    "strategy",
-    [None, "dp", "ddp_spawn"],
-)
-@pytest.mark.parametrize(
-    "precision",
-    [
-        16,
-        pytest.param(
-            "bf16",
-            marks=pytest.mark.skipif(not _TORCH_BFLOAT_AVAILABLE, reason="torch.bfloat16 not available"),
-        ),
-    ],
-)
+@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_DEV_1_10, reason="Needs bfloat16 support")
+@pytest.mark.parametrize("strategy", [None, "dp", "ddp_spawn"])
+@pytest.mark.parametrize("precision", [16, "bf16"])
 @pytest.mark.parametrize("gpus", [1, 2])
 def test_amp_gpus(tmpdir, strategy, precision, gpus):
     """Make sure combinations of AMP and training types work if supported."""
@@ -126,7 +108,6 @@ def test_amp_gpus(tmpdir, strategy, precision, gpus):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=gpus, strategy=strategy, precision=precision)
 
     model = AMPTestModel()
-    # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
     trainer.test(model)
     trainer.predict(model, DataLoader(RandomDataset(32, 64)))
