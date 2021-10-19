@@ -13,7 +13,7 @@
 # limitations under the License.
 from contextlib import contextmanager
 from multiprocessing.queues import SimpleQueue
-from typing import Dict, Generator, Optional, List, Tuple
+from typing import Dict, Generator, List, Optional, Tuple
 
 import torch
 from torch.nn import Module
