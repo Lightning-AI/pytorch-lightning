@@ -436,7 +436,7 @@ class LightningCLI:
                 called. If ``None``, you can pass a registered model with ``--model=MyModel``.
             datamodule_class: An optional :class:`~pytorch_lightning.core.datamodule.LightningDataModule` class or a
                 callable which returns a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` instance when
-                called. If ``None``, you can pass a registered model with ``--datamodule=MyDataModule``.
+                called. If ``None``, you can pass a registered datamodule with ``--data=MyDataModule``.
             save_config_callback: A callback class to save the training config.
             save_config_filename: Filename for the config file.
             save_config_overwrite: Whether to overwrite an existing config file.
