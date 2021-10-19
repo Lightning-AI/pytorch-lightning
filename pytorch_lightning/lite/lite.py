@@ -261,6 +261,10 @@ class LightningLite(ABC):
             A reference to the object that was moved to the new device.
         """
         if isinstance(obj, nn.Module):
+            if self.device.type == "cuda":
+                # need to call this manually here again in case we spawned with DDPSpawnPlugin
+                # TODO: refactor to let plugin handle this cleanly
+                torch.cuda.set_device(self.device)
             return obj.to(self.device)
         return move_data_to_device(obj, device=self.device)
 
