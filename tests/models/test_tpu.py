@@ -39,13 +39,6 @@ if _TPU_AVAILABLE:
 
     SERIAL_EXEC = xmp.MpSerialExecutor()
 
-_LARGER_DATASET = RandomDataset(32, 2000)
-
-
-# 8 cores needs a big dataset
-def _serial_train_loader():
-    return DataLoader(_LARGER_DATASET, batch_size=32)
-
 
 class SerialLoaderBoringModel(BoringModel):
     def train_dataloader(self):
