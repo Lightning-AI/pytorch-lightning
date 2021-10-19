@@ -66,8 +66,8 @@ class TrainingTypePlugin(ABC):
     ) -> Tuple[List[Module], List[Optimizer]]:
         """Setup multiple models and multiple optimizers together.
 
-        The returned objects are expected to be in the same order they were passed in.
-        The default implementation will call :meth:`_setup_model` and :meth:`_setup_optimizer` on the input lists.
+        The returned objects are expected to be in the same order they were passed in. The default implementation will
+        call :meth:`_setup_model` and :meth:`_setup_optimizer` on the input lists.
         """
         # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
         models = [self._setup_model(model) for model in models]
