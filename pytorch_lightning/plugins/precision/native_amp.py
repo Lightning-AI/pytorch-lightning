@@ -15,6 +15,8 @@ from contextlib import contextmanager
 from typing import Any, Callable, Dict, Generator, Union
 
 import torch
+from torch import Tensor
+from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
@@ -68,6 +70,11 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         closure_loss = self.scaler.scale(closure_loss)
         return super().pre_backward(model, closure_loss)
 
+    def _run_backward(self, tensor: Tensor, model: Module, *args: Any, **kwargs: Any) -> None:
+        if not self.is_bfloat16:
+            tensor = self.scaler.scale(tensor)
+        super()._run_backward(tensor, model, *args, **kwargs)
+
     def pre_optimizer_step(
         self,
         model: "pl.LightningModule",
@@ -102,25 +109,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         return torch.cuda.amp.autocast()
 
     @contextmanager
-    def train_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context."""
-        with self.autocast_context_manager():
-            yield
-
-    @contextmanager
-    def val_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context."""
-        with self.autocast_context_manager():
-            yield
-
-    @contextmanager
-    def test_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context."""
-        with self.autocast_context_manager():
-            yield
-
-    @contextmanager
-    def predict_step_context(self) -> Generator[None, None, None]:
+    def forward_context(self) -> Generator[None, None, None]:
         """Enable autocast context."""
         with self.autocast_context_manager():
             yield

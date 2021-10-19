@@ -91,7 +91,7 @@ def test_all_gather_collection(tmpdir):
         log_every_n_steps=1,
         accumulate_grad_batches=2,
         gpus=2,
-        accelerator="ddp",
+        strategy="ddp",
     )
 
     trainer.fit(model)
@@ -115,6 +115,6 @@ def test_all_gather_sync_grads(tmpdir):
             return loss
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, accelerator="ddp")
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, strategy="ddp")
     trainer.fit(model)
     assert model.training_step_called

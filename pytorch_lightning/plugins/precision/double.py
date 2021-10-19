@@ -92,37 +92,7 @@ class DoublePrecisionPlugin(PrecisionPlugin):
         return super().connect(model, optimizers, lr_schedulers)
 
     @contextmanager
-    def train_step_context(self) -> Generator[None, None, None]:
-        """A context manager to change the default tensor type.
-
-        See: :meth:`torch.set_default_tensor_type`
-        """
-        torch.set_default_tensor_type(torch.DoubleTensor)
-        yield
-        torch.set_default_tensor_type(torch.FloatTensor)
-
-    @contextmanager
-    def val_step_context(self) -> Generator[None, None, None]:
-        """A context manager to change the default tensor type.
-
-        See: :meth:`torch.set_default_tensor_type`
-        """
-        torch.set_default_tensor_type(torch.DoubleTensor)
-        yield
-        torch.set_default_tensor_type(torch.FloatTensor)
-
-    @contextmanager
-    def test_step_context(self) -> Generator[None, None, None]:
-        """A context manager to change the default tensor type.
-
-        See: :meth:`torch.set_default_tensor_type`
-        """
-        torch.set_default_tensor_type(torch.DoubleTensor)
-        yield
-        torch.set_default_tensor_type(torch.FloatTensor)
-
-    @contextmanager
-    def predict_step_context(self) -> Generator[None, None, None]:
+    def forward_context(self) -> Generator[None, None, None]:
         """A context manager to change the default tensor type.
 
         See: :meth:`torch.set_default_tensor_type`

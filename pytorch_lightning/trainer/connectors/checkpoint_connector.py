@@ -59,9 +59,6 @@ class CheckpointConnector:
         1. from HPC weights if found
         2. from `resume_from_checkpoint` file if provided
         3. don't restore
-
-        Raises:
-            FileNotFoundError: If the path to the checkpoint file is provided but the file does not exist.
         """
         self.resume_checkpoint_path = self.hpc_resume_path or self.resume_checkpoint_path
         checkpoint_path = self.resume_checkpoint_path
@@ -465,7 +462,7 @@ class CheckpointConnector:
             weights_only: saving model weights only
         """
         _checkpoint = self.dump_checkpoint(weights_only)
-        self.trainer.accelerator.save_checkpoint(_checkpoint, filepath)
+        self.trainer.training_type_plugin.save_checkpoint(_checkpoint, filepath)
 
     def _get_lightning_module_state_dict(self) -> Dict[str, torch.Tensor]:
         metrics = (
@@ -478,7 +475,7 @@ class CheckpointConnector:
             metric.persistent(True)
             metric.sync()
 
-        state_dict = self.trainer.accelerator.lightning_module_state_dict()
+        state_dict = self.trainer.training_type_plugin.lightning_module_state_dict()
 
         for metric in metrics:
             # sync can be a no-op (e.g. on cpu) so `unsync` would raise a user error exception if we don't check

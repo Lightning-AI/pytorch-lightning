@@ -276,9 +276,19 @@ def test_log_works_in_train_callback(tmpdir):
                 pl_module, "on_train_epoch_start", on_steps=self.choices, on_epochs=[True], prob_bars=self.choices
             )
 
+        def on_batch_start(self, _, pl_module, *__):
+            self.make_logging(
+                pl_module, "on_batch_start", on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
+            )
+
         def on_batch_end(self, _, pl_module):
             self.make_logging(
                 pl_module, "on_batch_end", on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
+            )
+
+        def on_train_batch_start(self, _, pl_module, *__):
+            self.make_logging(
+                pl_module, "on_train_batch_start", on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
             )
 
         def on_train_batch_end(self, _, pl_module, *__):
@@ -323,7 +333,9 @@ def test_log_works_in_train_callback(tmpdir):
         "on_train_start": 1,
         "on_epoch_start": 1,
         "on_train_epoch_start": 1,
+        "on_train_batch_start": 2,
         "on_train_batch_end": 2,
+        "on_batch_start": 2,
         "on_batch_end": 2,
         "on_train_epoch_end": 1,
         "on_epoch_end": 1,
@@ -440,7 +452,7 @@ def test_logging_sync_dist_true_ddp(tmpdir):
         limit_val_batches=1,
         max_epochs=2,
         enable_model_summary=False,
-        accelerator="ddp",
+        strategy="ddp",
         gpus=2,
         profiler="pytorch",
     )
@@ -670,28 +682,6 @@ def test_sanity_metrics_are_reset(tmpdir):
     trainer.fit(TestModel())
 
     assert "val_loss" not in trainer.progress_bar_metrics
-
-
-@RunIf(min_gpus=2)
-@pytest.mark.parametrize("log_gpu_memory", ["all", "min_max"])
-def test_log_gpu_memory_without_logging_on_step(tmpdir, log_gpu_memory):
-
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=1,
-        limit_val_batches=0,
-        log_gpu_memory=log_gpu_memory,
-        log_every_n_steps=1,
-        gpus=[1],
-    )
-    trainer.fit(model)
-    if log_gpu_memory == "min_max":
-        assert "min_gpu_mem" in trainer.logged_metrics
-        assert "max_gpu_mem" in trainer.logged_metrics
-    else:
-        assert "gpu_id: 1/memory.used (MB)" in trainer.logged_metrics
 
 
 @RunIf(min_gpus=1)
