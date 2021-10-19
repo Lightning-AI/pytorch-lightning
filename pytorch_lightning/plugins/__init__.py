@@ -17,6 +17,7 @@ from pytorch_lightning.plugins.precision.ipu_precision import IPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
+from pytorch_lightning.plugins.precision.tpu import TPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.tpu_bfloat import TPUHalfPrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
@@ -59,6 +60,7 @@ __all__ = [
     "FullyShardedNativeMixedPrecisionPlugin",
     "SingleDevicePlugin",
     "SingleTPUPlugin",
+    "TPUPrecisionPlugin",
     "TPUHalfPrecisionPlugin",
     "TPUSpawnPlugin",
     "TrainingTypePlugin",

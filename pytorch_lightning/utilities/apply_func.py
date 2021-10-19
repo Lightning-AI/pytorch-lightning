@@ -118,18 +118,19 @@ def apply_to_collection(
 
     if _is_dataclass_instance(data):
         out_dict = {}
-        for field in data.__dataclass_fields__:
-            v = apply_to_collection(
-                getattr(data, field),
-                dtype,
-                function,
-                *args,
-                wrong_dtype=wrong_dtype,
-                include_none=include_none,
-                **kwargs,
-            )
-            if include_none or v is not None:
-                out_dict[field] = v
+        for field in dataclasses.fields(data):
+            if field.init:
+                v = apply_to_collection(
+                    getattr(data, field.name),
+                    dtype,
+                    function,
+                    *args,
+                    wrong_dtype=wrong_dtype,
+                    include_none=include_none,
+                    **kwargs,
+                )
+                if include_none or v is not None:
+                    out_dict[field.name] = v
         return elem_type(**out_dict)
 
     # data is neither of dtype, nor a collection

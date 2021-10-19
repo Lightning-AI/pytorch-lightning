@@ -23,7 +23,6 @@ import torch.nn.functional as F
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.accelerators import Accelerator
-from pytorch_lightning.callbacks import Callback
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -706,14 +705,6 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
     mock_adam_step.assert_has_calls(expected_calls)
 
 
-class TestManualOptimizationDDPCallack(Callback):
-    def on_train_end(self, trainer, pl_module):
-
-        opt_a, opt_b = pl_module.optimizers()
-        assert opt_a._total_optimizer_step_calls == 4
-        assert opt_b._total_optimizer_step_calls == 2
-
-
 class TesManualOptimizationDDPModel(BoringModel):
     def __init__(self):
         super().__init__()
@@ -787,6 +778,20 @@ class TesManualOptimizationDDPModel(BoringModel):
         optimizer_dis = torch.optim.Adam(self.layer.parameters(), lr=0.001)
         return [optimizer_gen, optimizer_dis]
 
+    def on_train_start(self):
+        # this is done here instead of in the calling function due to `spawn`
+        sgd, adam = self.optimizers()
+        self.sgd_step_patch = patch.object(sgd, "step", wraps=sgd.step)
+        self.sgd_step_mock = self.sgd_step_patch.start()
+        self.adam_step_patch = patch.object(adam, "step", wraps=adam.step)
+        self.adam_step_mock = self.adam_step_patch.start()
+
+    def on_train_end(self):
+        self.sgd_step_patch.stop()
+        assert self.sgd_step_mock.call_count == 4
+        self.adam_step_patch.stop()
+        assert self.adam_step_mock.call_count == 2
+
 
 def train_manual_optimization(tmpdir, strategy, model_cls=TesManualOptimizationDDPModel):
 
@@ -806,7 +811,6 @@ def train_manual_optimization(tmpdir, strategy, model_cls=TesManualOptimizationD
         log_every_n_steps=1,
         gpus=2,
         strategy=strategy,
-        callbacks=[TestManualOptimizationDDPCallack()],
     )
 
     trainer.fit(model)

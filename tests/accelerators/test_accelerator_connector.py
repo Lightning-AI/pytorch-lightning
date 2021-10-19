@@ -447,10 +447,10 @@ def test_dist_backend_accelerator_mapping(device_count_mock, setup_distributed_m
 @mock.patch("pytorch_lightning.utilities._IS_INTERACTIVE", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=2)
 def test_ipython_incompatible_backend_error(*_):
-    with pytest.raises(MisconfigurationException, match="backend ddp is not compatible"):
+    with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
         Trainer(accelerator="ddp", gpus=2)
 
-    with pytest.raises(MisconfigurationException, match="backend ddp2 is not compatible"):
+    with pytest.raises(MisconfigurationException, match=r"strategy='ddp2'\)`.*is not compatible"):
         Trainer(accelerator="ddp2", gpus=2)
 
 
@@ -615,14 +615,14 @@ def test_set_devices_if_none_gpu():
 
 def test_devices_with_cpu_only_supports_integer():
 
-    with pytest.raises(MisconfigurationException, match="The flag `devices` only supports integer"):
+    with pytest.raises(MisconfigurationException, match="The flag `devices` must be an int"):
         Trainer(accelerator="cpu", devices="1,3")
 
 
 @pytest.mark.parametrize("training_type", ["ddp2", "dp"])
 def test_unsupported_distrib_types_on_cpu(training_type):
 
-    with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting the distributed type to `ddp`."):
+    with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
         trainer = Trainer(accelerator=training_type, num_processes=2)
 
     assert trainer._distrib_type == DistributedType.DDP
@@ -632,11 +632,6 @@ def test_accelerator_ddp_for_cpu(tmpdir):
     trainer = Trainer(accelerator="ddp", num_processes=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.training_type_plugin, DDPPlugin)
-
-
-def test_exception_when_strategy_used_with_distributed_backend():
-    with pytest.raises(MisconfigurationException, match="but have also passed"):
-        Trainer(distributed_backend="ddp_cpu", strategy="ddp_spawn")
 
 
 def test_exception_when_strategy_used_with_accelerator():
@@ -981,3 +976,13 @@ def test_strategy_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_mock
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
+
+
+def test_unsupported_tpu_choice(monkeypatch):
+    import pytorch_lightning.utilities.imports as imports
+    from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
+
+    monkeypatch.setattr(imports, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(AcceleratorConnector, "has_tpu", True)
+    with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision=64\)` is not implemented"):
+        Trainer(accelerator="tpu", precision=64)

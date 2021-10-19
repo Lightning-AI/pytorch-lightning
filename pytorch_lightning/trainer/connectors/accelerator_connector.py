@@ -47,6 +47,7 @@ from pytorch_lightning.plugins import (
     SingleDevicePlugin,
     SingleTPUPlugin,
     TPUHalfPrecisionPlugin,
+    TPUPrecisionPlugin,
     TPUSpawnPlugin,
     TrainingTypePlugin,
     TrainingTypePluginsRegistry,
@@ -92,7 +93,6 @@ class AcceleratorConnector:
         devices,
         tpu_cores,
         ipus,
-        distributed_backend,
         accelerator,
         strategy: Optional[Union[str, TrainingTypePlugin]],
         gpus,
@@ -113,7 +113,8 @@ class AcceleratorConnector:
         self._accelerator_type = None
 
         self.strategy = strategy.lower() if isinstance(strategy, str) else strategy
-        self.distributed_backend = distributed_backend or accelerator
+        # TODO: Rename this to something else once all the distributed flags are moved to strategy
+        self.distributed_backend = accelerator
 
         self._init_deterministic(deterministic)
 
@@ -152,7 +153,7 @@ class AcceleratorConnector:
 
         self.plugins = plugins
 
-        self._handle_accelerator_and_distributed_backend(distributed_backend, accelerator)
+        self._handle_accelerator_and_strategy()
 
         self._validate_accelerator_and_devices()
 
@@ -175,10 +176,6 @@ class AcceleratorConnector:
 
         self._training_type_plugin_resolved = False
         self.accelerator = self.select_accelerator()
-
-        # override dist backend when using tpus
-        if self.use_tpu:
-            self.distributed_backend = "tpu"
 
         # init flags for SLURM+DDP to work
         self.world_size = 1
@@ -244,12 +241,13 @@ class AcceleratorConnector:
             raise MisconfigurationException(
                 f"You passed `devices={self.devices}` but haven't specified"
                 " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu')` for the devices mapping,"
-                f" got `accelerator={self.distributed_backend}`."
+                f" got `accelerator={self.distributed_backend!r}`."
             )
 
     def _validate_accelerator_type(self) -> None:
         if self._accelerator_type and self._accelerator_type != self._device_type:
-            raise MisconfigurationException(
+            # internal error: should not happen.
+            raise ValueError(
                 f"Mismatch between the requested accelerator type ({self._accelerator_type})"
                 f" and assigned device type ({self._device_type})."
             )
@@ -259,25 +257,16 @@ class AcceleratorConnector:
         if self.devices is None:
             return
         devices_warning = f"The flag `devices={self.devices}` will be ignored, as you have set"
-        if self.distributed_backend == "auto":
+        if self.distributed_backend in ("auto", DeviceType.TPU):
             if self.tpu_cores is not None:
                 rank_zero_warn(f"{devices_warning} `tpu_cores={self.tpu_cores}`")
-            elif self.ipus is not None:
-                rank_zero_warn(f"{devices_warning} `ipus={self.ipus}`")
-            elif self.gpus is not None:
-                rank_zero_warn(f"{devices_warning} `gpus={self.gpus}`")
-            elif self.num_processes != 1:
-                rank_zero_warn(f"{devices_warning} `num_processes={self.num_processes}`")
-        elif self.distributed_backend == DeviceType.TPU:
-            if self.tpu_cores is not None:
-                rank_zero_warn(f"{devices_warning} `tpu_cores={self.tpu_cores}`")
-        elif self.distributed_backend == DeviceType.IPU:
+        elif self.distributed_backend in ("auto", DeviceType.IPU):
             if self.ipus is not None:
                 rank_zero_warn(f"{devices_warning} `ipus={self.ipus}`")
-        elif self.distributed_backend == DeviceType.GPU:
+        elif self.distributed_backend in ("auto", DeviceType.GPU):
             if self.gpus is not None:
                 rank_zero_warn(f"{devices_warning} `gpus={self.gpus}`")
-        elif self.distributed_backend == DeviceType.CPU:
+        elif self.distributed_backend in ("auto", DeviceType.CPU):
             if self.num_processes != 1:
                 rank_zero_warn(f"{devices_warning} `num_processes={self.num_processes}`")
 
@@ -293,31 +282,17 @@ class AcceleratorConnector:
         elif self._accelerator_type == DeviceType.CPU:
             self.devices = self.num_processes
 
-    def _handle_accelerator_and_distributed_backend(
-        self, distributed_backend: Optional[str], accelerator: Optional[Union[str, Accelerator]]
-    ) -> None:
-        if distributed_backend is not None:
+    def _handle_accelerator_and_strategy(self) -> None:
+        if self.distributed_backend is not None and self.distributed_backend in list(DistributedType):
             rank_zero_deprecation(
-                f"`Trainer(distributed_backend={distributed_backend})` has been deprecated and will be removed in v1.5."
-                f" Use `Trainer(strategy={distributed_backend})` instead."
+                f"Passing `Trainer(accelerator={self.distributed_backend!r})` has been deprecated"
+                f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={self.distributed_backend!r})` instead."
             )
             if self.strategy is not None:
                 raise MisconfigurationException(
-                    f"You have passed `Trainer(strategy={self.strategy})` but have"
-                    f" also passed `Trainer(distributed_backend={distributed_backend})`."
-                    f"HINT: Use just `Trainer(strategy={self.strategy})` instead."
-                )
-
-        if accelerator is not None and accelerator in list(DistributedType):
-            rank_zero_deprecation(
-                f"Passing {accelerator} `strategy` to the `accelerator` flag in Trainer has been deprecated"
-                f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={accelerator})` instead."
-            )
-            if self.strategy is not None:
-                raise MisconfigurationException(
-                    f"You have passed `Trainer(strategy={self.strategy})` but have"
-                    f" also passed `Trainer(accelerator={accelerator})`."
-                    f"HINT: Use just `Trainer(strategy={self.strategy})` instead."
+                    f"You have passed `Trainer(strategy={self.strategy!r})` but have"
+                    f" also passed `Trainer(accelerator={self.distributed_backend!r})`."
+                    f" HINT: Use just `Trainer(strategy={self.strategy!r})` instead."
                 )
 
     def _set_training_type_plugin(self) -> None:
@@ -333,7 +308,7 @@ class AcceleratorConnector:
         for plug in self.plugins:
             if self.strategy is not None and self._is_plugin_training_type(plug):
                 raise MisconfigurationException(
-                    f"You have passed `Trainer(strategy={self.strategy})`"
+                    f"You have passed `Trainer(strategy={self.strategy!r})`"
                     f" and you can only specify one training type plugin, but you have passed {plug} as a plugin."
                 )
             if self._is_plugin_training_type(plug):
@@ -507,7 +482,7 @@ class AcceleratorConnector:
         if accelerator == DeviceType.CPU:
             if not isinstance(self.devices, int):
                 raise MisconfigurationException(
-                    "The flag `devices` only supports integer for `accelerator='cpu'`,"
+                    "The flag `devices` must be an int with `accelerator='cpu'`,"
                     f" got `devices={self.devices}` instead."
                 )
             self.num_processes = self.devices
@@ -618,6 +593,17 @@ class AcceleratorConnector:
 
         if self.use_ipu:
             return IPUPrecisionPlugin(self.precision)
+        if self.use_tpu:
+            if self.precision == 32:
+                return TPUPrecisionPlugin()
+            elif self.precision == 64:
+                raise MisconfigurationException(
+                    "`Trainer(accelerator='tpu', precision=64)` is not implemented."
+                    " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`"
+                    " requesting this feature."
+                )
+            elif self.precision in (16, "bf16"):
+                return TPUHalfPrecisionPlugin()
 
         if self._distrib_type == DistributedType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedPlugin):
             return DeepSpeedPrecisionPlugin(self.precision)
@@ -627,9 +613,6 @@ class AcceleratorConnector:
         if self.precision == 64:
             return DoublePrecisionPlugin()
         if self.precision in (16, "bf16"):
-            if self.use_tpu:
-                return TPUHalfPrecisionPlugin()
-
             if self.amp_type == AMPType.NATIVE:
                 if self.amp_level is not None:
                     raise MisconfigurationException(
@@ -790,15 +773,15 @@ class AcceleratorConnector:
             env = LightningEnvironment()
         return env
 
-    def set_distributed_mode(self, distributed_backend: Optional[str] = None):
+    def set_distributed_mode(self, strategy: Optional[str] = None):
 
-        if distributed_backend is None and self.is_training_type_in_plugins:
+        if strategy is None and self.is_training_type_in_plugins:
             return
 
-        if distributed_backend is not None and distributed_backend in TrainingTypePluginsRegistry:
-            self.distributed_backend = TrainingTypePluginsRegistry[distributed_backend]["distributed_backend"]
-        elif distributed_backend is not None:
-            self.distributed_backend = distributed_backend
+        if strategy is not None and strategy in TrainingTypePluginsRegistry:
+            self.distributed_backend = TrainingTypePluginsRegistry[strategy]["distributed_backend"]
+        elif strategy is not None:
+            self.distributed_backend = strategy
 
         if isinstance(self.distributed_backend, Accelerator):
             return
@@ -816,7 +799,7 @@ class AcceleratorConnector:
             elif self.num_gpus > 1 and not _use_cpu:
                 rank_zero_warn(
                     "You requested multiple GPUs but did not specify a backend, e.g."
-                    ' `Trainer(accelerator="dp"|"ddp"|"ddp2")`. Setting `accelerator="ddp_spawn"` for you.'
+                    ' `Trainer(strategy="dp"|"ddp"|"ddp2")`. Setting `strategy="ddp_spawn"` for you.'
                 )
                 self.distributed_backend = DistributedType.DDP_SPAWN
 
@@ -833,7 +816,7 @@ class AcceleratorConnector:
                 self._distrib_type = DistributedType.DDP_SPAWN
             if self.num_gpus > 0:
                 rank_zero_warn(
-                    "You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs."
+                    "You requested one or more GPUs, but set `accelerator='ddp_cpu'`. Training will not use GPUs."
                 )
                 self.parallel_device_ids = None
             if self.num_processes is None:
@@ -859,7 +842,7 @@ class AcceleratorConnector:
             if (self.num_nodes and self.num_nodes > 1) or (self.num_processes and self.num_processes > 1):
                 if self._distrib_type in (DistributedType.DP, DistributedType.DDP2):
                     rank_zero_warn(
-                        f"{self._distrib_type} is not supported on CPUs, hence setting the distributed type to `ddp`."
+                        f"{self._distrib_type.value!r} is not supported on CPUs, hence setting `strategy='ddp'`."
                     )
                     self._distrib_type = DistributedType.DDP
             else:
@@ -887,8 +870,7 @@ class AcceleratorConnector:
         if self.num_nodes > 1 and not using_valid_distributed:
             # throw error to force user to choose a supported distributed type such as ddp or ddp2
             raise MisconfigurationException(
-                "Your chosen distributed type does not support num_nodes > 1. "
-                "Please set accelerator=ddp or accelerator=ddp2."
+                "Your chosen strategy does not support `num_nodes > 1`. Please set `strategy=('ddp'|'ddp2')`."
             )
 
     def _set_horovod_backend(self):
@@ -910,7 +892,8 @@ class AcceleratorConnector:
 
         if _IS_INTERACTIVE and self._distrib_type is not None and not self._distrib_type.is_interactive_compatible():
             raise MisconfigurationException(
-                f"Selected distributed backend {self._distrib_type} is not compatible with an interactive"
+                f"`Trainer(strategy={self._distrib_type.value!r})` or"
+                f" `Trainer(accelerator={self._distrib_type.value!r})` is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible backends:"
                 f" {', '.join(DistributedType.interactive_compatible_types())}."
                 " In case you are spawning processes yourself, make sure to include the Trainer"
