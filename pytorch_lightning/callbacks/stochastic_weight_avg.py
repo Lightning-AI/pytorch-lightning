@@ -255,6 +255,11 @@ class StochasticWeightAveraging(Callback):
         prev_momenta = {}
         self._batch_norm_moments = {}
 
+        train_data_fetcher = trainer.data_connector.train_data_fetcher
+        if train_data_fetcher is None:
+            # Training data not yet connected, could be in a validation sanity check
+            return
+
         was_training = pl_module.training
         pl_module.train()
 
@@ -274,7 +279,7 @@ class StochasticWeightAveraging(Callback):
             module.num_batches_tracked *= 0
 
         # Recompute mean and variance for all batch norm layers by doing a full pass over the training data
-        for batch, _ in trainer.data_connector.train_data_fetcher:
+        for batch, _ in train_data_fetcher:
             batch = batch.to(pl_module.device)
             pl_module(batch)
 
@@ -316,7 +321,7 @@ class StochasticWeightAveraging(Callback):
             "swa_lrs": self._swa_lrs,
             "annealing_epochs": self._annealing_epochs,
             "annealing_strategy": self._annealing_strategy,
-            "average_model_parameters": self._get_average_model_parameters(),
+            "average_model_parameters": self._get_average_model_parameters(trainer),
         }
         return checkpoint_data
 
@@ -380,8 +385,10 @@ class StochasticWeightAveraging(Callback):
             p_model.detach().copy_(p_swa_)
         return True
 
-    def _get_average_model_parameters(self) -> Any:
-        if self._average_model is None:
+    def _get_average_model_parameters(self, trainer: "pl.Trainer") -> Any:
+        if self._average_model is None or not (self.swa_start <= trainer.current_epoch <= self.swa_end):
+            # If we're not within the SWA epochs then when loading checkpoint data we would want
+            # to use parameters from the underlying model rather than the SWA parameters.
             return None
         parameters = []
         for p_swa in self._average_model.parameters():
