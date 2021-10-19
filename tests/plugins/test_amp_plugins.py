@@ -195,17 +195,18 @@ def test_cpu_amp_precision_context_manager():
     assert context_manager.fast_dtype == torch.bfloat16
 
 
-@mock.patch("torch.cuda.device_count", return_value=1)
-def test_apex_precision_unavailable_raises(_, monkeypatch):
-    import pytorch_lightning.plugins.precision.apex_amp as apex
-    import pytorch_lightning.utilities.imports as imports
-
-    monkeypatch.setattr(imports, "_APEX_AVAILABLE", False)
-    monkeypatch.setattr(apex, "_APEX_AVAILABLE", False)
+def test_apex_precision_unavailable_raises(monkeypatch):
     with pytest.warns(
         UserWarning, match=r"precision=16\)` but apex AMP is not supported on CPU. Using `precision='bf16`"
     ), pytest.raises(MisconfigurationException, match="must install torch greater or equal to 1.10"):
         Trainer(amp_backend="apex", precision=16)
 
-    with pytest.raises(MisconfigurationException, match="asked for Apex AMP but you have not installed it"):
+    import pytorch_lightning.plugins.precision.apex_amp as apex
+    import pytorch_lightning.utilities.imports as imports
+
+    monkeypatch.setattr(imports, "_APEX_AVAILABLE", False)
+    monkeypatch.setattr(apex, "_APEX_AVAILABLE", False)
+    with mock.patch("torch.cuda.device_count", return_value=1), pytest.raises(
+        MisconfigurationException, match="asked for Apex AMP but you have not installed it"
+    ):
         Trainer(amp_backend="apex", precision=16, gpus=1)
