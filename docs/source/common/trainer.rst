@@ -1379,7 +1379,7 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
     # Training with the DDP Spawn strategy using 4 cpu processes
     trainer = Trainer(strategy="ddp_spawn", accelerator="cpu", devices=4)
 
-.. note:: You could also pass in custom training type plugins to the ``strategy`` argument.
+.. note:: Additionally, you can pass your custom training type plugins to the ``strategy`` argument.
 
 .. testcode::
 
