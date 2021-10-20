@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import List, Any
+
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
@@ -38,11 +40,11 @@ class BoringCallbackDDPSpawnModel(BoringModel):
         return super().validation_step(batch, batch_idx)
 
     def add_to_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
-        queue.put("test_val")
+        queue.append("test_val")
         return super().add_to_queue(queue)
 
     def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
-        self.test_val = queue.get()
+        self.test_val = queue.pop(0)
         return super().get_from_queue(queue)
 
 
@@ -83,11 +85,11 @@ def test_ddp_spawn_extra_parameters(tmpdir):
 
 class TestDDPSpawnPlugin(DDPSpawnPlugin):
     def add_to_queue(self, trainer: Trainer, queue: torch.multiprocessing.SimpleQueue) -> None:
-        queue.put("new_test_val")
+        queue.append("new_test_val")
         return super().add_to_queue(trainer, queue)
 
-    def get_from_queue(self, trainer: Trainer, queue: torch.multiprocessing.SimpleQueue) -> None:
-        self.new_test_val = queue.get()
+    def get_from_queue(self, trainer: Trainer, queue: List[Any]) -> None:
+        self.new_test_val = queue.pop(0)
         return super().get_from_queue(trainer, queue)
 
 

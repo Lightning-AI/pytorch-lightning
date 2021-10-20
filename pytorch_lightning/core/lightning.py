@@ -1992,7 +1992,7 @@ class LightningModule(
         )
         return get_model_size_mb(self)
 
-    def add_to_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+    def add_to_queue(self, queue: List[Any]) -> None:
         """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory
         sharing, we cast the data to numpy.
 
@@ -2006,7 +2006,7 @@ class LightningModule(
         if self.trainer and isinstance(self.trainer.training_type_plugin, pl.plugins.training_type.DDPSpawnPlugin):
             self.trainer.training_type_plugin.add_to_queue(self.trainer, queue)
 
-    def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+    def get_from_queue(self, queue: List[Any]) -> None:
         """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
         we cast back the data to ``torch.Tensor``.
 

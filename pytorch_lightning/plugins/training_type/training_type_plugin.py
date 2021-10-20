@@ -35,7 +35,6 @@ class TrainingTypePlugin(ABC):
 
     def __init__(self, checkpoint_io: Optional[CheckpointIO] = None) -> None:
         self._model: Optional[Module] = None
-        self._results: Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]] = None
         checkpoint_io = checkpoint_io if checkpoint_io is not None else TorchCheckpointIO()
         self._checkpoint_io = checkpoint_io
 
@@ -188,7 +187,8 @@ class TrainingTypePlugin(ABC):
         start-method send the result to the master process through a
         `multiprocessing queue (shared memory) <https://pytorch.org/docs/stable/multiprocessing.html>`_.
         """
-        return self._results
+        # TODO: deprecate this
+        return None
 
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         torch.cuda.empty_cache()
@@ -202,17 +202,17 @@ class TrainingTypePlugin(ABC):
         for optimizer, opt_state in zip(self.lightning_module.trainer.accelerator.optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
 
-    def start_training(self, trainer: "pl.Trainer") -> None:
+    def start_training(self, trainer: "pl.Trainer") -> Any:
         # double dispatch to initiate the training loop
-        self._results = trainer.run_stage()
+        return trainer.run_stage()
 
-    def start_evaluating(self, trainer: "pl.Trainer") -> None:
+    def start_evaluating(self, trainer: "pl.Trainer") -> Any:
         # double dispatch to initiate the test loop
-        self._results = trainer.run_stage()
+        return trainer.run_stage()
 
-    def start_predicting(self, trainer: "pl.Trainer") -> None:
+    def start_predicting(self, trainer: "pl.Trainer") -> Any:
         # double dispatch to initiate the predicting loop
-        self._results = trainer.run_stage()
+        return trainer.run_stage()
 
     def training_step(self, *args, **kwargs):
         return self.model.training_step(*args, **kwargs)
