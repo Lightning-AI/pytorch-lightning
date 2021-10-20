@@ -273,7 +273,7 @@ class _DataLoaderSource:
     instance: Optional[Union[TRAIN_DATALOADERS, EVAL_DATALOADERS, "pl.LightningModule", "pl.LightningDataModule"]]
     name: str
 
-    def request(self) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
+    def dataloader(self) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
         """Returns the dataloader from the source.
 
         If the source is a module, the method with the corresponding :attr:`name` gets called.

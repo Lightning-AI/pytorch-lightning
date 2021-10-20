@@ -52,7 +52,7 @@ def test_dataloader_source_direct_access():
     source = _DataLoaderSource(instance=dataloader, name="any")
     assert not source.is_module()
     assert source.is_defined()
-    assert source.request() is dataloader
+    assert source.dataloader() is dataloader
 
 
 def test_dataloader_source_request_from_module():
@@ -64,5 +64,5 @@ def test_dataloader_source_request_from_module():
     source = _DataLoaderSource(module, "foo")
     assert source.is_module()
     module.foo.assert_not_called()
-    assert isinstance(source.request(), DataLoader)
+    assert isinstance(source.dataloader(), DataLoader)
     module.foo.assert_called_once()
