@@ -202,7 +202,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Default to `precision=bf16` on CPU when `precision=16` is passed ([#10033](https://github.com/PyTorchLightning/pytorch-lightning/pull/10033))
 
 
-
 - Added `kfold` example for loop customization ([#9965](https://github.com/PyTorchLightning/pytorch-lightning/pull/9965))
 
 
