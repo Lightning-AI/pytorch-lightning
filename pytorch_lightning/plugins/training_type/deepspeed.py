@@ -583,7 +583,9 @@ class DeepSpeedPlugin(DDPPlugin):
         # via `_initialize_deepspeed_train`
         return [], [], []  # empty optimizers, schedulers and frequencies
 
-    def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
+    def optimizer_step(
+        self, optimizer: torch.optim.Optimizer, lambda_closure: Optional[Callable], **kwargs: Any
+    ) -> None:
         # note: We rely on the deepspeed engine to carry out the step rather than the optimizer.
         # internally, the engine has a reference to the optimizer already.
         self.model.step(**kwargs)

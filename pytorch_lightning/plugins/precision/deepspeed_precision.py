@@ -36,10 +36,10 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
     def pre_optimizer_step(
         self,
-        model: Union[Module, "pl.LightningModule"],
+        model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Callable,
+        lambda_closure: Optional[Callable],
         **kwargs: Any,
     ) -> bool:
         """Hook to do something before each optimizer step."""

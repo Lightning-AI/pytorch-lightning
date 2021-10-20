@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Generator, Union
+from typing import Any, Callable, Dict, Generator, Union, Optional
 
 import torch
 from torch import Tensor
@@ -80,7 +80,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Callable,
+        lambda_closure: Optional[Callable],
         **kwargs: Any,
     ) -> bool:
         if self.is_bfloat16:
