@@ -15,7 +15,7 @@ from typing import Any, Callable, Dict, Optional, Sequence
 
 import torch
 from torch import Tensor
-from torch.optim import Optimizer
+from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
@@ -30,6 +30,8 @@ if _APEX_AVAILABLE:
 class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     """Mixed Precision Plugin based on Nvidia/Apex (https://github.com/NVIDIA/apex)"""
 
+    backend = AMPType.APEX
+
     def __init__(self, amp_level: str = "O2") -> None:
         if not _APEX_AVAILABLE:
             raise MisconfigurationException(
@@ -37,7 +39,6 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
                 " Install `apex` using this guide: https://github.com/NVIDIA/apex"
             )
         super().__init__()
-        self.backend = AMPType.APEX
         self.amp_level = amp_level
         self._connected = False
 
@@ -103,6 +104,10 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         **kwargs: Any,
     ) -> bool:
         """Hook to do something before each optimizer step."""
+        if isinstance(optimizer, LBFGS):
+            raise MisconfigurationException(
+                f"apex AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
+            )
         result = lambda_closure()  # APEX amp does not support closures
         super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
         skipped_backward = result is None
