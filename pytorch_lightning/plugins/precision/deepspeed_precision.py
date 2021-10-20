@@ -68,11 +68,9 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
                 "Skipping backward by returning `None` from your `training_step` is not supported by `DeepSpeed`"
             )
         # DeepSpeed handles the optimizer step internally
-        if isinstance(model, pl.LightningModule):
-            deepspeed_engine = model.trainer.model
-            deepspeed_engine.step()
-            return False
-        return True
+        deepspeed_engine = model.trainer.model if isinstance(model, pl.LightningModule) else model
+        deepspeed_engine.step()
+        return False
 
     def clip_gradients(
         self,
