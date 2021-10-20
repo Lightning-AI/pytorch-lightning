@@ -24,7 +24,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins import IPUPlugin, IPUPrecisionPlugin
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities import _IPU_AVAILABLE
+from pytorch_lightning.utilities import _IPU_AVAILABLE, DeviceType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -120,7 +120,7 @@ def test_warning_if_ipus_not_used(tmpdir):
 @RunIf(ipu=True)
 def test_no_warning_plugin(tmpdir):
     with pytest.warns(None) as record:
-        Trainer(default_root_dir=tmpdir, plugins=IPUPlugin(training_opts=poptorch.Options()))
+        Trainer(default_root_dir=tmpdir, strategy=IPUPlugin(training_opts=poptorch.Options()))
     assert len(record) == 0
 
 
@@ -132,7 +132,7 @@ def test_all_stages(tmpdir, ipus):
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)
-    trainer.predict(model, model.val_dataloader())
+    trainer.predict(model)
 
 
 @RunIf(ipu=True)
@@ -143,7 +143,7 @@ def test_inference_only(tmpdir, ipus):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, ipus=ipus)
     trainer.validate(model)
     trainer.test(model)
-    trainer.predict(model, model.val_dataloader())
+    trainer.predict(model)
 
 
 @RunIf(ipu=True)
@@ -265,7 +265,7 @@ def test_accumulated_batches(tmpdir):
 
 @RunIf(ipu=True)
 def test_stages_correct(tmpdir):
-    """Ensure all stages correctly are traced correctly by asserting the output for each stage"""
+    """Ensure all stages correctly are traced correctly by asserting the output for each stage."""
 
     class StageModel(IPUModel):
         def training_step(self, batch, batch_idx):
@@ -308,11 +308,11 @@ def test_stages_correct(tmpdir):
 
 
 @RunIf(ipu=True)
-def test_accumulate_grad_batches_dict_fails(tmpdir):
+def test_different_accumulate_grad_batches_fails(tmpdir):
     model = IPUModel()
-    trainer = Trainer(default_root_dir=tmpdir, ipus=1, accumulate_grad_batches={0: 1})
+    trainer = Trainer(default_root_dir=tmpdir, ipus=1, accumulate_grad_batches={1: 2})
     with pytest.raises(
-        MisconfigurationException, match="IPUs currently only support accumulate_grad_batches being an integer value."
+        MisconfigurationException, match="IPUs currently does not support different `accumulate_grad_batches`"
     ):
         trainer.fit(model)
 
@@ -363,10 +363,8 @@ def test_manual_poptorch_opts(tmpdir):
 
 @RunIf(ipu=True)
 def test_manual_poptorch_opts_custom(tmpdir):
-    """
-    Ensure if the user passes manual poptorch Options with custom parameters set,
-    we respect them in our poptorch options and the dataloaders.
-    """
+    """Ensure if the user passes manual poptorch Options with custom parameters set, we respect them in our
+    poptorch options and the dataloaders."""
 
     model = IPUModel()
     training_opts = poptorch.Options()
@@ -418,10 +416,8 @@ def test_manual_poptorch_opts_custom(tmpdir):
 
 @RunIf(ipu=True)
 def test_replication_factor(tmpdir):
-    """
-    Ensure if the user passes manual poptorch Options with custom parameters set,
-    we set them correctly in the dataloaders.
-    """
+    """Ensure if the user passes manual poptorch Options with custom parameters set, we set them correctly in the
+    dataloaders."""
 
     plugin = IPUPlugin()
     trainer = Trainer(ipus=2, default_root_dir=tmpdir, fast_dev_run=True, plugins=plugin)
@@ -430,9 +426,7 @@ def test_replication_factor(tmpdir):
 
 @RunIf(ipu=True)
 def test_default_opts(tmpdir):
-    """
-    Ensure default opts are set correctly in the IPUPlugin.
-    """
+    """Ensure default opts are set correctly in the IPUPlugin."""
 
     model = IPUModel()
 
@@ -450,9 +444,7 @@ def test_default_opts(tmpdir):
 
 @RunIf(ipu=True)
 def test_multi_optimizers_fails(tmpdir):
-    """
-    Ensure if there are multiple optimizers, we throw an exception
-    """
+    """Ensure if there are multiple optimizers, we throw an exception."""
 
     class TestModel(IPUModel):
         def configure_optimizers(self):
@@ -467,9 +459,7 @@ def test_multi_optimizers_fails(tmpdir):
 
 @RunIf(ipu=True)
 def test_precision_plugin(tmpdir):
-    """
-    Ensure precision plugin value is set correctly.
-    """
+    """Ensure precision plugin value is set correctly."""
 
     plugin = IPUPrecisionPlugin(precision=16)
     assert plugin.precision == 16
@@ -538,3 +528,18 @@ def test_set_devices_if_none_ipu():
 
     trainer = Trainer(accelerator="ipu", ipus=8)
     assert trainer.devices == 8
+
+
+@RunIf(ipu=True)
+def test_strategy_choice_ipu_plugin(tmpdir):
+    trainer = Trainer(strategy=IPUPlugin(), accelerator="ipu", devices=8)
+    assert isinstance(trainer.training_type_plugin, IPUPlugin)
+
+
+@RunIf(ipu=True)
+def test_device_type_when_training_plugin_ipu_passed(tmpdir):
+
+    trainer = Trainer(strategy=IPUPlugin(), ipus=8)
+    assert isinstance(trainer.training_type_plugin, IPUPlugin)
+    assert trainer._device_type == DeviceType.IPU
+    assert isinstance(trainer.accelerator, IPUAccelerator)

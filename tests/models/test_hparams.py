@@ -39,7 +39,7 @@ if _HYDRA_EXPERIMENTAL_AVAILABLE:
 
 
 class SaveHparamsModel(BoringModel):
-    """Tests that a model can take an object"""
+    """Tests that a model can take an object."""
 
     def __init__(self, hparams):
         super().__init__()
@@ -55,7 +55,7 @@ def decorate(func):
 
 
 class SaveHparamsDecoratedModel(BoringModel):
-    """Tests that a model can take an object"""
+    """Tests that a model can take an object."""
 
     @decorate
     @decorate
@@ -68,9 +68,7 @@ class SaveHparamsDecoratedModel(BoringModel):
 # STANDARD TESTS
 # -------------------------
 def _run_standard_hparams_test(tmpdir, model, cls, try_overwrite=False):
-    """
-    Tests for the existence of an arg 'test_arg=14'
-    """
+    """Tests for the existence of an arg 'test_arg=14'."""
     hparam_type = type(model.hparams)
     # test proper property assignments
     assert model.hparams.test_arg == 14
@@ -135,9 +133,7 @@ def test_omega_conf_hparams(tmpdir, cls):
 
 
 def test_explicit_args_hparams(tmpdir):
-    """
-    Tests that a model can take implicit args and assign
-    """
+    """Tests that a model can take implicit args and assign."""
 
     # define model
     class LocalModel(BoringModel):
@@ -156,9 +152,7 @@ def test_explicit_args_hparams(tmpdir):
 
 
 def test_implicit_args_hparams(tmpdir):
-    """
-    Tests that a model can take regular args and assign
-    """
+    """Tests that a model can take regular args and assign."""
 
     # define model
     class LocalModel(BoringModel):
@@ -177,9 +171,7 @@ def test_implicit_args_hparams(tmpdir):
 
 
 def test_explicit_missing_args_hparams(tmpdir):
-    """
-    Tests that a model can take regular args and assign
-    """
+    """Tests that a model can take regular args and assign."""
 
     # define model
     class LocalModel(BoringModel):
@@ -255,6 +247,13 @@ class SubClassBoringModel(CustomBoringModel):
         self.save_hyperparameters()
 
 
+class NonSavingSubClassBoringModel(CustomBoringModel):
+    any_other_loss = torch.nn.CrossEntropyLoss()
+
+    def __init__(self, *args, subclass_arg=1200, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
 class SubSubClassBoringModel(SubClassBoringModel):
     pass
 
@@ -285,6 +284,7 @@ class DictConfSubClassBoringModel(SubClassBoringModel):
     [
         CustomBoringModel,
         SubClassBoringModel,
+        NonSavingSubClassBoringModel,
         SubSubClassBoringModel,
         AggSubClassBoringModel,
         UnconventionalArgsBoringModel,
@@ -292,7 +292,7 @@ class DictConfSubClassBoringModel(SubClassBoringModel):
     ],
 )
 def test_collect_init_arguments(tmpdir, cls):
-    """Test that the model automatically saves the arguments passed into the constructor"""
+    """Test that the model automatically saves the arguments passed into the constructor."""
     extra_args = {}
     if cls is AggSubClassBoringModel:
         extra_args.update(my_loss=torch.nn.CosineEmbeddingLoss())
@@ -304,7 +304,7 @@ def test_collect_init_arguments(tmpdir, cls):
     model = cls(batch_size=179, **extra_args)
     assert model.hparams.batch_size == 179
 
-    if isinstance(model, SubClassBoringModel):
+    if isinstance(model, (SubClassBoringModel, NonSavingSubClassBoringModel)):
         assert model.hparams.subclass_arg == 1200
 
     if isinstance(model, AggSubClassBoringModel):
@@ -350,7 +350,7 @@ class LocalVariableModelSuperLast(BoringModel):
 
     def __init__(self, arg1, arg2, *args, **kwargs):
         self.argument1 = arg1  # arg2 intentionally not set
-        arg1 = "overwritten"  # noqa: F841
+        arg1 = "overwritten"
         local_var = 1234  # noqa: F841
         super().__init__(*args, **kwargs)  # this is intentionally here at the end
 
@@ -361,7 +361,7 @@ class LocalVariableModelSuperFirst(BoringModel):
     def __init__(self, arg1, arg2, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.argument1 = arg1  # arg2 intentionally not set
-        arg1 = "overwritten"  # noqa: F841
+        arg1 = "overwritten"
         local_var = 1234  # noqa: F841
         self.save_hyperparameters()  # this is intentionally here at the end
 
@@ -542,7 +542,7 @@ class SuperClassPositionalArgs(BoringModel):
 
 
 class SubClassVarArgs(SuperClassPositionalArgs):
-    """Loading this model should accept hparams and init in the super class"""
+    """Loading this model should accept hparams and init in the super class."""
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -568,7 +568,7 @@ class RuntimeParamChangeModelSaving(BoringModel):
 
 @pytest.mark.parametrize("cls", [RuntimeParamChangeModelSaving])
 def test_init_arg_with_runtime_change(tmpdir, cls):
-    """Test that we save/export only the initial hparams, no other runtime change allowed"""
+    """Test that we save/export only the initial hparams, no other runtime change allowed."""
     model = cls(running_arg=123)
     assert model.hparams.running_arg == 123
     model.hparams.running_arg = -1
@@ -601,9 +601,7 @@ def test_model_with_fsspec_as_parameter(tmpdir):
 
 @pytest.mark.skipif(not _HYDRA_EXPERIMENTAL_AVAILABLE, reason="Hydra experimental is not available")
 def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
-    """
-    This test relies on configuration saved under tests/models/conf/config.yaml
-    """
+    """This test relies on configuration saved under tests/models/conf/config.yaml."""
 
     class TestHydraModel(BoringModel):
         def __init__(self, args_0, args_1, args_2, kwarg_1=None):
@@ -636,9 +634,7 @@ def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
 
 @pytest.mark.parametrize("ignore", ("arg2", ("arg2", "arg3")))
 def test_ignore_args_list_hparams(tmpdir, ignore):
-    """
-    Tests that args can be ignored in save_hyperparameters
-    """
+    """Tests that args can be ignored in save_hyperparameters."""
 
     class LocalModel(BoringModel):
         def __init__(self, arg1, arg2, arg3):
@@ -687,6 +683,14 @@ def test_empty_hparams_container(tmpdir):
     assert not model.hparams
     model = HparamsNamespaceContainerModel(Namespace())
     assert not model.hparams
+
+
+def test_hparams_name_from_container(tmpdir):
+    """Test that save_hyperparameters(container) captures the name of the argument correctly."""
+    model = HparamsKwargsContainerModel(a=1, b=2)
+    assert model._hparams_name is None
+    model = HparamsNamespaceContainerModel(Namespace(a=1, b=2))
+    assert model._hparams_name == "config"
 
 
 @dataclass

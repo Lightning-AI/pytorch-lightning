@@ -38,7 +38,7 @@ def test_wrong_train_setting(tmpdir):
 
 
 def test_wrong_configure_optimizers(tmpdir):
-    """Test that an error is thrown when no `configure_optimizers()` is defined"""
+    """Test that an error is thrown when no `configure_optimizers()` is defined."""
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     with pytest.raises(MisconfigurationException, match=r"No `configure_optimizers\(\)` method defined."):
@@ -48,9 +48,7 @@ def test_wrong_configure_optimizers(tmpdir):
 
 
 def test_fit_val_loop_config(tmpdir):
-    """
-    When either val loop or val data are missing raise warning
-    """
+    """When either val loop or val data are missing raise warning."""
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     # no val data has val loop
@@ -67,9 +65,7 @@ def test_fit_val_loop_config(tmpdir):
 
 
 def test_test_loop_config(tmpdir):
-    """
-    When either test loop or test data are missing
-    """
+    """When either test loop or test data are missing."""
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     # has test loop but no test data
@@ -86,9 +82,7 @@ def test_test_loop_config(tmpdir):
 
 
 def test_val_loop_config(tmpdir):
-    """
-    When either validation loop or validation data are missing
-    """
+    """When either validation loop or validation data are missing."""
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     # has val loop but no val data
@@ -143,7 +137,7 @@ def test_trainer_predict_verify_config(tmpdir, datamodule):
 
 
 def test_trainer_manual_optimization_config(tmpdir):
-    """Test error message when requesting Trainer features unsupported with manual optimization"""
+    """Test error message when requesting Trainer features unsupported with manual optimization."""
     model = BoringModel()
     model.automatic_optimization = False
 

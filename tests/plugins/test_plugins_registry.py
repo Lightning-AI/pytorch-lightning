@@ -56,6 +56,7 @@ def test_training_type_plugins_registry_with_new_plugin():
     "plugin_name, init_params",
     [
         ("deepspeed", {}),
+        ("deepspeed_stage_1", {"stage": 1}),
         ("deepspeed_stage_2", {"stage": 2}),
         ("deepspeed_stage_2_offload", {"stage": 2, "offload_optimizer": True}),
         ("deepspeed_stage_3", {"stage": 3}),

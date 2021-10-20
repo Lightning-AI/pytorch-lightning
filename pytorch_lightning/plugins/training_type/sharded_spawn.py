@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, Optional
+from contextlib import contextmanager
+from multiprocessing.queues import SimpleQueue
+from typing import Dict, Generator, Optional
 
 import torch
 
@@ -33,10 +35,12 @@ if _FAIRSCALE_AVAILABLE:
 class DDPSpawnShardedPlugin(DDPSpawnPlugin):
     """Optimizer sharded training provided by FairScale."""
 
-    def configure_ddp(self):
+    def configure_ddp(self) -> None:
         self._wrap_optimizers()
         self._model = ShardedDataParallel(
-            LightningShardedDataParallel(self.model), sharded_optimizer=self.lightning_module.trainer.optimizers
+            LightningShardedDataParallel(self.model),
+            sharded_optimizer=self.lightning_module.trainer.optimizers,
+            **self._ddp_kwargs
         )
         setattr(self._model, "require_backward_grad_sync", False)
 
@@ -61,6 +65,19 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
             optimizer.consolidate_state_dict()
         return self._optim_state_dict(optimizer)
 
+    @contextmanager
+    def block_backward_sync(self) -> Generator:
+        """Blocks syncing gradients behaviour on backwards pass.
+
+        This is useful for skipping sync when accumulating gradients, reducing communication overhead
+        Returns: context manager with sync behaviour off
+        """
+        if isinstance(self.model, ShardedDataParallel):
+            with self.model.no_sync():
+                yield None
+        else:
+            yield None
+
     @rank_zero_only
     def _optim_state_dict(self, optimizer):
         """
@@ -84,13 +101,13 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
     def post_training_step(self):
         pass
 
-    def new_process(self, process_idx, trainer, mp_queue):
+    def new_process(self, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
         # Ensure that the scaler points to the correct process group
         # which is re-initialized in a new process
         precision_plugin = trainer.accelerator.precision_plugin
         if isinstance(precision_plugin, ShardedNativeMixedPrecisionPlugin):
             precision_plugin.scaler = ShardedGradScaler()
-        super().new_process(process_idx, trainer, mp_queue)
+        return super().new_process(trainer, mp_queue)
 
     @classmethod
     def register_plugins(cls, plugin_registry: Dict) -> None:

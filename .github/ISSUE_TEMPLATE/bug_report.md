@@ -4,8 +4,8 @@ about: Create a report to help us improve
 title: ''
 labels: bug / fix, help wanted
 assignees: ''
-
 ---
+
 ## 🐛 Bug
 
 <!-- A clear and concise description of what the bug is. -->
@@ -46,15 +46,15 @@ python collect_env_details.py
 You can also fill out the list below manually.
 -->
 
- - PyTorch Lightning Version (e.g., 1.3.0):
- - PyTorch Version (e.g., 1.8)
- - Python version:
- - OS (e.g., Linux):
- - CUDA/cuDNN version:
- - GPU models and configuration:
- - How you installed PyTorch (`conda`, `pip`, source):
- - If compiling from source, the output of `torch.__config__.show()`:
- - Any other relevant information:
+- PyTorch Lightning Version (e.g., 1.3.0):
+- PyTorch Version (e.g., 1.8)
+- Python version:
+- OS (e.g., Linux):
+- CUDA/cuDNN version:
+- GPU models and configuration:
+- How you installed PyTorch (`conda`, `pip`, source):
+- If compiling from source, the output of `torch.__config__.show()`:
+- Any other relevant information:
 
 ### Additional context
 

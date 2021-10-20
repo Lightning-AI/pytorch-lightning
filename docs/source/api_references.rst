@@ -1,6 +1,8 @@
 API References
 ==============
 
+.. include:: links.rst
+
 Accelerator API
 ---------------
 
@@ -65,6 +67,71 @@ Loggers API
     test_tube
     wandb
 
+Loop API
+--------
+
+Base Classes
+^^^^^^^^^^^^
+
+.. currentmodule:: pytorch_lightning.loops
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    ~base.Loop
+    ~dataloader.dataloader_loop.DataLoaderLoop
+
+
+Default Loop Implementations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Training
+""""""""
+
+.. currentmodule:: pytorch_lightning.loops
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    FitLoop
+    ~epoch.TrainingEpochLoop
+    ~batch.TrainingBatchLoop
+    ~optimization.OptimizerLoop
+    ~optimization.ManualOptimization
+
+
+Validation and Testing
+""""""""""""""""""""""
+
+.. currentmodule:: pytorch_lightning.loops
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    ~dataloader.EvaluationLoop
+    ~epoch.EvaluationEpochLoop
+
+
+Prediction
+""""""""""
+
+.. currentmodule:: pytorch_lightning.loops
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    ~dataloader.PredictionLoop
+    ~epoch.PredictionEpochLoop
+
+
 Plugins API
 -----------
 
@@ -103,12 +170,16 @@ Precision Plugins
     :template: classtemplate.rst
 
     PrecisionPlugin
+    MixedPrecisionPlugin
     NativeMixedPrecisionPlugin
     ShardedNativeMixedPrecisionPlugin
     ApexMixedPrecisionPlugin
     DeepSpeedPrecisionPlugin
-    TPUHalfPrecisionPlugin
+    TPUPrecisionPlugin
+    TPUBf16PrecisionPlugin
     DoublePrecisionPlugin
+    FullyShardedNativeMixedPrecisionPlugin
+    IPUPrecisionPlugin
 
 Cluster Environments
 ^^^^^^^^^^^^^^^^^^^^
@@ -127,6 +198,18 @@ Cluster Environments
     KubeflowEnvironment
     SLURMEnvironment
 
+Checkpoint IO Plugins
+^^^^^^^^^^^^^^^^^^^^^
+
+.. currentmodule:: pytorch_lightning.plugins.io
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    CheckpointIO
+    TorchCheckpointIO
 
 Profiler API
 ------------

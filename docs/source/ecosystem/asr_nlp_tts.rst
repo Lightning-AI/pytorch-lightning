@@ -223,9 +223,9 @@ Transcribe audio with QuartzNet model pretrained on ~3300 hours of audio.
 
 .. code-block:: python
 
-    quartznet = EncDecCTCModel.from_pretrained('QuartzNet15x5Base-En')
+    quartznet = EncDecCTCModel.from_pretrained("QuartzNet15x5Base-En")
 
-    files = ['path/to/my.wav'] # file duration should be less than 25 seconds
+    files = ["path/to/my.wav"]  # file duration should be less than 25 seconds
 
     for fname, transcription in zip(files, quartznet.transcribe(paths2audio_files=files)):
         print(f"Audio in {fname} was recognized as: {transcription}")
@@ -246,11 +246,13 @@ with PyTorch Lightning since every NeMo model is a Lightning Module.
 
     class EncDecCTCModel(ASRModel):
         """Base class for encoder decoder CTC-based models."""
-    ...
-        @typecheck()
+
+        ...
+
         def forward(self, input_signal, input_signal_length):
             processed_signal, processed_signal_len = self.preprocessor(
-                input_signal=input_signal, length=input_signal_length,
+                input_signal=input_signal,
+                length=input_signal_length,
             )
             # Spec augment is not applied during evaluation/testing
             if self.spec_augmentation is not None and self.training:
@@ -270,11 +272,13 @@ with PyTorch Lightning since every NeMo model is a Lightning Module.
                 log_probs=log_probs, targets=transcript, input_lengths=encoded_len, target_lengths=transcript_len
             )
             wer_num, wer_denom = self._wer(predictions, transcript, transcript_len)
-            self.log_dict({
-                'train_loss': loss_value,
-                'training_batch_wer': wer_num / wer_denom,
-                'learning_rate': self._optimizer.param_groups[0]['lr'],
-            })
+            self.log_dict(
+                {
+                    "train_loss": loss_value,
+                    "training_batch_wer": wer_num / wer_denom,
+                    "learning_rate": self._optimizer.param_groups[0]["lr"],
+                }
+            )
             return loss_value
 
 Neural Types in NeMo ASR
@@ -288,21 +292,22 @@ network architectures for a production-grade application.
 
         @property
         def input_types(self) -> Optional[Dict[str, NeuralType]]:
-            if hasattr(self.preprocessor, '_sample_rate'):
+            if hasattr(self.preprocessor, "_sample_rate"):
                 audio_eltype = AudioSignal(freq=self.preprocessor._sample_rate)
             else:
                 audio_eltype = AudioSignal()
             return {
-                "input_signal": NeuralType(('B', 'T'), audio_eltype),
-                "input_signal_length": NeuralType(tuple('B'), LengthsType()),
+                "input_signal": NeuralType(("B", "T"), audio_eltype),
+                "input_signal_length": NeuralType(tuple("B"), LengthsType()),
             }
+
 
         @property
         def output_types(self) -> Optional[Dict[str, NeuralType]]:
             return {
-                "outputs": NeuralType(('B', 'T', 'D'), LogprobsType()),
-                "encoded_lengths": NeuralType(tuple('B'), LengthsType()),
-                "greedy_predictions": NeuralType(('B', 'T'), LabelsType()),
+                "outputs": NeuralType(("B", "T", "D"), LogprobsType()),
+                "encoded_lengths": NeuralType(tuple("B"), LengthsType()),
+                "greedy_predictions": NeuralType(("B", "T"), LabelsType()),
             }
 
 --------
@@ -412,12 +417,12 @@ Or we can run inference on a few examples:
 
 .. code-block:: python
 
-    queries = ['we bought four shirts from the nvidia gear store in santa clara.', 'Nvidia is a company in Santa Clara.']
+    queries = ["we bought four shirts from the nvidia gear store in santa clara.", "Nvidia is a company in Santa Clara."]
     results = model.add_predictions(queries)
 
     for query, result in zip(queries, results):
-        logging.info(f'Query : {query}')
-        logging.info(f'Result: {result.strip()}\n')
+        logging.info(f"Query : {query}")
+        logging.info(f"Result: {result.strip()}\n")
 
 Hydra makes every aspect of the NeMo model, including the PyTorch Lightning Trainer, customizable from the command line.
 
@@ -475,7 +480,7 @@ Easily switch between any language model in the above list by using `.get_lm_mod
 
 .. code-block:: python
 
-    nemo_nlp.modules.get_lm_model(pretrained_model_name='distilbert-base-uncased')
+    nemo_nlp.modules.get_lm_model(pretrained_model_name="distilbert-base-uncased")
 
 See this `language model notebook <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/nlp/01_Pretrained_Language_Models_for_Downstream_Tasks.ipynb>`_
 for a full tutorial on using pretrained language models in NeMo.
@@ -496,17 +501,17 @@ and loaded into GPU memory using the `.from_pretrained` method.
 
     # define the list of queries for inference
     queries = [
-        'we bought four shirts from the nvidia gear store in santa clara.',
-        'Nvidia is a company.',
-        'The Adventures of Tom Sawyer by Mark Twain is an 1876 novel about a young boy growing '
-        + 'up along the Mississippi River.',
+        "we bought four shirts from the nvidia gear store in santa clara.",
+        "Nvidia is a company.",
+        "The Adventures of Tom Sawyer by Mark Twain is an 1876 novel about a young boy growing "
+        + "up along the Mississippi River.",
     ]
     results = pretrained_ner_model.add_predictions(queries)
 
     for query, result in zip(queries, results):
         print()
-        print(f'Query : {query}')
-        print(f'Result: {result.strip()}\n')
+        print(f"Query : {query}")
+        print(f"Result: {result.strip()}\n")
 
 NeMo NER Model Under the Hood
 -----------------------------
@@ -520,8 +525,9 @@ since every NeMo model is a Lightning Module.
         """
         Token Classification Model with BERT, applicable for tasks such as Named Entity Recognition
         """
+
         ...
-        @typecheck()
+
         def forward(self, input_ids, token_type_ids, attention_mask):
             hidden_states = self.bert_model(
                 input_ids=input_ids, token_type_ids=token_type_ids, attention_mask=attention_mask
@@ -539,8 +545,9 @@ since every NeMo model is a Lightning Module.
             logits = self(input_ids=input_ids, token_type_ids=input_type_ids, attention_mask=input_mask)
 
             loss = self.loss(logits=logits, labels=labels, loss_mask=loss_mask)
-            self.log_dict({'train_loss': loss, 'lr': self._optimizer.param_groups[0]['lr']})
+            self.log_dict({"train_loss": loss, "lr": self._optimizer.param_groups[0]["lr"]})
             return loss
+
         ...
 
 Neural Types in NeMo NLP
@@ -555,6 +562,7 @@ for a production-grade application.
     @property
     def input_types(self) -> Optional[Dict[str, NeuralType]]:
         return self.bert_model.input_types
+
 
     @property
     def output_types(self) -> Optional[Dict[str, NeuralType]]:
@@ -656,10 +664,11 @@ for a full tutorial on generating speech with NeMo, PyTorch Lightning, and Hydra
 .. code-block:: python
 
     # load pretrained spectrogram model
-    spec_gen = SpecModel.from_pretrained('GlowTTS-22050Hz').cuda()
+    spec_gen = SpecModel.from_pretrained("GlowTTS-22050Hz").cuda()
 
     # load pretrained Generators
-    vocoder = WaveGlowModel.from_pretrained('WaveGlow-22050Hz').cuda()
+    vocoder = WaveGlowModel.from_pretrained("WaveGlow-22050Hz").cuda()
+
 
     def infer(spec_gen_model, vocder_model, str_input):
         with torch.no_grad():
@@ -667,12 +676,13 @@ for a full tutorial on generating speech with NeMo, PyTorch Lightning, and Hydra
             spectrogram = spec_gen.generate_spectrogram(tokens=parsed)
             audio = vocoder.convert_spectrogram_to_audio(spec=spectrogram)
         if isinstance(spectrogram, torch.Tensor):
-            spectrogram = spectrogram.to('cpu').numpy()
+            spectrogram = spectrogram.to("cpu").numpy()
         if len(spectrogram.shape) == 3:
             spectrogram = spectrogram[0]
         if isinstance(audio, torch.Tensor):
-            audio = audio.to('cpu').numpy()
+            audio = audio.to("cpu").numpy()
         return spectrogram, audio
+
 
     text_to_generate = input("Input what you want the model to say: ")
     spec, audio = infer(spec_gen, vocoder, text_to_generate)
@@ -702,14 +712,15 @@ be customized with PyTorch Lightning since every NeMo model is a LightningModule
         GlowTTS model used to generate spectrograms from text
         Consists of a text encoder and an invertible spectrogram decoder
         """
+
         ...
         # NeMo models come with neural type checking
         @typecheck(
             input_types={
-                "x": NeuralType(('B', 'T'), TokenIndex()),
-                "x_lengths": NeuralType(('B'), LengthsType()),
-                "y": NeuralType(('B', 'D', 'T'), MelSpectrogramType(), optional=True),
-                "y_lengths": NeuralType(('B'), LengthsType(), optional=True),
+                "x": NeuralType(("B", "T"), TokenIndex()),
+                "x_lengths": NeuralType(("B"), LengthsType()),
+                "y": NeuralType(("B", "D", "T"), MelSpectrogramType(), optional=True),
+                "y_lengths": NeuralType(("B"), LengthsType(), optional=True),
                 "gen": NeuralType(optional=True),
                 "noise_scale": NeuralType(optional=True),
                 "length_scale": NeuralType(optional=True),
@@ -722,7 +733,9 @@ be customized with PyTorch Lightning since every NeMo model is a LightningModule
                 )
             else:
                 return self.glow_tts(text=x, text_lengths=x_lengths, spect=y, spect_lengths=y_lengths)
+
         ...
+
         def step(self, y, y_lengths, x, x_lengths):
             z, y_m, y_logs, logdet, logw, logw_, y_lengths, attn = self(
                 x=x, x_lengths=x_lengths, y=y, y_lengths=y_lengths, gen=False
@@ -753,6 +766,7 @@ be customized with PyTorch Lightning since every NeMo model is a LightningModule
 
             self.log_dict({"l_mle": l_mle, "l_length": l_length, "logdet": logdet}, prog_bar=True)
             return loss
+
         ...
 
 Neural Types in NeMo TTS
@@ -766,10 +780,10 @@ for a production-grade application.
 
     @typecheck(
         input_types={
-            "x": NeuralType(('B', 'T'), TokenIndex()),
-            "x_lengths": NeuralType(('B'), LengthsType()),
-            "y": NeuralType(('B', 'D', 'T'), MelSpectrogramType(), optional=True),
-            "y_lengths": NeuralType(('B'), LengthsType(), optional=True),
+            "x": NeuralType(("B", "T"), TokenIndex()),
+            "x_lengths": NeuralType(("B"), LengthsType()),
+            "y": NeuralType(("B", "D", "T"), MelSpectrogramType(), optional=True),
+            "y_lengths": NeuralType(("B"), LengthsType(), optional=True),
             "gen": NeuralType(optional=True),
             "noise_scale": NeuralType(optional=True),
             "length_scale": NeuralType(optional=True),

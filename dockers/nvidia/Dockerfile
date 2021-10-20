@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+ARG PYTORCH_VERSION=21.07
+
 # https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes
-FROM nvcr.io/nvidia/pytorch:21.06-py3
+FROM nvcr.io/nvidia/pytorch:${PYTORCH_VERSION}-py3
 
 LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
 
@@ -30,7 +32,8 @@ RUN \
         rm -rf pytorch-lightning ; \
         wget https://github.com/PyTorchLightning/pytorch-lightning/archive/${LIGHTNING_VERSION}.zip --progress=bar:force:noscroll ; \
         unzip ${LIGHTNING_VERSION}.zip ; \
-        mv pytorch-lightning-*/ pytorch-lightning ; \
+        mv pytorch-lightning-*/* pytorch-lightning ; \
+        rm -rf pytorch-lightning-* ; \
         rm *.zip ; \
     fi && \
 # save the examples

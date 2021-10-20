@@ -19,7 +19,7 @@ from tests.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedE
 class ValDataloaderVariations(ABC):
     @abstractmethod
     def dataloader(self, *args, **kwargs):
-        """placeholder"""
+        """placeholder."""
 
     def val_dataloader(self):
         return self.dataloader(train=False)

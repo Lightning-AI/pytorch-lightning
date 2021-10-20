@@ -20,7 +20,7 @@ from pytorch_lightning import LightningDataModule, LightningModule
 
 
 class RandomDictDataset(Dataset):
-    def __init__(self, size, length):
+    def __init__(self, size: int, length: int):
         self.len = length
         self.data = torch.randn(length, size)
 
@@ -34,7 +34,7 @@ class RandomDictDataset(Dataset):
 
 
 class RandomDataset(Dataset):
-    def __init__(self, size, length):
+    def __init__(self, size: int, length: int):
         self.len = length
         self.data = torch.randn(length, size)
 
@@ -70,8 +70,7 @@ class RandomIterableDatasetWithLen(IterableDataset):
 
 class BoringModel(LightningModule):
     def __init__(self):
-        """
-        Testing PL Module
+        """Testing PL Module.
 
         Use as follows:
         - subclass
@@ -85,7 +84,6 @@ class BoringModel(LightningModule):
 
         model = BaseTestModel()
         model.training_epoch_end = None
-
         """
         super().__init__()
         self.layer = torch.nn.Linear(32, 2)
@@ -160,18 +158,15 @@ class BoringDataModule(LightningDataModule):
     def setup(self, stage: Optional[str] = None):
         if stage == "fit" or stage is None:
             self.random_train = Subset(self.random_full, indices=range(64))
-            self.dims = self.random_train[0].shape
 
         if stage in ("fit", "validate") or stage is None:
             self.random_val = Subset(self.random_full, indices=range(64, 64 * 2))
 
         if stage == "test" or stage is None:
             self.random_test = Subset(self.random_full, indices=range(64 * 2, 64 * 3))
-            self.dims = getattr(self, "dims", self.random_test[0].shape)
 
         if stage == "predict" or stage is None:
             self.random_predict = Subset(self.random_full, indices=range(64 * 3, 64 * 4))
-            self.dims = getattr(self, "dims", self.random_predict[0].shape)
 
     def train_dataloader(self):
         return DataLoader(self.random_train)
@@ -184,3 +179,18 @@ class BoringDataModule(LightningDataModule):
 
     def predict_dataloader(self):
         return DataLoader(self.random_predict)
+
+
+class ManualOptimBoringModel(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
+
+    def training_step(self, batch, batch_idx):
+        opt = self.optimizers()
+        output = self(batch)
+        loss = self.loss(batch, output)
+        opt.zero_grad()
+        self.manual_backward(loss)
+        opt.step()
+        return loss

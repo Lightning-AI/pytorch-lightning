@@ -1,16 +1,17 @@
 from unittest.mock import patch
 
 import pytest
+import torch
 
 from pytorch_lightning import Trainer
-from tests.base import EvalModelTemplate
+from tests.helpers import BoringModel
 
 
 @pytest.mark.parametrize("num_steps", [1, 2, 3])
 @patch("torch.Tensor.backward")
 def test_backward_count_simple(torch_backward, num_steps):
     """Test that backward is called exactly once per step."""
-    model = EvalModelTemplate()
+    model = BoringModel()
     trainer = Trainer(max_steps=num_steps)
     trainer.fit(model)
     assert torch_backward.call_count == num_steps
@@ -24,7 +25,7 @@ def test_backward_count_simple(torch_backward, num_steps):
 @patch("torch.Tensor.backward")
 def test_backward_count_with_grad_accumulation(torch_backward):
     """Test that backward is called the correct number of times when accumulating gradients."""
-    model = EvalModelTemplate()
+    model = BoringModel()
     trainer = Trainer(max_epochs=1, limit_train_batches=6, accumulate_grad_batches=2)
     trainer.fit(model)
     assert torch_backward.call_count == 6
@@ -39,8 +40,12 @@ def test_backward_count_with_grad_accumulation(torch_backward):
 @patch("torch.Tensor.backward")
 def test_backward_count_with_closure(torch_backward):
     """Using a closure (e.g. with LBFGS) should lead to no extra backward calls."""
-    model = EvalModelTemplate()
-    model.configure_optimizers = model.configure_optimizers__lbfgs
+
+    class TestModel(BoringModel):
+        def configure_optimizers(self):
+            return torch.optim.LBFGS(self.parameters(), lr=0.1)
+
+    model = TestModel()
     trainer = Trainer(max_steps=5)
     trainer.fit(model)
     assert torch_backward.call_count == 5

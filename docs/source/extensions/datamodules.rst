@@ -127,7 +127,6 @@ Here's a more realistic, complex DataModule that shows how much more reusable th
             self.data_dir = data_dir
             self.transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
 
-            # self.dims is returned when you call dm.size()
             # Setting default dims here because we know them.
             # Could optionally be assigned dynamically in dm.setup()
             self.dims = (1, 28, 28)
@@ -206,7 +205,7 @@ There are also data operations you might want to perform on every GPU. Use setup
 - count number of classes
 - build vocabulary
 - perform train/val/test splits
-- apply transforms (defined explicitly in your datamodule or assigned in init)
+- apply transforms (defined explicitly in your datamodule)
 - etc...
 
 .. code-block:: python
@@ -433,3 +432,21 @@ You can of course use DataModules in plain PyTorch code as well.
 
 But overall, DataModules encourage reproducibility by allowing all details of a dataset to be specified in a unified
 structure.
+
+----------------
+
+Hyperparameters in DataModules
+------------------------------
+Like LightningModules, DataModules support hyperparameters with the same API.
+
+.. code-block:: python
+
+    import pytorch_lightning as pl
+
+
+    class CustomDataModule(pl.LightningDataModule):
+        def __init__(self, *args, **kwargs):
+            super().__init__()
+            self.save_hyperparameters()
+
+Refer to `save_hyperparameters` in :doc:`lightning module <../common/lightning_module>` for more details.

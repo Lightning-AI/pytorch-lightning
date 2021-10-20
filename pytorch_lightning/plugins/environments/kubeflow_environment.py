@@ -21,10 +21,10 @@ log = logging.getLogger(__name__)
 
 
 class KubeflowEnvironment(ClusterEnvironment):
-    """
-    Environment for distributed training using the
-    `PyTorchJob <https://www.kubeflow.org/docs/components/training/pytorch/>`_
-    operator from `Kubeflow <https://www.kubeflow.org>`_
+    """Environment for distributed training using the `PyTorchJob`_ operator from `Kubeflow`_
+
+    .. _PyTorchJob: https://www.kubeflow.org/docs/components/training/pytorch/
+    .. _Kubeflow: https://www.kubeflow.org
     """
 
     @staticmethod

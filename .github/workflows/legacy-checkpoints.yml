@@ -1,0 +1,40 @@
+name: Create Legacy Ckpts
+
+# https://help.github.com/en/actions/reference/events-that-trigger-workflows
+on:
+  workflow_dispatch:
+
+jobs:
+  create-legacy-ckpts:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
+        pip install awscli
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
+        aws-region: us-east-1
+
+    - name: Generate checkpoint
+      run: |
+        while IFS= read -r line; do
+            bash legacy/generate_checkpoints.sh $line
+        done <<< $(cat legacy/back-compatible-versions.txt)
+
+    - name: Push files to S3
+      working-directory: ./legacy
+      run: |
+        aws s3 sync legacy/checkpoints/ s3://pl-public-data/legacy/checkpoints/
+        zip -r checkpoints.zip checkpoints
+        aws s3 cp checkpoints.zip s3://pl-public-data/legacy/ --acl public-read

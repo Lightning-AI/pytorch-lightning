@@ -3,7 +3,7 @@
 import logging
 import os
 
-from pytorch_lightning.__about__ import *  # noqa: F401 F403
+from pytorch_lightning.__about__ import *  # noqa: F401, F403
 
 _root_logger = logging.getLogger()
 _logger = logging.getLogger(__name__)

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import ABC
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch import optim
@@ -29,9 +29,10 @@ class TrainerOptimizersMixin(ABC):
 
     _lightning_optimizers: Optional[List[LightningOptimizer]]
 
-    def init_optimizers(self, model: "pl.LightningModule") -> Tuple[List, List, List]:
+    def init_optimizers(self, model: Optional["pl.LightningModule"]) -> Tuple[List, List, List]:
+        pl_module = self.lightning_module or model
         self._lightning_optimizers = None
-        optim_conf = model.configure_optimizers()
+        optim_conf = self.call_hook("configure_optimizers", pl_module=pl_module)
         if optim_conf is None:
             rank_zero_warn(
                 "`LightningModule.configure_optimizers` returned `None`, this fit will run with no optimizer",
@@ -39,6 +40,15 @@ class TrainerOptimizersMixin(ABC):
             )
             optim_conf = _MockOptimizer()
 
+        optimizers, lr_schedulers, optimizer_frequencies, monitor = self._configure_optimizers(optim_conf)
+        lr_schedulers = self._configure_schedulers(lr_schedulers, monitor, not pl_module.automatic_optimization)
+        _validate_scheduler_optimizer(optimizers, lr_schedulers)
+        return optimizers, lr_schedulers, optimizer_frequencies
+
+    @staticmethod
+    def _configure_optimizers(
+        optim_conf: Union[Dict[str, Any], List, Optimizer, Tuple]
+    ) -> Tuple[List, List, List, Optional[str]]:
         optimizers, lr_schedulers, optimizer_frequencies = [], [], []
         monitor = None
 
@@ -57,11 +67,14 @@ class TrainerOptimizersMixin(ABC):
             lr_schedulers = sch if isinstance(sch, list) else [sch]
         # single dictionary
         elif isinstance(optim_conf, dict):
+            _validate_optim_conf(optim_conf)
             optimizers = [optim_conf["optimizer"]]
             monitor = optim_conf.get("monitor", None)
             lr_schedulers = [optim_conf["lr_scheduler"]] if "lr_scheduler" in optim_conf else []
         # multiple dictionaries
         elif isinstance(optim_conf, (list, tuple)) and all(isinstance(d, dict) for d in optim_conf):
+            for opt_dict in optim_conf:
+                _validate_optim_conf(opt_dict)
             optimizers = [opt_dict["optimizer"] for opt_dict in optim_conf]
             scheduler_dict = (
                 lambda scheduler, opt_idx: dict(scheduler, opt_idx=opt_idx)
@@ -94,12 +107,7 @@ class TrainerOptimizersMixin(ABC):
                 ' * {"optimizer": `torch.optim.Optimizer`, (optional) "lr_scheduler": `torch.optim.lr_scheduler`}\n'
                 ' * A list of the previously described dict format, with an optional "frequency" key (int)'
             )
-
-        is_manual_optimization = not model.automatic_optimization
-        lr_schedulers = self.configure_schedulers(lr_schedulers, monitor, is_manual_optimization)
-        _validate_scheduler_optimizer(optimizers, lr_schedulers)
-
-        return optimizers, lr_schedulers, optimizer_frequencies
+        return optimizers, lr_schedulers, optimizer_frequencies, monitor
 
     def convert_to_lightning_optimizers(self):
         def _convert_to_lightning_optimizer(trainer, optimizer):
@@ -112,10 +120,11 @@ class TrainerOptimizersMixin(ABC):
             opt_idx: _convert_to_lightning_optimizer(self, opt) for opt_idx, opt in enumerate(self.optimizers)
         }
 
-    def configure_schedulers(
-        self, schedulers: list, monitor: Optional[str], is_manual_optimization: bool
+    @staticmethod
+    def _configure_schedulers(
+        schedulers: list, monitor: Optional[str], is_manual_optimization: bool
     ) -> List[Dict[str, Any]]:
-        """Convert each scheduler into dict structure with relevant information"""
+        """Convert each scheduler into dict structure with relevant information."""
         lr_schedulers = []
         default_config = _get_default_scheduler_config()
         for scheduler in schedulers:
@@ -159,6 +168,13 @@ class TrainerOptimizersMixin(ABC):
                             ' For example: {"optimizer": optimizer, "lr_scheduler":'
                             ' {"scheduler": scheduler, "monitor": "your_loss"}}'
                         )
+                    is_one_cycle = isinstance(scheduler["scheduler"], optim.lr_scheduler.OneCycleLR)
+                    if is_one_cycle and scheduler.get("interval", "epoch") == "epoch":
+                        rank_zero_warn(
+                            "A `OneCycleLR` scheduler is using 'interval': 'epoch'."
+                            " Are you sure you didn't mean 'interval': 'step'?",
+                            RuntimeWarning,
+                        )
                     lr_schedulers.append({**default_config, **scheduler})
                 elif isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
                     if monitor is None:
@@ -178,9 +194,8 @@ class TrainerOptimizersMixin(ABC):
 
 
 class _MockOptimizer(Optimizer):
-    """The `_MockOptimizer` will be used inplace of an optimizer in the event that `None`
-    is returned from `configure_optimizers`.
-    """
+    """The `_MockOptimizer` will be used inplace of an optimizer in the event that `None` is returned from
+    `configure_optimizers`."""
 
     def __init__(self):
         super().__init__([torch.zeros(1)], {})
@@ -205,10 +220,17 @@ class _MockOptimizer(Optimizer):
         return "No Optimizer"
 
 
+def _validate_optim_conf(optim_conf: Dict[str, Any]) -> None:
+    valid_keys = {"optimizer", "lr_scheduler", "frequency", "monitor"}
+    extra_keys = optim_conf.keys() - valid_keys
+    if extra_keys:
+        rank_zero_warn(f"Found unsupported keys in the optimizer configuration: {set(extra_keys)}", RuntimeWarning)
+
+
 def _validate_scheduler_optimizer(optimizers, lr_schedulers):
     if any(sch["scheduler"].optimizer not in optimizers for sch in lr_schedulers):
         raise MisconfigurationException(
-            "Some schedulers are attatched with an optimizer that wasn't returned from `configure_optimizers`."
+            "Some schedulers are attached with an optimizer that wasn't returned from `configure_optimizers`."
         )
 
 

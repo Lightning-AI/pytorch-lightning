@@ -36,6 +36,10 @@ def test_recursive_application_to_collection():
         example_ids: List[str]
         feature: Feature
         label: torch.Tensor
+        some_constant: int = dataclasses.field(init=False)
+
+        def __post_init__(self):
+            self.some_constant = 7
 
     to_reduce = {
         "a": torch.tensor([1.0]),  # Tensor
@@ -151,17 +155,17 @@ def test_recursive_application_to_collection():
 
 
 def test_apply_to_collection_include_none():
-    to_reduce = [1, 2, 3.4, 5.6, 7]
+    to_reduce = [1, 2, 3.4, 5.6, 7, (8, 9.1, {10: 10})]
 
     def fn(x):
         if isinstance(x, float):
             return x
 
     reduced = apply_to_collection(to_reduce, (int, float), fn)
-    assert reduced == [None, None, 3.4, 5.6, None]
+    assert reduced == [None, None, 3.4, 5.6, None, (None, 9.1, {10: None})]
 
     reduced = apply_to_collection(to_reduce, (int, float), fn, include_none=False)
-    assert reduced == [3.4, 5.6]
+    assert reduced == [3.4, 5.6, (9.1, {})]
 
 
 def test_apply_to_collections():

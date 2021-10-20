@@ -20,6 +20,7 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.distributed import distributed_available
@@ -33,8 +34,12 @@ if _HOROVOD_AVAILABLE:
 class HorovodPlugin(ParallelPlugin):
     """Plugin for Horovod distributed training integration."""
 
-    def __init__(self, parallel_devices: Optional[List[torch.device]] = None):
-        super().__init__(parallel_devices=parallel_devices, cluster_environment=None)
+    def __init__(
+        self,
+        parallel_devices: Optional[List[torch.device]] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
+    ):
+        super().__init__(parallel_devices=parallel_devices, cluster_environment=None, checkpoint_io=checkpoint_io)
         rank_zero_only.rank = self.global_rank
 
     @property
@@ -58,8 +63,7 @@ class HorovodPlugin(ParallelPlugin):
         distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
         return distributed_sampler_kwargs
 
-    def setup(self, model):
-        self._model = model
+    def setup(self) -> None:
         self.model_to_device()
 
     def pre_dispatch(self):
@@ -142,8 +146,7 @@ class HorovodPlugin(ParallelPlugin):
             hvd.join()
 
     def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"):
-        """
-        Reduces a tensor from several distributed processes to one aggregated tensor.
+        """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
             tensor: the tensor to sync and reduce
@@ -169,7 +172,7 @@ class HorovodPlugin(ParallelPlugin):
         return hvd.allreduce(tensor, op=reduce_op)
 
     def all_gather(
-        self, result: Union[torch.Tensor], group: Optional[Any] = dist_group.WORLD, sync_grads: bool = False
+        self, result: torch.Tensor, group: Optional[Any] = dist_group.WORLD, sync_grads: bool = False
     ) -> torch.Tensor:
         if group is not None and group != dist_group.WORLD:
             raise ValueError("Horovod does not support allgather using a subcommunicator at this time. Unset `group`.")
@@ -180,9 +183,7 @@ class HorovodPlugin(ParallelPlugin):
 
         # sync and gather all
         self.join()
-        gathered = hvd.allgather(result)
-        gathered_result = list(gathered.split(1, dim=0))
-        return gathered_result
+        return hvd.allgather(result)
 
     def post_backward(self, closure_loss: torch.Tensor) -> None:
         # synchronize all horovod optimizers.
@@ -202,3 +203,10 @@ class HorovodPlugin(ParallelPlugin):
     def _filter_named_parameters(model: nn.Module, optimizer: Optimizer) -> List[Tuple[str, nn.Parameter]]:
         opt_params = {p for group in optimizer.param_groups for p in group.get("params", [])}
         return [(name, p) for name, p in model.named_parameters() if p in opt_params]
+
+    def teardown(self) -> None:
+        if self.on_gpu:
+            # GPU teardown
+            self.lightning_module.cpu()
+            # clean up memory
+            torch.cuda.empty_cache()

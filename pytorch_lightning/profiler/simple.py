@@ -27,17 +27,14 @@ log = logging.getLogger(__name__)
 
 
 class SimpleProfiler(BaseProfiler):
-    """
-    This profiler simply records the duration of actions (in seconds) and reports
-    the mean duration of each action and the total time spent over the entire training run.
-    """
+    """This profiler simply records the duration of actions (in seconds) and reports the mean duration of each
+    action and the total time spent over the entire training run."""
 
     def __init__(
         self,
         dirpath: Optional[Union[str, Path]] = None,
         filename: Optional[str] = None,
         extended: bool = True,
-        output_filename: Optional[str] = None,
     ) -> None:
         """
         Args:
@@ -53,7 +50,7 @@ class SimpleProfiler(BaseProfiler):
                 If you attempt to start an action which has already started, or
                 if you attempt to stop recording an action which was never started.
         """
-        super().__init__(dirpath=dirpath, filename=filename, output_filename=output_filename)
+        super().__init__(dirpath=dirpath, filename=filename)
         self.current_actions: Dict[str, float] = {}
         self.recorded_durations = defaultdict(list)
         self.extended = extended

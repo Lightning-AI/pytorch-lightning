@@ -45,12 +45,8 @@ class IPUPrecisionPlugin(PrecisionPlugin):
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
         model: Optional[Module] = None,
     ) -> None:
-        """Clips the gradients"""
-        if clip_val is None:
-            return
-
-        clip_val = float(clip_val)
-        if clip_val <= 0:
+        """Clips the gradients."""
+        if clip_val is None or float(clip_val) <= 0:
             return
 
         raise MisconfigurationException("IPUs currently do not support clipping gradients.")

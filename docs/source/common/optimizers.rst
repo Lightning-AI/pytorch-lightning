@@ -69,7 +69,7 @@ Here is a minimal example of manual optimization.
 Gradient accumulation
 ---------------------
 You can accumulate gradients over batches similarly to
-:attr:`~pytorch_lightning.trainer.Trainer.accumulate_grad_batches` of automatic optimization.
+:attr:`~pytorch_lightning.trainer.trainer.Trainer.accumulate_grad_batches` of automatic optimization.
 To perform gradient accumulation with one optimizer, you can do as such.
 
 .. testcode:: python
@@ -185,7 +185,7 @@ defined in your :meth:`~pytorch_lightning.core.lightning.LightningModule.configu
 .. warning::
    * Before 1.3, Lightning automatically called ``lr_scheduler.step()`` in both automatic and manual optimization. From
      1.3, ``lr_scheduler.step()`` is now for the user to call at arbitrary intervals.
-   * Note that the ``lr_dict`` keys, such as ``"step"`` and ``""interval"``, will be ignored even if they are provided in
+   * Note that the ``lr_scheduler_config`` keys, such as ``"step"`` and ``"interval"``, will be ignored even if they are provided in
      your :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers` during manual optimization.
 
 Here is an example calling ``lr_scheduler.step()`` every step.
@@ -443,7 +443,7 @@ For example, here step optimizer A every batch and optimizer B every 2 batches.
                 # the closure (which includes the `training_step`) will be executed by `optimizer.step`
                 optimizer.step(closure=optimizer_closure)
             else:
-                # optional: call the closure by itself to run `training_step` + `backward` without an optimizer step
+                # call the closure by itself to run `training_step` + `backward` without an optimizer step
                 optimizer_closure()
 
         # ...
@@ -516,3 +516,47 @@ to perform a step, Lightning won't be able to support accelerators and precision
     ):
         optimizer = optimizer.optimizer
         optimizer.step(closure=optimizer_closure)
+
+-----
+
+Configure gradient clipping
+---------------------------
+To configure custom gradient clipping, consider overriding
+the :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_gradient_clipping` method.
+Attributes :attr:`~pytorch_lightning.trainer.trainer.Trainer.gradient_clip_val` and
+:attr:`~pytorch_lightning.trainer.trainer.Trainer.gradient_clip_algorithm` will be passed in the respective
+arguments here and Lightning will handle gradient clipping for you. In case you want to set
+different values for your arguments of your choice and let Lightning handle the gradient clipping, you can
+use the inbuilt :meth:`~pytorch_lightning.core.lightning.LightningModule.clip_gradients` method and pass
+the arguments along with your optimizer.
+
+.. note::
+    Make sure to not override :meth:`~pytorch_lightning.core.lightning.LightningModule.clip_gradients`
+    method. If you want to customize gradient clipping, consider using
+    :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_gradient_clipping` method.
+
+For example, here we will apply gradient clipping only to the gradients associated with optimizer A.
+
+.. testcode:: python
+
+    def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
+        if optimizer_idx == 0:
+            # Lightning will handle the gradient clipping
+            self.clip_gradients(
+                optimizer, gradient_clip_val=gradient_clip_val, gradient_clip_algorithm=gradient_clip_algorithm
+            )
+
+Here we configure gradient clipping differently for optimizer B.
+
+.. testcode:: python
+
+    def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
+        if optimizer_idx == 0:
+            # Lightning will handle the gradient clipping
+            self.clip_gradients(
+                optimizer, gradient_clip_val=gradient_clip_val, gradient_clip_algorithm=gradient_clip_algorithm
+            )
+        elif optimizer_idx == 1:
+            self.clip_gradients(
+                optimizer, gradient_clip_val=gradient_clip_val * 2, gradient_clip_algorithm=gradient_clip_algorithm
+            )

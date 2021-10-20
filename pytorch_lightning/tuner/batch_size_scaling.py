@@ -13,6 +13,7 @@
 # limitations under the License
 import logging
 import os
+import uuid
 from typing import Optional, Tuple
 
 import pytorch_lightning as pl
@@ -47,7 +48,7 @@ def scale_batch_size(
         rank_zero_warn(
             f"Field `model.{batch_arg_name}` and `model.hparams.{batch_arg_name}` are mutually exclusive!"
             f" `model.{batch_arg_name}` will be used as the initial batch size for scaling."
-            f" If this is not the intended behavior, please remove either one."
+            " If this is not the intended behavior, please remove either one."
         )
 
     if hasattr(model.train_dataloader, "patch_loader_code"):
@@ -63,7 +64,7 @@ def scale_batch_size(
     __scale_batch_reset_params(trainer, model, steps_per_trial)
 
     # Save initial model, that is loaded after batch size is found
-    save_path = os.path.join(trainer.default_root_dir, "scale_batch_size_temp_model.ckpt")
+    save_path = os.path.join(trainer.default_root_dir, f"scale_batch_size_temp_model_{uuid.uuid4()}.ckpt")
     trainer.save_checkpoint(str(save_path))
 
     if trainer.progress_bar_callback:
@@ -101,6 +102,7 @@ def __scale_batch_dump_params(trainer: "pl.Trainer") -> None:
     trainer.__dumped_params = {
         "auto_lr_find": trainer.auto_lr_find,
         "current_epoch": trainer.current_epoch,
+        "global_step": trainer.global_step,
         "max_steps": trainer.max_steps,
         "weights_summary": trainer.weights_summary,
         "logger": trainer.logger,
@@ -118,7 +120,7 @@ def __scale_batch_reset_params(trainer: "pl.Trainer", model: "pl.LightningModule
     trainer.fit_loop.current_epoch = 0
     trainer.fit_loop.max_steps = steps_per_trial  # take few steps
     trainer.weights_summary = None  # not needed before full run
-    trainer.logger = DummyLogger()
+    trainer.logger = DummyLogger() if trainer.logger is not None else None
     trainer.callbacks = []  # not needed before full run
     trainer.limit_train_batches = 1.0
     trainer.optimizers, trainer.lr_schedulers = [], []  # required for saving
@@ -128,6 +130,7 @@ def __scale_batch_reset_params(trainer: "pl.Trainer", model: "pl.LightningModule
 def __scale_batch_restore_params(trainer: "pl.Trainer") -> None:
     trainer.auto_lr_find = trainer.__dumped_params["auto_lr_find"]
     trainer.fit_loop.current_epoch = trainer.__dumped_params["current_epoch"]
+    trainer.fit_loop.global_step = trainer.__dumped_params["global_step"]
     trainer.fit_loop.max_steps = trainer.__dumped_params["max_steps"]
     trainer.weights_summary = trainer.__dumped_params["weights_summary"]
     trainer.logger = trainer.__dumped_params["logger"]
@@ -163,6 +166,7 @@ def _run_power_scaling(
         if changed:
             # Force the train dataloader to reset as the batch size has changed
             trainer.reset_train_dataloader(model)
+            trainer.reset_val_dataloader(model)
         else:
             break
     return new_size
@@ -171,9 +175,12 @@ def _run_power_scaling(
 def _run_binsearch_scaling(
     trainer: "pl.Trainer", model: "pl.LightningModule", new_size: int, batch_arg_name: str, max_trials: int
 ) -> int:
-    """Batch scaling mode where the size is initially is doubled at each iteration
-    until an OOM error is encountered. Hereafter, the batch size is further
-    refined using a binary search"""
+    """Batch scaling mode where the size is initially is doubled at each iteration until an OOM error is
+    encountered.
+
+    Hereafter, the batch size is further refined using a binary search
+    """
+    low = 1
     high = None
     count = 0
     while True:
@@ -198,6 +205,7 @@ def _run_binsearch_scaling(
             if changed:
                 # Force the train dataloader to reset as the batch size has changed
                 trainer.reset_train_dataloader(model)
+                trainer.reset_val_dataloader(model)
             else:
                 break
 

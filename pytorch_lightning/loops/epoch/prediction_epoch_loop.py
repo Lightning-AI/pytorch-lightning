@@ -1,12 +1,16 @@
 from collections import OrderedDict
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
+import torch
 from deprecate import void
 
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.progress import Progress
+from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.warnings import WarningCache
+
+warning_cache = WarningCache()
 
 
 class PredictionEpochLoop(Loop):
@@ -26,7 +30,7 @@ class PredictionEpochLoop(Loop):
 
     @property
     def done(self) -> bool:
-        """Ends prediction when the iteration count exceeds the total number of available batches"""
+        """Ends prediction when the iteration count exceeds the total number of available batches."""
         return self.batch_progress.current.completed >= self._dl_max_batches
 
     @property
@@ -39,10 +43,10 @@ class PredictionEpochLoop(Loop):
         raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
 
     def reset(self) -> None:
-        """Resets the loops internal state"""
+        """Resets the loops internal state."""
         self._all_batch_indices: List[int] = []
         self.predictions: List[Any] = []
-        self.batch_progress.current.reset()
+        self.batch_progress.reset_on_run()
 
     def on_run_start(
         self,
@@ -52,8 +56,7 @@ class PredictionEpochLoop(Loop):
         num_dataloaders: int,
         return_predictions: bool = False,
     ) -> None:
-        """
-        Prepares the loops internal state
+        """Prepares the loops internal state.
 
         Args:
             dataloader_iter: the iterator over the current dataloader
@@ -75,8 +78,7 @@ class PredictionEpochLoop(Loop):
         num_dataloaders: int,
         return_predictions: bool = False,
     ) -> None:
-        """
-        Runs one prediction step.
+        """Runs one prediction step.
 
         Args:
             dataloader_iter: the iterator over the current dataloader
@@ -97,8 +99,8 @@ class PredictionEpochLoop(Loop):
         with self.trainer.profiler.profile("predict_step"):
             self._predict_step(batch, batch_idx, dataloader_idx)
 
-    def on_run_end(self) -> Tuple[Any, Any]:
-        """Returns the predictions and the corresponding batch indices"""
+    def on_run_end(self) -> Tuple[List[Any], List[int]]:
+        """Returns the predictions and the corresponding batch indices."""
         predictions = self.predictions
         all_batch_indices = self._all_batch_indices
         # free memory
@@ -107,8 +109,8 @@ class PredictionEpochLoop(Loop):
         return predictions, all_batch_indices
 
     def _predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
-        """Runs the actual predict step together with all the
-        necessary bookkeeping and the hooks tied to the predict step.
+        """Runs the actual predict step together with all the necessary bookkeeping and the hooks tied to the
+        predict step.
 
         Args:
             batch: the current batch to run the prediction on
@@ -140,11 +142,10 @@ class PredictionEpochLoop(Loop):
         self.batch_progress.increment_completed()
 
         if self.should_store_predictions:
-            self.predictions.append(predictions)
+            self.predictions.append(move_data_to_device(predictions, torch.device("cpu")))
 
     def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Dict[str, Any]:
-        """
-        Assembles the keyword arguments for the ``predict_step``
+        """Assembles the keyword arguments for the ``predict_step``
 
         Args:
             batch: the current batch to run the prediction on
@@ -160,9 +161,11 @@ class PredictionEpochLoop(Loop):
         return step_kwargs
 
     def _store_batch_indices(self, dataloader_idx: int) -> None:
-        """Stores the batch indices if the predictions should be stored"""
+        """Stores the batch indices if the predictions should be stored."""
         batch_sampler = self.trainer.predict_dataloaders[dataloader_idx].batch_sampler
         if isinstance(batch_sampler, IndexBatchSamplerWrapper):
             self.current_batch_indices = batch_sampler.batch_indices
             if self.should_store_predictions:
                 self._all_batch_indices.append(batch_sampler.batch_indices)
+        else:
+            warning_cache.warn("Lightning couldn't infer the indices fetched for your dataloader.")
