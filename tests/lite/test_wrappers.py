@@ -31,26 +31,28 @@ def test_lite_module_wraps():
     assert _LiteModule(module, Mock()).module is module
 
 
+@RunIf(min_gpus=1)
 @pytest.mark.parametrize(
     "precision, input_type, expected_type",
     [
         (32, torch.float32, torch.float32),
         (32, torch.float16, torch.float32),
         (32, torch.float64, torch.float32),
-        pytest.param(16, torch.float32, torch.float16, marks=RunIf(min_gpus=1)),
-        pytest.param("mixed", torch.float32, torch.float16, marks=RunIf(min_gpus=1)),
+        (16, torch.float32, torch.float16),
+        ("mixed", torch.float32, torch.float16),
     ],
 )
 def test_lite_module_forward_conversion(precision, input_type, expected_type):
-    lite = EmptyLite(precision=precision)
+    lite = EmptyLite(precision=precision, accelerator="gpu", devices=1)
+    device = torch.device("cuda", 0)
 
     def check_autocast(forward_input):
         assert precision not in (16, "mixed") or torch.is_autocast_enabled()
         return forward_input
 
     module = Mock(wraps=torch.nn.Linear(1, 1), side_effect=check_autocast)
-    lite_module = _LiteModule(module, lite._accelerator)
-    out = lite_module(torch.rand(1, dtype=input_type))
+    lite_module = _LiteModule(module, lite._accelerator).to(device)
+    out = lite_module(torch.rand(1, dtype=input_type, device=device))
     assert module.call_args[0][0].dtype == expected_type
     assert out.dtype == expected_type
 
