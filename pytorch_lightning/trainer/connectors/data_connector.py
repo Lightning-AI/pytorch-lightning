@@ -48,10 +48,10 @@ class DataConnector:
         self.test_data_fetcher = test_data_fetcher
         self.sanity_check_data_fetcher: Optional[AbstractDataFetcher] = None
 
-        self._train_dataloader_source = _DataLoaderSource()
-        self._val_dataloader_source = _DataLoaderSource()
-        self._test_dataloader_source = _DataLoaderSource()
-        self._predict_dataloader_source = _DataLoaderSource()
+        self._train_dataloader_source = _DataLoaderSource(None, "")
+        self._val_dataloader_source = _DataLoaderSource(None, "")
+        self._test_dataloader_source = _DataLoaderSource(None, "")
+        self._predict_dataloader_source = _DataLoaderSource(None, "")
 
     @property
     def evaluation_data_fetcher(self) -> Optional[AbstractDataFetcher]:
@@ -270,10 +270,8 @@ class _DataLoaderSource:
             that returns the desired dataloader(s).
     """
 
-    instance: Optional[
-        Union[TRAIN_DATALOADERS, EVAL_DATALOADERS, "pl.LightningModule", "pl.LightningDataModule"]
-    ] = None
-    name: str = ""
+    instance: Optional[Union[TRAIN_DATALOADERS, EVAL_DATALOADERS, "pl.LightningModule", "pl.LightningDataModule"]]
+    name: str
 
     def request(self) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
         """Returns the dataloader from the source.

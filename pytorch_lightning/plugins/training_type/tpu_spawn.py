@@ -104,9 +104,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             connector._test_dataloader_source,
             connector._predict_dataloader_source,
         )
-        for dataloader_source in sources:
-            if not dataloader_source.is_module():
-                TPUSpawnPlugin._validate_dataloader(dataloader_source.instance)
+        for source in sources:
+            if not source.is_module():
+                TPUSpawnPlugin._validate_dataloader(source.instance)
 
     def connect(self, model: "pl.LightningModule") -> None:
         TPUSpawnPlugin._validate_patched_dataloaders(model)
