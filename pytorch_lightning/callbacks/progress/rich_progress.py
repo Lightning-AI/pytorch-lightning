@@ -150,11 +150,11 @@ if _RICH_AVAILABLE:
                 return self._tasks[task.id]
             _text = ""
             # # TODO(@daniellepintz): make this code cleaner
-            progress_bar_callback = getattr(self._trainer, "progress_bar_callback", None)
-            if progress_bar_callback:
-                metrics = self._trainer.progress_bar_callback.get_metrics(self._trainer, self._pl_module)
-            else:
-                metrics = self._trainer.progress_bar_metrics
+            # progress_bar_callback = getattr(self._trainer, "progress_bar_callback", None)
+            # if progress_bar_callback:
+            #     metrics = self._trainer.progress_bar_callback.get_metrics(self._trainer, self._pl_module)
+            # else:
+            metrics = self._trainer.progress_bar_metrics
 
             for k, v in metrics.items():
                 _text += f"{k}: {round(v, 3) if isinstance(v, float) else v} "
