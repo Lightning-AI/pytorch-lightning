@@ -14,7 +14,6 @@
 import os
 from typing import Any, Dict
 
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.utilities import (
     _OMEGACONF_AVAILABLE,
@@ -23,7 +22,6 @@ from pytorch_lightning.utilities import (
     set_shared_parameters,
 )
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import _PATH
 
@@ -93,11 +91,3 @@ class SingleTPUPlugin(SingleDevicePlugin):
     def teardown(self) -> None:
         # TPU teardown
         os.environ.pop("PT_XLA_DEBUG", None)
-
-    @property
-    def checkpoint_io(self) -> CheckpointIO:
-        return self._checkpoint_io
-
-    @checkpoint_io.setter
-    def checkpoint_io(self, plugin: CheckpointIO) -> None:
-        raise MisconfigurationException("TPU Plugin currently does not support custom checkpoint plugins.")
