@@ -216,7 +216,7 @@ accelerator
 
 |
 
-The accelerator backend to use (previously known as distributed_backend).
+The accelerator backend to use:
 
 - (``'dp'``) is DataParallel (split batch among GPUs of same machine)
 - (``'ddp'``) is DistributedDataParallel (each gpu on each node trains, and syncs grads)
@@ -528,7 +528,7 @@ Example::
 checkpoint_callback
 ^^^^^^^^^^^^^^^^^^^
 
-Deprecated: This has been deprecated in v1.5 and will be removed in v.17. Please use ``enable_checkpointing`` instead.
+Deprecated: This has been deprecated in v1.5 and will be removed in v1.7. Please use ``enable_checkpointing`` instead.
 
 default_root_dir
 ^^^^^^^^^^^^^^^^
@@ -552,10 +552,6 @@ will need to be set up to use remote filepaths.
 
     # default used by the Trainer
     trainer = Trainer(default_root_dir=os.getcwd())
-
-distributed_backend
-^^^^^^^^^^^^^^^^^^^
-Deprecated: This has been renamed ``accelerator``.
 
 enable_checkpointing
 ^^^^^^^^^^^^^^^^^^^^
@@ -838,36 +834,6 @@ How often to add logging rows (does not write to disk)
 See Also:
     - :doc:`logging <../extensions/logging>`
 
-log_gpu_memory
-^^^^^^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/log_gpu_memory.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/log_gpu_memory.mp4"></video>
-
-|
-
-Options:
-
-- None
-- 'min_max'
-- 'all'
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(log_gpu_memory=None)
-
-    # log all the GPUs (on master node only)
-    trainer = Trainer(log_gpu_memory="all")
-
-    # log only the min and max memory on the master node
-    trainer = Trainer(log_gpu_memory="min_max")
-
-.. note:: Might slow performance because it uses the output of ``nvidia-smi``.
-
 logger
 ^^^^^^
 
@@ -1032,7 +998,9 @@ when using ``accelerator="ddp"``. Set to a number greater than 1 when
 using ``accelerator="ddp_cpu"`` to mimic distributed training on a
 machine without GPUs. This is useful for debugging, but **will not** provide
 any speedup, since single-process Torch already makes efficient use of multiple
-CPUs.
+CPUs. While ``ddp_cpu`` typically spawns subprocesses for training, setting
+``num_nodes > 1`` and keeping ``num_processes = 1`` runs training in the main
+process.
 
 .. testcode::
 

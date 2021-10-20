@@ -114,7 +114,7 @@ def test_sync_batchnorm_ddp(tmpdir):
         default_root_dir=tmpdir,
         gpus=2,
         num_nodes=1,
-        accelerator="ddp_spawn",
+        strategy="ddp_spawn",
         max_epochs=1,
         max_steps=3,
         sync_batchnorm=True,

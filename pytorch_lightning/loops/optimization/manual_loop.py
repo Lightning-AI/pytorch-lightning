@@ -74,6 +74,8 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
     :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`) and passing through the output(s).
     """
 
+    output_result_cls = ManualResult
+
     def __init__(self) -> None:
         super().__init__()
         self._done: bool = False
@@ -107,7 +109,7 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
             lightning_module._current_fx_name = "training_step"
             with self.trainer.profiler.profile("training_step"):
                 training_step_output = self.trainer.accelerator.training_step(step_kwargs)
-                self.trainer.accelerator.post_training_step()
+                self.trainer.training_type_plugin.post_training_step()
 
             del step_kwargs
 
@@ -115,7 +117,7 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
 
             self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
 
-            result = ManualResult.from_training_step_output(training_step_output)
+            result = self.output_result_cls.from_training_step_output(training_step_output)
 
             if self.trainer.move_metrics_to_cpu:
                 # hiddens and the training step output are not moved as they are not considered "metrics"

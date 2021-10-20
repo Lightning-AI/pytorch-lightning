@@ -128,7 +128,6 @@ def test_add_argparse_args_redefined_error(cli_args: list, monkeypatch):
                 # They should not be changed by the argparse interface.
                 "min_steps": None,
                 "max_steps": None,
-                "log_gpu_memory": None,
                 "accelerator": None,
                 "weights_save_path": None,
                 "resume_from_checkpoint": None,

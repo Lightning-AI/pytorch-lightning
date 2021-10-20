@@ -18,6 +18,7 @@ import os
 import platform
 import sys
 from importlib.util import find_spec
+from typing import Callable
 
 import pkg_resources
 import torch
@@ -43,7 +44,7 @@ def _module_available(module_path: str) -> bool:
         return False
 
 
-def _compare_version(package: str, op, version) -> bool:
+def _compare_version(package: str, op: Callable, version: str, use_base_version: bool = True) -> bool:
     """Compare package version with some requirements.
 
     >>> _compare_version("torch", operator.ge, "0.1")
@@ -60,9 +61,11 @@ def _compare_version(package: str, op, version) -> bool:
             # try pkg_resources to infer version
             pkg_version = Version(pkg_resources.get_distribution(pkg).version)
     except TypeError:
-        # this is mock by sphinx, so it shall return True ro generate all summaries
+        # this is mocked by Sphinx, so it should return True to generate all summaries
         return True
-    return op(Version(pkg_version.base_version), Version(version))
+    if use_base_version:
+        pkg_version = Version(pkg_version.base_version)
+    return op(pkg_version, Version(version))
 
 
 _IS_WINDOWS = platform.system() == "Windows"
@@ -72,6 +75,7 @@ _TORCH_GREATER_EQUAL_1_8 = _compare_version("torch", operator.ge, "1.8.0")
 _TORCH_GREATER_EQUAL_1_8_1 = _compare_version("torch", operator.ge, "1.8.1")
 _TORCH_GREATER_EQUAL_1_9 = _compare_version("torch", operator.ge, "1.9.0")
 _TORCH_GREATER_EQUAL_1_10 = _compare_version("torch", operator.ge, "1.10.0")
+_TORCH_GREATER_EQUAL_DEV_1_10 = _compare_version("torch", operator.ge, "1.10.0", use_base_version=True)
 
 _APEX_AVAILABLE = _module_available("apex.amp")
 _BOLTS_AVAILABLE = _module_available("pl_bolts")

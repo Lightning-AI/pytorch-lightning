@@ -153,7 +153,7 @@ def test_trainer_properties_restore_resume_from_checkpoint(tmpdir):
     state_dict = torch.load(resume_ckpt)
 
     trainer_args.update(
-        {"max_epochs": 3, "resume_from_checkpoint": resume_ckpt, "checkpoint_callback": False, "callbacks": []}
+        {"max_epochs": 3, "resume_from_checkpoint": resume_ckpt, "enable_checkpointing": False, "callbacks": []}
     )
 
     class CustomClassifModel(CustomClassifModel):
@@ -323,7 +323,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
         callbacks=[checkpoint],
         logger=logger,
         gpus=[0, 1],
-        accelerator="dp",
+        strategy="dp",
         default_root_dir=tmpdir,
     )
 
@@ -369,7 +369,7 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
         callbacks=[checkpoint],
         logger=logger,
         gpus=[0, 1],
-        accelerator="ddp_spawn",
+        strategy="ddp_spawn",
         default_root_dir=tmpdir,
     )
 
@@ -487,7 +487,7 @@ def test_dp_resume(tmpdir):
     model = CustomClassificationModelDP(lr=0.1)
     dm = ClassifDataModule()
 
-    trainer_options = dict(max_epochs=1, gpus=2, accelerator="dp", default_root_dir=tmpdir)
+    trainer_options = dict(max_epochs=1, gpus=2, strategy="dp", default_root_dir=tmpdir)
 
     # get logger
     logger = tutils.get_default_logger(tmpdir)
