@@ -94,11 +94,11 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Optional[Callable],
+        lambda_closure: Callable,
         **kwargs: Any,
     ) -> bool:
         """Hook to do something before each optimizer step."""
-        result = lambda_closure() if lambda_closure is not None else None  # APEX amp does not support closures
+        result = lambda_closure()  # APEX amp does not support closures
         super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
         skipped_backward = result is None
         # in manual optimization, the closure does not return a value

@@ -102,7 +102,7 @@ class PrecisionPlugin(CheckpointHooks):
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Optional[Callable],
+        lambda_closure: Callable,
         **kwargs: Any,
     ) -> bool:
         """Hook to do something before each optimizer step."""

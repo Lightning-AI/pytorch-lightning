@@ -318,7 +318,7 @@ class Accelerator:
         self,
         optimizer: Optimizer,
         opt_idx: int,
-        lambda_closure: Optional[Callable],
+        lambda_closure: Callable,
         model: Optional[Union["pl.LightningModule", Module]] = None,
         **kwargs: Any
     ) -> None:
@@ -338,7 +338,7 @@ class Accelerator:
             self.run_optimizer_step(optimizer, opt_idx, lambda_closure, **kwargs)
 
     def run_optimizer_step(
-        self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Optional[Callable] = None, **kwargs: Any
+        self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs: Any
     ) -> None:
         self.training_type_plugin.optimizer_step(optimizer, lambda_closure=lambda_closure, **kwargs)
 

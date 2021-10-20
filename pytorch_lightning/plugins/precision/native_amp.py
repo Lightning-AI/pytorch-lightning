@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Generator, Optional, Union
+from typing import Any, Callable, Dict, Generator, Union
 
 import torch
 from torch import Tensor
@@ -80,7 +80,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Optional[Callable],
+        lambda_closure: Callable,
         **kwargs: Any,
     ) -> bool:
         if self.is_bfloat16:
@@ -90,7 +90,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             raise MisconfigurationException(
                 f"Native AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
-        result = lambda_closure() if lambda_closure is not None else None  # native amp does not support closures
+        result = lambda_closure()  # native amp does not support closures
         self.scaler.unscale_(optimizer)
         super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
         skipped_backward = result is None
