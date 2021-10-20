@@ -82,3 +82,24 @@ def test_lite_dataloader_device_placement(src_device, dest_device):
 
     batch1 = next(iterator)
     assert torch.equal(batch1["data"], torch.tensor([2, 3], device=dest_device))
+
+
+def test_lite_optimizer_wraps():
+    """Test that the LiteOptimizer fully wraps the optimizer."""
+    optimizer_cls = torch.optim.SGD
+    optimizer = Mock(spec=optimizer_cls)
+    lite_optimizer = _LiteOptimizer(optimizer, Mock())
+    assert lite_optimizer.optimizer is optimizer
+    assert isinstance(lite_optimizer, optimizer_cls)
+
+
+def test_lite_optimizer_steps():
+    """Test that the LiteOptimizer forwards the step() and zero_grad() calls to the wrapped optimizer."""
+    optimizer = Mock()
+    accelerator = Mock()
+    lite_optimizer = _LiteOptimizer(optimizer=optimizer, accelerator=accelerator)
+    lite_optimizer.step()
+    accelerator.optimizer_step.assert_called_once()
+    accelerator.optimizer_step.assert_called_with(optimizer, lambda_closure=None, model=None)
+    lite_optimizer.zero_grad()
+    optimizer.zero_grad.assert_called_once()
