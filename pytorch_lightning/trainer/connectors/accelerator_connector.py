@@ -644,16 +644,17 @@ class AcceleratorConnector:
             self.precision = "bf16"
 
         if self.precision in (16, "bf16"):
+            if self.precision == "bf16" and self.amp_type != AMPType.NATIVE:
+                raise MisconfigurationException(
+                    f"You passed `Trainer(amp_type={self.amp_type.value!r}, precision='bf16')` but it's not supported."
+                    " Try using `amp_type='native'` instead."
+                )
+
             rank_zero_info(
                 f"Using 16bit {self.amp_type.value} Automatic Mixed Precision (AMP)"
                 if self.precision == 16
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
-            if self.precision == "bf16" and self.amp_type != AMPType.NATIVE:
-                raise MisconfigurationException(
-                    "You passed `Trainer(amp_type='apex', precision='bf16')` but it's not supported."
-                    " Try using `amp_type='native'` instead."
-                )
 
             if self.amp_type == AMPType.NATIVE:
                 device = "cpu" if self.use_cpu else "cuda"
