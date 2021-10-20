@@ -211,7 +211,7 @@ accelerator
 Supports passing different accelerator types (``"cpu", "gpu", "tpu", "ipu", "auto"``)
 as well as custom accelerator instances.
 
-.. testcode::
+.. code-block:: python
 
     # CPU accelerator
     trainer = Trainer(accelerator="cpu")
@@ -227,7 +227,7 @@ as well as custom accelerator instances.
 
 .. note:: The ``"auto"`` option recognizes the machine you are on, and selects the respective ``Accelerator``.
 
-.. testcode::
+.. code-block:: python
 
     # If your machine has GPUs, it will use the GPU Accelerator for training
     trainer = Trainer(devices=2, accelerator="auto")
@@ -1371,7 +1371,7 @@ strategy
 
 Supports passing different training strategies with aliases (ddp, ddp_spawn, etc) as well as custom training type plugins.
 
-.. testcode::
+.. code-block:: python
 
     # Training with the DistributedDataParallel strategy on 4 gpus
     trainer = Trainer(strategy="ddp", accelerator="gpu", devices=4)
@@ -1381,7 +1381,7 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
 
 .. note:: Additionally, you can pass your custom training type plugins to the ``strategy`` argument.
 
-.. testcode::
+.. code-block:: python
 
     from pytorch_lightning.plugins import DDPPlugin
 
