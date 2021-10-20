@@ -199,7 +199,7 @@ class LearningRateMonitor(Callback):
         param_groups = optimizer.param_groups
         use_betas = "betas" in optimizer.defaults
 
-        for i, (pg, name) in enumerate(zip(param_groups, names)):
+        for pg, name in zip(param_groups, names):
             lr = self._extract_lr(pg, name)
             lr_momentum_stat.update(lr)
             momentum = self._extract_momentum(
