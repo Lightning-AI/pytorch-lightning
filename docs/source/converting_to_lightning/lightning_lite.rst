@@ -207,13 +207,15 @@ Here is how to use `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/ze
     but there is one major challenge ahead of you now: ``processes divergence``.
 
     Processes divergence is extremely common and shouldn't be overlooked.
-    It happens when processes execute different section of the code due to different if/else condition, race condition on existing files, etc...
-    This would likely result in your training hanging and as a :class:`~pytorch_lightning.lite.LightningLite` provides full flexibility,
+    It happens when processes execute different section of the code due to
+    different if/else condition, race condition on existing files, etc...
+    This would likely result in your training hanging
+    and as a :class:`~pytorch_lightning.lite.LightningLite` provides full flexibility,
     hanging would be the result of your own code.
 
-    Once it happens, there is 2 solutions:
+    If it happens, there is 2 solutions:
     * Debug multiple processes which can be extremely tedious and take days to resolve.
-    * Convert fully to Lightning which has been battle tested for years and implement best practices to avoid any ``processes divergence``.
+    * Start converting to Lightning which has been battle tested for years and implement best practices to avoid any ``processes divergence``.
 
 
 LightningLite to Lightning
