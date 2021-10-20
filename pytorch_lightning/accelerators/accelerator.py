@@ -335,9 +335,11 @@ class Accelerator:
             model, optimizer, opt_idx, lambda_closure, **kwargs
         )
         if make_optimizer_step:
-            self.run_optimizer_step(optimizer, lambda_closure, **kwargs)
+            self.run_optimizer_step(optimizer, opt_idx, lambda_closure, **kwargs)
 
-    def run_optimizer_step(self, optimizer: Optimizer, lambda_closure: Callable, **kwargs: Any) -> None:
+    def run_optimizer_step(
+        self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs: Any
+    ) -> None:
         self.training_type_plugin.optimizer_step(optimizer, lambda_closure=lambda_closure, **kwargs)
 
     def optimizer_zero_grad(self, current_epoch: int, batch_idx: int, optimizer: Optimizer, opt_idx: int) -> None:
