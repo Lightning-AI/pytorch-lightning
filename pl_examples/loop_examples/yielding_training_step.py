@@ -125,9 +125,9 @@ class GAN(GANTemplate):
         generator_output = self(z)
 
         # train generator
-        valid = torch.ones(imgs.size(0), 1)
-        valid = valid.type_as(imgs)
-        g_loss = self.adversarial_loss(self.discriminator(generator_output), valid)
+        real_labels = torch.ones(imgs.size(0), 1)
+        real_labels = real_labels.type_as(imgs)
+        g_loss = self.adversarial_loss(self.discriminator(generator_output), real_labels)
         self.log("g_loss", g_loss)
 
         # Yield instead of return: This makes the training_step a Python generator.
@@ -135,14 +135,14 @@ class GAN(GANTemplate):
         yield g_loss
 
         # train discriminator
-        valid = torch.ones(imgs.size(0), 1)
-        valid = valid.type_as(imgs)
-        real_loss = self.adversarial_loss(self.discriminator(imgs), valid)
-        fake = torch.zeros(imgs.size(0), 1)
-        fake = fake.type_as(imgs)
+        real_labels = torch.ones(imgs.size(0), 1)
+        real_labels = real_labels.type_as(imgs)
+        real_loss = self.adversarial_loss(self.discriminator(imgs), real_labels)
+        fake_labels = torch.zeros(imgs.size(0), 1)
+        fake_labels = fake_labels.type_as(imgs)
 
         # We make use again of the generator_output
-        fake_loss = self.adversarial_loss(self.discriminator(generator_output.detach()), fake)
+        fake_loss = self.adversarial_loss(self.discriminator(generator_output.detach()), fake_labels)
         d_loss = (real_loss + fake_loss) / 2
         self.log("d_loss", d_loss)
 
