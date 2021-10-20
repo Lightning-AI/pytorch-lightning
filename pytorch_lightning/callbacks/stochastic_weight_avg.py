@@ -294,6 +294,8 @@ class StochasticWeightAveraging(Callback):
 
         # Recompute mean and variance for all batch norm layers by doing a full pass over the training data
         for batch in data_loader:
+            if isinstance(batch, (list, tuple)):
+                batch = batch[0]
             batch = batch.to(pl_module.device)
             pl_module(batch)
 
