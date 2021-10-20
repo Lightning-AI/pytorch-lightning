@@ -184,6 +184,10 @@ def __verify_eval_loop_configuration(trainer: "pl.Trainer", model: "pl.Lightning
 
     # predict_step is not required to be overridden
     if stage == "predict":
+        if model.predict_step is None or not is_overridden("forward", model):
+            raise MisconfigurationException(
+                "`Trainer.predict` requires either `forward` or `predict_step` method to run."
+            )
         return
 
     # -----------------------------------

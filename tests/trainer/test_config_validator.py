@@ -69,33 +69,51 @@ def test_eval_loop_config(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     # has val step but no val data
+    model = BoringModel()
+    model.val_dataloader = None
     with pytest.raises(MisconfigurationException, match=r"No `val_dataloader\(\)` method defined"):
-        model = BoringModel()
-        model.val_dataloader = None
         trainer.validate(model)
 
     # has test data but no val step
+    model = BoringModel()
+    model.validation_step = None
     with pytest.raises(MisconfigurationException, match=r"No `validation_step\(\)` method defined"):
-        model = BoringModel()
-        model.validation_step = None
         trainer.validate(model)
 
     # has test loop but no test data
+    model = BoringModel()
+    model.test_dataloader = None
     with pytest.raises(MisconfigurationException, match=r"No `test_dataloader\(\)` method defined"):
-        model = BoringModel()
-        model.test_dataloader = None
         trainer.test(model)
 
     # has test data but no test step
+    model = BoringModel()
+    model.test_step = None
     with pytest.raises(MisconfigurationException, match=r"No `test_step\(\)` method defined"):
-        model = BoringModel()
-        model.test_step = None
         trainer.test(model)
 
     # has predict step but no predict data
+    model = BoringModel()
+    model.predict_dataloader = None
     with pytest.raises(MisconfigurationException, match=r"No `predict_dataloader\(\)` method defined"):
-        model = BoringModel()
-        model.predict_dataloader = None
+        trainer.predict(model)
+
+    # has predict data but no forward
+    model = BoringModel()
+    model.forward = None
+    with pytest.raises(MisconfigurationException, match=r"requires either `forward` or `predict_step` method to run."):
+        trainer.predict(model)
+
+    # has predict data but no predict_step
+    model = BoringModel()
+    model.predict_step = None
+    with pytest.raises(MisconfigurationException, match=r"requires either `forward` or `predict_step` method to run."):
+        trainer.predict(model)
+
+    # has predict data but no forward
+    model = BoringModel()
+    model.forward = None
+    with pytest.raises(MisconfigurationException, match=r"requires either `forward` or `predict_step` method to run."):
         trainer.predict(model)
 
 
