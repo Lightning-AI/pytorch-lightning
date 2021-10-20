@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest import mock
+
 import pytest
 import torch
 import torch.distributed
@@ -70,7 +72,7 @@ def test_lightning_lite_setup_dataloaders():
         runner.run()
 
 
-def test_lightning_lite_track_model_with_deepspeed():
+def test_lightning_lite_track_model_setup():
     class LiteRunner(LightningLite):
         def run(self):
             model = BoringModel()
@@ -85,3 +87,29 @@ def test_lightning_lite_track_model_with_deepspeed():
 
     runner = LiteRunner()
     runner.run()
+
+
+def test_lightning_lite_deepspeed_backward():
+    with mock.patch("pytorch_lightning.plugins.DeepSpeedPlugin.setup_distributed", lambda x: x):
+
+        class LiteRunner(LightningLite):
+            def run(self):
+                def fn(*args):
+                    return args
+
+                self._strategy._setup_model_and_optimizer = fn
+                model = BoringModel()
+                optimizer = configure_optimizers(model)
+                self.setup(model, optimizer)
+
+                model = BoringModel()
+                optimizer = configure_optimizers(model)
+                self.setup(model, optimizer)
+
+                x = model(torch.randn(1, 32))
+                loss = x.sum()
+                self.backward(loss)
+
+        with pytest.raises(MisconfigurationException, match="please provide the model used to perform"):
+            runner = LiteRunner(strategy="deepspeed")
+            runner.run()

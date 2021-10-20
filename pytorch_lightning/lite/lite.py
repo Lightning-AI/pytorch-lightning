@@ -106,7 +106,7 @@ class LightningLite(ABC):
         # wrap the run method so we can inject setup logic or spawn processes for the user
         setattr(self, "run", self._run_wrapper(self.run))
 
-        self._model_refs = set()
+        self._number_of_models: int = 0
 
     @property
     def device(self) -> torch.device:
@@ -138,7 +138,7 @@ class LightningLite(ABC):
 
     @property
     def _is_using_multiple_models(self) -> bool:
-        return len(self._model_refs) > 1
+        return self._number_of_models > 1
 
     @abstractmethod
     def run(self, *args: Any, **kwargs: Any) -> Any:
@@ -186,7 +186,7 @@ class LightningLite(ABC):
 
         model, optimizers = self._setup_model_and_optimizers(model, optimizers)
         optimizers = optimizers[0] if len(optimizers) == 1 else optimizers
-        self._model_refs.add(model)
+        self._number_of_models += 1
         return model, optimizers
 
     def setup_dataloaders(
@@ -250,7 +250,7 @@ class LightningLite(ABC):
             dataloader = _LiteDataLoader(device=device, **kwargs)
         return self._strategy.process_dataloader(dataloader)
 
-    def backward(self, tensor: Tensor, *args: Any, **kwargs: Any) -> None:
+    def backward(self, tensor: Tensor, *args: Any, model: Optional[_LiteModule] = None, **kwargs: Any) -> None:
         """Replaces ``loss.backward()`` in your training loop. Handles precision and automatically for you.
 
         Args:
@@ -258,7 +258,12 @@ class LightningLite(ABC):
             *args: Optional positional arguments passed to the underlying backward function.
             **kwargs: Optional named keyword arguments passed to the underlying backward function.
         """
-        self._precision_plugin._run_backward(tensor, self._strategy.model, *args, **kwargs)
+        if self._is_using_multiple_models and isinstance(self._strategy, DeepSpeedPlugin):
+            raise MisconfigurationException(
+                "When using multiple models + deepspeed, please provide the model used to perform the optimization."
+            )
+
+        self._precision_plugin._run_backward(tensor, model or self._strategy.model, *args, **kwargs)
 
     @contextmanager
     def cast(self) -> Generator[None, None, None]:
