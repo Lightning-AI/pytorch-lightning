@@ -785,6 +785,8 @@ class DeepSpeedPlugin(DDPPlugin):
         return False
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        if "state_dict" not in checkpoint and self._has_loaded_state_dict:
+            return
         # override to do nothing, deepspeed engine already loaded the weights in `load_checkpoint()`
         if self.load_full_weights and self.zero_stage_3:
             self.model_to_device()

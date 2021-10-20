@@ -1025,9 +1025,6 @@ class Trainer(
         self.data_connector.prepare_data()
         self.callback_connector._attach_model_callbacks()
 
-        if self._ckpt_path and not self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
-            self._load_checkpoint_weights()
-
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
@@ -1037,6 +1034,8 @@ class Trainer(
 
         # check if we should delay restoring checkpoint till later
         if not self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
+            if self._ckpt_path:
+                self._load_checkpoint_weights()
             self.checkpoint_connector.resume_start()
             self._restore_modules_and_callbacks()
 
