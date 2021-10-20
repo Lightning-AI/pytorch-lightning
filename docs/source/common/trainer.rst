@@ -1366,6 +1366,41 @@ checkpoint, training will start from the beginning of the next epoch.
     # resume from a specific checkpoint
     trainer = Trainer(resume_from_checkpoint="some/path/to/my_checkpoint.ckpt")
 
+strategy
+^^^^^^^^
+
+Supports passing different training strategies with aliases (ddp, ddp_spawn, etc) as well as custom training type plugins.
+
+.. testcode::
+
+    # Training with the DistributedDataParallel strategy on 4 gpus
+    trainer = Trainer(strategy="ddp", accelerator="gpu", devices=4)
+
+    # Training with the DDP Spawn strategy using 4 cpu processes
+    trainer = Trainer(strategy="ddp_spawn", accelerator="cpu", devices=4)
+
+.. note:: You could also pass in custom training type plugins to the ``strategy`` argument.
+
+.. testcode::
+
+    from pytorch_lightning.plugins import DDPPlugin
+
+
+    class CustomDDPPlugin(DDPPlugin):
+        def configure_ddp(self):
+            self._model = MyCustomDistributedDataParallel(
+                self.model,
+                device_ids=...,
+            )
+
+
+    trainer = Trainer(strategy=CustomDDPPlugin(), accelerator="gpu", devices=2)
+
+See Also:
+    - :doc:`Multi-GPU training guide <../advanced/multi_gpu>`.
+    - :doc:`Model Parallel GPU training guide <../advanced/advanced_gpu>`.
+    - :doc:`TPU training guide <../advanced/tpu>`.
+
 sync_batchnorm
 ^^^^^^^^^^^^^^
 
