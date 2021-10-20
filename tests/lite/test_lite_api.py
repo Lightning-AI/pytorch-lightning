@@ -20,9 +20,12 @@ import torch.nn.functional
 from torch import nn
 from torch.utils.data import DataLoader
 
+from pytorch_lightning import seed_everything
 from pytorch_lightning.lite import LightningLite
+from pytorch_lightning.plugins import DeepSpeedPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import RandomDataset
+from tests.helpers.runif import RunIf
 
 
 class BoringModel(nn.Module):
@@ -113,3 +116,34 @@ def test_lightning_lite_deepspeed_backward():
         with pytest.raises(MisconfigurationException, match="please provide the model used to perform"):
             runner = LiteRunner(strategy="deepspeed")
             runner.run()
+
+
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+def test_deepspeed_multiple_models():
+    class LiteRunner(LightningLite):
+        def run(self):
+            seed_everything(42)
+            model_1 = BoringModel()
+            optimizer_1 = configure_optimizers(model_1)
+
+            seed_everything(42)
+            model_2 = BoringModel()
+            optimizer_2 = configure_optimizers(model_2)
+
+            for mw_1, mw_2 in zip(model_1.state_dict().values(), model_2.state_dict().values()):
+                assert torch.equal(mw_1, mw_2)
+
+            model_1, optimizer_1 = self.setup(model_1, optimizer_1)
+            model_2, optimizer_2 = self.setup(model_2, optimizer_2)
+
+            for _ in range(2):
+                optimizer_1.zero_grad()
+                x = model_1(torch.randn(1, 32).to(self.device))
+                loss = x.sum()
+                self.backward(loss, model=model_1)
+                optimizer_1.step()
+
+            for mw_1, mw_2 in zip(model_1.state_dict().values(), model_2.state_dict().values()):
+                assert not torch.equal(mw_1, mw_2)
+
+    LiteRunner(strategy=DeepSpeedPlugin(stage=2), devices=2, accelerator="gpu").run()

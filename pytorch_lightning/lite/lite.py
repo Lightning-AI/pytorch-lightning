@@ -259,9 +259,12 @@ class LightningLite(ABC):
             **kwargs: Optional named keyword arguments passed to the underlying backward function.
         """
         if self._is_using_multiple_models and isinstance(self._strategy, DeepSpeedPlugin):
-            raise MisconfigurationException(
-                "When using multiple models + deepspeed, please provide the model used to perform the optimization."
-            )
+            if not isinstance(model, _LiteModule):
+                raise MisconfigurationException(
+                    "When using multiple models + deepspeed, please provide the model used to perform the optimization."
+                )
+
+            model = model._module
 
         self._precision_plugin._run_backward(tensor, model or self._strategy.model, *args, **kwargs)
 
@@ -390,7 +393,7 @@ class LightningLite(ABC):
         if strategy is None:
             return
         supported = [t.lower() for t in self._supported_strategy_types()]
-        if not isinstance(strategy, (TrainingTypePlugin, str)) or strategy not in supported:
+        if not isinstance(strategy, (TrainingTypePlugin, str)) and strategy not in supported:
             raise MisconfigurationException(
                 f"`strategy={repr(strategy)}` is not a valid choice."
                 f" Choose one of {supported} or pass in a `TrainingTypePlugin` instance."
