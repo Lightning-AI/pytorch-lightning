@@ -1,6 +1,6 @@
-#############
-LightningLite
-#############
+###############################
+LightningLite - Easy conversion
+###############################
 
 The :class:`~pytorch_lightning.lite.LightningLite` enables pure PyTorch users to scale their existing code
 on any kind of device while retaining full control on their own loops and optimization logic.
@@ -111,7 +111,7 @@ while being able to train on multiple devices.
     model = BoringModel()
     run(model, train_dataloader(), val_dataloader())
 
-Convert to LightningLite - Easy
+Convert to LightningLite
 ========================
 
 Here are 4 required steps to convert to class:`~pytorch_lightning.lite.LightningLite`.
