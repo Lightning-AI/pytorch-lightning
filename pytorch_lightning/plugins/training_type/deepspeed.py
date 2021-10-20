@@ -19,10 +19,12 @@ import os
 import platform
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import torch
+from torch.nn import Module
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
@@ -377,6 +379,50 @@ class DeepSpeedPlugin(DDPPlugin):
         self.init_deepspeed()
         self.barrier()
 
+    def _setup_models_and_optimizers(
+        self, models: List[Module], optimizers: List[Optimizer]
+    ) -> Tuple[List[Module], List[Optimizer]]:
+        """Setup multiple models and multiple optimizers together.
+
+        Currently only one model paired with a single optimizer is supported.
+
+        Return:
+            A list with one model wrapped into a :class:`deepspeed.DeepSpeedEngine` and list with a single
+            deepspeed optimizer.
+        """
+        if not (len(models) == len(optimizers) == 1):
+            raise ValueError(
+                f"Currently only one model and one optimizer is supported with DeepSpeed."
+                f" Got {len(models)} models and {len(optimizers)} optimizers instead."
+            )
+
+        # train_micro_batch_size_per_gpu is used for throughput logging purposes
+        # normally we set this to the batch size, but it is not available here unless the user provides it
+        # as part of the config
+        self.config.setdefault("train_micro_batch_size_per_gpu", 1)
+        self._model, optimizer = self._setup_model_and_optimizer(models[0], optimizers[0])
+        self._set_deepspeed_activation_checkpointing()
+        return [self._model], [optimizer]
+
+    def _setup_model_and_optimizer(
+        self, model: Module, optimizer: Optimizer, lr_scheduler: Optional[_LRScheduler] = None
+    ):
+        """Initialize one model and one optimizer with an optional learning rate scheduler.
+
+        This calls :func:`deepspeed.initialize` internally.
+        """
+        model_parameters = filter(lambda p: p.requires_grad, model.parameters())
+        deepspeed_engine, deepspeed_optimizer, _, _ = deepspeed.initialize(
+            args=argparse.Namespace(device_rank=self.root_device.index),
+            config=self.config,
+            model=model,
+            model_parameters=model_parameters,  # type: ignore
+            optimizer=optimizer,
+            lr_scheduler=lr_scheduler,
+            dist_init_required=False,
+        )
+        return deepspeed_engine, deepspeed_optimizer
+
     def init_deepspeed(self):
         # check that `configure_gradient_clipping` hook isn't overriden since deepspeed handles
         # gradient clipping internally
@@ -441,18 +487,7 @@ class DeepSpeedPlugin(DDPPlugin):
             optimizer, lr_scheduler, _ = self._init_optimizers()
 
         scheduler = lr_scheduler["scheduler"]
-
-        model_parameters = filter(lambda p: p.requires_grad, self.model.parameters())
-        model, deepspeed_optimizer, _, deepspeed_scheduler = deepspeed.initialize(
-            args=argparse.Namespace(device_rank=self.root_device.index),
-            config=self.config,
-            model=model,
-            model_parameters=model_parameters,
-            optimizer=optimizer,
-            lr_scheduler=scheduler,
-            dist_init_required=False,
-        )
-
+        model, deepspeed_optimizer = self._setup_model_and_optimizer(model, optimizer, scheduler)
         self._set_deepspeed_activation_checkpointing()
 
         # although we set these here, deepspeed manages the specific optimizer logic
@@ -548,11 +583,6 @@ class DeepSpeedPlugin(DDPPlugin):
         # via `_initialize_deepspeed_train`
         return [], [], []  # empty optimizers, schedulers and frequencies
 
-    def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
-        # note: We rely on the deepspeed engine to carry out the step rather than the optimizer.
-        # internally, the engine has a reference to the optimizer already.
-        self.model.step(**kwargs)
-
     @property
     def handles_gradient_accumulation(self) -> bool:
         """Whether the plugin handles gradient accumulation internally."""
@@ -568,6 +598,10 @@ class DeepSpeedPlugin(DDPPlugin):
         self._format_precision_config()
 
     def _format_batch_size_and_grad_accum_config(self):
+        # todo: using lite, we do not support these variables within the config
+        if self.lightning_module is None:
+            return
+
         if "gradient_accumulation_steps" in self.config:
             raise MisconfigurationException(
                 "Do not set `gradient_accumulation_steps` in the DeepSpeed config"
@@ -578,7 +612,7 @@ class DeepSpeedPlugin(DDPPlugin):
             rank_zero_warn(
                 "Inferring the batch size for internal deepspeed logging from the `train_dataloader()`. "
                 "If you require skipping this, please pass "
-                "`Trainer(plugins=DeepSpeedPlugin(logging_batch_size_per_gpu=batch_size))`"
+                "`Trainer(strategy=DeepSpeedPlugin(logging_batch_size_per_gpu=batch_size))`"
             )
             batch_size = self._auto_select_batch_size()
             self.config["train_micro_batch_size_per_gpu"] = batch_size
@@ -589,8 +623,9 @@ class DeepSpeedPlugin(DDPPlugin):
         # train_micro_batch_size_per_gpu is used for throughput logging purposes
         # by default we try to use the batch size of the loader
         batch_size = 1
-        if hasattr(self.lightning_module, "train_dataloader"):
-            train_dataloader = self.lightning_module.train_dataloader()
+        train_dl_source = self.lightning_module.trainer.data_connector._train_dataloader_source
+        if train_dl_source.is_defined():
+            train_dataloader = train_dl_source.dataloader()
             if hasattr(train_dataloader, "batch_sampler"):
                 batch_size = train_dataloader.batch_sampler.batch_size
         return batch_size
@@ -730,7 +765,7 @@ class DeepSpeedPlugin(DDPPlugin):
         if client_state is None:
             raise MisconfigurationException(
                 "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint "
-                "or a single checkpoint file with `Trainer(plugins=DeepSpeedPlugin(load_full_weights=True))`."
+                "or a single checkpoint file with `Trainer(strategy=DeepSpeedPlugin(load_full_weights=True))`."
             )
         return client_state
 
@@ -746,6 +781,8 @@ class DeepSpeedPlugin(DDPPlugin):
         return False
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        if "state_dict" not in checkpoint and self._has_loaded_state_dict:
+            return
         # override to do nothing, deepspeed engine already loaded the weights in `load_checkpoint()`
         if self.load_full_weights and self.zero_stage_3:
             self.model_to_device()
