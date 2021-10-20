@@ -17,7 +17,7 @@ import pytest
 import torch
 
 from pytorch_lightning.lite import LightningLite
-from pytorch_lightning.lite.wrappers import _LiteModule, _LiteOptimizer, _LiteDataLoader
+from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from tests.helpers.runif import RunIf
 
 
