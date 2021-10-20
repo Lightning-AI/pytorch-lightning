@@ -41,27 +41,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 #############################################################################################
-#            Step 1 / 4: Define the interface for a yielding LightningModule                #
-#                                                                                           #
-# Whenever you decide to redefine hooks and their signature in Lightning, it is a good      #
-# practice to define a class with the expected interface.                                   #
-#                                                                                           #
-# Here we choose to define a new "flavor" of the `training_step`. We want to create a       #
-# `training_step` from which we can "yield", like we would from a Python generator.         #
-#############################################################################################
-
-
-class YieldingLightningModule(ABC):
-    """Interface for the LightningModule to define a flavor for automatic optimization where the training step
-    method yields losses for each optimizer instead of returning them."""
-
-    @abstractmethod
-    def training_step(self, batch, batch_idx, optimizer_idx=0) -> Generator:
-        pass
-
-
-#############################################################################################
-#                        Step 2 / 4: Implement a custom OptimizerLoop                       #
+#                        Step 1 / 3: Implement a custom OptimizerLoop                       #
 #                                                                                           #
 # The `training_step` gets called in the                                                    #
 # `pytorch_lightning.loops.optimization.OptimizerLoop`. To make it into a Python generator, #
@@ -79,12 +59,8 @@ class YieldLoop(OptimizerLoop):
 
     def on_run_start(self, batch, optimizers, batch_idx):
         super().on_run_start(batch, optimizers, batch_idx)
-        if not isinstance(self.trainer.lightning_module, YieldingLightningModule):
-            raise MisconfigurationException(
-                "Given LightingModule does not inherit the Yield interface for automatic optimization, but a"
-                " YieldLoop was requested."
-            )
-        assert inspect.isgeneratorfunction(self.trainer.lightning_module.training_step)
+        if not inspect.isgeneratorfunction(self.trainer.lightning_module.training_step):
+            raise MisconfigurationException("The LightingModule does not yield anything in the `training_step`.")
         assert self.trainer.lightning_module.automatic_optimization
 
         # We request the generator once and save it for later
@@ -122,7 +98,7 @@ class YieldLoop(OptimizerLoop):
 
 
 #############################################################################################
-#               Step 3 / 4: Implement a model using the new yield mechanism                 #
+#               Step 2 / 3: Implement a model using the new yield mechanism                 #
 #                                                                                           #
 # We can now implement a model that defines the `training_step` using "yield" statements.   #
 # We choose a generative adversarial network (GAN) because it alternates between two        #
@@ -135,7 +111,7 @@ class YieldLoop(OptimizerLoop):
 #############################################################################################
 
 
-class GAN(YieldingLightningModule, GANTemplate):
+class GAN(GANTemplate):
 
     # This training_step method is now a Python generator
     def training_step(self, batch, batch_idx, optimizer_idx=0) -> Generator:
@@ -174,7 +150,7 @@ class GAN(YieldingLightningModule, GANTemplate):
 
 
 #############################################################################################
-#                       Step 4 / 4: Connect the loop to the Trainer                         #
+#                       Step 3 / 3: Connect the loop to the Trainer                         #
 #                                                                                           #
 # Finally, attach the loop to the `Trainer`. Here, we modified the `AutomaticOptimization`  #
 # loop which is a subloop of the `TrainingBatchLoop`. We use `.connect()` to attach it.     #
