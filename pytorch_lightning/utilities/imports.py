@@ -44,7 +44,7 @@ def _module_available(module_path: str) -> bool:
         return False
 
 
-def _compare_version(package: str, op: Callable, version: str, use_base_version: bool = True) -> bool:
+def _compare_version(package: str, op: Callable, version: str, use_base_version: bool = False) -> bool:
     """Compare package version with some requirements.
 
     >>> _compare_version("torch", operator.ge, "0.1")
