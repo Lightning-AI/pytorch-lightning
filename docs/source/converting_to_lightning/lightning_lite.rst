@@ -11,6 +11,26 @@ on any kind of device while retaining full control on their own loops and optimi
 
 - As a PyTorch user, I would like to convert my existing code to the Lightning API, but a one step full transition might be too complex. LightningLite offers a stepping stone in the transition to ensure reproducibility during the transition.
 
+Supported integrations
+======================
+
+:class:`~pytorch_lightning.lite.LightningLite` supports single and multiple models / optimizers.
+
+#. ``accelerator``:
+    * single-CPU.
+    * single GPU.
+    * single TPU.
+    * multi-CPU (single and multiple nodes).
+    * multi-GPUs (single and multiple nodes).
+    * multi-TPUs (single and multiple pods).
+
+#. ``strategy``: ``DP``, ``DDP``, ``DDP Spawn``, ``DDP Sharded``, ``DeepSpeed``.
+#. ``precision`: ``float16`` and ``bfloat16`` with ``AMP``.
+* ``clusters``: ``TorchElastic``, ``SLURM``, ``Kubeflow``, ``LSF``.
+
+Coming:
+* ``accelerator``: IPUs.
+* ``strategy``: ``Horovod``, ``FSDP``.
 
 ################
 Learn by example
@@ -91,10 +111,10 @@ while being able to train on multiple devices.
     model = BoringModel()
     run(model, train_dataloader(), val_dataloader())
 
-Convert to LightningLite
+Convert to LightningLite - Easy
 ========================
 
-While converting to class:`~pytorch_lightning.lite.LightningLite`, here are 4 required steps:
+Here are 4 required steps to convert to class:`~pytorch_lightning.lite.LightningLite`.
 
 1. Subclass class:`~pytorch_lightning.lite.LightningLite` and override its meth:`~pytorch_lightning.lite.LightningLite.run` method.
 2. Copy / paste your existing `run` function.
@@ -148,11 +168,8 @@ While converting to class:`~pytorch_lightning.lite.LightningLite`, here are 4 re
                 train_epoch_loss = torch.stack(train_losses).mean()
                 val_epoch_loss = torch.stack(val_losses).mean()
 
-                ################################################################################
-                # Optional: Utility to print only on rank 0 (when using distributed setting)   #
-                self.print(f"{epoch}/{num_epochs}| Train Epoch Loss: {train_epoch_loss}")
-                self.print(f"{epoch}/{num_epochs}| Valid Epoch Loss: {val_epoch_loss}")
-                ################################################################################
+                print(f"{epoch}/{num_epochs}| Train Epoch Loss: {train_epoch_loss}")
+                print(f"{epoch}/{num_epochs}| Valid Epoch Loss: {val_epoch_loss}")
 
 
     seed_everything(42)
