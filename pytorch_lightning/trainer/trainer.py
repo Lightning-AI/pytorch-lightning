@@ -176,7 +176,6 @@ class Trainer(
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         amp_backend: str = "native",
         amp_level: Optional[str] = None,
-        distributed_backend: Optional[str] = None,
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         stochastic_weight_avg: bool = False,
@@ -187,7 +186,7 @@ class Trainer(
 
         Args:
 
-            accelerator: Previously known as distributed_backend (dp, ddp, ddp2, etc...).
+            accelerator: (dp, ddp, ddp2, etc...).
                 Can also take in an accelerator object for custom hardware.
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
@@ -240,8 +239,6 @@ class Trainer(
 
             devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,
                 based on the accelerator type.
-
-            distributed_backend: Deprecated. Please use ``accelerator``.
 
             fast_dev_run: Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
                 of train, val and test to find any bugs (ie: a sort of unit test).
@@ -430,7 +427,6 @@ class Trainer(
             devices,
             tpu_cores,
             ipus,
-            distributed_backend,
             accelerator,
             strategy,
             gpus,
@@ -558,7 +554,7 @@ class Trainer(
 
         self.should_stop = False
         self.state = TrainerState()
-        self.num_training_batches = 0
+        self.num_training_batches = float("inf")
         self.train_dataloader = None
 
         if num_sanity_val_steps == -1:
@@ -1221,12 +1217,6 @@ class Trainer(
         self.model.train()
         torch.set_grad_enabled(True)
 
-        # reload data when needed
-        model = self.lightning_module
-
-        if isinstance(self.fit_loop, FitLoop):
-            self.reset_train_val_dataloaders(model)
-
         self.fit_loop.trainer = self
         with torch.autograd.set_detect_anomaly(self._detect_anomaly):
             self.fit_loop.run()
@@ -1514,11 +1504,6 @@ class Trainer(
         return self.accelerator_connector.accelerator
 
     @property
-    def distributed_backend(self) -> Optional[str]:
-        # for backward compatibility
-        return self.accelerator_connector.distributed_backend
-
-    @property
     def training_type_plugin(self) -> TrainingTypePlugin:
         return self.accelerator.training_type_plugin
 
@@ -1537,7 +1522,7 @@ class Trainer(
 
     @property
     def node_rank(self) -> int:
-        # some training types define a local rank
+        # some training types define a node rank
         return getattr(self.training_type_plugin, "node_rank", 0)
 
     @property
