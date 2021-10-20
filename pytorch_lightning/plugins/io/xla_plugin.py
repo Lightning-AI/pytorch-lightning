@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
 from typing import Any, Dict, Optional
 
 from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
@@ -24,8 +23,6 @@ if _TPU_AVAILABLE:
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import DictConfig, ListConfig, OmegaConf
-
-log = logging.getLogger(__name__)
 
 
 class XLACheckpointIO(TorchCheckpointIO):
