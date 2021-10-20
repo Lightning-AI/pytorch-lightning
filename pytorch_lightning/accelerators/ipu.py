@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Dict, Union
+from typing import Any, Callable, Dict, Union, Optional
 
 import torch
 from torch.optim import Optimizer
@@ -35,7 +35,9 @@ class IPUAccelerator(Accelerator):
         if len(self.optimizers) > 1:
             raise MisconfigurationException("IPUs currently only support one optimizer.")
 
-    def optimizer_step(self, optimizer: Optimizer, opt_idx: int, lambda_closure: Callable, **kwargs: Any) -> None:
+    def optimizer_step(
+        self, optimizer: Optimizer, opt_idx: int, lambda_closure: Optional[Callable], **kwargs: Any
+    ) -> None:
         # Optimizer step is handled by the IPU accelerator.
         lambda_closure()
 
