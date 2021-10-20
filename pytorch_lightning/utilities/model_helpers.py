@@ -76,9 +76,8 @@ def is_overridden(
 
 
 def get_model_size(model: nn.Module) -> int:
-    """
-    Calculates the size of a nn.Module in bytes by tallying the size of the Tensor
-    objects in its ``state_dict()``.
+    """Calculates the size of a nn.Module in bytes by tallying the size of the Tensor objects in its
+    ``state_dict()``.
 
     NOTE: This will not work with sparse tensors. See
     https://github.com/Stonesjtu/pytorch_memlab/blob/master/pytorch_memlab/mem_reporter.py
