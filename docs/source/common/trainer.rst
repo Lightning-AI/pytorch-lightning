@@ -208,53 +208,41 @@ Trainer flags
 accelerator
 ^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/distributed_backend.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/distributed_backend.mp4"></video>
-
-|
-
-The accelerator backend to use:
-
-- (``'dp'``) is DataParallel (split batch among GPUs of same machine)
-- (``'ddp'``) is DistributedDataParallel (each gpu on each node trains, and syncs grads)
-- (``'ddp_cpu'``) is DistributedDataParallel on CPU (same as ``'ddp'``, but does not use GPUs.
-  Useful for multi-node CPU training or single-node debugging. Note that this will **not** give
-  a speedup on a single node, since Torch already makes efficient use of multiple CPUs on a single
-  machine.)
-- (``'ddp2'``) dp on node, ddp across nodes. Useful for things like increasing
-    the number of negative samples
+Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "auto")
+as well as custom accelerator instances.
 
 .. testcode::
 
-    # default used by the Trainer
-    trainer = Trainer(accelerator=None)
+    # CPU accelerator
+    trainer = Trainer(accelerator="cpu")
 
-Example::
+    # Training with GPU Accelerator using 2 gpus
+    trainer = Trainer(devices=2, accelerator="gpu")
 
-    # dp = DataParallel
-    trainer = Trainer(gpus=2, accelerator='dp')
+    # Training with TPU Accelerator using 8 tpu cores
+    trainer = Trainer(devices=8, accelerator="tpu")
 
-    # ddp = DistributedDataParallel
-    trainer = Trainer(gpus=2, num_nodes=2, accelerator='ddp')
+    # Training with GPU Accelerator using the DistributedDataParallel strategy
+    trainer = Trainer(devices=4, accelerator="gpu", strategy="ddp")
 
-    # ddp2 = DistributedDataParallel + dp
-    trainer = Trainer(gpus=2, num_nodes=2, accelerator='ddp2')
+.. note:: The ``"auto"`` option recognizes the machine you are on, and selects the respective ``Accelerator``.
 
-.. note:: This option does not apply to TPU. TPUs use ``'ddp'`` by default (over each core)
+.. testcode::
+
+    # If your machine has GPUs, it will use the GPU Accelerator for training
+    trainer = Trainer(devices=2, accelerator="auto")
 
 You can also modify hardware behavior by subclassing an existing accelerator to adjust for your needs.
 
 Example::
 
-    class MyOwnAcc(Accelerator):
+    class MyOwnAcc(CPUAccelerator):
         ...
 
     Trainer(accelerator=MyOwnAcc())
 
-.. warning:: Passing in custom accelerators is experimental but work is in progress to enable full compatibility.
+.. warning:: Passing training strategies (e.g., "ddp") to ``accelerator`` has been deprecated in v1.5.0
+    and will be removed in v1.7.0. Please use the ``strategy`` argument instead.
 
 accumulate_grad_batches
 ^^^^^^^^^^^^^^^^^^^^^^^
