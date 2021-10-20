@@ -122,16 +122,16 @@ For simple changes that don't require a custom loop, you can modify each of thes
 Each loop has a series of methods that can be modified.
 For example with the :class:`~pytorch_lightning.loops.fit_loop.FitLoop`:
 
-.. code-block::
+.. code-block:: python
 
     from pytorch_lightning.loops import FitLoop
 
     class MyLoop(FitLoop):
 
-        def advance():
+        def advance(self):
             ...
 
-        def on_advance_end(self)
+        def on_advance_end(self):
             ...
 
         def on_run_end(self):
@@ -185,7 +185,7 @@ Creating a new loop from scratch
 You can also go wild and implement a full loop from scratch by sub-classing the :class:`~pytorch_lightning.loops.base.Loop` base class.
 You will need to override a minimum of two things:
 
-.. code-block::
+.. code-block:: python
 
     from pytorch_lightning.loop import Loop
 
