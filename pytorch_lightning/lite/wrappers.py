@@ -92,7 +92,7 @@ class _LiteModule(nn.Module):
         args, kwargs = apply_to_collection([args, kwargs], function=lambda t: t.to(to_type), dtype=Tensor)
 
         with self._accelerator.precision_plugin.forward_context():
-            output = self.module.forward(*args, **kwargs)
+            output = self.module(*args, **kwargs)
 
         output = apply_to_collection(output, function=lambda t: t.to(torch.get_default_dtype()), dtype=Tensor)
         return output
