@@ -29,8 +29,7 @@ def verify_loop_configurations(trainer: "pl.Trainer", model: "pl.LightningModule
 
     """
     if trainer.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
-        __verify_train_loop_configuration(trainer, model)
-        __verify_fit_val_loop_configuration(trainer, model)
+        __verify_train_val_loop_configuration(trainer, model)
         __verify_manual_optimization_support(trainer, model)
         __check_training_step_requires_dataloader_iter(model)
     elif trainer.state.fn == TrainerFn.VALIDATING:
@@ -52,7 +51,7 @@ def verify_loop_configurations(trainer: "pl.Trainer", model: "pl.LightningModule
     _check_dl_idx_in_on_train_batch_hooks(trainer, model)
 
 
-def __verify_train_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
     # -----------------------------------
     # verify model has a training step
     # -----------------------------------
@@ -84,22 +83,13 @@ def __verify_train_loop_configuration(trainer: "pl.Trainer", model: "pl.Lightnin
         )
 
     # ----------------------------------------------
-    # verify model does not have
-    # - on_train_dataloader
-    # - on_val_dataloader
+    # verify model does not have on_train_dataloader
     # ----------------------------------------------
     has_on_train_dataloader = is_overridden("on_train_dataloader", model)
     if has_on_train_dataloader:
         rank_zero_deprecation(
             "Method `on_train_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
             " Please use `train_dataloader()` directly."
-        )
-
-    has_on_val_dataloader = is_overridden("on_val_dataloader", model)
-    if has_on_val_dataloader:
-        rank_zero_deprecation(
-            "Method `on_val_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
-            " Please use `val_dataloader()` directly."
         )
 
     trainer.overriden_optimizer_step = is_overridden("optimizer_step", model)
@@ -113,6 +103,28 @@ def __verify_train_loop_configuration(trainer: "pl.Trainer", model: "pl.Lightnin
             "When using `Trainer(accumulate_grad_batches != 1)` and overriding"
             " `LightningModule.optimizer_{step,zero_grad}`, the hooks will not be called on every batch"
             " (rather, they are called on every optimization step)."
+        )
+
+    # -----------------------------------
+    # verify model for val loop
+    # -----------------------------------
+
+    has_val_loader = trainer.data_connector._val_dataloader_source.is_defined()
+    has_val_step = is_overridden("validation_step", model)
+
+    if has_val_loader and not has_val_step:
+        rank_zero_warn("You passed in a `val_dataloader` but have no `validation_step`. Skipping val loop.")
+    if has_val_step and not has_val_loader:
+        rank_zero_warn("You defined a `validation_step` but have no `val_dataloader`. Skipping val loop.")
+
+    # ----------------------------------------------
+    # verify model does not have on_val_dataloader
+    # ----------------------------------------------
+    has_on_val_dataloader = is_overridden("on_val_dataloader", model)
+    if has_on_val_dataloader:
+        rank_zero_deprecation(
+            "Method `on_val_dataloader` is deprecated and will be removed in v1.7.0."
+            " Please use `val_dataloader()` directly."
         )
 
 
@@ -144,34 +156,14 @@ def _check_on_post_move_to_device(model: "pl.LightningModule") -> None:
         )
 
 
-def __verify_fit_val_loop_configuration(trainer, model: "pl.LightningModule") -> None:
-    has_val_loader = trainer.data_connector._val_dataloader_source.is_defined()
-    has_val_step = is_overridden("validation_step", model)
-
-    if has_val_loader and not has_val_step:
-        rank_zero_warn("You passed in a `val_dataloader` but have no `validation_step`. Skipping val loop.")
-    if has_val_step and not has_val_loader:
-        rank_zero_warn("You defined a `validation_step` but have no `val_dataloader`. Skipping val loop.")
-
-    # ----------------------------------------------
-    # verify model does not have on_val_dataloader
-    # ----------------------------------------------
-    has_on_val_dataloader = is_overridden("on_val_dataloader", model)
-    if has_on_val_dataloader:
-        rank_zero_deprecation(
-            "Method `on_val_dataloader` is deprecated and will be removed in v1.7.0."
-            " Please use `val_dataloader()` directly."
-        )
-
-
-def __verify_eval_loop_configuration(trainer, model: "pl.LightningModule", stage: str) -> None:
+def __verify_eval_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule", stage: str) -> None:
     loader_name = f"{stage}_dataloader"
     step_name = "validation_step" if stage == "val" else f"{stage}_step"
     trainer_method = "validate" if stage == "val" else stage
     on_eval_hook = f"on_{loader_name}"
 
     has_loader = is_overridden(loader_name, model)
-    has_loader = getattr(trainer.data_connector, f'_{stage}_dataloader_source').is_defined()
+    has_loader = getattr(trainer.data_connector, f"_{stage}_dataloader_source").is_defined()
     has_step = is_overridden(step_name, model)
     has_on_eval_dataloader = is_overridden(on_eval_hook, model)
 
