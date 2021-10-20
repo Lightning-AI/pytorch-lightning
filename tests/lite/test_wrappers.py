@@ -27,6 +27,7 @@ class EmptyLite(LightningLite):
 
 
 def test_lite_module_wraps():
+    """Test that the wrapped module is accessible via the property."""
     module = Mock()
     assert _LiteModule(module, Mock()).module is module
 
@@ -35,14 +36,15 @@ def test_lite_module_wraps():
 @pytest.mark.parametrize(
     "precision, input_type, expected_type",
     [
-        (32, torch.float32, torch.float32),
         (32, torch.float16, torch.float32),
+        (32, torch.float32, torch.float32),
         (32, torch.float64, torch.float32),
         (16, torch.float32, torch.float16),
         ("mixed", torch.float32, torch.float16),
     ],
 )
 def test_lite_module_forward_conversion(precision, input_type, expected_type):
+    """Test that the LiteModule performs autocasting on the input tensors and during forward()."""
     lite = EmptyLite(precision=precision, accelerator="gpu", devices=1)
     device = torch.device("cuda", 0)
 
@@ -66,6 +68,7 @@ def test_lite_module_forward_conversion(precision, input_type, expected_type):
     ],
 )
 def test_lite_dataloader_device_placement(src_device, dest_device):
+    """Test that the LiteDataLoader moves data to the device in its iterator."""
     sample0 = torch.tensor(0, device=src_device)
     sample1 = torch.tensor(1, device=src_device)
     sample2 = {"data": torch.tensor(2, device=src_device)}
