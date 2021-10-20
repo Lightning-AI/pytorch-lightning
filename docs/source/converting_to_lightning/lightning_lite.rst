@@ -9,7 +9,7 @@ on any kind of device while retaining full control on their own loops and optimi
 
 - As a PyTorch user, I want to quickly scale my existing code to multiple devices with minimal code changes.
 
-- As a PyTorch user, I would like to convert my existing code to the Lightning API, but a one step full transition might be too complex. LightningLite offers a stepping stone in the transition to ensure reproducibility during the transition.
+- As a PyTorch user, I would like to convert my existing code to the Lightning API, but a one-step transition might be too complex. I am looking for a stepping stone to ensure reproducibility during the transition.
 
 Supported integrations
 ======================
