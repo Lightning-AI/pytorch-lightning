@@ -97,7 +97,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def autocast_context_manager(self) -> autocast:
         if _TORCH_GREATER_EQUAL_DEV_1_10:
-            autocast("cpu" if self.use_cpu else "cuda", dtype=self._dtype)
+            return autocast("cpu" if self.use_cpu else "cuda", dtype=self._dtype)
         return autocast()
 
     @contextmanager
