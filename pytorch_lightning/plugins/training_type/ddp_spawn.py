@@ -15,7 +15,7 @@ import logging
 import os
 import re
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Dict, List, Optional, Union, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
