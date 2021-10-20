@@ -62,15 +62,15 @@ def __verify_train_loop_configuration(trainer: "pl.Trainer", model: "pl.Lightnin
             " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
         )
 
-        # -----------------------------------
-        # verify model has a train dataloader
-        # -----------------------------------
-        has_train_dataloader = self.trainer.data_connector._train_dataloader_source.is_defined()
-        if not has_train_dataloader:
-            raise MisconfigurationException(
-                "No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a"
-                " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
-            )
+    # -----------------------------------
+    # verify model has a train dataloader
+    # -----------------------------------
+    has_train_dataloader = trainer.data_connector._train_dataloader_source.is_defined()
+    if not has_train_dataloader:
+        raise MisconfigurationException(
+            "No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a"
+            " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
+        )
 
     # -----------------------------------
     # verify model has optimizer
