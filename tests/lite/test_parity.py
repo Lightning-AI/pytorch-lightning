@@ -19,6 +19,8 @@ from typing import Callable, Generator
 
 import pytest
 import torch
+import torch.distributed
+import torch.nn.functional
 import torch.multiprocessing as mp
 from torch import nn
 from torch.nn.parallel.distributed import DistributedDataParallel
@@ -139,8 +141,8 @@ def test_boring_lite_model_single_device(precision, strategy, devices, accelerat
         pure_state_dict = main(lite.to_device, model, train_dataloader, num_epochs=num_epochs)
 
     state_dict = apply_to_collection(state_dict, torch.Tensor, lite.to_device)
-    for o_pure, w_lite in zip(state_dict.values(), lite_state_dict.values()):
-        assert not torch.equal(o_pure, w_lite)
+    for w_pure, w_lite in zip(state_dict.values(), lite_state_dict.values()):
+        assert not torch.equal(w_pure, w_lite)
 
     for w_pure, w_lite in zip(pure_state_dict.values(), lite_state_dict.values()):
         assert torch.equal(w_pure, w_lite)
@@ -151,7 +153,7 @@ def run(rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdi
     if torch.distributed.is_available() and not torch.distributed.is_initialized():
         torch.distributed.init_process_group("gloo", rank=rank, world_size=2)
 
-    to_device = partial(move_data_to_device, device=torch.device(f"cuda:{rank}"))
+    to_device = partial(move_data_to_device, device=torch.device("cuda", rank))
     model = DistributedDataParallel(
         to_device(model),
         device_ids=[rank],
@@ -172,7 +174,7 @@ def run(rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdi
 @pytest.mark.parametrize(
     "precision, strategy, devices, accelerator",
     [
-        pytest.param(32, "ddp_spawn", 2, "gpu"),
+        (32, "ddp_spawn", 2, "gpu"),
     ],
 )
 def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, tmpdir):
@@ -186,8 +188,8 @@ def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, 
     checkpoint_path = lite.run(model, train_dataloader, num_epochs=num_epochs, tmpdir=tmpdir)
     spawn_model_state_dict = torch.load(checkpoint_path)
 
-    for o_pure, w_lite in zip(state_dict.values(), spawn_model_state_dict.values()):
-        assert not torch.equal(o_pure.cpu(), w_lite.cpu())
+    for w_pure, w_lite in zip(state_dict.values(), spawn_model_state_dict.values()):
+        assert not torch.equal(w_pure.cpu(), w_lite.cpu())
 
     model.load_state_dict(state_dict)
     os.environ["MASTER_ADDR"] = "127.0.0.1"
@@ -203,7 +205,7 @@ def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, 
 @pytest.mark.parametrize(
     "precision, strategy, devices, accelerator",
     [
-        pytest.param(32, "ddp", 2, "gpu"),
+        (32, "ddp", 2, "gpu"),
     ],
 )
 def test_boring_lite_model_ddp(precision, strategy, devices, accelerator, tmpdir):
@@ -218,8 +220,8 @@ def test_boring_lite_model_ddp(precision, strategy, devices, accelerator, tmpdir
 
     lite_model_state_dict = model.state_dict()
 
-    for o_pure, w_lite in zip(state_dict.values(), lite_model_state_dict.values()):
-        assert not torch.equal(o_pure.cpu(), w_lite.cpu())
+    for w_pure, w_lite in zip(state_dict.values(), lite_model_state_dict.values()):
+        assert not torch.equal(w_pure.cpu(), w_lite.cpu())
 
     seed_everything(42)
     train_dataloader = DataLoader(RandomDataset(32, 4))
