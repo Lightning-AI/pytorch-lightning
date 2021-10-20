@@ -129,11 +129,12 @@ if _RICH_AVAILABLE:
     class MetricsTextColumn(ProgressColumn):
         """A column containing text."""
 
-        def __init__(self, trainer, pl_module):
+        def __init__(self, trainer, pl_module, progress_bar):
             self._trainer = trainer
             self._pl_module = pl_module
             self._tasks = {}
             self._current_task_id = 0
+            self._progress_bar = progress_bar
             super().__init__()
 
         def render(self, task) -> Text:
@@ -149,12 +150,7 @@ if _RICH_AVAILABLE:
             if self._trainer.training and task.id != self._current_task_id:
                 return self._tasks[task.id]
             _text = ""
-            # # TODO(@daniellepintz): make this code cleaner
-            # progress_bar_callback = getattr(self._trainer, "progress_bar_callback", None)
-            # if progress_bar_callback:
-            #     metrics = self._trainer.progress_bar_callback.get_metrics(self._trainer, self._pl_module)
-            # else:
-            metrics = self._trainer.progress_bar_metrics
+            metrics = self._progress_bar.get_metrics(self._trainer, self._pl_module)
 
             for k, v in metrics.items():
                 _text += f"{k}: {round(v, 3) if isinstance(v, float) else v} "
@@ -274,7 +270,7 @@ class RichProgressBar(ProgressBarBase):
                 BatchesProcessedColumn(style=self.theme.batch_process),
                 CustomTimeColumn(style=self.theme.time),
                 ProcessingSpeedColumn(style=self.theme.processing_speed),
-                MetricsTextColumn(trainer, pl_module),
+                MetricsTextColumn(trainer, pl_module, progress_bar=self),
                 refresh_per_second=self.refresh_rate_per_second,
                 disable=self.is_disabled,
                 console=self._console,
