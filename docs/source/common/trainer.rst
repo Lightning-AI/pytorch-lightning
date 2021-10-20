@@ -208,7 +208,7 @@ Trainer flags
 accelerator
 ^^^^^^^^^^^
 
-Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "auto")
+Supports passing different accelerator types (``"cpu", "gpu", "tpu", "ipu", "auto"``)
 as well as custom accelerator instances.
 
 .. testcode::
