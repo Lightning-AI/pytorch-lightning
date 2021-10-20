@@ -26,6 +26,11 @@ class EmptyLite(LightningLite):
         pass
 
 
+def test_lite_module_wraps():
+    module = Mock()
+    assert _LiteModule(module, Mock()).module is module
+
+
 @pytest.mark.parametrize(
     "precision, input_type, expected_type",
     [
@@ -48,3 +53,27 @@ def test_lite_module_forward_conversion(precision, input_type, expected_type):
     out = lite_module(torch.rand(1, dtype=input_type))
     assert module.call_args[0][0].dtype == expected_type
     assert out.dtype == expected_type
+
+
+@pytest.mark.parametrize(
+    "src_device, dest_device",
+    [
+        (torch.device("cpu"), torch.device("cpu")),
+        pytest.param(torch.device("cpu"), torch.device("cuda", 0), marks=RunIf(min_gpus=1)),
+        pytest.param(torch.device("cuda", 0), torch.device("cpu"), marks=RunIf(min_gpus=1)),
+    ],
+)
+def test_lite_dataloader_device_placement(src_device, dest_device):
+    sample0 = torch.tensor(0, device=src_device)
+    sample1 = torch.tensor(1, device=src_device)
+    sample2 = {"data": torch.tensor(2, device=src_device)}
+    sample3 = {"data": torch.tensor(3, device=src_device)}
+    data = [sample0, sample1, sample2, sample3]
+    lite_dataloader = _LiteDataLoader(device=dest_device, dataset=data, batch_size=2)
+    iterator = iter(lite_dataloader)
+
+    batch0 = next(iterator)
+    assert torch.equal(batch0, torch.tensor([0, 1], device=dest_device))
+
+    batch1 = next(iterator)
+    assert torch.equal(batch1["data"], torch.tensor([2, 3], device=dest_device))
