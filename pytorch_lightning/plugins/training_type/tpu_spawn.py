@@ -15,6 +15,7 @@ import io
 import os
 import re
 import time
+from multiprocessing.queues import SimpleQueue
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
@@ -149,8 +150,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def set_world_ranks(self, process_idx: int = 0) -> None:
         pass
 
-    def new_process(self, process_idx: int, trainer, mp_queue) -> None:
-        self._worker_setup(process_idx)
+    def new_process(self, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
         self.mp_queue = mp_queue
 
         if self.tpu_global_core_rank != 0 and trainer.progress_bar_callback is not None:
@@ -258,9 +258,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if trainer.logger is not None:
             trainer.logger.finalize("success")
 
-    def get_mp_spawn_kwargs(self, trainer: "pl.Trainer") -> dict:
+    def get_mp_spawn_kwargs(self, trainer: Optional["pl.Trainer"] = None) -> Dict[str, Any]:
         return {
-            "args": (trainer, self.mp_queue),
             "nprocs": len(self.parallel_devices),
             "start_method": self.start_method,
         }
@@ -269,11 +268,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         xm.optimizer_step(optimizer, barrier=False, optimizer_args={"closure": lambda_closure, **kwargs})
 
     def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> None:
-        xmp.spawn(self._wrapped_function, args=(function, args, kwargs), nprocs=self.num_processes)
-
-    def _wrapped_function(self, process_idx: int, function: Callable, args: Any, kwargs: Any) -> None:
-        self._worker_setup(process_idx)
-        function(*args, **kwargs)
+        xmp.spawn(self._wrapped_function, args=(function, args, kwargs), **self.get_mp_spawn_kwargs())
 
     def _worker_setup(self, process_idx: int):
         reset_seed()
@@ -286,14 +281,11 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if "XLA_USE_BF16" in os.environ:
             del os.environ["XLA_USE_BF16"]
         self._close_logger(trainer)
-        xmp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
+        return super().start_training(trainer)
 
     def start_evaluating(self, trainer: "pl.Trainer") -> None:
         self._close_logger(trainer)
-        xmp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
-
-    def start_predicting(self, trainer: "pl.Trainer") -> None:
-        xmp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
+        return super().start_evaluating(trainer)
 
     def training_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
