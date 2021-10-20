@@ -67,7 +67,7 @@ class DDPShardedPlugin(DDPPlugin):
         """
         if len(models) > 1:
             raise ValueError(
-                f"DDPSharded only supports setting up a single model with one or several optimizers."
+                "DDPSharded only supports setting up a single model with one or several optimizers."
                 f" Got {len(models)} models."
             )
 
