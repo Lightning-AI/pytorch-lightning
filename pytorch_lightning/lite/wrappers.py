@@ -23,6 +23,10 @@ from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 
 
+def _do_nothing_closure() -> None:
+    return None
+
+
 class _LiteOptimizer:
     def __init__(self, optimizer: Optimizer, accelerator: Accelerator) -> None:
         self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("step", "__del__")}
@@ -59,8 +63,10 @@ class _LiteOptimizer:
         self._optimizer.param_groups = param_groups
 
     def step(self, closure: Optional[Callable] = None) -> None:
+        closure = closure or _do_nothing_closure
         self._accelerator.optimizer_step(
             self._optimizer,
+            opt_idx=0,
             lambda_closure=closure,
             model=None,
         )
