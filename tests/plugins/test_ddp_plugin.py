@@ -104,7 +104,7 @@ def test_ddp_configure_ddp():
     ddp_plugin = DDPPlugin()
     trainer = Trainer(
         max_epochs=1,
-        plugins=[ddp_plugin],
+        strategy=ddp_plugin,
     )
     # test wrap the model if fitting
     trainer.state.fn = TrainerFn.FITTING
@@ -119,7 +119,7 @@ def test_ddp_configure_ddp():
 
     trainer = Trainer(
         max_epochs=1,
-        plugins=[ddp_plugin],
+        strategy=ddp_plugin,
     )
     # test do not wrap the model if trainerFN is not fitting
     trainer.training_type_plugin.connect(model)
