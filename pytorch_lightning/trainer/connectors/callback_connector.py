@@ -218,8 +218,6 @@ class CallbackConnector:
 
     def configure_progress_bar(self, refresh_rate=None, process_position=0):
         # if progress bar callback already exists return it
-        # if Rich is available refresh_rate is None return Rich ProgressBar
-        # else return TQDM ProgressBar
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]
         if len(progress_bars) > 1:
             raise MisconfigurationException(
