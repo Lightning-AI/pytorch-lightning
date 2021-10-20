@@ -14,6 +14,7 @@
 from typing import Any, Callable, Dict, Optional, Union
 
 import torch
+from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -36,10 +37,16 @@ class IPUAccelerator(Accelerator):
             raise MisconfigurationException("IPUs currently only support one optimizer.")
 
     def optimizer_step(
-        self, optimizer: Optimizer, opt_idx: int, lambda_closure: Optional[Callable], **kwargs: Any
+        self,
+        optimizer: Optimizer,
+        opt_idx: int,
+        lambda_closure: Optional[Callable],
+        model: Optional[Union["pl.LightningModule", Module]] = None,
+        **kwargs: Any
     ) -> None:
         # Optimizer step is handled by the IPU accelerator.
-        lambda_closure()
+        if lambda_closure is not None:
+            lambda_closure()
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """IPU device stats aren't supported yet."""
