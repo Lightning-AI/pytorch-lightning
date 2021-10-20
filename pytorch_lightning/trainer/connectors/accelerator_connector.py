@@ -598,6 +598,10 @@ class AcceleratorConnector:
             )
 
         if self.use_ipu:
+            if self.precision not in (16, 32):
+                raise MisconfigurationException(
+                    f"`Trainer(accelerator='ipu', precision={self.precision!r})` is not supported."
+                )
             return IPUPrecisionPlugin(self.precision)
         if self.use_tpu:
             if self.precision == 32:
