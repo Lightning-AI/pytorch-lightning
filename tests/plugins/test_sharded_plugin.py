@@ -9,7 +9,6 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -48,17 +47,6 @@ def test_sharded_ddp_choice(tmpdir, strategy):
     trainer = Trainer(fast_dev_run=True, strategy=strategy, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
-        trainer.fit(model)
-
-
-@RunIf(amp_apex=True, fairscale=True)
-def test_invalid_apex_sharded(tmpdir):
-    """Test to ensure that we raise an error when we try to use apex and sharded."""
-
-    model = BoringModel()
-    with pytest.raises(MisconfigurationException, match="Sharded Plugin is not supported with Apex AMP"):
-        trainer = Trainer(fast_dev_run=True, strategy="ddp_sharded_spawn", precision=16, amp_backend="apex")
-
         trainer.fit(model)
 
 
