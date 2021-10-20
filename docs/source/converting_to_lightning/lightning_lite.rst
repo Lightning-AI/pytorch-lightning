@@ -1,6 +1,6 @@
-###############################
-LightningLite - Easy conversion
-###############################
+###########################################
+LightningLite - Stepping Stone to Lightning
+###########################################
 
 The :class:`~pytorch_lightning.lite.LightningLite` enables pure PyTorch users to scale their existing code
 on any kind of device while retaining full control on their own loops and optimization logic.
