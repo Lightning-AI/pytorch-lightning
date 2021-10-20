@@ -114,7 +114,7 @@ while being able to train on multiple devices.
 Convert to LightningLite
 ========================
 
-Here are 4 required steps to convert to class:`~pytorch_lightning.lite.LightningLite`.
+Here are 4 required steps to convert to class:`~pytorch_lightning.lite.LightningLite` or 3 code changes.
 
 1. Subclass class:`~pytorch_lightning.lite.LightningLite` and override its meth:`~pytorch_lightning.lite.LightningLite.run` method.
 2. Copy / paste your existing `run` function.
@@ -140,8 +140,7 @@ Here are 4 required steps to convert to class:`~pytorch_lightning.lite.Lightning
             ###################################################################################
             # You would need to call `self.setup_dataloaders` to prepare the dataloaders      #
             # in case you are running in a distributed setting.                               #
-            train_dataloader = self.setup_dataloaders(train_dataloader)
-            val_dataloader = self.setup_dataloaders(val_dataloader)
+            train_dataloader, val_dataloader = self.setup_dataloaders(train_dataloader, val_dataloader)
             ###################################################################################
 
             for epoch in range(num_epochs):
@@ -178,6 +177,7 @@ Here are 4 required steps to convert to class:`~pytorch_lightning.lite.Lightning
     lite.run(lite_model, train_dataloader(), val_dataloader())
 
 That's all ! You can now train on any kind of device and scale your training.
+class:`~pytorch_lightning.lite.LightningLite` take care of device management, so you don't have to.
 
 Here is how to train on 8 gpus with `torch.bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_ precision.
 
@@ -187,6 +187,21 @@ Here is how to train on 8 gpus with `torch.bfloat16 <https://pytorch.org/docs/1.
     lite_model = BoringModel()
     lite = LiteRunner(strategy="ddp", devices=8, accelerator="gpu", precision="bf16")
     lite.run(lite_model, train_dataloader(), val_dataloader())
+
+
+.. warning::
+
+    The class:`~pytorch_lightning.lite.LightningLite` provides you only with the tool to scale your training,
+    but there is one major challenge ahead of you now: ``processes divergence``.
+
+    Processes divergence is extremely common and shouldn't be overlooked.
+    It happens when processes execute different section of the code due to different if/else condition, race condition on existing files, etc...
+    This would likely result in your training hanging and as a :class:`~pytorch_lightning.lite.LightningLite` provides full flexibility,
+    hanging would be the result of your own code.
+
+    Once it happens, there is 2 solutions:
+    * Debug multiple processes which can be extremely tedious and take days to resolve.
+    * Convert fully to Lightning which has been battle tested for years and implement best practices to avoid any ``processes divergence``.
 
 
 LightningLite to Lightning
