@@ -20,8 +20,8 @@ from typing import Callable, Generator
 import pytest
 import torch
 import torch.distributed
-import torch.nn.functional
 import torch.multiprocessing as mp
+import torch.nn.functional
 from torch import nn
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DataLoader
