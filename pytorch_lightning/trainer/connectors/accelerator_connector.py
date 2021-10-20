@@ -643,16 +643,26 @@ class AcceleratorConnector:
             )
             self.precision = "bf16"
 
-        if self.precision == 16:
-            rank_zero_info(f"Using 16bit {self.amp_type.value} Automatic Mixed Precision (AMP)")
+        if self.precision in (16, "bf16"):
+            rank_zero_info(
+                f"Using 16bit {self.amp_type.value} Automatic Mixed Precision (AMP)"
+                if self.precision == 16
+                else "Using bfloat16 Automatic Mixed Precision (AMP)"
+            )
+            if self.precision == "bf16" and self.amp_type != AMPType.NATIVE:
+                raise MisconfigurationException(
+                    "You passed `Trainer(amp_type='apex', precision='bf16')` but it's not supported."
+                    " Try using `amp_type='native'` instead."
+                )
 
             if self.amp_type == AMPType.NATIVE:
-                if self._is_sharded_training_type:
-                    return ShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
-                if self._is_fully_sharded_training_type:
-                    return FullyShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+                device = "cpu" if self.use_cpu else "cuda"
 
-                return NativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+                if self._is_sharded_training_type:
+                    return ShardedNativeMixedPrecisionPlugin(self.precision, device)
+                if self._is_fully_sharded_training_type:
+                    return FullyShardedNativeMixedPrecisionPlugin(self.precision, device)
+                return NativeMixedPrecisionPlugin(self.precision, device)
 
             if self.amp_type == AMPType.APEX:
                 if self._is_sharded_training_type or self._is_fully_sharded_training_type:
@@ -661,19 +671,6 @@ class AcceleratorConnector:
                     )
                 self.amp_level = self.amp_level or "O2"
                 return ApexMixedPrecisionPlugin(self.amp_level)
-
-        if self.precision == "bf16":
-            if self.amp_type != AMPType.NATIVE:
-                raise MisconfigurationException(
-                    "You passed `Trainer(amp_type='apex', precision='bf16')` but it's not supported."
-                    " Try using `amp_type='native'` instead."
-                )
-            rank_zero_info("Using bfloat16 Automatic Mixed Precision (AMP)")
-            if self._is_sharded_training_type:
-                return ShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
-            if self._is_fully_sharded_training_type:
-                return FullyShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
-            return NativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
 
         raise RuntimeError("No precision set")
 

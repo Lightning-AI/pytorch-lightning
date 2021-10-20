@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Generator, Union
+from typing import Any, Callable, Dict, Generator, Optional, Union
 
 import torch
 from torch import Tensor
@@ -31,41 +31,33 @@ else:
 
 
 class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
-    """Plugin for native mixed precision training with :mod:`torch.cuda.amp`.
+    """Plugin for Native Mixed Precision (AMP) training with :func:`torch.autocast`.
 
     Args:
-        precision: Whether to use torch.float16 (16) or torch.bfloat16 (bf16).
+        precision: Whether to use torch.float16 (16) or torch.bfloat16 ('bf16').
+        device: The device for `autocast`.
+        scaler: An optional `GradScaler` to use.
     """
 
-    def __init__(self, precision: Union[int, str] = 16, use_cpu: bool = False) -> None:
+    backend = AMPType.NATIVE
+
+    def __init__(
+        self, precision: Union[str, int], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
+    ) -> None:
         super().__init__()
-        self.use_cpu = use_cpu
-        self._dtype = self._select_precision_dtype(precision)
-        self.backend = AMPType.NATIVE
-        if not self.is_bfloat16:
-            self.scaler = torch.cuda.amp.GradScaler()
-
-    def _select_precision_dtype(self, precision: Union[int, str] = 16) -> torch.dtype:
-        if precision == "bf16":
-            if not _TORCH_GREATER_EQUAL_DEV_1_10:
-                raise MisconfigurationException(
-                    "To use bfloat16 with native amp you must install torch greater or equal to 1.10."
-                )
-            return torch.bfloat16
-        return torch.float16
-
-    @property
-    def is_bfloat16(self) -> bool:
-        return self._dtype == torch.bfloat16
+        self.precision = precision
+        self.device = device
+        if scaler is None and self.precision == 16:
+            scaler = torch.cuda.amp.GradScaler()
+        self.scaler = scaler
 
     def pre_backward(self, model: "pl.LightningModule", closure_loss: torch.Tensor) -> torch.Tensor:
-        if self.is_bfloat16:
-            return super().pre_backward(model, closure_loss)
-        closure_loss = self.scaler.scale(closure_loss)
+        if self.scaler is not None:
+            closure_loss = self.scaler.scale(closure_loss)
         return super().pre_backward(model, closure_loss)
 
     def _run_backward(self, tensor: Tensor, model: Module, *args: Any, **kwargs: Any) -> None:
-        if not self.is_bfloat16:
+        if self.scaler is not None:
             tensor = self.scaler.scale(tensor)
         super()._run_backward(tensor, model, *args, **kwargs)
 
@@ -77,8 +69,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         lambda_closure: Callable,
         **kwargs: Any,
     ) -> bool:
-        if self.is_bfloat16:
-            # skip scaler logic, as bfloat16 does not require scaler
+        if self.scaler is None:
             return super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
@@ -97,7 +88,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def autocast_context_manager(self) -> autocast:
         if _TORCH_GREATER_EQUAL_DEV_1_10:
-            return autocast("cpu" if self.use_cpu else "cuda", dtype=self._dtype)
+            return autocast(self.device)
         return autocast()
 
     @contextmanager
@@ -107,9 +98,9 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             yield
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        if "native_amp_scaling_state" in checkpoint and not self.is_bfloat16:
+        if self.scaler is not None and "native_amp_scaling_state" in checkpoint:
             self.scaler.load_state_dict(checkpoint["native_amp_scaling_state"])
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        if not self.is_bfloat16:
+        if self.scaler is not None:
             checkpoint["native_amp_scaling_state"] = self.scaler.state_dict()

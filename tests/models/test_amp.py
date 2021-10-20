@@ -62,7 +62,7 @@ class AMPTestModel(BoringModel):
         return output
 
     def _assert_autocast_enabled(self):
-        if self.trainer.precision_plugin.use_cpu:
+        if self.trainer.precision_plugin.device == "cpu":
             assert torch.is_autocast_cpu_enabled()
         else:
             assert torch.is_autocast_enabled()
