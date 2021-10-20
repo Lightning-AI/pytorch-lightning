@@ -30,16 +30,6 @@ def test_invalid_on_cpu(tmpdir):
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
 @mock.patch("torch.cuda.device_count", return_value=1)
 @mock.patch("torch.cuda.is_available", return_value=True)
-@RunIf(amp_apex=True, fairscale_fully_sharded=True)
-def test_invalid_apex_sharded(device_count_mock, mock_cuda_available, tmpdir):
-    """Test to ensure that we raise an error when we try to use apex and fully sharded."""
-    with pytest.raises(MisconfigurationException, match="Sharded Plugin is not supported with Apex AMP"):
-        Trainer(default_root_dir=tmpdir, fast_dev_run=True, plugins="fsdp", gpus=1, precision=16, amp_backend="apex")
-
-
-@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
-@mock.patch("torch.cuda.device_count", return_value=1)
-@mock.patch("torch.cuda.is_available", return_value=True)
 @RunIf(fairscale_fully_sharded=True)
 def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
