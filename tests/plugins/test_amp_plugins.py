@@ -48,7 +48,7 @@ class MyApexPlugin(ApexMixedPrecisionPlugin):
     },
 )
 @mock.patch("torch.cuda.device_count", return_value=2)
-@pytest.mark.parametrize("ddp_backend,gpus", [("ddp", 2), ("ddp2", 2), ("ddp_spawn", 2)])
+@pytest.mark.parametrize("strategy,gpus", [("ddp", 2), ("ddp2", 2), ("ddp_spawn", 2)])
 @pytest.mark.parametrize(
     "amp,custom_plugin,plugin_cls",
     [
@@ -59,7 +59,7 @@ class MyApexPlugin(ApexMixedPrecisionPlugin):
     ],
 )
 def test_amp_apex_ddp(
-    mocked_device_count, ddp_backend: str, gpus: int, amp: str, custom_plugin: bool, plugin_cls: MixedPrecisionPlugin
+    mocked_device_count, strategy: str, gpus: int, amp: str, custom_plugin: bool, plugin_cls: MixedPrecisionPlugin
 ):
 
     trainer = Trainer(
@@ -67,12 +67,10 @@ def test_amp_apex_ddp(
         precision=16,
         amp_backend=amp,
         gpus=gpus,
-        strategy=ddp_backend,
-        plugins=[plugin_cls()] if custom_plugin else None,
+        strategy=strategy,
+        plugins=[plugin_cls(16, "cpu")] if custom_plugin else None,
     )
     assert isinstance(trainer.precision_plugin, plugin_cls)
-    if amp == "native":
-        assert not trainer.precision_plugin.is_bfloat16
 
 
 class GradientUnscaleBoringModel(BoringModel):

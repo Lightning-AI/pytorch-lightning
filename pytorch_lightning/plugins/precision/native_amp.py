@@ -45,10 +45,14 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         self, precision: Union[str, int], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
     ) -> None:
         super().__init__()
+        if precision == "bf16" and not _TORCH_GREATER_EQUAL_DEV_1_10:
+            raise MisconfigurationException(
+                "To use bfloat16 with native amp you must install torch greater or equal to 1.10."
+            )
+        if scaler is None and precision == 16:
+            scaler = torch.cuda.amp.GradScaler()
         self.precision = precision
         self.device = device
-        if scaler is None and self.precision == 16:
-            scaler = torch.cuda.amp.GradScaler()
         self.scaler = scaler
 
     def pre_backward(self, model: "pl.LightningModule", closure_loss: torch.Tensor) -> torch.Tensor:
