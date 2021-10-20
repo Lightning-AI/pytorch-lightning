@@ -189,6 +189,17 @@ Here is how to train on 8 gpus with `torch.bfloat16 <https://pytorch.org/docs/1.
     lite.run(lite_model, train_dataloader(), val_dataloader())
 
 
+Here is how to use `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/zero3-offload.html>`_ with 8 gpus and precision 16
+
+
+.. code-block:: python
+
+    seed_everything(42)
+    lite_model = BoringModel()
+    lite = LiteRunner(strategy="deepspeed", devices=8, accelerator="gpu", precision=16)
+    lite.run(lite_model, train_dataloader(), val_dataloader())
+
+
 .. warning::
 
     The class:`~pytorch_lightning.lite.LightningLite` provides you only with the tool to scale your training,
