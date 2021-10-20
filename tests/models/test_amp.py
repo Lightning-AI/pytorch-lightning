@@ -22,7 +22,6 @@ from torch.utils.data import DataLoader
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins.environments import SLURMEnvironment
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_DEV_1_10
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -162,16 +161,6 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address("abc[23-24]") == "abc23"
     generated = trainer.training_type_plugin.cluster_environment.resolve_root_node_address("abc[23-24, 45-40, 40]")
     assert generated == "abc23"
-
-
-@pytest.mark.skipif(torch.cuda.is_available(), reason="test is restricted only on CPU")
-@RunIf(max_torch="1.9")
-@pytest.mark.parametrize("precision", [16, "bf16"])
-def test_cpu_model_with_amp(tmpdir, precision):
-    """Make sure exception is thrown on CPU when precision 16 is enabled on PyTorch 1.9 and lower."""
-
-    with pytest.raises(MisconfigurationException, match="AMP is only available on GPU for PyTorch 1.9"):
-        Trainer(precision=precision)
 
 
 @mock.patch("pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward")

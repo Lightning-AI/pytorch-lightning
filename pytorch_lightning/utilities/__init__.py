@@ -28,7 +28,6 @@ from pytorch_lightning.utilities.enums import (  # noqa: F401
 from pytorch_lightning.utilities.grads import grad_norm  # noqa: F401
 from pytorch_lightning.utilities.imports import (  # noqa: F401
     _APEX_AVAILABLE,
-    _BOLTS_AVAILABLE,
     _DEEPSPEED_AVAILABLE,
     _FAIRSCALE_AVAILABLE,
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
@@ -50,7 +49,6 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _TORCH_GREATER_EQUAL_1_10,
     _TORCH_GREATER_EQUAL_DEV_1_10,
     _TORCH_QUANTIZE_AVAILABLE,
-    _TORCH_SHARDED_TENSOR_AVAILABLE,
     _TORCHTEXT_AVAILABLE,
     _TORCHVISION_AVAILABLE,
     _TPU_AVAILABLE,

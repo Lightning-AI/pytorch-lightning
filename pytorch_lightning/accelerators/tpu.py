@@ -11,10 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import torch
-from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
@@ -48,11 +47,6 @@ class TPUAccelerator(Accelerator):
                 f" found {self.training_type_plugin}."
             )
         return super().setup(trainer)
-
-    def run_optimizer_step(
-        self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs: Any
-    ) -> None:
-        xm.optimizer_step(optimizer, optimizer_args={"closure": lambda_closure, **kwargs})
 
     def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
         """Moves the state of the optimizers to the TPU if needed."""

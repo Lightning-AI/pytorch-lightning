@@ -346,6 +346,11 @@ class LightningLoggerBase(ABC):
         return None
 
     @property
+    def group_separator(self):
+        """Return the default separator used by the logger to group the data into subfolders."""
+        return "/"
+
+    @property
     @abstractmethod
     def name(self) -> str:
         """Return the experiment name."""
