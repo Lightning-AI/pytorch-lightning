@@ -38,7 +38,10 @@ class TPUPrecisionPlugin(PrecisionPlugin):
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if model.automatic_optimization and skipped_backward:
+            # we lack coverage here so disable this - something to explore if there's demand
             raise MisconfigurationException(
-                "Skipping backward by returning `None` from your `training_step` is not supported by TPUs"
+                "Skipping backward by returning `None` from your `training_step` is not implemented for TPUs."
+                " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`"
+                " requesting this feature."
             )
         return False
