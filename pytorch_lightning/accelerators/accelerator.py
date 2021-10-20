@@ -330,7 +330,7 @@ class Accelerator:
             lambda_closure: closure calculating the loss value
             model: reference to the model, optionally defining optimizer step related hooks
         """
-        model = model if model is not None else self.lightning_module
+        model = model or self.lightning_module
         make_optimizer_step = self.precision_plugin.pre_optimizer_step(
             model, optimizer, opt_idx, lambda_closure, **kwargs
         )
