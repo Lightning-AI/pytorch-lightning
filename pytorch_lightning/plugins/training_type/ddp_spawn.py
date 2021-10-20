@@ -38,7 +38,7 @@ from pytorch_lightning.utilities import (
     rank_zero_deprecation,
     rank_zero_warn,
 )
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import distributed_available
@@ -174,7 +174,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     def start_predicting(self, trainer: "pl.Trainer") -> None:
         self.spawn(self.new_process, trainer, self.mp_queue)
 
-    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> None:
+    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         """Spawn processes that run the given function.
 
         Args:
@@ -185,11 +185,18 @@ class DDPSpawnPlugin(ParallelPlugin):
                 These arguments must be pickleable.
         """
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        mp.spawn(self._wrapped_function, args=(function, args, kwargs), **self.get_mp_spawn_kwargs())
+        smp = mp.get_context("spawn")
+        return_queue = smp.SimpleQueue()
+        mp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), nprocs=self.num_processes)
+        return return_queue.get()
 
-    def _wrapped_function(self, process_idx: int, function: Callable, args: Any, kwargs: Any) -> None:
+    def _wrapped_function(
+        self, process_idx: int, function: Callable, args: Any, kwargs: Any, return_queue: SimpleQueue
+    ) -> None:
         self._worker_setup(process_idx)
-        function(*args, **kwargs)
+        result = function(*args, **kwargs)
+        if self.is_global_zero:
+            return_queue.put(move_data_to_device(result, "cpu"))
 
     def _worker_setup(self, process_idx: int):
         reset_seed()
