@@ -71,8 +71,8 @@ class _LiteOptimizer:
             model=None,
         )
 
-    def zero_grad(self, set_to_none: bool = False) -> None:
-        self._optimizer.zero_grad(set_to_none=set_to_none)
+    def zero_grad(self, *args: Any, **kwargs: Any) -> None:
+        self._optimizer.zero_grad(*args, **kwargs)
 
 
 class _LiteModule(nn.Module):
