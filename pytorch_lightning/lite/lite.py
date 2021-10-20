@@ -26,7 +26,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import Accelerator, TPUAccelerator
+from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.plugins import (
     DDPShardedPlugin,
@@ -222,9 +222,7 @@ class LightningLite(ABC):
             The wrapped dataloader.
         """
         sampler = dataloader.sampler
-        if replace_sampler and (
-            self._requires_distributed_sampler(dataloader) or isinstance(self._accelerator, TPUAccelerator)
-        ):
+        if replace_sampler and self._requires_distributed_sampler(dataloader):
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
                 raise MisconfigurationException(
                     "You seem to have configured a sampler in your DataLoader. This will be replaced "
