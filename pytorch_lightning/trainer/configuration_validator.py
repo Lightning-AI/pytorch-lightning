@@ -162,7 +162,6 @@ def __verify_eval_loop_configuration(trainer: "pl.Trainer", model: "pl.Lightning
     trainer_method = "validate" if stage == "val" else stage
     on_eval_hook = f"on_{loader_name}"
 
-    has_loader = is_overridden(loader_name, model)
     has_loader = getattr(trainer.data_connector, f"_{stage}_dataloader_source").is_defined()
     has_step = is_overridden(step_name, model)
     has_on_eval_dataloader = is_overridden(on_eval_hook, model)
