@@ -20,8 +20,9 @@ Trainer also calls ``optimizer.step()`` for the last indivisible step number.
 
 """
 
-from typing import Dict
+from typing import Any, Dict
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -87,16 +88,16 @@ class GradientAccumulationScheduler(Callback):
         self.scheduling = scheduling
         self.epochs = sorted(scheduling.keys())
 
-    def going_to_accumulate_grad_batches(self):
+    def going_to_accumulate_grad_batches(self) -> bool:
         return any(v > 1 for v in self.scheduling.values())
 
     def get_accumulate_grad_batches(self, epoch: int) -> int:
         accumulate_grad_batches = 1
         for iter_epoch in reversed(self.epochs):
             if epoch >= iter_epoch:
-                accumulate_grad_batches = self.scheduling.get(iter_epoch)
+                accumulate_grad_batches = self.scheduling[iter_epoch]
                 break
         return accumulate_grad_batches
 
-    def on_train_epoch_start(self, trainer, *_):
+    def on_train_epoch_start(self, trainer: "pl.Trainer", *_: Any) -> None:
         trainer.accumulate_grad_batches = self.get_accumulate_grad_batches(trainer.current_epoch)
