@@ -35,6 +35,13 @@ PyTorch Lightning
 
 
 .. toctree::
+   :maxdepth: 1
+   :name: start
+   :caption: Converting to Lightning
+
+   converting_to_lightning/lightning_lite
+
+.. toctree::
    :maxdepth: 2
    :name: pl_docs
    :caption: Lightning API
