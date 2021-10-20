@@ -202,6 +202,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Added bfloat16 support for Lightning Trainer ([#9049](https://github.com/PyTorchLightning/pytorch-lightning/pull/9049))
   * Renamed `TPUHalfPrecisionPlugin` to `TPUBf16PrecisionPlugin` ([#10026](https://github.com/PyTorchLightning/pytorch-lightning/pull/10026))
   * Default to `precision=bf16` on CPU when `precision=16` is passed ([#10033](https://github.com/PyTorchLightning/pytorch-lightning/pull/10033))
+  * Add support for `torch.autocast` ([#10053](https://github.com/PyTorchLightning/pytorch-lightning/pull/10053))
 
 
 - Added `kfold` example for loop customization ([#9965](https://github.com/PyTorchLightning/pytorch-lightning/pull/9965))
