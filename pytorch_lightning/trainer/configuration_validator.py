@@ -123,7 +123,7 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
     has_on_val_dataloader = is_overridden("on_val_dataloader", model)
     if has_on_val_dataloader:
         rank_zero_deprecation(
-            "Method `on_val_dataloader` is deprecated and will be removed in v1.7.0."
+            "Method `on_val_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
             " Please use `val_dataloader()` directly."
         )
 
