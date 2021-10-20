@@ -184,7 +184,7 @@ def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, 
 
     lite = LiteRunner(precision=precision, strategy=strategy, devices=devices, accelerator=accelerator)
     checkpoint_path = lite.run(model, train_dataloader, num_epochs=num_epochs, tmpdir=tmpdir)
-    spawn_model_state_dict = torch.load(checkpoint_path[0])
+    spawn_model_state_dict = torch.load(checkpoint_path)
 
     for o_pure, w_lite in zip(state_dict.values(), spawn_model_state_dict.values()):
         assert not torch.equal(o_pure.cpu(), w_lite.cpu())
