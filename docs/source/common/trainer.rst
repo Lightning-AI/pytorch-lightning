@@ -241,7 +241,7 @@ Example::
 
     Trainer(accelerator=MyOwnAcc())
 
-.. warning:: Passing training strategies (e.g., "ddp") to ``accelerator`` has been deprecated in v1.5.0
+.. warning:: Passing training strategies (e.g., ``"ddp"``) to ``accelerator`` has been deprecated in v1.5.0
     and will be removed in v1.7.0. Please use the ``strategy`` argument instead.
 
 accumulate_grad_batches
