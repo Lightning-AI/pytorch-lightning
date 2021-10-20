@@ -52,6 +52,8 @@ class Net(nn.Module):
 
 
 class MNIST(LightningLite):
+
+    # when we enter run() here, distributed setup already took place
     def run(self, args):
         use_cuda = self.device.type == "cuda"
 

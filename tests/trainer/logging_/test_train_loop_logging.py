@@ -20,13 +20,14 @@ from re import escape
 import numpy as np
 import pytest
 import torch
+from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBar
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.boring_model import BoringModel, RandomDictDataset
+from tests.helpers.boring_model import BoringModel, RandomDataset, RandomDictDataset
 from tests.helpers.runif import RunIf
 
 
@@ -699,3 +700,40 @@ def test_move_metrics_to_cpu(tmpdir):
         gpus=1,
     )
     trainer.fit(TestModel())
+
+
+def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
+    class TestModel(BoringModel):
+        def on_train_epoch_end(self):
+            assert all(v == 3 for v in self.trainer.callback_metrics.values())
+
+        def on_validation_epoch_end(self):
+            assert all(v == 3 for v in self.trainer.callback_metrics.values())
+
+        def on_train_batch_start(self, batch, batch_idx):
+            assert self.trainer._results.batch_size == 2
+            self.log("on_train_batch_start", 1.0, reduce_fx="sum")
+
+        def on_train_batch_end(self, outputs, batch, batch_idx):
+            assert self.trainer._results.batch_size == 2
+            self.log("on_train_batch_end", 1.0, reduce_fx="sum")
+
+        def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
+            assert self.trainer._results.batch_size == 2
+            self.log("on_validation_batch_start", 1.0, reduce_fx="sum")
+
+        def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+            assert self.trainer._results.batch_size == 2
+            self.log("on_validation_batch_end", 1.0, reduce_fx="sum")
+
+    model = TestModel()
+    trainer = Trainer(
+        enable_progress_bar=False,
+        limit_train_batches=3,
+        limit_val_batches=3,
+        num_sanity_val_steps=3,
+        max_epochs=1,
+    )
+    train_data = DataLoader(RandomDataset(32, 64), batch_size=2)
+    val_data = DataLoader(RandomDataset(32, 64), batch_size=2)
+    trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
