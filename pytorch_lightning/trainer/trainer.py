@@ -190,7 +190,7 @@ class Trainer(
                 as well as custom accelerator instances.
 
                 .. deprecated:: v1.5
-                    Passing training strategies to ``accelerator`` has been deprecated in v1.5.0
+                    Passing training strategies (e.g., 'ddp') to ``accelerator`` has been deprecated in v1.5.0
                     and will be removed in v1.7.0. Please use the ``strategy`` argument instead.
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
