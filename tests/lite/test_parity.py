@@ -23,6 +23,7 @@ import torch.distributed
 import torch.multiprocessing as mp
 import torch.nn.functional
 from torch import nn
+from torch.cuda import is_available
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
@@ -114,14 +115,17 @@ def precision_context(precision, accelerator) -> Generator[None, None, None]:
     "precision, strategy, devices, accelerator",
     [
         pytest.param(32, None, 1, "cpu"),
-        pytest.param(32, None, 1, "gpu", marks=RunIf(min_gpus=1)),
-        pytest.param(16, None, 1, "gpu", marks=RunIf(min_gpus=1)),
+        pytest.param(32, None, 1, "gpu", marks=pytest.mark.skipif(not is_available(), reason="requires a GPU")),
+        pytest.param(16, None, 1, "gpu", marks=pytest.mark.skipif(not is_available(), reason="requires a GPU")),
         pytest.param(
             "bf16",
             None,
             1,
             "gpu",
-            marks=pytest.mark.skipif(not _TORCH_BFLOAT_AVAILABLE, reason="bfloat16 isn't available."),
+            marks=pytest.mark.skipif(
+                not (_TORCH_BFLOAT_AVAILABLE and is_available()),
+                reason="bfloat16 and requires GPU isn't available.",
+            ),
         ),
     ],
 )
