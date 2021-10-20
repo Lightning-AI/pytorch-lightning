@@ -56,7 +56,7 @@ def test_lite_module_forward_conversion(precision, input_type, expected_type):
     lite_module = _LiteModule(module, lite._accelerator).to(device)
     out = lite_module(torch.rand(1, dtype=input_type, device=device))
     assert module.call_args[0][0].dtype == expected_type
-    assert out.dtype == expected_type
+    assert out.dtype == torch.get_default_dtype()
 
 
 @pytest.mark.parametrize(
