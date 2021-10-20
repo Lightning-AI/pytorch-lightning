@@ -106,6 +106,8 @@ class LightningLite(ABC):
         # wrap the run method so we can inject setup logic or spawn processes for the user
         setattr(self, "run", self._run_wrapper(self.run))
 
+        self._model_refs = set()
+
     @property
     def device(self) -> torch.device:
         """The current device this process runs on.
@@ -134,6 +136,10 @@ class LightningLite(ABC):
         """The total number of processes running across all devices and nodes."""
         return getattr(self._strategy, "world_size", 1)
 
+    @property
+    def _is_using_multiple_models(self) -> bool:
+        return len(self._model_refs) > 1
+
     @abstractmethod
     def run(self, *args: Any, **kwargs: Any) -> Any:
         """All the code inside this run method gets accelerated by Lite.
@@ -148,7 +154,7 @@ class LightningLite(ABC):
         model: nn.Module,
         optimizers: Union[Optimizer, List[Optimizer]],
         move_to_device: bool = True,
-    ) -> Tuple[nn.Module, Union[_LiteOptimizer, List[_LiteOptimizer]]]:
+    ) -> Tuple[_LiteModule, Union[_LiteOptimizer, List[_LiteOptimizer]]]:
         """Setup a model and its optimizers for accelerated training.
 
         Args:
@@ -162,6 +168,8 @@ class LightningLite(ABC):
         """
         # wrap all objects passed in and return them in the same order
         optimizers = [optimizers] if isinstance(optimizers, Optimizer) else optimizers
+
+        self._validate_setup(model, optimizers)
 
         if move_to_device:
             params_on_cpu = dict(model.named_parameters())
@@ -178,6 +186,7 @@ class LightningLite(ABC):
 
         model, optimizers = self._setup_model_and_optimizers(model, optimizers)
         optimizers = optimizers[0] if len(optimizers) == 1 else optimizers
+        self._model_refs.add(model)
         return model, optimizers
 
     def setup_dataloaders(
@@ -197,6 +206,7 @@ class LightningLite(ABC):
         Returns:
             The wrapped dataloaders, in the same order they were passed in.
         """
+        self._validate_setup_dataloaders(*dataloaders)
         # user can call this method independently instead of the general purpose setup method
         dataloaders = [
             self._setup_dataloader(dataloader, replace_sampler=replace_sampler, move_to_device=move_to_device)
@@ -401,3 +411,18 @@ class LightningLite(ABC):
             DistributedType.DDP_SHARDED,
             DistributedType.DDP_SHARDED_SPAWN,
         )
+
+    @staticmethod
+    def _validate_setup(model: nn.Module, optimizers: List[Optimizer]) -> None:
+        if isinstance(model, _LiteModule):
+            raise MisconfigurationException("A module should be passed only once to the ``setup`` method")
+
+        if any(isinstance(opt, _LiteOptimizer) for opt in optimizers):
+            raise MisconfigurationException("An optimizer should be passed only once to the ``setup`` method")
+
+    @staticmethod
+    def _validate_setup_dataloaders(*dataloaders: Union[DataLoader, List[DataLoader]]) -> None:
+        if any(isinstance(dl, _LiteDataLoader) for dl in dataloaders):
+            raise MisconfigurationException(
+                "A dataloader should be passed only once to the ``setup_dataloaders`` method"
+            )
