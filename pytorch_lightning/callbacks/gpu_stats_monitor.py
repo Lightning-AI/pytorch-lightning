@@ -133,6 +133,7 @@ class GPUStatsMonitor(Callback):
             )
 
         # The logical device IDs for selected devices
+        # ignoring mypy check because `trainer.data_parallel_device_ids` is None when using CPU
         self._device_ids = sorted(set(trainer.data_parallel_device_ids))  # type: ignore
 
         # The unmasked real GPU IDs
@@ -204,6 +205,7 @@ class GPUStatsMonitor(Callback):
         gpu_ids = ",".join(self._gpu_ids)
         result = subprocess.run(
             [
+                # it's ok to supress the warning here since we ensure nvidia-smi exists during init
                 shutil.which("nvidia-smi"),  # type: ignore
                 f"--query-gpu={gpu_query}",
                 f"--format={format}",

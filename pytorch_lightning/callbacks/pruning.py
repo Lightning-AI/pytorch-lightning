@@ -245,7 +245,7 @@ class ModelPruning(Callback):
             if self._use_global_unstructured
             else _PYTORCH_PRUNING_FUNCTIONS[pruning_fn]
         )
-        assert callable(pruning_meth)
+        assert callable(pruning_meth), "Selected pruning method is not callable"
         if self._use_global_unstructured:
             self._global_kwargs = kwargs
         # save the function __name__ now because partial does not include it
