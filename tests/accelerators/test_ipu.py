@@ -235,7 +235,7 @@ def test_device_iterations_ipu_plugin(tmpdir):
         default_root_dir=tmpdir,
         fast_dev_run=True,
         ipus=1,
-        plugins=IPUPlugin(device_iterations=2),
+        strategy=IPUPlugin(device_iterations=2),
         callbacks=TestCallback(),
     )
     assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
@@ -334,7 +334,7 @@ def test_autoreport(tmpdir):
         default_root_dir=tmpdir,
         ipus=1,
         fast_dev_run=True,
-        plugins=IPUPlugin(autoreport=True, autoreport_dir=autoreport_path),
+        strategy=IPUPlugin(autoreport=True, autoreport_dir=autoreport_path),
     )
     trainer.fit(model)
     assert os.path.exists(autoreport_path)
@@ -352,7 +352,7 @@ def test_manual_poptorch_opts(tmpdir):
         default_root_dir=tmpdir,
         ipus=1,
         fast_dev_run=True,
-        plugins=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts),
+        strategy=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts),
     )
     trainer.fit(model)
 
@@ -397,7 +397,7 @@ def test_manual_poptorch_opts_custom(tmpdir):
     plugin = IPUPlugin(inference_opts=inference_opts, training_opts=training_opts)
     # ensure we default to the training options replication factor
     assert plugin.replication_factor == 2
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, plugins=plugin, callbacks=TestCallback())
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy=plugin, callbacks=TestCallback())
     trainer.fit(model)
 
     plugin = trainer.accelerator.training_type_plugin
@@ -420,7 +420,7 @@ def test_replication_factor(tmpdir):
     dataloaders."""
 
     plugin = IPUPlugin()
-    trainer = Trainer(ipus=2, default_root_dir=tmpdir, fast_dev_run=True, plugins=plugin)
+    trainer = Trainer(ipus=2, default_root_dir=tmpdir, fast_dev_run=True, strategy=plugin)
     assert trainer.ipus == 2
 
 

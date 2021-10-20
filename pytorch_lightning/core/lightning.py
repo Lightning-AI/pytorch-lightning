@@ -1169,7 +1169,7 @@ class LightningModule(
         callback to write the predictions to disk or database after each batch or on epoch end.
 
         The :class:`~pytorch_lightning.callbacks.BasePredictionWriter` should be used while using a spawn
-        based accelerator. This happens for ``Trainer(accelerator="ddp_spawn")``
+        based accelerator. This happens for ``Trainer(strategy="ddp_spawn")``
         or training on 8 TPU cores with ``Trainer(tpu_cores=8)`` as predictions won't be returned.
 
         Example ::
