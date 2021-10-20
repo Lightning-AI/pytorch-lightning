@@ -17,6 +17,7 @@ Accelerator API
     CPUAccelerator
     GPUAccelerator
     TPUAccelerator
+    IPUAccelerator
 
 Core API
 --------
@@ -227,6 +228,7 @@ Profiler API
     PassThroughProfiler
     PyTorchProfiler
     SimpleProfiler
+    XLAProfiler
 
 
 Trainer API
