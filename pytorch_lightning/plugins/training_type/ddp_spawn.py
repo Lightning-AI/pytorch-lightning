@@ -119,10 +119,11 @@ class DDPSpawnPlugin(ParallelPlugin):
     def local_rank(self) -> int:
         return self._local_rank
 
+    # TODO: this should no longer be needed
     # def __getstate__(self):
     #     """Makes this plugin pickleable without destroying the queue in the current process."""
     #     state = self.__dict__.copy()
-    #     state["mp_queue"] = None  # TODO: is this anymoe needed?
+    #     state["mp_queue"] = None
     #     return state
 
     def __setstate__(self, state):
@@ -142,6 +143,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         return True
 
     def setup(self) -> None:
+        # TODO: is this needed here? already getting set in spawn()
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
@@ -227,11 +229,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         trainer._call_teardown_hook()
         return outputs
 
-    def post_dispatch(self, trainer: "pl.Trainer"):
-        # restore main state with best weights
-
-        pass
-
     def pre_configure_ddp(self):
         # if unset, default `find_unused_parameters` `True`
         # Many models require setting this parameter to True, as there are corner cases
@@ -292,10 +289,10 @@ class DDPSpawnPlugin(ParallelPlugin):
             last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
             atomic_save(state_dict, last_path)
 
-        extra = []
         # adds the `callback_metrics` to the queue
-        # TODO: Remove the if in v1.7
+        extra = []
         if is_overridden("add_to_queue", self.lightning_module):
+            # TODO: Remove the if in v1.7
             self.lightning_module.add_to_queue(extra)
         else:
             self.add_to_queue(trainer, extra)
@@ -316,9 +313,9 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.lightning_module.load_state_dict(ckpt)
 
         # get the `callback_metrics` and set it to the trainer
-        # only in case the user does not override it.
-        # TODO: Remove the if in v1.7
         if is_overridden("get_from_queue", self.lightning_module):
+            # only in case the user does not override it.
+            # TODO: Remove the if in v1.7
             self.lightning_module.get_from_queue(extra)
         else:
             self.get_from_queue(trainer, extra)
@@ -393,6 +390,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         sharing, we cast the data to numpy.
 
         Args:
+            trainer: reference to the Trainer.
             queue: the instance of the queue to append the data.
         """
         callback_metrics: dict = apply_to_collection(
@@ -405,6 +403,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         we cast back the data to ``torch.Tensor``.
 
         Args:
+            trainer: reference to the Trainer.
             queue: the instance of the queue from where to get the data.
         """
         # NOTE: `add_to_queue` needs to be called before
