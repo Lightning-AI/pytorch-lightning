@@ -318,7 +318,7 @@ class Accelerator:
         self,
         optimizer: Optimizer,
         opt_idx: int,
-        lambda_closure: Callable,
+        lambda_closure: Callable[[], Any],
         model: Optional[Union["pl.LightningModule", Module]] = None,
         **kwargs: Any
     ) -> None:
