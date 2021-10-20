@@ -982,18 +982,18 @@ num_processes
 |
 
 Number of processes to train with. Automatically set to the number of GPUs
-when using ``accelerator="ddp"``. Set to a number greater than 1 when
-using ``accelerator="ddp_cpu"`` to mimic distributed training on a
+when using ``strategy="ddp"``. Set to a number greater than 1 when
+using ``accelerator="cpu"`` and ``strategy="ddp"`` to mimic distributed training on a
 machine without GPUs. This is useful for debugging, but **will not** provide
 any speedup, since single-process Torch already makes efficient use of multiple
-CPUs. While ``ddp_cpu`` typically spawns subprocesses for training, setting
+CPUs. While it would typically spawns subprocesses for training, setting
 ``num_nodes > 1`` and keeping ``num_processes = 1`` runs training in the main
 process.
 
 .. testcode::
 
     # Simulate DDP for debugging on your GPU-less laptop
-    trainer = Trainer(accelerator="ddp_cpu", num_processes=2)
+    trainer = Trainer(accelerator="cpu", strategy="ddp", num_processes=2)
 
 num_sanity_val_steps
 ^^^^^^^^^^^^^^^^^^^^
