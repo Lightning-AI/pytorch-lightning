@@ -68,7 +68,7 @@ class _LiteOptimizer:
             self._optimizer,
             opt_idx=0,
             lambda_closure=closure,
-            model=None,
+            model=self._accelerator.model,
         )
 
     def zero_grad(self, *args: Any, **kwargs: Any) -> None:

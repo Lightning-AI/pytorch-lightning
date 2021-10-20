@@ -20,6 +20,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 import torch.multiprocessing as mp
+from torch.nn import Module
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
@@ -260,9 +261,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             "nprocs": len(self.parallel_devices),
             "start_method": self.start_method,
         }
-
-    def optimizer_step(self, optimizer: Optimizer, lambda_closure: Callable, **kwargs) -> None:
-        xm.optimizer_step(optimizer, barrier=False, optimizer_args={"closure": lambda_closure, **kwargs})
 
     def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> None:
         xmp.spawn(self._wrapped_function, args=(function, args, kwargs), **self.get_mp_spawn_kwargs())
