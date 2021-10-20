@@ -58,3 +58,4 @@ Accelerator API
     CPUAccelerator
     GPUAccelerator
     TPUAccelerator
+    IPUAccelerator

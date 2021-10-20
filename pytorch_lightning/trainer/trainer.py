@@ -186,8 +186,12 @@ class Trainer(
 
         Args:
 
-            accelerator: (dp, ddp, ddp2, etc...).
-                Can also take in an accelerator object for custom hardware.
+            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "auto")
+                as well as custom accelerator instances.
+
+                .. deprecated:: v1.5
+                    Passing training strategies (e.g., 'ddp') to ``accelerator`` has been deprecated in v1.5.0
+                    and will be removed in v1.7.0. Please use the ``strategy`` argument instead.
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
 
@@ -335,7 +339,7 @@ class Trainer(
 
             num_nodes: Number of GPU nodes for distributed training.
 
-            num_processes: Number of processes for distributed training with ``accelerator="ddp_cpu"``.
+            num_processes: Number of processes for distributed training with ``accelerator="cpu"``.
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders.
