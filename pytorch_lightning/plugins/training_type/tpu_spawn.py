@@ -181,9 +181,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # ensure that spawned processes go through teardown before joining
         trainer._call_teardown_hook()
 
-    def optimizer_step(self, optimizer: Optimizer, lambda_closure: Optional[Callable], **kwargs: Any) -> None:
-        xm.optimizer_step(optimizer, optimizer_args={"closure": lambda_closure, **kwargs})
-
     def model_to_device(self) -> None:
         self.model = self.wrapped_model.to(self.root_device)
 
