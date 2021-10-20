@@ -708,10 +708,9 @@ def test_validate_precision_type(tmpdir, precision):
         Trainer(precision=precision)
 
 
-@RunIf(min_gpus=1, amp_native=True)
-def test_amp_level_raises_error_with_native(tmpdir):
-    with pytest.raises(MisconfigurationException, match="not supported with `amp_backend='native'`"):
-        _ = Trainer(default_root_dir=tmpdir, gpus=1, amp_level="O2", amp_backend="native", precision=16)
+def test_amp_level_raises_error_with_native():
+    with pytest.raises(MisconfigurationException, match="O2'` but it's only supported with `amp_backend='apex'`"):
+        _ = Trainer(amp_level="O2", amp_backend="native", precision=16)
 
 
 def test_strategy_choice_ddp_spawn_cpu(tmpdir):
@@ -986,3 +985,22 @@ def test_unsupported_tpu_choice(monkeypatch):
     monkeypatch.setattr(AcceleratorConnector, "has_tpu", True)
     with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision=64\)` is not implemented"):
         Trainer(accelerator="tpu", precision=64)
+
+    with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but native AMP is not supported"):
+        Trainer(accelerator="tpu", precision=16)
+    with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but apex AMP is not supported"):
+        Trainer(accelerator="tpu", precision=16, amp_backend="apex")
+
+
+def test_unsupported_ipu_choice(monkeypatch):
+    import pytorch_lightning.plugins.training_type.ipu as ipu
+    import pytorch_lightning.utilities.imports as imports
+    from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
+
+    monkeypatch.setattr(imports, "_IPU_AVAILABLE", True)
+    monkeypatch.setattr(ipu, "_IPU_AVAILABLE", True)
+    monkeypatch.setattr(AcceleratorConnector, "has_ipu", True)
+    with pytest.raises(MisconfigurationException, match=r"accelerator='ipu', precision='bf16'\)` is not supported"):
+        Trainer(accelerator="ipu", precision="bf16")
+    with pytest.raises(MisconfigurationException, match=r"accelerator='ipu', precision=64\)` is not supported"):
+        Trainer(accelerator="ipu", precision=64)

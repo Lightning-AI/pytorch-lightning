@@ -44,6 +44,7 @@ class FitLoop(Loop):
         self.min_epochs = min_epochs
         self.epoch_loop: Optional[TrainingEpochLoop] = None
         self.epoch_progress = Progress()
+        self._is_fresh_start_epoch: bool = True
 
     @property
     def current_epoch(self) -> int:
@@ -158,12 +159,14 @@ class FitLoop(Loop):
                 )
         self.trainer.should_stop = should_stop
 
-        return stop_steps or should_stop or stop_epochs
+        return stop_steps or should_stop or stop_epochs or self.trainer.num_training_batches == 0
 
     @property
     def skip(self) -> bool:
         """Whether we should skip the training and immediately return from the call to :meth:`run`."""
-        return self.done or self.trainer.num_training_batches == 0
+        # since `trainer.num_training_batches` depends on the `train_dataloader` but that won't be called
+        # until `on_run_start`, we use `limit_train_batches` instead
+        return self.done or self.trainer.limit_train_batches == 0
 
     def connect(self, epoch_loop: TrainingEpochLoop):
         """Connects a training epoch loop to this fit loop."""
@@ -176,6 +179,9 @@ class FitLoop(Loop):
 
     def on_run_start(self) -> None:
         """Calls the ``on_train_start`` hook."""
+        # reset train dataloader and val dataloader
+        self.trainer.reset_train_val_dataloaders(self.trainer.lightning_module)
+        self._is_fresh_start_epoch = True
         self._results.to(device=self.trainer.lightning_module.device)
         self.trainer.call_hook("on_train_start")
 
@@ -185,8 +191,9 @@ class FitLoop(Loop):
         model = self.trainer.lightning_module
 
         # reset train dataloader
-        if self.current_epoch != 0 and self.trainer._should_reload_dl_epoch:
+        if not self._is_fresh_start_epoch and self.trainer._should_reload_dl_epoch:
             self.trainer.reset_train_dataloader(model)
+        self._is_fresh_start_epoch = False
 
         if callable(getattr(self.trainer.train_dataloader.sampler, "set_epoch", None)):
             # set seed for distributed sampler (enables shuffling for each epoch)
@@ -228,7 +235,7 @@ class FitLoop(Loop):
         # Lightning today does not increment the current epoch at the last epoch run in Trainer.fit
         # To simulate that current behavior, we decrement here.
         # TODO: must be fixed by https://github.com/PyTorchLightning/pytorch-lightning/issues/5007
-        self.current_epoch -= 1
+        self.current_epoch = max(self.current_epoch - 1, 0)
 
         # hook
         self.trainer.call_hook("on_train_end")
