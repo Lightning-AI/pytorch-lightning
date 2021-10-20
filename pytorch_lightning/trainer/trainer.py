@@ -186,8 +186,12 @@ class Trainer(
 
         Args:
 
-            accelerator: (dp, ddp, ddp2, etc...).
-                Can also take in an accelerator object for custom hardware.
+            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "auto")
+                as well as custom accelerator instances.
+
+                .. deprecated:: v1.5
+                    Passing training strategies (e.g., 'ddp') to ``accelerator`` has been deprecated in v1.5.0
+                    and will be removed in v1.7.0. Please use the ``strategy`` argument instead.
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
 
@@ -335,7 +339,7 @@ class Trainer(
 
             num_nodes: Number of GPU nodes for distributed training.
 
-            num_processes: Number of processes for distributed training with ``accelerator="ddp_cpu"``.
+            num_processes: Number of processes for distributed training with ``accelerator="cpu"``.
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders.
@@ -554,7 +558,7 @@ class Trainer(
 
         self.should_stop = False
         self.state = TrainerState()
-        self.num_training_batches = 0
+        self.num_training_batches = float("inf")
         self.train_dataloader = None
 
         if num_sanity_val_steps == -1:
@@ -1025,9 +1029,6 @@ class Trainer(
         self.data_connector.prepare_data()
         self.callback_connector._attach_model_callbacks()
 
-        if self._ckpt_path and not self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
-            self._load_checkpoint_weights()
-
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
@@ -1037,6 +1038,8 @@ class Trainer(
 
         # check if we should delay restoring checkpoint till later
         if not self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
+            if self._ckpt_path:
+                self._load_checkpoint_weights()
             self.checkpoint_connector.resume_start()
             self._restore_modules_and_callbacks()
 
@@ -1217,12 +1220,6 @@ class Trainer(
         self.model.train()
         torch.set_grad_enabled(True)
 
-        # reload data when needed
-        model = self.lightning_module
-
-        if isinstance(self.fit_loop, FitLoop):
-            self.reset_train_val_dataloaders(model)
-
         self.fit_loop.trainer = self
         with torch.autograd.set_detect_anomaly(self._detect_anomaly):
             self.fit_loop.run()
@@ -1259,7 +1256,9 @@ class Trainer(
             return self.predict_loop.run()
 
     def _run_sanity_check(self, ref_model):
-        using_val_step = ref_model.val_dataloader is not None and is_overridden("validation_step", ref_model)
+        using_val_step = self.data_connector._val_dataloader_source.is_defined() and is_overridden(
+            "validation_step", ref_model
+        )
         should_sanity_check = using_val_step and self.num_sanity_val_steps > 0 and self.limit_val_batches > 0
 
         # run tiny validation (if validation defined)
@@ -1357,8 +1356,6 @@ class Trainer(
 
         if self.datamodule is not None:
             self.datamodule.teardown(stage=fn)
-
-        self.data_connector.detach_data(self.lightning_module)
 
         self.call_hook("teardown", stage=fn)
 

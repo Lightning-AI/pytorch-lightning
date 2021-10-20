@@ -46,7 +46,7 @@ from pytorch_lightning.plugins import (
     ShardedNativeMixedPrecisionPlugin,
     SingleDevicePlugin,
     SingleTPUPlugin,
-    TPUHalfPrecisionPlugin,
+    TPUBf16PrecisionPlugin,
     TPUPrecisionPlugin,
     TPUSpawnPlugin,
     TrainingTypePlugin,
@@ -72,7 +72,6 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import (
-    _APEX_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _IPU_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_7,
@@ -591,7 +590,17 @@ class AcceleratorConnector:
         # set precision type
         self.amp_type = AMPType.from_str(self.amp_type)
 
+        # validation for all plugins
+        if self.amp_level is not None and self.amp_type != AMPType.APEX:
+            raise MisconfigurationException(
+                f"You have asked for `amp_level={self.amp_level!r}` but it's only supported with `amp_backend='apex'`."
+            )
+
         if self.use_ipu:
+            if self.precision not in (16, 32):
+                raise MisconfigurationException(
+                    f"`Trainer(accelerator='ipu', precision={self.precision!r})` is not supported."
+                )
             return IPUPrecisionPlugin(self.precision)
         if self.use_tpu:
             if self.precision == 32:
@@ -603,7 +612,13 @@ class AcceleratorConnector:
                     " requesting this feature."
                 )
             elif self.precision in (16, "bf16"):
-                return TPUHalfPrecisionPlugin()
+                if self.precision == 16:
+                    # this is not deprecated to ease transition between accelerator environments
+                    rank_zero_warn(
+                        f"You passed `Trainer(accelerator='tpu', precision=16)` but {self.amp_type.value} AMP"
+                        f" is not supported with TPUs. Using `precision='bf16'` instead."
+                    )
+                return TPUBf16PrecisionPlugin()
 
         if self._distrib_type == DistributedType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedPlugin):
             return DeepSpeedPrecisionPlugin(self.precision)
@@ -612,15 +627,26 @@ class AcceleratorConnector:
             return PrecisionPlugin()
         if self.precision == 64:
             return DoublePrecisionPlugin()
-        if self.precision in (16, "bf16"):
-            if self.amp_type == AMPType.NATIVE:
-                if self.amp_level is not None:
-                    raise MisconfigurationException(
-                        f"You have asked for `amp_level={repr(self.amp_level)}` which is not supported"
-                        " with `amp_backend='native'`."
-                    )
 
-                log.info(f"Using native {self.precision} bit Automatic Mixed Precision")
+        # maybe convert the precision value
+        if self.precision == 16 and self.use_cpu:
+            if self.amp_type == AMPType.APEX:
+                # apex was explicitly passed, not a good idea to silently switch to native AMP
+                raise MisconfigurationException(
+                    "You passed `Trainer(accelerator='cpu', precision=16, amp_type='apex')`"
+                    " but apex AMP not supported on CPU."
+                )
+            # this automatic switch is to ease transition between accelerator environments
+            rank_zero_warn(
+                "You passed `Trainer(accelerator='cpu', precision=16)` but native AMP is not supported on CPU."
+                " Using `precision='bf16'` instead."
+            )
+            self.precision = "bf16"
+
+        if self.precision == 16:
+            rank_zero_info(f"Using 16bit {self.amp_type.value} Automatic Mixed Precision (AMP)")
+
+            if self.amp_type == AMPType.NATIVE:
                 if self._is_sharded_training_type:
                     return ShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
                 if self._is_fully_sharded_training_type:
@@ -629,20 +655,27 @@ class AcceleratorConnector:
                 return NativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
 
             if self.amp_type == AMPType.APEX:
-                if not _APEX_AVAILABLE:
-                    raise MisconfigurationException(
-                        "You have asked for Apex AMP but you have not installed it yet."
-                        " Install apex first using this guide: https://github.com/NVIDIA/apex#linux"
-                    )
                 if self._is_sharded_training_type or self._is_fully_sharded_training_type:
                     raise MisconfigurationException(
-                        "Sharded Plugin is not supported with Apex AMP, please using native AMP for 16-bit precision."
+                        "Sharded plugins are not supported with apex, please switch to `amp_backend='native'`."
                     )
-                log.info("Using APEX 16bit precision.")
-
                 self.amp_level = self.amp_level or "O2"
-
                 return ApexMixedPrecisionPlugin(self.amp_level)
+
+        if self.precision == "bf16":
+            if self.amp_type != AMPType.NATIVE:
+                raise MisconfigurationException(
+                    "You passed `Trainer(amp_type='apex', precision='bf16')` but it's not supported."
+                    " Try using `amp_type='native'` instead."
+                )
+            rank_zero_info("Using bfloat16 Automatic Mixed Precision (AMP)")
+            if self._is_sharded_training_type:
+                return ShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+            if self._is_fully_sharded_training_type:
+                return FullyShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+            return NativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+
+        raise RuntimeError("No precision set")
 
     def select_training_type_plugin(self) -> TrainingTypePlugin:
         if (

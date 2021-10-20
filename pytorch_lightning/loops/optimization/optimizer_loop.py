@@ -483,7 +483,9 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         # track gradient norms
         grad_norm_dict = {}
         if self.trainer.track_grad_norm != -1:
-            grad_norm_dict = grad_norm(self.trainer.lightning_module, self.trainer.track_grad_norm)
+            grad_norm_dict = grad_norm(
+                self.trainer.lightning_module, self.trainer.track_grad_norm, self.trainer.logger.group_separator
+            )
 
         # clip gradients
         if not self.trainer.accelerator_connector.use_deepspeed:

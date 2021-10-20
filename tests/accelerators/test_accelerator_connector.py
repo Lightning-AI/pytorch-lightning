@@ -438,7 +438,7 @@ def test_dist_backend_accelerator_mapping(device_count_mock, setup_distributed_m
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp_cpu", num_processes=2, callbacks=[CB()])
+    trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", num_processes=2, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -448,15 +448,15 @@ def test_dist_backend_accelerator_mapping(device_count_mock, setup_distributed_m
 @mock.patch("torch.cuda.device_count", return_value=2)
 def test_ipython_incompatible_backend_error(*_):
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
-        Trainer(accelerator="ddp", gpus=2)
+        Trainer(strategy="ddp", gpus=2)
 
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp2'\)`.*is not compatible"):
-        Trainer(accelerator="ddp2", gpus=2)
+        Trainer(strategy="ddp2", gpus=2)
 
 
 @mock.patch("pytorch_lightning.utilities._IS_INTERACTIVE", return_value=True)
 def test_ipython_compatible_backend(*_):
-    Trainer(accelerator="ddp_cpu", num_processes=2)
+    Trainer(strategy="ddp_spawn", num_processes=2)
 
 
 @pytest.mark.parametrize(["accelerator", "plugin"], [("ddp_spawn", "ddp_sharded"), (None, "ddp_sharded")])
@@ -708,10 +708,9 @@ def test_validate_precision_type(tmpdir, precision):
         Trainer(precision=precision)
 
 
-@RunIf(min_gpus=1, amp_native=True)
-def test_amp_level_raises_error_with_native(tmpdir):
-    with pytest.raises(MisconfigurationException, match="not supported with `amp_backend='native'`"):
-        _ = Trainer(default_root_dir=tmpdir, gpus=1, amp_level="O2", amp_backend="native", precision=16)
+def test_amp_level_raises_error_with_native():
+    with pytest.raises(MisconfigurationException, match="O2'` but it's only supported with `amp_backend='apex'`"):
+        _ = Trainer(amp_level="O2", amp_backend="native", precision=16)
 
 
 def test_strategy_choice_ddp_spawn_cpu(tmpdir):
@@ -986,3 +985,22 @@ def test_unsupported_tpu_choice(monkeypatch):
     monkeypatch.setattr(AcceleratorConnector, "has_tpu", True)
     with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision=64\)` is not implemented"):
         Trainer(accelerator="tpu", precision=64)
+
+    with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but native AMP is not supported"):
+        Trainer(accelerator="tpu", precision=16)
+    with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but apex AMP is not supported"):
+        Trainer(accelerator="tpu", precision=16, amp_backend="apex")
+
+
+def test_unsupported_ipu_choice(monkeypatch):
+    import pytorch_lightning.plugins.training_type.ipu as ipu
+    import pytorch_lightning.utilities.imports as imports
+    from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
+
+    monkeypatch.setattr(imports, "_IPU_AVAILABLE", True)
+    monkeypatch.setattr(ipu, "_IPU_AVAILABLE", True)
+    monkeypatch.setattr(AcceleratorConnector, "has_ipu", True)
+    with pytest.raises(MisconfigurationException, match=r"accelerator='ipu', precision='bf16'\)` is not supported"):
+        Trainer(accelerator="ipu", precision="bf16")
+    with pytest.raises(MisconfigurationException, match=r"accelerator='ipu', precision=64\)` is not supported"):
+        Trainer(accelerator="ipu", precision=64)

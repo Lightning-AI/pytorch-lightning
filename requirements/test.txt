@@ -1,6 +1,7 @@
 coverage>5.2.0
 codecov>=2.1
 pytest>=6.0
+pytest-rerunfailures>=10.2
 check-manifest
 twine==3.2
 mypy>=0.900

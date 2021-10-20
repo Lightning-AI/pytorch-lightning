@@ -284,6 +284,9 @@ Here is an example using a closure function.
 
         opt.step(closure=closure)
 
+.. warning::
+   The :class:`torch.optim.LBFGS` optimizer is not supported for apex AMP, native AMP, IPUs, or DeepSpeed.
+
 ------
 
 Access your own optimizer [manual]

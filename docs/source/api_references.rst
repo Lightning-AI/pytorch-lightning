@@ -15,6 +15,7 @@ Accelerator API
 
     Accelerator
     CPUAccelerator
+    IPUAccelerator
     GPUAccelerator
     TPUAccelerator
 
@@ -176,7 +177,7 @@ Precision Plugins
     ApexMixedPrecisionPlugin
     DeepSpeedPrecisionPlugin
     TPUPrecisionPlugin
-    TPUHalfPrecisionPlugin
+    TPUBf16PrecisionPlugin
     DoublePrecisionPlugin
     FullyShardedNativeMixedPrecisionPlugin
     IPUPrecisionPlugin
@@ -227,6 +228,7 @@ Profiler API
     PassThroughProfiler
     PyTorchProfiler
     SimpleProfiler
+    XLAProfiler
 
 
 Trainer API
