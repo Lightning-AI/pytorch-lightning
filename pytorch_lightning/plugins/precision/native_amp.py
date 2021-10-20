@@ -31,12 +31,12 @@ else:
 
 
 class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
-    """Plugin for Native Mixed Precision (AMP) training with :func:`torch.autocast`.
+    """Plugin for Native Mixed Precision (AMP) training with ``torch.autocast``.
 
     Args:
-        precision: Whether to use torch.float16 (16) or torch.bfloat16 ('bf16').
-        device: The device for `autocast`.
-        scaler: An optional `GradScaler` to use.
+        precision: Whether to use ``torch.float16`` (``16``) or ``torch.bfloat16`` (``'bf16'``).
+        device: The device for ``torch.autocast``.
+        scaler: An optional :class:`torch.cuda.amp.GradScaler` to use.
     """
 
     backend = AMPType.NATIVE
