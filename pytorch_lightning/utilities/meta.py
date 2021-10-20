@@ -13,14 +13,12 @@
 # limitations under the License.
 import importlib
 import inspect
-import sys
 import threading
-import types
 from contextlib import contextmanager
 from functools import partial
 from itertools import chain
 from types import ModuleType
-from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Set, Tuple, Type
+from typing import Callable, Dict, Generator, Iterator, List, Optional, Set, Type
 
 import torch
 from torch import nn, Tensor
@@ -39,9 +37,6 @@ if _TORCH_META_AVAILABLE:
     # TODO: Removed once merged and released on PyTorch side           #
     ####################################################################
 
-    _tls = threading.local()
-    _tls.is_meta_init = False
-
     @contextmanager
     def enable_python_mode(cls) -> Iterator[None]:
         if not hasattr(cls, "__torch_dispatch__"):
@@ -53,6 +48,9 @@ if _TORCH_META_AVAILABLE:
             yield
         finally:
             torch._C._exit_python_mode()
+
+    _tls = threading.local()
+    _tls.in_call = False
 
     @contextmanager
     def _no_dispatch() -> Iterator[None]:
@@ -91,7 +89,9 @@ if _TORCH_META_AVAILABLE:
         @classmethod
         def __torch_dispatch__(cls, func, types, args=(), kwargs=None):
             cls._ensure_handlers_initialized()
+
             op_handler: Optional[Callable]
+
             try:
                 op_handler = cls._op_handlers[func]
             except KeyError:
@@ -108,58 +108,30 @@ if _TORCH_META_AVAILABLE:
 
                 return func(*args, **kwargs)
 
-    def _get_frame_args(frame) -> Tuple[List[Any], Dict[str, Any]]:
-        """Extracts positional and keyword arguments from a call frame."""
-        code = frame.f_code
-        num_pos_args = code.co_argcount - code.co_kwonlyargcount
-        args = []
-        for arg_name in code.co_varnames[1:num_pos_args]:
-            args.append(frame.f_locals[arg_name])
-        kwargs = {}
-        for arg_name in code.co_varnames[num_pos_args : code.co_argcount]:
-            kwargs[arg_name] = frame.f_locals[arg_name]
-        return args, kwargs
-
-    def _trace_nn_modules(frame, event: str, arg: Any) -> None:
-        """Traces `torch.nn.Module` instances and injects `materialize()`."""
-        if event == "call" and frame.f_code.co_name == "__init__":
-            self_param_name = frame.f_code.co_varnames[0]
-
-            self = frame.f_locals[self_param_name]
-
-            if isinstance(self, Module):
-                if not hasattr(self, "materialize"):
-                    args, kwargs = _get_frame_args(frame)
-
-                    def materialize(self, *, in_place: bool = False):
-                        if in_place:
-                            self.__init__(*args, **kwargs)
-                            return self
-
-                        return type(self)(*args, **kwargs)
-
-                    self.materialize = types.MethodType(materialize, self)  # type: ignore[assignment]
-
     def init_meta(module_fn: Callable[..., Module], *args, **kwargs) -> Module:
-        if _tls.is_meta_init:
-            module = module_fn(*args, **kwargs)
-        else:
-            _tls.is_meta_init = True
-            sys.settrace(_trace_nn_modules)
+        def create_instance(module=None) -> Module:
+            if module:
+                module.__init__(*args, **kwargs)
+                return module
+            return module_fn(*args, **kwargs)
 
+        if _tls.in_call:
+            module = create_instance()
+        else:
+            _tls.in_call = True
             try:
                 with enable_python_mode(_MetaContext):
-                    module = module_fn(*args, **kwargs)
+                    module = create_instance()
             finally:
-                sys.settrace(None)
+                _tls.in_call = False
 
-                _tls.is_meta_init = False
+        module.materialize = partial(create_instance, module=module)  # type: ignore[assignment]
 
         return module
 
     def is_meta_init() -> bool:
         """Indicates whether the module is being instantiated by ``init_meta()``."""
-        return _tls.is_meta_init
+        return _tls.in_call
 
     ####################################################################
     # ABOVE: TAKEN FROM https://github.com/pytorch/pytorch/pull/66317. #
@@ -206,15 +178,14 @@ def materialize_module(root_module: nn.Module) -> nn.Module:
 
     materialize_fn = getattr(root_module, "materialize", None)
     if materialize_fn and not isinstance(root_module, (Sequential, ModuleList, ModuleDict)):
-        materialize_fn(in_place=True)
-        return root_module
+        return materialize_fn()
 
-    for child in root_module.children():
+    for name, child in root_module.named_children():
         materialize_fn = getattr(child, "materialize", None)
         if not materialize_fn or isinstance(child, (Sequential, ModuleList, ModuleDict)):
             materialize_module(child)
         else:
-            materialize_fn(in_place=True)
+            setattr(child, name, materialize_fn())
     return root_module
 
 
@@ -289,9 +260,9 @@ def _set_meta_device() -> None:
                 _set_meta_device_populated(from_created=True)
 
             @classmethod
-            def materialize(cls, materialize_fn: Callable, in_place: bool = False):
+            def materialize(cls, materialize_fn: Callable):
                 with cls.instantiation_context(materialize=True):
-                    obj = materialize_fn(in_place=in_place)
+                    obj = materialize_fn()
                 return obj
 
             @staticmethod

@@ -41,7 +41,7 @@ def test_init_meta_context():
         mlp = MLP(4)
         assert mlp.layer[0].weight.device.type == "meta"
 
-        materialize_module(mlp)
+        mlp = materialize_module(mlp)
         assert mlp.layer[0].weight.device.type == "cpu"
 
         model = BoringModel(4)
