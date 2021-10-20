@@ -323,8 +323,7 @@ class LightningLite(ABC):
         self._set_plugin_specific_precision_variables()
         self._accelerator.setup_environment()
         if isinstance(self._strategy, DDPSpawnPlugin):
-            self._strategy.spawn(run_method, *args, **kwargs)
-            return self._strategy.mp_queue.get()
+            return self._strategy.spawn(run_method, *args, **kwargs)
         else:
             return run_method(*args, **kwargs)
 

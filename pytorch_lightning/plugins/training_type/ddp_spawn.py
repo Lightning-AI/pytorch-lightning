@@ -174,7 +174,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     def start_predicting(self, trainer: "pl.Trainer") -> None:
         self.spawn(self.new_process, trainer, self.mp_queue)
 
-    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> None:
+    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         """Spawn processes that run the given function.
 
         Args:
@@ -188,19 +188,16 @@ class DDPSpawnPlugin(ParallelPlugin):
         smp = mp.get_context("spawn")
         self.mp_queue = smp.SimpleQueue()
         mp.spawn(self._wrapped_function, args=(function, args, kwargs, self.mp_queue), nprocs=self.num_processes)
+        return self.mp_queue.get()
 
     def _wrapped_function(
         self, process_idx: int, function: Callable, args: Any, kwargs: Any, mp_queue: SimpleQueue
     ) -> None:
-        os.environ["LOCAL_RANK"] = str(process_idx)
         self._worker_setup(process_idx)
         self.mp_queue = mp_queue
         result = function(*args, **kwargs)
-        self._add_to_queue(result)
-
-    def _add_to_queue(self, *args):
         if self.is_global_zero:
-            self.mp_queue.put(move_data_to_device(args, "cpu"))
+            self.mp_queue.put(move_data_to_device(result, "cpu"))
 
     def _worker_setup(self, process_idx: int):
         reset_seed()
