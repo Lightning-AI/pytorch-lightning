@@ -186,18 +186,17 @@ class DDPSpawnPlugin(ParallelPlugin):
         """
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
         smp = mp.get_context("spawn")
-        self.mp_queue = smp.SimpleQueue()
-        mp.spawn(self._wrapped_function, args=(function, args, kwargs, self.mp_queue), nprocs=self.num_processes)
-        return self.mp_queue.get()
+        return_queue = smp.SimpleQueue()
+        mp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), nprocs=self.num_processes)
+        return return_queue.get()
 
     def _wrapped_function(
-        self, process_idx: int, function: Callable, args: Any, kwargs: Any, mp_queue: SimpleQueue
+        self, process_idx: int, function: Callable, args: Any, kwargs: Any, return_queue: SimpleQueue
     ) -> None:
         self._worker_setup(process_idx)
-        self.mp_queue = mp_queue
         result = function(*args, **kwargs)
         if self.is_global_zero:
-            self.mp_queue.put(move_data_to_device(result, "cpu"))
+            return_queue.put(move_data_to_device(result, "cpu"))
 
     def _worker_setup(self, process_idx: int):
         reset_seed()
