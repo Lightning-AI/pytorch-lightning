@@ -20,14 +20,13 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 import torch.multiprocessing as mp
-from torch.nn import Module
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
-from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
+from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
     _OMEGACONF_AVAILABLE,
@@ -96,19 +95,18 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 )
 
     @staticmethod
-    def _validate_patched_dataloaders(model: Module) -> None:
+    def _validate_patched_dataloaders(model: "pl.LightningModule") -> None:
         """Validate and fail fast if the dataloaders were passed directly to fit."""
-        if hasattr(model, "train_dataloader") and isinstance(model.train_dataloader, _PatchDataLoader):
-            TPUSpawnPlugin._validate_dataloader(model.train_dataloader.dataloader)
-
-        if hasattr(model, "val_dataloader") and isinstance(model.val_dataloader, _PatchDataLoader):
-            TPUSpawnPlugin._validate_dataloader(model.val_dataloader.dataloader)
-
-        if hasattr(model, "test_dataloader") and isinstance(model.test_dataloader, _PatchDataLoader):
-            TPUSpawnPlugin._validate_dataloader(model.test_dataloader.dataloader)
-
-        if hasattr(model, "predict_dataloader") and isinstance(model.predict_dataloader, _PatchDataLoader):
-            TPUSpawnPlugin._validate_dataloader(model.predict_dataloader.dataloader)
+        connector: DataConnector = model.trainer.data_connector
+        sources = (
+            connector._train_dataloader_source,
+            connector._val_dataloader_source,
+            connector._test_dataloader_source,
+            connector._predict_dataloader_source,
+        )
+        for source in sources:
+            if not source.is_module():
+                TPUSpawnPlugin._validate_dataloader(source.instance)
 
     def connect(self, model: "pl.LightningModule") -> None:
         TPUSpawnPlugin._validate_patched_dataloaders(model)

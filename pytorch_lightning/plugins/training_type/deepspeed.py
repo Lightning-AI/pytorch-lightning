@@ -628,8 +628,9 @@ class DeepSpeedPlugin(DDPPlugin):
         # train_micro_batch_size_per_gpu is used for throughput logging purposes
         # by default we try to use the batch size of the loader
         batch_size = 1
-        if hasattr(self.lightning_module, "train_dataloader"):
-            train_dataloader = self.lightning_module.train_dataloader()
+        train_dl_source = self.lightning_module.trainer.data_connector._train_dataloader_source
+        if train_dl_source.is_defined():
+            train_dataloader = train_dl_source.dataloader()
             if hasattr(train_dataloader, "batch_sampler"):
                 batch_size = train_dataloader.batch_sampler.batch_size
         return batch_size
