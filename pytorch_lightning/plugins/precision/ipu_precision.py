@@ -40,7 +40,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
 
     def pre_optimizer_step(
         self,
-        model: Union["pl.LightningModule", Module],,
+        model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable[[], Any],
