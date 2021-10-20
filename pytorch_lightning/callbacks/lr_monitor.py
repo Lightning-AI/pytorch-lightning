@@ -124,7 +124,7 @@ class LearningRateMonitor(Callback):
                 )
 
         # Find names for schedulers
-        names: List[str] = []
+        names: List[List[str]] = []
         (
             sched_hparam_keys,
             optimizers_with_scheduler,
@@ -141,9 +141,9 @@ class LearningRateMonitor(Callback):
         names.extend(optimizer_hparam_keys)
 
         # Initialize for storing values
-        names = list(itertools.chain.from_iterable(names))
-        self.lrs = {name: [] for name in names}
-        self.last_momentum_values = {name + "-momentum": None for name in names}
+        names_flatten = list(itertools.chain.from_iterable(names))
+        self.lrs = {name: [] for name in names_flatten}
+        self.last_momentum_values = {name + "-momentum": None for name in names_flatten}
 
     def on_train_batch_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         if not trainer.logger_connector.should_update_logs:
@@ -260,7 +260,7 @@ class LearningRateMonitor(Callback):
 
     def _find_names_from_schedulers(
         self, lr_schedulers: List, add_lr_sch_names: bool = True
-    ) -> Tuple[List[str], List[Optimizer], DefaultDict[Type[Optimizer], int]]:
+    ) -> Tuple[List[List[str]], List[Optimizer], DefaultDict[Type[Optimizer], int]]:
         # Create unique names in the case we have multiple of the same learning
         # rate scheduler + multiple parameter groups
         names = []
@@ -277,6 +277,7 @@ class LearningRateMonitor(Callback):
                 sch.optimizer, name, seen_optimizers, seen_optimizer_types, scheduler, add_lr_sch_names
             )
             names.append(updated_names)
+
         return names, seen_optimizers, seen_optimizer_types
 
     def _find_names_from_optimizers(
@@ -285,7 +286,7 @@ class LearningRateMonitor(Callback):
         seen_optimizers: List[Optimizer],
         seen_optimizer_types: DefaultDict[Type[Optimizer], int],
         add_lr_sch_names: bool = True,
-    ) -> Tuple[List[str], List[Optimizer]]:
+    ) -> Tuple[List[List[str]], List[Optimizer]]:
         names = []
         optimizers_without_scheduler = []
 

@@ -514,8 +514,9 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
 
 def test_lr_monitor_multiple_param_groups_no_scheduler(tmpdir):
     class TestModel(BoringModel):
-        def __init__(self):
+        def __init__(self, lr, momentum):
             super().__init__()
+            self.save_hyperparameters()
             self.linear_a = torch.nn.Linear(32, 16)
             self.linear_b = torch.nn.Linear(16, 2)
 
@@ -529,10 +530,10 @@ def test_lr_monitor_multiple_param_groups_no_scheduler(tmpdir):
                 {"params": list(self.linear_a.parameters())},
                 {"params": list(self.linear_b.parameters())},
             ]
-            optimizer = torch.optim.Adam(param_groups, lr=0.1)
+            optimizer = torch.optim.Adam(param_groups, lr=self.hparams.lr, betas=self.hparams.momentum)
             return optimizer
 
-    lr_monitor = LearningRateMonitor()
+    lr_monitor = LearningRateMonitor(log_momentum=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
@@ -543,10 +544,14 @@ def test_lr_monitor_multiple_param_groups_no_scheduler(tmpdir):
         enable_model_summary=False,
     )
 
-    trainer.fit(TestModel())
+    lr = 1e-2
+    momentum = 0.7
+    model = TestModel(lr=lr, momentum=(momentum, 0.999))
+    trainer.fit(model)
+
     assert len(lr_monitor.lrs) == len(trainer.optimizers[0].param_groups)
     assert list(lr_monitor.lrs.keys()) == ["lr-Adam/pg1", "lr-Adam/pg2"]
     assert lr_monitor.lr_sch_names == ["lr-Adam"]
-
-    for lr_key in lr_monitor.lrs:
-        assert all(val == 0.1 for val in lr_monitor.lrs[lr_key])
+    assert list(lr_monitor.last_momentum_values.keys()) == ["lr-Adam/pg1-momentum", "lr-Adam/pg2-momentum"]
+    assert all(val == momentum for val in lr_monitor.last_momentum_values.values())
+    assert all(all(val == lr for val in lr_monitor.lrs[lr_key]) for lr_key in lr_monitor.lrs)
