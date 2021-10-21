@@ -1,6 +1,6 @@
-########################################################
-LightningLite - Stepping Stone to Lightning from PyTorch
-########################################################
+###########################################
+LightningLite - Stepping Stone to Lightning
+###########################################
 
 
 .. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/lite/lightning_lite.gif
@@ -26,7 +26,6 @@ Supported integrations
     * CPU.
     * GPU.
     * TPU.
-
 #. ``strategy``:
     * ``dp``: Data Parallel.
     * ``ddp`` or ``ddp_spawn``: Distributed Data Parallel.
@@ -93,7 +92,7 @@ while being able to train on multiple devices.
         return DataLoader(RandomDataset(64, 32))
 
 
-    def run(model: nn.Module, train_dataloader: DataLoader, val_dataloader: DataLoader, num_epochs: int = 10):
+    def run(num_epochs, model, train_dataloader, val_dataloader):
         optimizer = configure_optimizers(model)
 
         for epoch in range(num_epochs):
@@ -118,7 +117,7 @@ while being able to train on multiple devices.
 
 
     model = BoringModel()
-    run(model, train_dataloader(), val_dataloader())
+    run(10, model, train_dataloader(), val_dataloader())
 
 Convert to LightningLite
 ========================
@@ -136,7 +135,7 @@ Here are 4 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
 
 
     class Lite(LightningLite):
-        def run(self, model: nn.Module, train_dataloader: DataLoader, val_dataloader: DataLoader, num_epochs: int = 10):
+        def run(self, num_epochs, model, train_dataloader, val_dataloader):
             optimizer = configure_optimizers(model)
 
             ###################################################################################
@@ -174,12 +173,12 @@ Here are 4 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
                     for batch in val_dataloader:
                         val_losses.append(model(batch))
 
-                ###########################################################################
-                # By calling `self.all_gather` directly, tensors will be transferred      #
-                # across processes and concatenated.                                      #
+                ###############################################################################
+                # By calling `self.all_gather` directly, tensors will be transferred          #
+                # across processes and concatenated.                                          #
                 train_epoch_loss = self.all_gather(train_losses).mean()
                 val_epoch_loss = self.all_gather(val_losses).mean()
-                ###########################################################################
+                ###############################################################################
 
                 print(f"{epoch}/{num_epochs}| Train Epoch Loss: {train_epoch_loss}")
                 print(f"{epoch}/{num_epochs}| Valid Epoch Loss: {val_epoch_loss}")
@@ -190,8 +189,10 @@ Here are 4 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
     lite = Lite()
     lite.run(lite_model, train_dataloader(), val_dataloader())
 
-That's all! You can now train on any kind of device and scale your training.
+That's all. You can now train on any kind of device and scale your training.
+
 The :class:`~pytorch_lightning.lite.LightningLite` take care of device management, so you don't have to.
+
 You can remove any device specific logic within your code.
 
 Here is how to train on 8 gpus with `torch.bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_ precision.
@@ -221,12 +222,12 @@ Distributed Training Pitfalls
 The :class:`~pytorch_lightning.lite.LightningLite` provides you only with the tool to scale your training,
 but there are several major challenges ahead of you now:
 
-#. ``Processes divergence``: This happens when processes execute different section of the code due to different if/else condition, race condition on existing files, etc... resulting in hanging.
-#. ``Cross processes reduction``: Wrongly reported metrics or gradients due mis-reduction.
-#. ``Large sharded models``: Instantiation, materialization and state management of large models.
-#. ``Rank 0 only actions``: Logging, profiling, etc..
-#. ``Checkpointing / Early stopping / Callbacks``: Ability to easily customize your training behaviour and make it stateful.
-#. ``Batch-level fault tolerance training``: Ability to resume from a failure as if it never happened.
+#. Processes divergence: This happens when processes execute different section of the code due to different if/else condition, race condition on existing files, etc... resulting in hanging.
+#. Cross processes reduction: Wrongly reported metrics or gradients due mis-reduction.
+#. Large sharded models: Instantiation, materialization and state management of large models.
+#. Rank 0 only actions: Logging, profiling, etc..
+#. Checkpointing / Early stopping / Callbacks: Ability to easily customize your training behaviour and make it stateful.
+#. Batch-level fault tolerance training: Ability to resume from a failure as if it never happened.
 
 If you are facing one of those challenges, you are already meeting the limit of :class:`~pytorch_lightning.lite.LightningLite`
 and we strongly encourage you to slowly convert to Lightning, so you never have to worry about those.
