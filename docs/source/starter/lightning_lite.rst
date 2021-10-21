@@ -29,7 +29,7 @@ Supported Integrations
    * - ``accelerator``
      - ``CPU``, ``GPU``, ``TPU``
    * - ``strategy``
-     - ``dp``, ``ddp``, ``ddp_spawn``, ``ddp_sharded``, ``ddp_sharded_spawn`` and ``deepspeed``
+     - ``dp``, ``ddp``, ``ddp_spawn``, ``ddp_sharded``, ``ddp_sharded_spawn``, ``deepspeed``
    * - ``precision``
      - ``float16``, ``bfloat16``, ``float64``
    * - ``clusters``
@@ -122,8 +122,8 @@ Here are 4 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
 
 1. Subclass :class:`~pytorch_lightning.lite.LightningLite` and override its :meth:`~pytorch_lightning.lite.LightningLite.run` method.
 2. Move the body of your existing `run` function.
-3. Apply ``self.setup`` over each model and optimizers pair, ``self.setup_dataloaders`` on all your dataloaders and replace ``loss.backward()`` by ``self.backward(loss)``
-4. Instantiate your ``Lite`` and call its :meth:`~pytorch_lightning.lite.LightningLite.run` method.
+3. Apply :meth:`~pytorch_lightning.lite.LightningLite.setup` over each model and optimizers pair, :meth:`~pytorch_lightning.lite.LightningLite.setup_dataloaders` on all your dataloaders and replace ``loss.backward()`` by ``self.backward(loss)``
+4. Instantiate your :class:`~pytorch_lightning.lite.LightningLite` and call its :meth:`~pytorch_lightning.lite.LightningLite.run` method.
 
 .. code-block:: python
 
