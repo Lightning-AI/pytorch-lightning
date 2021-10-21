@@ -19,11 +19,13 @@ Learning Rate Monitor
 Monitor and logs learning rate for lr schedulers during training.
 
 """
+import itertools
 from collections import defaultdict
-from typing import Any, DefaultDict, Dict, List, Optional, Set, Type
+from typing import Any, DefaultDict, Dict, List, Optional, Set, Tuple, Type
 
 from torch.optim.optimizer import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -90,10 +92,10 @@ class LearningRateMonitor(Callback):
 
         self.logging_interval = logging_interval
         self.log_momentum = log_momentum
-        self.lrs = None
-        self.lr_sch_names = []
+        self.lrs: Dict[str, List[float]] = {}
+        self.lr_sch_names: List[str] = []
 
-    def on_train_start(self, trainer, *args, **kwargs):
+    def on_train_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         """Called before training, determines unique names for all lr schedulers in the case of multiple of the
         same type or in the case of multiple parameter groups.
 
@@ -108,7 +110,7 @@ class LearningRateMonitor(Callback):
 
         if self.log_momentum:
 
-            def _check_no_key(key):
+            def _check_no_key(key: str) -> bool:
                 if trainer.lr_schedulers:
                     return any(key not in sch["scheduler"].optimizer.defaults for sch in trainer.lr_schedulers)
 
@@ -122,7 +124,7 @@ class LearningRateMonitor(Callback):
                 )
 
         # Find names for schedulers
-        names = []
+        names: List[List[str]] = []
         (
             sched_hparam_keys,
             optimizers_with_scheduler,
@@ -139,11 +141,12 @@ class LearningRateMonitor(Callback):
         names.extend(optimizer_hparam_keys)
 
         # Initialize for storing values
-        self.lrs = {name: [] for name in names}
-        self.last_momentum_values = {name + "-momentum": None for name in names}
+        names_flatten = list(itertools.chain.from_iterable(names))
+        self.lrs = {name: [] for name in names_flatten}
+        self.last_momentum_values = {name + "-momentum": None for name in names_flatten}
 
-    def on_train_batch_start(self, trainer, *args, **kwargs):
-        if not self._should_log(trainer):
+    def on_train_batch_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
+        if not trainer.logger_connector.should_update_logs:
             return
 
         if self.logging_interval != "epoch":
@@ -153,7 +156,7 @@ class LearningRateMonitor(Callback):
             if latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
-    def on_train_epoch_start(self, trainer, *args, **kwargs):
+    def on_train_epoch_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         if self.logging_interval != "step":
             interval = "epoch" if self.logging_interval is None else "any"
             latest_stat = self._extract_stats(trainer, interval)
@@ -161,7 +164,7 @@ class LearningRateMonitor(Callback):
             if latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
-    def _extract_stats(self, trainer, interval: str) -> Dict[str, float]:
+    def _extract_stats(self, trainer: "pl.Trainer", interval: str) -> Dict[str, float]:
         latest_stat = {}
 
         (
@@ -171,7 +174,7 @@ class LearningRateMonitor(Callback):
         ) = self._find_names_from_schedulers(trainer.lr_schedulers, add_lr_sch_names=False)
         self._remap_keys(scheduler_hparam_keys)
 
-        for name, scheduler in zip(self.lr_sch_names, trainer.lr_schedulers):
+        for name, scheduler in zip(scheduler_hparam_keys, trainer.lr_schedulers):
             if interval in [scheduler["interval"], "any"]:
                 opt = scheduler["scheduler"].optimizer
                 current_stat = self._get_lr_momentum_stat(opt, name)
@@ -185,47 +188,47 @@ class LearningRateMonitor(Callback):
         )
         self._remap_keys(optimizer_hparam_keys)
 
-        for opt, name in zip(optimizers_without_scheduler, optimizer_hparam_keys):
-            current_stat = self._get_lr_momentum_stat(opt, name)
+        for opt, names in zip(optimizers_without_scheduler, optimizer_hparam_keys):
+            current_stat = self._get_lr_momentum_stat(opt, names)
             latest_stat.update(current_stat)
 
         return latest_stat
 
-    def _get_lr_momentum_stat(self, optimizer: Optimizer, name: str) -> None:
+    def _get_lr_momentum_stat(self, optimizer: Optimizer, names: List[str]) -> Dict[str, float]:
         lr_momentum_stat = {}
         param_groups = optimizer.param_groups
         use_betas = "betas" in optimizer.defaults
 
-        for i, pg in enumerate(param_groups):
-            name_and_suffix = self._add_suffix(name, param_groups, i)
-            lr = self._extract_lr(pg, name_and_suffix)
+        for pg, name in zip(param_groups, names):
+            lr = self._extract_lr(pg, name)
             lr_momentum_stat.update(lr)
             momentum = self._extract_momentum(
-                param_group=pg, name=name_and_suffix.replace(name, f"{name}-momentum"), use_betas=use_betas
+                param_group=pg, name=name.replace(name, f"{name}-momentum"), use_betas=use_betas
             )
             lr_momentum_stat.update(momentum)
 
         return lr_momentum_stat
 
     def _extract_lr(self, param_group: Dict[str, Any], name: str) -> Dict[str, Any]:
-        lr = param_group.get("lr")
+        lr = param_group["lr"]
         self.lrs[name].append(lr)
         return {name: lr}
 
-    def _remap_keys(self, names: List[str], token: str = "/pg1") -> None:
+    def _remap_keys(self, names: List[List[str]], token: str = "/pg1") -> None:
         """This function is used the remap the keys if param groups for a given optimizer increased."""
-        for new_name in names:
-            old_name = new_name.replace(token, "")
-            if token in new_name and old_name in self.lrs:
-                self.lrs[new_name] = self.lrs.pop(old_name)
-            elif new_name not in self.lrs:
-                self.lrs[new_name] = []
+        for group_new_names in names:
+            for new_name in group_new_names:
+                old_name = new_name.replace(token, "")
+                if token in new_name and old_name in self.lrs:
+                    self.lrs[new_name] = self.lrs.pop(old_name)
+                elif new_name not in self.lrs:
+                    self.lrs[new_name] = []
 
-    def _extract_momentum(self, param_group: Dict[str, Any], name: str, use_betas: bool) -> Dict[str, float]:
+    def _extract_momentum(self, param_group: Dict[str, List], name: str, use_betas: bool) -> Dict[str, float]:
         if not self.log_momentum:
             return {}
 
-        momentum = param_group.get("betas")[0] if use_betas else param_group.get("momentum", 0)
+        momentum = param_group["betas"][0] if use_betas else param_group.get("momentum", 0)
         self.last_momentum_values[name] = momentum
         return {name: momentum}
 
@@ -255,12 +258,14 @@ class LearningRateMonitor(Callback):
             return set()
         return {n for n in names if names.count(n) > 1}
 
-    def _find_names_from_schedulers(self, lr_schedulers: List, add_lr_sch_names: bool = True) -> List[str]:
+    def _find_names_from_schedulers(
+        self, lr_schedulers: List, add_lr_sch_names: bool = True
+    ) -> Tuple[List[List[str]], List[Optimizer], DefaultDict[Type[Optimizer], int]]:
         # Create unique names in the case we have multiple of the same learning
         # rate scheduler + multiple parameter groups
         names = []
-        seen_optimizers = []
-        seen_optimizer_types = defaultdict(int)
+        seen_optimizers: List[Optimizer] = []
+        seen_optimizer_types: DefaultDict[Type[Optimizer], int] = defaultdict(int)
         for scheduler in lr_schedulers:
             sch = scheduler["scheduler"]
             if scheduler["name"] is not None:
@@ -268,15 +273,20 @@ class LearningRateMonitor(Callback):
             else:
                 name = "lr-" + sch.optimizer.__class__.__name__
 
-            updated_name = self._check_duplicates_and_update_name(
+            updated_names = self._check_duplicates_and_update_name(
                 sch.optimizer, name, seen_optimizers, seen_optimizer_types, scheduler, add_lr_sch_names
             )
-            names.extend(updated_name)
+            names.append(updated_names)
+
         return names, seen_optimizers, seen_optimizer_types
 
     def _find_names_from_optimizers(
-        self, optimizers, seen_optimizers, seen_optimizer_types, add_lr_sch_names: bool = True
-    ) -> List[str]:
+        self,
+        optimizers: List[Any],
+        seen_optimizers: List[Optimizer],
+        seen_optimizer_types: DefaultDict[Type[Optimizer], int],
+        add_lr_sch_names: bool = True,
+    ) -> Tuple[List[List[str]], List[Optimizer]]:
         names = []
         optimizers_without_scheduler = []
 
@@ -287,22 +297,23 @@ class LearningRateMonitor(Callback):
                 continue
 
             name = "lr-" + optimizer.__class__.__name__
-            updated_name = self._check_duplicates_and_update_name(
+            updated_names = self._check_duplicates_and_update_name(
                 optimizer, name, seen_optimizers, seen_optimizer_types, None, add_lr_sch_names
             )
-            names.extend(updated_name)
+            names.append(updated_names)
             optimizers_without_scheduler.append(optimizer)
+
         return names, optimizers_without_scheduler
 
     def _check_duplicates_and_update_name(
         self,
         optimizer: Optimizer,
         name: str,
-        seen_optimizers: List,
-        seen_optimizer_types: List,
+        seen_optimizers: List[Optimizer],
+        seen_optimizer_types: DefaultDict[Type[Optimizer], int],
         scheduler: Dict[str, Any] = None,
         add_lr_sch_names: bool = True,
-    ) -> List:
+    ) -> List[str]:
         seen_optimizers.append(optimizer)
         optimizer_cls = type(optimizer)
         if scheduler is not None and scheduler["name"] is None:
@@ -326,7 +337,3 @@ class LearningRateMonitor(Callback):
             self.lr_sch_names.append(name)
 
         return name_list
-
-    @staticmethod
-    def _should_log(trainer) -> bool:
-        return (trainer.global_step + 1) % trainer.log_every_n_steps == 0 or trainer.should_stop
