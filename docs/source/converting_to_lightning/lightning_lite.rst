@@ -220,7 +220,7 @@ different if/else condition, race condition on existing files, etc... resulting 
 * ``Large sharded models``: Instantiation, materialization and state management of large models.
 * ``Rank 0 only actions``: Logging, profiling, etc..
 * ``Checkpointing / Early stopping / Callbacks``: Ability to easily customize your training behaviour and make it stateful.
-* ``batch-level fault tolerance training``: Ability to resume from failure as it never happened.
+* ``Batch-level fault tolerance training``: Ability to resume from failure as it never happened.
 
 If you are facing one of those challenges, you are already meeting the limit of :class:`~pytorch_lightning.lite.LightningLite`
 and we strongly encourage you to slowly convert to Lightning, so you never have to worry about those.
