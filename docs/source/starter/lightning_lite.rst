@@ -34,6 +34,7 @@ Supported integrations
 #. ``clusters``: ``TorchElastic``, ``SLURM``, ``Kubeflow``, ``LSF``.
 
 Coming in the near future:
+
 #. ``accelerator``: IPUs.
 #. ``strategy``: ``Horovod``, ``FSDP``.
 
@@ -45,7 +46,7 @@ My existing PyTorch code
 ========================
 
 In the code below, we have a `BoringModel` containing a single linear layer trained on some random data for 10 epochs.
-The `run` function contains my custom training and validation loops and I wish to conserve them
+The `run` function contains a custom training and validation loops and as a user, I wish to conserve them
 while being able to train on multiple devices.
 
 .. code-block:: python
@@ -119,12 +120,12 @@ while being able to train on multiple devices.
 Convert to LightningLite
 ========================
 
-Here are 4 required steps to convert to class:`~pytorch_lightning.lite.LightningLite` or 3 code changes.
+Here are 4 required steps to convert to :class:`~pytorch_lightning.lite.LightningLite` or 3 code changes.
 
-1. Subclass class:`~pytorch_lightning.lite.LightningLite` and override its meth:`~pytorch_lightning.lite.LightningLite.run` method.
+1. Subclass :class:`~pytorch_lightning.lite.LightningLite` and override its meth:`~pytorch_lightning.lite.LightningLite.run` method.
 2. Copy / paste the body of your existing `run` function.
 3. Apply ``self.setup`` over each model and optimizers pair, ``self.setup_dataloaders`` on all your dataloaders and replace ``loss.backward()`` by ``self.backward(loss)``
-4. Instantiate your ``Lite`` and call its meth:`~pytorch_lightning.lite.LightningLite.run` method.
+4. Instantiate your ``Lite`` and call its :meth:`~pytorch_lightning.lite.LightningLite.run` method.
 
 .. code-block:: python
 
@@ -186,7 +187,7 @@ Here are 4 required steps to convert to class:`~pytorch_lightning.lite.Lightning
     lite.run(lite_model, train_dataloader(), val_dataloader())
 
 That's all! You can now train on any kind of device and scale your training.
-The class:`~pytorch_lightning.lite.LightningLite` take care of device management, so you don't have to.
+The :class:`~pytorch_lightning.lite.LightningLite` take care of device management, so you don't have to.
 You can remove any device specific logic within your code.
 
 Here is how to train on 8 gpus with `torch.bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_ precision.
@@ -213,15 +214,16 @@ Here is how to use `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/ze
 Distributed Training Pitfalls
 =============================
 
-The class:`~pytorch_lightning.lite.LightningLite` provides you only with the tool to scale your training,
+The :class:`~pytorch_lightning.lite.LightningLite` provides you only with the tool to scale your training,
 but there are several major challenges ahead of you now:
-* ``Processes divergence``: This happens when processes execute different section of the code due to
+
+#. ``Processes divergence``: This happens when processes execute different section of the code due to
 different if/else condition, race condition on existing files, etc... resulting in hanging.
-* ``Cross processes reduction``: Wrongly reported metrics or gradients due mis-reduction.
-* ``Large sharded models``: Instantiation, materialization and state management of large models.
-* ``Rank 0 only actions``: Logging, profiling, etc..
-* ``Checkpointing / Early stopping / Callbacks``: Ability to easily customize your training behaviour and make it stateful.
-* ``Batch-level fault tolerance training``: Ability to resume from a failure as if it never happened.
+#. ``Cross processes reduction``: Wrongly reported metrics or gradients due mis-reduction.
+#. ``Large sharded models``: Instantiation, materialization and state management of large models.
+#. ``Rank 0 only actions``: Logging, profiling, etc..
+#. ``Checkpointing / Early stopping / Callbacks``: Ability to easily customize your training behaviour and make it stateful.
+#. ``Batch-level fault tolerance training``: Ability to resume from a failure as if it never happened.
 
 If you are facing one of those challenges, you are already meeting the limit of :class:`~pytorch_lightning.lite.LightningLite`
 and we strongly encourage you to slowly convert to Lightning, so you never have to worry about those.
