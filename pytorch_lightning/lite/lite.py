@@ -378,7 +378,7 @@ class LightningLite(ABC):
             return run_fn()
 
     def run_method_wrapper(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        # requires to apply shared context
+        # requires to apply sharded context to prevent OOM
         with self._strategy.model_sharded_context():
             return run_method(*args, **kwargs)
 
