@@ -1934,7 +1934,7 @@ class Trainer(
         return self.fit_loop.current_epoch
 
     @property
-    def max_epochs(self) -> Optional[int]:
+    def max_epochs(self) -> int:
         return self.fit_loop.max_epochs
 
     @property
@@ -1942,7 +1942,7 @@ class Trainer(
         return self.fit_loop.min_epochs
 
     @property
-    def max_steps(self) -> Optional[int]:
+    def max_steps(self) -> int:
         return self.fit_loop.max_steps
 
     @property

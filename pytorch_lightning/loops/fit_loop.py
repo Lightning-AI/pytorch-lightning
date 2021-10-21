@@ -36,7 +36,7 @@ class FitLoop(Loop):
 
     def __init__(
         self,
-        min_epochs: int = 1,
+        min_epochs: Optional[int] = 1,
         max_epochs: int = 1000,
     ):
         super().__init__()

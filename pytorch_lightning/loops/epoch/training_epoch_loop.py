@@ -41,7 +41,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         max_steps: The maximum number of steps (batches) to process
     """
 
-    def __init__(self, min_steps: int = 0, max_steps: Optional[int] = -1):
+    def __init__(self, min_steps: Optional[int] = 0, max_steps: int = -1):
         super().__init__()
         if max_steps is None:
             rank_zero_deprecation(
@@ -53,7 +53,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             raise MisconfigurationException(
                 f"`max_steps` must be a non-negative integer or -1. You passed in {max_steps}."
             )
-        self.min_steps: int = min_steps
+        self.min_steps: Optional[int] = min_steps
         self.max_steps: int = max_steps
 
         self.global_step: int = 0
