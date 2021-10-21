@@ -21,6 +21,7 @@ PyTorch Lightning
    starter/new-project
    starter/converting
    starter/rapid_prototyping_templates
+   starter/lightning_lite
 
 .. toctree::
    :maxdepth: 1
@@ -32,14 +33,6 @@ PyTorch Lightning
    starter/style_guide
    Lightning project template<https://github.com/PyTorchLightning/pytorch-lightning-conference-seed>
    benchmarking/benchmarks
-
-
-.. toctree::
-   :maxdepth: 1
-   :name: start
-   :caption: Converting to Lightning
-
-   converting_to_lightning/lightning_lite
 
 .. toctree::
    :maxdepth: 2

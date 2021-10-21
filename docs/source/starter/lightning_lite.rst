@@ -6,8 +6,8 @@ LightningLite - Stepping Stone to Lightning from PyTorch
 .. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/lite/lightning_lite.gif
     :alt: Animation showing how to convert a standard training loop to a Lightning loop
 
-The :class:`~pytorch_lightning.lite.LightningLite` enables pure PyTorch users to scale their existing code
-on any kind of device while retaining full control on their own loops and optimization logic.
+:class:`~pytorch_lightning.lite.LightningLite` enables pure PyTorch users to scale their existing code
+on any kind of device while retaining full control over their own loops and optimization logic.
 
 :class:`~pytorch_lightning.lite.LightningLite` is the right tool for you if you match one of the 2 following descriptions:
 
@@ -21,20 +21,21 @@ Supported integrations
 :class:`~pytorch_lightning.lite.LightningLite` supports single and multiple models / optimizers.
 
 #. ``accelerator``:
-    * single-CPU.
-    * single GPU.
-    * single TPU.
-    * multi-CPU (single and multiple nodes).
-    * multi-GPUs (single and multiple nodes).
-    * multi-TPUs (single and multiple pods).
+    * CPU.
+    * GPU.
+    * TPU.
 
-#. ``strategy``: ``DP``, ``DDP``, ``DDP Spawn``, ``DDP Sharded``, ``DeepSpeed``.
+#. ``strategy``:
+    * ``dp``: Data Parallel.
+    * ``ddp`` or ``ddp_spawn``: Distributed Data Parallel.
+    * ``ddp_shared`` or ``ddp_sharded_spawn``: Distributed Data Parallel with Zero 2.
+    * ``deepspeed``: Distributed Data Parallel with Zero 2.
 #. ``precision`: ``float16`` and ``bfloat16`` with ``AMP`` or ``float64``.
-* ``clusters``: ``TorchElastic``, ``SLURM``, ``Kubeflow``, ``LSF``.
+#. ``clusters``: ``TorchElastic``, ``SLURM``, ``Kubeflow``, ``LSF``.
 
-Coming:
-* ``accelerator``: IPUs.
-* ``strategy``: ``Horovod``, ``FSDP``.
+Coming in the near future:
+#. ``accelerator``: IPUs.
+#. ``strategy``: ``Horovod``, ``FSDP``.
 
 ################
 Learn by example
@@ -121,7 +122,7 @@ Convert to LightningLite
 Here are 4 required steps to convert to class:`~pytorch_lightning.lite.LightningLite` or 3 code changes.
 
 1. Subclass class:`~pytorch_lightning.lite.LightningLite` and override its meth:`~pytorch_lightning.lite.LightningLite.run` method.
-2. Copy / paste your existing `run` function.
+2. Copy / paste the body of your existing `run` function.
 3. Apply ``self.setup`` over each model and optimizers pair, ``self.setup_dataloaders`` on all your dataloaders and replace ``loss.backward()`` by ``self.backward(loss)``
 4. Instantiate your ``Lite`` and call its meth:`~pytorch_lightning.lite.LightningLite.run` method.
 
@@ -184,7 +185,7 @@ Here are 4 required steps to convert to class:`~pytorch_lightning.lite.Lightning
     lite = Lite()
     lite.run(lite_model, train_dataloader(), val_dataloader())
 
-That's all ! You can now train on any kind of device and scale your training.
+That's all! You can now train on any kind of device and scale your training.
 The class:`~pytorch_lightning.lite.LightningLite` take care of device management, so you don't have to.
 You can remove any device specific logic within your code.
 
@@ -220,7 +221,7 @@ different if/else condition, race condition on existing files, etc... resulting 
 * ``Large sharded models``: Instantiation, materialization and state management of large models.
 * ``Rank 0 only actions``: Logging, profiling, etc..
 * ``Checkpointing / Early stopping / Callbacks``: Ability to easily customize your training behaviour and make it stateful.
-* ``Batch-level fault tolerance training``: Ability to resume from failure as it never happened.
+* ``Batch-level fault tolerance training``: Ability to resume from a failure as if it never happened.
 
 If you are facing one of those challenges, you are already meeting the limit of :class:`~pytorch_lightning.lite.LightningLite`
 and we strongly encourage you to slowly convert to Lightning, so you never have to worry about those.
@@ -272,3 +273,5 @@ from its hundreds of features.
     datamodule = BoringDataModule()
     trainer = Trainer(max_epochs=10)
     trainer.fit(lightning_module, datamodule)
+
+:ref:`Converting to Lightning <starter/converting>`
