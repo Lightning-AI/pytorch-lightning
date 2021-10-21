@@ -18,14 +18,29 @@ import pytest
 import torch
 from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
+from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.lite.wrappers import _LiteDataLoader
+from pytorch_lightning.plugins import TrainingTypePlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.helpers.runif import RunIf
 
 
 class EmptyLite(LightningLite):
     def run(self):
         pass
+
+
+@pytest.mark.parametrize("accelerator", ["coconut", Mock(spec=Accelerator)])
+def test_unsupported_accelerator(accelerator):
+    with pytest.raises(MisconfigurationException, match=f"`accelerator={repr(accelerator)}` is not a valid choice"):
+        EmptyLite(accelerator=accelerator)
+
+
+@pytest.mark.parametrize("strategy", ["coconut", Mock(spec=TrainingTypePlugin)])
+def test_unsupported_strategy(strategy):
+    with pytest.raises(MisconfigurationException, match=f"`strategy={repr(strategy)}` is not a valid choice"):
+        EmptyLite(strategy=strategy)
 
 
 def test_setup_dataloaders_return_type():
@@ -103,3 +118,27 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
     is_distributed = lite._accelerator_connector.is_distributed
     lite_dataloader = lite.setup_dataloaders(DataLoader(range(3), shuffle=shuffle))
     assert not is_distributed or isinstance(lite_dataloader.sampler, DistributedSampler)
+
+
+@pytest.mark.parametrize(
+    "accelerator, expected",
+    [
+        ("cpu", torch.device("cpu")),
+        pytest.param("gpu", torch.device("cuda", 0), marks=RunIf(min_gpus=1)),
+        pytest.param("tpu", torch.device("xla", 0), marks=RunIf(tpu=True)),
+    ],
+)
+def test_to_device(accelerator, expected):
+    lite = EmptyLite(accelerator=accelerator, devices=1)
+
+    module = torch.nn.Linear(2, 3)
+    module = lite.to_device(module)
+    assert all(param.device == expected for param in module.parameters())
+
+    tensor = torch.rand(2, 2)
+    tensor = lite.to_device(tensor)
+    assert tensor.device == expected
+
+    collection = {"data": torch.rand(2, 2)}
+    collection = lite.to_device(collection)
+    assert collection["data"].device == expected
