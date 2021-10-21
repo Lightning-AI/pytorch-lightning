@@ -137,7 +137,6 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
                 max_steps=None,
                 accelerator=None,
                 weights_save_path=None,
-                resume_from_checkpoint=None,
                 profiler=None,
             ),
         ),
@@ -907,7 +906,7 @@ def test_lightning_cli_model_choices():
     ) as run:
         cli = LightningCLI(trainer_defaults={"fast_dev_run": 1})
         assert isinstance(cli.model, BoringModel)
-        run.assert_called_once_with(cli.model, ANY, ANY, ANY)
+        run.assert_called_once_with(cli.model, ANY, ANY, ANY, ANY)
 
     with mock.patch("sys.argv", ["any.py", "--model=TestModel", "--model.foo", "123"]):
         cli = LightningCLI(run=False)
@@ -934,7 +933,7 @@ def test_lightning_cli_datamodule_choices():
     ) as run:
         cli = LightningCLI(BoringModel, trainer_defaults={"fast_dev_run": 1})
         assert isinstance(cli.datamodule, BoringDataModule)
-        run.assert_called_once_with(ANY, ANY, ANY, cli.datamodule)
+        run.assert_called_once_with(ANY, ANY, ANY, cli.datamodule, ANY)
 
     with mock.patch("sys.argv", ["any.py", "--data=MyDataModule", "--data.foo", "123"]):
         cli = LightningCLI(BoringModel, run=False)
@@ -949,7 +948,7 @@ def test_lightning_cli_datamodule_choices():
         cli = LightningCLI(trainer_defaults={"fast_dev_run": 1})
         assert isinstance(cli.model, BoringModel)
         assert isinstance(cli.datamodule, BoringDataModule)
-        run.assert_called_once_with(cli.model, ANY, ANY, cli.datamodule)
+        run.assert_called_once_with(cli.model, ANY, ANY, cli.datamodule, ANY)
 
     with mock.patch("sys.argv", ["any.py", "--model", "BoringModel", "--data=MyDataModule"]):
         cli = LightningCLI(run=False)

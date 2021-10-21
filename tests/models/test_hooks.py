@@ -616,14 +616,13 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         limit_val_batches=0,
         enable_progress_bar=False,
         enable_model_summary=False,
-        resume_from_checkpoint=best_model_path,
         callbacks=[callback],
     )
     assert called == [
         dict(name="Callback.on_init_start", args=(trainer,)),
         dict(name="Callback.on_init_end", args=(trainer,)),
     ]
-    trainer.fit(model)
+    trainer.fit(model, ckpt_path=best_model_path)
     saved_ckpt = {
         "callbacks": ANY,
         "epoch": 2,  # TODO: wrong saved epoch
