@@ -305,12 +305,42 @@ class LightningLite(ABC):
         self._strategy.barrier()
 
     def reduce_decision(self, decision: bool) -> bool:
+        """Reduce a boolean decision across processes.
+
+        Use this for example to determine an early stopping condition, in which case you want to stop if any of
+        the processes determine to stop.
+
+        Args:
+            decision: The decision on the current process
+
+        Return:
+            If at least one of the processes enters with ``decision=True``, then all processes will return `True`.
+            Otherwise returns ``False``.
+        """
         return self._strategy.reduce_boolean_decision(decision)
 
     def save_checkpoint(self, filepath: Union[str, Path], content: Dict[str, Any]) -> None:
+        """Save a checkpoint contents to a file.
+
+        How and which processes save gets determined by the `strategy`. For example, the `ddp` strategy
+        saves checkpoints only on process 0.
+
+        Args:
+            filepath: A path to where the file should be saved
+            content: A dictionary with contents, i.e., the state dict of your model
+        """
         self._strategy.save_checkpoint(content, filepath)
 
     def execute_on_rank(self, func: Callable, rank: int, *args: Any, **kwargs: Any) -> None:
+        """Execute the given function only on the given process.
+
+        Args:
+            func: The function to execute
+            rank: The index of the process across all devices and nodes (global rank). This value must be an integer
+                in the range ``[0, self.world_size - 1]``.
+            *args: Optional positional arguments passed to the function
+            **kwargs: Optional named arguments passed to the function
+        """
         if self.global_rank == rank:
             func(*args, **kwargs)
 
