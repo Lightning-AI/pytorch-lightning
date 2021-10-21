@@ -21,7 +21,6 @@ from torchmetrics import Metric
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.loops.utilities import _is_max_limit_reached
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem

@@ -21,11 +21,6 @@ from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.loops.batch.training_batch_loop import _OUTPUTS_TYPE as _BATCH_OUTPUTS_TYPE
 from pytorch_lightning.loops.utilities import _get_active_optimizers, _update_dataloader_iter
-from pytorch_lightning.loops.optimization.closure import ClosureResult, OutputResult
-from pytorch_lightning.loops.optimization.closure import OutputResult
-from pytorch_lightning.loops.utilities import _is_max_limit_reached, _prepare_dataloader_iter
-from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached, _prepare_dataloader_iter
-from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached, _update_dataloader_iter
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -33,9 +28,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.warnings import WarningCache
-from pytorch_lightning.utilities.types import STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation, WarningCache
 
 _OUTPUTS_TYPE = List[_BATCH_OUTPUTS_TYPE]
 
