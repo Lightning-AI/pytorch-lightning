@@ -39,6 +39,7 @@ from pytorch_lightning.plugins import (
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.utilities import DeviceType, DistributedType, move_data_to_device
+from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.data import has_iterable_dataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -135,6 +136,11 @@ class LightningLite(ABC):
     def world_size(self) -> int:
         """The total number of processes running across all devices and nodes."""
         return getattr(self._strategy, "world_size", 1)
+
+    @property
+    def is_global_zero(self) -> bool:
+        """Wether this rank is rank zero."""
+        return self._strategy.is_global_zero
 
     @property
     def _is_using_multiple_models(self) -> bool:
@@ -326,6 +332,31 @@ class LightningLite(ABC):
     def reduce_decision(self, decision: bool) -> bool:
         return self._strategy.reduce_boolean_decision(decision)
 
+    def all_gather(
+        self, data: Union[torch.Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
+    ):
+        r"""
+        Allows users to call ``self.all_gather()`` from the LightningModule, thus making the ``all_gather`` operation
+        accelerator agnostic. ``all_gather`` is a function provided by accelerators to gather a tensor from several
+        distributed processes.
+
+        Args:
+            data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
+            group: the process group to gather results from. Defaults to all processes (world)
+            sync_grads: flag that allows users to synchronize gradients for the all_gather operation
+
+        Return:
+            A tensor of shape (world_size, batch, ...), or if the input was a collection
+            the output will also be a collection with tensors of this shape.
+        """
+        group = group if group is not None else torch.distributed.group.WORLD
+        all_gather = self._strategy.all_gather
+        data = convert_to_tensors(data, device=self.device)
+        return apply_to_collection(data, torch.Tensor, all_gather, group=group, sync_grads=sync_grads)
+
+    def broadcast(self, obj: object, src: int = 0) -> object:
+        return self._strategy.broadcast(obj, src=src)
+
     def save_checkpoint(self, filepath: Union[str, Path], content: Dict[str, Any]) -> None:
         raise NotImplementedError()
 
@@ -339,9 +370,17 @@ class LightningLite(ABC):
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
         self._set_plugin_specific_precision_variables()
         self._accelerator.setup_environment()
+
+        run_fn = partial(self.run_method_wrapper, run_method, *args, **kwargs)
+
         if isinstance(self._strategy, DDPSpawnPlugin):
-            return self._strategy.spawn(run_method, *args, **kwargs)
+            return self._strategy.spawn(run_fn)
         else:
+            return run_fn()
+
+    def run_method_wrapper(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
+        # requires to apply shared context
+        with self._strategy.model_sharded_context():
             return run_method(*args, **kwargs)
 
     def _set_plugin_specific_precision_variables(self) -> None:
@@ -364,7 +403,7 @@ class LightningLite(ABC):
     ) -> Tuple[_LiteModule, List[_LiteOptimizer]]:
         # Let accelerator/plugin wrap and connect the models and optimizers
         [model], optimizers = self._strategy._setup_models_and_optimizers([model], optimizers)
-        model = _LiteModule(module=model, accelerator=self._accelerator)
+        model = _LiteModule(model, self._accelerator)
         optimizers = [_LiteOptimizer(optimizer=optimizer, accelerator=self._accelerator) for optimizer in optimizers]
         return model, optimizers
 
