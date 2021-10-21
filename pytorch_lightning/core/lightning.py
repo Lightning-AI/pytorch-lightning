@@ -129,6 +129,12 @@ class LightningModule(
     def optimizers(self, use_pl_optimizer: Literal[False]) -> Union[Optimizer, List[Optimizer]]:
         ...
 
+    @overload
+    def optimizers(
+        self, use_pl_optimizer: bool
+    ) -> Union[Optimizer, LightningOptimizer, List[Optimizer], List[LightningOptimizer]]:
+        ...
+
     def optimizers(
         self, use_pl_optimizer: bool = True
     ) -> Union[Optimizer, LightningOptimizer, List[Optimizer], List[LightningOptimizer]]:
