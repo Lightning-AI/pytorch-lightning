@@ -107,7 +107,7 @@ class LightningLite(ABC):
         # wrap the run method so we can inject setup logic or spawn processes for the user
         setattr(self, "run", self._run_wrapper(self.run))
 
-        self._number_of_models: int = 0
+        self._num_models: int = 0
 
     @property
     def device(self) -> torch.device:
@@ -141,10 +141,6 @@ class LightningLite(ABC):
     def is_global_zero(self) -> bool:
         """Wether this rank is rank zero."""
         return self._strategy.is_global_zero
-
-    @property
-    def _is_using_multiple_models(self) -> bool:
-        return self._number_of_models > 1
 
     @abstractmethod
     def run(self, *args: Any, **kwargs: Any) -> Any:
@@ -192,7 +188,7 @@ class LightningLite(ABC):
 
         model, optimizers = self._setup_model_and_optimizers(model, optimizers)
         optimizers = optimizers[0] if len(optimizers) == 1 else optimizers
-        self._number_of_models += 1
+        self._num_models += 1
         return model, optimizers
 
     def setup_dataloaders(
@@ -264,7 +260,7 @@ class LightningLite(ABC):
             *args: Optional positional arguments passed to the underlying backward function.
             **kwargs: Optional named keyword arguments passed to the underlying backward function.
         """
-        if self._is_using_multiple_models and isinstance(self._strategy, DeepSpeedPlugin):
+        if self._num_models > 0 and isinstance(self._strategy, DeepSpeedPlugin):
             if not isinstance(model, _LiteModule):
                 raise MisconfigurationException(
                     "When using multiple models + deepspeed, please provide the model used to perform the optimization."

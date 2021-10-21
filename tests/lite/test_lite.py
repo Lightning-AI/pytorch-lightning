@@ -218,7 +218,7 @@ def test_lightning_lite_setup_dataloaders():
 
             dataloader = DataLoader(RandomDataset(32, 64))
             dataloader_lite = self.setup_dataloaders(dataloader)
-            dataloader_lite = self.setup_dataloaders(dataloader_lite)
+            _ = self.setup_dataloaders(dataloader_lite)
 
     with pytest.raises(MisconfigurationException, match="A dataloader should be passed only once to the"):
         runner = LiteRunner()
@@ -230,13 +230,15 @@ def test_lightning_lite_track_model_setup():
         def run(self):
             model = BoringModel()
             optimizer = configure_optimizers(model)
+
+            assert self._num_models == 0
             self.setup(model, optimizer)
-            assert not self._is_using_multiple_models
+            assert self._num_models == 1
 
             model = BoringModel()
             optimizer = configure_optimizers(model)
             self.setup(model, optimizer)
-            assert self._is_using_multiple_models
+            assert self._num_models == 2
 
     runner = LiteRunner()
     runner.run()
