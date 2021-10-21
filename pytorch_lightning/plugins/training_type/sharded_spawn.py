@@ -45,9 +45,7 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
         )
         trainer.optimizers = optimizers
 
-    def _setup_model_and_optimizers(
-        self, models: Module, optimizers: List[Optimizer]
-    ) -> Tuple[Module, List[Optimizer]]:
+    def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Wraps the model and optimizers with fairscale components.
 
         Return:
@@ -55,7 +53,7 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
             and a list of optimizer wrapped in :class:~`fairscale.optim.OSS`.
         """
         optimizers = self._wrap_optimizers(optimizers)
-        model = ShardedDataParallel(models, sharded_optimizer=optimizers, **self._ddp_kwargs)
+        model = ShardedDataParallel(model, sharded_optimizer=optimizers, **self._ddp_kwargs)
         setattr(model, "require_backward_grad_sync", False)  # TODO: needed?
         return model, optimizers
 
