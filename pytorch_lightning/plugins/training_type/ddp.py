@@ -42,6 +42,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
     _FAIRSCALE_AVAILABLE,
     _HYDRA_AVAILABLE,
+    _IS_WINDOWS,
     _TORCH_GREATER_EQUAL_1_7,
     _TORCH_GREATER_EQUAL_1_8,
     _TORCH_GREATER_EQUAL_1_9,
@@ -53,7 +54,6 @@ from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import init_ddp_connection, rank_zero_only, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
-from pytorch_lightning.utilities.imports import _IS_WINDOWS
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
