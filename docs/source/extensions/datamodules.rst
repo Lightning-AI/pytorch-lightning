@@ -303,7 +303,7 @@ Returns a special dataloader for inference. This is the dataloader that the Trai
 transfer_batch_to_device
 ^^^^^^^^^^^^^^^^^^^^^^^^
 Override to define how you want to move an arbitrary batch to a device.
-To check the current state of execution of this hook you can use ``self.trainer.training/testing/validating/predicting``
+To check the current state of execution of this hook you can use ``self.trainer.training/testing/validating/predicting/sanity_checking``
 so that you can add different logic as per your requirement.
 
 .. testcode::
