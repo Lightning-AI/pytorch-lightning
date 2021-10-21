@@ -18,14 +18,28 @@ import pytest
 import torch
 from torch.utils.data import DataLoader, Sampler, DistributedSampler
 
+from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.lite.wrappers import _LiteDataLoader
+from pytorch_lightning.plugins import TrainingTypePlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class EmptyLite(LightningLite):
     def run(self):
         pass
+
+
+@pytest.mark.parametrize("accelerator", ["coconut", Mock(spec=Accelerator)])
+def test_unsupported_accelerator(accelerator):
+    with pytest.raises(MisconfigurationException, match=f"`accelerator={repr(accelerator)}` is not a valid choice"):
+        EmptyLite(accelerator=accelerator)
+
+
+@pytest.mark.parametrize("strategy", ["coconut", Mock(spec=TrainingTypePlugin)])
+def test_unsupported_strategy(strategy):
+    with pytest.raises(MisconfigurationException, match=f"`strategy={repr(strategy)}` is not a valid choice"):
+        EmptyLite(strategy=strategy)
 
 
 def test_setup_dataloaders_return_type():
