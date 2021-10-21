@@ -14,7 +14,8 @@
 from typing import Any, Dict, Optional, Sequence, Union
 
 import torch
-from torch import Module, Tensor
+from torch import Tensor
+from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl

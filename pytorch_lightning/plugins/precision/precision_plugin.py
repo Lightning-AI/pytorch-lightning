@@ -21,7 +21,6 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.hooks import CheckpointHooks
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import grad_norm, GradClipAlgorithmType
 from pytorch_lightning.utilities.types import _PARAMETERS
 
@@ -147,7 +146,7 @@ class PrecisionPlugin(CheckpointHooks):
         optimizer_idx: int,
         clip_val: Union[int, float],
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
-        model: Optional[LightningModule] = None,
+        model: Optional["pl.LightningModule"] = None,
     ) -> None:
         """Clips the gradients."""
         if self.trainer.accelerator_connector.use_deepspeed or model is None:
