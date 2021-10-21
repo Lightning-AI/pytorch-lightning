@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence, Union
 
 import torch
-from torch import Tensor
+from torch import Module, Tensor
 from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
@@ -30,9 +30,15 @@ if _APEX_AVAILABLE:
 class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     """Mixed Precision Plugin based on Nvidia/Apex (https://github.com/NVIDIA/apex)"""
 
+    backend = AMPType.APEX
+
     def __init__(self, amp_level: str = "O2") -> None:
+        if not _APEX_AVAILABLE:
+            raise MisconfigurationException(
+                "You have asked for Apex AMP but you have not installed it."
+                " Install `apex` using this guide: https://github.com/NVIDIA/apex"
+            )
         super().__init__()
-        self.backend = AMPType.APEX
         self.amp_level = amp_level
         self._connected = False
 
@@ -91,18 +97,17 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def optimizer_step(
         self,
-        model: "pl.LightningModule",
+        model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
         closure_result: Any,
         **kwargs: Any,
     ) -> None:
         if isinstance(optimizer, LBFGS):
-            # APEX AMP does not support closures
             raise MisconfigurationException(
-                f"APEX AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
+                f"apex AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
-        super().optimizer_step(model, optimizer, optimizer_idx, closure_result, kwargs)
+        super().optimizer_step(model, optimizer, optimizer_idx, closure_result, **kwargs)
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         if "amp_scaling_state" in checkpoint:

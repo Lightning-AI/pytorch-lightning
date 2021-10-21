@@ -10,4 +10,4 @@ from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionP
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin  # noqa: F401
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin  # noqa: F401
 from pytorch_lightning.plugins.precision.tpu import TPUPrecisionPlugin  # noqa: F401
-from pytorch_lightning.plugins.precision.tpu_bfloat import TPUHalfPrecisionPlugin  # noqa: F401
+from pytorch_lightning.plugins.precision.tpu_bf16 import TPUBf16PrecisionPlugin  # noqa: F401

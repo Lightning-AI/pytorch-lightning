@@ -1370,7 +1370,7 @@ class CustomPredictionWriter(BasePredictionWriter):
 
 def predict(
     tmpdir,
-    accelerator,
+    strategy,
     gpus,
     num_processes,
     model=None,
@@ -1392,14 +1392,14 @@ def predict(
         max_epochs=1,
         log_every_n_steps=1,
         enable_model_summary=False,
-        accelerator=accelerator,
+        strategy=strategy,
         gpus=gpus,
         num_processes=num_processes,
         plugins=plugins,
         enable_progress_bar=enable_progress_bar,
         callbacks=[cb, cb_1] if use_callbacks else [],
     )
-    if accelerator == "ddp_spawn":
+    if strategy == "ddp_spawn":
         with pytest.raises(MisconfigurationException):
             trainer.predict(model, datamodule=dm, return_predictions=True)
 
@@ -1416,7 +1416,7 @@ def predict(
             assert not cb_1.write_on_batch_end_called
             assert cb_1.write_on_epoch_end_called
 
-        num_samples = 1 if accelerator == "ddp" else 2
+        num_samples = 1 if strategy == "ddp" else 2
         assert len(results) == 2
         assert len(results[0]) == num_samples
         assert results[0][0].shape == torch.Size([1, 2])
@@ -1513,8 +1513,8 @@ def test_spawn_predict_return_predictions(*_):
         with pytest.raises(MisconfigurationException, match="`return_predictions` should be set to `False`"):
             trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=True)
 
-    run(DDPSpawnPlugin, accelerator="ddp_spawn", gpus=2)
-    run(DDPSpawnPlugin, accelerator="ddp_cpu", num_processes=2)
+    run(DDPSpawnPlugin, strategy="ddp_spawn", gpus=2)
+    run(DDPSpawnPlugin, strategy="ddp_cpu", num_processes=2)
 
 
 @pytest.mark.parametrize("return_predictions", [None, False, True])
@@ -1811,11 +1811,11 @@ class TrainerStagesModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "accelerator,num_processes", [(None, 1), pytest.param("ddp_cpu", 2, marks=RunIf(skip_windows=True))]
+    "strategy,num_processes", [(None, 1), pytest.param("ddp_cpu", 2, marks=RunIf(skip_windows=True))]
 )
-def test_model_in_correct_mode_during_stages(tmpdir, accelerator, num_processes):
+def test_model_in_correct_mode_during_stages(tmpdir, strategy, num_processes):
     model = TrainerStagesModel()
-    trainer = Trainer(default_root_dir=tmpdir, accelerator=accelerator, num_processes=num_processes, fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy, num_processes=num_processes, fast_dev_run=True)
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)
@@ -1839,7 +1839,7 @@ def test_fit_test_synchronization(tmpdir):
     model = TestDummyModelForCheckpoint()
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="x", mode="min", save_top_k=1)
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, accelerator="ddp_cpu", num_processes=2, callbacks=[checkpoint]
+        default_root_dir=tmpdir, max_epochs=2, strategy="ddp_cpu", num_processes=2, callbacks=[checkpoint]
     )
     trainer.fit(model)
     assert os.path.exists(checkpoint.best_model_path), f"Could not find checkpoint at rank {trainer.global_rank}"
@@ -1909,7 +1909,7 @@ def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
     model = TestModel()
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=5, num_sanity_val_steps=0, gpus=2, accelerator="ddp"
+        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=5, num_sanity_val_steps=0, gpus=2, strategy="ddp"
     )
 
     # simulate random failure in training_step on rank 0
@@ -1946,7 +1946,7 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
         default_root_dir=tmpdir,
         fast_dev_run=True,
         gpus=1,
-        accelerator="ddp",
+        strategy="ddp",
         enable_progress_bar=False,
         callbacks=Check(),
     )
@@ -1984,15 +1984,15 @@ class TrainerStagesErrorsModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "accelerator,num_processes",
+    "strategy,num_processes",
     [
         (None, 1),
-        pytest.param("ddp_cpu", 2, marks=RunIf(skip_windows=True)),
+        pytest.param("ddp_spawn", 2, marks=RunIf(skip_windows=True)),
     ],
 )
-def test_error_handling_all_stages(tmpdir, accelerator, num_processes):
+def test_error_handling_all_stages(tmpdir, strategy, num_processes):
     model = TrainerStagesErrorsModel()
-    trainer = Trainer(default_root_dir=tmpdir, accelerator=accelerator, num_processes=num_processes, fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy, num_processes=num_processes, fast_dev_run=True)
 
     with pytest.raises(Exception, match=r"Error during train"), patch(
         "pytorch_lightning.Trainer._on_exception"

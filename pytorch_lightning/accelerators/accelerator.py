@@ -315,7 +315,12 @@ class Accelerator:
         return closure_loss
 
     def optimizer_step(
-        self, optimizer: Optimizer, opt_idx: int, lambda_closure: Callable[[], Any], **kwargs: Any
+        self,
+        optimizer: Optimizer,
+        opt_idx: int,
+        lambda_closure: Callable[[], Any],
+        model: Optional[Union["pl.LightningModule", Module]] = None,
+        **kwargs: Any
     ) -> None:
         """performs the actual optimizer step.
 
@@ -323,10 +328,12 @@ class Accelerator:
             optimizer: the optimizer performing the step
             opt_idx: index of the current optimizer
             lambda_closure: closure calculating the loss value
+            model: reference to the model, optionally defining optimizer step related hooks
         """
+        model = model or self.lightning_module
         result = lambda_closure()
-        self.precision_plugin.pre_optimizer_step(self.lightning_module, optimizer, opt_idx)
-        self.precision_plugin.optimizer_step(self.lightning_module, optimizer, opt_idx, result, **kwargs)
+        self.precision_plugin.pre_optimizer_step(model, optimizer, opt_idx)
+        self.precision_plugin.optimizer_step(model, optimizer, opt_idx, result, **kwargs)
 
     def optimizer_zero_grad(self, current_epoch: int, batch_idx: int, optimizer: Optimizer, opt_idx: int) -> None:
         """Zeros all model parameter's gradients."""

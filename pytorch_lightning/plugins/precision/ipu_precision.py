@@ -42,17 +42,21 @@ class IPUPrecisionPlugin(PrecisionPlugin):
             )
 
     def optimizer_step(
-        self, model: "pl.LightningModule", optimizer: Optimizer, optimizer_idx: int, closure_result: Any, **kwargs: Any
+        self,
+        model: Union["pl.LightningModule", Module],
+        optimizer: Optimizer,
+        optimizer_idx: int,
+        closure_result: Any,
+        **kwargs: Any,
     ) -> None:
         """IPUs handle the optimizer step internally."""
         if isinstance(optimizer, LBFGS):
-            # IPU does not support closures
             raise MisconfigurationException(
                 f"IPUs and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
-        if model.automatic_optimization and skipped_backward:
+        if isinstance(model, pl.LightningModule) and model.automatic_optimization and skipped_backward:
             # we lack coverage here and IPUs are (currently) limited - something to explore if there's demand
             raise MisconfigurationException(
                 "Skipping backward by returning `None` from your `training_step` is not implemented for IPUs."

@@ -4,6 +4,7 @@ from typing import Union
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
+from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.plugins_registry import (  # noqa: F401
     call_training_type_register_plugins,
     TrainingTypePluginsRegistry,
@@ -17,7 +18,7 @@ from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionP
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.tpu import TPUPrecisionPlugin
-from pytorch_lightning.plugins.precision.tpu_bfloat import TPUHalfPrecisionPlugin
+from pytorch_lightning.plugins.precision.tpu_bf16 import TPUBf16PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
@@ -40,6 +41,7 @@ PLUGIN_INPUT = Union[PLUGIN, str]
 __all__ = [
     "CheckpointIO",
     "TorchCheckpointIO",
+    "XLACheckpointIO",
     "ApexMixedPrecisionPlugin",
     "DataParallelPlugin",
     "DDP2Plugin",
@@ -59,7 +61,7 @@ __all__ = [
     "SingleDevicePlugin",
     "SingleTPUPlugin",
     "TPUPrecisionPlugin",
-    "TPUHalfPrecisionPlugin",
+    "TPUBf16PrecisionPlugin",
     "TPUSpawnPlugin",
     "TrainingTypePlugin",
     "ParallelPlugin",

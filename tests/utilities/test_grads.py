@@ -25,29 +25,29 @@ from pytorch_lightning.utilities import grad_norm
     [
         (
             1,
-            {"grad_1.0_norm_param0": 1 + 2 + 3, "grad_1.0_norm_param1": 4 + 5, "grad_1.0_norm_total": 15},
+            {"grad_1.0_norm/param0": 1 + 2 + 3, "grad_1.0_norm/param1": 4 + 5, "grad_1.0_norm_total": 15.0},
         ),
         (
             2,
             {
-                "grad_2.0_norm_param0": pow(1 + 4 + 9, 0.5),
-                "grad_2.0_norm_param1": pow(16 + 25, 0.5),
+                "grad_2.0_norm/param0": pow(1 + 4 + 9, 0.5),
+                "grad_2.0_norm/param1": pow(16 + 25, 0.5),
                 "grad_2.0_norm_total": pow(1 + 4 + 9 + 16 + 25, 0.5),
             },
         ),
         (
             3.14,
             {
-                "grad_3.14_norm_param0": pow(1 + 2 ** 3.14 + 3 ** 3.14, 1 / 3.14),
-                "grad_3.14_norm_param1": pow(4 ** 3.14 + 5 ** 3.14, 1 / 3.14),
+                "grad_3.14_norm/param0": pow(1 + 2 ** 3.14 + 3 ** 3.14, 1 / 3.14),
+                "grad_3.14_norm/param1": pow(4 ** 3.14 + 5 ** 3.14, 1 / 3.14),
                 "grad_3.14_norm_total": pow(1 + 2 ** 3.14 + 3 ** 3.14 + 4 ** 3.14 + 5 ** 3.14, 1 / 3.14),
             },
         ),
         (
             "inf",
             {
-                "grad_inf_norm_param0": max(1, 2, 3),
-                "grad_inf_norm_param1": max(4, 5),
+                "grad_inf_norm/param0": max(1, 2, 3),
+                "grad_inf_norm/param1": max(4, 5),
                 "grad_inf_norm_total": max(1, 2, 3, 4, 5),
             },
         ),
