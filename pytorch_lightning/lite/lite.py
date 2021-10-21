@@ -266,17 +266,17 @@ class LightningLite(ABC):
             When using ``strategy='deepspeed'`` and multiple models were setup, it is required to pass in the
             model as argument here.
         """
+        module = model.module if model is not None else model
         if self._num_models > 0 and isinstance(self._strategy, DeepSpeedPlugin):
-            if not isinstance(model, _LiteModule):
+            if model is None:
                 raise MisconfigurationException(
                     "When using multiple models + deepspeed, please provide the model used to perform the optimization."
                 )
 
             # requires to attach the current `DeepSpeedEngine` for the `_LiteOptimizer.step` call.
-            self._strategy.model = model.module
+            self._strategy.model = module
 
-        assert self._strategy.model
-        self._precision_plugin._run_backward(tensor, self._strategy.model, *args, **kwargs)
+        self._precision_plugin._run_backward(tensor, module, *args, **kwargs)
 
     @contextmanager
     def cast(self) -> Generator[None, None, None]:
