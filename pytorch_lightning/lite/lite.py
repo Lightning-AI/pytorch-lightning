@@ -264,9 +264,10 @@ class LightningLite(ABC):
                     "When using multiple models + deepspeed, please provide the model used to perform the optimization."
                 )
 
-            model = model._module
+            # requires to attach the current deepSpeed engine for the `optimizer.step` call.
+            self._strategy.model = model._module
 
-        self._precision_plugin._run_backward(tensor, model or self._strategy.model, *args, **kwargs)
+        self._precision_plugin._run_backward(tensor, self._strategy.model, *args, **kwargs)
 
     @contextmanager
     def cast(self) -> Generator[None, None, None]:

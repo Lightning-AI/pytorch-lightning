@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from copy import deepcopy
 from unittest import mock
 
 import pytest
@@ -40,6 +41,12 @@ class BoringModel(nn.Module):
 
 def configure_optimizers(module: nn.Module):
     return torch.optim.SGD(module.parameters(), lr=0.0001)
+
+
+def configure_optimizers_schedulers(module: nn.Module):
+    optimizer = torch.optim.SGD(module.parameters(), lr=0.1)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+    return [optimizer], [lr_scheduler]
 
 
 def test_lightning_lite_setup():
@@ -123,6 +130,22 @@ def test_deepspeed_multiple_models():
     class LiteRunner(LightningLite):
         def run(self):
             seed_everything(42)
+            model = BoringModel()
+            optimizer = configure_optimizers(model)
+            model, optimizer = self.setup(model, optimizer)
+            state_dict = deepcopy(model.state_dict())
+
+            for _ in range(2):
+                optimizer.zero_grad()
+                x = model(torch.randn(1, 32).to(self.device))
+                loss = x.sum()
+                self.backward(loss, model=model)
+                optimizer.step()
+
+            for mw_b, mw_a in zip(state_dict.values(), model.state_dict().values()):
+                assert not torch.equal(mw_b, mw_a)
+
+            seed_everything(42)
             model_1 = BoringModel()
             optimizer_1 = configure_optimizers(model_1)
 
@@ -136,6 +159,7 @@ def test_deepspeed_multiple_models():
             model_1, optimizer_1 = self.setup(model_1, optimizer_1)
             model_2, optimizer_2 = self.setup(model_2, optimizer_2)
 
+            seed_everything(42)
             for _ in range(2):
                 optimizer_1.zero_grad()
                 x = model_1(torch.randn(1, 32).to(self.device))
@@ -146,4 +170,15 @@ def test_deepspeed_multiple_models():
             for mw_1, mw_2 in zip(model_1.state_dict().values(), model_2.state_dict().values()):
                 assert not torch.equal(mw_1, mw_2)
 
-    LiteRunner(strategy=DeepSpeedPlugin(stage=2), devices=2, accelerator="gpu").run()
+            seed_everything(42)
+            for _ in range(2):
+                optimizer_2.zero_grad()
+                x = model_2(torch.randn(1, 32).to(self.device))
+                loss = x.sum()
+                self.backward(loss, model=model_2)
+                optimizer_2.step()
+
+            for mw_1, mw_2 in zip(model_1.state_dict().values(), model_2.state_dict().values()):
+                assert torch.equal(mw_1, mw_2)
+
+    LiteRunner(strategy=DeepSpeedPlugin(stage=3), devices=2, accelerator="gpu").run()

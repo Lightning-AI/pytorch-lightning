@@ -21,8 +21,12 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
+
+if _DEEPSPEED_AVAILABLE:
+    from deepspeed import DeepSpeedEngine
 
 warning_cache = WarningCache()
 
@@ -52,7 +56,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
             )
         # the following should be in a `optimizer_step` hook but we don't have one in the precision plugin.
         if isinstance(model, pl.LightningModule):
-            deepspeed_engine = model.trainer.model
+            deepspeed_engine: DeepSpeedEngine = model.trainer.model
             deepspeed_engine.step()
             return False
         return True
