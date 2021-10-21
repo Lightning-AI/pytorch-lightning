@@ -27,19 +27,25 @@ Supported Integrations
    :header-rows: 1
 
    * - ``accelerator``
-     - ``CPU``, ``GPU``, ``TPU``.
+     - ``CPU``, ``GPU``, ``TPU``
    * - ``strategy``
-     - `dp``, ``ddp``, ``ddp_spawn``, ``ddp_sharded``, ``ddp_sharded_spawn`` and ``deepspeed``.
+     - ``dp``, ``ddp``, ``ddp_spawn``, ``ddp_sharded``, ``ddp_sharded_spawn`` and ``deepspeed``
    * - ``precision``
-     - ``float16``, ``bfloat16``, ``float64``.
+     - ``float16``, ``bfloat16``, ``float64``
    * - ``clusters``
-     - ``TorchElastic``, ``SLURM``, ``Kubeflow``, ``LSF``.
+     - ``TorchElastic``, ``SLURM``, ``Kubeflow``, ``LSF``
 
 
 Coming in the near future:
 
-#. ``accelerator``: IPUs.
-#. ``strategy``: ``Horovod``, ``FSDP``.
+.. list-table::
+   :widths: 50 50
+   :header-rows: 1
+
+   * - ``accelerator``
+     - ``IPU``
+   * - ``strategy``
+     - ``Horovod``, ``FSDP``
 
 ################
 Learn by example
