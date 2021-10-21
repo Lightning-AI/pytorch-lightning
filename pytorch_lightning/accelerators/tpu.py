@@ -11,10 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import torch
-from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator

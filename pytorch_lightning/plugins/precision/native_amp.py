@@ -21,7 +21,7 @@ from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
-from pytorch_lightning.utilities import _TORCH_BFLOAT_AVAILABLE, _TORCH_CPU_AMP_AVAILABLE, AMPType
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_DEV_1_10, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -34,13 +34,6 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def __init__(self, precision: Union[int, str] = 16, use_cpu: bool = False) -> None:
         super().__init__()
-
-        if use_cpu and not _TORCH_CPU_AMP_AVAILABLE:
-            raise MisconfigurationException(
-                "You have asked for native AMP on CPU, but AMP is only available on GPU for PyTorch 1.9 "
-                "and lower. To use native AMP on CPU, install PyTorch 1.10 or later."
-            )
-
         self.use_cpu = use_cpu
         self._dtype = self._select_precision_dtype(precision)
         self.backend = AMPType.NATIVE
@@ -49,15 +42,11 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def _select_precision_dtype(self, precision: Union[int, str] = 16) -> torch.dtype:
         if precision == "bf16":
-            if not _TORCH_BFLOAT_AVAILABLE:
+            if not _TORCH_GREATER_EQUAL_DEV_1_10:
                 raise MisconfigurationException(
                     "To use bfloat16 with native amp you must install torch greater or equal to 1.10."
                 )
             return torch.bfloat16
-        elif self.use_cpu:
-            raise MisconfigurationException(
-                "CPU native amp only supports bfloat16. Please pass precision='bf16' to the Trainer."
-            )
         return torch.float16
 
     @property
@@ -90,7 +79,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             raise MisconfigurationException(
                 f"Native AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
-        result = lambda_closure() if lambda_closure is not None else None  # native amp does not support closures
+        result = lambda_closure()  # native amp does not support closures
         self.scaler.unscale_(optimizer)
         super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
         skipped_backward = result is None

@@ -23,6 +23,10 @@ from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 
 
+def _do_nothing_closure() -> None:
+    return None
+
+
 class _LiteOptimizer:
     def __init__(self, optimizer: Optimizer, accelerator: Accelerator) -> None:
         self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("step", "__del__")}
@@ -59,14 +63,16 @@ class _LiteOptimizer:
         self._optimizer.param_groups = param_groups
 
     def step(self, closure: Optional[Callable] = None) -> None:
+        closure = closure or _do_nothing_closure
         self._accelerator.optimizer_step(
             self._optimizer,
+            opt_idx=0,
             lambda_closure=closure,
-            model=None,
+            model=self._accelerator.model,
         )
 
-    def zero_grad(self, set_to_none: bool = False) -> None:
-        self._optimizer.zero_grad(set_to_none=set_to_none)
+    def zero_grad(self, *args: Any, **kwargs: Any) -> None:
+        self._optimizer.zero_grad(*args, **kwargs)
 
 
 class _LiteModule(nn.Module):
@@ -82,17 +88,17 @@ class _LiteModule(nn.Module):
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         precision = self._accelerator.precision_plugin.precision
         precision_to_type = {
-            "mixed": torch.half,
-            16: torch.half,
-            32: torch.float,
-            64: torch.double,
+            "mixed": torch.float16,
+            16: torch.float16,
+            32: torch.float32,
+            64: torch.float64,
         }
         # TODO (@awaelchli): let the precision plugin handle the conversion
         to_type = precision_to_type[precision]
         args, kwargs = apply_to_collection([args, kwargs], function=lambda t: t.to(to_type), dtype=Tensor)
 
         with self._accelerator.precision_plugin.forward_context():
-            output = self.module.forward(*args, **kwargs)
+            output = self.module(*args, **kwargs)
 
         output = apply_to_collection(output, function=lambda t: t.to(torch.get_default_dtype()), dtype=Tensor)
         return output
@@ -102,6 +108,10 @@ class _LiteDataLoader(DataLoader):
     def __init__(self, device: Optional[torch.device] = None, **dl_kwargs: Any) -> None:
         super().__init__(**dl_kwargs)
         self._device = device
+
+    @property
+    def device(self) -> Optional[torch.device]:
+        return self._device
 
     def __iter__(self) -> Union[Iterator[Any], Generator[Any, None, None]]:  # type: ignore[override]
         iterator = super().__iter__()

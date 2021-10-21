@@ -27,7 +27,7 @@ def test_deepspeed_collate_checkpoint(tmpdir):
     """Test to ensure that with DeepSpeed Stage 3 we can collate the sharded checkpoints into a single file."""
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, plugins=[DeepSpeedPlugin(stage=3)], gpus=2, fast_dev_run=True, precision=16
+        default_root_dir=tmpdir, strategy=DeepSpeedPlugin(stage=3), gpus=2, fast_dev_run=True, precision=16
     )
     trainer.fit(model)
     checkpoint_path = os.path.join(tmpdir, "model.pt")

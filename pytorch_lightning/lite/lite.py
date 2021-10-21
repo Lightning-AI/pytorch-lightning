@@ -317,13 +317,13 @@ class LightningLite(ABC):
     def _run_wrapper(self, run_method: Callable) -> Callable:
         return partial(self._run_impl, run_method)
 
-    def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> None:
+    def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
         self._set_plugin_specific_precision_variables()
         self._accelerator.setup_environment()
         if isinstance(self._strategy, DDPSpawnPlugin):
-            self._strategy.spawn(run_method, *args, **kwargs)
+            return self._strategy.spawn(run_method, *args, **kwargs)
         else:
-            run_method(*args, **kwargs)
+            return run_method(*args, **kwargs)
 
     def _set_plugin_specific_precision_variables(self) -> None:
         # todo: these are hacks as plugins rely on access to the precision plugin
