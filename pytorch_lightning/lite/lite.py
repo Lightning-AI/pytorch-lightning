@@ -39,6 +39,7 @@ from pytorch_lightning.plugins import (
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.utilities import DeviceType, DistributedType, move_data_to_device
+from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.data import has_iterable_dataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -106,6 +107,8 @@ class LightningLite(ABC):
         # wrap the run method so we can inject setup logic or spawn processes for the user
         setattr(self, "run", self._run_wrapper(self.run))
 
+        self._number_of_models: int = 0
+
     @property
     def device(self) -> torch.device:
         """The current device this process runs on.
@@ -134,6 +137,15 @@ class LightningLite(ABC):
         """The total number of processes running across all devices and nodes."""
         return getattr(self._strategy, "world_size", 1)
 
+    @property
+    def is_global_zero(self) -> bool:
+        """Wether this rank is rank zero."""
+        return self._strategy.is_global_zero
+
+    @property
+    def _is_using_multiple_models(self) -> bool:
+        return self._number_of_models > 1
+
     @abstractmethod
     def run(self, *args: Any, **kwargs: Any) -> Any:
         """All the code inside this run method gets accelerated by Lite.
@@ -148,7 +160,7 @@ class LightningLite(ABC):
         model: nn.Module,
         optimizers: Union[Optimizer, List[Optimizer]],
         move_to_device: bool = True,
-    ) -> Tuple[nn.Module, Union[_LiteOptimizer, List[_LiteOptimizer]]]:
+    ) -> Tuple[_LiteModule, Union[_LiteOptimizer, List[_LiteOptimizer]]]:
         """Setup a model and its optimizers for accelerated training.
 
         Args:
@@ -162,6 +174,8 @@ class LightningLite(ABC):
         """
         # wrap all objects passed in and return them in the same order
         optimizers = [optimizers] if isinstance(optimizers, Optimizer) else optimizers
+
+        self._validate_setup(model, optimizers)
 
         if move_to_device:
             params_on_cpu = dict(model.named_parameters())
@@ -178,6 +192,7 @@ class LightningLite(ABC):
 
         model, optimizers = self._setup_model_and_optimizers(model, optimizers)
         optimizers = optimizers[0] if len(optimizers) == 1 else optimizers
+        self._number_of_models += 1
         return model, optimizers
 
     def setup_dataloaders(
@@ -197,6 +212,7 @@ class LightningLite(ABC):
         Returns:
             The wrapped dataloaders, in the same order they were passed in.
         """
+        self._validate_setup_dataloaders(*dataloaders)
         # user can call this method independently instead of the general purpose setup method
         dataloaders = [
             self._setup_dataloader(dataloader, replace_sampler=replace_sampler, move_to_device=move_to_device)
@@ -240,7 +256,7 @@ class LightningLite(ABC):
             dataloader = _LiteDataLoader(device=device, **kwargs)
         return self._strategy.process_dataloader(dataloader)
 
-    def backward(self, tensor: Tensor, *args: Any, **kwargs: Any) -> None:
+    def backward(self, tensor: Tensor, *args: Any, model: Optional[_LiteModule] = None, **kwargs: Any) -> None:
         """Replaces ``loss.backward()`` in your training loop. Handles precision and automatically for you.
 
         Args:
@@ -248,6 +264,15 @@ class LightningLite(ABC):
             *args: Optional positional arguments passed to the underlying backward function.
             **kwargs: Optional named keyword arguments passed to the underlying backward function.
         """
+        if self._is_using_multiple_models and isinstance(self._strategy, DeepSpeedPlugin):
+            if not isinstance(model, _LiteModule):
+                raise MisconfigurationException(
+                    "When using multiple models + deepspeed, please provide the model used to perform the optimization."
+                )
+
+            # requires to attach the current deepSpeed engine for the `optimizer.step` call.
+            self._strategy.model = model._module
+
         self._precision_plugin._run_backward(tensor, self._strategy.model, *args, **kwargs)
 
     @contextmanager
@@ -319,6 +344,28 @@ class LightningLite(ABC):
         """
         return self._strategy.reduce_boolean_decision(decision)
 
+    def all_gather(
+        self, data: Union[torch.Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
+    ):
+        r"""
+        Gather tensors or collections of tensors from multiple processes.
+
+        Args:
+            data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
+            group: the process group to gather results from. Defaults to all processes (world)
+            sync_grads: flag that allows users to synchronize gradients for the all_gather operation
+
+        Return:
+            A tensor of shape (world_size, batch, ...), or if the input was a collection
+            the output will also be a collection with tensors of this shape.
+        """
+        group = group if group is not None else torch.distributed.group.WORLD
+        data = convert_to_tensors(data, device=self.device)
+        return apply_to_collection(data, torch.Tensor, self._strategy.all_gather, group=group, sync_grads=sync_grads)
+
+    def broadcast(self, obj: object, src: int = 0) -> object:
+        return self._strategy.broadcast(obj, src=src)
+
     def save_checkpoint(self, filepath: Union[str, Path], content: Dict[str, Any]) -> None:
         """Save a checkpoint contents to a file.
 
@@ -350,9 +397,17 @@ class LightningLite(ABC):
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
         self._set_plugin_specific_precision_variables()
         self._accelerator.setup_environment()
+
+        run_fn = partial(self._run_method_wrapper, run_method, *args, **kwargs)
+
         if isinstance(self._strategy, DDPSpawnPlugin):
-            return self._strategy.spawn(run_method, *args, **kwargs)
+            return self._strategy.spawn(run_fn)
         else:
+            return run_fn()
+
+    def _run_method_wrapper(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
+        # requires to apply sharded context to prevent OOM
+        with self._strategy.model_sharded_context():
             return run_method(*args, **kwargs)
 
     def _set_plugin_specific_precision_variables(self) -> None:
@@ -375,7 +430,7 @@ class LightningLite(ABC):
     ) -> Tuple[_LiteModule, List[_LiteOptimizer]]:
         # Let accelerator/plugin wrap and connect the models and optimizers
         [model], optimizers = self._strategy._setup_models_and_optimizers([model], optimizers)
-        model = _LiteModule(module=model, accelerator=self._accelerator)
+        model = _LiteModule(model, self._accelerator)
         optimizers = [_LiteOptimizer(optimizer=optimizer, accelerator=self._accelerator) for optimizer in optimizers]
         return model, optimizers
 
@@ -405,7 +460,7 @@ class LightningLite(ABC):
         if strategy is None:
             return
         supported = [t.lower() for t in self._supported_strategy_types()]
-        if not isinstance(strategy, (TrainingTypePlugin, str)) or strategy not in supported:
+        if not isinstance(strategy, (TrainingTypePlugin, str)) and strategy not in supported:
             raise MisconfigurationException(
                 f"`strategy={repr(strategy)}` is not a valid choice."
                 f" Choose one of {supported} or pass in a `TrainingTypePlugin` instance."
@@ -431,3 +486,18 @@ class LightningLite(ABC):
             DistributedType.DDP_SHARDED,
             DistributedType.DDP_SHARDED_SPAWN,
         )
+
+    @staticmethod
+    def _validate_setup(model: nn.Module, optimizers: List[Optimizer]) -> None:
+        if isinstance(model, _LiteModule):
+            raise MisconfigurationException("A module should be passed only once to the ``setup`` method")
+
+        if any(isinstance(opt, _LiteOptimizer) for opt in optimizers):
+            raise MisconfigurationException("An optimizer should be passed only once to the ``setup`` method")
+
+    @staticmethod
+    def _validate_setup_dataloaders(*dataloaders: Union[DataLoader, List[DataLoader]]) -> None:
+        if any(isinstance(dl, _LiteDataLoader) for dl in dataloaders):
+            raise MisconfigurationException(
+                "A dataloader should be passed only once to the ``setup_dataloaders`` method"
+            )
