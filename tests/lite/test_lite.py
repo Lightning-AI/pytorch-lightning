@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader, DistributedSampler, Sampler
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.lite.wrappers import _LiteDataLoader
-from pytorch_lightning.plugins import TrainingTypePlugin, PrecisionPlugin
+from pytorch_lightning.plugins import PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.runif import RunIf
 
