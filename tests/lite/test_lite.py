@@ -135,6 +135,16 @@ def test_setup_dataloaders_return_type():
     assert lite_dataloader1.dataset is dataset1
 
 
+def test_setup_dataloaders_twice_fails():
+    """Test that calling setup_dataloaders with a dataloader that is already wrapped fails."""
+    lite = EmptyLite()
+    dataloader = DataLoader(range(2))
+    lite_dataloader = lite.setup_dataloaders(dataloader)
+
+    with pytest.raises(MisconfigurationException, match="A dataloader should be passed only once to the"):
+        lite.setup_dataloaders(lite_dataloader)
+
+
 @mock.patch(
     "pytorch_lightning.lite.lite.LightningLite.device",
     new_callable=PropertyMock,
@@ -241,19 +251,6 @@ def test_backward():
     loss = Mock()
     lite.backward(loss, "arg", keyword="kwarg")
     lite._precision_plugin._run_backward.assert_called_with(loss, None, "arg", keyword="kwarg")
-
-
-def test_lightning_lite_setup_dataloaders():
-    class LiteRunner(LightningLite):
-        def run(self):
-
-            dataloader = DataLoader(RandomDataset(32, 64))
-            dataloader_lite = self.setup_dataloaders(dataloader)
-            _ = self.setup_dataloaders(dataloader_lite)
-
-    with pytest.raises(MisconfigurationException, match="A dataloader should be passed only once to the"):
-        runner = LiteRunner()
-        runner.run()
 
 
 def test_lightning_lite_track_model_setup():
