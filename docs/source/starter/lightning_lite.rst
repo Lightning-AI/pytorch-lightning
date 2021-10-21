@@ -11,7 +11,7 @@ LightningLite - Stepping Stone to Lightning
 :class:`~pytorch_lightning.lite.LightningLite` enables pure PyTorch users to scale their existing code
 on any kind of device while retaining full control over their own loops and optimization logic.
 
-:class:`~pytorch_lightning.lite.LightningLite` is the right tool for you if you match one of the 2 following descriptions:
+:class:`~pytorch_lightning.lite.LightningLite` is the right tool for you if you match one of the two following descriptions:
 
 - As a PyTorch user, I want to quickly scale my existing code to multiple devices with minimal code changes.
 
@@ -48,8 +48,7 @@ My existing PyTorch code
 ========================
 
 In the code below, we have a `BoringModel` containing a single linear layer trained on some random data for 10 epochs.
-The `run` function contains a custom training and validation loops and as a user, I wish to conserve them
-while being able to train on multiple devices.
+The `run` function contains a custom training and validation loops.
 
 .. code-block:: python
 
@@ -122,9 +121,9 @@ while being able to train on multiple devices.
 Convert to LightningLite
 ========================
 
-Here are 4 required steps to convert to :class:`~pytorch_lightning.lite.LightningLite` or 3 code changes.
+Here are 4 required steps to convert to :class:`~pytorch_lightning.lite.LightningLite`.
 
-1. Subclass :class:`~pytorch_lightning.lite.LightningLite` and override its meth:`~pytorch_lightning.lite.LightningLite.run` method.
+1. Subclass :class:`~pytorch_lightning.lite.LightningLite` and override its :meth:`~pytorch_lightning.lite.LightningLite.run` method.
 2. Copy / paste the body of your existing `run` function.
 3. Apply ``self.setup`` over each model and optimizers pair, ``self.setup_dataloaders`` on all your dataloaders and replace ``loss.backward()`` by ``self.backward(loss)``
 4. Instantiate your ``Lite`` and call its :meth:`~pytorch_lightning.lite.LightningLite.run` method.
