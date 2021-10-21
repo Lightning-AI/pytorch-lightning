@@ -78,7 +78,6 @@ _TORCH_GREATER_EQUAL_1_10 = _compare_version("torch", operator.ge, "1.10.0")
 _TORCH_GREATER_EQUAL_DEV_1_10 = _compare_version("torch", operator.ge, "1.10.0", use_base_version=True)
 
 _APEX_AVAILABLE = _module_available("apex.amp")
-_BOLTS_AVAILABLE = _module_available("pl_bolts")
 _DEEPSPEED_AVAILABLE = _module_available("deepspeed")
 _FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
 _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.3")
@@ -94,20 +93,10 @@ _NEPTUNE_GREATER_EQUAL_0_9 = _NEPTUNE_AVAILABLE and _compare_version("neptune", 
 _OMEGACONF_AVAILABLE = _module_available("omegaconf")
 _POPTORCH_AVAILABLE = _module_available("poptorch")
 _RICH_AVAILABLE = _module_available("rich") and _compare_version("rich", operator.ge, "10.2.2")
-_TORCH_CPU_AMP_AVAILABLE = _compare_version(
-    "torch", operator.ge, "1.10.dev20210902"
-)  # todo: swap to 1.10.0 once released
-_TORCH_BFLOAT_AVAILABLE = _compare_version(
-    "torch", operator.ge, "1.10.0.dev20210902"
-)  # todo: swap to 1.10.0 once released
+_TORCH_META_AVAILABLE = _compare_version("torch", operator.ge, "1.10.0.dev20210922")
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
-_TORCH_SHARDED_TENSOR_AVAILABLE = _compare_version(
-    "torch", operator.ge, "1.10.0.dev20210809"
-)  # todo: swap to 1.10.0 once released
 _TORCHTEXT_AVAILABLE = _module_available("torchtext")
 _TORCHVISION_AVAILABLE = _module_available("torchvision")
-_TORCHMETRICS_LOWER_THAN_0_3 = _compare_version("torchmetrics", operator.lt, "0.3.0")
-_TORCHMETRICS_GREATER_EQUAL_0_3 = _compare_version("torchmetrics", operator.ge, "0.3.0")
 _XLA_AVAILABLE: bool = _module_available("torch_xla")
 
 from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402

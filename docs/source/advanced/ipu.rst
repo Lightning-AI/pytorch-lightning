@@ -83,7 +83,7 @@ IPUs provide further optimizations to speed up training. By using the ``IPUPlugi
     from pytorch_lightning.plugins import IPUPlugin
 
     model = MyLightningModule()
-    trainer = pl.Trainer(ipus=8, plugins=IPUPlugin(device_iterations=32))
+    trainer = pl.Trainer(ipus=8, strategy=IPUPlugin(device_iterations=32))
     trainer.fit(model)
 
 Note that by default we return the last device iteration loss. You can override this by passing in your own ``poptorch.Options`` and setting the AnchorMode as described in the `PopTorch documentation <https://docs.graphcore.ai/projects/poptorch-user-guide/en/latest/reference.html#poptorch.Options.anchorMode>`__.
@@ -102,7 +102,7 @@ Note that by default we return the last device iteration loss. You can override 
     training_opts.anchorMode(poptorch.AnchorMode.All)
     training_opts.deviceIterations(32)
 
-    trainer = Trainer(ipus=8, plugins=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts))
+    trainer = Trainer(ipus=8, strategy=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts))
     trainer.fit(model)
 
 You can also override all options by passing the ``poptorch.Options`` to the plugin. See `PopTorch options documentation <https://docs.graphcore.ai/projects/poptorch-user-guide/en/latest/batching.html>`__ for more information.
@@ -124,7 +124,7 @@ Lightning supports dumping all reports to a directory to open using the tool.
     from pytorch_lightning.plugins import IPUPlugin
 
     model = MyLightningModule()
-    trainer = pl.Trainer(ipus=8, plugins=IPUPlugin(autoreport_dir="report_dir/"))
+    trainer = pl.Trainer(ipus=8, strategy=IPUPlugin(autoreport_dir="report_dir/"))
     trainer.fit(model)
 
 This will dump all reports to ``report_dir/`` which can then be opened using the Graph Analyser Tool, see `Opening Reports <https://docs.graphcore.ai/projects/graphcore-popvision-user-guide/en/latest/graph/graph.html#opening-reports>`__.
@@ -174,7 +174,7 @@ Below is an example using the block annotation in a LightningModule.
 
 
     model = MyLightningModule()
-    trainer = pl.Trainer(ipus=8, plugins=IPUPlugin(device_iterations=20))
+    trainer = pl.Trainer(ipus=8, strategy=IPUPlugin(device_iterations=20))
     trainer.fit(model)
 
 
@@ -217,7 +217,7 @@ You can also use the block context manager within the forward function, or any o
 
 
     model = MyLightningModule()
-    trainer = pl.Trainer(ipus=8, plugins=IPUPlugin(device_iterations=20))
+    trainer = pl.Trainer(ipus=8, strategy=IPUPlugin(device_iterations=20))
     trainer.fit(model)
 
 

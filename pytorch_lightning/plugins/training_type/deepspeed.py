@@ -19,7 +19,7 @@ import os
 import platform
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import torch
 from torch.nn import Module
@@ -426,7 +426,7 @@ class DeepSpeedPlugin(DDPPlugin):
     def init_deepspeed(self):
         # check that `configure_gradient_clipping` hook isn't overriden since deepspeed handles
         # gradient clipping internally
-        if is_overridden("configure_gradient_clipping", self.lightning_module):
+        if is_overridden("configure_gradient_clipping", self.lightning_module, pl.LightningModule):
             rank_zero_warn(
                 "Since deepspeed handles gradient clipping internally, this hook will"
                 " be ignored. Consider setting `gradient_clip_val` and `gradient_clip_algorithm`"
@@ -583,11 +583,6 @@ class DeepSpeedPlugin(DDPPlugin):
         # via `_initialize_deepspeed_train`
         return [], [], []  # empty optimizers, schedulers and frequencies
 
-    def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
-        # note: We rely on the deepspeed engine to carry out the step rather than the optimizer.
-        # internally, the engine has a reference to the optimizer already.
-        self.model.step(**kwargs)
-
     @property
     def handles_gradient_accumulation(self) -> bool:
         """Whether the plugin handles gradient accumulation internally."""
@@ -617,7 +612,7 @@ class DeepSpeedPlugin(DDPPlugin):
             rank_zero_warn(
                 "Inferring the batch size for internal deepspeed logging from the `train_dataloader()`. "
                 "If you require skipping this, please pass "
-                "`Trainer(plugins=DeepSpeedPlugin(logging_batch_size_per_gpu=batch_size))`"
+                "`Trainer(strategy=DeepSpeedPlugin(logging_batch_size_per_gpu=batch_size))`"
             )
             batch_size = self._auto_select_batch_size()
             self.config["train_micro_batch_size_per_gpu"] = batch_size
@@ -628,8 +623,9 @@ class DeepSpeedPlugin(DDPPlugin):
         # train_micro_batch_size_per_gpu is used for throughput logging purposes
         # by default we try to use the batch size of the loader
         batch_size = 1
-        if hasattr(self.lightning_module, "train_dataloader"):
-            train_dataloader = self.lightning_module.train_dataloader()
+        train_dl_source = self.lightning_module.trainer.data_connector._train_dataloader_source
+        if train_dl_source.is_defined():
+            train_dataloader = train_dl_source.dataloader()
             if hasattr(train_dataloader, "batch_sampler"):
                 batch_size = train_dataloader.batch_sampler.batch_size
         return batch_size
@@ -769,7 +765,7 @@ class DeepSpeedPlugin(DDPPlugin):
         if client_state is None:
             raise MisconfigurationException(
                 "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint "
-                "or a single checkpoint file with `Trainer(plugins=DeepSpeedPlugin(load_full_weights=True))`."
+                "or a single checkpoint file with `Trainer(strategy=DeepSpeedPlugin(load_full_weights=True))`."
             )
         return client_state
 
