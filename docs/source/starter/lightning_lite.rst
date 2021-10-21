@@ -31,7 +31,7 @@ Supported integrations
     * ``ddp`` or ``ddp_spawn``: Distributed Data Parallel.
     * ``ddp_shared`` or ``ddp_sharded_spawn``: Distributed Data Parallel with Zero 2.
     * ``deepspeed``: Distributed Data Parallel with Zero 2 / 3.
-#. ``precision`: ``float16`` and ``bfloat16`` with ``AMP`` or ``float64``.
+#. ``precision``: ``float16`` and ``bfloat16`` with ``AMP`` or ``float64``.
 #. ``clusters``: ``TorchElastic``, ``SLURM``, ``Kubeflow``, ``LSF``.
 
 
