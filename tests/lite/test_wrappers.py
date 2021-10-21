@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import Mock
+from unittest.mock import Mock, ANY
 
 import pytest
 import torch
@@ -101,6 +101,6 @@ def test_lite_optimizer_steps():
     lite_optimizer = _LiteOptimizer(optimizer=optimizer, accelerator=accelerator)
     lite_optimizer.step()
     accelerator.optimizer_step.assert_called_once()
-    accelerator.optimizer_step.assert_called_with(optimizer, lambda_closure=None, model=None)
+    accelerator.optimizer_step.assert_called_with(optimizer, opt_idx=0, lambda_closure=ANY, model=accelerator.model)
     lite_optimizer.zero_grad()
     optimizer.zero_grad.assert_called_once()
