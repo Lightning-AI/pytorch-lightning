@@ -26,7 +26,7 @@ from torch.utils.data import DataLoader, DistributedSampler, Sampler
 from pytorch_lightning import seed_everything
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.lite import LightningLite
-from pytorch_lightning.lite.wrappers import _LiteDataLoader
+from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.plugins import DeepSpeedPlugin, PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import RandomDataset
@@ -64,11 +64,55 @@ def test_unsupported_strategy(strategy):
         EmptyLite(strategy=strategy)
 
 
+def test_setup_optimizers():
+    """Test that setup_optimizers can handle no optimizers, one optimizer, or multiple optimizers."""
+    lite = EmptyLite()
+    model = nn.Linear(1, 2)
+    optimizer0 = torch.optim.SGD(model.parameters(), lr=0.1)
+    optimizer1 = torch.optim.Adam(model.parameters(), lr=0.1)
+
+    # no optimizer
+    lite_model = lite.setup(model)
+    assert isinstance(lite_model, _LiteModule)
+    assert lite_model.module is model
+
+    # single optimizer
+    lite_model, lite_optimizer = lite.setup(model, optimizer0)
+    assert isinstance(lite_model, _LiteModule)
+    assert isinstance(lite_optimizer, _LiteOptimizer)
+    assert lite_model.module is model
+    assert lite_optimizer.optimizer is optimizer0
+
+    # multiple optimizers
+    lite_model, lite_optimizer0, lite_optimizer1 = lite.setup(model, optimizer0, optimizer1)
+    assert isinstance(lite_model, _LiteModule)
+    assert isinstance(lite_optimizer0, _LiteOptimizer)
+    assert isinstance(lite_optimizer1, _LiteOptimizer)
+    assert lite_model.module is model
+    assert lite_optimizer0.optimizer is optimizer0
+    assert lite_optimizer1.optimizer is optimizer1
+
+
+def test_setup_twice_fails():
+    """Test that calling setup with a model or optimizer that is already wrapped fails."""
+    lite = EmptyLite()
+    model = nn.Linear(1, 2)
+    optimizer = torch.optim.Adam(model.parameters())
+
+    lite_model, lite_optimizer = lite.setup(model, optimizer)
+    with pytest.raises(MisconfigurationException, match="A model should be passed only once to the"):
+        lite.setup(lite_model, optimizer)
+
+    lite_model, lite_optimizer = lite.setup(model, optimizer)
+    with pytest.raises(MisconfigurationException, match="An optimizer should be passed only once to the"):
+        lite.setup(model, lite_optimizer)
+
+
 def test_setup_dataloaders_unsupported_type():
     """Test that the setup_dataloaders method fails when provided with non-DataLoader objects."""
     lite = EmptyLite()
     with pytest.raises(MisconfigurationException, match="Only PyTorch DataLoader are currently supported"):
-        lite.setup_dataloaders(range(2))
+        lite.setup_dataloaders(range(2))  # type: ignore
 
 
 def test_setup_dataloaders_return_type():
@@ -197,26 +241,6 @@ def test_backward():
     loss = Mock()
     lite.backward(loss, "arg", keyword="kwarg")
     lite._precision_plugin._run_backward.assert_called_with(loss, None, "arg", keyword="kwarg")
-
-
-def test_lightning_lite_setup():
-    class LiteRunner(LightningLite):
-        def run(self, pass_model: bool = True):
-            model = BoringModel()
-            optimizer = configure_optimizers(model)
-            model_lite, optimizer_lite = self.setup(model, optimizer)
-            if pass_model:
-                self.setup(model_lite, optimizer)
-            else:
-                self.setup(model, optimizer_lite)
-
-    with pytest.raises(MisconfigurationException, match="A model should be passed only once to the"):
-        runner = LiteRunner()
-        runner.run()
-
-    with pytest.raises(MisconfigurationException, match="An optimizer should be passed only once to the"):
-        runner = LiteRunner()
-        runner.run(pass_model=False)
 
 
 def test_lightning_lite_setup_dataloaders():

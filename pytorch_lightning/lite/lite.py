@@ -156,12 +156,12 @@ class LightningLite(ABC):
         model: nn.Module,
         *optimizers: Optimizer,
         move_to_device: bool = True,
-    ) -> Tuple[Union[_LiteModule, _LiteOptimizer], ...]:
+    ) -> Union[_LiteModule, Tuple[Union[_LiteModule, _LiteOptimizer], ...]]:
         """Setup a model and its optimizers for accelerated training.
 
         Args:
             model: A model to setup
-            *optimizers: One or multiple optimizers to setup
+            *optimizers: The optimizer(s) to setup (no optimizers is also possible)
             move_to_device: If set ``True`` (default), moves the model to the correct device. Set this to ``False``
                 and alternatively use :meth:`to_device` manually.
 
@@ -188,7 +188,9 @@ class LightningLite(ABC):
         model = _LiteModule(model, self._accelerator)
         optimizers = [_LiteOptimizer(optimizer=optimizer, accelerator=self._accelerator) for optimizer in optimizers]
         self._num_models += 1
-        return model, *optimizers
+        if optimizers:
+            return model, *optimizers
+        return model
 
     def setup_dataloaders(
         self, *dataloaders: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
