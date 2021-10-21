@@ -48,7 +48,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
     def pre_optimizer_step(
         self,
-        model: "pl.LightningModule",
+        model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
@@ -63,12 +63,12 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
         skipped_backward = result is None
         # in manual optimization, the closure does not return a value
-        if model.automatic_optimization and skipped_backward:
+        if isinstance(model, pl.LightningModule) and model.automatic_optimization and skipped_backward:
             raise MisconfigurationException(
                 "Skipping backward by returning `None` from your `training_step` is not supported by `DeepSpeed`"
             )
         # DeepSpeed handles the optimizer step internally
-        deepspeed_engine = model.trainer.model
+        deepspeed_engine = model.trainer.model if isinstance(model, pl.LightningModule) else model
         deepspeed_engine.step()
         return False
 
