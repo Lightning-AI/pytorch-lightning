@@ -22,17 +22,18 @@ Supported Integrations
 
 :class:`~pytorch_lightning.lite.LightningLite` supports single and multiple models and optimizers.
 
-#. ``accelerator``:
-    * CPU.
-    * GPU.
-    * TPU.
-#. ``strategy``:
-    * ``dp``: Data Parallel.
-    * ``ddp`` or ``ddp_spawn``: Distributed Data Parallel.
-    * ``ddp_sharded`` or ``ddp_sharded_spawn``: Distributed Data Parallel with Zero 2.
-    * ``deepspeed``: Distributed Data Parallel with Zero 2 / 3.
-#. ``precision``: ``float16`` and ``bfloat16`` with ``AMP`` or ``float64``.
-#. ``clusters``: ``TorchElastic``, ``SLURM``, ``Kubeflow``, ``LSF``.
+.. list-table::
+   :widths: 50 50
+   :header-rows: 1
+
+   * - ``accelerator``
+     - ``CPU``, ``GPU``, ``TPU``.
+   * - ``strategy``
+     - `dp``, ``ddp``, ``ddp_spawn``, ``ddp_sharded``, ``ddp_sharded_spawn`` and ``deepspeed``.
+   * - ``precision``
+     - ``float16``, ``bfloat16``, ``float64``.
+   * - ``clusters``
+     - ``TorchElastic``, ``SLURM``, ``Kubeflow``, ``LSF``.
 
 
 Coming in the near future:
