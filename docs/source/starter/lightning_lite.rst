@@ -273,5 +273,3 @@ from its hundreds of features.
     datamodule = BoringDataModule()
     trainer = Trainer(max_epochs=10)
     trainer.fit(lightning_module, datamodule)
-
-:ref:`Converting to Lightning <starter/converting>`
