@@ -108,9 +108,10 @@ def main(model: nn.Module, train_dataloader: DataLoader, val_dataloader: DataLoa
 
 
 # 6 / 6: Run the pure PyTorch Loop and train / validate the model.
-seed_everything(42)
-model = BoringModel()
-pure_model_weights = main(model, train_dataloader(), val_dataloader())
+if __name__ == "__main__":
+    seed_everything(42)
+    model = BoringModel()
+    pure_model_weights = main(model, train_dataloader(), val_dataloader())
 
 
 #############################################################################################
@@ -172,17 +173,18 @@ class LiteTrainer(LightningLite):
             ################################################################################
 
 
-seed_everything(42)
-lite_model = BoringModel()
-lite = LiteTrainer()
-lite.run(lite_model, train_dataloader(), val_dataloader())
+if __name__ == "__main__":
+    seed_everything(42)
+    lite_model = BoringModel()
+    lite = LiteTrainer()
+    lite.run(lite_model, train_dataloader(), val_dataloader())
 
-#############################################################################################
-#                           Assert the weights are the same                                 #
-#############################################################################################
+    #############################################################################################
+    #                           Assert the weights are the same                                 #
+    #############################################################################################
 
-for pure_w, lite_w in zip(pure_model_weights.values(), lite_model.state_dict().values()):
-    torch.equal(pure_w, lite_w)
+    for pure_w, lite_w in zip(pure_model_weights.values(), lite_model.state_dict().values()):
+        torch.equal(pure_w, lite_w)
 
 
 #############################################################################################
@@ -231,16 +233,16 @@ class BoringDataModule(LightningDataModule):
         return val_dataloader()
 
 
-seed_everything(42)
-lightning_module = LightningBoringModel()
-datamodule = BoringDataModule()
-trainer = Trainer(max_epochs=10)
-trainer.fit(lightning_module, datamodule)
+if __name__ == "__main__":
+    seed_everything(42)
+    lightning_module = LightningBoringModel()
+    datamodule = BoringDataModule()
+    trainer = Trainer(max_epochs=10)
+    trainer.fit(lightning_module, datamodule)
 
+    #############################################################################################
+    #                           Assert the weights are the same                                 #
+    #############################################################################################
 
-#############################################################################################
-#                           Assert the weights are the same                                 #
-#############################################################################################
-
-for pure_w, lite_w in zip(pure_model_weights.values(), lightning_module.state_dict().values()):
-    torch.equal(pure_w, lite_w)
+    for pure_w, lite_w in zip(pure_model_weights.values(), lightning_module.state_dict().values()):
+        torch.equal(pure_w, lite_w)
