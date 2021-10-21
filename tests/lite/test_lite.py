@@ -64,6 +64,13 @@ def test_unsupported_strategy(strategy):
         EmptyLite(strategy=strategy)
 
 
+def test_setup_dataloaders_unsupported_type():
+    """Test that the setup_dataloaders method fails when provided with non-DataLoader objects."""
+    lite = EmptyLite()
+    with pytest.raises(MisconfigurationException, match="Only PyTorch DataLoader are currently supported"):
+        lite.setup_dataloaders(range(2))
+
+
 def test_setup_dataloaders_return_type():
     """Test that the setup method returns the dataloaders wrapped as LiteDataLoader and in the right order."""
     lite = EmptyLite()
@@ -82,13 +89,6 @@ def test_setup_dataloaders_return_type():
     assert isinstance(lite_dataloader1, _LiteDataLoader)
     assert lite_dataloader0.dataset is dataset0
     assert lite_dataloader1.dataset is dataset1
-
-
-def test_lite_with_iterable():
-    """Test that the setup_dataloaders method fails when provided with an iterable."""
-    lite = EmptyLite()
-    with pytest.raises(MisconfigurationException, match="Only PyTorch DataLoader are currently supported"):
-        lite.setup_dataloaders(range(2))
 
 
 @mock.patch(

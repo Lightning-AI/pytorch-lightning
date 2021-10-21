@@ -207,8 +207,7 @@ class LightningLite(ABC):
         Returns:
             The wrapped dataloaders, in the same order they were passed in.
         """
-        self._validate_setup_dataloaders(*dataloaders)
-        # user can call this method independently instead of the general purpose setup method
+        self._validate_setup_dataloaders(dataloaders)
         dataloaders = [
             self._setup_dataloader(dataloader, replace_sampler=replace_sampler, move_to_device=move_to_device)
             for dataloader in dataloaders
@@ -217,7 +216,7 @@ class LightningLite(ABC):
         return dataloaders
 
     def _setup_dataloader(
-        self, dataloader: Union[Iterable, DataLoader], replace_sampler: bool = True, move_to_device: bool = True
+        self, dataloader: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
     ) -> Union[Iterable, DataLoader]:
         """Setup a single dataloader for accelerated training.
 
@@ -485,11 +484,9 @@ class LightningLite(ABC):
             raise MisconfigurationException("An optimizer should be passed only once to the `setup` method.")
 
     @staticmethod
-    def _validate_setup_dataloaders(*dataloaders: Union[DataLoader, List[DataLoader]]) -> None:
+    def _validate_setup_dataloaders(dataloaders: Sequence[DataLoader]) -> None:
         if any(isinstance(dl, _LiteDataLoader) for dl in dataloaders):
-            raise MisconfigurationException(
-                "A dataloader should be passed only once to the ``setup_dataloaders`` method"
-            )
+            raise MisconfigurationException("A dataloader should be passed only once to the `setup_dataloaders` method")
 
         if any(not isinstance(dl, DataLoader) for dl in dataloaders):
-            raise MisconfigurationException("Only PyTorch DataLoader are currently supported.")
+            raise MisconfigurationException("Only PyTorch DataLoader are currently supported in `setup_dataloaders`.")
