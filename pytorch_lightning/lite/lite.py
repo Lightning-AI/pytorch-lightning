@@ -233,6 +233,7 @@ class LightningLite(ABC):
         Returns:
             The wrapped dataloader.
         """
+        sampler = dataloader.sampler
         if isinstance(dataloader, DataLoader):
             if replace_sampler and self._requires_distributed_sampler(dataloader):
                 if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
