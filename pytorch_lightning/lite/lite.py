@@ -258,7 +258,12 @@ class LightningLite(ABC):
         Args:
             tensor: The tensor (loss) to back-propagate gradients from.
             *args: Optional positional arguments passed to the underlying backward function.
+            model: Optional model instance for plugins that require the model for backward().
             **kwargs: Optional named keyword arguments passed to the underlying backward function.
+
+        Note:
+            When using ``strategy='deepspeed'`` and multiple models were setup, it is required to pass in the
+            model as argument here.
         """
         if self._num_models > 0 and isinstance(self._strategy, DeepSpeedPlugin):
             if not isinstance(model, _LiteModule):
@@ -266,8 +271,8 @@ class LightningLite(ABC):
                     "When using multiple models + deepspeed, please provide the model used to perform the optimization."
                 )
 
-            # requires to attach the current deepSpeed engine for the `optimizer.step` call.
-            self._strategy.model = model._module
+            # requires to attach the current `DeepSpeedEngine` for the `_LiteOptimizer.step` call.
+            self._strategy.model = model.module
 
         self._precision_plugin._run_backward(tensor, self._strategy.model, *args, **kwargs)
 
