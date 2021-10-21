@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader, DistributedSampler, Sampler
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.lite.wrappers import _LiteDataLoader
-from pytorch_lightning.plugins import TrainingTypePlugin
+from pytorch_lightning.plugins import TrainingTypePlugin, PrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.runif import RunIf
 
@@ -146,3 +146,26 @@ def test_to_device(accelerator, expected):
     collection = {"data": torch.rand(2, 2), "int": 1}
     collection = lite.to_device(collection)
     assert collection["data"].device == expected
+
+
+def test_rank_properties():
+    """Test that the rank properties are determined by the strategy."""
+    lite = EmptyLite()
+    lite._strategy = Mock(spec=TrainingTypePlugin)
+    lite._strategy.world_size = 1000
+    assert lite.world_size == 1000
+    lite._strategy.global_rank = 100
+    assert lite.global_rank == 100
+    lite._strategy.local_rank = 10
+    assert lite.local_rank == 10
+    lite._strategy.node_rank = 1
+    assert lite.node_rank == 1
+
+
+def test_backward():
+    """Test that backward() calls into the precision plugin."""
+    lite = EmptyLite()
+    lite._precision_plugin = Mock(spec=PrecisionPlugin)
+    loss = Mock()
+    lite.backward(loss, "arg", keyword="kwarg")
+    lite._precision_plugin._run_backward.assert_called_with(loss, None, "arg", keyword="kwarg")
