@@ -129,16 +129,20 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
     ],
 )
 def test_to_device(accelerator, expected):
+    """Test that the to_device method can move various objects to the device determined by the accelerator."""
     lite = EmptyLite(accelerator=accelerator, devices=1)
 
+    # module
     module = torch.nn.Linear(2, 3)
     module = lite.to_device(module)
     assert all(param.device == expected for param in module.parameters())
 
+    # tensor
     tensor = torch.rand(2, 2)
     tensor = lite.to_device(tensor)
     assert tensor.device == expected
 
-    collection = {"data": torch.rand(2, 2)}
+    # collection
+    collection = {"data": torch.rand(2, 2), "int": 1}
     collection = lite.to_device(collection)
     assert collection["data"].device == expected
