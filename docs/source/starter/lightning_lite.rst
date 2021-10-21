@@ -6,6 +6,8 @@ LightningLite - Stepping Stone to Lightning from PyTorch
 .. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/lite/lightning_lite.gif
     :alt: Animation showing how to convert a standard training loop to a Lightning loop
 
+
+
 :class:`~pytorch_lightning.lite.LightningLite` enables pure PyTorch users to scale their existing code
 on any kind of device while retaining full control over their own loops and optimization logic.
 
@@ -29,9 +31,10 @@ Supported integrations
     * ``dp``: Data Parallel.
     * ``ddp`` or ``ddp_spawn``: Distributed Data Parallel.
     * ``ddp_shared`` or ``ddp_sharded_spawn``: Distributed Data Parallel with Zero 2.
-    * ``deepspeed``: Distributed Data Parallel with Zero 2.
+    * ``deepspeed``: Distributed Data Parallel with Zero 2 / 3.
 #. ``precision`: ``float16`` and ``bfloat16`` with ``AMP`` or ``float64``.
 #. ``clusters``: ``TorchElastic``, ``SLURM``, ``Kubeflow``, ``LSF``.
+
 
 Coming in the near future:
 
@@ -146,7 +149,8 @@ Here are 4 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
             ###################################################################################
             # You would need to call `self.setup_dataloaders` to prepare the dataloaders      #
             # in case you are running in a distributed setting.                               #
-            train_dataloader, val_dataloader = self.setup_dataloaders(train_dataloader, val_dataloader)
+            train_dataloader = self.setup_dataloaders(train_dataloader)
+            val_dataloader = self.setup_dataloaders(val_dataloader)
             ###################################################################################
 
             for epoch in range(num_epochs):
@@ -160,7 +164,7 @@ Here are 4 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
                     train_losses.append(loss)
                     ###########################################################################
                     # By calling `self.backward` directly, `LightningLite` will automate      #
-                    # precision and distributions.                                            #
+                    # precision and device scaling.                                           #
                     self.backward(loss)
                     ###########################################################################
                     optimizer.step()
@@ -171,8 +175,8 @@ Here are 4 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
                         val_losses.append(model(batch))
 
                 ###########################################################################
-                # By calling `self.all_gather` directly, tensors will be concatenated     #
-                # across processes.                                                       #
+                # By calling `self.all_gather` directly, tensors will be transferred      #
+                # across processes and concatenated.                                      #
                 train_epoch_loss = self.all_gather(train_losses).mean()
                 val_epoch_loss = self.all_gather(val_losses).mean()
                 ###########################################################################
@@ -217,8 +221,7 @@ Distributed Training Pitfalls
 The :class:`~pytorch_lightning.lite.LightningLite` provides you only with the tool to scale your training,
 but there are several major challenges ahead of you now:
 
-#. ``Processes divergence``: This happens when processes execute different section of the code due to
-different if/else condition, race condition on existing files, etc... resulting in hanging.
+#. ``Processes divergence``: This happens when processes execute different section of the code due to different if/else condition, race condition on existing files, etc... resulting in hanging.
 #. ``Cross processes reduction``: Wrongly reported metrics or gradients due mis-reduction.
 #. ``Large sharded models``: Instantiation, materialization and state management of large models.
 #. ``Rank 0 only actions``: Logging, profiling, etc..
