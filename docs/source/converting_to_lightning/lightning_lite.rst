@@ -2,6 +2,10 @@
 LightningLite - Stepping Stone to Lightning
 ###########################################
 
+
+.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/lite/lightning_lite.gif
+    :alt: Animation showing how to convert a standard training loop to a Lightning loop
+
 The :class:`~pytorch_lightning.lite.LightningLite` enables pure PyTorch users to scale their existing code
 on any kind of device while retaining full control on their own loops and optimization logic.
 
