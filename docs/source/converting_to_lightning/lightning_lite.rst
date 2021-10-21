@@ -123,14 +123,14 @@ Here are 4 required steps to convert to class:`~pytorch_lightning.lite.Lightning
 1. Subclass class:`~pytorch_lightning.lite.LightningLite` and override its meth:`~pytorch_lightning.lite.LightningLite.run` method.
 2. Copy / paste your existing `run` function.
 3. Apply ``self.setup`` over each model and optimizers pair, ``self.setup_dataloaders`` on all your dataloaders and replace ``loss.backward()`` by ``self.backward(loss)``
-4. Instantiate your ``LiteRunner`` and call its meth:`~pytorch_lightning.lite.LightningLite.run` method.
+4. Instantiate your ``Lite`` and call its meth:`~pytorch_lightning.lite.LightningLite.run` method.
 
 .. code-block:: python
 
     from pytorch_lightning.lite import LightningLite
 
 
-    class LiteRunner(LightningLite):
+    class Lite(LightningLite):
         def run(self, model: nn.Module, train_dataloader: DataLoader, val_dataloader: DataLoader, num_epochs: int = 10):
             optimizer = configure_optimizers(model)
 
@@ -181,7 +181,7 @@ Here are 4 required steps to convert to class:`~pytorch_lightning.lite.Lightning
 
     seed_everything(42)
     lite_model = BoringModel()
-    lite = LiteRunner()
+    lite = Lite()
     lite.run(lite_model, train_dataloader(), val_dataloader())
 
 That's all ! You can now train on any kind of device and scale your training.
@@ -194,7 +194,7 @@ Here is how to train on 8 gpus with `torch.bfloat16 <https://pytorch.org/docs/1.
 
     seed_everything(42)
     lite_model = BoringModel()
-    lite = LiteRunner(strategy="ddp", devices=8, accelerator="gpu", precision="bf16")
+    lite = Lite(strategy="ddp", devices=8, accelerator="gpu", precision="bf16")
     lite.run(lite_model, train_dataloader(), val_dataloader())
 
 
@@ -205,7 +205,7 @@ Here is how to use `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/ze
 
     seed_everything(42)
     lite_model = BoringModel()
-    lite = LiteRunner(strategy="deepspeed", devices=8, accelerator="gpu", precision=16)
+    lite = Lite(strategy="deepspeed", devices=8, accelerator="gpu", precision=16)
     lite.run(lite_model, train_dataloader(), val_dataloader())
 
 
