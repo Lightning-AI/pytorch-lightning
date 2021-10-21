@@ -53,11 +53,14 @@ from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import init_ddp_connection, rank_zero_only, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
+from pytorch_lightning.utilities.imports import _IS_WINDOWS
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _TORCH_GREATER_EQUAL_1_10:
-    from torch.distributed.optim import DistributedOptimizer, PostLocalSGDOptimizer, ZeroRedundancyOptimizer
+    if not _IS_WINDOWS:
+        from torch.distributed.optim import DistributedOptimizer
+    from torch.distributed.optim import PostLocalSGDOptimizer, ZeroRedundancyOptimizer
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
@@ -333,8 +336,9 @@ class DDPPlugin(ParallelPlugin):
             if isinstance(optimizer, LightningOptimizer):
                 optimizer = optimizer._optimizer
 
+            is_distributed_optimizer = isinstance(optimizer, DistributedOptimizer) if not _IS_WINDOWS else False
             if (
-                isinstance(optimizer, DistributedOptimizer)
+                is_distributed_optimizer
                 or isinstance(optimizer, ZeroRedundancyOptimizer)
                 or (_FAIRSCALE_AVAILABLE and isinstance(optimizer, OSS))
             ):
