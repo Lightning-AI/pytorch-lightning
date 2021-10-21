@@ -89,7 +89,7 @@ The `run` function contains a custom training and validation loops.
 
 
     def val_dataloader():
-        return DataLoader(RandomDataset(64, 32))
+        return DataLoader(RandomDataset(128, 32))
 
 
     def run(num_epochs, model, train_dataloader, val_dataloader):
@@ -125,7 +125,7 @@ Convert to LightningLite
 Here are 4 required steps to convert to :class:`~pytorch_lightning.lite.LightningLite`.
 
 1. Subclass :class:`~pytorch_lightning.lite.LightningLite` and override its :meth:`~pytorch_lightning.lite.LightningLite.run` method.
-2. Copy / paste the body of your existing `run` function.
+2. Move the body of your existing `run` function.
 3. Apply ``self.setup`` over each model and optimizers pair, ``self.setup_dataloaders`` on all your dataloaders and replace ``loss.backward()`` by ``self.backward(loss)``
 4. Instantiate your ``Lite`` and call its :meth:`~pytorch_lightning.lite.LightningLite.run` method.
 
