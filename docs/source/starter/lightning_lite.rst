@@ -1,6 +1,6 @@
-############################################
-Lightning Lite - Stepping Stone to Lightning
-############################################
+###########################################
+LightningLite - Stepping Stone to Lightning
+###########################################
 
 
 .. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/lite/lightning_lite.gif
