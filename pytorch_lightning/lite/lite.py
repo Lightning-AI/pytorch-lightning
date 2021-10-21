@@ -55,7 +55,7 @@ class LightningLite(ABC):
     - Multi-node support
 
     Args:
-        accelerator: The hardware to run on. Possible choices are: cpu, gpu, tpu.
+        accelerator: The hardware to run on. Possible choices are: cpu, gpu, tpu, auto.
         strategy: Strategy for how to run across multiple devices. Possible choices are:
             dp, ddp, ddp_spawn, tpu_spawn, deepspeed, ddp_sharded.
         devices: Number of devices to train on (int) or which GPUs to train on (list or str). The value applies
@@ -233,10 +233,10 @@ class LightningLite(ABC):
         Returns:
             The wrapped dataloader.
         """
-        sampler = dataloader.sampler
         if isinstance(dataloader, DataLoader):
+            sampler = dataloader.sampler
             if replace_sampler and self._requires_distributed_sampler(dataloader):
-                if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
+                if not isinstance(sampler, (SequentialSampler, RandomSampler)):
                     raise MisconfigurationException(
                         "You seem to have configured a sampler in your DataLoader. This will be replaced "
                         " by `DistributedSampler` since `replace_sampler_ddp` is True and you are using"
@@ -452,7 +452,7 @@ class LightningLite(ABC):
     def _check_accelerator_support(self, accelerator: Optional[Union[str, Accelerator]]) -> None:
         if accelerator is None:
             return
-        supported = [t.lower() for t in self._supported_device_types()]
+        supported = [t.lower() for t in self._supported_device_types()] + ["auto"]
         if not isinstance(accelerator, (Accelerator, str)) or accelerator not in supported:
             raise MisconfigurationException(
                 f"`accelerator={repr(accelerator)}` is not a valid choice."
