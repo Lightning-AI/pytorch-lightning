@@ -13,9 +13,9 @@ on any kind of device while retaining full control over their own loops and opti
 
 :class:`~pytorch_lightning.lite.LightningLite` is the right tool for you if you match one of the two following descriptions:
 
-- As a PyTorch user, I want to quickly scale my existing code to multiple devices with minimal code changes.
+- I want to quickly scale my existing code to multiple devices with minimal code changes.
 
-- As a PyTorch user, I would like to convert my existing code to the Lightning API, but a one-step transition might be too complex. I am looking for a stepping stone to ensure reproducibility during the transition.
+- I would like to convert my existing code to the Lightning API, but a full path to Lightning transition might be too complex. I am looking for a stepping stone to ensure reproducibility during the transition.
 
 Supported Integrations
 ======================
@@ -36,7 +36,7 @@ Supported Integrations
      - ``TorchElastic``, ``SLURM``, ``Kubeflow``, ``LSF``
 
 
-Coming in the near future:
+Coming soon:
 
 .. list-table::
    :widths: 50 50
@@ -54,8 +54,8 @@ Learn by example
 My existing PyTorch code
 ========================
 
-In the code below, we have a `BoringModel` containing a single linear layer trained on some random data for 10 epochs.
-The `run` function contains a custom training and validation loops.
+In the code below, we have a ``BoringModel`` containing a single linear layer trained on some data for 10 epochs.
+The ``run`` function contains custom training and validation loops.
 
 .. code-block:: python
 
@@ -74,10 +74,6 @@ The `run` function contains a custom training and validation loops.
             return torch.nn.functional.mse_loss(x, torch.ones_like(x))
 
 
-    def configure_optimizers(module: nn.Module):
-        return torch.optim.SGD(module.parameters(), lr=0.001)
-
-
     class RandomDataset(Dataset):
         def __init__(self, length: int, size: int):
             self.len = length
@@ -90,16 +86,7 @@ The `run` function contains a custom training and validation loops.
             return self.len
 
 
-    def train_dataloader():
-        return DataLoader(RandomDataset(64, 32))
-
-
-    def val_dataloader():
-        return DataLoader(RandomDataset(128, 32))
-
-
-    def run(num_epochs, model, train_dataloader, val_dataloader):
-        optimizer = configure_optimizers(model)
+    def run(num_epochs, model, optimizer, train_dataloader, val_dataloader):
 
         for epoch in range(num_epochs):
             train_losses = []
@@ -123,7 +110,10 @@ The `run` function contains a custom training and validation loops.
 
 
     model = BoringModel()
-    run(10, model, train_dataloader(), val_dataloader())
+    optimizer = torch.optim.SGD(module.parameters(), lr=0.001)
+    train_dataloader = DataLoader(RandomDataset(64, 32))
+    val_dataloader = DataLoader(RandomDataset(64, 32))
+    run(10, model, optimizer, train_dataloader, val_dataloader)
 
 Convert to LightningLite
 ========================
@@ -141,8 +131,7 @@ Here are 4 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
 
 
     class Lite(LightningLite):
-        def run(self, num_epochs, model, train_dataloader, val_dataloader):
-            optimizer = configure_optimizers(model)
+        def run(self, num_epochs, model, optimizer, train_dataloader, val_dataloader):
 
             ###################################################################################
             # You would need to call `self.setup` to wrap `model` and `optimizer`. If you     #
@@ -191,9 +180,11 @@ Here are 4 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
 
 
     seed_everything(42)
-    lite_model = BoringModel()
-    lite = Lite()
-    lite.run(lite_model, train_dataloader(), val_dataloader())
+    model = BoringModel()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
+    train_dataloader = DataLoader(RandomDataset(64, 32))
+    val_dataloader = DataLoader(RandomDataset(64, 32))
+    Lite().run(10, model, optimizer, train_dataloader, val_dataloader)
 
 That's all. You can now train on any kind of device and scale your training.
 
@@ -205,10 +196,8 @@ Here is how to train on 8 GPUs with `torch.bfloat16 <https://pytorch.org/docs/1.
 
 .. code-block:: python
 
-    seed_everything(42)
-    lite_model = BoringModel()
     lite = Lite(strategy="ddp", devices=8, accelerator="gpu", precision="bf16")
-    lite.run(lite_model, train_dataloader(), val_dataloader())
+    Lite().run(10, model, optimizer, train_dataloader, val_dataloader)
 
 
 Here is how to use `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/zero3-offload.html>`_ with 8 GPUs and precision 16:
@@ -216,8 +205,6 @@ Here is how to use `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/ze
 
 .. code-block:: python
 
-    seed_everything(42)
-    lite_model = BoringModel()
     lite = Lite(strategy="deepspeed", devices=8, accelerator="gpu", precision=16)
     lite.run(lite_model, train_dataloader(), val_dataloader())
 
@@ -268,15 +255,15 @@ from its hundreds of features.
             return x
 
         def configure_optimizers(self):
-            return configure_optimizers(self)
+            return torch.optim.SGD(self.parameters(), lr=0.001)
 
 
     class BoringDataModule(LightningDataModule):
         def train_dataloader(self):
-            return train_dataloader()
+            return DataLoader(RandomDataset(64, 32))
 
         def val_dataloader(self):
-            return val_dataloader()
+            return DataLoader(RandomDataset(64, 32))
 
 
     seed_everything(42)

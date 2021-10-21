@@ -244,7 +244,7 @@ Trainer API
     trainer
 
 LightningLite API
------------
+-----------------
 
 .. currentmodule:: pytorch_lightning.lite
 
