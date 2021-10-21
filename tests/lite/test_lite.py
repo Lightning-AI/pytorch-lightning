@@ -85,7 +85,7 @@ def test_setup_dataloaders_replace_custom_sampler(strategy):
 
     # explicitly asking to replace when a custom sampler is already configured raises an exception
     lite = EmptyLite(accelerator="cpu", strategy=strategy, devices=2)
-    if getattr(lite._strategy, "is_distributed", False):
+    if lite._accelerator_connector.is_distributed:
         with pytest.raises(MisconfigurationException, match="You seem to have configured a sampler in your DataLoader"):
             lite.setup_dataloaders(dataloader, replace_sampler=True)
 
@@ -99,6 +99,6 @@ def test_setup_dataloaders_replace_custom_sampler(strategy):
 def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
     """Test that Lite replaces the default samplers with DistributedSampler automatically."""
     lite = EmptyLite(accelerator="cpu", strategy=strategy, devices=2)
-    is_distributed = getattr(lite._strategy, "is_distributed", False)
+    is_distributed = lite._accelerator_connector.is_distributed
     lite_dataloader = lite.setup_dataloaders(DataLoader(range(3), shuffle=shuffle))
     assert not is_distributed or isinstance(lite_dataloader.sampler, DistributedSampler)
