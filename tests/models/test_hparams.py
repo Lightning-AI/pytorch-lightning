@@ -493,7 +493,7 @@ def test_hparams_save_yaml(tmpdir):
     )
     path_yaml = os.path.join(tmpdir, "testing-hparams.yaml")
 
-    def compare(loaded_params, default_params: dict):
+    def _compare_params(loaded_params, default_params: dict):
         assert isinstance(loaded_params, (dict, DictConfig))
         assert loaded_params.keys() == default_params.keys()
         for k, v in default_params.items():
@@ -503,16 +503,16 @@ def test_hparams_save_yaml(tmpdir):
                 assert v == loaded_params[k]
 
     save_hparams_to_yaml(path_yaml, hparams)
-    compare(load_hparams_from_yaml(path_yaml, use_omegaconf=False), hparams)
+    _compare_params(load_hparams_from_yaml(path_yaml, use_omegaconf=False), hparams)
 
     save_hparams_to_yaml(path_yaml, Namespace(**hparams))
-    compare(load_hparams_from_yaml(path_yaml, use_omegaconf=False), hparams)
+    _compare_params(load_hparams_from_yaml(path_yaml, use_omegaconf=False), hparams)
 
     save_hparams_to_yaml(path_yaml, AttributeDict(hparams))
-    compare(load_hparams_from_yaml(path_yaml, use_omegaconf=False), hparams)
+    _compare_params(load_hparams_from_yaml(path_yaml, use_omegaconf=False), hparams)
 
     save_hparams_to_yaml(path_yaml, OmegaConf.create(hparams))
-    compare(load_hparams_from_yaml(path_yaml), hparams)
+    _compare_params(load_hparams_from_yaml(path_yaml), hparams)
 
 
 class NoArgsSubClassBoringModel(CustomBoringModel):
