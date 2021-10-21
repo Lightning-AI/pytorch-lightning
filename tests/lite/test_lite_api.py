@@ -129,7 +129,6 @@ def test_lightning_lite_deepspeed_backward():
 def test_deepspeed_multiple_models():
     class LiteRunner(LightningLite):
         def run(self):
-            seed_everything(42)
             model = BoringModel()
             optimizer = configure_optimizers(model)
             model, optimizer = self.setup(model, optimizer)
@@ -160,9 +159,12 @@ def test_deepspeed_multiple_models():
             model_2, optimizer_2 = self.setup(model_2, optimizer_2)
 
             seed_everything(42)
+            data_list = []
             for _ in range(2):
                 optimizer_1.zero_grad()
-                x = model_1(torch.randn(1, 32).to(self.device))
+                data = torch.randn(1, 32).to(self.device)
+                data_list.append(data)
+                x = model_1(data)
                 loss = x.sum()
                 self.backward(loss, model=model_1)
                 optimizer_1.step()
@@ -170,10 +172,9 @@ def test_deepspeed_multiple_models():
             for mw_1, mw_2 in zip(model_1.state_dict().values(), model_2.state_dict().values()):
                 assert not torch.equal(mw_1, mw_2)
 
-            seed_everything(42)
-            for _ in range(2):
+            for data in data_list:
                 optimizer_2.zero_grad()
-                x = model_2(torch.randn(1, 32).to(self.device))
+                x = model_2(data)
                 loss = x.sum()
                 self.backward(loss, model=model_2)
                 optimizer_2.step()

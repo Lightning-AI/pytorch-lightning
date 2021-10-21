@@ -336,9 +336,7 @@ class LightningLite(ABC):
         self, data: Union[torch.Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
     ):
         r"""
-        Allows users to call ``self.all_gather()`` from the LightningModule, thus making the ``all_gather`` operation
-        accelerator agnostic. ``all_gather`` is a function provided by accelerators to gather a tensor from several
-        distributed processes.
+        Gather tensors or collections of tensors from multiple processes.
 
         Args:
             data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
@@ -370,14 +368,14 @@ class LightningLite(ABC):
         self._set_plugin_specific_precision_variables()
         self._accelerator.setup_environment()
 
-        run_fn = partial(self.run_method_wrapper, run_method, *args, **kwargs)
+        run_fn = partial(self._run_method_wrapper, run_method, *args, **kwargs)
 
         if isinstance(self._strategy, DDPSpawnPlugin):
             return self._strategy.spawn(run_fn)
         else:
             return run_fn()
 
-    def run_method_wrapper(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
+    def _run_method_wrapper(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
         # requires to apply sharded context to prevent OOM
         with self._strategy.model_sharded_context():
             return run_method(*args, **kwargs)
