@@ -105,7 +105,8 @@ class _LiteModule(nn.Module):
         return self._module
 
     def forward(self, *args: Any, **kwargs: Any) -> Any:
-        """Casts all inputs to the right precision and handles autocast for operations in the module forward method."""
+        """Casts all inputs to the right precision and handles autocast for operations in the module forward
+        method."""
         precision = self._accelerator.precision_plugin.precision
         precision_to_type = {
             "mixed": torch.float16,
@@ -126,8 +127,8 @@ class _LiteModule(nn.Module):
 
 class _LiteDataLoader(DataLoader):
     def __init__(self, device: Optional[torch.device] = None, **dl_kwargs: Any) -> None:
-        """The LiteDataLoader is an extension of the PyTorch :class:`~torch.utils.data.DataLoader` that adds additional
-        features such as moving the data to the device automatically.
+        """The LiteDataLoader is an extension of the PyTorch :class:`~torch.utils.data.DataLoader` that adds
+        additional features such as moving the data to the device automatically.
 
         Args:
             device: The device to which the data should be moved. By default the device is `None` and no data
