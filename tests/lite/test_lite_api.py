@@ -182,7 +182,7 @@ def test_deepspeed_multiple_models():
             for mw_1, mw_2 in zip(model_1.state_dict().values(), model_2.state_dict().values()):
                 assert torch.equal(mw_1, mw_2)
 
-            # test utilties
+            # Verify collectives works as expected
             ranks = self.all_gather(torch.tensor([self.local_rank]).to(self.device))
             assert torch.equal(ranks.cpu(), torch.tensor([[0], [1]]))
             assert self.broadcast(True)
