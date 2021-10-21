@@ -154,23 +154,20 @@ class LightningLite(ABC):
     def setup(
         self,
         model: nn.Module,
-        optimizers: Union[Optimizer, List[Optimizer]],
+        *optimizers: Optimizer,
         move_to_device: bool = True,
-    ) -> Tuple[_LiteModule, Union[_LiteOptimizer, List[_LiteOptimizer]]]:
+    ) -> Tuple[Union[_LiteModule, _LiteOptimizer], ...]:
         """Setup a model and its optimizers for accelerated training.
 
         Args:
             model: A model to setup
-            optimizers: A list of optimizers to setup
+            *optimizers: One or multiple optimizers to setup
             move_to_device: If set ``True`` (default), moves the model to the correct device. Set this to ``False``
                 and alternatively use :meth:`to_device` manually.
 
         Returns:
             The tuple of the wrapped model and list of optimizers, in the same order they were passed in.
         """
-        # wrap all objects passed in and return them in the same order
-        optimizers = [optimizers] if isinstance(optimizers, Optimizer) else optimizers
-
         self._validate_setup(model, optimizers)
 
         if move_to_device:
@@ -186,10 +183,12 @@ class LightningLite(ABC):
                 for param_group in optimizer.param_groups:
                     param_group["params"] = [mapping.get(p, p) for p in param_group["params"]]
 
-        model, optimizers = self._setup_model_and_optimizers(model, optimizers)
-        optimizers = optimizers[0] if isinstance(optimizers, Sequence) and len(optimizers) == 1 else optimizers
+        # Let accelerator/plugin wrap and connect the models and optimizers
+        [model], optimizers = self._strategy._setup_models_and_optimizers([model], list(optimizers))
+        model = _LiteModule(model, self._accelerator)
+        optimizers = [_LiteOptimizer(optimizer=optimizer, accelerator=self._accelerator) for optimizer in optimizers]
         self._num_models += 1
-        return model, optimizers
+        return model, *optimizers
 
     def setup_dataloaders(
         self, *dataloaders: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
@@ -426,17 +425,6 @@ class LightningLite(ABC):
         precision = self._accelerator_connector.precision
         self._strategy.amp_level, self._strategy.amp_type, self._strategy._precision = amp_level, amp_type, precision
 
-    def _setup_model_and_optimizers(
-        self,
-        model: nn.Module,
-        optimizers: List[Optimizer],
-    ) -> Tuple[_LiteModule, Union[_LiteOptimizer, List[_LiteOptimizer]]]:
-        # Let accelerator/plugin wrap and connect the models and optimizers
-        [model], optimizers = self._strategy._setup_models_and_optimizers([model], optimizers)
-        model = _LiteModule(model, self._accelerator)
-        optimizers = [_LiteOptimizer(optimizer=optimizer, accelerator=self._accelerator) for optimizer in optimizers]
-        return model, optimizers
-
     def _requires_distributed_sampler(self, dataloader: DataLoader) -> bool:
         return (
             self._accelerator_connector.is_distributed
@@ -489,12 +477,12 @@ class LightningLite(ABC):
         )
 
     @staticmethod
-    def _validate_setup(model: nn.Module, optimizers: List[Optimizer]) -> None:
+    def _validate_setup(model: nn.Module, optimizers: Sequence[Optimizer]) -> None:
         if isinstance(model, _LiteModule):
-            raise MisconfigurationException("A module should be passed only once to the ``setup`` method")
+            raise MisconfigurationException("A model should be passed only once to the `setup` method.")
 
         if any(isinstance(opt, _LiteOptimizer) for opt in optimizers):
-            raise MisconfigurationException("An optimizer should be passed only once to the ``setup`` method")
+            raise MisconfigurationException("An optimizer should be passed only once to the `setup` method.")
 
     @staticmethod
     def _validate_setup_dataloaders(*dataloaders: Union[DataLoader, List[DataLoader]]) -> None:

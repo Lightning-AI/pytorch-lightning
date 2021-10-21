@@ -210,7 +210,7 @@ def test_lightning_lite_setup():
             else:
                 self.setup(model, optimizer_lite)
 
-    with pytest.raises(MisconfigurationException, match="A module should be passed only once to the"):
+    with pytest.raises(MisconfigurationException, match="A model should be passed only once to the"):
         runner = LiteRunner()
         runner.run()
 
