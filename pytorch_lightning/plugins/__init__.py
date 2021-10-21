@@ -4,6 +4,7 @@ from typing import Union
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
+from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.plugins_registry import (  # noqa: F401
     call_training_type_register_plugins,
     TrainingTypePluginsRegistry,
@@ -40,6 +41,7 @@ PLUGIN_INPUT = Union[PLUGIN, str]
 __all__ = [
     "CheckpointIO",
     "TorchCheckpointIO",
+    "XLACheckpointIO",
     "ApexMixedPrecisionPlugin",
     "DataParallelPlugin",
     "DDP2Plugin",

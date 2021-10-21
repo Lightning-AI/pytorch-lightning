@@ -349,14 +349,14 @@ Don't use ``xm.xla_device()`` while working on Lightning + TPUs!
 
 PyTorch XLA only supports Tensor objects for CPU to TPU data transfer. Might cause issues if the User is trying to send some non-tensor objects through the DataLoader or during saving states.
 
-- **Using `tpu_spawn_debug` Plugin**
+- **Using `tpu_spawn_debug` Plugin alias**
 
 .. code-block:: python
 
     import pytorch_lightning as pl
 
     my_model = MyLightningModule()
-    trainer = pl.Trainer(tpu_cores=8, plugins="tpu_spawn_debug")
+    trainer = pl.Trainer(tpu_cores=8, strategy="tpu_spawn_debug")
     trainer.fit(my_model)
 
 Example Metrics report:

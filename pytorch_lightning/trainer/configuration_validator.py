@@ -38,7 +38,7 @@ def verify_loop_configurations(trainer: "pl.Trainer", model: "pl.LightningModule
     elif trainer.state.fn == TrainerFn.TESTING:
         __verify_eval_loop_configuration(model, "test")
     elif trainer.state.fn == TrainerFn.PREDICTING:
-        __verify_predict_loop_configuration(model)
+        __verify_predict_loop_configuration(trainer, model)
     __verify_dp_batch_transfer_support(trainer, model)
     _check_add_get_queue(model)
     # TODO(@daniellepintz): Delete _check_progress_bar in v1.7
@@ -65,7 +65,7 @@ def __verify_train_loop_configuration(trainer: "pl.Trainer", model: "pl.Lightnin
     # -----------------------------------
     # verify model has a train dataloader
     # -----------------------------------
-    has_train_dataloader = is_overridden("train_dataloader", model)
+    has_train_dataloader = trainer.data_connector._train_dataloader_source.is_defined()
     if not has_train_dataloader:
         raise MisconfigurationException(
             "No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a"
@@ -175,8 +175,8 @@ def __verify_eval_loop_configuration(model: "pl.LightningModule", stage: str) ->
         )
 
 
-def __verify_predict_loop_configuration(model: "pl.LightningModule") -> None:
-    has_predict_dataloader = is_overridden("predict_dataloader", model)
+def __verify_predict_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+    has_predict_dataloader = trainer.data_connector._predict_dataloader_source.is_defined()
     if not has_predict_dataloader:
         raise MisconfigurationException("Dataloader not found for `Trainer.predict`")
     # ----------------------------------------------

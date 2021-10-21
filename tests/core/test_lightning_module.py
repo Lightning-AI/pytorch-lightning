@@ -21,7 +21,7 @@ from torch.optim import Adam, SGD
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.utilities import _TORCH_SHARDED_TENSOR_AVAILABLE
+from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_DEV_1_10
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -313,8 +313,9 @@ class BoringModelWithShardedTensor(BoringModel):
 
 
 @pytest.mark.skipif(
-    not _TORCH_SHARDED_TENSOR_AVAILABLE, reason="Test requires the torch version to support `ShardedTensor`"
+    not _TORCH_GREATER_EQUAL_DEV_1_10, reason="Test requires the torch version to support `ShardedTensor`"
 )
+@pytest.mark.skipif(_IS_WINDOWS, reason="Not supported on Windows")
 def test_sharded_tensor_state_dict(tmpdir, single_process_pg):
     spec = dist._sharding_spec.ChunkShardingSpec(
         dim=0,
