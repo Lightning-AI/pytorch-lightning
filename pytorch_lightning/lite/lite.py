@@ -308,7 +308,7 @@ class LightningLite(ABC):
         return self._strategy.reduce_boolean_decision(decision)
 
     def save_checkpoint(self, filepath: Union[str, Path], content: Dict[str, Any]) -> None:
-        raise NotImplementedError()
+        self._strategy.save_checkpoint(content, filepath)
 
     def execute_on_rank(self, func: Callable, rank: int, *args: Any, **kwargs: Any) -> None:
         if self.global_rank == rank:
