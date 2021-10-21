@@ -244,30 +244,29 @@ def test_lightning_lite_track_model_setup():
     runner.run()
 
 
+@mock.patch("pytorch_lightning.plugins.DeepSpeedPlugin.setup_distributed", lambda x: x)
 def test_lightning_lite_deepspeed_backward():
-    with mock.patch("pytorch_lightning.plugins.DeepSpeedPlugin.setup_distributed", lambda x: x):
+    class LiteRunner(LightningLite):
+        def run(self):
+            def fn(*args):
+                return args
 
-        class LiteRunner(LightningLite):
-            def run(self):
-                def fn(*args):
-                    return args
+            self._strategy._setup_model_and_optimizer = fn
+            model = BoringModel()
+            optimizer = configure_optimizers(model)
+            self.setup(model, optimizer)
 
-                self._strategy._setup_model_and_optimizer = fn
-                model = BoringModel()
-                optimizer = configure_optimizers(model)
-                self.setup(model, optimizer)
+            model = BoringModel()
+            optimizer = configure_optimizers(model)
+            self.setup(model, optimizer)
 
-                model = BoringModel()
-                optimizer = configure_optimizers(model)
-                self.setup(model, optimizer)
+            x = model(torch.randn(1, 32))
+            loss = x.sum()
+            self.backward(loss)
 
-                x = model(torch.randn(1, 32))
-                loss = x.sum()
-                self.backward(loss)
-
-        with pytest.raises(MisconfigurationException, match="please provide the model used to perform"):
-            runner = LiteRunner(strategy="deepspeed")
-            runner.run()
+    with pytest.raises(MisconfigurationException, match="please provide the model used to perform"):
+        runner = LiteRunner(strategy="deepspeed")
+        runner.run()
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
