@@ -17,7 +17,7 @@ from collections import Callable
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import Any, Dict, Generator, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Generator, Iterable, List, Optional, Sequence, Tuple, Union, overload
 
 import torch
 import torch.nn as nn
@@ -285,6 +285,18 @@ class LightningLite(ABC):
         """
         with self._precision_plugin.forward_context():
             yield
+
+    @overload
+    def to_device(self, obj: nn.Module) -> nn.Module:
+        pass
+
+    @overload
+    def to_device(self, obj: Tensor) -> Tensor:
+        pass
+
+    @overload
+    def to_device(self, obj: Any) -> Any:
+        pass
 
     def to_device(self, obj: Union[nn.Module, Tensor, Any]) -> Union[nn.Module, Tensor, Any]:
         """Move a :class:`torch.nn.Module` or a collection of tensors to the current device, if it is not already
