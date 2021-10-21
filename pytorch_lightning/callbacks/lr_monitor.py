@@ -344,6 +344,7 @@ class LearningRateMonitor(Callback):
         # TODO remove `lr_sch_names` and `add_lr_sch_names` argument in v1.7.0
         rank_zero_deprecation(
             "`LearningRateMonitor.lr_sch_names` has been deprecated in v1.5 and will be removed in 1.7."
-            " Consider accessing them using `LearningRateMonitor.lrs.keys()`."
+            " Consider accessing them using `LearningRateMonitor.lrs.keys()` which will return"
+            " the names of all the optimizers, even those without a scheduler."
         )
         return self._lr_sch_names
