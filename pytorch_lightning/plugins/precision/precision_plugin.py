@@ -134,7 +134,7 @@ class PrecisionPlugin(CheckpointHooks):
         """Tracks the model's gradient norms."""
         if float(trainer.track_grad_norm) == -1:
             return
-        grad_norm_dict = grad_norm(trainer.lightning_module, trainer.track_grad_norm)
+        grad_norm_dict = grad_norm(trainer.lightning_module, trainer.track_grad_norm, trainer.logger.group_separator)
         if grad_norm_dict:
             prev_fx = trainer.lightning_module._current_fx_name
             trainer.lightning_module._current_fx_name = "on_before_optimizer_step"
