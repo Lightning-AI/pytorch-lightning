@@ -450,20 +450,18 @@ class LightningLite(ABC):
         return DistributedSampler(dataloader.dataset, **kwargs)
 
     def _check_accelerator_support(self, accelerator: Optional[Union[str, Accelerator]]) -> None:
-        if accelerator is None:
-            return
-        supported = [t.lower() for t in self._supported_device_types()] + ["auto"]
-        if not isinstance(accelerator, (Accelerator, str)) or accelerator not in supported:
+        supported = [t.value.lower() for t in self._supported_device_types()] + ["auto"]
+        valid = accelerator is None or isinstance(accelerator, Accelerator) or accelerator in supported
+        if not valid:
             raise MisconfigurationException(
                 f"`accelerator={repr(accelerator)}` is not a valid choice."
                 f" Choose one of {supported} or pass in a `Accelerator` instance."
             )
 
     def _check_strategy_support(self, strategy: Optional[Union[str, TrainingTypePlugin]]) -> None:
-        if strategy is None:
-            return
         supported = [t.lower() for t in self._supported_strategy_types()]
-        if not isinstance(strategy, (TrainingTypePlugin, str)) and strategy not in supported:
+        valid = strategy is None or isinstance(strategy, TrainingTypePlugin) or strategy in supported
+        if not valid:
             raise MisconfigurationException(
                 f"`strategy={repr(strategy)}` is not a valid choice."
                 f" Choose one of {supported} or pass in a `TrainingTypePlugin` instance."

@@ -52,13 +52,13 @@ def configure_optimizers(module: nn.Module):
     return torch.optim.SGD(module.parameters(), lr=0.0001)
 
 
-@pytest.mark.parametrize("accelerator", ["coconut", Mock(spec=Accelerator)])
+@pytest.mark.parametrize("accelerator", ["coconut"])
 def test_unsupported_accelerator(accelerator):
     with pytest.raises(MisconfigurationException, match=f"`accelerator={repr(accelerator)}` is not a valid choice"):
         EmptyLite(accelerator=accelerator)
 
 
-@pytest.mark.parametrize("strategy", ["coconut", Mock(spec=TrainingTypePlugin)])
+@pytest.mark.parametrize("strategy", ["coconut"])
 def test_unsupported_strategy(strategy):
     with pytest.raises(MisconfigurationException, match=f"`strategy={repr(strategy)}` is not a valid choice"):
         EmptyLite(strategy=strategy)
