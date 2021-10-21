@@ -340,7 +340,7 @@ class LearningRateMonitor(Callback):
         return name_list
 
     @property
-    def lr_sch_names(self):
+    def lr_sch_names(self) -> List[str]:
         # TODO remove `lr_sch_names` and `add_lr_sch_names` argument in v1.7.0
         rank_zero_deprecation(
             "`LearningRateMonitor.lr_sch_names` has been deprecated in v1.5 and will be removed in 1.7."
