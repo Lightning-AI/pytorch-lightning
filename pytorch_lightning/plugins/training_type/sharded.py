@@ -58,7 +58,7 @@ class DDPShardedPlugin(DDPPlugin):
         """Wraps the model and optimizers with fairscale components.
 
         Return:
-            A list with the model wrapped into a :class:`~fairscale.nn.data_parallel.ShardedDataParallel` module
+            The model wrapped into a :class:`~fairscale.nn.data_parallel.ShardedDataParallel` module
             and a list of optimizer wrapped in :class:~`fairscale.optim.OSS`.
         """
         optimizers = self._wrap_optimizers(optimizers)
