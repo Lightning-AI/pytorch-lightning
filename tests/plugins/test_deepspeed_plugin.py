@@ -619,7 +619,6 @@ def test_deepspeed_multigpu_stage_3_warns_resume_training(tmpdir):
         strategy=DeepSpeedPlugin(stage=3, load_full_weights=True),
         gpus=1,
         precision=16,
-        resume_from_checkpoint=checkpoint_path,
     )
     with pytest.warns(
         UserWarning,
@@ -627,7 +626,7 @@ def test_deepspeed_multigpu_stage_3_warns_resume_training(tmpdir):
         "scheduler states can not be restored. If you'd like to restore these states, you must "
         "provide a path to the originally saved DeepSpeed checkpoint.",
     ):
-        trainer.fit(model, datamodule=dm)
+        trainer.fit(model, datamodule=dm, ckpt_path=checkpoint_path)
 
 
 @RunIf(min_gpus=1, deepspeed=True, special=True)
@@ -679,10 +678,9 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
         strategy=DeepSpeedPlugin(stage=3),
         gpus=1,
         precision=16,
-        resume_from_checkpoint=ck.best_model_path,
         callbacks=TestCallback(),
     )
-    trainer.fit(model, datamodule=dm)
+    trainer.fit(model, datamodule=dm, ckpt_path=ck.best_model_path)
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
