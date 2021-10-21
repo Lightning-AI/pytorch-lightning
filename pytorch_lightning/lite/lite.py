@@ -399,15 +399,15 @@ class LightningLite(ABC):
         self._set_plugin_specific_precision_variables()
         self._accelerator.setup_environment()
 
-        run_fn = partial(self._run_method_wrapper, run_method, *args, **kwargs)
+        # apply sharded context to prevent OOM
+        run_method = partial(self._run_with_sharded_context, run_method)
 
         if isinstance(self._strategy, DDPSpawnPlugin):
-            return self._strategy.spawn(run_fn)
+            return self._strategy.spawn(run_method, *args, **kwargs)
         else:
-            return run_fn()
+            return run_method(*args, **kwargs)
 
-    def _run_method_wrapper(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        # requires to apply sharded context to prevent OOM
+    def _run_with_sharded_context(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
         with self._strategy.model_sharded_context():
             return run_method(*args, **kwargs)
 
