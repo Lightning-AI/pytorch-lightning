@@ -16,7 +16,7 @@ from unittest.mock import Mock, PropertyMock
 
 import pytest
 import torch
-from torch.utils.data import DataLoader, Sampler, DistributedSampler
+from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.lite.wrappers import _LiteDataLoader
@@ -79,7 +79,8 @@ def test_setup_dataloaders_distributed_sampler_not_needed():
 
 @pytest.mark.parametrize("strategy", LightningLite._supported_strategy_types())
 def test_setup_dataloaders_replace_custom_sampler(strategy):
-    """Test that asking to replace a custom sampler results in an error when a distributed sampler would be needed."""
+    """Test that asking to replace a custom sampler results in an error when a distributed sampler would be
+    needed."""
     custom_sampler = Mock(spec=Sampler)
     dataloader = DataLoader(Mock(), sampler=custom_sampler)
 
