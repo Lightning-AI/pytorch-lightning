@@ -387,3 +387,12 @@ def test_v1_7_0_deprecate_gpu_stats_monitor(tmpdir):
 def test_v1_7_0_deprecate_xla_stats_monitor(tmpdir):
     with pytest.deprecated_call(match="The `XLAStatsMonitor` callback was deprecated in v1.5"):
         _ = XLAStatsMonitor()
+
+
+def test_v1_7_0_deprecated_max_steps_none(tmpdir):
+    with pytest.deprecated_call(match="`max_steps = None` is deprecated in v1.5"):
+        _ = Trainer(max_steps=None)
+
+    trainer = Trainer()
+    with pytest.deprecated_call(match="`max_steps = None` is deprecated in v1.5"):
+        trainer.fit_loop.max_steps = None

@@ -21,6 +21,7 @@ from torchmetrics import Metric
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.loops.utilities import _is_max_limit_reached
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
@@ -350,7 +351,7 @@ class CheckpointConnector:
         # dump epoch/global_step/pytorch-lightning_version
         current_epoch = self.trainer.current_epoch
         global_step = self.trainer.global_step
-        has_reached_max_steps = self.trainer.max_steps and self.trainer.max_steps <= global_step
+        has_reached_max_steps = _is_max_limit_reached(global_step, self.trainer.max_steps)
 
         global_step += 1
         if not has_reached_max_steps:

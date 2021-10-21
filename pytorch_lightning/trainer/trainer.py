@@ -1333,7 +1333,7 @@ class Trainer(
 
         if not ckpt_path:
             raise MisconfigurationException(
-                f'`.{fn}()` found no path for the best weights: "{ckpt_path}". Please'
+                f"`.{fn}()` found no path for the best weights: {ckpt_path!r}. Please"
                 f" specify a path for a checkpoint `.{fn}(ckpt_path=PATH)`"
             )
         return ckpt_path
