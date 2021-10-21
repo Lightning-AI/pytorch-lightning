@@ -343,7 +343,6 @@ class DeepSpeedPlugin(DDPPlugin):
                 config = json.load(f)
         return config
 
-    # getting called by Lightning trainer AND Lite
     def setup_distributed(self):
         reset_seed()
 
