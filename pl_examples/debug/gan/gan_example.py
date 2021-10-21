@@ -9,7 +9,6 @@ python -m torch.distributed.run --nproc_per_node=2 gan_example.py
 
 import argparse
 import os
-import random
 
 import torch
 import torch.nn as nn
@@ -19,9 +18,8 @@ import torch.utils.data
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
-from torch.utils.data import DistributedSampler
 
-from pl_examples.lite_examples.gan.models import Discriminator, Generator, weights_init
+from pl_examples.debug.gan.models import Discriminator, Generator, weights_init
 from pytorch_lightning import seed_everything
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.lite.wrappers import _LiteModule, _LiteOptimizer

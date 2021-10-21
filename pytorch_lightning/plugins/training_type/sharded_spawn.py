@@ -38,15 +38,24 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
     """Optimizer sharded training provided by FairScale."""
 
     def configure_ddp(self) -> None:
+        trainer = self.lightning_module.trainer
         [self._model], optimizers = self._setup_models_and_optimizers(
             models=[LightningShardedDataParallel(self.model)],
-            optimizers=self.lightning_module.trainer.optimizers,
+            optimizers=trainer.optimizers,
         )
-        self.lightning_module.trainer.optimizers = optimizers
+        trainer.optimizers = optimizers
 
     def _setup_models_and_optimizers(
         self, models: List[Module], optimizers: List[Optimizer]
     ) -> Tuple[List[Module], List[Optimizer]]:
+        """Wraps the model and optimizers with fairscale components.
+
+        Currently only one model can be setup at once.
+
+        Return:
+            A list with one model wrapped into a :class:`~fairscale.nn.data_parallel.ShardedDataParallel` module
+            and a list of optimizer wrapped in :class:~`fairscale.optim.OSS`.
+        """
         if len(models) > 1:
             raise ValueError(
                 f"DDPShardedSpawn only supports setting up a single model with one or several optimizers."

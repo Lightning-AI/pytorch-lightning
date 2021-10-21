@@ -1,6 +1,6 @@
 import argparse
 
-from pl_examples.lite_examples.gan.gan_example import GANTrainer
+from pl_examples.debug.gan.gan_example import GANTrainer
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
