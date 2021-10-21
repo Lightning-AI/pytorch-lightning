@@ -17,7 +17,8 @@ from pytorch_lightning.callbacks import Callback, LearningRateMonitor, ModelChec
 from pytorch_lightning.plugins import DeepSpeedPlugin, DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
+from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE, _TORCH_META_AVAILABLE
+from pytorch_lightning.utilities.meta import init_meta_context
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
@@ -1044,3 +1045,16 @@ def test_specific_gpu_device_id(tmpdir):
     )
     trainer.fit(model)
     trainer.test(model)
+
+
+@pytest.mark.skipif(not _TORCH_META_AVAILABLE, reason="the meta device context is supported from PyTorch 1.10.")
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+def test_deepspeed_with_meta_device(tmpdir):
+    with init_meta_context():
+        model = BoringModel()
+    assert model.layer.weight.device.type == "meta"
+    trainer = Trainer(
+        default_root_dir=tmpdir, plugins=[DeepSpeedPlugin(stage=3)], gpus=2, fast_dev_run=True, precision=16
+    )
+    trainer.fit(model)
+    assert model.layer.weight.device.type == "cpu"
