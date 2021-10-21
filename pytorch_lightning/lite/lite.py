@@ -17,7 +17,7 @@ from collections import Callable
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import Any, Dict, Generator, Iterable, List, Optional, Sequence, Tuple, Union, overload
+from typing import Any, Dict, Generator, Iterable, List, Optional, overload, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
