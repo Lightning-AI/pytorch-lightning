@@ -20,7 +20,7 @@ on any kind of device while retaining full control over their own loops and opti
 Supported integrations
 ======================
 
-:class:`~pytorch_lightning.lite.LightningLite` supports single and multiple models / optimizers.
+:class:`~pytorch_lightning.lite.LightningLite` supports single and multiple models and optimizers.
 
 #. ``accelerator``:
     * CPU.
