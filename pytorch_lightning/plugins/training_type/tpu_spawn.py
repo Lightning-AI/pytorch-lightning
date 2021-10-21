@@ -260,8 +260,11 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             "start_method": self.start_method,
         }
 
-    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> None:
-        xmp.spawn(self._wrapped_function, args=(function, args, kwargs), **self.get_mp_spawn_kwargs())
+    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
+        smp = mp.get_context(self.start_method or "fork")
+        return_queue = smp.SimpleQueue()
+        xmp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), **self.get_mp_spawn_kwargs())
+        return return_queue.get()
 
     def _worker_setup(self, process_idx: int):
         reset_seed()

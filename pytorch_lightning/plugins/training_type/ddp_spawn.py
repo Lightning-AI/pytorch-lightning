@@ -183,6 +183,9 @@ class DDPSpawnPlugin(ParallelPlugin):
                 These arguments must be pickleable.
             **kwargs: Optional named arguments that will be passed to the function in addition to the process index.
                 These arguments must be pickleable.
+
+        Return:
+            The output of the function of process 0.
         """
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
         smp = mp.get_context("spawn")
@@ -195,7 +198,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     ) -> None:
         self._worker_setup(process_idx)
         result = function(*args, **kwargs)
-        if self.is_global_zero:
+        if self.local_rank == 0:
             return_queue.put(move_data_to_device(result, "cpu"))
 
     def _worker_setup(self, process_idx: int):
