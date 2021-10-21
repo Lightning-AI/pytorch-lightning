@@ -1,6 +1,6 @@
-###########################################
-LightningLite - Stepping Stone to Lightning
-###########################################
+########################################################
+LightningLite - Stepping Stone to Lightning from PyTorch
+########################################################
 
 
 .. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/lite/lightning_lite.gif
@@ -29,7 +29,7 @@ Supported integrations
     * multi-TPUs (single and multiple pods).
 
 #. ``strategy``: ``DP``, ``DDP``, ``DDP Spawn``, ``DDP Sharded``, ``DeepSpeed``.
-#. ``precision`: ``float16`` and ``bfloat16`` with ``AMP``.
+#. ``precision`: ``float16`` and ``bfloat16`` with ``AMP`` or ``float64``.
 * ``clusters``: ``TorchElastic``, ``SLURM``, ``Kubeflow``, ``LSF``.
 
 Coming:
@@ -168,8 +168,12 @@ Here are 4 required steps to convert to class:`~pytorch_lightning.lite.Lightning
                     for batch in val_dataloader:
                         val_losses.append(model(batch))
 
-                train_epoch_loss = torch.stack(train_losses).mean()
-                val_epoch_loss = torch.stack(val_losses).mean()
+                ###########################################################################
+                # By calling `self.all_gather` directly, tensors will be concatenated     #
+                # across processes.                                                       #
+                train_epoch_loss = self.all_gather(train_losses).mean()
+                val_epoch_loss = self.all_gather(val_losses).mean()
+                ###########################################################################
 
                 print(f"{epoch}/{num_epochs}| Train Epoch Loss: {train_epoch_loss}")
                 print(f"{epoch}/{num_epochs}| Valid Epoch Loss: {val_epoch_loss}")
@@ -205,22 +209,21 @@ Here is how to use `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/ze
     lite.run(lite_model, train_dataloader(), val_dataloader())
 
 
-.. warning::
+Distributed Training Pitfalls
+=============================
 
-    The class:`~pytorch_lightning.lite.LightningLite` provides you only with the tool to scale your training,
-    but there is one major challenge ahead of you now: ``processes divergence``.
+The class:`~pytorch_lightning.lite.LightningLite` provides you only with the tool to scale your training,
+but there are several major challenges ahead of you now:
+* ``Processes divergence``: This happens when processes execute different section of the code due to
+different if/else condition, race condition on existing files, etc... resulting in hanging.
+* ``Cross processes reduction``: Wrongly reported metrics or gradients due mis-reduction.
+* ``Large sharded models``: Instantiation, materialization and state management of large models.
+* ``Rank 0 only actions``: Logging, profiling, etc..
+* ``Checkpointing / Early stopping / Callbacks``: Ability to easily customize your training behaviour and make it stateful.
+* ``batch-level fault tolerance training``: Ability to resume from failure as it never happened.
 
-    Processes divergence is extremely common and shouldn't be overlooked.
-    It happens when processes execute different section of the code due to
-    different if/else condition, race condition on existing files, etc...
-    This would likely result in your training hanging
-    and as a :class:`~pytorch_lightning.lite.LightningLite` provides full flexibility,
-    hanging would be the result of your own code.
-
-    If it happens, there is 2 solutions:
-    * Debug multiple processes which can be extremely tedious and take days to resolve.
-    * Start converting to Lightning which has been battle tested for years and implement best practices to avoid any ``processes divergence``.
-
+If you are facing one of those challenges, you are already meeting the limit of :class:`~pytorch_lightning.lite.LightningLite`
+and we strongly encourage you to slowly convert to Lightning, so you never have to worry about those.
 
 LightningLite to Lightning
 ==========================
