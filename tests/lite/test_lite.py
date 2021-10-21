@@ -84,6 +84,13 @@ def test_setup_dataloaders_return_type():
     assert lite_dataloader1.dataset is dataset1
 
 
+def test_lite_with_iterable():
+    """Test that the setup_dataloaders method fails when provided with an iterable."""
+    lite = EmptyLite()
+    with pytest.raises(MisconfigurationException, match="Only PyTorch DataLoader are currently supported"):
+        lite.setup_dataloaders(range(2))
+
+
 @mock.patch(
     "pytorch_lightning.lite.lite.LightningLite.device",
     new_callable=PropertyMock,

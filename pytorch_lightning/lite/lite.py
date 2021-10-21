@@ -17,7 +17,7 @@ from collections import Callable
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Generator, Iterable, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -187,13 +187,13 @@ class LightningLite(ABC):
                     param_group["params"] = [mapping.get(p, p) for p in param_group["params"]]
 
         model, optimizers = self._setup_model_and_optimizers(model, optimizers)
-        optimizers = optimizers[0] if len(optimizers) == 1 else optimizers
+        optimizers = optimizers[0] if isinstance(optimizers, Sequence) and len(optimizers) == 1 else optimizers
         self._num_models += 1
         return model, optimizers
 
     def setup_dataloaders(
         self, *dataloaders: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
-    ) -> Union[DataLoader, List[DataLoader]]:
+    ) -> Union[DataLoader, List[DataLoader], Iterable]:
         """Setup one or multiple dataloaders for accelerated training. If you need different settings for each
         dataloader, call this method individually for each one.
 
@@ -218,8 +218,8 @@ class LightningLite(ABC):
         return dataloaders
 
     def _setup_dataloader(
-        self, dataloader: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
-    ) -> DataLoader:
+        self, dataloader: Union[Iterable, DataLoader], replace_sampler: bool = True, move_to_device: bool = True
+    ) -> Union[Iterable, DataLoader]:
         """Setup a single dataloader for accelerated training.
 
         Args:
@@ -233,23 +233,23 @@ class LightningLite(ABC):
         Returns:
             The wrapped dataloader.
         """
-        sampler = dataloader.sampler
-        if replace_sampler and self._requires_distributed_sampler(dataloader):
-            if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
-                raise MisconfigurationException(
-                    "You seem to have configured a sampler in your DataLoader. This will be replaced "
-                    " by `DistributedSampler` since `replace_sampler_ddp` is True and you are using"
-                    " distributed training. Either remove the sampler from your DataLoader or set"
-                    " `replace_sampler=False` if you want to use your custom sampler."
-                )
-            sampler = self._get_distributed_sampler(dataloader, **self._strategy.distributed_sampler_kwargs)
+        if isinstance(dataloader, DataLoader):
+            if replace_sampler and self._requires_distributed_sampler(dataloader):
+                if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
+                    raise MisconfigurationException(
+                        "You seem to have configured a sampler in your DataLoader. This will be replaced "
+                        " by `DistributedSampler` since `replace_sampler_ddp` is True and you are using"
+                        " distributed training. Either remove the sampler from your DataLoader or set"
+                        " `replace_sampler=False` if you want to use your custom sampler."
+                    )
+                sampler = self._get_distributed_sampler(dataloader, **self._strategy.distributed_sampler_kwargs)
 
-        kwargs = TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler)
-        device = self.device if move_to_device else None
-        if isinstance(self._strategy, TPUSpawnPlugin):
-            dataloader = DataLoader(**kwargs)
-        else:
-            dataloader = _LiteDataLoader(device=device, **kwargs)
+            kwargs = TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler)
+            device = self.device if move_to_device else None
+            if isinstance(self._strategy, TPUSpawnPlugin):
+                dataloader = DataLoader(**kwargs)
+            else:
+                dataloader = _LiteDataLoader(device=device, **kwargs)
         return self._strategy.process_dataloader(dataloader)
 
     def backward(self, tensor: Tensor, *args: Any, model: Optional[_LiteModule] = None, **kwargs: Any) -> None:
@@ -274,6 +274,7 @@ class LightningLite(ABC):
             # requires to attach the current `DeepSpeedEngine` for the `_LiteOptimizer.step` call.
             self._strategy.model = model.module
 
+        assert self._strategy.model
         self._precision_plugin._run_backward(tensor, self._strategy.model, *args, **kwargs)
 
     @contextmanager
@@ -347,7 +348,7 @@ class LightningLite(ABC):
 
     def all_gather(
         self, data: Union[torch.Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
-    ):
+    ) -> Union[torch.Tensor, Dict, List, Tuple]:
         r"""
         Gather tensors or collections of tensors from multiple processes.
 
@@ -428,7 +429,7 @@ class LightningLite(ABC):
         self,
         model: nn.Module,
         optimizers: List[Optimizer],
-    ) -> Tuple[_LiteModule, List[_LiteOptimizer]]:
+    ) -> Tuple[_LiteModule, Union[_LiteOptimizer, List[_LiteOptimizer]]]:
         # Let accelerator/plugin wrap and connect the models and optimizers
         [model], optimizers = self._strategy._setup_models_and_optimizers([model], optimizers)
         model = _LiteModule(model, self._accelerator)
@@ -502,3 +503,6 @@ class LightningLite(ABC):
             raise MisconfigurationException(
                 "A dataloader should be passed only once to the ``setup_dataloaders`` method"
             )
+
+        if any(not isinstance(dl, DataLoader) for dl in dataloaders):
+            raise MisconfigurationException("Only PyTorch DataLoader are currently supported.")
