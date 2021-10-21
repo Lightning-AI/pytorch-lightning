@@ -152,9 +152,7 @@ def test_trainer_properties_restore_resume_from_checkpoint(tmpdir):
     resume_ckpt = str(tmpdir / "last.ckpt")
     state_dict = torch.load(resume_ckpt)
 
-    trainer_args.update(
-        {"max_epochs": 3, "enable_checkpointing": False, "callbacks": []}
-    )
+    trainer_args.update({"max_epochs": 3, "enable_checkpointing": False, "callbacks": []})
 
     class CustomClassifModel(CustomClassifModel):
         def _is_equal(self, a, b):
