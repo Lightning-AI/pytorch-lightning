@@ -17,7 +17,7 @@ on any kind of device while retaining full control over their own loops and opti
 
 - As a PyTorch user, I would like to convert my existing code to the Lightning API, but a one-step transition might be too complex. I am looking for a stepping stone to ensure reproducibility during the transition.
 
-Supported integrations
+Supported Integrations
 ======================
 
 :class:`~pytorch_lightning.lite.LightningLite` supports single and multiple models and optimizers.
@@ -29,7 +29,7 @@ Supported integrations
 #. ``strategy``:
     * ``dp``: Data Parallel.
     * ``ddp`` or ``ddp_spawn``: Distributed Data Parallel.
-    * ``ddp_shared`` or ``ddp_sharded_spawn``: Distributed Data Parallel with Zero 2.
+    * ``ddp_sharded`` or ``ddp_sharded_spawn``: Distributed Data Parallel with Zero 2.
     * ``deepspeed``: Distributed Data Parallel with Zero 2 / 3.
 #. ``precision``: ``float16`` and ``bfloat16`` with ``AMP`` or ``float64``.
 #. ``clusters``: ``TorchElastic``, ``SLURM``, ``Kubeflow``, ``LSF``.
@@ -190,11 +190,11 @@ Here are 4 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
 
 That's all. You can now train on any kind of device and scale your training.
 
-The :class:`~pytorch_lightning.lite.LightningLite` take care of device management, so you don't have to.
+The :class:`~pytorch_lightning.lite.LightningLite` takes care of device management, so you don't have to.
 
 You can remove any device specific logic within your code.
 
-Here is how to train on 8 gpus with `torch.bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_ precision.
+Here is how to train on 8 GPUs with `torch.bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_ precision:
 
 .. code-block:: python
 
@@ -204,7 +204,7 @@ Here is how to train on 8 gpus with `torch.bfloat16 <https://pytorch.org/docs/1.
     lite.run(lite_model, train_dataloader(), val_dataloader())
 
 
-Here is how to use `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/zero3-offload.html>`_ with 8 gpus and precision 16
+Here is how to use `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/zero3-offload.html>`_ with 8 GPUs and precision 16:
 
 
 .. code-block:: python
@@ -221,15 +221,15 @@ Distributed Training Pitfalls
 The :class:`~pytorch_lightning.lite.LightningLite` provides you only with the tool to scale your training,
 but there are several major challenges ahead of you now:
 
-#. Processes divergence: This happens when processes execute different section of the code due to different if/else condition, race condition on existing files, etc... resulting in hanging.
+#. Processes divergence: This happens when processes execute different section of the code due to different if/else condition, race condition on existing files, etc., resulting in hanging.
 #. Cross processes reduction: Wrongly reported metrics or gradients due mis-reduction.
 #. Large sharded models: Instantiation, materialization and state management of large models.
-#. Rank 0 only actions: Logging, profiling, etc..
+#. Rank 0 only actions: Logging, profiling, etc.
 #. Checkpointing / Early stopping / Callbacks: Ability to easily customize your training behaviour and make it stateful.
 #. Batch-level fault tolerance training: Ability to resume from a failure as if it never happened.
 
-If you are facing one of those challenges, you are already meeting the limit of :class:`~pytorch_lightning.lite.LightningLite`
-and we strongly encourage you to slowly convert to Lightning, so you never have to worry about those.
+If you are facing one of those challenges then you are already meeting the limit of :class:`~pytorch_lightning.lite.LightningLite`.
+We recommend you to convert to Lightning, so you never have to worry about those.
 
 LightningLite to Lightning
 ==========================
