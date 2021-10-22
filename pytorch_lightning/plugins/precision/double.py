@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, cast, Generator, List, Tuple
+from typing import Any, Generator, List, Tuple
 
 import torch
-import torch.nn as nn
+import torch.nn
+from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -24,79 +25,78 @@ from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
-class LightningDoublePrecisionModule(_LightningPrecisionModuleWrapperBase):
-    """LightningModule wrapper which converts incoming floating point data in ``*_step`` and ``forward`` to double
-    (``torch.float64``) precision.
+class LightningPrecisionModule(_LightningPrecisionModuleWrapperBase):
+    """LightningModule wrapper which converts incoming data in ``*_step`` and ``forward`` to a specific
+    precision."""
 
-    Args:
-        pl_module: the model to wrap
-    """
+    def __init__(self, pl_module: "pl.LightningModule", dtype: torch.dtype) -> None:
+        """Wraps the user's LightningModule.
+
+        Requires overriding all ``*_step`` methods and ``forward`` so that it can safely be wrapped by a
+        ``_LightningModuleWrapperBase`` and a ``*DataParallel``.
+        """
+        super().__init__(pl_module)
+        self.__dtype = dtype
 
     @staticmethod
-    def _to_double_precision(data: torch.Tensor) -> torch.Tensor:
-        if data.is_floating_point():
-            return data.double()
-        return data
+    def _to(data: torch.Tensor, dtype: torch.dtype) -> torch.Tensor:
+        return data.to(dtype)
 
-    @staticmethod
-    def _move_float_tensors_to_double(collection: Any) -> Any:
-        return apply_to_collection(collection, torch.Tensor, LightningDoublePrecisionModule._to_double_precision)
+    def _move_tensors(self, collection: Any) -> Any:
+        return apply_to_collection(collection, torch.Tensor, LightningPrecisionModule._to, self.__dtype)
 
     def training_step(self, *args: Any, **kwargs: Any) -> Any:
-        return self.module.training_step(
-            *LightningDoublePrecisionModule._move_float_tensors_to_double(args),
-            **LightningDoublePrecisionModule._move_float_tensors_to_double(kwargs),
-        )
+        return self.module.training_step(*self._move_tensors(args), **self._move_tensors(kwargs))
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Any:
-        return self.module.validation_step(
-            *LightningDoublePrecisionModule._move_float_tensors_to_double(args),
-            **LightningDoublePrecisionModule._move_float_tensors_to_double(kwargs),
-        )
+        return self.module.validation_step(*self._move_tensors(args), **self._move_tensors(kwargs))
 
     def test_step(self, *args: Any, **kwargs: Any) -> Any:
-        return self.module.test_step(
-            *LightningDoublePrecisionModule._move_float_tensors_to_double(args),
-            **LightningDoublePrecisionModule._move_float_tensors_to_double(kwargs),
-        )
+        return self.module.test_step(*self._move_tensors(args), **self._move_tensors(kwargs))
 
     def predict_step(self, *args: Any, **kwargs: Any) -> Any:
-        return self.module.predict_step(
-            *LightningDoublePrecisionModule._move_float_tensors_to_double(args),
-            **LightningDoublePrecisionModule._move_float_tensors_to_double(kwargs),
-        )
+        return self.module.predict_step(*self._move_tensors(args), **self._move_tensors(kwargs))
 
     def forward(self, *args: Any, **kwargs: Any) -> Any:
-        return self.module(
-            *LightningDoublePrecisionModule._move_float_tensors_to_double(args),
-            **LightningDoublePrecisionModule._move_float_tensors_to_double(kwargs),
-        )
+        return self.module(*self._move_tensors(args), **self._move_tensors(kwargs))
 
 
-class DoublePrecisionPlugin(PrecisionPlugin):
+class DtypePrecisionPlugin(PrecisionPlugin):
+    """Plugin for training with double a specific :class:`torch.dtype`."""
+
+    def __init__(self, dtype: torch.dtype) -> None:
+        self.__dtype = dtype
+
+    def connect(
+        self, model: Module, optimizers: List[Optimizer], lr_schedulers: List[Any]
+    ) -> Tuple[Module, List[Optimizer], List[Any]]:
+        """Wraps the model it in a ``LightningPrecisionModule`` to convert incoming data to a specific
+        precision."""
+        model = LightningPrecisionModule(model, self.__dtype)
+        return super().connect(model, optimizers, lr_schedulers)
+
+    @contextmanager
+    def autodtype(self) -> Generator[None, None, None]:
+        """A context manager to change the default tensor type.
+
+        See: :meth:`torch.set_default_dtype`
+        """
+        previous = torch.get_default_dtype()
+        torch.set_default_dtype(self.__dtype)
+        try:
+            yield
+        finally:
+            # make sure the default dtype is restored. otherwise, the new dtype can leak if the program fails
+            torch.set_default_dtype(previous)
+
+    def forward_context(self) -> Generator[None, None, None]:
+        return self.autodtype()
+
+
+class DoublePrecisionPlugin(DtypePrecisionPlugin):
     """Plugin for training with double (``torch.float64``) precision."""
 
     precision: int = 64
 
-    def connect(
-        self, model: nn.Module, optimizers: List[Optimizer], lr_schedulers: List[Any]
-    ) -> Tuple[nn.Module, List["Optimizer"], List[Any]]:
-        """Converts the model to double precision and wraps it in a ``LightningDoublePrecisionModule`` to convert
-        incoming floating point data to double (``torch.float64``) precision.
-
-        Does not alter `optimizers` or `lr_schedulers`.
-        """
-        model = cast(pl.LightningModule, model.double())
-        model = LightningDoublePrecisionModule(model)
-
-        return super().connect(model, optimizers, lr_schedulers)
-
-    @contextmanager
-    def forward_context(self) -> Generator[None, None, None]:
-        """A context manager to change the default tensor type.
-
-        See: :meth:`torch.set_default_tensor_type`
-        """
-        torch.set_default_tensor_type(torch.DoubleTensor)
-        yield
-        torch.set_default_tensor_type(torch.FloatTensor)
+    def __init__(self):
+        super().__init__(torch.double)

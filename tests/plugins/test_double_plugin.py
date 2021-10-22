@@ -124,12 +124,18 @@ class DoublePrecisionBoringModelNoForward(BoringModel):
 class DoublePrecisionBoringModelComplexBuffer(BoringModel):
     def __init__(self):
         super().__init__()
-
-        self.register_buffer("complex_buffer", torch.complex(torch.rand(10), torch.rand(10)), False)
+        self.register_buffer("complex_buffer", torch.tensor([1.2, 3.4j]), False)
 
     def on_fit_start(self):
-        assert self.layer.weight.dtype == torch.float64
-        assert self.complex_buffer.dtype == torch.complex64
+        super().on_fit_start()
+        # when the default floating point type is float64 the default complex type is complex128
+        assert self.complex_buffer.dtype == torch.complex128
+        # this hook is not wrapped. # TODO: should it be?
+        assert torch.tensor([1.2, 3.4j]).dtype == torch.complex64
+
+    def training_step(self, batch, batch_idx):
+        assert torch.tensor([1.2, 3.4j]).dtype == torch.complex128
+        return super().training_step(batch, batch_idx)
 
 
 @pytest.mark.parametrize(
@@ -144,9 +150,9 @@ class DoublePrecisionBoringModelComplexBuffer(BoringModel):
     ],
 )
 def test_double_precision(tmpdir, boring_model):
-    model = boring_model()
-
     trainer = Trainer(max_epochs=2, default_root_dir=tmpdir, fast_dev_run=2, precision=64, log_every_n_steps=1)
+    with trainer.precision_plugin.autodtype():
+        model = boring_model()
     trainer.fit(model)
     trainer.test(model)
     trainer.predict(model)
@@ -154,8 +160,6 @@ def test_double_precision(tmpdir, boring_model):
 
 @RunIf(min_gpus=2)
 def test_double_precision_ddp(tmpdir):
-    model = DoublePrecisionBoringModel()
-
     trainer = Trainer(
         max_epochs=1,
         default_root_dir=tmpdir,
@@ -165,6 +169,8 @@ def test_double_precision_ddp(tmpdir):
         precision=64,
         log_every_n_steps=1,
     )
+    with trainer.precision_plugin.autodtype():
+        model = DoublePrecisionBoringModel()
     trainer.fit(model)
 
 
@@ -173,3 +179,21 @@ def test_double_precision_pickle(tmpdir):
     plugin = DoublePrecisionPlugin()
     model, _, __ = plugin.connect(model, MagicMock(), MagicMock())
     pickle.dumps(model)
+
+
+def test_double_precision_restores_dtype():
+    class DummyException(BaseException):
+        ...
+
+    class Model(BoringModel):
+        def training_step(self, batch, batch_idx):
+            assert torch.get_default_dtype() == torch.double
+            raise DummyException
+
+    model = Model()
+    trainer = Trainer(precision=64, num_sanity_val_steps=0)
+
+    assert torch.get_default_dtype() == torch.float
+    with pytest.raises(DummyException):
+        trainer.fit(model)
+    assert torch.get_default_dtype() == torch.float
