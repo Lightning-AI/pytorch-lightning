@@ -52,7 +52,7 @@ def simple_profiler():
     return SimpleProfiler()
 
 
-@pytest.mark.flaky(reruns=3)
+@RunIf(special=True)
 @pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_simple_profiler_durations(simple_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
