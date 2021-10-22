@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-20.04
     container:
       image: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python-version }}-torch${{ matrix.pytorch-version }}
-      options: --shm-size=1G
+      options: --ipc=host
     strategy:
       fail-fast: false
       matrix:
