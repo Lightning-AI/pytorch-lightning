@@ -12,16 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Existing images:
-# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.8
-# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.6
-
 ARG CUDA_VERSION=11.1
 
-#FROM ubuntu:20.04
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
 
-ARG PYTHON_VERSION=3.8
+ARG PYTHON_VERSION=3.9
+ARG PYTORCH_VERSION=1.8
 ARG CONDA_VERSION=4.9.2
 
 SHELL ["/bin/bash", "-c"]
@@ -47,7 +43,7 @@ RUN apt-get update -qq --fix-missing && \
 
 # Install conda and python.
 # NOTE new Conda does not forward the exit status... https://github.com/conda/conda/issues/8385
-    curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py38_${CONDA_VERSION}-Linux-x86_64.sh && \
+    curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py39_${CONDA_VERSION}-Linux-x86_64.sh && \
     chmod +x ~/miniconda.sh && \
     ~/miniconda.sh -b && \
     rm ~/miniconda.sh && \
@@ -70,14 +66,11 @@ ENV \
 
 COPY environment.yml environment.yml
 
-ARG PYTORCH_VERSION=1.6
-
 # conda init
 RUN conda update -n base -c defaults conda && \
     conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} cudatoolkit=${CUDA_VERSION} -c nvidia -c pytorch -c pytorch-test -c pytorch-nightly && \
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages
-    # replace channel to nigtly if needed, fix PT version and remove Horovod as it will be installed later
     python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'- python[>=]+[\d\.]+', '# - python=${PYTHON_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
     python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'- pytorch[>=]+[\d\.]+', '# - pytorch=${PYTORCH_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
     cat environment.yml && \

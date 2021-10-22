@@ -54,7 +54,7 @@ jobs:
       fail-fast: false
       matrix:
         python_version: ["3.7"]
-        xla_version: ["1.6", "1.7", "1.8", "1.9"] # todo: , "nightly"
+        xla_version: ["1.7", "1.8", "1.9", "1.10"]
 
     steps:
       - name: Checkout
@@ -88,10 +88,7 @@ jobs:
       fail-fast: false
       matrix:
         python_version: ["3.6", "3.7", "3.8", "3.9"]
-        pytorch_version: ["1.6", "1.7", "1.8", "1.9"]
-        exclude:
-          - python_version: "3.9"
-            pytorch_version: "1.6"
+        pytorch_version: ["1.7", "1.8", "1.9", "1.10"]
 
     steps:
       - name: Checkout
@@ -123,10 +120,7 @@ jobs:
       fail-fast: false
       matrix:
         python_version: ["3.6", "3.7", "3.8", "3.9"]
-        pytorch_version: ["1.6", "1.7", "1.8", "1.9", "1.10"]
-        exclude:
-          - python_version: "3.9"
-            pytorch_version: "1.6"
+        pytorch_version: ["1.7", "1.8", "1.9", "1.10"]  # add nightly only when there's a release candidate for it
 
     steps:
       - name: Checkout

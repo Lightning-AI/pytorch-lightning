@@ -35,14 +35,13 @@ RUN apt-get update -qq && \
         curl \
         git \
         jq \
-        libomp5 \
         libopenmpi-dev \
         unzip \
         wget \
     && \
 # Install conda and python.
 # NOTE new Conda does not forward the exit status... https://github.com/conda/conda/issues/8385
-    curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py38_${CONDA_VERSION}-Linux-x86_64.sh && \
+    curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py39_${CONDA_VERSION}-Linux-x86_64.sh && \
     chmod +x ~/miniconda.sh && \
     ~/miniconda.sh -b && \
     rm ~/miniconda.sh && \
@@ -83,8 +82,7 @@ RUN \
     pip list | grep torch && \
     python -c "import torch; print(torch.__version__)" && \
     python requirements_adjust_versions.py requirements-extra.txt && \
-    python -c "fname = 'requirements-extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)" && \
-    python -c "fname = 'requirements-extra.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)" && \
+    python .github/prune-packages.py requirements-extra.txt "fairscale", "horovod" && \
     # Install remaining requirements
     pip install -r requirements-extra.txt --no-cache-dir && \
     pip install -r requirements-test.txt --no-cache-dir && \
