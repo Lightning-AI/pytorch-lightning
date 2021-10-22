@@ -195,11 +195,10 @@ Here is an example while running on 256 GPUs.
                 # do something on rank 0
                 ...
 
-            # Wait for all processes to enter this call. Use this to synchronize all parallel processes,
-            # but only if necessary, otherwise the overhead of synchronization will cause your program to slow down.
+            # Wait for all processes to enter this call.
             self.barrier()
 
-            # Reduce a boolean decision across processes
+            # Reduce a boolean decision across processes.
             self.reduce_decision(...)
 
 
