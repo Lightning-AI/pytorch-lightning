@@ -103,11 +103,10 @@ class LightningLite(ABC):
         self._accelerator = self._accelerator_connector.accelerator
         self._strategy = self._accelerator.training_type_plugin
         self._precision_plugin = self._accelerator.precision_plugin
+        self._num_models: int = 0
 
         # wrap the run method so we can inject setup logic or spawn processes for the user
         setattr(self, "run", self._run_wrapper(self.run))
-
-        self._num_models: int = 0
 
     @property
     def device(self) -> torch.device:
