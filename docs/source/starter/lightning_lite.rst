@@ -178,17 +178,35 @@ Here is an example while running on 256 GPUs.
             # Transfer an object from one process to all the others
             self.broadcast(..., src=...)
 
-            # Information about the rank of the current process
-            self.global_rank  # its global rank across multiple nodes
-            self.world_size  # total number of devices registered
-            self.local_rank  # local rank on the current node
-            self.node_rank  # rank to differentiate the node when training on multiple nodes.
+            # The total number of processes running across all devices and nodes.
+            self.world_size
 
-            # whether this process is global_rank is 0.
-            self.is_global_zero
+            # The global index of the current process across all devices and nodes.
+            self.global_rank
+
+            # The index of the current process among the processes running on the local node.
+            self.local_rank
+
+            # The index of the current node.
+            self.node_rank
+
+            # Wether this global rank is rank zero.
+            if self.is_global_zero:
+                # do something on rank 0
+                ...
+
+            # Wait for all processes to enter this call. Use this to synchronize all parallel processes,
+            # but only if necessary, otherwise the overhead of synchronization will cause your program to slow down.
+            self.barrier()
+
+            # Reduce a boolean decision across processes
+            self.reduce_decision(...)
 
 
     Lite(strategy="ddp", gpus=8, num_nodes=32, accelerator="gpu").run()
+
+
+.. note:: We recommend instantiating the models within the :meth:`~pytorch_lightning.lite.LightningLite.run` method as large models would cause OOM Error otherwise.
 
 
 Distributed Training Pitfalls

@@ -316,7 +316,7 @@ class LightningLite(ABC):
 
     def barrier(self) -> None:
         """Wait for all processes to enter this call. Use this to synchronize all parallel processes, but only if
-        necessary, otherwhise the overhead of synchronization will cause your program to slow down.
+        necessary, otherwise the overhead of synchronization will cause your program to slow down.
 
         Example::
 
