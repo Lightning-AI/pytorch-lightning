@@ -207,9 +207,9 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         self.meta = metadata
         self.has_reset = False
         if is_tensor:
-            self.add_state("value", torch.tensor(0, dtype=torch.float), dist_reduce_fx=torch.sum)
+            self.add_state("value", torch.tensor(0, dtype=torch.float64), dist_reduce_fx=torch.sum)
             if self.meta.is_mean_reduction:
-                self.add_state("cumulated_batch_size", torch.tensor(0, dtype=torch.float), dist_reduce_fx=torch.sum)
+                self.add_state("cumulated_batch_size", torch.tensor(0, dtype=torch.float64), dist_reduce_fx=torch.sum)
 
     def update(self, value: _IN_METRIC, batch_size: torch.Tensor) -> None:
         if self.is_tensor:
