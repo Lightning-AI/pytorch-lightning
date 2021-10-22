@@ -164,7 +164,6 @@ def test_rich_progress_bar_keyboard_interrupt(tmpdir):
 
 
 @RunIf(rich=True)
-@pytest.mark.skipif(True, reason="Failing for Rich")
 def test_progress_bar_totals(tmpdir):
     """Test that the progress finishes with the correct total steps processed."""
 
