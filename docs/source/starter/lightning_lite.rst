@@ -54,7 +54,7 @@ Learn by example
 My existing PyTorch code
 ========================
 
-The ``run`` function contains custom training loop used to train ``MyModel`` on ``MyDataset``.
+The ``run`` function contains custom training loop used to train ``MyModel`` on ``MyDataset`` for ``num_epochs`` epochs.
 
 .. code-block:: python
 
