@@ -269,16 +269,18 @@ from its hundreds of features.
 
 
     class BoringDataModule(LightningDataModule):
-        def train_dataloader(self):
-            return DataLoader(RandomDataset(64, 32))
+        def __init__(self, dataset: Dataset):
+            super().__init__()
+            self.dataset = dataset
 
-        def val_dataloader(self):
-            return DataLoader(RandomDataset(64, 32))
+        def train_dataloader(self):
+            return DataLoader(self.dataset)
 
 
     seed_everything(42)
-    model = BoringModel()
+    model = MyModel(...)
     lightning_module = LiftModel(model)
-    datamodule = BoringDataModule()
+    dataset = MyDataset(...)
+    datamodule = BoringDataModule(dataset)
     trainer = Trainer(max_epochs=10)
     trainer.fit(lightning_module, datamodule)
