@@ -1802,7 +1802,7 @@ class Trainer(
     def resume_from_checkpoint(self) -> Optional[Union[str, Path]]:
         rank_zero_deprecation(
             "`trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7."
-            " Specify fit ckpt_path with `trainer.fit(ckpt_path=)` instead."
+            " Specify the fit checkpoint path with `trainer.fit(ckpt_path=)` instead."
         )
         return self.checkpoint_connector.resume_from_checkpoint_fit_path
 
