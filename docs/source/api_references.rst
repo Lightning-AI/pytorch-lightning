@@ -211,7 +211,6 @@ Checkpoint IO Plugins
 
     CheckpointIO
     TorchCheckpointIO
-    XLACheckpointIO
 
 Profiler API
 ------------

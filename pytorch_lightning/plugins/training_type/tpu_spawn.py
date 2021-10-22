@@ -25,11 +25,17 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
-from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, rank_zero_warn, set_shared_parameters
+from pytorch_lightning.utilities import (
+    _OMEGACONF_AVAILABLE,
+    _TPU_AVAILABLE,
+    find_shared_parameters,
+    rank_zero_warn,
+    set_shared_parameters,
+)
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -46,19 +52,15 @@ if _TPU_AVAILABLE:
 else:
     xm, xmp, MpDeviceLoader, rendezvous = [None] * 4
 
+if _OMEGACONF_AVAILABLE:
+    from omegaconf import DictConfig, ListConfig, OmegaConf
+
 
 class TPUSpawnPlugin(DDPSpawnPlugin):
     """Plugin for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method."""
 
-    def __init__(
-        self,
-        parallel_devices: Optional[List[int]] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        debug: bool = False,
-        **_: Any
-    ) -> None:
-        checkpoint_io = checkpoint_io or XLACheckpointIO()
-        super().__init__(parallel_devices=parallel_devices, checkpoint_io=checkpoint_io)
+    def __init__(self, parallel_devices: Optional[List[int]] = None, debug: bool = False, **_: Any) -> None:
+        super().__init__(parallel_devices=parallel_devices)
         self.debug = debug
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
@@ -315,7 +317,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             checkpoint: dict containing model and trainer state
             filepath: write-target file's path
         """
-        return self.checkpoint_io.save_checkpoint(checkpoint, filepath)
+        # Todo: TypeError: 'mappingproxy' object does not support item assignment
+        if _OMEGACONF_AVAILABLE:
+            checkpoint = apply_to_collection(checkpoint, (DictConfig, ListConfig), OmegaConf.to_container)
+        self.save({k: v for k, v in checkpoint.items() if k != "callbacks"}, filepath)
 
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
         """

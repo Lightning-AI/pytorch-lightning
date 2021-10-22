@@ -22,7 +22,7 @@ from torch import nn
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
-from pytorch_lightning.plugins import TPUPrecisionPlugin, TPUSpawnPlugin, XLACheckpointIO
+from pytorch_lightning.plugins import TPUPrecisionPlugin, TPUSpawnPlugin
 from pytorch_lightning.utilities import find_shared_parameters
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
@@ -294,9 +294,3 @@ def test_tpu_invalid_raises():
     accelerator = TPUAccelerator(TPUPrecisionPlugin(), object())
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUPlugin` or `TPUSpawnPlugi"):
         accelerator.setup(object())
-
-
-@RunIf(tpu=True)
-def test_xla_checkpoint_plugin_being_default():
-    trainer = Trainer(tpu_cores=8)
-    assert isinstance(trainer.training_type_plugin.checkpoint_io, XLACheckpointIO)
