@@ -18,12 +18,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-18.04, windows-2019, macOS-10.15]
-        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
-        requires: ['minimal', 'latest']
-        release: ['stable']
-        exclude:
-          - python-version: 3.9
-            requires: 'minimal'
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        requires: ["minimal", "latest"]
+        release: ["stable"]
+        include:
+          # test 3.6 only on minimal until EOL: https://github.com/PyTorchLightning/pytorch-lightning/issues/9981
+          - python-version: "3.6"
+            requires: "minimal"
         # add nightly only when there's a release candidate for it
         # include:
         #   - os: ubuntu-20.04
