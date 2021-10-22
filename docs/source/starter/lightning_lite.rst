@@ -223,16 +223,16 @@ but there are several major challenges ahead of you now:
    :header-rows: 1
 
    * - Processes divergence
-     - This happens when processes execute different section of the code due to different if/else condition, race condition on existing files, etc., resulting in hanging.
-   * - Cross processes reduction
+     - Cross processes reduction
+     - Large sharded models
+     - Rank 0 only actions
+     - Checkpointing / Early stopping / Callbacks
+     - Batch-level fault tolerance training
+   * - This happens when processes execute different section of the code due to different if/else condition, race condition on existing files, etc., resulting in hanging.
      - Wrongly reported metrics or gradients due mis-reduction.
-   * - Large sharded models
      - Instantiation, materialization and state management of large models.
-   * - Rank 0 only actions
      - Logging, profiling, etc.
-   * - Checkpointing / Early stopping / Callbacks
      - Ability to easily customize your training behaviour and make it stateful.
-   * - Batch-level fault tolerance training
      - Ability to resume from a failure as if it never happened.
 
 If you are facing one of those challenges then you are already meeting the limit of :class:`~pytorch_lightning.lite.LightningLite`.
