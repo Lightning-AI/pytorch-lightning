@@ -25,7 +25,8 @@ Supported Integrations
 .. list-table::
    :widths: 50 50
    :header-rows: 1
-
+   * - LightningLite arguments
+     - Possible choices
    * - ``accelerator``
      - ``cpu``, ``gpu``, ``tpu``, ``auto``
    * - ``strategy``
@@ -36,16 +37,8 @@ Supported Integrations
      - ``TorchElastic``, ``SLURM``, ``Kubeflow``, ``LSF``
 
 
-Coming soon:
+Coming soon: IPU accelerator, support for Horovod as a strategy and fully sharded training.
 
-.. list-table::
-   :widths: 50 50
-   :header-rows: 1
-
-   * - ``accelerator``
-     - ``ipu``
-   * - ``strategy``
-     - ``horovod``, ``ddp_fully_shardded``
 
 ################
 Learn by example
