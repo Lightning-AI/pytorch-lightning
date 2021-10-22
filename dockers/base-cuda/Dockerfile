@@ -84,15 +84,11 @@ RUN \
 
     # Disable cache
     pip config set global.cache-dir false && \
-    # eventualy use pre-release
-    #pip install "torch==${PYTORCH_VERSION}.*" --pre && \
     # set particular PyTorch version
     python ./requirements/adjust_versions.py requirements.txt ${PYTORCH_VERSION} && \
     python ./requirements/adjust_versions.py requirements/extra.txt ${PYTORCH_VERSION} && \
     python ./requirements/adjust_versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
     # Install all requirements
-    # todo: find a way how to install nightly PT version
-    #  --pre --extra-index-url https://download.pytorch.org/whl/nightly/cu${cuda_ver[0]}${cuda_ver[1]}/torch_nightly.html
     pip install -r requirements/devel.txt --no-cache-dir && \
     rm -rf requirements.* requirements/
 
@@ -105,7 +101,6 @@ RUN \
         pip install --extra-index-url https://developer.download.nvidia.com/compute/redist "nvidia-dali-cuda${CUDA_VERSION_MAJOR}0>1.0" ; \
         python -c 'from nvidia.dali.pipeline import Pipeline' ; \
     fi
-
 
 RUN \
     # install NVIDIA apex
