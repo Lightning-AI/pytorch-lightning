@@ -251,7 +251,7 @@ from its hundreds of features.
 
         def training_step(self, batch, batch_idx):
             loss = self(batch)
-            self.log("train_loss", x)
+            self.log("train_loss", loss)
             return loss
 
         def validation_step(self, batch, batch_idx):
