@@ -23,8 +23,18 @@ jobs:
         release: ["stable"]
         include:
           # test 3.6 only on oldest until EOL: https://github.com/PyTorchLightning/pytorch-lightning/issues/9981
-          - python-version: "3.6"
+          - os: ubuntu-20.04
+            python-version: "3.6"
             requires: "oldest"
+            release: "stable"
+          - os: windows-2019
+            python-version: "3.6"
+            requires: "oldest"
+            release: "stable"
+          - os: macOS-10.15
+            python-version: "3.6"
+            requires: "oldest"
+            release: "stable"
         # add nightly only when there's a release candidate for it
         # include:
         #   - os: ubuntu-20.04
