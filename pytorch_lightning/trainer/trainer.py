@@ -680,7 +680,7 @@ class Trainer(
 
         # TODO: ckpt_path only in v1.7
         ckpt_path = ckpt_path or self.resume_from_checkpoint
-        self._run(model, ckpt_path)
+        self._run(model, ckpt_path=ckpt_path)
 
         assert self.state.stopped
         self.training = False
@@ -857,7 +857,7 @@ class Trainer(
         )
 
         # run test
-        results = self._run(model, self.tested_ckpt_path)
+        results = self._run(model, ckpt_path=self.tested_ckpt_path)
 
         assert self.state.stopped
         self.testing = False
@@ -940,7 +940,7 @@ class Trainer(
             ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
 
-        results = self._run(model, self.predicted_ckpt_path)
+        results = self._run(model, ckpt_path=self.predicted_ckpt_path)
 
         assert self.state.stopped
         self.predicting = False
