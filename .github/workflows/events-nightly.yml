@@ -54,7 +54,7 @@ jobs:
       fail-fast: false
       matrix:
         python_version: ["3.9"]
-        xla_version: ["1.7", "1.8", "1.9", "1.10"]
+        xla_version: ["1.7.1", "1.8.1", "1.9.1", "1.10"]
 
     steps:
       - name: Checkout
@@ -88,7 +88,7 @@ jobs:
       fail-fast: false
       matrix:
         python_version: ["3.6", "3.7", "3.8", "3.9"]
-        pytorch_version: ["1.7", "1.8", "1.9", "1.10"]
+        pytorch_version: ["1.7.1", "1.8.1", "1.9.1", "1.10.0"]
 
     steps:
       - name: Checkout
@@ -120,7 +120,7 @@ jobs:
       fail-fast: false
       matrix:
         python_version: ["3.6", "3.7", "3.8", "3.9"]
-        pytorch_version: ["1.7", "1.8", "1.9", "1.10"]  # nightly: add when there's a release candidate
+        pytorch_version: ["1.7.1", "1.8.1", "1.9.1", "1.10.0"]  # nightly: add when there's a release candidate
 
     steps:
       - name: Checkout
@@ -160,7 +160,7 @@ jobs:
       matrix:
         include:
           - python_version: "3.9"
-            pytorch_version: "1.7"
+            pytorch_version: "1.7.1"
 
     steps:
       - name: Checkout
