@@ -38,7 +38,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import (
-    _TORCH_GREATER_EQUAL_DEV_1_10,
+    _TORCH_SHARDED_TENSOR_AVAILABLE,
     GradClipAlgorithmType,
     rank_zero_deprecation,
     rank_zero_warn,
@@ -2041,7 +2041,7 @@ class LightningModule(
 
         These hooks ensure that ShardedTensors are included when saving, and are loaded the LightningModule correctly.
         """
-        if not _TORCH_GREATER_EQUAL_DEV_1_10:
+        if not _TORCH_SHARDED_TENSOR_AVAILABLE:
             return
 
         from torch.distributed._sharded_tensor import pre_load_state_dict_hook, state_dict_hook
