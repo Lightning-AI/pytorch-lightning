@@ -28,12 +28,12 @@ Supported Integrations
    * - LightningLite arguments
      - Possible choices
    * - ``accelerator``
-     - ``cpu``, ``gpu``, ``tpu``, ``auto``
-   * - ``strategy``
+     - ``strategy``
+     - ``precision``
+     - ``clusters``
+   * - ``cpu``, ``gpu``, ``tpu``, ``auto``
      - ``dp``, ``ddp``, ``ddp_spawn``, ``ddp_sharded``, ``ddp_sharded_spawn``, ``deepspeed``
-   * - ``precision``
      - ``16``, ``bf16``, ``32``, ``64``
-   * - ``clusters``
      - ``TorchElastic``, ``SLURM``, ``Kubeflow``, ``LSF``
 
 
@@ -69,7 +69,7 @@ The ``run`` function contains custom training loop used to train ``MyModel`` on 
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
         model = MyModel(...).to(device)
-        optimizer = torch.optim.SGD(model.parameters())
+        optimizer = torch.optim.SGD(model.parameters(), ...)
 
         dataloader = DataLoader(MyDataset(...), ...)
 
@@ -116,7 +116,7 @@ Here are 4 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
         def run(self, num_epochs: int):
 
             model = MyModel(...)
-            optimizer = torch.optim.SGD(model.parameters())
+            optimizer = torch.optim.SGD(model.parameters(), ...)
 
             model, optimizer = self.setup(model, optimizer)
 
@@ -125,7 +125,7 @@ Here are 4 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
 
             model.train()
             for epoch in range(num_epochs):
-                for batch in train_dataloader:
+                for batch in dataloader:
                     optimizer.zero_grad()
                     loss = model(batch)
                     self.backward(loss)
@@ -145,17 +145,20 @@ Here is how to train on 8 GPUs with `torch.bfloat16 <https://pytorch.org/docs/1.
 
 .. code-block:: python
 
-    lite = Lite(strategy="ddp", devices=8, accelerator="gpu", precision="bf16")
-    Lite().run(10, model, optimizer, train_dataloader, val_dataloader)
-
+    Lite(strategy="ddp", devices=8, accelerator="gpu", precision="bf16").run(10)
 
 Here is how to use `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/zero3-offload.html>`_ with 8 GPUs and precision 16:
 
+.. code-block:: python
+
+    Lite(strategy="deepspeed", devices=8, accelerator="gpu", precision=16).run(10)
+
+Lightning can also figure it automatically for you !
 
 .. code-block:: python
 
-    lite = Lite(strategy="deepspeed", devices=8, accelerator="gpu", precision=16)
-    lite.run(lite_model, train_dataloader(), val_dataloader())
+    Lite(devices="auto", accelerator="auto", precision=16).run(10)
+
 
 You can also easily use distributed collectives if required.
 Here is an example while running on 256 GPUs.
@@ -212,23 +215,24 @@ but there are several major challenges ahead of you now:
    :header-rows: 1
 
    * - Processes divergence
-     - This happens when processes execute different section of the code due to different if/else condition, race condition on existing files, etc., resulting in hanging.
-   * - Cross processes reduction
+     - Cross processes reduction
+     - Large sharded models
+     - Rank 0 only actions
+     - Checkpointing / Early stopping / Callbacks
+     - Batch-level fault tolerance training
+   * - This happens when processes execute different section of the code due to different if/else condition, race condition on existing files, etc., resulting in hanging.
      - Wrongly reported metrics or gradients due mis-reduction.
-   * - Large sharded models
      - Instantiation, materialization and state management of large models.
-   * - Rank 0 only actions
      - Logging, profiling, etc.
-   * - Checkpointing / Early stopping / Callbacks
      - Ability to easily customize your training behaviour and make it stateful.
-   * - Batch-level fault tolerance training
      - Ability to resume from a failure as if it never happened.
 
 If you are facing one of those challenges then you are already meeting the limit of :class:`~pytorch_lightning.lite.LightningLite`.
-We recommend you to convert to Lightning, so you never have to worry about those.
+We recommend you to convert to `Lightning <https://pytorch-lightning.readthedocs.io/en/latest/starter/new-project.html>`_,
+so you never have to worry about those.
 
-LightningLite to Lightning
-==========================
+Convert to Lightning
+====================
 
 The :class:`~pytorch_lightning.lite.LightningLite` is a stepping stone to transition fully to the Lightning API and benefits
 from its hundreds of features.
@@ -247,14 +251,14 @@ from its hundreds of features.
             return self.module(x)
 
         def training_step(self, batch, batch_idx):
-            x = self.forward(batch)
+            loss = self(batch)
             self.log("train_loss", x)
-            return x
+            return loss
 
         def validation_step(self, batch, batch_idx):
-            x = self.forward(batch)
-            self.log("val_loss", x)
-            return x
+            loss = self(batch)
+            self.log("val_loss", loss)
+            return loss
 
         def configure_optimizers(self):
             return torch.optim.SGD(self.parameters(), lr=0.001)
@@ -275,4 +279,4 @@ from its hundreds of features.
     dataset = MyDataset(...)
     datamodule = BoringDataModule(dataset)
     trainer = Trainer(max_epochs=10)
-    trainer.fit(lightning_module, datamodule)
+    trainer.fit(lightning_module, datamodule=datamodule)
