@@ -24,11 +24,11 @@ jobs:
         extras: ["true"]  # whether to install extras
         include:
           # test 3.6 only on oldest until EOL: https://github.com/PyTorchLightning/pytorch-lightning/issues/9981
-          - {os: ubuntu-20.04, python-version: "3.6", requires: "oldest", release: "stable", extras: "true"}
+          - {os: ubuntu-18.04, python-version: "3.6", requires: "oldest", release: "stable", extras: "true"}
           - {os: windows-2019, python-version: "3.6", requires: "oldest", release: "stable", extras: "true"}
           - {os: macOS-10.15, python-version: "3.6", requires: "oldest", release: "stable", extras: "true"}
           # add a job that does not install extras. this is useful to catch errors from missing dependencies
-          - {os: ubuntu-20.04, python-version: "3.9", requires: "latest", release: "stable", extras: "false"}
+          - {os: ubuntu-18.04, python-version: "3.9", requires: "latest", release: "stable", extras: "false"}
           # nightly: add when there's a release candidate
           #- {os: ubuntu-20.04, python-version: "3.10", requires: "latest", release: "pre", extras: "false" }
 
