@@ -31,6 +31,7 @@ jobs:
         python ./requirements/adjust_versions.py requirements/extra.txt
         python ./requirements/adjust_versions.py requirements/examples.txt
         pip install --requirement requirements/devel.txt --find-links https://download.pytorch.org/whl/nightly/torch_nightly.html
+        pip install --pre torch==1.10.0.dev20211020 -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html
         pip list
 
     - name: Pull checkpoints from S3
