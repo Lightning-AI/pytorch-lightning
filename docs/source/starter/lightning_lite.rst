@@ -228,8 +228,7 @@ but there are several major challenges ahead of you now:
      - Ability to resume from a failure as if it never happened.
 
 If you are facing one of those challenges then you are already meeting the limit of :class:`~pytorch_lightning.lite.LightningLite`.
-We recommend you to convert to `Lightning <https://pytorch-lightning.readthedocs.io/en/latest/starter/new-project.html>`_,
-so you never have to worry about those.
+We recommend you to convert to :doc:`Lightning <../starter/new-project>`, so you never have to worry about those.
 
 Convert to Lightning
 ====================
