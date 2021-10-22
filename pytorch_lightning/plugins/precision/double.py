@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Generator, List, Tuple
+from typing import Any, Generator, List, Optional, Tuple
 
 import torch
 import torch.nn
@@ -38,27 +38,28 @@ class LightningPrecisionModule(_LightningPrecisionModuleWrapperBase):
         super().__init__(pl_module)
         self.__dtype = dtype
 
-    @staticmethod
-    def _to(data: torch.Tensor, dtype: torch.dtype) -> torch.Tensor:
-        return data.to(dtype)
-
-    def _move_tensors(self, collection: Any) -> Any:
-        return apply_to_collection(collection, torch.Tensor, LightningPrecisionModule._to, self.__dtype)
+    def _move_tensors(self, *args, **kwargs) -> Any:
+        return apply_to_collection([args, kwargs], function=lambda t: t.to(self.__dtype), dtype=torch.Tensor)
 
     def training_step(self, *args: Any, **kwargs: Any) -> Any:
-        return self.module.training_step(*self._move_tensors(args), **self._move_tensors(kwargs))
+        args, kwargs = self._move_tensors(*args, **kwargs)
+        return self.module.training_step(*args, **kwargs)
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Any:
-        return self.module.validation_step(*self._move_tensors(args), **self._move_tensors(kwargs))
+        args, kwargs = self._move_tensors(*args, **kwargs)
+        return self.module.validation_step(*args, **kwargs)
 
     def test_step(self, *args: Any, **kwargs: Any) -> Any:
-        return self.module.test_step(*self._move_tensors(args), **self._move_tensors(kwargs))
+        args, kwargs = self._move_tensors(*args, **kwargs)
+        return self.module.test_step(*args, **kwargs)
 
     def predict_step(self, *args: Any, **kwargs: Any) -> Any:
-        return self.module.predict_step(*self._move_tensors(args), **self._move_tensors(kwargs))
+        args, kwargs = self._move_tensors(*args, **kwargs)
+        return self.module.predict_step(*args, **kwargs)
 
     def forward(self, *args: Any, **kwargs: Any) -> Any:
-        return self.module(*self._move_tensors(args), **self._move_tensors(kwargs))
+        args, kwargs = self._move_tensors(*args, **kwargs)
+        return self.module(*args, **kwargs)
 
 
 class DtypePrecisionPlugin(PrecisionPlugin):
@@ -76,13 +77,14 @@ class DtypePrecisionPlugin(PrecisionPlugin):
         return super().connect(model, optimizers, lr_schedulers)
 
     @contextmanager
-    def autodtype(self) -> Generator[None, None, None]:
+    def autodtype(self, dtype: Optional[torch.dtype] = None) -> Generator[None, None, None]:
         """A context manager to change the default tensor type.
 
         See: :meth:`torch.set_default_dtype`
         """
         previous = torch.get_default_dtype()
-        torch.set_default_dtype(self.__dtype)
+        dtype = dtype or self.__dtype
+        torch.set_default_dtype(dtype)
         try:
             yield
         finally:
