@@ -20,6 +20,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DoublePrecisionPlugin
+from pytorch_lightning.plugins.precision.dtype import autodtype
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -151,7 +152,7 @@ class DoublePrecisionBoringModelComplexBuffer(BoringModel):
 )
 def test_double_precision(tmpdir, boring_model):
     trainer = Trainer(max_epochs=2, default_root_dir=tmpdir, fast_dev_run=2, precision=64, log_every_n_steps=1)
-    with trainer.precision_plugin.autodtype():
+    with autodtype(torch.double):
         model = boring_model()
     trainer.fit(model)
     trainer.test(model)
@@ -169,7 +170,7 @@ def test_double_precision_ddp(tmpdir):
         precision=64,
         log_every_n_steps=1,
     )
-    with trainer.precision_plugin.autodtype():
+    with trainer.precision_plugin.forward_context():
         model = DoublePrecisionBoringModel()
     trainer.fit(model)
 
