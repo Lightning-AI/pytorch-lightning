@@ -93,11 +93,7 @@ class CheckpointConnector:
         if self.resume_checkpoint_path and self.trainer.state.fn is not None:
             if self.trainer.state.fn == TrainerFn.FITTING:
                 rank_zero_info(f"Restored all states from the checkpoint file at {self.resume_checkpoint_path}")
-            elif (
-                self.trainer.state.fn == TrainerFn.VALIDATING
-                or self.trainer.state.fn == TrainerFn.TESTING
-                or self.trainer.state.fn == TrainerFn.PREDICTING
-            ):
+            elif self.trainer.state.fn in (TrainerFn.VALIDATING, TrainerFn.TESTING, TrainerFn.PREDICTING):
                 rank_zero_info(f"Loaded model weights from checkpoint at {self.resume_checkpoint_path}")
         # TODO: remove resume_from_checkpoint_fit_path in v1.7
         if (
