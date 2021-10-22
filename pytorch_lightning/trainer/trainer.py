@@ -767,7 +767,7 @@ class Trainer(
         )
 
         # run validate
-        results = self._run(model, self.validated_ckpt_path)
+        results = self._run(model, ckpt_path=self.validated_ckpt_path)
 
         assert self.state.stopped
         self.validating = False
