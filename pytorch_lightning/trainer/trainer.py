@@ -634,7 +634,7 @@ class Trainer(
             val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
 
             ckpt_path: Path/URL of the checkpoint from which training is resumed. If there is
-                no checkpoint file at the path, start from scratch. If resuming from mid-epoch checkpoint,
+                no checkpoint file at the path, an exception is raised. If resuming from mid-epoch checkpoint,
                 training will start from the beginning of the next epoch.
 
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
