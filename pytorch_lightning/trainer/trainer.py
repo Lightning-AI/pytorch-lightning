@@ -363,7 +363,7 @@ class Trainer(
 
                 .. deprecated:: v1.5
                     ``resume_from_checkpoint`` is deprecated in v1.5 and will be removed in v1.7.
-                    Please use ``Trainer.fit(ckpt_path)`` instead.
+                    Please pass the path to ``Trainer.fit(..., ckpt_path=...)`` instead.
 
             strategy: Supports different training strategies with aliases
                 as well custom training type plugins.
