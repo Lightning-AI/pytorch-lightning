@@ -1347,8 +1347,8 @@ By setting to False, you have to add your own distributed sampler:
 resume_from_checkpoint
 ^^^^^^^^^^^^^^^^^^^^^^
 
-.. warning:: `resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7.
-    Please pass `trainer.fit(ckpt_path="some/path/to/my_checkpoint.ckpt")` instead.
+.. warning:: ``resume_from_checkpoint`` is deprecated in v1.5 and will be removed in v1.7.
+    Please pass ``trainer.fit(ckpt_path="some/path/to/my_checkpoint.ckpt")`` instead.
 
 
 .. raw:: html
