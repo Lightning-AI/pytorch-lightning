@@ -93,7 +93,10 @@ class CheckpointConnector:
         if self.resume_checkpoint_path:
             rank_zero_info(f"Restored all states from the checkpoint file at {self.resume_checkpoint_path}")
         # TODO: remove resume_from_checkpoint_fit_path in v1.7
-        if self.trainer.state.fn == TrainerFn.FITTING and self.resume_checkpoint_path == self.resume_from_checkpoint_fit_path:
+        if (
+            self.trainer.state.fn == TrainerFn.FITTING
+            and self.resume_checkpoint_path == self.resume_from_checkpoint_fit_path
+        ):
             self.resume_from_checkpoint_fit_path = None
         self.resume_checkpoint_path = None
         self._loaded_checkpoint = {}
