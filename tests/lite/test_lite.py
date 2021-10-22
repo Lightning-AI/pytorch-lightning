@@ -48,10 +48,6 @@ class BoringModel(nn.Module):
         return torch.nn.functional.mse_loss(x, torch.ones_like(x))
 
 
-def configure_optimizers(module: nn.Module):
-    return torch.optim.SGD(module.parameters(), lr=0.0001)
-
-
 @pytest.mark.parametrize("accelerator", ["coconut"])
 def test_unsupported_accelerator(accelerator):
     with pytest.raises(MisconfigurationException, match=f"`accelerator={repr(accelerator)}` is not a valid choice"):
@@ -333,10 +329,10 @@ def test_backward_model_input_required():
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
 def test_deepspeed_multiple_models():
-    class LiteRunner(LightningLite):
+    class Lite(LightningLite):
         def run(self):
             model = BoringModel()
-            optimizer = configure_optimizers(model)
+            optimizer = torch.optim.SGD(model.parameters(), lr=0.0001)
             model, optimizer = self.setup(model, optimizer)
             state_dict = deepcopy(model.state_dict())
 
@@ -352,11 +348,11 @@ def test_deepspeed_multiple_models():
 
             seed_everything(42)
             model_1 = BoringModel()
-            optimizer_1 = configure_optimizers(model_1)
+            optimizer_1 = torch.optim.SGD(model_1.parameters(), lr=0.0001)
 
             seed_everything(42)
             model_2 = BoringModel()
-            optimizer_2 = configure_optimizers(model_2)
+            optimizer_2 = torch.optim.SGD(model_2.parameters(), lr=0.0001)
 
             for mw_1, mw_2 in zip(model_1.state_dict().values(), model_2.state_dict().values()):
                 assert torch.equal(mw_1, mw_2)
@@ -394,4 +390,4 @@ def test_deepspeed_multiple_models():
             assert self.broadcast(True)
             assert self.is_global_zero == (self.local_rank == 0)
 
-    LiteRunner(strategy=DeepSpeedPlugin(stage=3, logging_batch_size_per_gpu=1), devices=2, accelerator="gpu").run()
+    Lite(strategy=DeepSpeedPlugin(stage=3, logging_batch_size_per_gpu=1), devices=2, accelerator="gpu").run()
