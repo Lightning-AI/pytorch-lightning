@@ -17,7 +17,7 @@ jobs:
           # lfs: true
       - uses: actions/setup-python@v2
         with:
-          python-version: 3.7
+          python-version: 3.9
 
       - name: Weekly reset caching
         run: echo "::set-output name=period::$(python -c 'import time ; days = time.time() / 60 / 60 / 24 ; print(int(days / 7))' 2>&1)"
@@ -66,7 +66,7 @@ jobs:
           # lfs: true
       - uses: actions/setup-python@v2
         with:
-          python-version: 3.7
+          python-version: 3.9
 
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
