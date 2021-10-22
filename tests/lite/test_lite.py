@@ -27,9 +27,9 @@ from pytorch_lightning import seed_everything
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.plugins import DeepSpeedPlugin, PrecisionPlugin, TrainingTypePlugin
+from pytorch_lightning.utilities import DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.runif import RunIf
-from pytorch_lightning.utilities import DistributedType
 
 
 class EmptyLite(LightningLite):
