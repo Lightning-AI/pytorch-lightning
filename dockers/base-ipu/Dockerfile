@@ -82,7 +82,7 @@ RUN \
     pip list | grep torch && \
     python -c "import torch; print(torch.__version__)" && \
     python requirements_adjust_versions.py requirements-extra.txt && \
-    python .github/prune-packages.py requirements-extra.txt "fairscale", "horovod" && \
+    python .github/prune-packages.py requirements-extra.txt "fairscale" "horovod" && \
     # Install remaining requirements
     pip install -r requirements-extra.txt --no-cache-dir && \
     pip install -r requirements-test.txt --no-cache-dir && \

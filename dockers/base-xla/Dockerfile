@@ -94,7 +94,7 @@ RUN \
     python .github/prune-packages.py requirements.txt "torch" && \
     python .github/prune-packages.py requirements/examples.txt "torchvision" && \
     # drop unnecessary packages
-    python .github/prune-packages.py requirements/extra.txt "fairscale", "horovod" && \
+    python .github/prune-packages.py requirements/extra.txt "fairscale" "horovod" && \
     python ./requirements/adjust_versions.py ./requirements/extra.txt && \
     # install PL dependencies
     pip install --requirement ./requirements/devel.txt --no-cache-dir && \
