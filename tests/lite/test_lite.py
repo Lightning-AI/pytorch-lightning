@@ -128,6 +128,20 @@ def test_setup_twice_fails():
         lite.setup(model, lite_optimizer)
 
 
+def test_setup_tracks_num_models():
+    """Test that setup() tracks how many times it has setup a model."""
+    lite = EmptyLite()
+    model = nn.Linear(1, 2)
+    optimizer = torch.optim.Adam(model.parameters())
+
+    assert lite._num_models == 0
+    lite.setup(model, optimizer)
+    assert lite._num_models == 1
+
+    lite.setup(model, optimizer)
+    assert lite._num_models == 2
+
+
 def test_setup_dataloaders_unsupported_type():
     """Test that the setup_dataloaders method fails when provided with non-DataLoader objects."""
     lite = EmptyLite()
@@ -295,50 +309,26 @@ def test_backward():
     lite._precision_plugin._run_backward.assert_called_with(loss, None, "arg", keyword="kwarg")
 
 
-def test_lightning_lite_track_model_setup():
-    class LiteRunner(LightningLite):
-        def run(self):
-            model = BoringModel()
-            optimizer = configure_optimizers(model)
-
-            assert self._num_models == 0
-            self.setup(model, optimizer)
-            assert self._num_models == 1
-
-            model = BoringModel()
-            optimizer = configure_optimizers(model)
-            self.setup(model, optimizer)
-            assert self._num_models == 2
-
-    runner = LiteRunner()
-    runner.run()
-
-
-# TODO: This test does not assert any functionality: use Mock to assert how DeepSpeedPlugin gets called
 @RunIf(deepspeed=True)
-@mock.patch("pytorch_lightning.plugins.DeepSpeedPlugin.setup_distributed", lambda x: x)
-def test_lightning_lite_deepspeed_backward():
-    class LiteRunner(LightningLite):
-        def run(self):
-            def fn(*args):
-                return args
+def test_backward_model_input_required():
+    """Test that when using deepspeed and multiple models, backward() requires the model as input."""
+    lite = EmptyLite(strategy="deepspeed")
 
-            self._strategy._setup_model_and_optimizer = fn
-            model = BoringModel()
-            optimizer = configure_optimizers(model)
-            self.setup(model, optimizer)
+    model0 = nn.Linear(1, 2)
+    model1 = nn.Linear(1, 2)
 
-            model = BoringModel()
-            optimizer = configure_optimizers(model)
-            self.setup(model, optimizer)
+    optimizer0 = torch.optim.Adam(model0.parameters())
+    optimizer1 = torch.optim.Adam(model1.parameters())
 
-            x = model(torch.randn(1, 32))
-            loss = x.sum()
-            self.backward(loss)
+    lite._strategy._setup_model_and_optimizer = lambda *args: args
+
+    lite.setup(model0, optimizer0)
+    lite.setup(model1, optimizer1)
+
+    loss = model0(torch.randn(1, 1)).sum()
 
     with pytest.raises(MisconfigurationException, match="please provide the model used to perform"):
-        runner = LiteRunner(strategy="deepspeed")
-        runner.run()
+        lite.backward(loss)
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
