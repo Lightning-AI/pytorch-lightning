@@ -40,7 +40,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
 
     def pre_optimizer_step(
         self,
-        model: Union["pl.LightningModule", Module],
+        model: "pl.LightningModule",
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable[[], Any],
@@ -55,7 +55,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
         closure_result = lambda_closure()
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
-        if isinstance(model, pl.LightningModule) and model.automatic_optimization and skipped_backward:
+        if model.automatic_optimization and skipped_backward:
             # we lack coverage here and IPUs are (currently) limited - something to explore if there's demand
             raise MisconfigurationException(
                 "Skipping backward by returning `None` from your `training_step` is not implemented for IPUs."

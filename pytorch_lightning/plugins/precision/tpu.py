@@ -11,9 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Union
+from typing import Any, Callable
 
-from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -28,7 +27,7 @@ if _XLA_AVAILABLE:
 class TPUPrecisionPlugin(PrecisionPlugin):
     def pre_optimizer_step(
         self,
-        model: Union["pl.LightningModule", Module],
+        model: "pl.LightningModule",
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable[[], Any],
@@ -38,7 +37,7 @@ class TPUPrecisionPlugin(PrecisionPlugin):
         closure_result = xm.optimizer_step(optimizer, optimizer_args={"closure": lambda_closure, **kwargs})
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
-        if isinstance(model, pl.LightningModule) and model.automatic_optimization and skipped_backward:
+        if model.automatic_optimization and skipped_backward:
             # we lack coverage here so disable this - something to explore if there's demand
             raise MisconfigurationException(
                 "Skipping backward by returning `None` from your `training_step` is not implemented for TPUs."
