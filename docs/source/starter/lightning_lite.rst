@@ -27,7 +27,7 @@ Supported Integrations
    :header-rows: 1
 
    * - ``accelerator``
-     - ``cpu``, ``gpu``, ``tpu``
+     - ``cpu``, ``gpu``, ``tpu``, ``auto``
    * - ``strategy``
      - ``dp``, ``ddp``, ``ddp_spawn``, ``ddp_sharded``, ``ddp_sharded_spawn``, ``deepspeed``
    * - ``precision``
