@@ -1,4 +1,7 @@
-name: CI basic testing
+# this jobs runs `pytest` over the source directory. It does not install any extra dependencies.
+# this is useful to catch errors where an import has been added which is not part of the basic dependencies.
+name: Tests (source)
+
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
@@ -13,9 +16,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
-      # max-parallel: 6
       matrix:
-        os: [ubuntu-20.04, windows-2019, macOS-10.15]
+        os: [ubuntu-20.04]
         # this will install stable torch
         python-version: [3.9]
 
@@ -56,13 +58,6 @@ jobs:
         pip install --requirement requirements/test.txt
         pip list
       shell: bash
-
-    - name: Cache datasets
-      uses: actions/cache@v2
-      with:
-        path: Datasets # This path is specific to Ubuntu
-        # Look to see if there is a cache hit for the corresponding requirements file
-        key: PL-dataset
 
     - name: Test Package [only]
       run: |
