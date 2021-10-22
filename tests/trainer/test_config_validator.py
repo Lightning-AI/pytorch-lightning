@@ -98,22 +98,16 @@ def test_eval_loop_config(tmpdir):
     with pytest.raises(MisconfigurationException, match=r"No `predict_dataloader\(\)` method defined"):
         trainer.predict(model)
 
-    # has predict data but no forward
-    model = BoringModel()
-    model.forward = None
-    with pytest.raises(MisconfigurationException, match=r"requires either `forward` or `predict_step` method to run."):
-        trainer.predict(model)
-
     # has predict data but no predict_step
     model = BoringModel()
     model.predict_step = None
-    with pytest.raises(MisconfigurationException, match=r"requires either `forward` or `predict_step` method to run."):
+    with pytest.raises(MisconfigurationException, match=r"`predict_step` cannot be None."):
         trainer.predict(model)
 
     # has predict data but no forward
     model = BoringModel()
     model.forward = None
-    with pytest.raises(MisconfigurationException, match=r"requires either `forward` or `predict_step` method to run."):
+    with pytest.raises(MisconfigurationException, match=r"requires `forward` method to run."):
         trainer.predict(model)
 
 
