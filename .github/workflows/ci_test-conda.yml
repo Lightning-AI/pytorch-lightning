@@ -1,4 +1,4 @@
-name: PyTorch & Conda
+name: CI conda tests
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
@@ -8,14 +8,14 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     branches: [master, "release/*"]
 
 jobs:
-  conda:
+  cpu:
     runs-on: ubuntu-20.04
     container: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python-version }}-torch${{ matrix.pytorch-version }}
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.8"]  # previous to last Python version as that one is already used in test-full
-        pytorch-version: ["1.7", "1.8", "1.9", "1.10"]  # add nightly only when there's a release candidate for it
+        pytorch-version: ["1.7", "1.8", "1.9", "1.10"]  # nightly: add when there's a release candidate
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 35

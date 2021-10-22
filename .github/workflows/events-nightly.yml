@@ -120,7 +120,7 @@ jobs:
       fail-fast: false
       matrix:
         python_version: ["3.6", "3.7", "3.8", "3.9"]
-        pytorch_version: ["1.7", "1.8", "1.9", "1.10"]  # add nightly only when there's a release candidate for it
+        pytorch_version: ["1.7", "1.8", "1.9", "1.10"]  # nightly: add when there's a release candidate
 
     steps:
       - name: Checkout
