@@ -57,6 +57,8 @@ ALL_LOGGER_CLASSES = (
     TestTubeLogger,
     WandbLogger,
 )
+ALL_LOGGER_CLASSES_WO_NEPTUNE = tuple(filter(lambda cls: cls is not NeptuneLogger, ALL_LOGGER_CLASSES))
+ALL_LOGGER_CLASSES_WO_NEPTUNE_WANDB = tuple(filter(lambda cls: cls is not WandbLogger, ALL_LOGGER_CLASSES_WO_NEPTUNE))
 
 
 def _get_logger_args(logger_class, save_dir):
@@ -161,18 +163,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
         assert log_metric_names == expected
 
 
-@pytest.mark.parametrize(
-    "logger_class",
-    [
-        CometLogger,
-        CSVLogger,
-        MLFlowLogger,
-        # NeptuneLogger,
-        TensorBoardLogger,
-        TestTubeLogger,
-        WandbLogger,
-    ],
-)
+@pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES_WO_NEPTUNE)
 def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch, logger_class):
     """Test the combinations of save_dir, weights_save_path and default_root_dir."""
 
@@ -230,7 +221,7 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
     assert trainer.default_root_dir == tmpdir
 
 
-@pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES)
+@pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES_WO_NEPTUNE)
 def test_loggers_pickle_all(tmpdir, monkeypatch, logger_class):
     """Test that the logger objects can be pickled.
 
@@ -316,9 +307,7 @@ class RankZeroLoggerCheck(Callback):
             assert pl_module.logger.experiment.something(foo="bar") is None
 
 
-@pytest.mark.parametrize(
-    "logger_class", [CometLogger, CSVLogger, MLFlowLogger, NeptuneLogger, TensorBoardLogger, TestTubeLogger]
-)
+@pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES_WO_NEPTUNE_WANDB)
 @RunIf(skip_windows=True, skip_49370=True, skip_hanging_spawn=True)
 def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
     """Test that loggers get replaced by dummy loggers on global rank > 0."""
