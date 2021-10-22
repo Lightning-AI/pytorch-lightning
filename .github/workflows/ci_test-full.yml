@@ -60,7 +60,7 @@ jobs:
       run: |
         python --version
         # needed for `pip cache` command
-        pip install --upgrade --user
+        pip install --upgrade pip --user
         pip --version
 
     # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
