@@ -124,7 +124,7 @@ def test_model_properties_fit_ckpt_path(tmpdir):
     trainer.fit(model, ckpt_path=str(tmpdir / "last.ckpt"))
 
 
-def test_trainer_properties_restore_resume_from_checkpoint(tmpdir):
+def test_trainer_properties_restore_ckpt_path(tmpdir):
     """Test that required trainer properties are set correctly when resuming from checkpoint in different
     phases."""
 

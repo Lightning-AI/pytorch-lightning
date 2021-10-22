@@ -1038,19 +1038,18 @@ def test_auto_restart_within_validation_loop(train_datasets, val_datasets, val_c
 
         model = ValidationLoopTestModel(should_fail)
 
-        resume_from_checkpoint = str(tmpdir / ".pl_auto_save.ckpt") if resume else None
+        ckpt_path = str(tmpdir / ".pl_auto_save.ckpt") if resume else None
         trainer = Trainer(
             default_root_dir=tmpdir,
             max_epochs=1,
             val_check_interval=val_check_interval,
             num_sanity_val_steps=0,
-            resume_from_checkpoint=resume_from_checkpoint,
         )
         if should_fail:
             with pytest.raises(CustomException):
-                trainer.fit(model)
+                trainer.fit(model, ckpt_path=ckpt_path)
         else:
-            trainer.fit(model)
+            trainer.fit(model, ckpt_path=ckpt_path)
 
         return model.training_batches, model.validation_batches
 
