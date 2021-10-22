@@ -156,7 +156,7 @@ class LightningLite(ABC):
         model: nn.Module,
         *optimizers: Optimizer,
         move_to_device: bool = True,
-    ) -> Union[_LiteModule, Tuple[Union[_LiteModule, _LiteOptimizer], ...]]:
+    ) -> Union[_LiteModule, List[Union[_LiteModule, _LiteOptimizer]]]:
         """Setup a model and its optimizers for accelerated training.
 
         Args:
@@ -189,7 +189,7 @@ class LightningLite(ABC):
         optimizers = [_LiteOptimizer(optimizer=optimizer, accelerator=self._accelerator) for optimizer in optimizers]
         self._num_models += 1
         if optimizers:
-            return model, *optimizers
+            return [model] + optimizers  # type: ignore
         return model
 
     def setup_dataloaders(
