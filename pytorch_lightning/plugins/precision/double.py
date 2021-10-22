@@ -22,5 +22,5 @@ class DoublePrecisionPlugin(DtypePrecisionPlugin):
 
     precision: int = 64
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(torch.double)

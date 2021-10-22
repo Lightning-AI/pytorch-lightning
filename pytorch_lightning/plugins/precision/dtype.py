@@ -38,7 +38,7 @@ class LightningPrecisionModule(_LightningPrecisionModuleWrapperBase):
         super().__init__(pl_module)
         self.__dtype = dtype
 
-    def _move_tensors(self, *args, **kwargs) -> Any:
+    def _move_tensors(self, *args: Any, **kwargs: Any) -> Any:
         return apply_to_collection([args, kwargs], function=lambda t: t.to(self.__dtype), dtype=torch.Tensor)
 
     def training_step(self, *args: Any, **kwargs: Any) -> Any:
@@ -84,12 +84,14 @@ class DtypePrecisionPlugin(PrecisionPlugin):
         self.__dtype = dtype
 
     def connect(
-        self, model: Module, optimizers: List[Optimizer], lr_schedulers: List[Any]
+        self, model: "pl.LightningModule", optimizers: List[Optimizer], lr_schedulers: List[Any]
     ) -> Tuple[Module, List[Optimizer], List[Any]]:
         """Wraps the model it in a ``LightningPrecisionModule`` to convert incoming data to a specific
         precision."""
         model = LightningPrecisionModule(model, self.__dtype)
         return super().connect(model, optimizers, lr_schedulers)
 
+    @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
-        return autodtype(self.__dtype)
+        with autodtype(self.__dtype):
+            yield
