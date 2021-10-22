@@ -430,7 +430,7 @@ class DeepSpeedPlugin(DDPPlugin):
     def init_deepspeed(self):
         # check that `configure_gradient_clipping` hook isn't overriden since deepspeed handles
         # gradient clipping internally
-        if is_overridden("configure_gradient_clipping", self.lightning_module):
+        if is_overridden("configure_gradient_clipping", self.lightning_module, pl.LightningModule):
             rank_zero_warn(
                 "Since deepspeed handles gradient clipping internally, this hook will"
                 " be ignored. Consider setting `gradient_clip_val` and `gradient_clip_algorithm`"
