@@ -27,11 +27,11 @@ Supported Integrations
    :header-rows: 1
 
    * - ``accelerator``
-     - ``CPU``, ``GPU``, ``TPU``
+     - ``cpu``, ``gpu``, ``tpu``
    * - ``strategy``
      - ``dp``, ``ddp``, ``ddp_spawn``, ``ddp_sharded``, ``ddp_sharded_spawn``, ``deepspeed``
    * - ``precision``
-     - ``float16``, ``bfloat16``, ``float64``
+     - ``16``, ``bf16``, ``32``, ``64``
    * - ``clusters``
      - ``TorchElastic``, ``SLURM``, ``Kubeflow``, ``LSF``
 
@@ -43,9 +43,9 @@ Coming soon:
    :header-rows: 1
 
    * - ``accelerator``
-     - ``IPU``
+     - ``ipu``
    * - ``strategy``
-     - ``Horovod``, ``FSDP``
+     - ``horovod``, ``ddp_fully_shardded``
 
 ################
 Learn by example
@@ -54,8 +54,7 @@ Learn by example
 My existing PyTorch code
 ========================
 
-In the code below, we have a ``BoringModel`` containing a single linear layer trained on some data for 10 epochs.
-The ``run`` function contains custom training and validation loops.
+The ``run`` function contains custom training loop used to train ``MyModel`` on ``MyDataset``.
 
 .. code-block:: python
 
@@ -64,56 +63,34 @@ The ``run`` function contains custom training and validation loops.
     from torch.utils.data import DataLoader, Dataset
 
 
-    class BoringModel(nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.layer = torch.nn.Linear(32, 2)
-
-        def forward(self, x):
-            x = self.layer(x)
-            return torch.nn.functional.mse_loss(x, torch.ones_like(x))
+    class MyModel(nn.Module):
+        ...
 
 
-    class RandomDataset(Dataset):
-        def __init__(self, length: int, size: int):
-            self.len = length
-            self.data = torch.randn(length, size)
-
-        def __getitem__(self, index):
-            return self.data[index]
-
-        def __len__(self):
-            return self.len
+    class MyDataset(Dataset):
+        ...
 
 
-    def run(num_epochs, model, optimizer, train_dataloader, val_dataloader):
+    def run(num_epochs: int):
 
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        model = MyModel(...).to(device)
+        optimizer = torch.optim.SGD(model.parameters())
+
+        dataloader = DataLoader(MyDataset(...), ...)
+
+        model.train()
         for epoch in range(num_epochs):
-            train_losses = []
-            val_losses = []
-
-            model.train()
-            for batch in train_dataloader:
+            for batch in dataloader:
+                batch = batch.to(device)
                 optimizer.zero_grad()
                 loss = model(batch)
                 loss.backward()
                 optimizer.step()
-                train_losses.append(loss)
-
-            model.eval()
-            with torch.no_grad():
-                for batch in val_dataloader:
-                    val_losses.append(model(batch))
-
-            print(f"{epoch}/{num_epochs}| Train Epoch Loss: {torch.stack(train_losses).mean()}")
-            print(f"{epoch}/{num_epochs}| Valid Epoch Loss: {torch.stack(val_losses).mean()}")
 
 
-    model = BoringModel()
-    optimizer = torch.optim.SGD(module.parameters(), lr=0.001)
-    train_dataloader = DataLoader(RandomDataset(64, 32))
-    val_dataloader = DataLoader(RandomDataset(64, 32))
-    run(10, model, optimizer, train_dataloader, val_dataloader)
+    run(10)
 
 Convert to LightningLite
 ========================
@@ -125,66 +102,45 @@ Here are 4 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
 3. Apply :meth:`~pytorch_lightning.lite.LightningLite.setup` over each model and optimizers pair, :meth:`~pytorch_lightning.lite.LightningLite.setup_dataloaders` on all your dataloaders and replace ``loss.backward()`` by ``self.backward(loss)``
 4. Instantiate your :class:`~pytorch_lightning.lite.LightningLite` and call its :meth:`~pytorch_lightning.lite.LightningLite.run` method.
 
+
 .. code-block:: python
 
+    import torch
+    from torch import nn
+    from torch.utils.data import DataLoader, Dataset
     from pytorch_lightning.lite import LightningLite
 
 
+    class MyModel(nn.Module):
+        ...
+
+
+    class MyDataset(Dataset):
+        ...
+
+
     class Lite(LightningLite):
-        def run(self, num_epochs, model, optimizer, train_dataloader, val_dataloader):
+        def run(self, num_epochs: int):
 
-            ###################################################################################
-            # You would need to call `self.setup` to wrap `model` and `optimizer`. If you     #
-            # have multiple models (c.f GAN), call `setup` for each one of them and their     #
-            # associated optimizers.                                                          #
-            model, optimizer = self.setup(model=model, optimizers=optimizer)
-            ###################################################################################
+            model = MyModel(...)
+            optimizer = torch.optim.SGD(model.parameters())
 
-            ###################################################################################
-            # You would need to call `self.setup_dataloaders` to prepare the dataloaders      #
-            # in case you are running in a distributed setting.                               #
-            train_dataloader = self.setup_dataloaders(train_dataloader)
-            val_dataloader = self.setup_dataloaders(val_dataloader)
-            ###################################################################################
+            model, optimizer = self.setup(model, optimizer)
 
+            dataloader = DataLoader(MyDataset(...), ...)
+            dataloader = self.setup_dataloaders(dataloader)
+
+            model.train()
             for epoch in range(num_epochs):
-                train_losses = []
-                val_losses = []
-
-                model.train()
                 for batch in train_dataloader:
                     optimizer.zero_grad()
                     loss = model(batch)
-                    train_losses.append(loss)
-                    ###########################################################################
-                    # By calling `self.backward` directly, `LightningLite` will automate      #
-                    # precision and device scaling.                                           #
                     self.backward(loss)
-                    ###########################################################################
                     optimizer.step()
 
-                model.eval()
-                with torch.no_grad():
-                    for batch in val_dataloader:
-                        val_losses.append(model(batch))
 
-                ###############################################################################
-                # By calling `self.all_gather` directly, tensors will be transferred          #
-                # across processes and concatenated.                                          #
-                train_epoch_loss = self.all_gather(train_losses).mean()
-                val_epoch_loss = self.all_gather(val_losses).mean()
-                ###############################################################################
+    Lite(...).run(10)
 
-                print(f"{epoch}/{num_epochs}| Train Epoch Loss: {train_epoch_loss}")
-                print(f"{epoch}/{num_epochs}| Valid Epoch Loss: {val_epoch_loss}")
-
-
-    seed_everything(42)
-    model = BoringModel()
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
-    train_dataloader = DataLoader(RandomDataset(64, 32))
-    val_dataloader = DataLoader(RandomDataset(64, 32))
-    Lite().run(10, model, optimizer, train_dataloader, val_dataloader)
 
 That's all. You can now train on any kind of device and scale your training.
 
@@ -207,6 +163,32 @@ Here is how to use `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/ze
 
     lite = Lite(strategy="deepspeed", devices=8, accelerator="gpu", precision=16)
     lite.run(lite_model, train_dataloader(), val_dataloader())
+
+You can also easily use distributed collectives if required.
+Here is an example while running on 256 GPUs.
+
+.. code-block:: python
+
+    class Lite(LightningLite):
+        def run(self):
+
+            # Transfer and concatenate tensors across processes
+            self.all_gather(...)
+
+            # Transfer an object from one process to all the others
+            self.broadcast(..., src=...)
+
+            # Information about the rank of the current process
+            self.global_rank  # its global rank across multiple nodes
+            self.world_size  # total number of devices registered
+            self.local_rank  # local rank on the current node
+            self.node_rank  # rank to differentiate the node when training on multiple nodes.
+
+            # whether this process is global_rank is 0.
+            self.is_global_zero
+
+
+    Lite(strategy="ddp", gpus=8, num_nodes=32, accelerator="gpu").run()
 
 
 Distributed Training Pitfalls
