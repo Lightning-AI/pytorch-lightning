@@ -25,15 +25,16 @@ Supported Integrations
 .. list-table::
    :widths: 50 50
    :header-rows: 1
+
    * - LightningLite arguments
      - Possible choices
    * - ``accelerator``
-     - ``strategy``
-     - ``precision``
-     - ``clusters``
-   * - ``cpu``, ``gpu``, ``tpu``, ``auto``
+     - ``cpu``, ``gpu``, ``tpu``, ``auto``
+   * - ``strategy``
      - ``dp``, ``ddp``, ``ddp_spawn``, ``ddp_sharded``, ``ddp_sharded_spawn``, ``deepspeed``
+   * - ``precision``
      - ``16``, ``bf16``, ``32``, ``64``
+   * - ``clusters``
      - ``TorchElastic``, ``SLURM``, ``Kubeflow``, ``LSF``
 
 
@@ -210,22 +211,24 @@ Distributed Training Pitfalls
 The :class:`~pytorch_lightning.lite.LightningLite` provides you only with the tool to scale your training,
 but there are several major challenges ahead of you now:
 
+
 .. list-table::
    :widths: 50 50
-   :header-rows: 1
+   :header-rows: 0
 
    * - Processes divergence
-     - Cross processes reduction
-     - Large sharded models
-     - Rank 0 only actions
-     - Checkpointing / Early stopping / Callbacks
-     - Batch-level fault tolerance training
-   * - This happens when processes execute different section of the code due to different if/else condition, race condition on existing files, etc., resulting in hanging.
+     - This happens when processes execute different section of the code due to different if/else condition, race condition on existing files, etc., resulting in hanging.
+   * - Cross processes reduction
      - Wrongly reported metrics or gradients due mis-reduction.
+   * - Large sharded models
      - Instantiation, materialization and state management of large models.
+   * - Rank 0 only actions
      - Logging, profiling, etc.
+   * - Checkpointing / Early stopping / Callbacks
      - Ability to easily customize your training behaviour and make it stateful.
+   * - Batch-level fault tolerance training
      - Ability to resume from a failure as if it never happened.
+
 
 If you are facing one of those challenges then you are already meeting the limit of :class:`~pytorch_lightning.lite.LightningLite`.
 We recommend you to convert to :doc:`Lightning <../starter/new-project>`, so you never have to worry about those.
