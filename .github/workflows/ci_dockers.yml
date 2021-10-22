@@ -67,7 +67,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: ["3.9"]  # latest
+        python_version: ["3.7", "3.9"]  # Azure version, latest
         pytorch_version: ["1.8", "1.10"]  # LTS, stable
     steps:
       - name: Checkout
