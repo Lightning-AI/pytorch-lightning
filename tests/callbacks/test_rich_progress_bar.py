@@ -163,7 +163,7 @@ def test_rich_progress_bar_keyboard_interrupt(tmpdir):
     trainer.progress_bar_callback.teardown(trainer, model)
 
 
-@RunIf(rich=True)
+@RunIf(rich=True, special=True)
 def test_progress_bar_totals(tmpdir):
     """Test that the progress finishes with the correct total steps processed."""
 
