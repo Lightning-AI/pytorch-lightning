@@ -77,7 +77,7 @@ def main(
 class LiteRunner(LightningLite):
     def run(self, model: nn.Module, train_dataloader: DataLoader, num_epochs: int = 10, tmpdir: str = None):
         optimizer = configure_optimizers(model)
-        model, optimizer = self.setup(model=model, optimizers=optimizer)
+        model, optimizer = self.setup(model, optimizer)
         train_dataloader = self.setup_dataloaders(train_dataloader)
 
         model.train()

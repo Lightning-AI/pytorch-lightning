@@ -132,7 +132,7 @@ class LiteTrainer(LightningLite):
         # You would need to call `self.setup` to wrap `model` and `optimizer`. If you     #
         # have multiple models (c.f GAN), call `setup` for each one of them and their     #
         # associated optimizers.                                                          #
-        model, optimizer = self.setup(model=model, optimizers=optimizer)
+        model, optimizer = self.setup(model, optimizer)
         ###################################################################################
 
         ###################################################################################
