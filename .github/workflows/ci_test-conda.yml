@@ -20,8 +20,6 @@ jobs:
         python-version: ["3.7"]
         pytorch-version: ["1.6", "1.7", "1.8", "1.9", "1.10"]
 
-
-
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 35
     steps:
