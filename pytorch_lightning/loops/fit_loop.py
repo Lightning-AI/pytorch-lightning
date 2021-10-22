@@ -38,7 +38,7 @@ class FitLoop(Loop):
         self,
         min_epochs: Optional[int] = 1,
         max_epochs: int = 1000,
-    ):
+    ) -> None:
         super().__init__()
         if max_epochs < -1:
             # Allow max_epochs to be zero, since this will be handled by fit_loop.done
@@ -105,7 +105,7 @@ class FitLoop(Loop):
         return self.epoch_loop.max_steps
 
     @max_steps.setter
-    def max_steps(self, value: Optional[int]) -> None:
+    def max_steps(self, value: int) -> None:
         """Sets the maximum number of steps (forwards to epoch_loop)"""
         # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
         if value is None:
@@ -115,7 +115,9 @@ class FitLoop(Loop):
             )
             value = -1
         elif value < -1:
-            raise MisconfigurationException(f"`max_steps` must be a non-negative integer or -1. You passed in {value}.")
+            raise MisconfigurationException(
+                f"`max_steps` must be a non-negative integer or -1 (infinite steps). You passed in {value}."
+            )
         self.epoch_loop.max_steps = value
 
     @property
