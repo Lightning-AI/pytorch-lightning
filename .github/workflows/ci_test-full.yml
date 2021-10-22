@@ -19,12 +19,12 @@ jobs:
       matrix:
         os: [ubuntu-18.04, windows-2019, macOS-10.15]
         python-version: ["3.7", "3.9"]  # minimum, maximum
-        requires: ["minimal", "latest"]
+        requires: ["oldest", "latest"]
         release: ["stable"]
         include:
-          # test 3.6 only on minimal until EOL: https://github.com/PyTorchLightning/pytorch-lightning/issues/9981
+          # test 3.6 only on oldest until EOL: https://github.com/PyTorchLightning/pytorch-lightning/issues/9981
           - python-version: "3.6"
-            requires: "minimal"
+            requires: "oldest"
         # add nightly only when there's a release candidate for it
         # include:
         #   - os: ubuntu-20.04
@@ -66,7 +66,7 @@ jobs:
         python .github/prune-packages.py requirements/extra.txt "horovod"
 
     - name: Set min. dependencies
-      if: matrix.requires == 'minimal'
+      if: matrix.requires == 'oldest'
       run: |
         python .github/set-min-requirements.py
 
