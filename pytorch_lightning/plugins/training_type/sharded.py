@@ -63,7 +63,6 @@ class DDPShardedPlugin(DDPPlugin):
         """
         optimizers = self._wrap_optimizers(optimizers)
         model = ShardedDataParallel(model, sharded_optimizer=optimizers, **self._ddp_kwargs)
-        setattr(model, "require_backward_grad_sync", False)  # TODO: needed?
         return model, optimizers
 
     def _reinit_optimizers_with_oss(self, optimizers: List[Union[Optimizer, LightningOptimizer]]) -> List["OSS"]:
