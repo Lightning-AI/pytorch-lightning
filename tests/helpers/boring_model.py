@@ -14,9 +14,7 @@
 from typing import Optional
 
 import torch
-import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset, IterableDataset, Subset
-from torchmetrics import MeanSquaredError
 
 from pytorch_lightning import LightningDataModule, LightningModule
 
@@ -89,15 +87,15 @@ class BoringModel(LightningModule):
         """
         super().__init__()
         self.layer = torch.nn.Linear(32, 2)
-        self.train_mse = MeanSquaredError()
-        self.val_mse = MeanSquaredError()
+        # self.train_mse = MeanSquaredError()
+        # self.val_mse = MeanSquaredError()
 
     def forward(self, x):
-        return F.softmax(self.layer(x))
+        return self.layer(x)
 
-    def loss(self, batch, pred):
+    def loss(self, batch, preds):
         # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
-        return torch.nn.functional.mse_loss(pred, torch.ones_like(pred))
+        return torch.nn.functional.mse_loss(preds, torch.ones_like(preds))
 
     def step(self, x):
         x = self(x)
@@ -107,8 +105,8 @@ class BoringModel(LightningModule):
     def training_step(self, batch, batch_idx):
         pred = self(batch)
         loss = self.loss(batch, pred)
-        self.log("train_loss", loss)
-        self.log("train_acc", self.train_mse(pred, torch.ones_like(pred)))
+        # self.log("train_loss", loss)
+        # self.log("train_acc", self.train_mse(pred, torch.ones_like(pred)))
         return {"loss": loss}
 
     def training_step_end(self, training_step_outputs):
@@ -120,8 +118,8 @@ class BoringModel(LightningModule):
     def validation_step(self, batch, batch_idx):
         pred = self(batch)
         loss = self.loss(batch, pred)
-        self.log("val_loss", loss)
-        self.log("val_acc", self.train_mse(pred, torch.ones_like(pred)))
+        # self.log("val_loss", loss)
+        # self.log("val_acc", self.train_mse(pred, torch.ones_like(pred)))
         return {"x": loss}
 
     def validation_epoch_end(self, outputs) -> None:
@@ -130,7 +128,7 @@ class BoringModel(LightningModule):
     def test_step(self, batch, batch_idx):
         y_pred = self(batch)
         loss = self.loss(batch, y_pred)
-        self.log("test_loss", loss)
+        # self.log("test_loss", loss)
         return {"y": loss}
 
     def test_epoch_end(self, outputs) -> None:
