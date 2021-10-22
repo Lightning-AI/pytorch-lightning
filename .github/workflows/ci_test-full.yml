@@ -119,7 +119,7 @@ jobs:
       shell: bash
 
     - name: Reinstall Horovod if necessary
-      if: runner.os != 'windows'
+      if: matrix.extras && runner.os != 'windows'
       env:
         HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
         HOROVOD_WITHOUT_MXNET: 1
