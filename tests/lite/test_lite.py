@@ -29,6 +29,7 @@ from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteO
 from pytorch_lightning.plugins import DeepSpeedPlugin, PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.runif import RunIf
+from pytorch_lightning.utilities import DistributedType
 
 
 class EmptyLite(LightningLite):
@@ -172,7 +173,18 @@ def test_setup_dataloaders_distributed_sampler_not_needed():
     assert lite_dataloader.sampler is custom_sampler
 
 
-@pytest.mark.parametrize("strategy", LightningLite._supported_strategy_types())
+@pytest.mark.parametrize(
+    "strategy",
+    [
+        DistributedType.DP,
+        DistributedType.DDP,
+        DistributedType.DDP_SPAWN,
+        DistributedType.TPU_SPAWN,
+        pytest.param(DistributedType.DEEPSPEED, marks=RunIf(deepspeed=True)),
+        pytest.param(DistributedType.DDP_SHARDED, marks=RunIf(fairscale=True)),
+        pytest.param(DistributedType.DDP_SHARDED_SPAWN, marks=RunIf(fairscale=True)),
+    ],
+)
 def test_setup_dataloaders_replace_custom_sampler(strategy):
     """Test that asking to replace a custom sampler results in an error when a distributed sampler would be
     needed."""
@@ -190,7 +202,18 @@ def test_setup_dataloaders_replace_custom_sampler(strategy):
     assert lite_dataloader.sampler is custom_sampler
 
 
-@pytest.mark.parametrize("strategy", LightningLite._supported_strategy_types())
+@pytest.mark.parametrize(
+    "strategy",
+    [
+        DistributedType.DP,
+        DistributedType.DDP,
+        DistributedType.DDP_SPAWN,
+        DistributedType.TPU_SPAWN,
+        pytest.param(DistributedType.DEEPSPEED, marks=RunIf(deepspeed=True)),
+        pytest.param(DistributedType.DDP_SHARDED, marks=RunIf(fairscale=True)),
+        pytest.param(DistributedType.DDP_SHARDED_SPAWN, marks=RunIf(fairscale=True)),
+    ],
+)
 @pytest.mark.parametrize("shuffle", [True, False])
 def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
     """Test that Lite replaces the default samplers with DistributedSampler automatically."""
