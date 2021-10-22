@@ -488,7 +488,7 @@ class TrainerDataLoadingMixin(ABC):
         Args:
             model: The `LightningModule` if called outside of the trainer scope.
         """
-        source = self.data_connector._val_dataloader_source
+        source = self._data_connector._val_dataloader_source
         pl_module = self.lightning_module or model
         has_step = is_overridden("validation_step", pl_module)
         if source.is_defined() and has_step:
@@ -502,7 +502,7 @@ class TrainerDataLoadingMixin(ABC):
         Args:
             model: The `LightningModule` if called outside of the trainer scope.
         """
-        source = self.data_connector._test_dataloader_source
+        source = self._data_connector._test_dataloader_source
         pl_module = self.lightning_module or model
         has_step = is_overridden("test_step", pl_module)
         if source.is_defined() and has_step:
@@ -516,7 +516,7 @@ class TrainerDataLoadingMixin(ABC):
         Args:
             model: The `LightningModule` if called outside of the trainer scope.
         """
-        source = self.data_connector._predict_dataloader_source
+        source = self._data_connector._predict_dataloader_source
         pl_module = self.lightning_module or model
         if source.is_defined():
             self.num_predict_batches, self.predict_dataloaders = self._reset_eval_dataloader(
@@ -545,7 +545,7 @@ class TrainerDataLoadingMixin(ABC):
         Returns:
             The requested dataloader
         """
-        source = getattr(self.data_connector, f"_{stage.dataloader_prefix}_dataloader_source")
+        source = getattr(self._data_connector, f"_{stage.dataloader_prefix}_dataloader_source")
 
         hook = f"{stage.dataloader_prefix}_dataloader"
         self.call_hook("on_" + hook, pl_module=model)
