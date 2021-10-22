@@ -255,7 +255,6 @@ def test_advanced_profiler_cprofile_deepcopy(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.skipif(True, reason="TODO: Requires to be resolved.")
 @RunIf(min_gpus=2, special=True)
 def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     """Ensure that the profiler can be given to the training and default step are properly recorded."""
@@ -294,6 +293,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         assert any(f"{local_rank}-validation_step" in f for f in files)
 
 
+@pytest.mark.skipif(True, reason="TODO: Requires to be resolved.")
 @pytest.mark.parametrize("fast_dev_run", [1, 2, 3, 4, 5])
 @pytest.mark.parametrize("boring_model_cls", [ManualOptimBoringModel, BoringModel])
 def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
