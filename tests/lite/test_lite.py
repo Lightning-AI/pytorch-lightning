@@ -294,6 +294,7 @@ def test_lightning_lite_track_model_setup():
 
 
 # TODO: This test does not assert any functionality: use Mock to assert how DeepSpeedPlugin gets called
+@RunIf(deepspeed=True)
 @mock.patch("pytorch_lightning.plugins.DeepSpeedPlugin.setup_distributed", lambda x: x)
 def test_lightning_lite_deepspeed_backward():
     class LiteRunner(LightningLite):
