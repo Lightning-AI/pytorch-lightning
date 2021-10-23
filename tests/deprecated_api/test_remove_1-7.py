@@ -407,8 +407,22 @@ def test_v1_7_0_resume_from_checkpoint_trainer_constructor(tmpdir):
 
     callback = OldStatefulCallback(state=222)
     trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback], resume_from_checkpoint=ckpt_path)
+    assert trainer.checkpoint_connector.resume_checkpoint_path is None
+    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path == ckpt_path
+    trainer.validate(model=model, ckpt_path=ckpt_path)
+    assert callback.state == 222
+    assert trainer.checkpoint_connector.resume_checkpoint_path is None
+    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path == ckpt_path
     trainer.fit(model)
     assert callback.state == 111
+    assert trainer.checkpoint_connector.resume_checkpoint_path is None
+    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path is None
+    trainer.predict(model=model, ckpt_path=ckpt_path)
+    assert trainer.checkpoint_connector.resume_checkpoint_path is None
+    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path is None
+    trainer.fit(model)
+    assert trainer.checkpoint_connector.resume_checkpoint_path is None
+    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path is None
 
     # test fit(ckpt_path=) precedence over Trainer(resume_from_checkpoint=) path
     model = BoringModel()
