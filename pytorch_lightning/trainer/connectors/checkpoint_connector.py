@@ -90,15 +90,15 @@ class CheckpointConnector:
     def resume_end(self) -> None:
         """Signal the connector that all states have resumed and memory for the checkpoint object can be
         released."""
-        if self.resume_checkpoint_path and self.trainer.state.fn is not None:
+        assert self.trainer.state.fn is not None
+        if self.resume_checkpoint_path:
             if self.trainer.state.fn == TrainerFn.FITTING:
                 rank_zero_info(f"Restored all states from the checkpoint file at {self.resume_checkpoint_path}")
             elif self.trainer.state.fn in (TrainerFn.VALIDATING, TrainerFn.TESTING, TrainerFn.PREDICTING):
                 rank_zero_info(f"Loaded model weights from checkpoint at {self.resume_checkpoint_path}")
         # TODO: remove resume_from_checkpoint_fit_path in v1.7
         if (
-            self.trainer.state.fn is not None
-            and self.trainer.state.fn == TrainerFn.FITTING
+            self.trainer.state.fn == TrainerFn.FITTING
             and self.resume_checkpoint_path == self.resume_from_checkpoint_fit_path
         ):
             self.resume_from_checkpoint_fit_path = None

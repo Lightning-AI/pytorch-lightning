@@ -81,6 +81,7 @@ def test_preloaded_checkpoint_lifecycle(tmpdir):
     assert connector.resume_checkpoint_path == ckpt_path
     assert connector._loaded_checkpoint
     assert isinstance(connector._loaded_checkpoint, dict)
+    trainer.state.fn = TrainerFn.FITTING
     connector.resume_end()
     assert not connector.resume_checkpoint_path
     assert not connector._loaded_checkpoint

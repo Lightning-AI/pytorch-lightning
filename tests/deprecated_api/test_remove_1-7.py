@@ -22,6 +22,7 @@ from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
 from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
 from tests.deprecated_api import _soft_unimport_module
+from tests.callbacks.test_callbacks import OldStatefulCallback
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
 from tests.helpers.runif import RunIf
@@ -396,3 +397,21 @@ def test_v1_7_0_resume_from_checkpoint_trainer_constructor(tmpdir):
         match=r"trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7."
     ):
         _ = trainer.resume_from_checkpoint
+
+    # test resume_from_checkpoint still works until v1.7 deprecation
+    model = BoringModel()
+    callback = OldStatefulCallback(state=111)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, callbacks=[callback])
+    trainer.fit(model)
+    ckpt_path = trainer.checkpoint_callback.best_model_path
+
+    callback = OldStatefulCallback(state=222)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback], resume_from_checkpoint=ckpt_path)
+    trainer.fit(model)
+    assert callback.state == 111
+
+    # test fit(ckpt_path=) precedence over Trainer(resume_from_checkpoint=) path
+    model = BoringModel()
+    trainer = Trainer(resume_from_checkpoint="trainer_arg_path")
+    with pytest.raises(FileNotFoundError, match="Checkpoint at fit_arg_ckpt_path not found. Aborting training."):
+        trainer.fit(model, ckpt_path="fit_arg_ckpt_path")
