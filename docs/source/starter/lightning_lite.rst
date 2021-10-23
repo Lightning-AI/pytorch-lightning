@@ -41,9 +41,9 @@ Supported Integrations
 Coming soon: IPU accelerator, support for Horovod as a strategy and fully sharded training.
 
 
-################
+****************
 Learn by example
-################
+****************
 
 My existing PyTorch code
 ========================
