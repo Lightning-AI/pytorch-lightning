@@ -693,7 +693,7 @@ class LightningModule(
         """
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
-    def training_step_end(self, *args, **kwargs) -> STEP_OUTPUT:
+    def training_step_end(self, batch_parts_outputs) -> STEP_OUTPUT:
         """Use this when training with dp or ddp2 because :meth:`training_step` will operate on only part of the
         batch. However, this is still optional and only needed for things like softmax or NCE loss.
 
