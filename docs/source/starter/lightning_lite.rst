@@ -14,7 +14,6 @@ on any kind of device while retaining full control over their own loops and opti
 :class:`~pytorch_lightning.lite.LightningLite` is the right tool for you if you match one of the two following descriptions:
 
 - I want to quickly scale my existing code to multiple devices with minimal code changes.
-
 - I would like to convert my existing code to the Lightning API, but a full path to Lightning transition might be too complex. I am looking for a stepping stone to ensure reproducibility during the transition.
 
 Supported Integrations
@@ -137,11 +136,8 @@ Here are 4 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
 
 
 That's all. You can now train on any kind of device and scale your training.
-
 The :class:`~pytorch_lightning.lite.LightningLite` takes care of device management, so you don't have to.
-
 You can remove any device specific logic within your code.
-
 Here is how to train on 8 GPUs with `torch.bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_ precision:
 
 .. code-block:: python
@@ -154,7 +150,7 @@ Here is how to use `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/ze
 
     Lite(strategy="deepspeed", devices=8, accelerator="gpu", precision=16).run(10)
 
-Lightning can also figure it automatically for you !
+Lightning can also figure it automatically for you!
 
 .. code-block:: python
 
