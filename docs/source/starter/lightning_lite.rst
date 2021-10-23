@@ -5,8 +5,10 @@ LightningLite - Stepping Stone to Lightning
 
 .. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/lite/lightning_lite.gif
     :alt: Animation showing how to convert a standard training loop to a Lightning loop
+    :width: 600px
+    :align: center
 
-
+|
 
 :class:`~pytorch_lightning.lite.LightningLite` enables pure PyTorch users to scale their existing code
 on any kind of device while retaining full control over their own loops and optimization logic.
@@ -16,8 +18,9 @@ on any kind of device while retaining full control over their own loops and opti
 - I want to quickly scale my existing code to multiple devices with minimal code changes.
 - I would like to convert my existing code to the Lightning API, but a full path to Lightning transition might be too complex. I am looking for a stepping stone to ensure reproducibility during the transition.
 
+**********************
 Supported Integrations
-======================
+**********************
 
 :class:`~pytorch_lightning.lite.LightningLite` supports single and multiple models and optimizers.
 
@@ -43,6 +46,9 @@ Coming soon: IPU accelerator, support for Horovod as a strategy and fully sharde
 ****************
 Learn by example
 ****************
+
+
+
 
 My existing PyTorch code
 ========================
