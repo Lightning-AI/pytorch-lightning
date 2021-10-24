@@ -164,7 +164,7 @@ class AcceleratorConnector:
             self._set_training_type_plugin()
         else:
             self.set_distributed_mode()
-        self.configure_slurm_ddp()
+        self._configure_slurm_ddp()
 
         self.handle_given_plugins()
         self.update_device_type_if_ipu_plugin()
