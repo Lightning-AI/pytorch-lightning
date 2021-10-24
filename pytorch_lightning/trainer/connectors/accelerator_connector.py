@@ -984,7 +984,7 @@ class AcceleratorConnector:
         )
         return self._is_slurm_managing_tasks
 
-    def configure_slurm_ddp(self):
+    def configure_slurm_ddp(self) -> None:
         rank_zero_deprecation(
             "`AcceleratorConnector.configure_slurm_ddp()` was deprecated in v1.5 and will be removed in v1.6."
         )
