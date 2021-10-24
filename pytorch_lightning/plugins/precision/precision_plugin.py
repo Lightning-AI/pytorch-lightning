@@ -21,7 +21,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.hooks import CheckpointHooks
-from pytorch_lightning.utilities import GradClipAlgorithmType
+from pytorch_lightning.utilities import GradClipAlgorithmType, rank_zero_deprecation
 from pytorch_lightning.utilities.types import _PARAMETERS
 
 
@@ -39,6 +39,10 @@ class PrecisionPlugin(CheckpointHooks):
         .. deprecated:: v1.5
             This method is deprecated in v1.5 and will be removed in v1.6. Use :meth:`main_params` instead.
         """
+        rank_zero_deprecation(
+            f"`{self.__class__.__name__}.master_params` was deprecated in v1.5 and will be removed in v1.6."
+            f" Use `main_params` instead."
+        )
         return self.main_params(optimizer)
 
     def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
