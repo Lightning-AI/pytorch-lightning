@@ -122,8 +122,6 @@ class BaseProfiler(AbstractProfiler):
             fs = get_filesystem(filepath)
             if not fs.exists(self.dirpath):
                 fs.mkdir(self.dirpath)
-            if not fs.exists(filepath):
-                fs.touch(filepath)
             file = fs.open(filepath, "a")
             self._output_file = file
             self._write_stream = file.write
