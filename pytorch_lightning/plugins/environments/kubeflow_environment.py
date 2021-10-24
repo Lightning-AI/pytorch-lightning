@@ -38,9 +38,11 @@ class KubeflowEnvironment(ClusterEnvironment):
     def creates_children(self) -> bool:
         return True
 
+    @property
     def main_address(self) -> str:
         return os.environ["MASTER_ADDR"]
 
+    @property
     def main_port(self) -> int:
         return int(os.environ["MASTER_PORT"])
 

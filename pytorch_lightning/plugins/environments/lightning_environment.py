@@ -48,9 +48,11 @@ class LightningEnvironment(ClusterEnvironment):
         """
         return "LOCAL_RANK" in os.environ
 
+    @property
     def main_address(self) -> str:
         return os.environ.get("MASTER_ADDR", "127.0.0.1")
 
+    @property
     def main_port(self) -> int:
         if self._main_port is None:
             self._main_port = os.environ.get("MASTER_PORT", find_free_network_port())

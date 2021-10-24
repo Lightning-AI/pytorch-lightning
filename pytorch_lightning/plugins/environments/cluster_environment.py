@@ -17,10 +17,6 @@ from abc import ABC, abstractmethod
 class ClusterEnvironment(ABC):
     """Specification of a cluster environment."""
 
-    @abstractmethod
-    def creates_children(self) -> bool:
-        """Whether the environment creates the subprocesses or not."""
-
     @property
     @abstractmethod
     def main_address(self) -> str:
@@ -30,6 +26,10 @@ class ClusterEnvironment(ABC):
     @abstractmethod
     def main_port(self) -> int:
         """An open and configured port in the main node through which all processes communicate."""
+
+    @abstractmethod
+    def creates_children(self) -> bool:
+        """Whether the environment creates the subprocesses or not."""
 
     @abstractmethod
     def world_size(self) -> int:
