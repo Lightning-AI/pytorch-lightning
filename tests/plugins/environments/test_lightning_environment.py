@@ -50,11 +50,11 @@ def test_attributes_from_environment_variables():
 @pytest.mark.parametrize(
     "environ, creates_processes_externally", [({}, False), (dict(LOCAL_RANK="2"), True), (dict(NODE_RANK="1"), False)]
 )
-def test_manual_user_launch(environ, creates_children):
+def test_manual_user_launch(environ, creates_processes_externally):
     """Test that the environment switches to manual user mode when LOCAL_RANK env variable detected."""
     with mock.patch.dict(os.environ, environ):
         env = LightningEnvironment()
-        assert env.creates_processes_externally == creates_children
+        assert env.creates_processes_externally == creates_processes_externally
 
 
 @mock.patch.dict(os.environ, {"GROUP_RANK": "1"})
