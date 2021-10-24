@@ -20,11 +20,9 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.plugins import ClusterEnvironment
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
-    LSFEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
