@@ -29,14 +29,14 @@ class LightningEnvironment(ClusterEnvironment):
     2.  The user launches all processes manually or with utilities like :code:`torch.distributed.launch`.
         The appropriate environment variables need to be set, and at minimum :code:`LOCAL_RANK`.
 
-    If the master address and port are not provided, the default environment will choose them
+    If the main address and port are not provided, the default environment will choose them
     automatically. It is recommended to use this default environment for single-node distributed
     training as it provides a convenient way to launch the training script.
     """
 
     def __init__(self):
         super().__init__()
-        self._master_port = None
+        self._main_port = None
         self._global_rank: int = 0
         self._world_size: int = 1
 
@@ -48,13 +48,13 @@ class LightningEnvironment(ClusterEnvironment):
         """
         return "LOCAL_RANK" in os.environ
 
-    def master_address(self) -> str:
+    def main_address(self) -> str:
         return os.environ.get("MASTER_ADDR", "127.0.0.1")
 
-    def master_port(self) -> int:
-        if self._master_port is None:
-            self._master_port = os.environ.get("MASTER_PORT", find_free_network_port())
-        return int(self._master_port)
+    def main_port(self) -> int:
+        if self._main_port is None:
+            self._main_port = os.environ.get("MASTER_PORT", find_free_network_port())
+        return int(self._main_port)
 
     def world_size(self) -> int:
         return self._world_size
@@ -84,7 +84,7 @@ class LightningEnvironment(ClusterEnvironment):
 def find_free_network_port() -> int:
     """Finds a free port on localhost.
 
-    It is useful in single-node training when we don't want to connect to a real master node but have to set the
+    It is useful in single-node training when we don't want to connect to a real main node but have to set the
     `MASTER_PORT` environment variable.
     """
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

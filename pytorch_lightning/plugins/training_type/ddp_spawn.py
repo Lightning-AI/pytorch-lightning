@@ -143,7 +143,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         return True
 
     def setup(self) -> None:
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port())
         # pass in a state q
         smp = mp.get_context("spawn")
         self.mp_queue = smp.SimpleQueue()
@@ -184,7 +184,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             **kwargs: Optional named arguments that will be passed to the function in addition to the process index.
                 These arguments must be pickleable.
         """
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port())
         mp.spawn(self._wrapped_function, args=(function, args, kwargs), **self.get_mp_spawn_kwargs())
 
     def _wrapped_function(self, process_idx: int, function: Callable, args: Any, kwargs: Any) -> None:

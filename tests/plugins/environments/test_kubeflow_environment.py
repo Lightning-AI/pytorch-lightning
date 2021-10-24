@@ -28,10 +28,10 @@ def test_default_attributes():
 
     with pytest.raises(KeyError):
         # MASTER_ADDR is required
-        env.master_address()
+        env.main_address()
     with pytest.raises(KeyError):
         # MASTER_PORT is required
-        env.master_port()
+        env.main_port()
     with pytest.raises(KeyError):
         # WORLD_SIZE is required
         env.world_size()
@@ -54,8 +54,8 @@ def test_default_attributes():
 def test_attributes_from_environment_variables(caplog):
     """Test that the torchelastic cluster environment takes the attributes from the environment variables."""
     env = KubeflowEnvironment()
-    assert env.master_address() == "1.2.3.4"
-    assert env.master_port() == 500
+    assert env.main_address() == "1.2.3.4"
+    assert env.main_port() == 500
     assert env.world_size() == 20
     assert env.global_rank() == 1
     assert env.local_rank() == 0

@@ -185,7 +185,7 @@ class TrainingTypePlugin(ABC):
         The result is
         cached instead of returned directly, because some plugins require transmitting the results from one
         multiprocessing context to another in a separate step. For example, the plugins that use the "spawn"
-        start-method send the result to the master process through a
+        start-method send the result to the main process through a
         `multiprocessing queue (shared memory) <https://pytorch.org/docs/stable/multiprocessing.html>`_.
         """
         return self._results
