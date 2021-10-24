@@ -43,7 +43,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         self.amp_level = amp_level
         self._connected = False
 
-    def master_params(self, optimizer: Optimizer) -> _PARAMETERS:
+    def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
         return amp.master_params(optimizer)
 
     def dispatch(self, trainer: "pl.Trainer") -> None:
