@@ -176,11 +176,6 @@ class AcceleratorConnector:
         self._training_type_plugin_resolved = False
         self.accelerator = self.select_accelerator()
 
-        # init flags for SLURM+DDP to work
-        self.world_size = 1
-        self.interactive_ddp_procs = []
-        self.global_rank = 0
-
         # benchmarking
         # TODO: should this be moved to GPU accelerator?
         torch.backends.cudnn.benchmark = self.benchmark
