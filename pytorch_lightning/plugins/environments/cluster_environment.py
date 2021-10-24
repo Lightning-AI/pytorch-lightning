@@ -21,10 +21,12 @@ class ClusterEnvironment(ABC):
     def creates_children(self) -> bool:
         """Whether the environment creates the subprocesses or not."""
 
+    @property
     @abstractmethod
     def main_address(self) -> str:
         """The main address through which all processes connect and communicate."""
 
+    @property
     @abstractmethod
     def main_port(self) -> int:
         """An open and configured port in the main node through which all processes communicate."""
