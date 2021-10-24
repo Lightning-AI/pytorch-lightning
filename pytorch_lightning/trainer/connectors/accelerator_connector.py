@@ -996,14 +996,6 @@ class AcceleratorConnector:
                 # likely not on slurm, so set the slurm managed flag to false
                 self.is_slurm_managing_tasks = False
 
-        # used for tests only, set this flag to simulate slurm managing a task
-        try:
-            should_fake = int(os.environ["FAKE_SLURM_MANAGING_TASKS"])
-            if should_fake:
-                self.is_slurm_managing_tasks = True
-        except Exception:
-            pass
-
         # notify user the that slurm is managing tasks
         if self.is_slurm_managing_tasks:
             rank_zero_info("Multi-processing is handled by Slurm.")
