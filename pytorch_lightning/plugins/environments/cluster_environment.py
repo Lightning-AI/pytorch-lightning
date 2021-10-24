@@ -27,7 +27,6 @@ class ClusterEnvironment(ABC):
     def creates_children(self) -> bool:
         """Whether the environment creates the subprocesses or not.
 
-
         .. deprecated:: v1.5
             This method was deprecated in v1.5 and will be removed in v1.6. Use the property
             :attr:`creates_processes_externally` instead.
