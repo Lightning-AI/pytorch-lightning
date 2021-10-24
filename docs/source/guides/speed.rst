@@ -71,7 +71,7 @@ Prefer DDP over DP
 
 1. Copy model to device.
 2. Copy data to device.
-3. Copy outputs of each device back to master.
+3. Copy outputs of each device back to main device.
 
 Whereas :class:`~pytorch_lightning.plugins.training_type.DDPPlugin` only performs 1 transfer to sync gradients, making DDP MUCH faster than DP.
 
