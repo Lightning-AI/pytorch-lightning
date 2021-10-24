@@ -133,7 +133,9 @@ def test_simple_profiler_with_nonexisting_log_dir(tmpdir):
     assert profiler._log_dir is None
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=nonexisting_tmpdir, max_epochs=1, profiler=profiler)
+    trainer = Trainer(
+        default_root_dir=nonexisting_tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=1, profiler=profiler
+    )
     trainer.fit(model)
 
     expected = nonexisting_tmpdir / "lightning_logs" / "version_0"
@@ -151,7 +153,9 @@ def test_simple_profiler_with_nonexisting_dirpath(tmpdir):
     assert profiler._log_dir is None
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, profiler=profiler)
+    trainer = Trainer(
+        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=1, profiler=profiler
+    )
     trainer.fit(model)
 
     assert nonexisting_tmpdir.exists()
