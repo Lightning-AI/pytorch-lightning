@@ -24,6 +24,11 @@ log = logging.getLogger(__name__)
 class SLURMEnvironment(ClusterEnvironment):
     """Cluster environment for training on a cluster managed by SLURM."""
 
+    @staticmethod
+    def is_using_slurm() -> bool:
+        """Returns ``True`` if the current process was launched on a SLURM cluster."""
+        return "SLURM_NTASKS" in os.environ
+
     def creates_children(self) -> bool:
         return True
 

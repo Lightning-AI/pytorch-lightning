@@ -135,7 +135,6 @@ class AcceleratorConnector:
         self.precision = precision
         self.amp_type = amp_type.lower() if isinstance(amp_type, str) else None
         self.amp_level = amp_level
-        self._is_slurm_managing_tasks = False
 
         self._precision_plugin: Optional[PrecisionPlugin] = None
         self._training_type_plugin: Optional[TrainingTypePlugin] = None
@@ -164,7 +163,6 @@ class AcceleratorConnector:
             self._set_training_type_plugin()
         else:
             self.set_distributed_mode()
-        self.configure_slurm_ddp()
 
         self.handle_given_plugins()
         self.update_device_type_if_ipu_plugin()
@@ -791,6 +789,7 @@ class AcceleratorConnector:
             return self._cluster_environment
         if self._is_slurm_managing_tasks:
             env = SLURMEnvironment()
+            rank_zero_info("Multiprocessing is handled by SLURM.")
         elif TorchElasticEnvironment.is_using_torchelastic():
             env = TorchElasticEnvironment()
         elif KubeflowEnvironment.is_using_kubeflow():
@@ -972,50 +971,39 @@ class AcceleratorConnector:
                 elif self.has_gpu:
                     self._device_type = DeviceType.GPU
 
+    def configure_slurm_ddp(self):
+        rank_zero_deprecation(
+            "`AcceleratorConnector.configure_slurm_ddp()` was deprecated in v1.5 and will be removed in v1.7."
+        )
+
     @property
     def is_slurm_managing_tasks(self) -> bool:
         rank_zero_deprecation(
-            "`AcceleratorConnector.is_slurm_managing_tasks` was deprecated in v1.5 and will be removed in v1.6."
+            "`AcceleratorConnector.is_slurm_managing_tasks` was deprecated in v1.5 and will be removed in v1.7."
         )
         return self._is_slurm_managing_tasks
 
-    def configure_slurm_ddp(self) -> None:
-        rank_zero_deprecation(
-            "`AcceleratorConnector.configure_slurm_ddp()` was deprecated in v1.5 and will be removed in v1.6."
-        )
+    @property
+    def _is_slurm_managing_tasks(self) -> bool:
+        """Returns whether we let SLURM manage the processes or not.
 
-    def _configure_slurm_ddp(self):
-        # extract SLURM flag vars
-        # whenever we have the correct number of tasks, we let slurm manage processes
-        # otherwise we launch the required number of processes
-        if self.use_ddp or self.use_ddp2:
-            num_requested_gpus = self.num_gpus * self.num_nodes
-            num_slurm_tasks = 0
-            try:
-                num_slurm_tasks = int(os.environ["SLURM_NTASKS"])
-                self._is_slurm_managing_tasks = num_slurm_tasks == num_requested_gpus
+        Returns ``True`` if and only if these conditions match:
 
-                # enable slurm cpu
-                if num_requested_gpus == 0:
-                    self._is_slurm_managing_tasks = num_slurm_tasks == self.num_processes
+            - A SLURM cluster is detected
+            - A distributed plugin is being used
+            - The process is not launching in interactive mode
+            - The number of tasks in SLURM matches the requested number of devices and nodes in the Trainer
+        """
+        if not self.use_ddp and not self.use_ddp2:
+            return False
 
-                # in interactive mode we don't manage tasks
-                job_name = os.environ["SLURM_JOB_NAME"]
-                if job_name == "bash":
-                    self._is_slurm_managing_tasks = False
+        if not SLURMEnvironment.is_using_slurm():
+            return False
 
-            except Exception:
-                # likely not on slurm, so set the slurm managed flag to false
-                self._is_slurm_managing_tasks = False
+        if os.environ.get("SLURM_JOB_NAME") == "bash":
+            # in interactive mode we don't manage tasks
+            return False
 
-        # used for tests only, set this flag to simulate slurm managing a task
-        try:
-            should_fake = int(os.environ["FAKE_SLURM_MANAGING_TASKS"])
-            if should_fake:
-                self._is_slurm_managing_tasks = True
-        except Exception:
-            pass
-
-        # notify user the that slurm is managing tasks
-        if self._is_slurm_managing_tasks:
-            rank_zero_info("Multi-processing is handled by Slurm.")
+        total_requested_devices = len(self.parallel_devices) * self.num_nodes
+        num_slurm_tasks = int(os.environ["SLURM_NTASKS"], 0)
+        return num_slurm_tasks == total_requested_devices
