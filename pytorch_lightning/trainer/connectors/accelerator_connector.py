@@ -971,17 +971,17 @@ class AcceleratorConnector:
                 elif self.has_gpu:
                     self._device_type = DeviceType.GPU
 
-    def configure_slurm_ddp(self):
-        rank_zero_deprecation(
-            "`AcceleratorConnector.configure_slurm_ddp()` was deprecated in v1.5 and will be removed in v1.7."
-        )
-
     @property
     def is_slurm_managing_tasks(self) -> bool:
         rank_zero_deprecation(
-            "`AcceleratorConnector.is_slurm_managing_tasks` was deprecated in v1.5 and will be removed in v1.7."
+            "`AcceleratorConnector.is_slurm_managing_tasks` was deprecated in v1.5 and will be removed in v1.6."
         )
         return self._is_slurm_managing_tasks
+
+    def configure_slurm_ddp(self):
+        rank_zero_deprecation(
+            "`AcceleratorConnector.configure_slurm_ddp()` was deprecated in v1.5 and will be removed in v1.6."
+        )
 
     @property
     def _is_slurm_managing_tasks(self) -> bool:
