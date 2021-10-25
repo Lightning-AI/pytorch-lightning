@@ -259,7 +259,7 @@ Turn off automatic optimization and you control the train loop!
 
     def training_step(self, batch, batch_idx):
         # access your optimizers with use_pl_optimizer=False. Default is True
-        opt_a, opt_b = self.optimizers(use_pl_optimizer=True)
+        opt_a, opt_b = self.optimizers(use_pl_optimizer=False)
 
         loss_a = self.generator(batch)
         opt_a.zero_grad()
@@ -321,7 +321,7 @@ You can also add a forward method to do predictions however you want.
 
 
     autoencoder = LitAutoEncoder()
-    autoencoder = autoencoder(torch.rand(1, 28 * 28))
+    embedding = autoencoder(torch.rand(1, 28 * 28))
 
 
 .. code-block:: python
@@ -474,7 +474,7 @@ The equivalent in Lightning is:
         return prediction
 
 
-    def training_epoch_end(self, training_step_outputs):
+    def training_epoch_end(self, predictions):
         for prediction in predictions:
             ...
 
@@ -701,7 +701,7 @@ Lightning has many tools for debugging. Here is an example of just a few of them
 
 .. testcode::
 
-    # Automatically overfit the sane batch of your model for a sanity test
+    # Automatically overfit the same batch of your model for a sanity test
     trainer = Trainer(overfit_batches=1)
 
 .. testcode::
