@@ -36,6 +36,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import (
     CALLBACK_REGISTRY,
+    DATAMODULE_REGISTRY,
     instantiate_class,
     LightningArgumentParser,
     LightningCLI,
@@ -134,8 +135,7 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
                 # interface.
                 min_steps=None,
                 max_steps=None,
-                log_gpu_memory=None,
-                distributed_backend=None,
+                accelerator=None,
                 weights_save_path=None,
                 resume_from_checkpoint=None,
                 profiler=None,
@@ -914,6 +914,65 @@ def test_lightning_cli_model_choices():
         assert isinstance(cli.model, TestModel)
         assert cli.model.foo == 123
         assert cli.model.bar == 5
+
+
+@DATAMODULE_REGISTRY
+class MyDataModule(BoringDataModule):
+    def __init__(self, foo, bar=5):
+        super().__init__()
+        self.foo = foo
+        self.bar = bar
+
+
+DATAMODULE_REGISTRY(cls=BoringDataModule)
+
+
+def test_lightning_cli_datamodule_choices():
+    # with set model
+    with mock.patch("sys.argv", ["any.py", "fit", "--data=BoringDataModule"]), mock.patch(
+        "pytorch_lightning.Trainer._fit_impl"
+    ) as run:
+        cli = LightningCLI(BoringModel, trainer_defaults={"fast_dev_run": 1})
+        assert isinstance(cli.datamodule, BoringDataModule)
+        run.assert_called_once_with(ANY, ANY, ANY, cli.datamodule)
+
+    with mock.patch("sys.argv", ["any.py", "--data=MyDataModule", "--data.foo", "123"]):
+        cli = LightningCLI(BoringModel, run=False)
+        assert isinstance(cli.datamodule, MyDataModule)
+        assert cli.datamodule.foo == 123
+        assert cli.datamodule.bar == 5
+
+    # with configurable model
+    with mock.patch("sys.argv", ["any.py", "fit", "--model", "BoringModel", "--data=BoringDataModule"]), mock.patch(
+        "pytorch_lightning.Trainer._fit_impl"
+    ) as run:
+        cli = LightningCLI(trainer_defaults={"fast_dev_run": 1})
+        assert isinstance(cli.model, BoringModel)
+        assert isinstance(cli.datamodule, BoringDataModule)
+        run.assert_called_once_with(cli.model, ANY, ANY, cli.datamodule)
+
+    with mock.patch("sys.argv", ["any.py", "--model", "BoringModel", "--data=MyDataModule"]):
+        cli = LightningCLI(run=False)
+        assert isinstance(cli.model, BoringModel)
+        assert isinstance(cli.datamodule, MyDataModule)
+
+    assert len(DATAMODULE_REGISTRY)  # needs a value initially added
+    with mock.patch("sys.argv", ["any.py"]):
+        cli = LightningCLI(BoringModel, run=False)
+        # data was not passed but we are adding it automatically because there are datamodules registered
+        assert "data" in cli.parser.groups
+        assert not hasattr(cli.parser.groups["data"], "group_class")
+
+    with mock.patch("sys.argv", ["any.py"]), mock.patch.dict(DATAMODULE_REGISTRY, clear=True):
+        cli = LightningCLI(BoringModel, run=False)
+        # no registered classes so not added automatically
+        assert "data" not in cli.parser.groups
+    assert len(DATAMODULE_REGISTRY)  # check state was not modified
+
+    with mock.patch("sys.argv", ["any.py"]):
+        cli = LightningCLI(BoringModel, BoringDataModule, run=False)
+        # since we are passing the DataModule, that's whats added to the parser
+        assert cli.parser.groups["data"].group_class is BoringDataModule
 
 
 @pytest.mark.parametrize("use_class_path_callbacks", [False, True])

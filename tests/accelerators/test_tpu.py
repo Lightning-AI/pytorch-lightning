@@ -13,6 +13,7 @@
 # limitations under the License
 import collections
 from copy import deepcopy
+from unittest.mock import patch
 
 import pytest
 import torch
@@ -21,8 +22,7 @@ from torch import nn
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
-from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.plugins import TPUSpawnPlugin
+from pytorch_lightning.plugins import TPUPrecisionPlugin, TPUSpawnPlugin, XLACheckpointIO
 from pytorch_lightning.utilities import find_shared_parameters
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
@@ -189,16 +189,18 @@ def test_manual_optimization_tpus(tmpdir):
             assert torch.all(self.layer.weight.grad == 0)
             self.count += 1
 
+        def on_train_start(self):
+            opt = self.optimizers()
+            self.opt_step_patch = patch.object(opt, "step", wraps=opt.step)
+            self.opt_step_mock = self.opt_step_patch.start()
+
         def on_train_end(self):
             assert self.called["training_step"] == 5
             assert self.called["on_train_batch_start"] == 5
             assert self.called["on_train_batch_end"] == 5
 
-    class TestManualOptimizationCallack(Callback):
-        def on_train_end(self, trainer, pl_module):
-
-            opt = pl_module.optimizers()
-            assert opt._total_optimizer_step_calls == 3
+            self.opt_step_patch.stop()
+            assert self.opt_step_mock.call_count == 3
 
     model = ManualOptimizationModel()
     model_copy = deepcopy(model)
@@ -212,7 +214,6 @@ def test_manual_optimization_tpus(tmpdir):
         limit_test_batches=0,
         limit_val_batches=0,
         tpu_cores=8,
-        callbacks=[TestManualOptimizationCallack()],
     )
     trainer.fit(model)
 
@@ -283,3 +284,19 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
     trainer.fit(model)
 
     assert torch.all(torch.eq(model.net_a.layer.weight, model.net_b.layer.weight))
+
+
+def test_tpu_invalid_raises():
+    accelerator = TPUAccelerator(object(), TPUSpawnPlugin())
+    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `TPUPrecisionPlugin"):
+        accelerator.setup(object())
+
+    accelerator = TPUAccelerator(TPUPrecisionPlugin(), object())
+    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUPlugin` or `TPUSpawnPlugi"):
+        accelerator.setup(object())
+
+
+@RunIf(tpu=True)
+def test_xla_checkpoint_plugin_being_default():
+    trainer = Trainer(tpu_cores=8)
+    assert isinstance(trainer.training_type_plugin.checkpoint_io, XLACheckpointIO)

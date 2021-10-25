@@ -76,7 +76,7 @@ class PrecisionPlugin(CheckpointHooks):
         if model is not None and isinstance(model, pl.LightningModule):
             model.backward(closure_loss, optimizer, *args, **kwargs)
         else:
-            closure_loss.backward(*args, **kwargs)
+            self._run_backward(closure_loss, *args, **kwargs)
 
     def post_backward(self, model: "pl.LightningModule", closure_loss: Tensor) -> Tensor:
         """Run after precision plugin executes backward.
@@ -90,16 +90,24 @@ class PrecisionPlugin(CheckpointHooks):
         model.trainer.call_hook("on_after_backward")
         return closure_loss
 
+    def _run_backward(self, tensor: Tensor, model: Module, *args: Any, **kwargs: Any) -> None:
+        """Lightning-independent backward logic.
+
+        Currently only used by Lightning Lite. Subject to further refactors.
+        """
+        tensor.backward(*args, **kwargs)
+
     def pre_optimizer_step(
         self,
-        model: "pl.LightningModule",
+        model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
         **kwargs: Any,
     ) -> bool:
         """Hook to do something before each optimizer step."""
-        model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
+        if isinstance(model, pl.LightningModule):
+            model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         return True
 
     def clip_gradients(
@@ -143,21 +151,30 @@ class PrecisionPlugin(CheckpointHooks):
         """Hook to do something after the training/evaluation/prediction finishes."""
 
     @contextlib.contextmanager
-    def train_step_context(self) -> Generator:
+    def forward_context(self) -> Generator[None, None, None]:
+        """A contextmanager for managing model forward/training_step/evaluation_step/predict_step."""
+        yield
+
+    @contextlib.contextmanager
+    def train_step_context(self) -> Generator[None, None, None]:
         """A contextmanager for the training step."""
-        yield
+        with self.forward_context():
+            yield
 
     @contextlib.contextmanager
-    def val_step_context(self) -> Generator:
+    def val_step_context(self) -> Generator[None, None, None]:
         """A contextmanager for the validation step."""
-        yield
+        with self.forward_context():
+            yield
 
     @contextlib.contextmanager
-    def test_step_context(self) -> Generator:
+    def test_step_context(self) -> Generator[None, None, None]:
         """A contextmanager for the test step."""
-        yield
+        with self.forward_context():
+            yield
 
     @contextlib.contextmanager
-    def predict_step_context(self) -> Generator:
+    def predict_step_context(self) -> Generator[None, None, None]:
         """A contextmanager for the predict step."""
-        yield
+        with self.forward_context():
+            yield

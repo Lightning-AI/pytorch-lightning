@@ -88,7 +88,7 @@ def test_model_saves_with_example_input_array(tmpdir, modelclass, input_sample):
 @RunIf(min_gpus=2)
 def test_model_saves_on_multi_gpu(tmpdir):
     """Test that ONNX model saves on a distributed backend."""
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
 
     trainer_options = dict(
         default_root_dir=tmpdir,
