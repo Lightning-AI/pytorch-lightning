@@ -347,11 +347,11 @@ Configure the devices to run on. Can of type:
 
     # list: run on GPUs 1, 4 (by bus ordering)
     lite = Lite(devices=[1, 4], accelerator="gpu")
-    lite = Lite(devices="1, 4",  accelerator="gpu") # equivalent
+    lite = Lite(devices="1, 4", accelerator="gpu")  # equivalent
 
     # -1: run on all GPUs
     lite = Lite(devices=-1)
-    lite = Lite(devices="-1") # equivalent
+    lite = Lite(devices="-1")  # equivalent
 
 
 
@@ -436,7 +436,6 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 
 
     class MyCluster(ClusterEnvironment):
-
         @property
         def main_address(self):
             return your_main_address
