@@ -304,7 +304,7 @@ def test_callbacks_references_resume_from_checkpoint(tmpdir):
 def test_running_test_pretrained_model_distrib_dp(tmpdir):
     """Verify `test()` on pretrained model."""
 
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
 
     dm = ClassifDataModule()
     model = CustomClassificationModelDP(lr=0.1)
@@ -351,7 +351,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
 @RunIf(min_gpus=2)
 def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
     """Verify `test()` on pretrained model."""
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
     dm = ClassifDataModule()
     model = ClassificationModel()
 
@@ -502,7 +502,7 @@ def test_dp_resume(tmpdir):
 
     # fit model
     trainer = Trainer(**trainer_options)
-    trainer.is_slurm_managing_tasks = True
+    trainer._is_slurm_managing_tasks = True
     trainer.fit(model, datamodule=dm)
 
     # track epoch before saving. Increment since we finished the current epoch, don't want to rerun
