@@ -19,6 +19,9 @@ on any kind of device while retaining full control over their own loops and opti
 - I would like to convert my existing code to the Lightning API, but a full path to Lightning transition might be too complex. I am looking for a stepping stone to ensure reproducibility during the transition.
 
 
+----------
+
+
 ****************
 Learn by example
 ****************
@@ -64,6 +67,10 @@ The ``run`` function contains custom training loop used to train ``MyModel`` on 
 
 
     run(10)
+
+
+----------
+
 
 Convert to LightningLite
 ========================
@@ -181,6 +188,9 @@ Here is an example while running on 256 GPUs.
 .. note:: We recommend instantiating the models within the :meth:`~pytorch_lightning.lite.LightningLite.run` method as large models would cause OOM Error otherwise.
 
 
+----------
+
+
 Distributed Training Pitfalls
 =============================
 
@@ -208,6 +218,8 @@ but there are several major challenges ahead of you now:
 
 If you are facing one of those challenges then you are already meeting the limit of :class:`~pytorch_lightning.lite.LightningLite`.
 We recommend you to convert to :doc:`Lightning <../starter/new-project>`, so you never have to worry about those.
+
+----------
 
 Convert to Lightning
 ====================
@@ -260,6 +272,7 @@ from its hundreds of features.
     trainer.fit(lightning_module, datamodule=datamodule)
 
 
+----------
 
 
 ********************
@@ -449,6 +462,9 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 
 
     lite = Lite(plugins=[MyCluster()], ...)
+
+
+----------
 
 
 **********************
