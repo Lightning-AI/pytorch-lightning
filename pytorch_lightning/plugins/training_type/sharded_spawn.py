@@ -64,7 +64,6 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
 
         optimizers = self._wrap_optimizers(optimizers)
         model = ShardedDataParallel(models[0], sharded_optimizer=optimizers, **self._ddp_kwargs)
-        setattr(model, "require_backward_grad_sync", False)  # TODO: needed?
         return [model], optimizers
 
     def _reinit_optimizers_with_oss(self, optimizers: List[Optimizer]) -> List["OSS"]:
