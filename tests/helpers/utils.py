@@ -73,7 +73,7 @@ def reset_seed(seed=0):
     seed_everything(seed)
 
 
-def set_random_master_port():
+def set_random_main_port():
     reset_seed()
     port = RANDOM_PORTS.pop()
     os.environ["MASTER_PORT"] = str(port)
