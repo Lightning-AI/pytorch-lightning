@@ -967,7 +967,7 @@ def _run_scheduler_test(mock_step, max_epoch, limit_train_batches, interval):
 
 @RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_deepspeed_gradient_clipping_raises(tmpdir):
-    """Test to ensure that an Exception is raised when clipping gradients with DeepSpeed."""
+    """Test to ensure that an exception is raised when clipping gradients with DeepSpeed."""
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
