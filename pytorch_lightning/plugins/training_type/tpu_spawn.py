@@ -95,7 +95,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     @staticmethod
     def _validate_patched_dataloaders(model: "pl.LightningModule") -> None:
         """Validate and fail fast if the dataloaders were passed directly to fit."""
-        connector: DataConnector = model.trainer.data_connector
+        connector: DataConnector = model.trainer._data_connector
         sources = (
             connector._train_dataloader_source,
             connector._val_dataloader_source,

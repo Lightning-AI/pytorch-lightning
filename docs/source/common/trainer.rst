@@ -516,7 +516,9 @@ Example::
 checkpoint_callback
 ^^^^^^^^^^^^^^^^^^^
 
-Deprecated: This has been deprecated in v1.5 and will be removed in v1.7. Please use ``enable_checkpointing`` instead.
+.. warning:: `checkpoint_callback` has been deprecated in v1.5 and will be removed in v1.7.
+    To disable checkpointing, pass ``enable_checkpointing = False`` to the Trainer instead.
+
 
 default_root_dir
 ^^^^^^^^^^^^^^^^
