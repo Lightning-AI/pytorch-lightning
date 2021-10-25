@@ -129,7 +129,6 @@ def test_add_argparse_args_redefined_error(cli_args: list, monkeypatch):
                 "min_steps": None,
                 "accelerator": None,
                 "weights_save_path": None,
-                "resume_from_checkpoint": None,
                 "profiler": None,
             },
         ),

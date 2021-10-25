@@ -21,6 +21,7 @@ from pytorch_lightning import Callback, LightningDataModule, Trainer
 from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
 from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
+from tests.callbacks.test_callbacks import OldStatefulCallback
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
@@ -396,3 +397,44 @@ def test_v1_7_0_deprecated_max_steps_none(tmpdir):
     trainer = Trainer()
     with pytest.deprecated_call(match="`max_steps = None` is deprecated in v1.5"):
         trainer.fit_loop.max_steps = None
+
+
+def test_v1_7_0_resume_from_checkpoint_trainer_constructor(tmpdir):
+    with pytest.deprecated_call(match=r"Setting `Trainer\(resume_from_checkpoint=\)` is deprecated in v1.5"):
+        trainer = Trainer(resume_from_checkpoint="a")
+    with pytest.deprecated_call(
+        match=r"trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7."
+    ):
+        _ = trainer.resume_from_checkpoint
+
+    # test resume_from_checkpoint still works until v1.7 deprecation
+    model = BoringModel()
+    callback = OldStatefulCallback(state=111)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, callbacks=[callback])
+    trainer.fit(model)
+    ckpt_path = trainer.checkpoint_callback.best_model_path
+
+    callback = OldStatefulCallback(state=222)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback], resume_from_checkpoint=ckpt_path)
+    assert trainer.checkpoint_connector.resume_checkpoint_path is None
+    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path == ckpt_path
+    trainer.validate(model=model, ckpt_path=ckpt_path)
+    assert callback.state == 222
+    assert trainer.checkpoint_connector.resume_checkpoint_path is None
+    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path == ckpt_path
+    trainer.fit(model)
+    assert callback.state == 111
+    assert trainer.checkpoint_connector.resume_checkpoint_path is None
+    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path is None
+    trainer.predict(model=model, ckpt_path=ckpt_path)
+    assert trainer.checkpoint_connector.resume_checkpoint_path is None
+    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path is None
+    trainer.fit(model)
+    assert trainer.checkpoint_connector.resume_checkpoint_path is None
+    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path is None
+
+    # test fit(ckpt_path=) precedence over Trainer(resume_from_checkpoint=) path
+    model = BoringModel()
+    trainer = Trainer(resume_from_checkpoint="trainer_arg_path")
+    with pytest.raises(FileNotFoundError, match="Checkpoint at fit_arg_ckpt_path not found. Aborting training."):
+        trainer.fit(model, ckpt_path="fit_arg_ckpt_path")
