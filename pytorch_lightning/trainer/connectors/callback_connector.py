@@ -234,13 +234,12 @@ class CallbackConnector:
                 progress_bar_callback = RichProgressBar()
                 self.trainer.callbacks.append(progress_bar_callback)
                 return progress_bar_callback
-            else:
-                rank_zero_warn(
-                    "`RichProgressBar` does not support setting the refresh rate via the Trainer. "
-                    "If you'd like to change the refresh rate and continue using the `RichProgressBar`, "
-                    "please pass `callbacks=RichProgressBar(refresh_rate=4)`. "
-                    "Setting to the `TQDM ProgressBar`."
-                )
+            rank_zero_warn(
+                "`RichProgressBar` does not support setting the refresh rate via the Trainer."
+                " If you'd like to change the refresh rate and continue using the `RichProgressBar`,"
+                " please pass `callbacks=RichProgressBar(refresh_rate=4)`."
+                " Setting to the `TQDM ProgressBar`."
+            )
             # else return new TQDMProgressBar
             if os.getenv("COLAB_GPU") and refresh_rate is None:
                 # smaller refresh rate on colab causes crashes for TQDM, choose a higher value
