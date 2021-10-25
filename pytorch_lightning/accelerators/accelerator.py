@@ -329,6 +329,7 @@ class Accelerator:
             opt_idx: index of the current optimizer
             lambda_closure: closure calculating the loss value
             model: reference to the model, optionally defining optimizer step related hooks
+            **kwargs: Any extra arguments to ``optimizer.step``
         """
         model = model or self.lightning_module
         make_optimizer_step = self.precision_plugin.pre_optimizer_step(
@@ -349,9 +350,7 @@ class Accelerator:
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
         """clips all the optimizer parameters to the given value."""
-        self.precision_plugin.clip_gradients(
-            optimizer, clip_val, gradient_clip_algorithm=gradient_clip_algorithm, model=self.model
-        )
+        self.precision_plugin.clip_gradients(optimizer, clip_val, gradient_clip_algorithm=gradient_clip_algorithm)
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         """Creates optimizers and schedulers.

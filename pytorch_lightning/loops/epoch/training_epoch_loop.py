@@ -20,7 +20,7 @@ import torch
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.loops.batch.training_batch_loop import _OUTPUTS_TYPE as _BATCH_OUTPUTS_TYPE
-from pytorch_lightning.loops.utilities import _get_active_optimizers, _update_dataloader_iter
+from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached, _update_dataloader_iter
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -28,7 +28,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.warnings import WarningCache
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation, WarningCache
 
 _OUTPUTS_TYPE = List[_BATCH_OUTPUTS_TYPE]
 
@@ -41,13 +41,20 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         max_steps: The maximum number of steps (batches) to process
     """
 
-    def __init__(self, min_steps: int, max_steps: int):
+    def __init__(self, min_steps: Optional[int] = 0, max_steps: int = -1) -> None:
         super().__init__()
-        self.min_steps: int = min_steps
-
-        if max_steps and max_steps < -1:
-            raise MisconfigurationException(f"`max_steps` must be a positive integer or -1. You passed in {max_steps}.")
-        self.max_steps: int = max_steps
+        if max_steps is None:
+            rank_zero_deprecation(
+                "Setting `max_steps = None` is deprecated in v1.5 and will no longer be supported in v1.7."
+                " Use `max_steps = -1` instead."
+            )
+            max_steps = -1
+        elif max_steps < -1:
+            raise MisconfigurationException(
+                f"`max_steps` must be a non-negative integer or -1 (infinite steps). You passed in {max_steps}."
+            )
+        self.min_steps = min_steps
+        self.max_steps = max_steps
 
         self.global_step: int = 0
         self.batch_progress = BatchProgress()
@@ -79,7 +86,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     @property
     def _is_training_done(self) -> bool:
-        max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
+        max_steps_reached = _is_max_limit_reached(self.global_step, self.max_steps)
         return max_steps_reached or self._num_ready_batches_reached()
 
     @property
@@ -147,7 +154,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
 
-        if not self.trainer.data_connector.train_data_fetcher.store_on_device:
+        if not self.trainer._data_connector.train_data_fetcher.store_on_device:
             with self.trainer.profiler.profile("training_batch_to_device"):
                 batch = self.trainer.accelerator.batch_to_device(batch)
 
