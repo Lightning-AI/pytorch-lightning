@@ -325,7 +325,7 @@ class LightningLite(ABC):
         if self.local_rank == 0:
             print(*args, **kwargs)
 
-    def barrier(self) -> None:
+    def barrier(self, name: Optional[str] = None) -> None:
         """Wait for all processes to enter this call. Use this to synchronize all parallel processes, but only if
         necessary, otherwise the overhead of synchronization will cause your program to slow down.
 
