@@ -69,31 +69,28 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             tensor = self.scaler.scale(tensor)
         super()._run_backward(tensor, model, *args, **kwargs)
 
-    def pre_optimizer_step(
+    def optimizer_step(
         self,
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable[[], Any],
         **kwargs: Any,
-    ) -> bool:
+    ) -> None:
         if self.is_bfloat16:
             # skip scaler logic, as bfloat16 does not require scaler
-            return super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
+            return super().optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"Native AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
-        result = lambda_closure()  # native amp does not support closures
-        self.scaler.unscale_(optimizer)
-        super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
-        skipped_backward = result is None
+        closure_result = lambda_closure()
+        skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if not isinstance(model, pl.LightningModule) or not model.automatic_optimization or not skipped_backward:
             # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
             self.scaler.step(optimizer, **kwargs)
             self.scaler.update()
-        return False
 
     def autocast_context_manager(self) -> autocast:
         if _TORCH_GREATER_EQUAL_DEV_1_10:

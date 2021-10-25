@@ -27,7 +27,7 @@ from pytorch_lightning.plugins.training_type import DataParallelPlugin, Training
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
-from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
+from pytorch_lightning.utilities.enums import AMPType, LightningEnum
 from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
 
 
@@ -332,25 +332,13 @@ class Accelerator:
             **kwargs: Any extra arguments to ``optimizer.step``
         """
         model = model or self.lightning_module
-        make_optimizer_step = self.precision_plugin.pre_optimizer_step(
-            model, optimizer, opt_idx, lambda_closure, **kwargs
-        )
-        if make_optimizer_step:
-            self.training_type_plugin.optimizer_step(optimizer, lambda_closure=lambda_closure, **kwargs)
+        self.precision_plugin.pre_optimizer_step(model, optimizer, opt_idx)
+        self.precision_plugin.optimizer_step(model, optimizer, opt_idx, lambda_closure, **kwargs)
 
     def optimizer_zero_grad(self, current_epoch: int, batch_idx: int, optimizer: Optimizer, opt_idx: int) -> None:
         """Zeros all model parameter's gradients."""
         model_ref = self.lightning_module
         model_ref.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
-
-    def clip_gradients(
-        self,
-        optimizer: Optimizer,
-        clip_val: Union[int, float],
-        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
-    ) -> None:
-        """clips all the optimizer parameters to the given value."""
-        self.precision_plugin.clip_gradients(optimizer, clip_val, gradient_clip_algorithm=gradient_clip_algorithm)
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         """Creates optimizers and schedulers.

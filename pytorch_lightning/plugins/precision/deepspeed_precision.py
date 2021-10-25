@@ -46,22 +46,20 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     def _run_backward(self, tensor: Tensor, model: Module, *args: Any, **kwargs: Any) -> None:
         model.backward(tensor, *args, **kwargs)
 
-    def pre_optimizer_step(
+    def optimizer_step(
         self,
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable[[], Any],
         **kwargs: Any,
-    ) -> bool:
-        """Hook to do something before each optimizer step."""
+    ) -> None:
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"DeepSpeed and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
-        result = lambda_closure()  # DeepSpeed does not support closures
-        super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
-        skipped_backward = result is None
+        closure_result = lambda_closure()
+        skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if isinstance(model, pl.LightningModule) and model.automatic_optimization and skipped_backward:
             raise MisconfigurationException(
@@ -70,7 +68,6 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         # DeepSpeed handles the optimizer step internally
         deepspeed_engine = model.trainer.model if isinstance(model, pl.LightningModule) else model
         deepspeed_engine.step(**kwargs)
-        return False
 
     def clip_gradients(
         self,

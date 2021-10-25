@@ -38,16 +38,15 @@ class IPUPrecisionPlugin(PrecisionPlugin):
                 " the backward logic internally."
             )
 
-    def pre_optimizer_step(
+    def optimizer_step(
         self,
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable[[], Any],
         **kwargs: Any,
-    ) -> bool:
+    ) -> None:
         """IPUs handle the optimizer step internally."""
-        super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"IPUs and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
@@ -62,7 +61,6 @@ class IPUPrecisionPlugin(PrecisionPlugin):
                 " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`"
                 " requesting this feature."
             )
-        return False
 
     def clip_gradients(
         self,
