@@ -44,11 +44,19 @@ class Lite(LightningLite):
         scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
         for epoch in range(1, args.epochs + 1):
             train(args, model, self.device, train_loader, optimizer, epoch, compute_backward=self.backward)
-            test(model, self.device, test_loader)
+            test(model, self.device, test_loader, reduce_loss=self.reduce_loss, should_print=self.should_print)
             scheduler.step()
 
         if args.save_model:
             torch.save(model.state_dict(), "mnist_cnn.pt")
+
+
+    def reduce_loss(self, loss):
+        return self.all_gather(loss).mean()
+
+    
+    def should_print(self):
+        return self.is_global_zero
 
 
 if __name__ == "__main__":
@@ -78,4 +86,9 @@ if __name__ == "__main__":
 
     torch.manual_seed(args.seed)
 
-    Lite(devices=1, accelerator="gpus" if torch.cuda.is_available() else "cpu").run(args)
+    if torch.cuda.is_available():
+        lite_kwargs = {"accelerator": "gpu", "devices": torch.cuda.device_count()}
+    else:
+        lite_kwargs = {"accelerator": "gpu"}
+
+    Lite(**lite_kwargs).run(args)

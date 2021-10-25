@@ -54,6 +54,14 @@ def compute_backward(loss):
     loss.backward()
 
 
+def reduce_loss(loss):
+    return loss
+
+
+def should_print():
+    return True
+
+
 def train(args, model, device, train_loader, optimizer, epoch, compute_backward=compute_backward):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
@@ -77,7 +85,7 @@ def train(args, model, device, train_loader, optimizer, epoch, compute_backward=
                 break
 
 
-def test(model, device, test_loader):
+def test(model, device, test_loader, reduce_loss = reduce_loss, should_print = should_print):
     model.eval()
     test_loss = 0
     correct = 0
@@ -91,11 +99,14 @@ def test(model, device, test_loader):
 
     test_loss /= len(test_loader.dataset)
 
-    print(
-        "\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n".format(
-            test_loss, correct, len(test_loader.dataset), 100.0 * correct / len(test_loader.dataset)
+    test_loss = reduce_loss(test_loss)
+
+    if should_print():
+        print(
+            "\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n".format(
+                test_loss, correct, len(test_loader.dataset), 100.0 * correct / len(test_loader.dataset)
+            )
         )
-    )
 
 
 def main():
