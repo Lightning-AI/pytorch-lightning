@@ -109,6 +109,7 @@ class _LiteModule(nn.Module):
         method."""
         precision = self._accelerator.precision_plugin.precision
         precision_to_type = {
+            "mixed": torch.float16,
             16: torch.float16,
             32: torch.float32,
             64: torch.float64,
