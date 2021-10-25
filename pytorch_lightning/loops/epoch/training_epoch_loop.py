@@ -23,6 +23,7 @@ from pytorch_lightning.loops.batch.training_batch_loop import _OUTPUTS_TYPE as _
 from pytorch_lightning.loops.utilities import _get_active_optimizers, _update_dataloader_iter
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher
