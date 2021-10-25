@@ -127,7 +127,6 @@ def test_add_argparse_args_redefined_error(cli_args: list, monkeypatch):
                 # These parameters are marked as Optional[...] in Trainer.__init__, with None as default.
                 # They should not be changed by the argparse interface.
                 "min_steps": None,
-                "max_steps": None,
                 "accelerator": None,
                 "weights_save_path": None,
                 "profiler": None,

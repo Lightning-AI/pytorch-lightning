@@ -390,6 +390,15 @@ def test_v1_7_0_deprecate_xla_stats_monitor(tmpdir):
         _ = XLAStatsMonitor()
 
 
+def test_v1_7_0_deprecated_max_steps_none(tmpdir):
+    with pytest.deprecated_call(match="`max_steps = None` is deprecated in v1.5"):
+        _ = Trainer(max_steps=None)
+
+    trainer = Trainer()
+    with pytest.deprecated_call(match="`max_steps = None` is deprecated in v1.5"):
+        trainer.fit_loop.max_steps = None
+
+
 def test_v1_7_0_resume_from_checkpoint_trainer_constructor(tmpdir):
     with pytest.deprecated_call(match=r"Setting `Trainer\(resume_from_checkpoint=\)` is deprecated in v1.5"):
         trainer = Trainer(resume_from_checkpoint="a")

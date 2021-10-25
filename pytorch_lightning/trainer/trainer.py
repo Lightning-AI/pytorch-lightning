@@ -145,7 +145,7 @@ class Trainer(
         accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None,
         max_epochs: Optional[int] = None,
         min_epochs: Optional[int] = None,
-        max_steps: Optional[int] = None,
+        max_steps: int = -1,
         min_steps: Optional[int] = None,
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
         limit_train_batches: Union[int, float] = 1.0,
@@ -327,9 +327,9 @@ class Trainer(
             min_epochs: Force training for at least these many epochs. Disabled by default (None).
                 If both min_epochs and min_steps are not specified, defaults to ``min_epochs = 1``.
 
-            max_steps: Stop training after this number of steps. Disabled by default (None). If ``max_steps = None``
-                and ``max_epochs = None``, will default to ``max_epochs = 1000``. To disable this default, set
-                ``max_steps`` to ``-1``.
+            max_steps: Stop training after this number of steps. Disabled by default (-1). If ``max_steps = -1``
+                and ``max_epochs = None``, will default to ``max_epochs = 1000``. To enable infinite training, set
+                ``max_epochs`` to ``-1``.
 
             min_steps: Force training for at least these number of steps. Disabled by default (None).
 
@@ -460,10 +460,11 @@ class Trainer(
         self.signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
-        # max_epochs won't default to 1000 if max_steps/max_time are specified (including being set to -1).
         fit_loop = FitLoop(
             min_epochs=(1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs),
-            max_epochs=(1000 if (max_epochs is None and max_steps is None and max_time is None) else max_epochs),
+            max_epochs=(
+                max_epochs if max_epochs is not None else (1000 if (max_steps == -1 and max_time is None) else -1)
+            ),
         )
         training_epoch_loop = TrainingEpochLoop(min_steps, max_steps)
         training_batch_loop = TrainingBatchLoop()
@@ -1332,7 +1333,7 @@ class Trainer(
 
         if not ckpt_path:
             raise MisconfigurationException(
-                f'`.{fn}()` found no path for the best weights: "{ckpt_path}". Please'
+                f"`.{fn}()` found no path for the best weights: {ckpt_path!r}. Please"
                 f" specify a path for a checkpoint `.{fn}(ckpt_path=PATH)`"
             )
         return ckpt_path
@@ -1937,7 +1938,7 @@ class Trainer(
         return self.fit_loop.current_epoch
 
     @property
-    def max_epochs(self) -> Optional[int]:
+    def max_epochs(self) -> int:
         return self.fit_loop.max_epochs
 
     @property
@@ -1945,7 +1946,7 @@ class Trainer(
         return self.fit_loop.min_epochs
 
     @property
-    def max_steps(self) -> Optional[int]:
+    def max_steps(self) -> int:
         return self.fit_loop.max_steps
 
     @property
