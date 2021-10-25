@@ -577,3 +577,35 @@ Print to the console via the built-in print function, but only on the main proce
 
     # Print only on the main process
     self.print(f"{epoch}/{num_epochs}| Train Epoch Loss: {loss}")
+
+
+save_checkpoint
+===============
+
+Save contents to a checkpoint. Replaces all occurences of ``torch.save(...)`` in your code. Lite will take care of
+handling the saving part correctly, no matter if you are running single device, multi-device or multi-node.
+
+.. code-block:: python
+
+    # Instead of `torch.save(...)`, call:
+    self.save_checkpoint("path/to/checkpoint.ckpt", model.state_dict())
+
+
+barrier
+=======
+
+Call this if you want all processes to wait and synchronize. Once all processes have entered this call,
+execution continues. Useful for example when you want to download data on one process and make all others wait until
+the data is written to disk.
+
+.. code-block:: python
+
+    # Download data only on one process
+    if self.global_rank == 0:
+        download_data("http://...")
+
+    # Wait until all processes meet up here
+    self.barrier()
+
+    # All processes are allowed to read the data now
+
