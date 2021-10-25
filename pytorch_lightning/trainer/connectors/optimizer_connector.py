@@ -54,9 +54,6 @@ class OptimizerConnector:
             if update_plateau_schedulers ^ lr_scheduler["reduce_on_plateau"]:
                 continue
 
-            if lr_scheduler["scheduler"].optimizer._step_count == 0:
-                continue
-
             current_idx = self.trainer.fit_loop.batch_idx if interval == "step" else self.trainer.current_epoch
             current_idx += 1  # account for both batch and epoch starts from 0
             # Take step if call to update_learning_rates matches the interval key and
@@ -85,11 +82,13 @@ class OptimizerConnector:
 
                 self.trainer.fit_loop.epoch_loop.scheduler_progress.increment_ready()
 
-                # update LR
-                if lr_scheduler["reduce_on_plateau"]:
-                    lr_scheduler["scheduler"].step(monitor_val)
-                else:
-                    lr_scheduler["scheduler"].step()
+                # skip if `optimizer.step()` has never been called
+                if lr_scheduler["scheduler"].optimizer._step_count != 0:
+                    # update LR
+                    if lr_scheduler["reduce_on_plateau"]:
+                        lr_scheduler["scheduler"].step(monitor_val)
+                    else:
+                        lr_scheduler["scheduler"].step()
 
                 self.trainer.fit_loop.epoch_loop.scheduler_progress.increment_completed()
 
