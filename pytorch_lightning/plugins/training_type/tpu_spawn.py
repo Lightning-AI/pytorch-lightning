@@ -184,9 +184,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def model_to_device(self) -> None:
         self.model = self.wrapped_model.to(self.root_device)
 
-    def setup_model(self, model: Module) -> Module:
-        return model
-
     def barrier(self, name: Optional[str] = None) -> None:
         if self.is_distributed:
             rendezvous(name)
