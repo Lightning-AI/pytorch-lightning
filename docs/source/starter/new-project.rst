@@ -373,7 +373,7 @@ a forward method or trace only the sub-models you need.
 --------------------
 
 Using CPUs/GPUs/TPUs/IPUs
-========================
+=========================
 It's trivial to use CPUs, GPUs, TPUs or IPUs in Lightning. There's **NO NEED** to change your code, simply change the :class:`~pytorch_lightning.trainer.Trainer` options.
 
 .. testcode::
