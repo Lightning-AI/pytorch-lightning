@@ -163,7 +163,7 @@ def test_rich_progress_bar_keyboard_interrupt(tmpdir):
     trainer.progress_bar_callback.teardown(trainer, model)
 
 
-@RunIf(rich=True, special=True)
+@RunIf(rich=True)
 def test_progress_bar_totals(tmpdir):
     """Test that the progress finishes with the correct total steps processed."""
 
@@ -171,7 +171,7 @@ def test_progress_bar_totals(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     bar = trainer.progress_bar_callback
-    assert 0 == bar.total_train_batches
+    assert float("inf") == bar.total_train_batches
     assert 0 == bar.total_val_batches
     assert 0 == bar.total_test_batches
 
