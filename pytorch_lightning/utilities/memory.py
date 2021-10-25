@@ -28,7 +28,7 @@ class ByteCounter:
     def __init__(self) -> None:
         self.nbytes: int = 0
 
-    def write(self, data) -> None:
+    def write(self, data: bytes) -> None:
         self.nbytes += len(data)
 
     def flush(self) -> None:
