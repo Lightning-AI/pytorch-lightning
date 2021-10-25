@@ -32,7 +32,7 @@ from tests.helpers.runif import RunIf
     ),
 )
 def test_evaluate(tmpdir, trainer_kwargs):
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
     seed_everything(1)
     dm = ClassifDataModule()
     model = CustomClassificationModelDP()

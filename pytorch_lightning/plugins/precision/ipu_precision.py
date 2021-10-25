@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Union
 
 from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
@@ -67,12 +67,9 @@ class IPUPrecisionPlugin(PrecisionPlugin):
     def clip_gradients(
         self,
         optimizer: Optimizer,
-        clip_val: Union[int, float],
+        clip_val: Union[int, float] = 0.0,
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
-        model: Optional[Module] = None,
     ) -> None:
-        """Clips the gradients."""
-        if clip_val is None or float(clip_val) <= 0:
+        if clip_val <= 0:
             return
-
         raise MisconfigurationException("IPUs currently do not support clipping gradients.")
