@@ -1411,10 +1411,7 @@ class LightningModule(
             *args: Additional positional arguments to be forwarded to :meth:`~torch.Tensor.backward`
             **kwargs: Additional keyword arguments to be forwarded to :meth:`~torch.Tensor.backward`
         """
-        # make sure we're using manual opt
         self._verify_is_manual_optimization("manual_backward")
-
-        # backward
         self.trainer.accelerator.backward(loss, None, None, *args, **kwargs)
 
     def backward(
@@ -1487,7 +1484,7 @@ class LightningModule(
         self,
         optimizer: Optimizer,
         gradient_clip_val: Optional[Union[int, float]] = None,
-        gradient_clip_algorithm: Optional[Union[str, GradClipAlgorithmType]] = None,
+        gradient_clip_algorithm: Optional[str] = None,
     ):
         """Handles gradient clipping internally.
 
@@ -1505,8 +1502,9 @@ class LightningModule(
             gradient_clip_val = self.trainer.gradient_clip_val or 0.0
         elif self.trainer.gradient_clip_val is not None and self.trainer.gradient_clip_val != gradient_clip_val:
             raise MisconfigurationException(
-                "You have set `Trainer(gradient_clip_val)` and have passed"
-                " `gradient_clip_val` inside `clip_gradients`. Please use only one of them."
+                f"You have set `Trainer(gradient_clip_val={self.trainer.gradient_clip_val!r})`"
+                f" and have passed `clip_gradients(gradient_clip_val={gradient_clip_val!r})`."
+                " Please use only one of them."
             )
 
         if gradient_clip_algorithm is None:
@@ -1518,8 +1516,9 @@ class LightningModule(
                 and self.trainer.gradient_clip_algorithm != gradient_clip_algorithm
             ):
                 raise MisconfigurationException(
-                    "You have set `Trainer(gradient_clip_algorithm)` and have passed"
-                    " `gradient_clip_algorithm` inside `clip_gradients`. Please use only one of them."
+                    f"You have set `Trainer(gradient_clip_algorithm={self.trainer.gradient_clip_algorithm.value!r})`"
+                    f" and have passed `clip_gradients(gradient_clip_algorithm={gradient_clip_algorithm!r})"
+                    " Please use only one of them."
                 )
 
         if not isinstance(gradient_clip_val, (int, float)):
@@ -1542,10 +1541,6 @@ class LightningModule(
         gradient_clip_algorithm: Optional[str] = None,
     ):
         """Perform gradient clipping for the optimizer parameters. Called before :meth:`optimizer_step`.
-
-        Note:
-            This hook won't be called when using deepspeed since it handles gradient clipping internally.
-            Consider setting ``gradient_clip_val`` and ``gradient_clip_algorithm`` inside ``Trainer``."
 
         Args:
             optimizer: Current optimizer being used.
