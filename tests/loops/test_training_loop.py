@@ -174,7 +174,6 @@ def test_training_loop_workers_are_shutdown(tmpdir):
             return out
 
     model = BoringModel()
-    model.validation_step = None
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=0, max_epochs=2)
 
     epoch_loop = TestLoop(trainer.fit_loop.epoch_loop.min_steps, trainer.fit_loop.epoch_loop.max_steps)
