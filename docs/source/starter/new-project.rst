@@ -423,7 +423,7 @@ Without changing a SINGLE line of your code, you can now do the following with t
     # train on TPUs using 16 bit precision
     # using only half the training data and checking validation every quarter of a training epoch
     trainer = pl.Trainer(tpu_cores=8, precision=16, limit_train_batches=0.5, val_check_interval=0.25)
-    
+
 .. code-block:: python
 
     # Train on IPUs
@@ -671,7 +671,7 @@ Make your data code reusable by organizing it into a :class:`~pytorch_lightning.
       def test_dataloader(self):
           mnist_test = DataLoader(self.mnist_test, batch_size=self.batch_size)
           return mnist_test
-      
+
       def predict_dataloader(self):
           mnist_predict = DataLoader(self.mnist_predict, batch_size=self.batch_size)
           return mnist_predict
@@ -697,10 +697,10 @@ the :class:`~pytorch_lightning.trainer.Trainer`:
 
     # validate
     trainer.validate(datamodule=dm)
-    
+
     # test
     trainer.test(datamodule=dm)
-    
+
     # predict
     predictions = trainer.predict(datamodule=dm)
 
@@ -727,7 +727,7 @@ Lightning has many tools for debugging. Here is an example of just a few of them
     # unit test all the code- hits every line of your code once to see if you have bugs,
     # instead of waiting hours to crash on validation
     trainer = Trainer(fast_dev_run=True)
-    
+
     unit test all the code- hits every line of your code with 4 batches
     trainer = Trainer(fast_dev_run=4)
 
