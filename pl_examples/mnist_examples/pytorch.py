@@ -85,7 +85,7 @@ def train(args, model, device, train_loader, optimizer, epoch, compute_backward=
                 break
 
 
-def test(model, device, test_loader, reduce_loss = reduce_loss, should_print = should_print):
+def test(model, device, test_loader, reduce_loss=reduce_loss, should_print=should_print):
     model.eval()
     test_loss = 0
     correct = 0

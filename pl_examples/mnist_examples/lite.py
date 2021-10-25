@@ -50,11 +50,9 @@ class Lite(LightningLite):
         if args.save_model:
             torch.save(model.state_dict(), "mnist_cnn.pt")
 
-
     def reduce_loss(self, loss):
         return self.all_gather(loss).mean()
 
-    
     def should_print(self):
         return self.is_global_zero
 
