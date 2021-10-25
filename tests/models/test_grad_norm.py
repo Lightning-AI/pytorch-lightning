@@ -57,7 +57,6 @@ class ModelWithManualGradTracker(BoringModel):
         self.stored_grad_norms.append(out)
 
 
-@RunIf(special=True)
 @pytest.mark.parametrize("norm_type", [1.0, 1.25, 2, 3, 5, 10, "inf"])
 def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
     # rtol=5e-3 respects the 3 decimals rounding in `.grad_norms` and above
