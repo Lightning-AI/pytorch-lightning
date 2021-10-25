@@ -31,7 +31,8 @@ class TorchElasticEnvironment(ClusterEnvironment):
         required_env_vars = ("RANK", "GROUP_RANK", "LOCAL_RANK", "LOCAL_WORLD_SIZE")
         return all(v in os.environ for v in required_env_vars)
 
-    def creates_children(self) -> bool:
+    @property
+    def creates_processes_externally(self) -> bool:
         return True
 
     def master_address(self) -> str:
