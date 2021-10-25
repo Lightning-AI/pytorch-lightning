@@ -627,9 +627,9 @@ class DeepSpeedPlugin(DDPPlugin):
         return batch_size
 
     def _format_precision_config(self):
-        amp_type = self.lightning_module.trainer.accelerator_connector.amp_type
-        amp_level = self.lightning_module.trainer.accelerator_connector.amp_level
-        precision = self.lightning_module.trainer.accelerator_connector.precision
+        amp_type = self.lightning_module.trainer._accelerator_connector.amp_type
+        amp_level = self.lightning_module.trainer._accelerator_connector.amp_level
+        precision = self.lightning_module.trainer._accelerator_connector.precision
         if precision in (16, "mixed"):
             if "fp16" not in self.config and amp_type == AMPType.NATIVE:
                 # FP16 is a DeepSpeed standalone AMP implementation
