@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Union
+from typing import Any, Callable, Union
 
 from torch.nn import Module
 from torch.optim import Optimizer
@@ -31,9 +31,10 @@ class TPUPrecisionPlugin(PrecisionPlugin):
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        closure_result: Any,
+        lambda_closure: Callable[[], Any],
         **kwargs: Any
     ) -> None:
+        closure_result = xm.optimizer_step(optimizer, optimizer_args={"closure": lambda_closure, **kwargs})
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if isinstance(model, pl.LightningModule) and model.automatic_optimization and skipped_backward:
@@ -43,4 +44,3 @@ class TPUPrecisionPlugin(PrecisionPlugin):
                 " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`"
                 " requesting this feature."
             )
-        xm.optimizer_step(optimizer, optimizer_args=kwargs)

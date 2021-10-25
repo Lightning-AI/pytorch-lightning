@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional, Union
+from typing import Any, Callable, Union
 
 from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
@@ -43,7 +43,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        closure_result: Any,
+        lambda_closure: Callable[[], Any],
         **kwargs: Any,
     ) -> None:
         """IPUs handle the optimizer step internally."""
@@ -51,6 +51,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
             raise MisconfigurationException(
                 f"IPUs and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
+        closure_result = lambda_closure()
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if isinstance(model, pl.LightningModule) and model.automatic_optimization and skipped_backward:
@@ -63,13 +64,14 @@ class IPUPrecisionPlugin(PrecisionPlugin):
 
     def clip_gradients(
         self,
+        model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
+        optimizer_idx: int,
         clip_val: Union[int, float],
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
-        model: Optional[Module] = None,
     ) -> None:
         """Clips the gradients."""
-        if clip_val is None or float(clip_val) <= 0:
+        if float(clip_val) <= 0:
             return
 
         raise MisconfigurationException("IPUs currently do not support clipping gradients.")

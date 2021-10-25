@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Optional, Sequence, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Union
 
 import torch
 from torch import Tensor
@@ -101,14 +101,18 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        closure_result: Any,
+        lambda_closure: Callable[[], Any],
         **kwargs: Any,
     ) -> None:
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"apex AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
-        super().optimizer_step(model, optimizer, optimizer_idx, closure_result, **kwargs)
+        closure_result = lambda_closure()
+        skipped_backward = closure_result is None
+        # in manual optimization, the closure does not return a value
+        if not model.automatic_optimization or not skipped_backward:
+            optimizer.step(**kwargs)
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         if "amp_scaling_state" in checkpoint:

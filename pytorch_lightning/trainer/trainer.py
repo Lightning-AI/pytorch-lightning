@@ -380,7 +380,8 @@ class Trainer(
 
             ipus: How many IPUs to train on.
 
-            track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm.
+            track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm. If using
+                Automatic Mixed Precision (AMP), the gradients will be unscaled before logging them.
 
             val_check_interval: How often to check the validation set. Use float to check within a training epoch,
                 use int to check every n steps (batches).

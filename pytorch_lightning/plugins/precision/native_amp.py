@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Dict, Generator, Union
+from typing import Any, Callable, Dict, Generator, Union
 
 import torch
 from torch import Tensor
@@ -69,21 +69,22 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        closure_result: Any,
+        lambda_closure: Callable[[], Any],
         **kwargs: Any,
     ) -> None:
         if self.is_bfloat16:
             # skip scaler logic, as bfloat16 does not require scaler
-            return super().optimizer_step(model, optimizer, optimizer_idx, closure_result, **kwargs)
+            return super().optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"Native AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
+        closure_result = lambda_closure()
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if not isinstance(model, pl.LightningModule) or not model.automatic_optimization or not skipped_backward:
             # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
-            self.scaler.step(optimizer)
+            self.scaler.step(optimizer, **kwargs)
             self.scaler.update()
 
     def autocast_context_manager(self) -> torch.cuda.amp.autocast:

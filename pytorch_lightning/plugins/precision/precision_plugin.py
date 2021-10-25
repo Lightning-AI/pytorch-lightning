@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
-from typing import Any, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Generator, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -105,29 +105,34 @@ class PrecisionPlugin(CheckpointHooks):
         Returns:
             The output of the optimizer closure execution.
         """
+        if isinstance(model, pl.LightningModule):
+            model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
+
+    def optimizer_step(
+        self,
+        model: Union["pl.LightningModule", Module],
+        optimizer: Optimizer,
+        optimizer_idx: int,
+        lambda_closure: Callable[[], Any],
+        **kwargs: Any,
+    ) -> None:
+        """Hook to run the optimizer step."""
+        optimizer.step(lambda_closure, **kwargs)
+
+    def post_optimizer_step(
+        self, model: Union["pl.LightningModule", Module], optimizer: Optimizer, optimizer_idx: int
+    ) -> None:
         trainer = model.trainer
         if optimizer_idx == 0:
-            # FIXME: perhaps this shouldn't be here as we need to do it only once
+            # FIXME: this is done per-module but should be changed to per-optimizer
             self._track_grad_norm(trainer)
         self.clip_gradients(
+            model,
             optimizer,
             optimizer_idx,
             trainer.gradient_clip_val,
             gradient_clip_algorithm=trainer.gradient_clip_algorithm,
-            model=model,
         )
-        if isinstance(model, pl.LightningModule):
-            trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
-
-    def optimizer_step(
-        self, model: "pl.LightningModule", optimizer: Optimizer, optimizer_idx: int, closure_result: Any, **kwargs: Any
-    ) -> None:
-        """Hook to run the optimizer step."""
-        skipped_backward = closure_result is None
-        # in manual optimization, the closure does not return a value
-        if not model.automatic_optimization or not skipped_backward:
-            # FIXME: LBFGS broken
-            optimizer.step(**kwargs)
 
     def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
         """Tracks the model's gradient norms."""
@@ -142,15 +147,20 @@ class PrecisionPlugin(CheckpointHooks):
 
     def clip_gradients(
         self,
+        model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
         clip_val: Union[int, float],
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
-        model: Optional["pl.LightningModule"] = None,
     ) -> None:
         """Clips the gradients."""
-        if self.trainer.accelerator_connector.use_deepspeed or model is None:
+        if (
+            not isinstance(model, pl.LightningModule)
+            or self.trainer.accelerator_connector.use_deepspeed
+            or clip_val <= 0
+        ):
             return
+        # FIXME: double check this
         model.configure_gradient_clipping(
             optimizer,
             optimizer_idx,
