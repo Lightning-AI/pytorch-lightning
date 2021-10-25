@@ -117,7 +117,7 @@ Here are 4 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
 
 That's all. You can now train on any kind of device and scale your training.
 The :class:`~pytorch_lightning.lite.LightningLite` takes care of device management, so you don't have to.
-You can remove any device specific logic within your code.
+You should remove any device specific logic within your code.
 Here is how to train on 8 GPUs with `torch.bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_ precision:
 
 .. code-block:: python
