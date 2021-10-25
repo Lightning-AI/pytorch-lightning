@@ -126,7 +126,7 @@ class PrecisionPlugin(CheckpointHooks):
         if optimizer_idx == 0:
             # FIXME: this is done per-module but should be changed to per-optimizer
             self._track_grad_norm(trainer)
-        self.clip_gradients(
+        self._clip_gradients(
             model,
             optimizer,
             optimizer_idx,
@@ -145,28 +145,37 @@ class PrecisionPlugin(CheckpointHooks):
             trainer.lightning_module.log_grad_norm(grad_norm_dict)
             trainer.lightning_module._current_fx_name = prev_fx
 
-    def clip_gradients(
+    def _clip_gradients(
         self,
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        clip_val: Union[int, float],
-        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
+        clip_val: Optional[Union[int, float]] = None,
+        gradient_clip_algorithm: Optional[GradClipAlgorithmType] = None,
     ) -> None:
         """Clips the gradients."""
-        if (
-            not isinstance(model, pl.LightningModule)
-            or self.trainer.accelerator_connector.use_deepspeed
-            or clip_val <= 0
-        ):
+        if not isinstance(model, pl.LightningModule):
             return
-        # FIXME: double check this
         model.configure_gradient_clipping(
             optimizer,
             optimizer_idx,
             gradient_clip_val=clip_val,
             gradient_clip_algorithm=gradient_clip_algorithm,
         )
+
+    def clip_gradients(
+        self,
+        optimizer: Optimizer,
+        clip_val: Union[int, float] = 0.0,
+        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
+    ) -> None:
+        """Clips the gradients."""
+        if clip_val <= 0:
+            return
+        if gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
+            self.clip_grad_by_value(optimizer, clip_val)
+        elif gradient_clip_algorithm == GradClipAlgorithmType.NORM:
+            self.clip_grad_by_norm(optimizer, clip_val)
 
     def clip_grad_by_value(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
         """Clip gradients by value."""

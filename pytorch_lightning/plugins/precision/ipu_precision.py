@@ -64,14 +64,10 @@ class IPUPrecisionPlugin(PrecisionPlugin):
 
     def clip_gradients(
         self,
-        model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
-        optimizer_idx: int,
-        clip_val: Union[int, float],
+        clip_val: Union[int, float] = 0.0,
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
-        """Clips the gradients."""
-        if float(clip_val) <= 0:
+        if clip_val <= 0:
             return
-
         raise MisconfigurationException("IPUs currently do not support clipping gradients.")

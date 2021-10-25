@@ -19,6 +19,7 @@ from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
+from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -68,5 +69,12 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         deepspeed_engine = model.trainer.model if isinstance(model, pl.LightningModule) else model
         deepspeed_engine.step(**kwargs)
 
-    def clip_gradients(self, *_, **__) -> None:
-        """DeepSpeed handles gradient clipping internally."""
+    def clip_gradients(
+        self,
+        optimizer: Optimizer,
+        clip_val: Union[int, float] = 0.0,
+        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
+    ) -> None:
+        if clip_val is None or float(clip_val) <= 0:
+            return
+        raise MisconfigurationException("DeepSpeed handles gradient clipping internally.")
