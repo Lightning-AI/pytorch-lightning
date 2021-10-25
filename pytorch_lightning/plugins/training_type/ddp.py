@@ -42,6 +42,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
     _FAIRSCALE_AVAILABLE,
     _HYDRA_AVAILABLE,
+    _IS_WINDOWS,
     _TORCH_GREATER_EQUAL_1_7,
     _TORCH_GREATER_EQUAL_1_8,
     _TORCH_GREATER_EQUAL_1_9,
@@ -57,7 +58,9 @@ from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _TORCH_GREATER_EQUAL_1_10:
-    from torch.distributed.optim import DistributedOptimizer, PostLocalSGDOptimizer, ZeroRedundancyOptimizer
+    if not _IS_WINDOWS:
+        from torch.distributed.optim import DistributedOptimizer
+    from torch.distributed.optim import PostLocalSGDOptimizer, ZeroRedundancyOptimizer
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
@@ -333,8 +336,9 @@ class DDPPlugin(ParallelPlugin):
             if isinstance(optimizer, LightningOptimizer):
                 optimizer = optimizer._optimizer
 
+            is_distributed_optimizer = isinstance(optimizer, DistributedOptimizer) if not _IS_WINDOWS else False
             if (
-                isinstance(optimizer, DistributedOptimizer)
+                is_distributed_optimizer
                 or isinstance(optimizer, ZeroRedundancyOptimizer)
                 or (_FAIRSCALE_AVAILABLE and isinstance(optimizer, OSS))
             ):
