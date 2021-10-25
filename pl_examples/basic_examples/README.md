@@ -13,7 +13,7 @@ python simple_image_classifier.py
 # gpus (any number)
 python simple_image_classifier.py --trainer.gpus 2
 
-# data-parallel
+# Distributed Data Parallel
 python simple_image_classifier.py --trainer.gpus 2 --trainer.accelerator ddp
 ```
 
@@ -41,7 +41,7 @@ python backbone_image_classifier.py
 # gpus (any number)
 python backbone_image_classifier.py --trainer.gpus 2
 
-# data-parallel
+# Distributed Data Parallel
 python backbone_image_classifier.py --trainer.gpus 2 --trainer.accelerator ddp
 ```
 
@@ -58,6 +58,6 @@ python autoencoder.py
 # gpus (any number)
 python autoencoder.py --trainer.gpus 2
 
-# data-parallel
+# Distributed Data Parallel
 python autoencoder.py --trainer.gpus 2 --trainer.accelerator ddp
 ```

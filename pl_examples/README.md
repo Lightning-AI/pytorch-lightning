@@ -9,11 +9,12 @@ ______________________________________________________________________
 
 In this folder we add several starter examples:
 
-- [MNIST Classifier](./basic_examples/simple_image_classifier.py): Shows how to define the model inside the `LightningModule`
-- [Image Classifier](./basic_examples/backbone_image_classifier.py): Trains arbitrary datasets with arbitrary backbones
-- [Autoencoder](./basic_examples/autoencoder.py): Shows how the `LightningModule` can be used as a system
-- [Profiler](./basic_examples/profiler_example.py): Shows the basic usage of the PyTorch profilers and how to inspect traces in Google Chrome
-- [Image Classifier with DALI](./basic_examples/dali_image_classifier.py): Shows how to use [NVIDIA DALI](https://developer.nvidia.com/DALI) with Lightning
+- [MNIST Classifier](./basic_examples/simple_image_classifier.py): Shows how to define the model inside the `LightningModule`.
+- [Image Classifier](./basic_examples/backbone_image_classifier.py): Trains arbitrary datasets with arbitrary backbones.
+- [Autoencoder](./basic_examples/autoencoder.py): Shows how the `LightningModule` can be used as a system.
+- [Profiler](./basic_examples/profiler_example.py): Shows the basic usage of the PyTorch profilers and how to inspect traces in Google Chrome.
+- [Image Classifier with DALI](./basic_examples/dali_image_classifier.py): Shows how to use [NVIDIA DALI](https://developer.nvidia.com/DALI) with Lightning.
+- [Mnist Datamodule](.basic_examples/mnist_datamodule.py): Shows how to define a simple `LightningDataModule` using the MNIST dataset.
 
 ______________________________________________________________________
 
