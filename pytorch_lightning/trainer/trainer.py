@@ -33,7 +33,7 @@ from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.loggers.base import LoggerCollection
+from pytorch_lightning.loggers.base import LoggerCollection, DummyLogger
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop, TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
@@ -572,53 +572,44 @@ class Trainer(
                 f"fast_dev_run={fast_dev_run} is not a valid configuration. It should be >= 0."
             )
 
-        self.trainer.fast_dev_run = fast_dev_run
+        self.fast_dev_run = fast_dev_run
         fast_dev_run = int(fast_dev_run)
 
         # set fast_dev_run=True when it is 1, used while logging
         if fast_dev_run == 1:
-            self.trainer.fast_dev_run = True
+            self.fast_dev_run = True
 
         if fast_dev_run:
             limit_train_batches = fast_dev_run
             limit_val_batches = fast_dev_run
             limit_test_batches = fast_dev_run
             limit_predict_batches = fast_dev_run
-            self.trainer.fit_loop.max_steps = fast_dev_run
-            self.trainer.num_sanity_val_steps = 0
-            self.trainer.fit_loop.max_epochs = 1
+            self.fit_loop.max_steps = fast_dev_run
+            self.num_sanity_val_steps = 0
+            self.fit_loop.max_epochs = 1
             val_check_interval = 1.0
-            self.trainer.check_val_every_n_epoch = 1
-            self.trainer.logger = DummyLogger() if self.trainer.logger is not None else None
+            self.check_val_every_n_epoch = 1
+            self.logger = DummyLogger() if self.logger is not None else None
 
             rank_zero_info(
                 "Running in fast_dev_run mode: will run a full train,"
                 f" val, test and prediction loop using {fast_dev_run} batch(es)."
             )
 
-        self.trainer.limit_train_batches = _determine_batch_limits(limit_train_batches, "limit_train_batches")
-        self.trainer.limit_val_batches = _determine_batch_limits(limit_val_batches, "limit_val_batches")
-        self.trainer.limit_test_batches = _determine_batch_limits(limit_test_batches, "limit_test_batches")
-        self.trainer.limit_predict_batches = _determine_batch_limits(limit_predict_batches, "limit_predict_batches")
-        self.trainer.val_check_interval = _determine_batch_limits(val_check_interval, "val_check_interval")
-        self.trainer.overfit_batches = _determine_batch_limits(overfit_batches, "overfit_batches")
-        self.determine_data_use_amount(self.trainer.overfit_batches)
+        self.limit_train_batches = _determine_batch_limits(limit_train_batches, "limit_train_batches")
+        self.limit_val_batches = _determine_batch_limits(limit_val_batches, "limit_val_batches")
+        self.limit_test_batches = _determine_batch_limits(limit_test_batches, "limit_test_batches")
+        self.limit_predict_batches = _determine_batch_limits(limit_predict_batches, "limit_predict_batches")
+        self.val_check_interval = _determine_batch_limits(val_check_interval, "val_check_interval")
+        self.overfit_batches = _determine_batch_limits(overfit_batches, "overfit_batches")
+        self.determine_data_use_amount(self.overfit_batches)
 
     def determine_data_use_amount(self, overfit_batches: float) -> None:
         """Use less data for debugging purposes."""
         if overfit_batches > 0:
-            self.trainer.limit_train_batches = overfit_batches
-            self.trainer.limit_val_batches = overfit_batches
-            self.trainer.limit_test_batches = overfit_batches
-
-    def _determine_batch_limits(batches: Union[int, float], name: str) -> Union[int, float]:
-        if 0 <= batches <= 1:
-            return batches
-        if batches > 1 and batches % 1.0 == 0:
-            return int(batches)
-        raise MisconfigurationException(
-            f"You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int."
-        )
+            self.limit_train_batches = overfit_batches
+            self.limit_val_batches = overfit_batches
+            self.limit_test_batches = overfit_batches
 
     def _setup_on_init(self, num_sanity_val_steps: int) -> None:
         self._log_device_info()
@@ -2173,3 +2164,12 @@ class Trainer(
             f" Please set `Trainer(detect_anomaly={val})` instead."
         )
         self._terminate_on_nan = val  # : 212
+
+def _determine_batch_limits(batches: Union[int, float], name: str) -> Union[int, float]:
+        if 0 <= batches <= 1:
+            return batches
+        if batches > 1 and batches % 1.0 == 0:
+            return int(batches)
+        raise MisconfigurationException(
+            f"You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int."
+        )
