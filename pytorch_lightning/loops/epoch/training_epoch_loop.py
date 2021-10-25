@@ -437,13 +437,13 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         active_optimizers = _get_active_optimizers(
             self.trainer.optimizers, self.trainer.optimizer_frequencies, self.total_batch_idx
         )
-        self.update_learning_rates(
+        self._update_learning_rates(
             interval=interval,
             update_plateau_schedulers=update_plateau_schedulers,
             opt_indices=[opt_idx for opt_idx, _ in active_optimizers],
         )
 
-    def update_learning_rates(
+    def _update_learning_rates(
         self, interval: str, update_plateau_schedulers: bool, opt_indices: Optional[List[int]] = None
     ) -> None:
         """Update learning rates.
