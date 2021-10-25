@@ -369,7 +369,8 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
         def master_address(self):
             return "asdf"
 
-        def creates_children(self) -> bool:
+        @property
+        def creates_processes_externally(self) -> bool:
             return True
 
     trainer = Trainer(
