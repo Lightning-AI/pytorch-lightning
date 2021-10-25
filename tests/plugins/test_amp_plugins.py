@@ -183,7 +183,7 @@ def test_cpu_amp_precision_context_manager(tmpdir):
     assert plugin.device == "cpu"
     assert plugin.scaler is None
     context_manager = plugin.autocast_context_manager()
-    assert isinstance(context_manager, torch.cpu.amp.autocast)
+    assert isinstance(context_manager, torch.autocast)
     assert context_manager.fast_dtype == torch.bfloat16
 
 

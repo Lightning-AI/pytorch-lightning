@@ -273,7 +273,7 @@ def test_result_reduce_horovod(tmpdir):
     This test mirrors tests/core/test_results.py::_ddp_test_fn
     """
     tutils.reset_seed()
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
 
     def hvd_test_fn():
         path_here = os.path.abspath(os.path.dirname(__file__))

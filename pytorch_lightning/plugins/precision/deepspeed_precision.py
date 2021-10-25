@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Union
 
 from torch import Tensor
 from torch.nn import Module
@@ -48,10 +48,10 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
     def pre_optimizer_step(
         self,
-        model: "pl.LightningModule",
+        model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Callable,
+        lambda_closure: Callable[[], Any],
         **kwargs: Any,
     ) -> bool:
         """Hook to do something before each optimizer step."""
@@ -63,20 +63,19 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
         skipped_backward = result is None
         # in manual optimization, the closure does not return a value
-        if model.automatic_optimization and skipped_backward:
+        if isinstance(model, pl.LightningModule) and model.automatic_optimization and skipped_backward:
             raise MisconfigurationException(
                 "Skipping backward by returning `None` from your `training_step` is not supported by `DeepSpeed`"
             )
         # DeepSpeed handles the optimizer step internally
-        deepspeed_engine = model.trainer.model
-        deepspeed_engine.step()
+        deepspeed_engine = model.trainer.model if isinstance(model, pl.LightningModule) else model
+        deepspeed_engine.step(**kwargs)
         return False
 
     def clip_gradients(
         self,
         optimizer: Optimizer,
-        clip_val: Union[int, float],
+        clip_val: Union[int, float] = 0.0,
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
-        model: Optional[Module] = None,
     ) -> None:
         """DeepSpeed handles gradient clipping internally."""

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Union
 
 from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
@@ -40,7 +40,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
 
     def pre_optimizer_step(
         self,
-        model: "pl.LightningModule",
+        model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable[[], Any],
@@ -55,7 +55,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
         closure_result = lambda_closure()
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
-        if model.automatic_optimization and skipped_backward:
+        if isinstance(model, pl.LightningModule) and model.automatic_optimization and skipped_backward:
             # we lack coverage here and IPUs are (currently) limited - something to explore if there's demand
             raise MisconfigurationException(
                 "Skipping backward by returning `None` from your `training_step` is not implemented for IPUs."
@@ -67,12 +67,9 @@ class IPUPrecisionPlugin(PrecisionPlugin):
     def clip_gradients(
         self,
         optimizer: Optimizer,
-        clip_val: Union[int, float],
+        clip_val: Union[int, float] = 0.0,
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
-        model: Optional[Module] = None,
     ) -> None:
-        """Clips the gradients."""
-        if clip_val is None or float(clip_val) <= 0:
+        if clip_val <= 0:
             return
-
         raise MisconfigurationException("IPUs currently do not support clipping gradients.")

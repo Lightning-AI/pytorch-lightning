@@ -99,35 +99,29 @@ class PrecisionPlugin(CheckpointHooks):
 
     def pre_optimizer_step(
         self,
-        model: "pl.LightningModule",
+        model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
         **kwargs: Any,
     ) -> bool:
         """Hook to do something before each optimizer step."""
-        model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
+        if isinstance(model, pl.LightningModule):
+            model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         return True
 
     def clip_gradients(
         self,
         optimizer: Optimizer,
-        clip_val: Union[int, float],
+        clip_val: Union[int, float] = 0.0,
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
-        model: Optional[Module] = None,
     ) -> None:
         """Clips the gradients."""
-        if clip_val is None:
-            return
-
-        clip_val = float(clip_val)
         if clip_val <= 0:
             return
-
         if gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
             self.clip_grad_by_value(optimizer, clip_val)
         elif gradient_clip_algorithm == GradClipAlgorithmType.NORM:
-            # TODO: there should be a mechanism to set `norm_type`
             self.clip_grad_by_norm(optimizer, clip_val)
 
     def clip_grad_by_value(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:

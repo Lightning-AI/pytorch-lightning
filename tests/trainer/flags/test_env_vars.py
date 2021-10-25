@@ -21,10 +21,12 @@ def test_passing_no_env_variables():
     """Testing overwriting trainer arguments."""
     trainer = Trainer()
     assert trainer.logger is not None
-    assert trainer.max_steps is None
+    assert trainer.max_steps == -1
+    assert trainer.max_epochs == 1000
     trainer = Trainer(False, max_steps=42)
     assert trainer.logger is None
     assert trainer.max_steps == 42
+    assert trainer.max_epochs == -1
 
 
 @mock.patch.dict(os.environ, {"PL_TRAINER_LOGGER": "False", "PL_TRAINER_MAX_STEPS": "7"})
