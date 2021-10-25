@@ -487,6 +487,7 @@ You can optionally pass arguments to the run method. For example, the hyperparam
 
     from pytorch_lightning.lite import LightningLite
 
+
     class Lite(LightningLite):
 
         # Input arguments are optional, put whatever you need
