@@ -36,7 +36,6 @@ class PrecisionPlugin(CheckpointHooks):
     def master_params(self, optimizer: Optimizer) -> _PARAMETERS:
         """The main params of the model.
 
-
         .. deprecated:: v1.5
 
             This method is deprecated in v1.5 and will be removed in v1.6. Use :meth:`main_params` instead.
