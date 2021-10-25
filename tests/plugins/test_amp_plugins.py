@@ -20,7 +20,6 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
-from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_DEV_1_10
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
@@ -58,17 +57,17 @@ class MyApexPlugin(ApexMixedPrecisionPlugin):
         pytest.param("apex", True, MyApexPlugin, marks=RunIf(amp_apex=True)),
     ],
 )
-def test_amp_apex_ddp(
-    mocked_device_count, strategy: str, gpus: int, amp: str, custom_plugin: bool, plugin_cls: MixedPrecisionPlugin
-):
-
+def test_amp_apex_ddp(mocked_device_count, strategy, gpus, amp, custom_plugin, plugin_cls):
+    plugin = None
+    if custom_plugin:
+        plugin = plugin_cls(16, "cpu") if amp == "native" else plugin_cls()
     trainer = Trainer(
         fast_dev_run=True,
         precision=16,
         amp_backend=amp,
         gpus=gpus,
         strategy=strategy,
-        plugins=[plugin_cls(16, "cpu")] if custom_plugin else None,
+        plugins=plugin,
     )
     assert isinstance(trainer.precision_plugin, plugin_cls)
 
