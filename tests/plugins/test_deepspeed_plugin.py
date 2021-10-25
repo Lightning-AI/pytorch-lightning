@@ -966,37 +966,16 @@ def _run_scheduler_test(mock_step, max_epoch, limit_train_batches, interval):
 
 
 @RunIf(min_gpus=1, deepspeed=True, special=True)
-def test_deepspeed_configure_gradient_clipping(tmpdir):
-    """Test to ensure that a warning is raised when `LightningModule.configure_gradient_clipping` is overridden in
-    case of deepspeed."""
-
-    class TestModel(BoringModel):
-        def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
-            if optimizer_idx == 0:
-                self.clip_gradients(optimizer, gradient_clip_val, gradient_clip_algorithm)
-
-    model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        gpus=1,
-        strategy="deepspeed",
-        fast_dev_run=True,
-    )
-    with pytest.warns(UserWarning, match="handles gradient clipping internally"):
-        trainer.fit(model)
-
-
-@RunIf(min_gpus=1, deepspeed=True, special=True)
-def test_deepspeed_gradient_clip_by_value(tmpdir):
-    """Test to ensure that an exception is raised when using `gradient_clip_algorithm='value'`."""
+def test_deepspeed_gradient_clipping_raises(tmpdir):
+    """Test to ensure that an Exception is raised when clipping gradients with DeepSpeed."""
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        gpus=1,
         strategy="deepspeed",
-        gradient_clip_algorithm="value",
+        fast_dev_run=True,
+        gradient_clip_val=1,
     )
-    with pytest.raises(MisconfigurationException, match="does not support clipping gradients by value"):
+    with pytest.warns(MisconfigurationException, match="handles gradient clipping internally"):
         trainer.fit(model)
 
 
