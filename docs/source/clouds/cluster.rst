@@ -292,7 +292,7 @@ and node rank (node id). Here is an example of a custom
     class MyClusterEnvironment(ClusterEnvironment):
         @property
         def creates_processes_externally(self) -> bool:
-            # return True if the cluster is managed (you don't launch processes yourself)
+            """Return True if the cluster is managed (you don't launch processes yourself)"""
             return True
 
         def world_size(self) -> int:
