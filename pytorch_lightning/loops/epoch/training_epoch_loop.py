@@ -300,7 +300,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         # delete any persistent workers.
         self.trainer.train_dataloader.reset()
-        self.trainer.data_connector.train_data_fetcher.teardown()
+        self.trainer._data_connector.train_data_fetcher.teardown()
         self._dataloader_iter = None
 
         # if fault tolerant is enabled and process has been notified, exit.

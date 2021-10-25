@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import gc
+from unittest import mock
 
 import pytest
 import torch
@@ -147,49 +147,48 @@ def test_warning_valid_train_step_end(tmpdir):
     trainer.fit(model)
 
 
-def test_dataloader_workers_are_shutdown_properly(tmpdir):
-    train_dataloader = DataLoader(RandomDataset(32, 4), num_workers=1, persistent_workers=True)
-    val_dataloader = DataLoader(RandomDataset(32, 4), num_workers=1, persistent_workers=True)
+@pytest.mark.parametrize("persistent_workers", (True, False))
+def test_training_loop_workers_are_shutdown(tmpdir, persistent_workers):
+    # `num_workers == 1` uses `_MultiProcessingDataLoaderIter`
+    # `persistent_workers` makes sure `self._iterator` gets set on the `DataLoader` instance
+    train_dataloader = DataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
 
-    class TestTrainingEpochLoopLoop(TrainingEpochLoop):
+    class TestLoop(TrainingEpochLoop):
         def on_run_end(self):
-            # this works - but this is the `enumerate` object, not the actual iterator
-            referrers = gc.get_referrers(self._dataloader_iter)
-            assert len(referrers) == 1
-
-            # this fails - there are 2 referrers
-            referrers = gc.get_referrers(train_dataloader._iterator)
-            assert len(referrers) == 2
-            del referrers
-
-            iterator = train_dataloader._iterator
-            out = super().on_run_end()
-            assert self._dataloader_iter is None
-
-            referrers = gc.get_referrers(iterator)
-            assert len(referrers) == 0
-
-            return out
-
-    class TestEvaluationLoop(EvaluationLoop):
-        def on_run_end(self):
-            iterator = val_dataloader._iterator
-            out = super().on_run_end()
-            referrers = gc.get_referrers(iterator)
-            assert len(referrers) == 0
-
+            with mock.patch(
+                "torch.utils.data.dataloader._MultiProcessingDataLoaderIter._shutdown_workers"
+            ) as shutdown_mock:
+                out = super().on_run_end()
+            shutdown_mock.assert_called_once()
             return out
 
     model = BoringModel()
-    model.validation_epoch_end = None
-    trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=2, num_sanity_val_steps=0
-    )
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=0, max_epochs=2)
 
-    epoch_loop = TestTrainingEpochLoopLoop(trainer.fit_loop.epoch_loop.min_steps, trainer.fit_loop.epoch_loop.max_steps)
-    val_loop = TestEvaluationLoop()
+    epoch_loop = TestLoop(trainer.fit_loop.epoch_loop.min_steps, trainer.fit_loop.epoch_loop.max_steps)
     epoch_loop.connect(trainer.fit_loop.epoch_loop.batch_loop, trainer.fit_loop.epoch_loop.val_loop)
     trainer.fit_loop.connect(epoch_loop)
-    epoch_loop.connect(epoch_loop.batch_loop, val_loop)
 
-    trainer.fit(model, train_dataloader, val_dataloader)
+    trainer.fit(model, train_dataloader)
+
+
+@pytest.mark.parametrize("persistent_workers", (True, False))
+def test_evaluation_loop_workers_are_shutdown(tmpdir, persistent_workers):
+    val_dataloader = DataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
+
+    class TestLoop(EvaluationLoop):
+        def on_run_end(self):
+            with mock.patch(
+                "torch.utils.data.dataloader._MultiProcessingDataLoaderIter._shutdown_workers"
+            ) as shutdown_mock:
+                out = super().on_run_end()
+            shutdown_mock.assert_called_once()
+            return out
+
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=2)
+
+    val_loop = TestLoop()
+    trainer.fit_loop.epoch_loop.connect(trainer.fit_loop.epoch_loop.batch_loop, val_loop)
+
+    trainer.validate(model, val_dataloaders=val_dataloader)

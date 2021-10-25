@@ -139,7 +139,7 @@ class EvaluationLoop(DataLoaderLoop):
         # enable train mode again
         self._on_evaluation_model_train()
 
-        self.trainer.data_connector.teardown(self.trainer.state.stage)
+        self.trainer._data_connector.teardown(self.trainer.state.stage)
 
         return eval_loop_results
 
