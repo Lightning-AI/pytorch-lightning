@@ -885,10 +885,9 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         max_epochs=1,
         val_check_interval=val_check_interval,
         num_sanity_val_steps=0,
-        resume_from_checkpoint=ckpt_path,
         progress_bar_refresh_rate=0,
     )
-    trainer.fit(model)
+    trainer.fit(model, ckpt_path=ckpt_path)
 
     # TODO: -1 because there's a bug where global step is off by one on reload
     assert trainer.global_step - 1 == expected_global_step
