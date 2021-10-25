@@ -1048,7 +1048,7 @@ class Trainer(
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
         # check if we should delay restoring checkpoint till later
-        if not self.accelerator.restore_checkpoint_after_pre_dispatch:
+        if not self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
             self._restore_modules_and_callbacks(ckpt_path)
 
         self._call_configure_sharded_model()  # allow user to setup in model sharded environment
@@ -1097,7 +1097,7 @@ class Trainer(
         # plugin will setup fitting (e.g. ddp will launch child processes)
         self._pre_dispatch()
 
-        if self.accelerator.restore_checkpoint_after_pre_dispatch:
+        if self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
             self._restore_modules_and_callbacks(ckpt_path)
 
         # restore optimizers, etc.
@@ -1804,11 +1804,14 @@ class Trainer(
 
     @property
     def resume_from_checkpoint(self) -> Optional[Union[str, Path]]:
-        rank_zero_deprecation(
-            "`trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7."
-            " Specify the fit checkpoint path with `trainer.fit(ckpt_path=)` instead."
-        )
-        return self.checkpoint_connector.resume_from_checkpoint_fit_path
+        resume_from_checkpoint = self.checkpoint_connector.resume_from_checkpoint_fit_path
+        if resume_from_checkpoint is not None:
+            rank_zero_deprecation(
+                "`trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7."
+                " Specify the fit checkpoint path with `trainer.fit(ckpt_path=)` instead."
+            )
+
+        return resume_from_checkpoint
 
     def save_checkpoint(self, filepath: _PATH, weights_only: bool = False) -> None:
         self.checkpoint_connector.save_checkpoint(filepath, weights_only)

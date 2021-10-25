@@ -561,8 +561,8 @@ class Accelerator:
             If true, restore checkpoint after pre_dispatch.
         """
         rank_zero_deprecation(
-            "`Accelerator.restore_checkpoint_after_pre_dispatch` is deprecated in v1.5 and will be removed in v1.6. "
-            "Accesse `restore_checkpoint_after_pre_dispatch` directly from the `TrainingTypePlugin`."
+            "`Accelerator.restore_checkpoint_after_pre_dispatch` is deprecated in v1.5 and will be removed in v1.6."
+            " Access `restore_checkpoint_after_pre_dispatch` directly from the `TrainingTypePlugin`."
         )
         return self.training_type_plugin.restore_checkpoint_after_pre_dispatch
 
