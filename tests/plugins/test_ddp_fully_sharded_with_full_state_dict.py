@@ -144,7 +144,7 @@ def test_fsdp_gradient_clipping_raises(tmpdir):
         default_root_dir=tmpdir,
         strategy="fsdp",
         fast_dev_run=True,
-        accelerator="gpu",
+        gpus=1,
         precision=16,
         gradient_clip_val=1,
         gradient_clip_algorithm="norm",
