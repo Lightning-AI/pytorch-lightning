@@ -38,7 +38,8 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import (
-    _TORCH_SHARDED_TENSOR_AVAILABLE,
+    _IS_WINDOWS,
+    _TORCH_GREATER_EQUAL_DEV_1_10,
     GradClipAlgorithmType,
     rank_zero_deprecation,
     rank_zero_warn,
@@ -646,7 +647,7 @@ class LightningModule(
             - :class:`~torch.Tensor` - The loss tensor
             - ``dict`` - A dictionary. Can include any keys, but must include the key ``'loss'``
             - ``None`` - Training will skip to the next batch. This is only for automatic optimization.
-                This is not supported for multi-GPU or TPU, or using ``DeepSpeed``.
+                This is not supported for multi-GPU, TPU, IPU, or DeepSpeed.
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
         You can also do fancier things like multiple forward passes or something model specific.
@@ -1169,7 +1170,7 @@ class LightningModule(
         callback to write the predictions to disk or database after each batch or on epoch end.
 
         The :class:`~pytorch_lightning.callbacks.BasePredictionWriter` should be used while using a spawn
-        based accelerator. This happens for ``Trainer(accelerator="ddp_spawn")``
+        based accelerator. This happens for ``Trainer(strategy="ddp_spawn")``
         or training on 8 TPU cores with ``Trainer(tpu_cores=8)`` as predictions won't be returned.
 
         Example ::
@@ -2041,7 +2042,7 @@ class LightningModule(
 
         These hooks ensure that ShardedTensors are included when saving, and are loaded the LightningModule correctly.
         """
-        if not _TORCH_SHARDED_TENSOR_AVAILABLE:
+        if not _TORCH_GREATER_EQUAL_DEV_1_10 or _IS_WINDOWS:
             return
 
         from torch.distributed._sharded_tensor import pre_load_state_dict_hook, state_dict_hook

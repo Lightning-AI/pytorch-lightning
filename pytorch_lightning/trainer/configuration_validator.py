@@ -65,7 +65,7 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
     # -----------------------------------
     # verify model has a train dataloader
     # -----------------------------------
-    has_train_dataloader = trainer.data_connector._train_dataloader_source.is_defined()
+    has_train_dataloader = trainer._data_connector._train_dataloader_source.is_defined()
     if not has_train_dataloader:
         raise MisconfigurationException(
             "No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a"
@@ -187,13 +187,12 @@ def __verify_eval_loop_configuration(trainer: "pl.Trainer", model: "pl.Lightning
             raise MisconfigurationException("`predict_step` cannot be None to run `Trainer.predict`")
         elif not has_step and not is_overridden("forward", model):
             raise MisconfigurationException("`Trainer.predict` requires `forward` method to run.")
-        return
-
-    # -----------------------------------
-    # verify model has an eval_step
-    # -----------------------------------
-    if not has_step:
-        raise MisconfigurationException(f"No `{step_name}()` method defined to run `Trainer.{trainer_method}`.")
+    else:
+        # -----------------------------------
+        # verify model has an eval_step
+        # -----------------------------------
+        if not has_step:
+            raise MisconfigurationException(f"No `{step_name}()` method defined to run `Trainer.{trainer_method}`.")
 
 
 def __verify_dp_batch_transfer_support(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
