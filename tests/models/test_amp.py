@@ -38,7 +38,7 @@ class AMPTestModel(BoringModel):
 
     def loss(self, batch, prediction):
         # todo (sean): convert bfloat16 to float32 as mse loss for cpu amp is currently not supported
-        if self.trainer.precision_plugin.use_cpu:
+        if self.trainer.precision_plugin.device == "cpu":
             prediction = prediction.float()
         return super().loss(batch, prediction)
 
