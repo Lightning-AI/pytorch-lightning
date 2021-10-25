@@ -212,7 +212,7 @@ do the following:
 .. code-block:: python
 
    model = LitModel()
-   trainer = Trainer(resume_from_checkpoint="some/path/to/my_checkpoint.ckpt")
+   trainer = Trainer()
 
    # automatically restores model, epoch, step, LR schedulers, apex, etc...
-   trainer.fit(model)
+   trainer.fit(model, ckpt_path="some/path/to/my_checkpoint.ckpt")
