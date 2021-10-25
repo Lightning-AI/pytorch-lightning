@@ -129,12 +129,10 @@ if _RICH_AVAILABLE:
     class MetricsTextColumn(ProgressColumn):
         """A column containing text."""
 
-        def __init__(self, trainer, pl_module, progress_bar):
+        def __init__(self, trainer):
             self._trainer = trainer
-            self._pl_module = pl_module
             self._tasks = {}
             self._current_task_id = 0
-            self._progress_bar = progress_bar
             self.metrics = {}
             super().__init__()
 
@@ -259,12 +257,12 @@ class RichProgressBar(ProgressBarBase):
     def predict_description(self) -> str:
         return "Predicting"
 
-    def _init_progress(self, trainer, pl_module):
+    def _init_progress(self, trainer):
         if self.is_enabled and (self.progress is None or self._progress_stopped):
             self._reset_progress_bar_ids()
             self._console: Console = Console()
             self._console.clear_live()
-            self._metric_component = MetricsTextColumn(trainer, pl_module, progress_bar=self)
+            self._metric_component = MetricsTextColumn(trainer)
             self.progress = CustomProgress(
                 TextColumn("[progress.description]{task.description}"),
                 CustomBarColumn(
@@ -286,19 +284,19 @@ class RichProgressBar(ProgressBarBase):
 
     def on_train_start(self, trainer, pl_module):
         super().on_train_start(trainer, pl_module)
-        self._init_progress(trainer, pl_module)
+        self._init_progress(trainer)
 
     def on_predict_start(self, trainer, pl_module):
         super().on_predict_start(trainer, pl_module)
-        self._init_progress(trainer, pl_module)
+        self._init_progress(trainer)
 
     def on_test_start(self, trainer, pl_module):
         super().on_test_start(trainer, pl_module)
-        self._init_progress(trainer, pl_module)
+        self._init_progress(trainer)
 
     def on_validation_start(self, trainer, pl_module):
         super().on_validation_start(trainer, pl_module)
-        self._init_progress(trainer, pl_module)
+        self._init_progress(trainer)
 
     def __getstate__(self):
         # can't pickle the rich progress objects
