@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Union
 
 from torch import Tensor
 from torch.nn import Module
@@ -51,7 +51,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Callable,
+        lambda_closure: Callable[[], Any],
         **kwargs: Any,
     ) -> bool:
         """Hook to do something before each optimizer step."""
@@ -69,14 +69,15 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
             )
         # DeepSpeed handles the optimizer step internally
         deepspeed_engine = model.trainer.model if isinstance(model, pl.LightningModule) else model
-        deepspeed_engine.step()
+        deepspeed_engine.step(**kwargs)
         return False
 
     def clip_gradients(
         self,
         optimizer: Optimizer,
-        clip_val: Union[int, float],
+        clip_val: Union[int, float] = 0.0,
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
-        model: Optional[Module] = None,
     ) -> None:
-        """DeepSpeed handles gradient clipping internally."""
+        if clip_val is None or float(clip_val) <= 0:
+            return
+        raise MisconfigurationException("DeepSpeed handles gradient clipping internally.")
