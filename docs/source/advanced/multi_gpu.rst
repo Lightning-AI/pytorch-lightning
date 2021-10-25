@@ -543,8 +543,8 @@ To illustrate why this is needed, let's look at DataParallel
         return y_hat
 
 
-    def training_step_end(self, batch_parts_outputs):
-        # batch_parts_outputs has outputs of each part of the batch
+    def training_step_end(self, step_output):
+        # step_output has outputs of each part of the batch
 
         # do softmax here
         outputs = torch.cat(outputs, dim=1)
@@ -560,11 +560,11 @@ Validation and test step have the same option when using DP.
 
 .. testcode::
 
-    def validation_step_end(self, batch_parts_outputs):
+    def validation_step_end(self, step_output):
         ...
 
 
-    def test_step_end(self, batch_parts_outputs):
+    def test_step_end(self, step_output):
         ...
 
 
