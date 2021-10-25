@@ -70,7 +70,7 @@ class TrainerDataLoadingMixin(ABC):
         if not isinstance(dataloader, DataLoader):
             return
 
-        using_spawn = self.accelerator_connector._distrib_type == DistributedType.DDP_SPAWN
+        using_spawn = self._accelerator_connector._distrib_type == DistributedType.DDP_SPAWN
         num_cpus = multiprocessing.cpu_count()
 
         # ddp_spawn + num_workers > 0 don't mix! tell the user
@@ -120,8 +120,8 @@ class TrainerDataLoadingMixin(ABC):
 
     def _requires_distributed_sampler(self, dataloader) -> bool:
         return (
-            self.accelerator_connector.replace_sampler_ddp
-            and self.accelerator_connector.is_distributed
+            self._accelerator_connector.replace_sampler_ddp
+            and self._accelerator_connector.is_distributed
             and not isinstance(dataloader.sampler, DistributedSampler)
             and not has_iterable_dataset(dataloader)
         )
@@ -147,7 +147,7 @@ class TrainerDataLoadingMixin(ABC):
             _fault_tolerant_training()  # injects components to track the state
             or self._requires_distributed_sampler(dataloader)  # sets the distributed sampler
             or mode == RunningStage.PREDICTING  # to track indices for the predictions
-            or self.accelerator_connector.use_ipu  # IPUs use a custom `DataLoader`
+            or self._accelerator_connector.use_ipu  # IPUs use a custom `DataLoader`
         ):
             sampler = self._resolve_sampler(dataloader, shuffle=shuffle, mode=mode)
             dataloader = self._update_dataloader(dataloader, sampler, mode=mode)
