@@ -25,13 +25,13 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
 class ByteCounter:
-    def __init__(self):
-        self.nbytes = 0
+    def __init__(self) -> None:
+        self.nbytes: int = 0
 
-    def write(self, data):
+    def write(self, data) -> None:
         self.nbytes += len(data)
 
-    def flush(self):
+    def flush(self) -> None:
         pass
 
 
