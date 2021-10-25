@@ -468,7 +468,7 @@ class DeepSpeedPlugin(DDPPlugin):
         else:
             rank_zero_info(
                 "You have not specified an optimizer or scheduler within the DeepSpeed config."
-                "Using `configure_optimizers` to define optimizer and scheduler."
+                " Using `configure_optimizers` to define optimizer and scheduler."
             )
             optimizer, lr_scheduler, _ = self._init_optimizers()
 
@@ -522,7 +522,7 @@ class DeepSpeedPlugin(DDPPlugin):
         if "optimizer" not in self.config:
             rank_zero_info(
                 "You have not specified an optimizer or scheduler within the DeepSpeed config."
-                "Using `configure_optimizers` to define optimizer and scheduler."
+                " Using `configure_optimizers` to define optimizer and scheduler."
             )
             optimizer, lr_scheduler, _ = self._init_optimizers()
             scheduler = lr_scheduler["scheduler"]
