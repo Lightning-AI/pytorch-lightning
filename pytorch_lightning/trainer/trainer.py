@@ -58,7 +58,6 @@ from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_fr
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
-from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
@@ -425,7 +424,6 @@ class Trainer(
 
         # init connectors
         self.data_connector = DataConnector(self, multiple_trainloader_mode)
-        self.optimizer_connector = OptimizerConnector(self)
 
         self.accelerator_connector = AcceleratorConnector(
             num_processes,
@@ -511,7 +509,9 @@ class Trainer(
         self.on_init_start()
 
         # init optimizer + lr scheduler related flags
-        self.optimizer_connector.on_trainer_init()
+        self.lr_schedulers = []
+        self.optimizers = []
+        self.optimizer_frequencies = []
 
         # init data flags
         self.data_connector.on_trainer_init(
