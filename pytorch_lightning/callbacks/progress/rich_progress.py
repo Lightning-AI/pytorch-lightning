@@ -135,7 +135,11 @@ if _RICH_AVAILABLE:
             self._tasks = {}
             self._current_task_id = 0
             self._progress_bar = progress_bar
+            self.metrics = {}
             super().__init__()
+
+        def update(self, metrics):
+            self.metrics = metrics
 
         def render(self, task) -> Text:
             from pytorch_lightning.trainer.states import TrainerFn
@@ -150,9 +154,8 @@ if _RICH_AVAILABLE:
             if self._trainer.training and task.id != self._current_task_id:
                 return self._tasks[task.id]
             _text = ""
-            metrics = self._progress_bar.get_metrics(self._trainer, self._pl_module)
 
-            for k, v in metrics.items():
+            for k, v in self.metrics.items():
                 _text += f"{k}: {round(v, 3) if isinstance(v, float) else v} "
             return Text(_text, justify="left")
 
@@ -213,6 +216,7 @@ class RichProgressBar(ProgressBarBase):
         self.progress: Optional[Progress] = None
         self.val_sanity_progress_bar_id: Optional[int] = None
         self._reset_progress_bar_ids()
+        self._metric_component = None
         self._progress_stopped: bool = False
         self.theme = theme
 
@@ -260,6 +264,7 @@ class RichProgressBar(ProgressBarBase):
             self._reset_progress_bar_ids()
             self._console: Console = Console()
             self._console.clear_live()
+            self._metric_component = MetricsTextColumn(trainer, pl_module, progress_bar=self)
             self.progress = CustomProgress(
                 TextColumn("[progress.description]{task.description}"),
                 CustomBarColumn(
@@ -270,7 +275,7 @@ class RichProgressBar(ProgressBarBase):
                 BatchesProcessedColumn(style=self.theme.batch_process),
                 CustomTimeColumn(style=self.theme.time),
                 ProcessingSpeedColumn(style=self.theme.processing_speed),
-                MetricsTextColumn(trainer, pl_module, progress_bar=self),
+                self._metric_component,
                 refresh_per_second=self.refresh_rate_per_second,
                 disable=self.is_disabled,
                 console=self._console,
@@ -357,6 +362,10 @@ class RichProgressBar(ProgressBarBase):
         if self.val_progress_bar_id is not None:
             self._update(self.val_progress_bar_id, visible=False)
 
+    def on_validation_end(self, trainer, pl_module) -> None:
+        super().on_validation_end(trainer, pl_module)
+        self._update_metrics(trainer, pl_module)
+
     def on_test_epoch_start(self, trainer, pl_module):
         super().on_train_epoch_start(trainer, pl_module)
         self.test_progress_bar_id = self._add_task(self.total_test_batches, self.test_description)
@@ -368,6 +377,7 @@ class RichProgressBar(ProgressBarBase):
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
         self._update(self.main_progress_bar_id)
+        self._update_metrics(trainer, pl_module)
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
@@ -409,6 +419,11 @@ class RichProgressBar(ProgressBarBase):
         self.val_progress_bar_id: Optional[int] = None
         self.test_progress_bar_id: Optional[int] = None
         self.predict_progress_bar_id: Optional[int] = None
+
+    def _update_metrics(self, trainer, pl_module) -> None:
+        metrics = self.get_metrics(trainer, pl_module)
+        if self._metric_component:
+            self._metric_component.update(metrics)
 
     def teardown(self, trainer, pl_module, stage: Optional[str] = None) -> None:
         self._stop_progress()
