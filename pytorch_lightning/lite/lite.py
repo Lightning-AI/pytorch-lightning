@@ -183,7 +183,7 @@ class LightningLite(ABC):
                     param_group["params"] = [mapping.get(p, p) for p in param_group["params"]]
 
         # Let accelerator/plugin wrap and connect the models and optimizers
-        [model], optimizers = self._strategy._setup_models_and_optimizers([model], list(optimizers))
+        model, optimizers = self._strategy._setup_model_and_optimizers(model, list(optimizers))
         model = _LiteModule(model, self._accelerator)
         optimizers = [_LiteOptimizer(optimizer=optimizer, accelerator=self._accelerator) for optimizer in optimizers]
         self._num_models += 1
