@@ -135,7 +135,7 @@ class AcceleratorConnector:
         self.precision = precision
         self.amp_type = amp_type.lower() if isinstance(amp_type, str) else None
         self.amp_level = amp_level
-        self.is_slurm_managing_tasks = False
+        self._is_slurm_managing_tasks = False
 
         self._precision_plugin: Optional[PrecisionPlugin] = None
         self._training_type_plugin: Optional[TrainingTypePlugin] = None
@@ -164,7 +164,7 @@ class AcceleratorConnector:
             self._set_training_type_plugin()
         else:
             self.set_distributed_mode()
-        self.configure_slurm_ddp()
+        self._configure_slurm_ddp()
 
         self.handle_given_plugins()
         self.update_device_type_if_ipu_plugin()
@@ -685,7 +685,7 @@ class AcceleratorConnector:
                 cluster_environment=self.select_cluster_environment(), parallel_devices=self.parallel_devices
             )
         elif self.use_ddp:
-            use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
+            use_slurm_ddp = self.use_ddp and self._is_slurm_managing_tasks
             use_torchelastic_ddp = self.use_ddp and TorchElasticEnvironment.is_using_torchelastic()
             use_kubeflow_ddp = self.use_ddp and KubeflowEnvironment.is_using_kubeflow()
             use_ddp_spawn = self._distrib_type == DistributedType.DDP_SPAWN
@@ -693,7 +693,7 @@ class AcceleratorConnector:
             use_tpu_spawn = self.use_tpu and self._distrib_type == DistributedType.TPU_SPAWN
             use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and TorchElasticEnvironment.is_using_torchelastic()
             use_ddp_cpu_kubeflow = use_ddp_cpu_spawn and KubeflowEnvironment.is_using_kubeflow()
-            use_ddp_cpu_slurm = use_ddp_cpu_spawn and self.is_slurm_managing_tasks
+            use_ddp_cpu_slurm = use_ddp_cpu_spawn and self._is_slurm_managing_tasks
             use_ddp_sharded = self._distrib_type == DistributedType.DDP_SHARDED
             use_ddp_sharded_spawn = self._distrib_type == DistributedType.DDP_SHARDED_SPAWN
             use_ddp_fully_sharded = self._distrib_type == DistributedType.DDP_FULLY_SHARDED
@@ -789,7 +789,7 @@ class AcceleratorConnector:
     def select_cluster_environment(self) -> ClusterEnvironment:
         if self._cluster_environment is not None:
             return self._cluster_environment
-        if self.is_slurm_managing_tasks:
+        if self._is_slurm_managing_tasks:
             env = SLURMEnvironment()
         elif TorchElasticEnvironment.is_using_torchelastic():
             env = TorchElasticEnvironment()
@@ -972,7 +972,27 @@ class AcceleratorConnector:
                 elif self.has_gpu:
                     self._device_type = DeviceType.GPU
 
-    def configure_slurm_ddp(self):
+    @property
+    def is_slurm_managing_tasks(self) -> bool:
+        rank_zero_deprecation(
+            "`AcceleratorConnector.is_slurm_managing_tasks` was deprecated in v1.5 and will be removed in v1.6."
+        )
+        return self._is_slurm_managing_tasks
+
+    @is_slurm_managing_tasks.setter
+    def is_slurm_managing_tasks(self, value: bool) -> bool:
+        rank_zero_deprecation(
+            "`AcceleratorConnector.is_slurm_managing_tasks` was deprecated in v1.5 and will be removed in v1.6."
+        )
+        self._is_slurm_managing_tasks = value
+
+    def configure_slurm_ddp(self) -> None:
+        rank_zero_deprecation(
+            "`AcceleratorConnector.configure_slurm_ddp()` was deprecated in v1.5 and will be removed in v1.6."
+        )
+        self._configure_slurm_ddp()
+
+    def _configure_slurm_ddp(self):
         # extract SLURM flag vars
         # whenever we have the correct number of tasks, we let slurm manage processes
         # otherwise we launch the required number of processes
@@ -981,21 +1001,21 @@ class AcceleratorConnector:
             num_slurm_tasks = 0
             try:
                 num_slurm_tasks = int(os.environ["SLURM_NTASKS"])
-                self.is_slurm_managing_tasks = num_slurm_tasks == num_requested_gpus
+                self._is_slurm_managing_tasks = num_slurm_tasks == num_requested_gpus
 
                 # enable slurm cpu
                 if num_requested_gpus == 0:
-                    self.is_slurm_managing_tasks = num_slurm_tasks == self.num_processes
+                    self._is_slurm_managing_tasks = num_slurm_tasks == self.num_processes
 
                 # in interactive mode we don't manage tasks
                 job_name = os.environ["SLURM_JOB_NAME"]
                 if job_name == "bash":
-                    self.is_slurm_managing_tasks = False
+                    self._is_slurm_managing_tasks = False
 
             except Exception:
                 # likely not on slurm, so set the slurm managed flag to false
-                self.is_slurm_managing_tasks = False
+                self._is_slurm_managing_tasks = False
 
         # notify user the that slurm is managing tasks
-        if self.is_slurm_managing_tasks:
+        if self._is_slurm_managing_tasks:
             rank_zero_info("Multi-processing is handled by Slurm.")
