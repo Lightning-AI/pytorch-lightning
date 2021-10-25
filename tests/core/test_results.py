@@ -41,6 +41,6 @@ def _ddp_test_fn(rank, worldsize):
 @RunIf(skip_windows=True)
 def test_result_reduce_ddp():
     """Make sure result logging works with DDP."""
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
     worldsize = 2
     mp.spawn(_ddp_test_fn, args=(worldsize,), nprocs=worldsize)
