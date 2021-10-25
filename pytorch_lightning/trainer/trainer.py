@@ -73,6 +73,7 @@ from pytorch_lightning.utilities import (
     device_parser,
     DeviceType,
     DistributedType,
+    GradClipAlgorithmType,
     parsing,
     rank_zero_deprecation,
     rank_zero_info,
@@ -547,14 +548,14 @@ class Trainer(
                 f"`track_grad_norm` must be a positive number or 'inf' (infinity norm). Got {track_grad_norm}."
             )
 
-        self.trainer._terminate_on_nan = terminate_on_nan
-        self.trainer.gradient_clip_val = gradient_clip_val
-        self.trainer.gradient_clip_algorithm = (
+        self._terminate_on_nan = terminate_on_nan
+        self.gradient_clip_val = gradient_clip_val
+        self.gradient_clip_algorithm = (
             GradClipAlgorithmType(gradient_clip_algorithm.lower())
             if gradient_clip_algorithm is not None
             else gradient_clip_algorithm
         )
-        self.trainer.track_grad_norm = float(track_grad_norm)
+        self.track_grad_norm = float(track_grad_norm)
 
         self._detect_anomaly: bool = detect_anomaly
         self._setup_on_init(num_sanity_val_steps)
