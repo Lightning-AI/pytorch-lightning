@@ -181,12 +181,11 @@ def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
 @pytest.mark.skipif(not _TORCH_GREATER_EQUAL_DEV_1_10, reason="Torch CPU AMP is not available.")
 def test_cpu_amp_precision_context_manager(tmpdir):
     """Test to ensure that the context manager correctly is set to CPU + bfloat16, and a scaler isn't set."""
-
     plugin = NativeMixedPrecisionPlugin(precision="bf16", use_cpu=True)
     assert plugin.use_cpu
     assert not hasattr(plugin, "scaler")
     context_manager = plugin.autocast_context_manager()
-    assert isinstance(context_manager, torch.cpu.amp.autocast)
+    assert isinstance(context_manager, torch.autocast)
     assert context_manager.fast_dtype == torch.bfloat16
 
 
