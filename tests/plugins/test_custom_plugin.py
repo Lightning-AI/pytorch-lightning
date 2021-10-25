@@ -36,7 +36,7 @@ def test_sync_batchnorm_set(tmpdir):
     model = BoringModel()
     plugin = CustomParallelPlugin()
     assert plugin.sync_batchnorm is None
-    trainer = Trainer(max_epochs=1, plugins=[plugin], default_root_dir=tmpdir, sync_batchnorm=True)
+    trainer = Trainer(max_epochs=1, strategy=plugin, default_root_dir=tmpdir, sync_batchnorm=True)
     trainer.fit(model)
     assert plugin.sync_batchnorm is True
 
@@ -62,8 +62,6 @@ def test_plugin_lightning_restore_optimizer_and_schedulers(tmpdir, restore_optim
 
     model = BoringModel()
     plugin = TestPlugin(torch.device("cpu"))
-    trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=True, plugins=plugin, resume_from_checkpoint=checkpoint_path
-    )
-    trainer.fit(model)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy=plugin)
+    trainer.fit(model, ckpt_path=checkpoint_path)
     assert plugin.load_optimizer_state_dict_called == restore_optimizer_and_schedulers

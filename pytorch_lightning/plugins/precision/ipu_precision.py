@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional, Union
+from typing import Any, Callable, Union
 
 from torch.nn import Module
-from torch.optim import Optimizer
+from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
@@ -38,19 +38,38 @@ class IPUPrecisionPlugin(PrecisionPlugin):
                 " the backward logic internally."
             )
 
+    def pre_optimizer_step(
+        self,
+        model: Union["pl.LightningModule", Module],
+        optimizer: Optimizer,
+        optimizer_idx: int,
+        lambda_closure: Callable[[], Any],
+        **kwargs: Any,
+    ) -> bool:
+        """IPUs handle the optimizer step internally."""
+        super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
+        if isinstance(optimizer, LBFGS):
+            raise MisconfigurationException(
+                f"IPUs and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
+            )
+        closure_result = lambda_closure()
+        skipped_backward = closure_result is None
+        # in manual optimization, the closure does not return a value
+        if isinstance(model, pl.LightningModule) and model.automatic_optimization and skipped_backward:
+            # we lack coverage here and IPUs are (currently) limited - something to explore if there's demand
+            raise MisconfigurationException(
+                "Skipping backward by returning `None` from your `training_step` is not implemented for IPUs."
+                " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`"
+                " requesting this feature."
+            )
+        return False
+
     def clip_gradients(
         self,
         optimizer: Optimizer,
-        clip_val: Union[int, float],
+        clip_val: Union[int, float] = 0.0,
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
-        model: Optional[Module] = None,
     ) -> None:
-        """Clips the gradients."""
-        if clip_val is None:
-            return
-
-        clip_val = float(clip_val)
         if clip_val <= 0:
             return
-
         raise MisconfigurationException("IPUs currently do not support clipping gradients.")

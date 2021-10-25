@@ -208,53 +208,41 @@ Trainer flags
 accelerator
 ^^^^^^^^^^^
 
-.. raw:: html
+Supports passing different accelerator types (``"cpu", "gpu", "tpu", "ipu", "auto"``)
+as well as custom accelerator instances.
 
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/distributed_backend.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/distributed_backend.mp4"></video>
+.. code-block:: python
 
-|
+    # CPU accelerator
+    trainer = Trainer(accelerator="cpu")
 
-The accelerator backend to use (previously known as distributed_backend).
+    # Training with GPU Accelerator using 2 gpus
+    trainer = Trainer(devices=2, accelerator="gpu")
 
-- (``'dp'``) is DataParallel (split batch among GPUs of same machine)
-- (``'ddp'``) is DistributedDataParallel (each gpu on each node trains, and syncs grads)
-- (``'ddp_cpu'``) is DistributedDataParallel on CPU (same as ``'ddp'``, but does not use GPUs.
-  Useful for multi-node CPU training or single-node debugging. Note that this will **not** give
-  a speedup on a single node, since Torch already makes efficient use of multiple CPUs on a single
-  machine.)
-- (``'ddp2'``) dp on node, ddp across nodes. Useful for things like increasing
-    the number of negative samples
+    # Training with TPU Accelerator using 8 tpu cores
+    trainer = Trainer(devices=8, accelerator="tpu")
 
-.. testcode::
+    # Training with GPU Accelerator using the DistributedDataParallel strategy
+    trainer = Trainer(devices=4, accelerator="gpu", strategy="ddp")
 
-    # default used by the Trainer
-    trainer = Trainer(accelerator=None)
+.. note:: The ``"auto"`` option recognizes the machine you are on, and selects the respective ``Accelerator``.
 
-Example::
+.. code-block:: python
 
-    # dp = DataParallel
-    trainer = Trainer(gpus=2, accelerator='dp')
-
-    # ddp = DistributedDataParallel
-    trainer = Trainer(gpus=2, num_nodes=2, accelerator='ddp')
-
-    # ddp2 = DistributedDataParallel + dp
-    trainer = Trainer(gpus=2, num_nodes=2, accelerator='ddp2')
-
-.. note:: This option does not apply to TPU. TPUs use ``'ddp'`` by default (over each core)
+    # If your machine has GPUs, it will use the GPU Accelerator for training
+    trainer = Trainer(devices=2, accelerator="auto")
 
 You can also modify hardware behavior by subclassing an existing accelerator to adjust for your needs.
 
 Example::
 
-    class MyOwnAcc(Accelerator):
+    class MyOwnAcc(CPUAccelerator):
         ...
 
     Trainer(accelerator=MyOwnAcc())
 
-.. warning:: Passing in custom accelerators is experimental but work is in progress to enable full compatibility.
+.. warning:: Passing training strategies (e.g., ``"ddp"``) to ``accelerator`` has been deprecated in v1.5.0
+    and will be removed in v1.7.0. Please use the ``strategy`` argument instead.
 
 accumulate_grad_batches
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -528,7 +516,9 @@ Example::
 checkpoint_callback
 ^^^^^^^^^^^^^^^^^^^
 
-Deprecated: This has been deprecated in v1.5 and will be removed in v.17. Please use ``enable_checkpointing`` instead.
+.. warning:: `checkpoint_callback` has been deprecated in v1.5 and will be removed in v1.7.
+    To disable checkpointing, pass ``enable_checkpointing = False`` to the Trainer instead.
+
 
 default_root_dir
 ^^^^^^^^^^^^^^^^
@@ -552,10 +542,6 @@ will need to be set up to use remote filepaths.
 
     # default used by the Trainer
     trainer = Trainer(default_root_dir=os.getcwd())
-
-distributed_backend
-^^^^^^^^^^^^^^^^^^^
-Deprecated: This has been renamed ``accelerator``.
 
 enable_checkpointing
 ^^^^^^^^^^^^^^^^^^^^
@@ -838,36 +824,6 @@ How often to add logging rows (does not write to disk)
 See Also:
     - :doc:`logging <../extensions/logging>`
 
-log_gpu_memory
-^^^^^^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/log_gpu_memory.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/log_gpu_memory.mp4"></video>
-
-|
-
-Options:
-
-- None
-- 'min_max'
-- 'all'
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(log_gpu_memory=None)
-
-    # log all the GPUs (on master node only)
-    trainer = Trainer(log_gpu_memory="all")
-
-    # log only the min and max memory on the master node
-    trainer = Trainer(log_gpu_memory="min_max")
-
-.. note:: Might slow performance because it uses the output of ``nvidia-smi``.
-
 logger
 ^^^^^^
 
@@ -1028,16 +984,18 @@ num_processes
 |
 
 Number of processes to train with. Automatically set to the number of GPUs
-when using ``accelerator="ddp"``. Set to a number greater than 1 when
-using ``accelerator="ddp_cpu"`` to mimic distributed training on a
+when using ``strategy="ddp"``. Set to a number greater than 1 when
+using ``accelerator="cpu"`` and ``strategy="ddp"`` to mimic distributed training on a
 machine without GPUs. This is useful for debugging, but **will not** provide
 any speedup, since single-process Torch already makes efficient use of multiple
-CPUs.
+CPUs. While it would typically spawns subprocesses for training, setting
+``num_nodes > 1`` and keeping ``num_processes = 1`` runs training in the main
+process.
 
 .. testcode::
 
     # Simulate DDP for debugging on your GPU-less laptop
-    trainer = Trainer(accelerator="ddp_cpu", num_processes=2)
+    trainer = Trainer(accelerator="cpu", strategy="ddp", num_processes=2)
 
 num_sanity_val_steps
 ^^^^^^^^^^^^^^^^^^^^
@@ -1391,6 +1349,10 @@ By setting to False, you have to add your own distributed sampler:
 resume_from_checkpoint
 ^^^^^^^^^^^^^^^^^^^^^^
 
+.. warning:: ``resume_from_checkpoint`` is deprecated in v1.5 and will be removed in v1.7.
+    Please pass ``trainer.fit(ckpt_path="some/path/to/my_checkpoint.ckpt")`` instead.
+
+
 .. raw:: html
 
     <video width="50%" max-width="400px" controls
@@ -1409,6 +1371,41 @@ checkpoint, training will start from the beginning of the next epoch.
 
     # resume from a specific checkpoint
     trainer = Trainer(resume_from_checkpoint="some/path/to/my_checkpoint.ckpt")
+
+strategy
+^^^^^^^^
+
+Supports passing different training strategies with aliases (ddp, ddp_spawn, etc) as well as custom training type plugins.
+
+.. code-block:: python
+
+    # Training with the DistributedDataParallel strategy on 4 gpus
+    trainer = Trainer(strategy="ddp", accelerator="gpu", devices=4)
+
+    # Training with the DDP Spawn strategy using 4 cpu processes
+    trainer = Trainer(strategy="ddp_spawn", accelerator="cpu", devices=4)
+
+.. note:: Additionally, you can pass your custom training type plugins to the ``strategy`` argument.
+
+.. code-block:: python
+
+    from pytorch_lightning.plugins import DDPPlugin
+
+
+    class CustomDDPPlugin(DDPPlugin):
+        def configure_ddp(self):
+            self._model = MyCustomDistributedDataParallel(
+                self.model,
+                device_ids=...,
+            )
+
+
+    trainer = Trainer(strategy=CustomDDPPlugin(), accelerator="gpu", devices=2)
+
+See Also:
+    - :doc:`Multi-GPU training guide <../advanced/multi_gpu>`.
+    - :doc:`Model Parallel GPU training guide <../advanced/advanced_gpu>`.
+    - :doc:`TPU training guide <../advanced/tpu>`.
 
 sync_batchnorm
 ^^^^^^^^^^^^^^

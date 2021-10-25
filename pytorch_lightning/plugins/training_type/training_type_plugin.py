@@ -13,11 +13,12 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
 from torch.nn import Module
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
@@ -59,6 +60,27 @@ class TrainingTypePlugin(ABC):
 
     def setup(self) -> None:
         """Called by the accelerator to finish setup."""
+
+    def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
+        """Setup a model and multiple optimizers together.
+
+        The returned objects are expected to be in the same order they were passed in. The default implementation will
+        call :meth:`_setup_model` and :meth:`_setup_optimizer` on the inputs.
+        """
+        # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
+        model = self._setup_model(model)
+        optimizers = [self._setup_optimizer(optimizer) for optimizer in optimizers]
+        return model, optimizers
+
+    def _setup_model(self, model: Module) -> Module:
+        """Performs setup for the model, e.g., by wrapping it by another class."""
+        # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
+        return model
+
+    def _setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
+        """Performs setup for the optimizer, e.g., by wrapping it by another class."""
+        # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
+        return optimizer
 
     @property
     @abstractmethod
@@ -225,7 +247,7 @@ class TrainingTypePlugin(ABC):
     def init_optimizers(self, trainer: "pl.Trainer", model: "pl.LightningModule"):
         return trainer.init_optimizers(model)
 
-    def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
+    def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs: Any) -> None:
         optimizer.step(closure=lambda_closure, **kwargs)
 
     @property
@@ -345,7 +367,7 @@ class TrainingTypePlugin(ABC):
         """Called when predict ends."""
         pass
 
-    def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         """Called in the training loop before anything happens for that batch."""
         pass
 

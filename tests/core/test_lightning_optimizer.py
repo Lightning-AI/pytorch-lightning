@@ -161,7 +161,6 @@ def test_state(tmpdir):
         "zero_grad",
         "__setstate__",
         "add_param_group",
-        "_total_optimizer_step_calls",
     ]
 
     for k, v in lightning_optimizer.__dict__.items():

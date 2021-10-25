@@ -56,16 +56,15 @@ argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
 ----------------
 
-Log GPU usage
--------------
-Logs (to a logger) the GPU usage for each GPU on the master machine.
-
-(See: :paramref:`~pytorch_lightning.trainer.trainer.Trainer.log_gpu_memory`
-argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
+Log device stats
+----------------
+Monitor and log device stats during training with the :class:`~pytorch_lightning.callbacks.device_stats_monitor.DeviceStatsMonitor`.
 
 .. testcode::
 
-    trainer = Trainer(log_gpu_memory=True)
+    from pytorch_lightning.callbacks import DeviceStatsMonitor
+
+    trainer = Trainer(callbacks=[DeviceStatsMonitor()])
 
 ----------------
 

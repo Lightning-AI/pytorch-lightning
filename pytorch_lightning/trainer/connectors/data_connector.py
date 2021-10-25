@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from dataclasses import dataclass
 from functools import partial
-from typing import Callable, Iterable, Optional, Union
+from typing import Iterable, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.states import RunningStage
@@ -47,6 +48,11 @@ class DataConnector:
         self.validate_data_fetcher = validate_data_fetcher
         self.test_data_fetcher = test_data_fetcher
         self.sanity_check_data_fetcher: Optional[AbstractDataFetcher] = None
+
+        self._train_dataloader_source = _DataLoaderSource(None, "")
+        self._val_dataloader_source = _DataLoaderSource(None, "")
+        self._test_dataloader_source = _DataLoaderSource(None, "")
+        self._predict_dataloader_source = _DataLoaderSource(None, "")
 
     @property
     def evaluation_data_fetcher(self) -> Optional[AbstractDataFetcher]:
@@ -191,27 +197,23 @@ class DataConnector:
         test_dataloaders: Optional[EVAL_DATALOADERS] = None,
         predict_dataloaders: Optional[EVAL_DATALOADERS] = None,
     ) -> None:
-        # when dataloader is passed via fit, patch the train_dataloader
-        # functions to overwrite with these implementations
-        if train_dataloaders is not None:
-            self.trainer.train_dataloader = None
-            train_dataloader = _PatchDataLoader(train_dataloaders, "train")
-            train_dataloader.patch(model)
+        self.trainer.train_dataloader = None
+        self.trainer.val_dataloaders = None
+        self.trainer.test_dataloaders = None
+        self.trainer.predict_dataloaders = None
 
-        if val_dataloaders is not None:
-            self.trainer.val_dataloaders = None
-            val_dataloader = _PatchDataLoader(val_dataloaders, "val")
-            val_dataloader.patch(model)
-
-        if test_dataloaders is not None:
-            self.trainer.test_dataloaders = None
-            test_dataloader = _PatchDataLoader(test_dataloaders, "test")
-            test_dataloader.patch(model)
-
-        if predict_dataloaders is not None:
-            self.trainer.predict_dataloaders = None
-            predict_dataloader = _PatchDataLoader(predict_dataloaders, "predict")
-            predict_dataloader.patch(model)
+        self._train_dataloader_source = _DataLoaderSource(
+            train_dataloaders if train_dataloaders is not None else model, "train_dataloader"
+        )
+        self._val_dataloader_source = _DataLoaderSource(
+            val_dataloaders if val_dataloaders is not None else model, "val_dataloader"
+        )
+        self._test_dataloader_source = _DataLoaderSource(
+            test_dataloaders if test_dataloaders is not None else model, "test_dataloader"
+        )
+        self._predict_dataloader_source = _DataLoaderSource(
+            predict_dataloaders if predict_dataloaders is not None else model, "predict_dataloader"
+        )
 
     def attach_datamodule(
         self, model: "pl.LightningModule", datamodule: Optional["pl.LightningDataModule"] = None
@@ -220,11 +222,10 @@ class DataConnector:
         if datamodule is None:
             return
 
-        # Override loader hooks
-        dl_methods = ("train_dataloader", "val_dataloader", "test_dataloader", "predict_dataloader")
-        for method in dl_methods:
-            if is_overridden(method, datamodule):
-                setattr(model, method, getattr(datamodule, method))
+        self._train_dataloader_source = _DataLoaderSource(datamodule, "train_dataloader")
+        self._val_dataloader_source = _DataLoaderSource(datamodule, "val_dataloader")
+        self._test_dataloader_source = _DataLoaderSource(datamodule, "test_dataloader")
+        self._predict_dataloader_source = _DataLoaderSource(datamodule, "predict_dataloader")
 
         # Override data transfer hooks if dataset-specific to_device logic has been defined in datamodule
         batch_transfer_hooks = ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
@@ -238,13 +239,6 @@ class DataConnector:
         # experimental feature for Flash
         if hasattr(datamodule, "data_pipeline"):
             model.data_pipeline = datamodule.data_pipeline
-
-    @staticmethod
-    def detach_data(model: "pl.LightningModule") -> None:
-        for stage in ("train", "val", "test", "predict"):
-            loader = getattr(model, f"{stage}_dataloader", None)
-            if isinstance(loader, _PatchDataLoader):
-                loader.unpatch(model)
 
     def teardown(self, stage: Optional[RunningStage] = None) -> None:
         if (stage is None or stage == RunningStage.TRAINING) and self.train_data_fetcher:
@@ -261,32 +255,56 @@ class DataConnector:
             self.sanity_check_data_fetcher = None
 
 
-class _PatchDataLoader:
-    r"""
-    Callable object for patching dataloaders passed into trainer.fit().
-    Use this class to override model.*_dataloader() and be pickle-compatible.
+@dataclass
+class _DataLoaderSource:
+    """Stores the information where the dataloaders come from.
 
-    Args:
-        dataloader: Dataloader object to return when called.
+    The source can be
+
+    1. from a ``*_datalaoder()`` method on the :class:`~pytorch_lightning.core.lightning.LightningModule`,
+    2. from a ``*_datalaoder()`` method on the :class:`~pytorch_lightning.core.datamodule.LightningDataModule`,
+    3. a direct instance of a :class:`~torch.utils.data.DataLoader` or supported collections thereof.
+
+    Arguments:
+        instance: A LightningModule, LightningDataModule, or (a collection of) dataloader(s).
+        name: A name for this dataloader source. If the instance is a module, the name corresponds to the hook
+            that returns the desired dataloader(s).
     """
 
-    def __init__(self, dataloader: Union[TRAIN_DATALOADERS, EVAL_DATALOADERS], stage: str) -> None:
-        self.dataloader = dataloader
+    instance: Optional[Union[TRAIN_DATALOADERS, EVAL_DATALOADERS, "pl.LightningModule", "pl.LightningDataModule"]]
+    name: str
 
-        # cannot pickle __code__ so cannot verify if PatchDataloader
-        # exists which shows dataloader methods have been overwritten.
-        # so, we hack it by using the string representation
-        self.patch_loader_code = str(self.__call__.__code__)
-        self._old_loader: Optional[Callable] = None
-        self.stage = stage
+    def dataloader(self) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
+        """Returns the dataloader from the source.
 
-    def __call__(self) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
-        return self.dataloader
+        If the source is a module, the method with the corresponding :attr:`name` gets called.
+        """
+        from pytorch_lightning import LightningDataModule, LightningModule  # prevent cyclic import
 
-    def patch(self, model: "pl.LightningModule") -> None:
-        self._old_loader = getattr(model, self.stage + "_dataloader")
-        setattr(model, self.stage + "_dataloader", self)
+        if not self.name:
+            return self.instance
 
-    def unpatch(self, model: "pl.LightningModule") -> None:
-        setattr(model, self.stage + "_dataloader", self._old_loader)
-        self._old_loader = None
+        if isinstance(self.instance, LightningModule):
+            return self.instance.trainer.call_hook(self.name, pl_module=self.instance)
+
+        if isinstance(self.instance, LightningDataModule):
+            method = getattr(self.instance, self.name)
+            return method()
+
+        return self.instance
+
+    def is_defined(self) -> bool:
+        """Returns whether the source dataloader can be retrieved or not.
+
+        If the source is a module it checks that the method with given :attr:`name` is overridden.
+        """
+        return not self.is_module() or is_overridden(self.name, self.instance)
+
+    def is_module(self) -> bool:
+        """Returns whether the the DataLoader source is a LightningModule or a LightningDataModule.
+
+        It does not check whether ``*_dataloader`` methods are actually overridden.
+        """
+        from pytorch_lightning import LightningDataModule, LightningModule  # prevent cyclic import
+
+        return isinstance(self.instance, (LightningModule, LightningDataModule))
