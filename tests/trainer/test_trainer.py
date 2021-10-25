@@ -1834,7 +1834,7 @@ class TestDummyModelForCheckpoint(BoringModel):
 @RunIf(skip_windows=True)
 def test_fit_test_synchronization(tmpdir):
     """Test that the trainer synchronizes processes before returning control back to the caller."""
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
     model = TestDummyModelForCheckpoint()
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="x", mode="min", save_top_k=1)
     trainer = Trainer(

@@ -383,30 +383,28 @@ class DeepSpeedPlugin(DDPPlugin):
         self.init_deepspeed()
         self.barrier()
 
-    def _setup_models_and_optimizers(
-        self, models: List[Module], optimizers: List[Optimizer]
-    ) -> Tuple[List[Module], List[Optimizer]]:
-        """Setup multiple models and multiple optimizers together.
+    def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
+        """Setup a model and multiple optimizers together.
 
-        Currently only one model paired with a single optimizer is supported.
+        Currently only a single optimizer is supported.
 
         Return:
-            A list with one model wrapped into a :class:`deepspeed.DeepSpeedEngine` and list with a single
+            The model wrapped into a :class:`deepspeed.DeepSpeedEngine` and a list with a single
             deepspeed optimizer.
         """
-        if not (len(models) == len(optimizers) == 1):
+        if len(optimizers) != 1:
             raise ValueError(
-                f"Currently only one model and one optimizer is supported with DeepSpeed."
-                f" Got {len(models)} models and {len(optimizers)} optimizers instead."
+                f"Currently only one optimizer is supported with DeepSpeed."
+                f" Got {len(optimizers)} optimizers instead."
             )
 
         # train_micro_batch_size_per_gpu is used for throughput logging purposes
         # normally we set this to the batch size, but it is not available here unless the user provides it
         # as part of the config
         self.config.setdefault("train_micro_batch_size_per_gpu", 1)
-        self._model, optimizer = self._setup_model_and_optimizer(models[0], optimizers[0])
+        self._model, optimizer = self._setup_model_and_optimizer(model, optimizers[0])
         self._set_deepspeed_activation_checkpointing()
-        return [self._model], [optimizer]
+        return self._model, [optimizer]
 
     def _setup_model_and_optimizer(
         self, model: Module, optimizer: Optimizer, lr_scheduler: Optional[_LRScheduler] = None
@@ -627,7 +625,7 @@ class DeepSpeedPlugin(DDPPlugin):
         # train_micro_batch_size_per_gpu is used for throughput logging purposes
         # by default we try to use the batch size of the loader
         batch_size = 1
-        train_dl_source = self.lightning_module.trainer.data_connector._train_dataloader_source
+        train_dl_source = self.lightning_module.trainer._data_connector._train_dataloader_source
         if train_dl_source.is_defined():
             train_dataloader = train_dl_source.dataloader()
             if hasattr(train_dataloader, "batch_sampler"):

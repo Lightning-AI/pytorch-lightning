@@ -129,7 +129,7 @@ def test_amp_gpus(tmpdir, strategy, precision, gpus):
 def test_amp_gpu_ddp_slurm_managed(tmpdir):
     """Make sure DDP + AMP work."""
     # simulate setting slurm flags
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
 
     model = AMPTestModel()
 
