@@ -426,7 +426,7 @@ class DeepSpeedPlugin(DDPPlugin):
     def init_deepspeed(self):
         # check that `configure_gradient_clipping` hook isn't overriden since deepspeed handles
         # gradient clipping internally
-        if is_overridden("configure_gradient_clipping", self.lightning_module):
+        if is_overridden("configure_gradient_clipping", self.lightning_module, pl.LightningModule):
             rank_zero_warn(
                 "Since deepspeed handles gradient clipping internally, this hook will"
                 " be ignored. Consider setting `gradient_clip_val` and `gradient_clip_algorithm`"
@@ -623,7 +623,7 @@ class DeepSpeedPlugin(DDPPlugin):
         # train_micro_batch_size_per_gpu is used for throughput logging purposes
         # by default we try to use the batch size of the loader
         batch_size = 1
-        train_dl_source = self.lightning_module.trainer.data_connector._train_dataloader_source
+        train_dl_source = self.lightning_module.trainer._data_connector._train_dataloader_source
         if train_dl_source.is_defined():
             train_dataloader = train_dl_source.dataloader()
             if hasattr(train_dataloader, "batch_sampler"):
@@ -781,8 +781,6 @@ class DeepSpeedPlugin(DDPPlugin):
         return False
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        if "state_dict" not in checkpoint and self._has_loaded_state_dict:
-            return
         # override to do nothing, deepspeed engine already loaded the weights in `load_checkpoint()`
         if self.load_full_weights and self.zero_stage_3:
             self.model_to_device()
