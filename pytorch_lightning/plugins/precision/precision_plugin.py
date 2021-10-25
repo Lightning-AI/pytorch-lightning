@@ -113,7 +113,7 @@ class PrecisionPlugin(CheckpointHooks):
         **kwargs: Any,
     ) -> None:
         """Hook to run the optimizer step."""
-        optimizer.step(lambda_closure, **kwargs)
+        optimizer.step(closure=lambda_closure, **kwargs)
 
     def clip_gradients(
         self,
