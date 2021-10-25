@@ -187,9 +187,9 @@ class DataConnector:
         )
         self.attach_datamodule(model, datamodule=datamodule)
         # set local properties on the model
-        self.copy_trainer_model_properties(model)
+        self._copy_trainer_model_properties(model)
 
-    def copy_trainer_model_properties(self, model):
+    def _copy_trainer_model_properties(self, model):
         ref_model = self.trainer.lightning_module or model
 
         for m in [model, ref_model]:
