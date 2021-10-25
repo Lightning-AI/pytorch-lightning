@@ -18,7 +18,6 @@ import pytest
 
 from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
-from tests.helpers.runif import RunIf
 from tests.helpers.utils import reset_seed
 
 
