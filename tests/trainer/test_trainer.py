@@ -399,7 +399,7 @@ def test_model_freeze_unfreeze():
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
-def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
+def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Verify resuming from checkpoint runs the right number of epochs."""
     # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
     monkeypatch.setenv("TORCH_HOME", tmpdir)
@@ -450,8 +450,8 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         state = pl_load(ckpt)
 
         # Resume training
-        new_trainer = Trainer(default_root_dir=tmpdir, resume_from_checkpoint=ckpt, max_epochs=2)
-        new_trainer.fit(next_model)
+        new_trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)
+        new_trainer.fit(next_model, ckpt_path=ckpt)
         assert state["global_step"] + next_model.num_batches_seen == trainer.num_training_batches * trainer.max_epochs
         assert next_model.num_on_load_checkpoint_called == 1
 
@@ -1352,7 +1352,7 @@ class CustomPredictionWriter(BasePredictionWriter):
         self.write_on_batch_end_called = True
 
     def write_on_epoch_end(self, trainer, pl_module, predictions, batch_indices):
-        expected = 1 if trainer.accelerator_connector.is_distributed else 2
+        expected = 1 if trainer._accelerator_connector.is_distributed else 2
         assert len(predictions) == 2
         assert len(predictions[0]) == expected
         assert len(batch_indices) == 2
@@ -1360,7 +1360,7 @@ class CustomPredictionWriter(BasePredictionWriter):
         self.write_on_epoch_end_called = True
 
     def on_predict_epoch_end(self, trainer, pl_module, outputs):
-        if trainer.accelerator_connector.is_distributed:
+        if trainer._accelerator_connector.is_distributed:
             for idx in range(2):
                 assert isinstance(trainer.predict_dataloaders[idx].batch_sampler.sampler, UnrepeatedDistributedSampler)
                 assert isinstance(trainer.predict_dataloaders[idx].batch_sampler, IndexBatchSamplerWrapper)
@@ -1859,9 +1859,9 @@ def test_on_load_checkpoint_missing_callbacks(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, callbacks=[chk, CustomCallbackOnLoadCheckpoint()])
     trainer.fit(model)
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=5, resume_from_checkpoint=chk.last_model_path)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=5)
     with pytest.warns(UserWarning, match="CustomCallbackOnLoadCheckpoint"):
-        trainer.fit(model)
+        trainer.fit(model, ckpt_path=chk.last_model_path)
 
 
 def test_module_current_fx_attributes_reset(tmpdir):

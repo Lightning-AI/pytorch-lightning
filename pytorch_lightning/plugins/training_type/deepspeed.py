@@ -33,10 +33,9 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities import AMPType, GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import log, rank_zero_info, rank_zero_only
-from pytorch_lightning.utilities.enums import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -379,30 +378,28 @@ class DeepSpeedPlugin(DDPPlugin):
         self.init_deepspeed()
         self.barrier()
 
-    def _setup_models_and_optimizers(
-        self, models: List[Module], optimizers: List[Optimizer]
-    ) -> Tuple[List[Module], List[Optimizer]]:
-        """Setup multiple models and multiple optimizers together.
+    def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
+        """Setup a model and multiple optimizers together.
 
-        Currently only one model paired with a single optimizer is supported.
+        Currently only a single optimizer is supported.
 
         Return:
-            A list with one model wrapped into a :class:`deepspeed.DeepSpeedEngine` and list with a single
+            The model wrapped into a :class:`deepspeed.DeepSpeedEngine` and a list with a single
             deepspeed optimizer.
         """
-        if not (len(models) == len(optimizers) == 1):
+        if len(optimizers) != 1:
             raise ValueError(
-                f"Currently only one model and one optimizer is supported with DeepSpeed."
-                f" Got {len(models)} models and {len(optimizers)} optimizers instead."
+                f"Currently only one optimizer is supported with DeepSpeed."
+                f" Got {len(optimizers)} optimizers instead."
             )
 
         # train_micro_batch_size_per_gpu is used for throughput logging purposes
         # normally we set this to the batch size, but it is not available here unless the user provides it
         # as part of the config
         self.config.setdefault("train_micro_batch_size_per_gpu", 1)
-        self._model, optimizer = self._setup_model_and_optimizer(models[0], optimizers[0])
+        self._model, optimizer = self._setup_model_and_optimizer(model, optimizers[0])
         self._set_deepspeed_activation_checkpointing()
-        return [self._model], [optimizer]
+        return self._model, [optimizer]
 
     def _setup_model_and_optimizer(
         self, model: Module, optimizer: Optimizer, lr_scheduler: Optional[_LRScheduler] = None
@@ -424,17 +421,16 @@ class DeepSpeedPlugin(DDPPlugin):
         return deepspeed_engine, deepspeed_optimizer
 
     def init_deepspeed(self):
-        # check that `configure_gradient_clipping` hook isn't overriden since deepspeed handles
-        # gradient clipping internally
+        # deepspeed handles gradient clipping internally
         if is_overridden("configure_gradient_clipping", self.lightning_module, pl.LightningModule):
             rank_zero_warn(
-                "Since deepspeed handles gradient clipping internally, this hook will"
-                " be ignored. Consider setting `gradient_clip_val` and `gradient_clip_algorithm`"
-                " inside `Trainer`."
+                "Since deepspeed handles gradient clipping internally, `LightningModule.configure_gradient_clipping`"
+                " will be ignored. Consider setting `Trainer(gradient_clip_val=..., gradient_clip_algorithm='norm')`"
+                " which will use the internal mechanism."
             )
 
         if self.lightning_module.trainer.gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
-            raise MisconfigurationException("Deepspeed does not support clipping gradients by value.")
+            raise MisconfigurationException("DeepSpeed does not support clipping gradients by value.")
 
         accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
 
@@ -482,7 +478,7 @@ class DeepSpeedPlugin(DDPPlugin):
         else:
             rank_zero_info(
                 "You have not specified an optimizer or scheduler within the DeepSpeed config."
-                "Using `configure_optimizers` to define optimizer and scheduler."
+                " Using `configure_optimizers` to define optimizer and scheduler."
             )
             optimizer, lr_scheduler, _ = self._init_optimizers()
 
@@ -536,7 +532,7 @@ class DeepSpeedPlugin(DDPPlugin):
         if "optimizer" not in self.config:
             rank_zero_info(
                 "You have not specified an optimizer or scheduler within the DeepSpeed config."
-                "Using `configure_optimizers` to define optimizer and scheduler."
+                " Using `configure_optimizers` to define optimizer and scheduler."
             )
             optimizer, lr_scheduler, _ = self._init_optimizers()
             scheduler = lr_scheduler["scheduler"]
@@ -631,9 +627,9 @@ class DeepSpeedPlugin(DDPPlugin):
         return batch_size
 
     def _format_precision_config(self):
-        amp_type = self.lightning_module.trainer.accelerator_connector.amp_type
-        amp_level = self.lightning_module.trainer.accelerator_connector.amp_level
-        precision = self.lightning_module.trainer.accelerator_connector.precision
+        amp_type = self.lightning_module.trainer._accelerator_connector.amp_type
+        amp_level = self.lightning_module.trainer._accelerator_connector.amp_level
+        precision = self.lightning_module.trainer._accelerator_connector.precision
         if precision in (16, "mixed"):
             if "fp16" not in self.config and amp_type == AMPType.NATIVE:
                 # FP16 is a DeepSpeed standalone AMP implementation
