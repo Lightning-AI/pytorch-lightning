@@ -27,6 +27,7 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.data import _get_dataloader_init_kwargs
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _POPTORCH_AVAILABLE:
@@ -175,7 +176,7 @@ class IPUPlugin(ParallelPlugin):
         self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None
     ) -> "poptorch.DataLoader":
         # use full path to avoid circular imports
-        dl_kwargs = pl.trainer.trainer.TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler)
+        dl_kwargs = _get_dataloader_init_kwargs(dataloader, sampler)
         # Override to drop last uneven batch, as IPUs does not support uneven inputs.
         dl_kwargs["drop_last"] = True
 
