@@ -491,7 +491,8 @@ You can optionally pass arguments to the run method. For example, the hyperparam
 
         # Input arguments are optional, put whatever you need
         def run(self, learning_rate, num_layers):
-            # Here goes your training loop
+            """Here goes your training loop"""
+
 
     lite = Lite(accelerator="gpu", devices=2)
     lite.run(learning_rate=0.01, num_layers=12)
