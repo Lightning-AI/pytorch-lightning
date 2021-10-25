@@ -14,6 +14,8 @@
 from typing import Any, List, Optional
 from weakref import proxy
 
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -54,6 +56,10 @@ class OptimizerConnector:
             if update_plateau_schedulers ^ lr_scheduler["reduce_on_plateau"]:
                 continue
 
+            # skip if `optimizer.step()` has never been called
+            if not isinstance(lr_scheduler["scheduler"], ReduceLROnPlateau) and lr_scheduler["scheduler"].optimizer._step_count == 0:
+                continue
+
             current_idx = self.trainer.fit_loop.batch_idx if interval == "step" else self.trainer.current_epoch
             current_idx += 1  # account for both batch and epoch starts from 0
             # Take step if call to update_learning_rates matches the interval key and
@@ -82,13 +88,11 @@ class OptimizerConnector:
 
                 self.trainer.fit_loop.epoch_loop.scheduler_progress.increment_ready()
 
-                # skip if `optimizer.step()` has never been called
-                if lr_scheduler["scheduler"].optimizer._step_count != 0:
-                    # update LR
-                    if lr_scheduler["reduce_on_plateau"]:
-                        lr_scheduler["scheduler"].step(monitor_val)
-                    else:
-                        lr_scheduler["scheduler"].step()
+                # update LR
+                if lr_scheduler["reduce_on_plateau"]:
+                    lr_scheduler["scheduler"].step(monitor_val)
+                else:
+                    lr_scheduler["scheduler"].step()
 
                 self.trainer.fit_loop.epoch_loop.scheduler_progress.increment_completed()
 
