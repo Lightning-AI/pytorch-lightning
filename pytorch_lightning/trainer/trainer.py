@@ -89,6 +89,7 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
+from pytorch_lightning.utilities.meta import materialize_module
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import (
@@ -1029,6 +1030,9 @@ class Trainer(
         self.data_connector.prepare_data()
         self.callback_connector._attach_model_callbacks()
 
+        if self._ckpt_path and not self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
+            self._load_checkpoint_weights()
+
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
@@ -1038,8 +1042,6 @@ class Trainer(
 
         # check if we should delay restoring checkpoint till later
         if not self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
-            if self._ckpt_path:
-                self._load_checkpoint_weights()
             self.checkpoint_connector.resume_start()
             self._restore_modules_and_callbacks()
 
@@ -1348,6 +1350,7 @@ class Trainer(
 
     def _call_configure_sharded_model(self) -> None:
         with self.accelerator.model_sharded_context():
+            materialize_module(self.lightning_module)
             self.call_hook("configure_sharded_model")
             self.call_hook("on_configure_sharded_model")
 

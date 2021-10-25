@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Dict, Optional, Sequence
+from typing import Any, Callable, Dict, Optional, Sequence, Union
 
 import torch
 from torch import Tensor
+from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
@@ -97,7 +98,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def pre_optimizer_step(
         self,
-        model: "pl.LightningModule",
+        model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
@@ -112,7 +113,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
         skipped_backward = result is None
         # in manual optimization, the closure does not return a value
-        if not model.automatic_optimization or not skipped_backward:
+        if not isinstance(model, pl.LightningModule) or not model.automatic_optimization or not skipped_backward:
             # the following should be in a `optimizer_step` hook but we don't have one in the precision plugin.
             optimizer.step(**kwargs)
         return False
