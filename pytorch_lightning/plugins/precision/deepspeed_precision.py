@@ -75,6 +75,4 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         clip_val: Union[int, float] = 0.0,
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
-        if clip_val is None or float(clip_val) <= 0:
-            return
-        raise MisconfigurationException("DeepSpeed handles gradient clipping internally.")
+        """DeepSpeed handles gradient clipping internally."""
