@@ -84,6 +84,7 @@ def test_overfit_batch_limits(tmpdir):
     # test train loader applies correct limits
     # ------------------------------------------------------
     trainer = Trainer(overfit_batches=4)
+    model.trainer = trainer
     trainer.data_connector.attach_dataloaders(model=model)
     trainer.reset_train_dataloader(model)
     assert trainer.num_training_batches == 4
@@ -94,6 +95,7 @@ def test_overfit_batch_limits(tmpdir):
     assert torch.eq(ya, yb).all()
 
     trainer = Trainer(overfit_batches=0.11)
+    model.trainer = trainer
     trainer.data_connector.attach_dataloaders(model=model)
     trainer.reset_train_dataloader(model)
     # The dataloader should have been overwritten with a Sequential sampler.

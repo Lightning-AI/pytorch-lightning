@@ -21,13 +21,14 @@ import os
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, overload, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
+from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress import base as progress_base
@@ -37,7 +38,8 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import (
-    _TORCH_SHARDED_TENSOR_AVAILABLE,
+    _IS_WINDOWS,
+    _TORCH_GREATER_EQUAL_DEV_1_10,
     GradClipAlgorithmType,
     rank_zero_deprecation,
     rank_zero_warn,
@@ -119,6 +121,14 @@ class LightningModule(
 
         # deprecated, will be removed in 1.6
         self._loaded_optimizer_states_dict = {}
+
+    @overload
+    def optimizers(self, use_pl_optimizer: Literal[True] = True) -> Union[LightningOptimizer, List[LightningOptimizer]]:
+        ...
+
+    @overload
+    def optimizers(self, use_pl_optimizer: Literal[False]) -> Union[Optimizer, List[Optimizer]]:
+        ...
 
     def optimizers(
         self, use_pl_optimizer: bool = True
@@ -637,7 +647,7 @@ class LightningModule(
             - :class:`~torch.Tensor` - The loss tensor
             - ``dict`` - A dictionary. Can include any keys, but must include the key ``'loss'``
             - ``None`` - Training will skip to the next batch. This is only for automatic optimization.
-                This is not supported for multi-GPU or TPU, or using ``DeepSpeed``.
+                This is not supported for multi-GPU, TPU, IPU, or DeepSpeed.
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
         You can also do fancier things like multiple forward passes or something model specific.
@@ -1160,7 +1170,7 @@ class LightningModule(
         callback to write the predictions to disk or database after each batch or on epoch end.
 
         The :class:`~pytorch_lightning.callbacks.BasePredictionWriter` should be used while using a spawn
-        based accelerator. This happens for ``Trainer(accelerator="ddp_spawn")``
+        based accelerator. This happens for ``Trainer(strategy="ddp_spawn")``
         or training on 8 TPU cores with ``Trainer(tpu_cores=8)`` as predictions won't be returned.
 
         Example ::
@@ -1426,17 +1436,16 @@ class LightningModule(
         """
         loss.backward(*args, **kwargs)
 
-    def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):
+    def toggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer], optimizer_idx: int) -> None:
         """Makes sure only the gradients of the current optimizer's parameters are calculated in the training step
-        to prevent dangling gradients in multiple-optimizer setup. It works with :meth:`untoggle_optimizer` to make
-        sure ``param_requires_grad_state`` is properly reset. Override for your own behavior.
+        to prevent dangling gradients in multiple-optimizer setup.
+
+        This is only called automatically when automatic optimization is enabled and multiple optimizers are used.
+        It works with :meth:`untoggle_optimizer` to make sure ``param_requires_grad_state`` is properly reset.
 
         Args:
-            optimizer: Current optimizer used in the training loop
-            optimizer_idx: Current optimizer idx in the training loop
-
-        Note:
-            Only called when using multiple optimizers
+            optimizer: The optimizer to toggle.
+            optimizer_idx: The index of the optimizer to toggle.
         """
         # Iterate over all optimizer parameters to preserve their `requires_grad` information
         # in case these are pre-defined during `configure_optimizers`
@@ -1457,15 +1466,13 @@ class LightningModule(
                 param.requires_grad = param_requires_grad_state[param]
         self._param_requires_grad_state = param_requires_grad_state
 
-    def untoggle_optimizer(self, optimizer_idx: int):
-        """Resets the state of required gradients that were toggled with :meth:`toggle_optimizer`. Override for
-        your own behavior.
+    def untoggle_optimizer(self, optimizer_idx: int) -> None:
+        """Resets the state of required gradients that were toggled with :meth:`toggle_optimizer`.
+
+        This is only called automatically when automatic optimization is enabled and multiple optimizers are used.
 
         Args:
-            optimizer_idx: Current optimizer idx in the training loop
-
-        Note:
-            Only called when using multiple_optimizers
+            optimizer_idx: The index of the optimizer to untoggle.
         """
         for opt_idx, opt in enumerate(self.optimizers(use_pl_optimizer=False)):
             if optimizer_idx != opt_idx:
@@ -1568,14 +1575,14 @@ class LightningModule(
 
     def optimizer_step(
         self,
-        epoch: int = None,
-        batch_idx: int = None,
-        optimizer: Optimizer = None,
-        optimizer_idx: int = None,
-        optimizer_closure: Optional[Callable] = None,
-        on_tpu: bool = None,
-        using_native_amp: bool = None,
-        using_lbfgs: bool = None,
+        epoch: int,
+        batch_idx: int,
+        optimizer: Union[Optimizer, LightningOptimizer],
+        optimizer_idx: int = 0,
+        optimizer_closure: Optional[Callable[[], Any]] = None,
+        on_tpu: bool = False,
+        using_native_amp: bool = False,
+        using_lbfgs: bool = False,
     ) -> None:
         r"""
         Override this method to adjust the default way the
@@ -1583,10 +1590,6 @@ class LightningModule(
         By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example
         once per optimizer. This method (and ``zero_grad()``) won't be called during the
         accumulation phase when ``Trainer(accumulate_grad_batches != 1)``.
-
-        Warning:
-            If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter
-            to ``optimizer.step()`` function as shown in the examples.
 
         Args:
             epoch: Current epoch
@@ -2039,7 +2042,7 @@ class LightningModule(
 
         These hooks ensure that ShardedTensors are included when saving, and are loaded the LightningModule correctly.
         """
-        if not _TORCH_SHARDED_TENSOR_AVAILABLE:
+        if not _TORCH_GREATER_EQUAL_DEV_1_10 or _IS_WINDOWS:
             return
 
         from torch.distributed._sharded_tensor import pre_load_state_dict_hook, state_dict_hook
