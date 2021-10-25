@@ -350,9 +350,7 @@ class Accelerator:
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
         """clips all the optimizer parameters to the given value."""
-        self.precision_plugin.clip_gradients(
-            optimizer, clip_val, gradient_clip_algorithm=gradient_clip_algorithm, model=self.model
-        )
+        self.precision_plugin.clip_gradients(optimizer, clip_val, gradient_clip_algorithm=gradient_clip_algorithm)
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         """Creates optimizers and schedulers.
