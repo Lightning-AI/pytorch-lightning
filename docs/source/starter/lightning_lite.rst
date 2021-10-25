@@ -454,3 +454,110 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 **********************
 Lightning Lite Methods
 **********************
+
+
+run
+===
+
+The run method servers two purposes:
+
+1.  Override this method from the :class:`~pytorch_lightning.lite.lite.LightningLite` class and put your
+    training (or inference) code inside.
+2.  Launch the training by calling the run method. Lite will take care of setting up the distributed backend.
+
+You can optionally pass arguments to the run method. For example, the hyperparameters or a backbone for the model.
+
+.. code-block:: python
+
+    from pytorch_lightning.lite import LightningLite
+
+    class Lite(LightningLite):
+
+        # Input arguments are optional, put whatever you need
+        def run(self, learning_rate, num_layers):
+            # Here goes your training loop
+
+    lite = Lite(accelerator="gpu", devices=2)
+    lite.run(learning_rate=0.01, num_layers=12)
+
+
+setup
+=====
+
+Setup a model and corresponding optimizer(s). If you need to setup multiple models, call ``setup()`` on each of them.
+Moves the model and optimizer to the correct device automatically.
+
+.. code-block:: python
+
+    model = nn.Linear(32, 64)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
+
+    # Setup model and optimizer for accelerated training
+    model, optimizer = self.setup(model, optimizer)
+
+    # If you don't want Lite to set the device
+    model, optimizer = self.setup(model, optimizer, move_to_device=False)
+
+
+The setup method also prepares the model for the selected precision choice so that operations during ``forward()`` get
+cast automatically.
+
+setup_dataloaders
+=================
+
+Setup one or multiple dataloaders for accelerated operation. If you are running a distributed plugin (e.g., DDP), Lite
+will replace the sampler automatically for you. In addition, the dataloader will be configured to move the returned
+data tensors to the correct device automatically.
+
+.. code-block:: python
+
+    train_data = torch.utils.DataLoader(train_dataset, ...)
+    test_data = torch.utils.DataLoader(test_dataset, ...)
+
+    train_data, test_data = self.setup_dataloaders(train_data, test_data)
+
+    # If you don't want Lite to move the data to the device
+    train_data, test_data = self.setup_dataloaders(train_data, test_data, move_to_device=False)
+
+    # If you don't want Lite to replace the sampler in the context of distributed training
+    train_data, test_data = self.setup_dataloaders(train_data, test_data, replace_sampler=False)
+
+
+backward
+========
+
+This replaces any occurences of ``loss.backward()`` and will make your code accelerator and precision agnostic.
+
+.. code-block:: python
+
+    output = model(input)
+    loss = loss_fn(output, target)
+
+    # loss.backward()
+    self.backward(loss)
+
+
+to_device
+=========
+
+Use :class:`~pytorch_lightning.lite.lite.LightningLite.to_device` to move models, tensors or collections of tensors to
+the current device. By default :class:`~pytorch_lightning.lite.lite.LightningLite.setup` and
+:class:`~pytorch_lightning.lite.lite.LightningLite.setup_dataloaders` already move the model and data to the correct
+device, so calling this method is only necessary for manual operation when needed.
+
+.. code-block:: python
+
+    data = torch.load("dataset.pt")
+    data = self.to_device(data)
+
+
+print
+=====
+
+Print to the console via the built-in print function, but only on the main process.
+
+
+.. code-block:: python
+
+    # Print only on the main process
+    self.print(f"{epoch}/{num_epochs}| Train Epoch Loss: {loss}")
