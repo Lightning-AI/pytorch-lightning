@@ -89,6 +89,7 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
+from pytorch_lightning.utilities.meta import materialize_module
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import (
@@ -186,8 +187,12 @@ class Trainer(
 
         Args:
 
-            accelerator: (dp, ddp, ddp2, etc...).
-                Can also take in an accelerator object for custom hardware.
+            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "auto")
+                as well as custom accelerator instances.
+
+                .. deprecated:: v1.5
+                    Passing training strategies (e.g., 'ddp') to ``accelerator`` has been deprecated in v1.5.0
+                    and will be removed in v1.7.0. Please use the ``strategy`` argument instead.
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
 
@@ -335,7 +340,7 @@ class Trainer(
 
             num_nodes: Number of GPU nodes for distributed training.
 
-            num_processes: Number of processes for distributed training with ``accelerator="ddp_cpu"``.
+            num_processes: Number of processes for distributed training with ``accelerator="cpu"``.
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders.
@@ -419,7 +424,7 @@ class Trainer(
         gpu_ids, tpu_cores = self._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
         # init connectors
-        self.data_connector = DataConnector(self, multiple_trainloader_mode)
+        self._data_connector = DataConnector(self, multiple_trainloader_mode)
         self.optimizer_connector = OptimizerConnector(self)
 
         self.accelerator_connector = AcceleratorConnector(
@@ -509,7 +514,7 @@ class Trainer(
         self.optimizer_connector.on_trainer_init()
 
         # init data flags
-        self.data_connector.on_trainer_init(
+        self._data_connector.on_trainer_init(
             check_val_every_n_epoch,
             reload_dataloaders_every_n_epochs,
             reload_dataloaders_every_epoch,
@@ -658,7 +663,7 @@ class Trainer(
             )
 
         # links data to the trainer
-        self.data_connector.attach_data(
+        self._data_connector.attach_data(
             model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
 
@@ -742,7 +747,7 @@ class Trainer(
             )
 
         # links data to the trainer
-        self.data_connector.attach_data(model, val_dataloaders=dataloaders, datamodule=datamodule)
+        self._data_connector.attach_data(model, val_dataloaders=dataloaders, datamodule=datamodule)
 
         self.validated_ckpt_path = self.__set_ckpt_path(
             ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
@@ -832,7 +837,7 @@ class Trainer(
             )
 
         # links data to the trainer
-        self.data_connector.attach_data(model, test_dataloaders=dataloaders, datamodule=datamodule)
+        self._data_connector.attach_data(model, test_dataloaders=dataloaders, datamodule=datamodule)
 
         self.tested_ckpt_path = self.__set_ckpt_path(
             ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
@@ -916,7 +921,7 @@ class Trainer(
             )
 
         # links data to the trainer
-        self.data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
+        self._data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
 
         self.predicted_ckpt_path = self.__set_ckpt_path(
             ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
@@ -980,7 +985,7 @@ class Trainer(
             )
 
         # links data to the trainer
-        self.data_connector.attach_data(
+        self._data_connector.attach_data(
             model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
 
@@ -1022,7 +1027,7 @@ class Trainer(
         self.training_type_plugin.connect(model)
 
         # hook
-        self.data_connector.prepare_data()
+        self._data_connector.prepare_data()
         self.callback_connector._attach_model_callbacks()
 
         if self._ckpt_path and not self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
@@ -1166,7 +1171,7 @@ class Trainer(
         # these `teardown` calls are here instead of in `_call_teardown_hook` since they are internal teardowns
         # which need to happen before.
         self.accelerator.teardown()
-        self.data_connector.teardown()
+        self._data_connector.teardown()
         self._active_loop.teardown()
         self.logger_connector.teardown()
 
@@ -1253,7 +1258,9 @@ class Trainer(
             return self.predict_loop.run()
 
     def _run_sanity_check(self, ref_model):
-        using_val_step = ref_model.val_dataloader is not None and is_overridden("validation_step", ref_model)
+        using_val_step = self._data_connector._val_dataloader_source.is_defined() and is_overridden(
+            "validation_step", ref_model
+        )
         should_sanity_check = using_val_step and self.num_sanity_val_steps > 0 and self.limit_val_batches > 0
 
         # run tiny validation (if validation defined)
@@ -1343,6 +1350,7 @@ class Trainer(
 
     def _call_configure_sharded_model(self) -> None:
         with self.accelerator.model_sharded_context():
+            materialize_module(self.lightning_module)
             self.call_hook("configure_sharded_model")
             self.call_hook("on_configure_sharded_model")
 
@@ -1351,8 +1359,6 @@ class Trainer(
 
         if self.datamodule is not None:
             self.datamodule.teardown(stage=fn)
-
-        self.data_connector.detach_data(self.lightning_module)
 
         self.call_hook("teardown", stage=fn)
 

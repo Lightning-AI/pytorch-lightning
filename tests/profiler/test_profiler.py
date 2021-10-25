@@ -52,6 +52,7 @@ def simple_profiler():
     return SimpleProfiler()
 
 
+@pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_simple_profiler_durations(simple_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
@@ -65,6 +66,7 @@ def test_simple_profiler_durations(simple_profiler, action: str, expected: list)
     np.testing.assert_allclose(simple_profiler.recorded_durations[action], expected, rtol=0.2)
 
 
+@pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_simple_profiler_iterable_durations(simple_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
@@ -159,6 +161,7 @@ def advanced_profiler(tmpdir):
     return AdvancedProfiler(dirpath=tmpdir, filename="profiler")
 
 
+@pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_advanced_profiler_durations(advanced_profiler, action: str, expected: list):
 
@@ -173,6 +176,7 @@ def test_advanced_profiler_durations(advanced_profiler, action: str, expected: l
     np.testing.assert_allclose(recored_total_duration, expected_total_duration, rtol=0.2)
 
 
+@pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_advanced_profiler_iterable_durations(advanced_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
@@ -289,6 +293,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         assert any(f"{local_rank}-validation_step" in f for f in files)
 
 
+@RunIf(special=True)
 @pytest.mark.parametrize("fast_dev_run", [1, 2, 3, 4, 5])
 @pytest.mark.parametrize("boring_model_cls", [ManualOptimBoringModel, BoringModel])
 def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
