@@ -18,7 +18,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.loops import TrainingEpochLoop
+from pytorch_lightning.loops import EvaluationLoop, TrainingEpochLoop
 from tests.helpers import BoringModel, RandomDataset
 
 
@@ -147,13 +147,11 @@ def test_warning_valid_train_step_end(tmpdir):
     trainer.fit(model)
 
 
-# @mock.patch("torch.utils.data.dataloader._MultiProcessingDataLoaderIter._shutdown_workers")
-def test_training_loop_workers_are_shutdown(tmpdir):
-    # `num_workers == 1` uses `_MultiProcessingDataLoaderIter`
-    # `persistent_workers` makes sure `self._iterator` gets set on the `DataLoader` instance
-    train_dataloader = DataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=True)
+def test_dataloader_workers_are_shutdown_properly(tmpdir):
+    train_dataloader = DataLoader(RandomDataset(32, 4), num_workers=1, persistent_workers=True)
+    val_dataloader = DataLoader(RandomDataset(32, 4), num_workers=1, persistent_workers=True)
 
-    class TestLoop(TrainingEpochLoop):
+    class TestTrainingEpochLoopLoop(TrainingEpochLoop):
         def on_run_end(self):
             # this works - but this is the `enumerate` object, not the actual iterator
             referrers = gc.get_referrers(self._dataloader_iter)
@@ -173,11 +171,25 @@ def test_training_loop_workers_are_shutdown(tmpdir):
 
             return out
 
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=0, max_epochs=2)
+    class TestEvaluationLoop(EvaluationLoop):
+        def on_run_end(self):
+            iterator = val_dataloader._iterator
+            out = super().on_run_end()
+            referrers = gc.get_referrers(iterator)
+            assert len(referrers) == 0
 
-    epoch_loop = TestLoop(trainer.fit_loop.epoch_loop.min_steps, trainer.fit_loop.epoch_loop.max_steps)
+            return out
+
+    model = BoringModel()
+    model.validation_epoch_end = None
+    trainer = Trainer(
+        default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=2, num_sanity_val_steps=0
+    )
+
+    epoch_loop = TestTrainingEpochLoopLoop(trainer.fit_loop.epoch_loop.min_steps, trainer.fit_loop.epoch_loop.max_steps)
+    val_loop = TestEvaluationLoop()
     epoch_loop.connect(trainer.fit_loop.epoch_loop.batch_loop, trainer.fit_loop.epoch_loop.val_loop)
     trainer.fit_loop.connect(epoch_loop)
+    epoch_loop.connect(epoch_loop.batch_loop, val_loop)
 
-    trainer.fit(model, train_dataloader)
+    trainer.fit(model, train_dataloader, val_dataloader)

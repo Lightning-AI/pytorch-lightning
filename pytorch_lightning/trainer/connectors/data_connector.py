@@ -16,6 +16,7 @@ from functools import partial
 from typing import Callable, Iterable, Optional, Union
 
 import pytorch_lightning as pl
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import (
@@ -245,17 +246,17 @@ class DataConnector:
             if isinstance(loader, _PatchDataLoader):
                 loader.unpatch(model)
 
-    def teardown(self) -> None:
-        if self.train_data_fetcher:
+    def teardown(self, stage: Optional[RunningStage] = None) -> None:
+        if (stage is None or stage == RunningStage.TRAINING) and self.train_data_fetcher:
             self.train_data_fetcher.teardown()
             self.train_data_fetcher = None
-        if self.validate_data_fetcher:
+        if (stage is None or stage == RunningStage.VALIDATING) and self.validate_data_fetcher:
             self.validate_data_fetcher.teardown()
             self.validate_data_fetcher = None
-        if self.test_data_fetcher:
+        if (stage is None or stage == RunningStage.TESTING) and self.test_data_fetcher:
             self.test_data_fetcher.teardown()
             self.test_data_fetcher = None
-        if self.sanity_check_data_fetcher:
+        if (stage is None or stage == RunningStage.SANITY_CHECKING) and self.sanity_check_data_fetcher:
             self.sanity_check_data_fetcher.teardown()
             self.sanity_check_data_fetcher = None
 
