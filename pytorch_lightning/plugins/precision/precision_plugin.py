@@ -100,11 +100,7 @@ class PrecisionPlugin(CheckpointHooks):
     def pre_optimizer_step(
         self, model: Union["pl.LightningModule", Module], optimizer: Optimizer, optimizer_idx: int
     ) -> None:
-        """Hook to do something before each optimizer step.
-
-        Returns:
-            The output of the optimizer closure execution.
-        """
+        """Hook to do something before each optimizer step."""
         if isinstance(model, pl.LightningModule):
             model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
 
@@ -117,7 +113,7 @@ class PrecisionPlugin(CheckpointHooks):
         **kwargs: Any,
     ) -> None:
         """Hook to run the optimizer step."""
-        optimizer.step(lambda_closure, **kwargs)
+        optimizer.step(closure=lambda_closure, **kwargs)
 
     def post_optimizer_step(
         self, model: Union["pl.LightningModule", Module], optimizer: Optimizer, optimizer_idx: int
