@@ -608,4 +608,3 @@ the data is written to disk.
     self.barrier()
 
     # All processes are allowed to read the data now
-
