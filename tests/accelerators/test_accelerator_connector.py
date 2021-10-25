@@ -57,7 +57,7 @@ def test_accelerator_choice_cpu(tmpdir):
 
 @pytest.mark.parametrize(("num_processes", "num_nodes"), ([(1, 1), (1, 2), (2, 1), (2, 2)]))
 def test_accelerator_choice_ddp_cpu(tmpdir, num_processes: int, num_nodes: int):
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp_cpu", num_processes=num_processes, num_nodes=num_nodes)
+    trainer = Trainer(fast_dev_run=True, strategy="ddp_cpu", num_processes=num_processes, num_nodes=num_nodes)
     assert isinstance(trainer.accelerator, CPUAccelerator)
     no_spawn = num_processes == 1 and num_nodes > 1
     assert isinstance(trainer.training_type_plugin, DDPPlugin if no_spawn else DDPSpawnPlugin)
@@ -68,7 +68,7 @@ def test_accelerator_choice_ddp_cpu(tmpdir, num_processes: int, num_nodes: int):
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("torch.cuda.is_available", return_value=True)
 def test_accelerator_choice_ddp(cuda_available_mock, device_count_mock):
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=1)
+    trainer = Trainer(fast_dev_run=True, strategy="ddp", gpus=1)
     assert isinstance(trainer.accelerator, GPUAccelerator)
     assert isinstance(trainer.training_type_plugin, DDPPlugin)
     assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
@@ -78,7 +78,7 @@ def test_accelerator_choice_ddp(cuda_available_mock, device_count_mock):
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("torch.cuda.is_available", return_value=True)
 def test_accelerator_choice_ddp_spawn(cuda_available_mock, device_count_mock):
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp_spawn", gpus=1)
+    trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", gpus=1)
     assert isinstance(trainer.accelerator, GPUAccelerator)
     assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
     assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
@@ -109,7 +109,7 @@ def test_accelerator_choice_ddp_slurm(setup_distributed_mock):
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=2, callbacks=[CB()])
+    trainer = Trainer(fast_dev_run=True, strategy="ddp", gpus=2, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -141,7 +141,7 @@ def test_accelerator_choice_ddp2_slurm(device_count_mock, setup_distributed_mock
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp2", gpus=2, callbacks=[CB()])
+    trainer = Trainer(fast_dev_run=True, strategy="ddp2", gpus=2, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -172,7 +172,7 @@ def test_accelerator_choice_ddp_te(device_count_mock, setup_distributed_mock):
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=2, callbacks=[CB()])
+    trainer = Trainer(fast_dev_run=True, strategy="ddp", gpus=2, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -203,7 +203,7 @@ def test_accelerator_choice_ddp2_te(device_count_mock, setup_distributed_mock):
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp2", gpus=2, callbacks=[CB()])
+    trainer = Trainer(fast_dev_run=True, strategy="ddp2", gpus=2, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -225,7 +225,7 @@ def test_accelerator_choice_ddp_cpu_te(device_count_mock, setup_distributed_mock
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp_cpu", num_processes=2, callbacks=[CB()])
+    trainer = Trainer(fast_dev_run=True, strategy="ddp_cpu", num_processes=2, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -256,7 +256,7 @@ def test_accelerator_choice_ddp_kubeflow(device_count_mock, setup_distributed_mo
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=1, callbacks=[CB()])
+    trainer = Trainer(fast_dev_run=True, strategy="ddp", gpus=1, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -285,7 +285,7 @@ def test_accelerator_choice_ddp_cpu_kubeflow(device_count_mock, setup_distribute
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp_cpu", num_processes=1, callbacks=[CB()])
+    trainer = Trainer(fast_dev_run=True, strategy="ddp_cpu", num_processes=1, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -315,7 +315,7 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_m
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp_cpu", num_processes=2, callbacks=[CB()])
+    trainer = Trainer(fast_dev_run=True, strategy="ddp_cpu", num_processes=2, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -323,13 +323,13 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_m
 
 @RunIf(special=True)
 def test_accelerator_choice_ddp_cpu_and_plugin(tmpdir):
-    """Test that accelerator="ddp_cpu" can work together with an instance of DDPPlugin."""
+    """Test that strategy="ddp_cpu" can work together with an instance of DDPPlugin."""
     _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class=DDPPlugin)
 
 
 @RunIf(special=True)
 def test_accelerator_choice_ddp_cpu_and_plugin_spawn(tmpdir):
-    """Test that accelerator="ddp_cpu" can work together with an instance of DDPPSpawnPlugin."""
+    """Test that strategy="ddp_cpu" can work together with an instance of DDPPSpawnPlugin."""
     _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class=DDPSpawnPlugin)
 
 
@@ -340,7 +340,7 @@ def _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class):
         default_root_dir=tmpdir,
         plugins=[ddp_plugin_class(find_unused_parameters=True)],
         fast_dev_run=True,
-        accelerator="ddp_cpu",
+        strategy="ddp_cpu",
         num_processes=2,
     )
     assert isinstance(trainer.training_type_plugin, ddp_plugin_class)
@@ -374,7 +374,7 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
             return True
 
     trainer = Trainer(
-        default_root_dir=tmpdir, plugins=[CustomCluster()], fast_dev_run=True, accelerator="ddp_cpu", num_processes=2
+        default_root_dir=tmpdir, plugins=[CustomCluster()], fast_dev_run=True, strategy="ddp_cpu", num_processes=2
     )
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.training_type_plugin, DDPPlugin)
@@ -598,7 +598,7 @@ def test_accelerator_gpu_with_gpus_priority():
 def test_validate_accelerator_and_devices():
 
     with pytest.raises(MisconfigurationException, match="You passed `devices=2` but haven't specified"):
-        Trainer(accelerator="ddp_cpu", devices=2)
+        Trainer(strategy="ddp_cpu", devices=2)
 
 
 def test_set_devices_if_none_cpu():
@@ -630,14 +630,14 @@ def test_unsupported_distrib_types_on_cpu(training_type):
 
 
 def test_accelerator_ddp_for_cpu(tmpdir):
-    trainer = Trainer(accelerator="ddp", num_processes=2)
+    trainer = Trainer(strategy="ddp", num_processes=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.training_type_plugin, DDPPlugin)
 
 
 def test_exception_when_strategy_used_with_accelerator():
     with pytest.raises(MisconfigurationException, match="but have also passed"):
-        Trainer(accelerator="ddp", strategy="ddp_spawn")
+        Trainer(strategy="ddp", strategy="ddp_spawn")
 
 
 def test_exception_when_strategy_used_with_plugins():

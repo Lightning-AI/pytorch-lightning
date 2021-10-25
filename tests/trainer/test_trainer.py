@@ -1149,23 +1149,23 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
-            dict(accelerator="ddp", gpus=None),
+            dict(strategy="ddp", gpus=None),
             dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
-            dict(accelerator="ddp", num_processes=2, gpus=None),
+            dict(strategy="ddp", num_processes=2, gpus=None),
             dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
-            dict(accelerator="ddp", num_nodes=2, gpus=None),
+            dict(strategy="ddp", num_nodes=2, gpus=None),
             dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
-            dict(accelerator="ddp_cpu", num_processes=2, gpus=None),
+            dict(strategy="ddp_cpu", num_processes=2, gpus=None),
             dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
-            dict(accelerator="ddp2", gpus=None),
+            dict(strategy="ddp2", gpus=None),
             dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
@@ -1177,15 +1177,15 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             dict(_distrib_type=DistributedType.DP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
-            dict(accelerator="ddp", gpus=1),
+            dict(strategy="ddp", gpus=1),
             dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
-            dict(accelerator="ddp_cpu", num_processes=2, gpus=1),
+            dict(strategy="ddp_cpu", num_processes=2, gpus=1),
             dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
-            dict(accelerator="ddp2", gpus=1),
+            dict(strategy="ddp2", gpus=1),
             dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
@@ -1197,15 +1197,15 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             dict(_distrib_type=DistributedType.DP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
         (
-            dict(accelerator="ddp", gpus=2),
+            dict(strategy="ddp", gpus=2),
             dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
         ),
         (
-            dict(accelerator="ddp2", gpus=2),
+            dict(strategy="ddp2", gpus=2),
             dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
         (
-            dict(accelerator="ddp2", num_processes=2, gpus=None),
+            dict(strategy="ddp2", num_processes=2, gpus=None),
             dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
