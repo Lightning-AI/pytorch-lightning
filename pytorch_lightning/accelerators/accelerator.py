@@ -329,7 +329,7 @@ class Accelerator:
             opt_idx: index of the current optimizer
             lambda_closure: closure calculating the loss value
             model: reference to the model, optionally defining optimizer step related hooks
-            kwargs: Any extra arguments to ``optimizer.step``
+            **kwargs: Any extra arguments to ``optimizer.step``
         """
         model = model or self.lightning_module
         self.precision_plugin.pre_optimizer_step(model, optimizer, opt_idx)
