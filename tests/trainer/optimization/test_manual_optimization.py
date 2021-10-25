@@ -705,8 +705,8 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
     )
 
     trainer.fit(model)
-    assert mock_sgd_step.mock_calls == [call(closure=ANY, optim="sgd") for s in range(4)]
-    assert mock_adam_step.mock_calls == [call(closure=ANY) for s in range(2)]
+    assert mock_sgd_step.mock_calls == [call(closure=ANY, optim="sgd") for _ in range(4)]
+    assert mock_adam_step.mock_calls == [call(closure=ANY) for _ in range(2)]
 
 
 class TesManualOptimizationDDPModel(BoringModel):
