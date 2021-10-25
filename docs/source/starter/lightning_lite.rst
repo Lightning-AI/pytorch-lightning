@@ -18,36 +18,10 @@ on any kind of device while retaining full control over their own loops and opti
 - I want to quickly scale my existing code to multiple devices with minimal code changes.
 - I would like to convert my existing code to the Lightning API, but a full path to Lightning transition might be too complex. I am looking for a stepping stone to ensure reproducibility during the transition.
 
-**********************
-Supported Integrations
-**********************
-
-:class:`~pytorch_lightning.lite.LightningLite` supports single and multiple models and optimizers.
-
-.. list-table::
-   :widths: 50 50
-   :header-rows: 1
-
-   * - LightningLite arguments
-     - Possible choices
-   * - ``accelerator``
-     - ``cpu``, ``gpu``, ``tpu``, ``auto``
-   * - ``strategy``
-     - ``dp``, ``ddp``, ``ddp_spawn``, ``ddp_sharded``, ``ddp_sharded_spawn``, ``deepspeed``
-   * - ``precision``
-     - ``16``, ``bf16``, ``32``, ``64``
-   * - ``clusters``
-     - ``TorchElastic``, ``SLURM``, ``Kubeflow``, ``LSF``
-
-
-Coming soon: IPU accelerator, support for Horovod as a strategy and fully sharded training.
-
 
 ****************
 Learn by example
 ****************
-
-
 
 
 My existing PyTorch code
@@ -284,3 +258,200 @@ from its hundreds of features.
     datamodule = BoringDataModule(dataset)
     trainer = Trainer(max_epochs=10)
     trainer.fit(lightning_module, datamodule=datamodule)
+
+
+
+
+********************
+Lightning Lite Flags
+********************
+
+
+Lite is a specialist for accelerated distributed training and inference. It offers you convenient ways to configure
+your device and communication strategy and to seamlessly switch from one to the other. The terminology and usage is
+identical to Lightning, which means minimum effort for you to convert when you decide to do so.
+
+
+accelerator
+===========
+
+Choose one of ``"cpu"``, ``"gpu"``, ``"tpu"``, ``"auto"`` (IPU support is coming soon).
+
+.. code-block:: python
+
+    # CPU accelerator
+    lite = Lite(accelerator="cpu")
+
+    # Running with GPU Accelerator using 2 GPUs
+    lite = Lite(devices=2, accelerator="gpu")
+
+    # Running with TPU Accelerator using 8 tpu cores
+    lite = Lite(devices=8, accelerator="tpu")
+
+    # Running with GPU Accelerator using the DistributedDataParallel strategy
+    lite = Lite(devices=4, accelerator="gpu", strategy="ddp")
+
+The ``"auto"`` option recognizes the machine you are on, and selects the available accelerator.
+
+.. code-block:: python
+
+    # If your machine has GPUs, it will use the GPU Accelerator
+    lite = Lite(devices=2, accelerator="auto")
+
+
+strategy
+========
+
+Choose a training strategy: ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"tpu_spawn"``, ``"deepspeed"``, ``"ddp_sharded"``, or ``"ddp_sharded_spawn"``.
+
+.. code-block:: python
+
+    # Running with the DistributedDataParallel strategy on 4 GPUs
+    lite = Lite(strategy="ddp", accelerator="gpu", devices=4)
+
+    # Running with the DDP Spawn strategy using 4 cpu processes
+    lite = Lite(strategy="ddp_spawn", accelerator="cpu", devices=4)
+
+
+Additionally, you can pass in your custom training type strategy by configuring additional parameters.
+
+.. code-block:: python
+
+    from pytorch_lightning.plugins import DeepSpeedPlugin
+
+    lite = Lite(strategy=DeepSpeedPlugin(stage=2), accelerator="gpu", devices=2)
+
+
+Support for Horovod and Fully Sharded training strategies are coming soon.
+
+
+devices
+=======
+
+Configure the devices to run on. Can of type:
+
+- int: the number of GPUs to train on
+- list of int: which GPUs to train on (0-indexed)
+- str: a string representation of one of the above
+
+.. code-block:: python
+
+    # default used by Lite, i.e., use the CPU
+    lite = Lite(devices=None)
+
+    # equivalent
+    lite = Lite(devices=0)
+
+    # int: run on 2 GPUs
+    lite = Lite(devices=2, accelerator="gpu")
+
+    # list: run on GPUs 1, 4 (by bus ordering)
+    lite = Lite(devices=[1, 4], accelerator="gpu")
+    lite = Lite(devices="1, 4",  accelerator="gpu") # equivalent
+
+    # -1: run on all GPUs
+    lite = Lite(devices=-1)
+    lite = Lite(devices="-1") # equivalent
+
+
+
+gpus
+====
+
+Shorthand for setting ``devices=X`` and ``accelerator="gpu"``.
+
+.. code-block:: python
+
+    # Run on 2 GPUs
+    lite = Lite(gpus=2)
+
+    # Equivalent
+    lite = Lite(devices=2, accelerator="gpu")
+
+
+tpu_cores
+=========
+
+Shorthand for ``devices=X`` and ``accelerator="tpu"``.
+
+.. code-block:: python
+
+    # Run on 8 TPUs
+    lite = Lite(gpus=8)
+
+    # Equivalent
+    lite = Lite(devices=8, accelerator="tpu")
+
+
+num_nodes
+=========
+
+
+Number of cluster nodes for distributed operation.
+
+.. testcode::
+
+    # Default used by Lite
+    lite = Lite(num_nodes=1)
+
+    # Run on 8 nodes
+    lite = Lite(num_nodes=8)
+
+
+Learn more about distributed multi-node training on clusters :doc:`here <../clouds/cluster>`.
+
+
+precision
+=========
+
+Lightning Lite supports double precision (64), full precision (32), or half precision (16) operation (including `bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_).
+Half precision, or mixed precision, is the combined use of 32 and 16 bit floating points to reduce memory footprint during model training.
+This can result in improved performance, achieving significant speedups on modern GPUs.
+
+.. code-block:: python
+
+    # Default used by the Lite
+    lite = Lite(precision=32, devices=1)
+
+    # 16-bit (mixed) precision
+    lite = Lite(precision=16, devices=1)
+
+    # 16-bit bfloat precision
+    lite = Lite(precision="bf16", devices=1)
+
+    # 64-bit (double) precision
+    lite = Lite(precision=64, devices=1)
+
+
+plugins
+=======
+
+:ref:`Plugins` allow you to connect arbitrary backends, precision libraries, clusters etc. For example:
+To define your own behavior, subclass the relevant class and pass it in. Here's an example linking up your own
+:class:`~pytorch_lightning.plugins.environments.ClusterEnvironment`.
+
+.. code-block:: python
+
+    from pytorch_lightning.plugins.environments import ClusterEnvironment
+
+
+    class MyCluster(ClusterEnvironment):
+
+        @property
+        def main_address(self):
+            return your_main_address
+
+        @property
+        def main_port(self):
+            return your_main_port
+
+        def world_size(self):
+            return the_world_size
+
+
+    lite = Lite(plugins=[MyCluster()], ...)
+
+
+**********************
+Lightning Lite Methods
+**********************
