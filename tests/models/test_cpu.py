@@ -125,7 +125,7 @@ def test_early_stopping_cpu_model(tmpdir):
 @RunIf(skip_windows=True)
 def test_multi_cpu_model_ddp(tmpdir):
     """Make sure DDP works."""
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
 
     trainer_options = dict(
         default_root_dir=tmpdir,

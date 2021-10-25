@@ -65,7 +65,7 @@ def test_error_iterable_dataloaders_passed_to_fit(
     model = BoringModelNoDataloaders()
     model.trainer = trainer
 
-    trainer.data_connector.attach_dataloaders(
+    trainer._data_connector.attach_dataloaders(
         model,
         train_dataloaders=train_dataloaders,
         val_dataloaders=val_dataloaders,
