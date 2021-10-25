@@ -418,3 +418,6 @@ def test_v1_6_0_is_slurm_managing_tasks():
     trainer = Trainer()
     with pytest.deprecated_call(match=r"`AcceleratorConnector.is_slurm_managing_tasks` was deprecated in v1.5"):
         _ = trainer.accelerator_connector.is_slurm_managing_tasks
+
+    with pytest.deprecated_call(match=r"`AcceleratorConnector.is_slurm_managing_tasks` was deprecated in v1.5"):
+        trainer.accelerator_connector.is_slurm_managing_tasks = False
