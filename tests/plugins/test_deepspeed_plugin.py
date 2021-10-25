@@ -975,7 +975,7 @@ def test_deepspeed_gradient_clipping_raises(tmpdir):
         fast_dev_run=True,
         gradient_clip_val=1,
     )
-    with pytest.warns(MisconfigurationException, match="handles gradient clipping internally"):
+    with pytest.raises(MisconfigurationException, match="handles gradient clipping internally"):
         trainer.fit(model)
 
 
