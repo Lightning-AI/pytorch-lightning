@@ -188,7 +188,9 @@ class FitLoop(Loop):
         if self.current_epoch != 0 and self.trainer._should_reload_dl_epoch:
             self.trainer.reset_train_dataloader(model)
 
-        if callable(getattr(self.trainer.train_dataloader.sampler, "set_epoch", None)):
+        if self.trainer.train_dataloader and callable(
+            getattr(self.trainer.train_dataloader.sampler, "set_epoch", None)
+        ):
             # set seed for distributed sampler (enables shuffling for each epoch)
             self.trainer.train_dataloader.sampler.set_epoch(self.current_epoch)
 

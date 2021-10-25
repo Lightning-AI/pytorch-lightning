@@ -491,6 +491,11 @@ class CombinedLoader:
     def __len__(self) -> int:
         return self._calc_num_batches(self.loaders)
 
+    def reset(self):
+        if self._iterator:
+            self._iterator._loader_iters = None
+        self._iterator = None
+
 
 class CombinedLoaderIterator:
     """Custom Iterator returning data from multple loaders, and allows sampling in parallel."""
