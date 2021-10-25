@@ -11,32 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
 import multiprocessing
 import os
 from abc import ABC
 from copy import deepcopy
 from functools import partial
-from typing import Any, Callable, Collection, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Collection, List, Optional, Tuple, Union
 
-from torch.utils.data import BatchSampler, DataLoader, RandomSampler, Sampler, SequentialSampler
-from torch.utils.data.dataset import IterableDataset
+from torch.utils.data import DataLoader, RandomSampler, Sampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator
-from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
+from pytorch_lightning.overrides.distributed import UnrepeatedDistributedSampler
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.auto_restart import (
-    _capture_metadata_collate,
-    CaptureIterableDataset,
-    CaptureMapDataset,
-    FastForwardSampler,
-)
+from pytorch_lightning.utilities.auto_restart import _capture_metadata_collate
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len, _get_dataloader_init_kwargs
 from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -63,8 +56,8 @@ class TrainerDataLoadingMixin(ABC):
     overfit_batches: Union[int, float]
     distributed_sampler_kwargs: dict
     accelerator: Accelerator
-    accelerator_connector: AcceleratorConnector
     call_hook: Callable
+    _accelerator_connector: AcceleratorConnector
 
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
         if not isinstance(dataloader, DataLoader):
