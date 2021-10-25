@@ -15,7 +15,6 @@ In this folder we add several starter examples:
 - [Profiler](./basic_examples/profiler_example.py): Shows the basic usage of the PyTorch profilers and how to inspect traces in Google Chrome
 - [Image Classifier with DALI](./basic_examples/dali_image_classifier.py): Shows how to use [NVIDIA DALI](https://developer.nvidia.com/DALI) with Lightning
 
-
 ______________________________________________________________________
 
 ## Domain examples
