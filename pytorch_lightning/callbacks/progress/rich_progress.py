@@ -311,7 +311,7 @@ class RichProgressBar(ProgressBarBase):
 
     def on_sanity_check_start(self, trainer, pl_module):
         super().on_sanity_check_start(trainer, pl_module)
-        self._init_progress(trainer, pl_module)
+        self._init_progress(trainer)
         self.val_sanity_progress_bar_id = self._add_task(trainer.num_sanity_val_steps, self.sanity_check_description)
 
     def on_sanity_check_end(self, trainer, pl_module):
