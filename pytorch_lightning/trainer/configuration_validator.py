@@ -109,7 +109,7 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
     # verify model for val loop
     # -----------------------------------
 
-    has_val_loader = trainer.data_connector._val_dataloader_source.is_defined()
+    has_val_loader = trainer._data_connector._val_dataloader_source.is_defined()
     has_val_step = is_overridden("validation_step", model)
 
     if has_val_loader and not has_val_step:
@@ -162,7 +162,7 @@ def __verify_eval_loop_configuration(trainer: "pl.Trainer", model: "pl.Lightning
     trainer_method = "validate" if stage == "val" else stage
     on_eval_hook = f"on_{loader_name}"
 
-    has_loader = getattr(trainer.data_connector, f"_{stage}_dataloader_source").is_defined()
+    has_loader = getattr(trainer._data_connector, f"_{stage}_dataloader_source").is_defined()
     has_step = is_overridden(step_name, model)
     has_on_eval_dataloader = is_overridden(on_eval_hook, model)
 
