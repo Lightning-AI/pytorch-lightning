@@ -11,14 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Progress Bars
-=============
+from pytorch_lightning.callbacks.progress.tqdm_progress import TQDMProgressBar
+from pytorch_lightning.utilities import rank_zero_deprecation
 
-Use or override one of the progress bar callbacks.
 
-"""
-from pytorch_lightning.callbacks.progress.base import ProgressBarBase  # noqa: F401
-from pytorch_lightning.callbacks.progress.progress import ProgressBar  # noqa: F401
-from pytorch_lightning.callbacks.progress.rich_progress import RichProgressBar  # noqa: F401
-from pytorch_lightning.callbacks.progress.tqdm_progress import TQDMProgressBar  # noqa: F401
+class ProgressBar(TQDMProgressBar):
+
+    rank_zero_deprecation(
+        "`ProgressBar` has been deprecated in v1.5 and will be removed in v1.7."
+        " It has been renamed to `TQDMProgressBar` instead."
+    )
