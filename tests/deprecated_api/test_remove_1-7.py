@@ -387,3 +387,10 @@ def test_v1_7_0_deprecate_gpu_stats_monitor(tmpdir):
 def test_v1_7_0_deprecate_xla_stats_monitor(tmpdir):
     with pytest.deprecated_call(match="The `XLAStatsMonitor` callback was deprecated in v1.5"):
         _ = XLAStatsMonitor()
+
+
+def test_v1_7_0_progress_bar():
+
+    _soft_unimport_module("pytorch_lightning.callbacks.progress")
+    with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.7."):
+        from pytorch_lightning.callbacks.progress import ProgressBar  # noqa: F401
