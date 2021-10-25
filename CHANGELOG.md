@@ -224,6 +224,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `XLACheckpointIO` plugin ([#9972](https://github.com/PyTorchLightning/pytorch-lightning/pull/9972))
 
 
+- Added `ByteCounter` to calculate model_size ([#10123](https://github.com/PyTorchLightning/pytorch-lightning/pull/10123))
+
+
 
 ### Changed
 
