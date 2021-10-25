@@ -358,7 +358,7 @@ def _test_fast_forward_sampler_with_distributed_sampler(rank, worldsize):
 @RunIf(skip_windows=True)
 def test_fast_forward_sampler_with_distributed_sampler():
     """Make sure result logging works with DDP."""
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
     worldsize = 2
     mp.spawn(_test_fast_forward_sampler_with_distributed_sampler, args=(worldsize,), nprocs=worldsize)
 
@@ -632,7 +632,7 @@ def test_fast_forward_sampler_iterative_dataset():
 @RunIf(skip_windows=True)
 def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
     """Make sure result logging works with DDP."""
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
     worldsize = 2
     mp.spawn(
         _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset, args=(worldsize,), nprocs=worldsize
