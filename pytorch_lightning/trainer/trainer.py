@@ -448,7 +448,7 @@ class Trainer(
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self.model_connector = ModelConnector(self)
-        self.callback_connector = CallbackConnector(self)
+        self._callback_connector = CallbackConnector(self)
         self.debugging_connector = DebuggingConnector(self)
         self.training_tricks_connector = TrainingTricksConnector(self)
         self.checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
@@ -490,8 +490,8 @@ class Trainer(
         self._weights_summary: Optional[str] = None
 
         # init callbacks
-        # Declare attributes to be set in callback_connector on_trainer_init
-        self.callback_connector.on_trainer_init(
+        # Declare attributes to be set in _callback_connector on_trainer_init
+        self._callback_connector.on_trainer_init(
             callbacks,
             checkpoint_callback,
             enable_checkpointing,
@@ -1021,14 +1021,14 @@ class Trainer(
         verify_loop_configurations(self, model)
 
         # attach model log function to callback
-        self.callback_connector.attach_model_logging_functions(model)
+        self._callback_connector.attach_model_logging_functions(model)
 
         # attach model to the training type plugin
         self.training_type_plugin.connect(model)
 
         # hook
         self.data_connector.prepare_data()
-        self.callback_connector._attach_model_callbacks()
+        self._callback_connector._attach_model_callbacks()
 
         if self._ckpt_path and not self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
             self._load_checkpoint_weights()
