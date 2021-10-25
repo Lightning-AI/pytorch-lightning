@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
-from typing import Any, Iterable, Mapping, Union, Optional, Dict
+from typing import Any, Dict, Iterable, Mapping, Optional, Union
 
 import torch
-from torch.utils.data import DataLoader, IterableDataset, Sampler, BatchSampler
+from torch.utils.data import BatchSampler, DataLoader, IterableDataset, Sampler
 
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
@@ -174,12 +174,12 @@ def _get_dataloader_init_kwargs(
 def _dataloader_init_kwargs_resolve_sampler(
     dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
 ) -> Dict[str, Any]:
-    """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for
-    its re-instantiation.
+    """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its
+    re-instantiation.
 
-    If the dataloader is being used for prediction, the sampler will be wrapped into an `IndexBatchSamplerWrapper`,
-    so Lightning can keep track of its indices. If fault tolerant training is enabled, the sampler will be wrapped
-    into a `FastForwardSampler`.
+    If the dataloader is being used for prediction, the sampler will be wrapped into an `IndexBatchSamplerWrapper`, so
+    Lightning can keep track of its indices. If fault tolerant training is enabled, the sampler will be wrapped into a
+    `FastForwardSampler`.
     """
     batch_sampler = getattr(dataloader, "batch_sampler")
     is_predicting = mode == RunningStage.PREDICTING
