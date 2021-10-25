@@ -23,7 +23,7 @@ from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
-from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -123,14 +123,25 @@ class IPUPlugin(ParallelPlugin):
         # Separate models are instantiated for different stages, but they share the same weights on host.
         # When validation/test models are run, weights are synced first.
 
-        if self.lightning_module.trainer.state.stage is RunningStage.TRAINING:
-            # Create model for training which will run training.
+        trainer_fn = self.lightning_module.trainer.state.fn
+        if trainer_fn in (TrainerFn.FITTING, TrainerFn.TUNING):
+            # Create model for training and validation which will run on fit
             optimizer = self.lightning_module.trainer.optimizers[0]
             model = poptorch.trainingModel(model=model, options=self.training_opts, optimizer=optimizer)
             self.poptorch_models[RunningStage.TRAINING] = model
-        for x in (RunningStage.VALIDATING, RunningStage.TESTING, RunningStage.PREDICTING):
+
+            if self.lightning_module.trainer.enable_validation:
+                model = poptorch.inferenceModel(model=model, options=self.inference_opts)
+                self.poptorch_models[RunningStage.VALIDATING] = model
+        elif trainer_fn == TrainerFn.VALIDATING:
             model = poptorch.inferenceModel(model=model, options=self.inference_opts)
-            self.poptorch_models[x] = model
+            self.poptorch_models[RunningStage.VALIDATING] = model
+        elif trainer_fn == TrainerFn.TESTING:
+            model = poptorch.inferenceModel(model=model, options=self.inference_opts)
+            self.poptorch_models[RunningStage.TESTING] = model
+        elif trainer_fn == TrainerFn.PREDICTING:
+            model = poptorch.inferenceModel(model=model, options=self.inference_opts)
+            self.poptorch_models[RunningStage.PREDICTING] = model
 
     @property
     def replication_factor(self) -> int:
@@ -142,7 +153,11 @@ class IPUPlugin(ParallelPlugin):
                 return self._training_opts.replication_factor
             if self._inference_opts:
                 return self._inference_opts.replication_factor
-        return len(self.parallel_devices)
+
+            return len(self.parallel_devices)
+
+        stage = self.lightning_module.trainer.state.stage
+        return self.poptorch_models[stage]._options.toDict()["replication_factor"]
 
     def _create_opts(self, training: bool) -> "poptorch.Options":
         opts = poptorch.Options()
