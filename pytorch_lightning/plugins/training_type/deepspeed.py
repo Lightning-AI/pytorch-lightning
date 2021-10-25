@@ -33,11 +33,12 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities import AMPType, GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import log, rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeTuple
 from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
@@ -422,6 +423,17 @@ class DeepSpeedPlugin(DDPPlugin):
         return deepspeed_engine, deepspeed_optimizer
 
     def init_deepspeed(self):
+        # deepspeed handles gradient clipping internally
+        if is_overridden("configure_gradient_clipping", self.lightning_module, pl.LightningModule):
+            rank_zero_warn(
+                "Since deepspeed handles gradient clipping internally, `LightningModule.configure_gradient_clipping`"
+                " will be ignored. Consider setting `Trainer(gradient_clip_val=..., gradient_clip_algorithm='norm')`"
+                " which will use the internal mechanism."
+            )
+
+        if self.lightning_module.trainer.gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
+            raise MisconfigurationException("DeepSpeed does not support clipping gradients by value.")
+
         accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
 
         if accumulation_scheduler.epochs != [0]:
