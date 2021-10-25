@@ -1502,7 +1502,8 @@ class LightningModule(
             gradient_clip_val = self.trainer.gradient_clip_val or 0.0
         elif self.trainer.gradient_clip_val is not None and self.trainer.gradient_clip_val != gradient_clip_val:
             raise MisconfigurationException(
-                "You have set `Trainer(gradient_clip_val)` and have passed `clip_gradients(gradient_clip_val=...)`."
+                f"You have set `Trainer(gradient_clip_val={self.trainer.gradient_clip_val!r})`"
+                f" and have passed `clip_gradients(gradient_clip_val={gradient_clip_val!r})`."
                 " Please use only one of them."
             )
 
@@ -1515,8 +1516,9 @@ class LightningModule(
                 and self.trainer.gradient_clip_algorithm != gradient_clip_algorithm
             ):
                 raise MisconfigurationException(
-                    "You have set `Trainer(gradient_clip_algorithm)` and have passed"
-                    " `gradient_clip_algorithm` inside `clip_gradients`. Please use only one of them."
+                    f"You have set `Trainer(gradient_clip_algorithm={self.trainer.gradient_clip_algorithm.value!r})`"
+                    f" and have passed `clip_gradients(gradient_clip_algorithm={gradient_clip_algorithm!r})"
+                    " Please use only one of them."
                 )
 
         if not isinstance(gradient_clip_val, (int, float)):
