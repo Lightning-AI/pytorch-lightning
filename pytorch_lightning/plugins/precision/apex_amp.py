@@ -111,7 +111,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         closure_result = lambda_closure()
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
-        if not model.automatic_optimization or not skipped_backward:
+        if not isinstance(model, pl.LightningModule) or not model.automatic_optimization or not skipped_backward:
             optimizer.step(**kwargs)
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:

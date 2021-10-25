@@ -135,7 +135,6 @@ class PrecisionPlugin(CheckpointHooks):
         )
 
     def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
-        """Tracks the model's gradient norms."""
         if float(trainer.track_grad_norm) == -1:
             return
         grad_norm_dict = grad_norm(trainer.lightning_module, trainer.track_grad_norm, trainer.logger.group_separator)
@@ -153,7 +152,6 @@ class PrecisionPlugin(CheckpointHooks):
         clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[GradClipAlgorithmType] = None,
     ) -> None:
-        """Clips the gradients."""
         if not isinstance(model, pl.LightningModule):
             return
         model.configure_gradient_clipping(
