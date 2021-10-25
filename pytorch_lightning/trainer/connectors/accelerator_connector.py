@@ -176,11 +176,6 @@ class AcceleratorConnector:
         self._training_type_plugin_resolved = False
         self.accelerator = self.select_accelerator()
 
-        # init flags for SLURM+DDP to work
-        self.world_size = 1
-        self.interactive_ddp_procs = []
-        self.global_rank = 0
-
         # benchmarking
         # TODO: should this be moved to GPU accelerator?
         torch.backends.cudnn.benchmark = self.benchmark
@@ -1000,14 +995,6 @@ class AcceleratorConnector:
             except Exception:
                 # likely not on slurm, so set the slurm managed flag to false
                 self.is_slurm_managing_tasks = False
-
-        # used for tests only, set this flag to simulate slurm managing a task
-        try:
-            should_fake = int(os.environ["FAKE_SLURM_MANAGING_TASKS"])
-            if should_fake:
-                self.is_slurm_managing_tasks = True
-        except Exception:
-            pass
 
         # notify user the that slurm is managing tasks
         if self.is_slurm_managing_tasks:

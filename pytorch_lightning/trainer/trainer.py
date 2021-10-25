@@ -257,7 +257,7 @@ class Trainer(
             gpus: Number of GPUs to train on (int) or which GPUs to train on (list or str) applied per node
 
             gradient_clip_val: The value at which to clip gradients. Passing ``gradient_clip_val=None`` disables
-                gradient clipping.
+                gradient clipping. If using Automatic Mixed Precision (AMP), the gradients will be unscaled before.
 
             gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
                 to clip by value, and ``gradient_clip_algorithm="norm"`` to clip by norm. By default it will
@@ -384,7 +384,8 @@ class Trainer(
 
             ipus: How many IPUs to train on.
 
-            track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm.
+            track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm. If using
+                Automatic Mixed Precision (AMP), the gradients will be unscaled before logging them.
 
             val_check_interval: How often to check the validation set. Use float to check within a training epoch,
                 use int to check every n steps (batches).

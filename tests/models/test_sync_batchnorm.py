@@ -22,7 +22,7 @@ from pytorch_lightning.plugins.environments import LightningEnvironment
 from pytorch_lightning.utilities import FLOAT16_EPSILON
 from tests.helpers.datamodules import MNISTDataModule
 from tests.helpers.runif import RunIf
-from tests.helpers.utils import set_random_master_port
+from tests.helpers.utils import set_random_main_port
 
 
 class SyncBNModule(LightningModule):
@@ -70,7 +70,7 @@ class SyncBNModule(LightningModule):
 @RunIf(min_gpus=2, special=True)
 def test_sync_batchnorm_ddp(tmpdir):
     seed_everything(234)
-    set_random_master_port()
+    set_random_main_port()
 
     # define datamodule and dataloader
     dm = MNISTDataModule()

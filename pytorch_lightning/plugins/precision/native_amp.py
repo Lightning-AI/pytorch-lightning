@@ -69,7 +69,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Callable,
+        lambda_closure: Callable[[], Any],
         **kwargs: Any,
     ) -> bool:
         if self.is_bfloat16:
@@ -86,7 +86,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         # in manual optimization, the closure does not return a value
         if not isinstance(model, pl.LightningModule) or not model.automatic_optimization or not skipped_backward:
             # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
-            self.scaler.step(optimizer)
+            self.scaler.step(optimizer, **kwargs)
             self.scaler.update()
         return False
 
