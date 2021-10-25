@@ -24,6 +24,11 @@ from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_DEV_1_10, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
+if _TORCH_GREATER_EQUAL_DEV_1_10:
+    from torch import autocast
+else:
+    from torch.cuda.amp import autocast
+
 
 class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     """Plugin for native mixed precision training with :mod:`torch.cuda.amp`.
@@ -90,12 +95,10 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             self.scaler.update()
         return False
 
-    def autocast_context_manager(self) -> torch.cuda.amp.autocast:
-        if self.use_cpu:
-            return torch.cpu.amp.autocast(dtype=self._dtype)  # Only reached in pytorch==1.10 where this is ok. skipcq
-        if self.is_bfloat16:
-            return torch.cuda.amp.autocast(dtype=self._dtype)  # Only reached in pytorch==1.10 where this is ok. skipcq
-        return torch.cuda.amp.autocast()
+    def autocast_context_manager(self) -> autocast:
+        if _TORCH_GREATER_EQUAL_DEV_1_10:
+            return autocast("cpu" if self.use_cpu else "cuda", dtype=self._dtype)
+        return autocast()
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
