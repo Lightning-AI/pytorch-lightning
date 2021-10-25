@@ -155,8 +155,6 @@ class CheckpointConnector:
         if not self._loaded_checkpoint:
             return
 
-        model = self.trainer.lightning_module
-
         # restore model state_dict
         self.trainer.training_type_plugin.load_model_state_dict(self._loaded_checkpoint)
 
