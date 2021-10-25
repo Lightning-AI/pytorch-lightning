@@ -21,7 +21,6 @@ import torch
 import torch.distributed
 import torch.nn.functional
 from torch import nn
-from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
 from pytorch_lightning import seed_everything
