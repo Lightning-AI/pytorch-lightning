@@ -724,11 +724,11 @@ Lightning has many tools for debugging. Here is an example of just a few of them
 
 .. testcode::
 
-    # unit test all the code- hits every line of your code once to see if you have bugs,
+    # unit test all the code - hits every line of your code once to see if you have bugs,
     # instead of waiting hours to crash on validation
     trainer = Trainer(fast_dev_run=True)
 
-    unit test all the code- hits every line of your code with 4 batches
+    # unit test all the code - hits every line of your code with 4 batches
     trainer = Trainer(fast_dev_run=4)
 
 .. testcode::
