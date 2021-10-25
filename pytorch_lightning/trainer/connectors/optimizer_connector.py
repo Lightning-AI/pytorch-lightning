@@ -57,7 +57,10 @@ class OptimizerConnector:
                 continue
 
             # skip if `optimizer.step()` has never been called
-            if not isinstance(lr_scheduler["scheduler"], ReduceLROnPlateau) and lr_scheduler["scheduler"].optimizer._step_count == 0:
+            if (
+                not isinstance(lr_scheduler["scheduler"], ReduceLROnPlateau)
+                and lr_scheduler["scheduler"].optimizer._step_count == 0
+            ):
                 continue
 
             current_idx = self.trainer.fit_loop.batch_idx if interval == "step" else self.trainer.current_epoch
