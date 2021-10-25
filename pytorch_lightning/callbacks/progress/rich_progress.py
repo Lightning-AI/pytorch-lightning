@@ -137,6 +137,9 @@ if _RICH_AVAILABLE:
             super().__init__()
 
         def update(self, metrics):
+            # called when metrics are ready to be rendered.
+            # this is due to preventing render from causing deadlock issues by requesting metrics
+            # in separate thread.
             self.metrics = metrics
 
         def render(self, task) -> Text:
