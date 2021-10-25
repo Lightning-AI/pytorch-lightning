@@ -561,6 +561,9 @@ class DDPPlugin(ParallelPlugin):
             if self.local_rank == current_worker:
                 checkpoint = super().load_checkpoint(checkpoint_path)
                 self.lightning_module.on_load_checkpoint(checkpoint)
+                # call hpc specific hook
+                if self.lightning_module.trainer.checkpoint_connector.hpc_resume_path is not None:
+                    self.lightning_module.on_hpc_load(checkpoint)
                 self.load_model_state_dict(checkpoint)
                 del checkpoint["state_dict"]
                 self._has_loaded_state_dict = True

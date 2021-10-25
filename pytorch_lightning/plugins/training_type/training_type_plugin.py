@@ -194,6 +194,9 @@ class TrainingTypePlugin(ABC):
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         self.lightning_module.on_load_checkpoint(checkpoint)
+        # call hpc specific hook
+        if self.lightning_module.trainer.checkpoint_connector.hpc_resume_path is not None:
+            self.lightning_module.on_hpc_load(checkpoint)
         self.lightning_module.load_state_dict(checkpoint["state_dict"])
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
