@@ -54,7 +54,7 @@ jobs:
       fail-fast: false
       matrix:
         python_version: ["3.7"]
-        xla_version: ["1.6", "1.7", "1.8", "1.9"] # todo: , "nightly"
+        xla_version: ["1.6", "1.7", "1.8", "1.9"]
 
     steps:
       - name: Checkout
