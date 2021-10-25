@@ -27,7 +27,7 @@ from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE, WandbLogger  # noq
 
 if _COMET_AVAILABLE:
     __all__.append("CometLogger")
-    # needed to prevent ImportError and duplicated logs.
+    # needed to prevent ModuleNotFoundError and duplicated logs.
     environ["COMET_DISABLE_AUTO_LOGGING"] = "1"
 
 if _MLFLOW_AVAILABLE:

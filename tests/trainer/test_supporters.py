@@ -349,7 +349,7 @@ def test_combined_data_loader_validation_test(
 
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": str(int(use_fault_tolerant))}):
 
-        trainer = Trainer(replace_sampler_ddp=replace_sampler_ddp, accelerator="ddp", gpus=2)
+        trainer = Trainer(replace_sampler_ddp=replace_sampler_ddp, strategy="ddp", gpus=2)
         dataloader = trainer.prepare_dataloader(dataloader, shuffle=True)
         _count = 0
         _has_fastforward_sampler = False

@@ -20,7 +20,7 @@ import torch
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.loops.batch.training_batch_loop import _OUTPUTS_TYPE as _BATCH_OUTPUTS_TYPE
-from pytorch_lightning.loops.utilities import _get_active_optimizers, _update_dataloader_iter
+from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached, _update_dataloader_iter
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -28,6 +28,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation, WarningCache
 
 _OUTPUTS_TYPE = List[_BATCH_OUTPUTS_TYPE]
 
@@ -40,13 +41,20 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         max_steps: The maximum number of steps (batches) to process
     """
 
-    def __init__(self, min_steps: int, max_steps: int):
+    def __init__(self, min_steps: Optional[int] = 0, max_steps: int = -1) -> None:
         super().__init__()
-        self.min_steps: int = min_steps
-
-        if max_steps and max_steps < -1:
-            raise MisconfigurationException(f"`max_steps` must be a positive integer or -1. You passed in {max_steps}.")
-        self.max_steps: int = max_steps
+        if max_steps is None:
+            rank_zero_deprecation(
+                "Setting `max_steps = None` is deprecated in v1.5 and will no longer be supported in v1.7."
+                " Use `max_steps = -1` instead."
+            )
+            max_steps = -1
+        elif max_steps < -1:
+            raise MisconfigurationException(
+                f"`max_steps` must be a non-negative integer or -1 (infinite steps). You passed in {max_steps}."
+            )
+        self.min_steps = min_steps
+        self.max_steps = max_steps
 
         self.global_step: int = 0
         self.batch_progress = BatchProgress()
@@ -57,6 +65,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         self._results = ResultCollection(training=True)
         self._outputs: _OUTPUTS_TYPE = []
+        self._warning_cache = WarningCache()
         self._dataloader_iter: Optional[Iterator] = None
         # caches the loaded dataloader state until dataloader objects are available
         self._dataloader_state_dict: Dict[str, Any] = {}
@@ -77,7 +86,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     @property
     def _is_training_done(self) -> bool:
-        max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
+        max_steps_reached = _is_max_limit_reached(self.global_step, self.max_steps)
         return max_steps_reached or self._num_ready_batches_reached()
 
     @property
@@ -145,20 +154,48 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
 
-        if not self.trainer.data_connector.train_data_fetcher.store_on_device:
+        if not self.trainer._data_connector.train_data_fetcher.store_on_device:
             with self.trainer.profiler.profile("training_batch_to_device"):
                 batch = self.trainer.accelerator.batch_to_device(batch)
 
         self.batch_progress.increment_ready()
 
-        with self.trainer.profiler.profile("run_training_batch"):
-            batch_output = self.batch_loop.run(batch, batch_idx)
+        # cache the batch size value to avoid extracting it again after the batch loop runs as the value will be
+        # different if tbptt is enabled
+        batch_size = self.trainer.logger_connector.on_batch_start(batch_idx, batch)
+
+        if batch is None:
+            self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
+            batch_output = []
+        else:
+            # hook
+            response = self.trainer.call_hook("on_batch_start")
+            if response == -1:
+                self.batch_progress.increment_processed()
+                raise StopIteration
+
+            # TODO: Update this in v1.7 (deprecation: #9816)
+            model_fx = self.trainer.lightning_module.on_train_batch_start
+            extra_kwargs = (
+                {"dataloader_idx": 0}
+                if callable(model_fx) and is_param_in_hook_signature(model_fx, "dataloader_idx", explicit=True)
+                else {}
+            )
+
+            # hook
+            response = self.trainer.call_hook("on_train_batch_start", batch, batch_idx, **extra_kwargs)
+            if response == -1:
+                self.batch_progress.increment_processed()
+                raise StopIteration
+
+            self.batch_progress.increment_started()
+
+            with self.trainer.profiler.profile("run_training_batch"):
+                batch_output = self.batch_loop.run(batch, batch_idx)
+
+        self.trainer._results.batch_size = batch_size
 
         self.batch_progress.increment_processed()
-
-        # when returning -1 from train_step, we end epoch early
-        if batch_output.signal == -1:
-            raise StopIteration
 
         # update non-plateau LR schedulers
         # update epoch-interval ones only when we are at the end of training epoch
@@ -167,7 +204,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             self.update_lr_schedulers("epoch", update_plateau_schedulers=False)
 
         batch_end_outputs = self._prepare_outputs_training_batch_end(
-            batch_output.outputs,
+            batch_output,
             automatic=self.trainer.lightning_module.trainer.lightning_module.automatic_optimization,
             num_optimizers=len(self.trainer.optimizers),
         )
@@ -186,7 +223,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.batch_progress.increment_completed()
 
         if is_overridden("training_epoch_end", self.trainer.lightning_module):
-            self._outputs.append(batch_output.outputs)
+            self._outputs.append(batch_output)
 
         # -----------------------------------------
         # SAVE METRICS TO LOGGERS AND PROGRESS_BAR

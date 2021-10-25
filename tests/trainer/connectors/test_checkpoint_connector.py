@@ -41,7 +41,7 @@ class HPCHookdedModel(BoringModel):
 
 def test_hpc_hook_calls(tmpdir):
     model = HPCHookdedModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, checkpoint_callback=False, logger=False)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False)
     trainer.fit(model)
     connector = trainer.checkpoint_connector
     connector.hpc_save(tmpdir, logger=Mock())
@@ -50,7 +50,7 @@ def test_hpc_hook_calls(tmpdir):
 
     # new training run, restore from hpc checkpoint file automatically
     assert set(os.listdir(tmpdir)) == {"hpc_ckpt_1.ckpt"}
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, checkpoint_callback=False, logger=False)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False)
     trainer.fit(model)
     assert model.hpc_save_called == 1
     assert model.hpc_load_called == 1
@@ -64,7 +64,6 @@ def test_preloaded_checkpoint_lifecycle(tmpdir):
 
     connector = trainer.checkpoint_connector
 
-    assert not trainer.resume_from_checkpoint
     assert not connector.resume_checkpoint_path
     assert not connector._loaded_checkpoint
 
@@ -76,12 +75,13 @@ def test_preloaded_checkpoint_lifecycle(tmpdir):
     assert not connector._loaded_checkpoint
 
     ckpt_path = trainer.checkpoint_callback.best_model_path
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, resume_from_checkpoint=ckpt_path)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=2)
     connector = trainer.checkpoint_connector
-    connector.resume_start()
+    connector.resume_start(ckpt_path)
     assert connector.resume_checkpoint_path == ckpt_path
     assert connector._loaded_checkpoint
     assert isinstance(connector._loaded_checkpoint, dict)
+    trainer.state.fn = TrainerFn.FITTING
     connector.resume_end()
     assert not connector.resume_checkpoint_path
     assert not connector._loaded_checkpoint
@@ -90,7 +90,7 @@ def test_preloaded_checkpoint_lifecycle(tmpdir):
 def test_hpc_restore_attempt(tmpdir):
     """Test that restore() attempts to restore the hpc_ckpt with highest priority."""
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, checkpoint_callback=False, logger=False)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False)
     trainer.fit(model)
 
     hpc_ckpt_path = tmpdir / "hpc_ckpt_3.ckpt"
@@ -102,7 +102,7 @@ def test_hpc_restore_attempt(tmpdir):
         torch.nn.init.constant_(param, 0)
 
     # case 1: restore hpc first, no explicit resume path provided
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, checkpoint_callback=False, logger=False)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, enable_checkpointing=False, logger=False)
     trainer.fit(model)
 
     for param in model.parameters():
@@ -110,8 +110,8 @@ def test_hpc_restore_attempt(tmpdir):
         torch.nn.init.constant_(param, 0)
 
     # case 2: explicit resume path provided, restore hpc anyway
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=3, resume_from_checkpoint="not existing")
-    trainer.fit(model)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=3)
+    trainer.fit(model, ckpt_path="not existing")
 
     for param in model.parameters():
         assert param.abs().sum() > 0
@@ -150,7 +150,7 @@ def test_loops_restore(tmpdir):
     trainer = Trainer(**trainer_args)
     trainer.fit(model)
 
-    trainer_args["resume_from_checkpoint"] = str(tmpdir / "last.ckpt")
+    ckpt_path = str(tmpdir / "last.ckpt")
 
     trainer = Trainer(**trainer_args)
     for fn in TrainerFn:
@@ -161,7 +161,7 @@ def test_loops_restore(tmpdir):
     for fn in TrainerFn:
         if fn != TrainerFn.TUNING:
             trainer.state.fn = fn
-            trainer.checkpoint_connector.resume_start()
+            trainer.checkpoint_connector.resume_start(ckpt_path)
             trainer.checkpoint_connector.restore_loops()
 
             trainer_loop = getattr(trainer, f"{fn}_loop")

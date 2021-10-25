@@ -114,7 +114,7 @@ jobs:
           file: dockers/base-cuda/Dockerfile
           push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
-        timeout-minutes: 55
+        timeout-minutes: 85
 
   docker-Conda:
     if: ${{ github.repository_owner == 'PyTorchLightning' }}
@@ -156,7 +156,7 @@ jobs:
           file: dockers/base-conda/Dockerfile
           push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
-        timeout-minutes: 55
+        timeout-minutes: 85
 
   docker-IPU:
     if: ${{ github.repository_owner == 'PyTorchLightning' }}

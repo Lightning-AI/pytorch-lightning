@@ -184,7 +184,7 @@ def test_dataloaders_passed_to_fn(tmpdir, ckpt_path, n):
         model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
         model.test_step = model.test_step__multiple_dataloaders
 
-    # train, multiple val and multiple test passed to fit
+    # multiple val dataloaders passed to fit
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
     trainer.fit(model, train_dataloader=model.dataloader(train=True), val_dataloaders=dataloaders)
 
@@ -195,10 +195,10 @@ def test_dataloaders_passed_to_fn(tmpdir, ckpt_path, n):
         ckpt_path = trainer.checkpoint_callback.best_model_path
 
     trainer.test(test_dataloaders=dataloaders, ckpt_path=ckpt_path)
-    trainer.validate(val_dataloaders=dataloaders, ckpt_path=ckpt_path)
-
-    assert len(trainer.val_dataloaders) == n
     assert len(trainer.test_dataloaders) == n
+
+    trainer.validate(val_dataloaders=dataloaders, ckpt_path=ckpt_path)
+    assert len(trainer.val_dataloaders) == n
 
 
 class DummyModel(BoringModel):
@@ -272,9 +272,11 @@ def test_inf_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches,
 
     trainer.fit(model, train_dataloader=train_dl, val_dataloaders=val_dl)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.num_training_batches == (0 if limit_train_batches == 0.0 else float("inf"))
+    assert trainer.num_training_batches == float("inf")
     assert epoch_cb.train_epoch_count == int(limit_train_batches > 0)
-    assert trainer.num_val_batches[0] == (0 if limit_val_batches == 0.0 else float("inf"))
+    # when limit_val_batches = 0, num_val_batches is empty as no data is loaded
+    if limit_val_batches != 0.0:
+        assert trainer.num_val_batches[0] == float("inf")
     assert epoch_cb.val_epoch_count == int(limit_val_batches > 0)
 
     trainer.test(model, test_dataloaders=test_dl)
@@ -314,7 +316,7 @@ def test_dataloaders_with_limit_train_batches(tmpdir, dataset, limit_train_batch
 
     trainer.fit(model, train_dataloader=train_dl, val_dataloaders=val_dl)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.num_training_batches == limit_train_batches
+    assert trainer.num_training_batches == (limit_train_batches if limit_train_batches != 0.0 else float("inf"))
     assert epoch_cb.train_epoch_count == (epochs if limit_train_batches > 0 else 0)
     assert epoch_cb.train_batches_seen == limit_train_batches * epochs
 
@@ -335,11 +337,11 @@ def test_dataloaders_with_limit_val_batches(tmpdir, dataset, limit_val_batches):
 
     epoch_cb = Counter()
     callbacks = [epoch_cb]
-    checkpoint_callback = True
+    enable_checkpointing = False
     if limit_val_batches > 0:
         callbacks.append(ModelCheckpoint(monitor="val_log", save_top_k=1, mode="max", verbose=False))
-    else:
-        checkpoint_callback = False
+        enable_checkpointing = True
+
     epochs = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -347,7 +349,7 @@ def test_dataloaders_with_limit_val_batches(tmpdir, dataset, limit_val_batches):
         max_epochs=epochs,
         callbacks=callbacks,
         limit_val_batches=limit_val_batches,
-        checkpoint_callback=checkpoint_callback,
+        enable_checkpointing=enable_checkpointing,
     )
     model = DummyModel()
 
@@ -399,8 +401,11 @@ def test_datasets_dataloaders_with_limit_num_batches(
 
     trainer.fit(model, train_dataloader=train_dl, val_dataloaders=val_dl)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.num_training_batches == limit_train_batches
-    assert trainer.num_val_batches[0] == limit_val_batches
+    assert trainer.num_training_batches == (limit_train_batches if limit_train_batches > 0.0 else float("inf"))
+    if limit_val_batches != 0.0:
+        assert trainer.num_val_batches[0] == limit_val_batches
+    else:
+        assert trainer.num_val_batches == []
     assert epoch_cb.train_epoch_count == (epochs if limit_train_batches > 0 else 0)
     assert epoch_cb.train_batches_seen == limit_train_batches * epochs
     assert epoch_cb.val_epoch_count == (epochs if limit_val_batches > 0 else 0)
@@ -434,10 +439,13 @@ def test_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, lim
         limit_test_batches=limit_test_batches,
     )
     trainer.fit(model)
-    expected_train_batches = int(len(trainer.train_dataloader) * limit_train_batches)
-    expected_val_batches = [int(len(dataloader) * limit_val_batches) for dataloader in trainer.val_dataloaders]
-    assert trainer.num_training_batches == expected_train_batches
-    assert trainer.num_val_batches == expected_val_batches
+    if limit_train_batches != 0.0:
+        expected_train_batches = int(len(trainer.train_dataloader) * limit_train_batches)
+        expected_val_batches = [int(len(dataloader) * limit_val_batches) for dataloader in trainer.val_dataloaders]
+        assert trainer.num_training_batches == expected_train_batches
+        assert trainer.num_val_batches == expected_val_batches
+    else:
+        assert trainer.train_dataloader is None
 
     trainer.test(model)
     expected_test_batches = [int(len(dataloader) * limit_test_batches) for dataloader in trainer.test_dataloaders]
@@ -474,9 +482,12 @@ def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_v
         wraps=trainer.fit_loop.epoch_loop.val_loop.epoch_loop._evaluation_step,
     ) as mocked:
         trainer.fit(model)
-        assert trainer.num_training_batches == limit_train_batches
-        assert trainer.num_val_batches == [limit_val_batches] * len(trainer.val_dataloaders)
-        assert mocked.call_count == limit_val_batches * len(trainer.val_dataloaders)
+        assert trainer.num_training_batches == (limit_train_batches if limit_train_batches != 0.0 else float("inf"))
+        if limit_train_batches != 0.0:
+            assert trainer.num_val_batches == [limit_val_batches] * len(trainer.val_dataloaders)
+            assert mocked.call_count == limit_val_batches * len(trainer.val_dataloaders)
+        else:
+            assert trainer.val_dataloaders is None
 
     with patch.object(
         trainer.test_loop.epoch_loop,
@@ -551,17 +562,15 @@ def test_mixing_of_dataloader_options(tmpdir, ckpt_path):
     # fit model
     trainer = Trainer(**trainer_options)
     trainer.fit(model, val_dataloaders=model.dataloader(train=False))
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # fit model
     trainer = Trainer(**trainer_options)
     trainer.fit(model, val_dataloaders=model.dataloader(train=False))
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
+    assert len(trainer.val_dataloaders) == 1, f"`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}"
+
     if ckpt_path == "specific":
         ckpt_path = trainer.checkpoint_callback.best_model_path
     trainer.test(test_dataloaders=model.dataloader(train=False), ckpt_path=ckpt_path)
-
-    assert len(trainer.val_dataloaders) == 1, f"`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}"
     assert (
         len(trainer.test_dataloaders) == 1
     ), f"`test_dataloaders` not initiated properly, got {trainer.test_dataloaders}"
@@ -810,7 +819,7 @@ def test_auto_add_worker_init_fn_distributed(tmpdir, monkeypatch):
 
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
     seed_everything(0, workers=True)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=2, accelerator="ddp_spawn")
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=2, strategy="ddp_spawn")
     model = MultiProcessModel()
     model.val_dataloader = None
     trainer.fit(model, train_dataloader=dataloader)
@@ -892,7 +901,9 @@ def test_iterable_dataset_stop_iteration_at_epoch_beginning(yield_at_all):
     model = TestModel()
     train_dataloader = DataLoader(TestDataset(model.gen), batch_size=2)
     trainer = Trainer(
-        default_root_dir=os.getcwd(), max_epochs=2, weights_summary=None  # we expect the second epoch to be skipped
+        default_root_dir=os.getcwd(),
+        max_epochs=2,
+        enable_model_summary=False,  # we expect the second epoch to be skipped
     )
     trainer.fit(model, train_dataloader=train_dataloader)
     assert trainer.global_step == 2 * yield_at_all
@@ -930,7 +941,7 @@ def test_dataloader_distributed_sampler(tmpdir):
     trainer = Trainer(
         gpus=[0, 1],
         num_nodes=1,
-        accelerator="ddp_spawn",
+        strategy="ddp_spawn",
         default_root_dir=tmpdir,
         max_steps=1,
         callbacks=[DistribSamplerCallback(expected_seeds=(123, 123, 123))],
@@ -957,7 +968,7 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
     trainer = Trainer(
         gpus=[0, 1],
         num_nodes=1,
-        accelerator="ddp_spawn",
+        strategy="ddp_spawn",
         default_root_dir=tmpdir,
         max_steps=100,
         callbacks=[DistribSamplerCallback(expected_seeds=(11, 123, 0))],
@@ -1313,21 +1324,28 @@ def test_dataloaders_load_only_once_passed_loaders(tmpdir):
 
 
 def test_dataloaders_reset_and_attach(tmpdir):
-    """Test that repeated calls to Trainer.{fit,validate,test,predict} properly reset and dataloaders before
-    attaching the new one."""
+    """Test that repeated calls to Trainer.{fit,validate,test,predict} properly reset dataloaders before attaching
+    the new one."""
     # the assertions compare the datasets and not dataloaders since we patch and replace the samplers
     dataloader_0 = DataLoader(dataset=RandomDataset(32, 64))
     dataloader_1 = DataLoader(dataset=RandomDataset(32, 64))
     dataloader_2 = DataLoader(dataset=RandomDataset(32, 64))
     dataloader_3 = DataLoader(dataset=RandomDataset(32, 64))
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        limit_predict_batches=1,
+    )
 
     # 1st fit
     trainer.fit(model, train_dataloaders=dataloader_0, val_dataloaders=dataloader_1)
     assert trainer.train_dataloader.loaders.dataset is dataloader_0.dataset
     assert trainer.val_dataloaders[0].dataset is dataloader_1.dataset
     # 2nd fit
+    trainer.fit_loop.max_steps += 1
     trainer.fit(model, train_dataloaders=dataloader_2, val_dataloaders=dataloader_3)
     assert trainer.train_dataloader.loaders.dataset is dataloader_2.dataset
     assert trainer.val_dataloaders[0].dataset is dataloader_3.dataset

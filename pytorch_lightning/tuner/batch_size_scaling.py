@@ -53,7 +53,7 @@ def scale_batch_size(
             " If this is not the intended behavior, please remove either one."
         )
 
-    if hasattr(model.train_dataloader, "patch_loader_code"):
+    if not trainer._data_connector._train_dataloader_source.is_module():
         raise MisconfigurationException(
             "The batch scaling feature cannot be used with dataloaders passed directly to `.fit()`."
             " Please disable the feature or incorporate the dataloader into the model."
@@ -122,7 +122,7 @@ def __scale_batch_reset_params(trainer: "pl.Trainer", model: "pl.LightningModule
     trainer.fit_loop.current_epoch = 0
     trainer.fit_loop.max_steps = steps_per_trial  # take few steps
     trainer.weights_summary = None  # not needed before full run
-    trainer.logger = DummyLogger()
+    trainer.logger = DummyLogger() if trainer.logger is not None else None
     trainer.callbacks = []  # not needed before full run
     trainer.limit_train_batches = 1.0
     trainer.optimizers, trainer.lr_schedulers = [], []  # required for saving
@@ -168,6 +168,7 @@ def _run_power_scaling(
         if changed:
             # Force the train dataloader to reset as the batch size has changed
             trainer.reset_train_dataloader(model)
+            trainer.reset_val_dataloader(model)
         else:
             break
     return new_size
@@ -206,6 +207,7 @@ def _run_binsearch_scaling(
             if changed:
                 # Force the train dataloader to reset as the batch size has changed
                 trainer.reset_train_dataloader(model)
+                trainer.reset_val_dataloader(model)
             else:
                 break
 

@@ -127,11 +127,8 @@ def test_add_argparse_args_redefined_error(cli_args: list, monkeypatch):
                 # These parameters are marked as Optional[...] in Trainer.__init__, with None as default.
                 # They should not be changed by the argparse interface.
                 "min_steps": None,
-                "max_steps": None,
-                "log_gpu_memory": None,
                 "accelerator": None,
                 "weights_save_path": None,
-                "resume_from_checkpoint": None,
                 "profiler": None,
             },
         ),
@@ -190,7 +187,7 @@ def test_argparse_args_parsing_gpus(cli_args, expected_parsed, expected_device_i
         ({}, {}),
         ({"logger": False}, {}),
         ({"logger": False}, {"logger": True}),
-        ({"logger": False}, {"checkpoint_callback": True}),
+        ({"logger": False}, {"enable_checkpointing": True}),
     ],
 )
 def test_init_from_argparse_args(cli_args, extra_args):

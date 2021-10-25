@@ -104,7 +104,7 @@ class CustomClassificationModelDP(ClassificationModel):
         self.log("val_acc", self.valid_acc(outputs["logits"], outputs["y"]))
 
 
-def test_model_properties_resume_from_checkpoint(tmpdir):
+def test_model_properties_fit_ckpt_path(tmpdir):
     """Test that properties like `current_epoch` and `global_step` in model and trainer are always the same."""
     model = BoringModel()
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
@@ -120,11 +120,11 @@ def test_model_properties_resume_from_checkpoint(tmpdir):
     trainer.fit(model)
 
     trainer_args.update(max_epochs=2)
-    trainer = Trainer(**trainer_args, resume_from_checkpoint=str(tmpdir / "last.ckpt"))
-    trainer.fit(model)
+    trainer = Trainer(**trainer_args)
+    trainer.fit(model, ckpt_path=str(tmpdir / "last.ckpt"))
 
 
-def test_trainer_properties_restore_resume_from_checkpoint(tmpdir):
+def test_trainer_properties_restore_ckpt_path(tmpdir):
     """Test that required trainer properties are set correctly when resuming from checkpoint in different
     phases."""
 
@@ -152,9 +152,7 @@ def test_trainer_properties_restore_resume_from_checkpoint(tmpdir):
     resume_ckpt = str(tmpdir / "last.ckpt")
     state_dict = torch.load(resume_ckpt)
 
-    trainer_args.update(
-        {"max_epochs": 3, "resume_from_checkpoint": resume_ckpt, "checkpoint_callback": False, "callbacks": []}
-    )
+    trainer_args.update({"max_epochs": 3, "enable_checkpointing": False, "callbacks": []})
 
     class CustomClassifModel(CustomClassifModel):
         def _is_equal(self, a, b):
@@ -185,7 +183,7 @@ def test_trainer_properties_restore_resume_from_checkpoint(tmpdir):
         def _test_on_val_test_predict_tune_start(self):
             assert self.trainer.current_epoch == state_dict["epoch"]
             assert self.trainer.global_step == state_dict["global_step"]
-            assert not any(self._check_model_state_dict())
+            assert all(self._check_model_state_dict())
 
             # no optimizes and schedulers are loaded otherwise
             if self.trainer.state.fn != TrainerFn.TUNING:
@@ -211,22 +209,22 @@ def test_trainer_properties_restore_resume_from_checkpoint(tmpdir):
         def on_test_start(self):
             self._test_on_val_test_predict_tune_start()
 
-    for fn in ("tune", "fit", "validate", "test", "predict"):
+    for fn in ("fit", "validate", "test", "predict"):
         model = CustomClassifModel()
         dm = ClassifDataModule()
         trainer_args["auto_scale_batch_size"] = (fn == "tune",)
         trainer = Trainer(**trainer_args)
         trainer_fn = getattr(trainer, fn)
-        trainer_fn(model, datamodule=dm)
+        trainer_fn(model, datamodule=dm, ckpt_path=resume_ckpt)
 
 
 def test_try_resume_from_non_existing_checkpoint(tmpdir):
-    """Test that trying to resume from non-existing `resume_from_checkpoint` fails with an error."""
+    """Test that trying to resume from non-existing `ckpt_path` fails with an error."""
     model = BoringModel()
-    trainer = Trainer(resume_from_checkpoint=str(tmpdir / "non_existing.ckpt"))
+    trainer = Trainer()
 
     with pytest.raises(FileNotFoundError, match="Aborting training"):
-        trainer.fit(model)
+        trainer.fit(model, ckpt_path=str(tmpdir / "non_existing.ckpt"))
 
 
 class CaptureCallbacksBeforeTraining(Callback):
@@ -236,7 +234,7 @@ class CaptureCallbacksBeforeTraining(Callback):
         self.callbacks = deepcopy(trainer.callbacks)
 
 
-def test_callbacks_state_resume_from_checkpoint(tmpdir):
+def test_callbacks_state_fit_ckpt_path(tmpdir):
     """Test that resuming from a checkpoint restores callbacks that persist state."""
     dm = ClassifDataModule()
     model = ClassificationModel()
@@ -261,8 +259,8 @@ def test_callbacks_state_resume_from_checkpoint(tmpdir):
     callbacks_before_resume = deepcopy(trainer.callbacks)
 
     # resumed training
-    trainer = Trainer(**get_trainer_args(), resume_from_checkpoint=str(tmpdir / "last.ckpt"))
-    trainer.fit(model, datamodule=dm)
+    trainer = Trainer(**get_trainer_args())
+    trainer.fit(model, datamodule=dm, ckpt_path=str(tmpdir / "last.ckpt"))
 
     assert len(callbacks_before_resume) == len(callback_capture.callbacks)
 
@@ -272,7 +270,7 @@ def test_callbacks_state_resume_from_checkpoint(tmpdir):
             assert before.best_model_score == after.best_model_score
 
 
-def test_callbacks_references_resume_from_checkpoint(tmpdir):
+def test_callbacks_references_fit_ckpt_path(tmpdir):
     """Test that resuming from a checkpoint sets references as expected."""
     dm = ClassifDataModule()
     model = ClassificationModel()
@@ -294,17 +292,17 @@ def test_callbacks_references_resume_from_checkpoint(tmpdir):
     new_checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
     # pass in a new checkpoint object, which should take
     # precedence over the one in the last.ckpt file
-    trainer = Trainer(**args, callbacks=[new_checkpoint], resume_from_checkpoint=str(tmpdir / "last.ckpt"))
+    trainer = Trainer(**args, callbacks=[new_checkpoint])
     assert checkpoint is not new_checkpoint
     assert new_checkpoint is trainer.callbacks[-1] is trainer.checkpoint_callback
-    trainer.fit(model, datamodule=dm)
+    trainer.fit(model, datamodule=dm, ckpt_path=str(tmpdir / "last.ckpt"))
 
 
 @RunIf(min_gpus=2)
 def test_running_test_pretrained_model_distrib_dp(tmpdir):
     """Verify `test()` on pretrained model."""
 
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
 
     dm = ClassifDataModule()
     model = CustomClassificationModelDP(lr=0.1)
@@ -323,7 +321,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
         callbacks=[checkpoint],
         logger=logger,
         gpus=[0, 1],
-        accelerator="dp",
+        strategy="dp",
         default_root_dir=tmpdir,
     )
 
@@ -340,7 +338,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
     new_trainer.test(pretrained_model)
     pretrained_model.cpu()
 
-    dataloaders = model.test_dataloader()
+    dataloaders = dm.test_dataloader()
     if not isinstance(dataloaders, list):
         dataloaders = [dataloaders]
 
@@ -351,7 +349,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
 @RunIf(min_gpus=2)
 def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
     """Verify `test()` on pretrained model."""
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
     dm = ClassifDataModule()
     model = ClassificationModel()
 
@@ -369,7 +367,7 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
         callbacks=[checkpoint],
         logger=logger,
         gpus=[0, 1],
-        accelerator="ddp_spawn",
+        strategy="ddp_spawn",
         default_root_dir=tmpdir,
     )
 
@@ -487,7 +485,7 @@ def test_dp_resume(tmpdir):
     model = CustomClassificationModelDP(lr=0.1)
     dm = ClassifDataModule()
 
-    trainer_options = dict(max_epochs=1, gpus=2, accelerator="dp", default_root_dir=tmpdir)
+    trainer_options = dict(max_epochs=1, gpus=2, strategy="dp", default_root_dir=tmpdir)
 
     # get logger
     logger = tutils.get_default_logger(tmpdir)
@@ -502,7 +500,7 @@ def test_dp_resume(tmpdir):
 
     # fit model
     trainer = Trainer(**trainer_options)
-    trainer.is_slurm_managing_tasks = True
+    trainer._is_slurm_managing_tasks = True
     trainer.fit(model, datamodule=dm)
 
     # track epoch before saving. Increment since we finished the current epoch, don't want to rerun
@@ -539,7 +537,7 @@ def test_dp_resume(tmpdir):
             # haven't trained with the new loaded model
             new_trainer.state.stage = RunningStage.VALIDATING
 
-            dataloader = self.train_dataloader()
+            dataloader = dm.train_dataloader()
             tpipes.run_prediction_eval_model_template(self.trainer.lightning_module, dataloader=dataloader)
             self.on_pretrain_routine_end_called = True
 

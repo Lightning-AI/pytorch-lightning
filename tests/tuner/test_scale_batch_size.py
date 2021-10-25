@@ -48,6 +48,9 @@ class BatchSizeModel(BoringModel):
     def train_dataloader(self):
         return DataLoader(RandomDataset(32, 64), batch_size=getattr(self, "batch_size", 1))
 
+    def val_dataloader(self):
+        return DataLoader(RandomDataset(32, 64), batch_size=getattr(self, "batch_size", 1))
+
 
 @pytest.mark.parametrize(["model_bs", "dm_bs"], [(2, -1), (2, 2), (2, None), (None, 2), (16, 16)])
 def test_scale_batch_size_method_with_model_or_datamodule(tmpdir, model_bs, dm_bs):
@@ -217,9 +220,12 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
         limit_train_batches=0.2,
         auto_scale_batch_size="power",
     )
-    fit_options = dict(train_dataloader=model.dataloader(train=True))
+    fit_options = dict(train_dataloaders=model.dataloader(train=True))
 
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(
+        MisconfigurationException,
+        match="The batch scaling feature cannot be used with dataloaders passed directly",
+    ):
         trainer.tune(model, **fit_options)
 
 
@@ -266,3 +272,16 @@ def test_scale_batch_size_fails_with_unavailable_mode(tmpdir):
         trainer.tune(model)
     with pytest.raises(ValueError, match="could either be `power` or `binsearch`"):
         trainer.tuner.scale_batch_size(model, mode="ThisModeDoesNotExist")
+
+
+@pytest.mark.parametrize("scale_method", ["power", "binsearch"])
+def test_dataloader_reset_with_scale_batch_size(tmpdir, scale_method):
+    """Test that train and val dataloaders are reset at every update in scale batch size."""
+    model = BatchSizeModel(batch_size=16)
+    scale_batch_size_kwargs = {"max_trials": 5, "init_val": 4, "mode": scale_method}
+
+    trainer = Trainer(max_epochs=2, auto_scale_batch_size=True)
+    new_batch_size = trainer.tune(model, scale_batch_size_kwargs=scale_batch_size_kwargs)["scale_batch_size"]
+
+    assert trainer.train_dataloader.loaders.batch_size == new_batch_size
+    assert trainer.val_dataloaders[0].batch_size == new_batch_size

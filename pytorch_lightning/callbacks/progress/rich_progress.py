@@ -198,7 +198,7 @@ class RichProgressBar(ProgressBarBase):
         theme: Contains styles used to stylize the progress bar.
 
     Raises:
-        ImportError:
+        ModuleNotFoundError:
             If required `rich` package is not installed on the device.
     """
 
@@ -208,7 +208,7 @@ class RichProgressBar(ProgressBarBase):
         theme: RichProgressBarTheme = RichProgressBarTheme(),
     ) -> None:
         if not _RICH_AVAILABLE:
-            raise ImportError(
+            raise ModuleNotFoundError(
                 "`RichProgressBar` requires `rich` to be installed. Install it by running `pip install -U rich`."
             )
         super().__init__()

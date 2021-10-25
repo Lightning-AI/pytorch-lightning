@@ -194,7 +194,7 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         limit_val_batches=0,
         num_sanity_val_steps=0,
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
     weights_complete = model.parameters()
@@ -213,7 +213,7 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         limit_val_batches=0,
         num_sanity_val_steps=0,
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
     with pytest.raises(CustomException):
         trainer.fit(model)
@@ -227,16 +227,15 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
     model.training_epoch_end = None
     model.optimizer_step = Mock(wraps=model.optimizer_step)
     trainer = Trainer(
-        resume_from_checkpoint=str(tmpdir / ".pl_auto_save.ckpt"),
         default_root_dir=tmpdir,
         max_epochs=n_epochs,
         limit_train_batches=n_batches,
         limit_val_batches=0,
         num_sanity_val_steps=0,
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
-    trainer.fit(model)
+    trainer.fit(model, ckpt_path=str(tmpdir / ".pl_auto_save.ckpt"))
     weights_resumed = model.parameters()
 
     # check that the final weights of a resumed run match the weights of a run that never failed

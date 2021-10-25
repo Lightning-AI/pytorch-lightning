@@ -125,7 +125,7 @@ def test_early_stopping_cpu_model(tmpdir):
 @RunIf(skip_windows=True)
 def test_multi_cpu_model_ddp(tmpdir):
     """Make sure DDP works."""
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
 
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -135,7 +135,7 @@ def test_multi_cpu_model_ddp(tmpdir):
         limit_val_batches=0.2,
         gpus=None,
         num_processes=2,
-        accelerator="ddp_cpu",
+        strategy="ddp_spawn",
     )
 
     dm = ClassifDataModule()
@@ -160,7 +160,6 @@ def test_lbfgs_cpu_model(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         enable_progress_bar=False,
-        weights_summary="top",
         limit_train_batches=0.2,
         limit_val_batches=0.2,
     )

@@ -19,6 +19,7 @@ import logging
 import os
 from argparse import Namespace
 from copy import deepcopy
+from enum import Enum
 from typing import Any, Callable, Dict, IO, MutableMapping, Optional, Union
 from warnings import warn
 
@@ -318,8 +319,8 @@ def load_hparams_from_yaml(config_yaml: str, use_omegaconf: bool = True) -> Dict
 
         Args:
             config_yaml: Path to config yaml file
-            use_omegaconf: If both `OMEGACONF_AVAILABLE` and `use_omegaconf` are True,
-                the hparams will be converted to `DictConfig` if possible
+            use_omegaconf: If omegaconf is available and ``use_omegaconf=True``,
+                the hparams will be converted to ``DictConfig`` if possible.
 
     >>> hparams = Namespace(batch_size=32, learning_rate=0.001, data_root='./any/path/here')
     >>> path_yaml = './testing-hparams.yaml'
@@ -346,11 +347,14 @@ def load_hparams_from_yaml(config_yaml: str, use_omegaconf: bool = True) -> Dict
     return hparams
 
 
-def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
+def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace], use_omegaconf: bool = True) -> None:
     """
     Args:
         config_yaml: path to new YAML file
         hparams: parameters to be saved
+        use_omegaconf: If omegaconf is available and ``use_omegaconf=True``,
+            the hparams will be converted to ``DictConfig`` if possible.
+
     """
     fs = get_filesystem(config_yaml)
     if not fs.isdir(os.path.dirname(config_yaml)):
@@ -363,7 +367,7 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
         hparams = dict(hparams)
 
     # saving with OmegaConf objects
-    if _OMEGACONF_AVAILABLE:
+    if _OMEGACONF_AVAILABLE and use_omegaconf:
         # deepcopy: hparams from user shouldn't be resolved
         hparams = deepcopy(hparams)
         hparams = apply_to_collection(hparams, DictConfig, OmegaConf.to_container, resolve=True)
@@ -381,6 +385,7 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
     # drop paramaters which contain some strange datatypes as fsspec
     for k, v in hparams.items():
         try:
+            v = v.name if isinstance(v, Enum) else v
             yaml.dump(v)
         except TypeError:
             warn(f"Skipping '{k}' parameter because it is not possible to safely dump to YAML.")

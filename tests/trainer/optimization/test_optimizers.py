@@ -370,7 +370,7 @@ def test_multiple_optimizers_callbacks(tmpdir):
         limit_train_batches=1,
         limit_val_batches=2,
         max_epochs=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -383,7 +383,7 @@ def test_lr_scheduler_strict(step_mock, tmpdir, complete_epoch):
     optimizer = optim.Adam(model.parameters())
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
     max_epochs = 1 if complete_epoch else None
-    max_steps = None if complete_epoch else 1
+    max_steps = -1 if complete_epoch else 1
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=max_epochs, max_steps=max_steps)
 
     model.configure_optimizers = lambda: {
@@ -490,7 +490,7 @@ def test_lr_scheduler_with_no_actual_scheduler_raises(tmpdir):
 
 
 def test_invalid_optimizer_in_scheduler(tmpdir):
-    """Test exception when optimizer attatched to lr_schedulers wasn't returned."""
+    """Test exception when optimizer attached to lr_schedulers wasn't returned."""
 
     class InvalidOptimizerModel(BoringModel):
         def configure_optimizers(self):
@@ -501,7 +501,7 @@ def test_invalid_optimizer_in_scheduler(tmpdir):
 
     model = InvalidOptimizerModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    with pytest.raises(MisconfigurationException, match="attatched with an optimizer that wasn't returned"):
+    with pytest.raises(MisconfigurationException, match="attached with an optimizer that wasn't returned"):
         trainer.fit(model)
 
 
@@ -552,7 +552,7 @@ def test_optimizer_state_on_device(tmpdir):
             assert state["sum"].device == torch.device("cuda", self.local_rank) == self.device
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, gpus=2, accelerator="ddp", fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmpdir, gpus=2, strategy="ddp", fast_dev_run=True)
     trainer.fit(model)
 
 
