@@ -18,7 +18,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.loops import EvaluationLoop, TrainingEpochLoop
+from pytorch_lightning.loops import TrainingEpochLoop
 from tests.helpers import BoringModel, RandomDataset
 
 
@@ -170,25 +170,3 @@ def test_training_loop_workers_are_shutdown(tmpdir, persistent_workers):
     trainer.fit_loop.connect(epoch_loop)
 
     trainer.fit(model, train_dataloader)
-
-
-@pytest.mark.parametrize("persistent_workers", (True, False))
-def test_evaluation_loop_workers_are_shutdown(tmpdir, persistent_workers):
-    val_dataloader = DataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
-
-    class TestLoop(EvaluationLoop):
-        def on_run_end(self):
-            with mock.patch(
-                "torch.utils.data.dataloader._MultiProcessingDataLoaderIter._shutdown_workers"
-            ) as shutdown_mock:
-                out = super().on_run_end()
-            shutdown_mock.assert_called_once()
-            return out
-
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=2)
-
-    val_loop = TestLoop()
-    trainer.fit_loop.epoch_loop.connect(trainer.fit_loop.epoch_loop.batch_loop, val_loop)
-
-    trainer.validate(model, val_dataloaders=val_dataloader)
