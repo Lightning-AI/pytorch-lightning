@@ -157,9 +157,6 @@ class CheckpointConnector:
 
         model = self.trainer.lightning_module
 
-        # hook: give user access to checkpoint if needed.
-        model.on_load_checkpoint(self._loaded_checkpoint)
-
         # call hpc specific hook
         if self.hpc_resume_path is not None:
             model.on_hpc_load(self._loaded_checkpoint)
