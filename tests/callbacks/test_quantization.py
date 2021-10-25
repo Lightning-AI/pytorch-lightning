@@ -17,12 +17,10 @@ from typing import Callable, Union
 import pytest
 import torch
 from torchmetrics.functional import mean_absolute_percentage_error as mape
-from torch import Tensor
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import QuantizationAwareTraining
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.memory import get_model_size_mb
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.memory import get_model_size_mb
 from tests.helpers.boring_model import RandomDataset
@@ -171,7 +169,7 @@ def _get_observer_enabled(fake_quant: FakeQuantizeBase):
 )
 @RunIf(quantization=True)
 def test_quantization_disable_observers(tmpdir, observer_enabled_stages):
-    """Test disabling observers"""
+    """Test disabling observers."""
     qmodel = RegressionModel()
     qcb = QuantizationAwareTraining(observer_enabled_stages=observer_enabled_stages)
     trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir)
@@ -207,7 +205,7 @@ def test_quantization_disable_observers(tmpdir, observer_enabled_stages):
 
 @RunIf(quantization=True)
 def test_quantization_val_test_predict(tmpdir):
-    """Test the default quantization aware training not affected by validating, testing and predicting"""
+    """Test the default quantization aware training not affected by validating, testing and predicting."""
     seed_everything(42)
     num_features = 16
     dm = RegressDataModule(num_features=num_features)

@@ -22,7 +22,6 @@ from typing import Any, Callable, Dict, Optional, Sequence, Union
 
 import torch
 from torch import Tensor
-from torch.quantization import QConfig
 
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 
@@ -152,7 +151,6 @@ class QuantizationAwareTraining(Callback):
 
     .. _PyTorch Quantization: https://pytorch.org/docs/stable/quantization.html#quantization-aware-training
     .. _torch.quantization.QConfig: https://pytorch.org/docs/stable/torch.quantization.html#torch.quantization.QConfig
-
     """
 
     OBSERVER_TYPES = ("histogram", "average")
