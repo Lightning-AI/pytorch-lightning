@@ -98,7 +98,7 @@ def has_len_all_ranks(
                 " Total length of `Dataloader` across ranks is zero. Please make sure that it returns at least 1 batch"
             )
         if total_length > 0 and local_length == 0:
-            if model.allow_zero_length_dataloader_with_ddp:
+            if model.allow_zero_length_dataloader_with_multiple_devices:
                 rank_zero_warn(
                     "Total length of `Dataloader` across ranks is zero, but local rank has zero length. "
                     "Please be cautious of uneven batch length. "
@@ -132,6 +132,7 @@ def get_len(dataloader: DataLoader) -> Union[int, float]:
     """
 
     if has_len(dataloader):
+    # if has_len_all_ranks(dataloader):
         return len(dataloader)
 
     return float("inf")
