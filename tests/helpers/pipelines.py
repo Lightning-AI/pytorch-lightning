@@ -67,7 +67,7 @@ def run_model_test(
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     # Check that the model is actually changed post-training
     change_ratio = torch.norm(initial_values - post_train_values)
-    assert change_ratio > 0.1, f"the model is changed of {change_ratio}"
+    assert change_ratio > 0.01, f"the model is changed of {change_ratio}"
 
     # test model loading
     pretrained_model = load_model_from_checkpoint(logger, trainer.checkpoint_callback.best_model_path, type(model))
