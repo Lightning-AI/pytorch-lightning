@@ -1,0 +1,14 @@
+trainer:
+  callbacks:
+  - class_path: pytorch_lightning.callbacks.EarlyStopping
+    init_args:
+      monitor: val_loss
+      min_delta: 0.001
+      patience: 2
+      verbose: false
+      mode: min
+  logger:
+    class_path: pytorch_lightning.loggers.TensorBoardLogger
+    init_args:
+      save_dir: lightning_logs
+      name: nofts_baseline

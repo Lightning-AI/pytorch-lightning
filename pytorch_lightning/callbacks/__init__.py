@@ -15,6 +15,7 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.callbacks.device_stats_monitor import DeviceStatsMonitor
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.finetuning import BackboneFinetuning, BaseFinetuning
+from pytorch_lightning.callbacks.finetuning_scheduler import FinetuningScheduler  # idso
 from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
 from pytorch_lightning.callbacks.gradient_accumulation_scheduler import GradientAccumulationScheduler
 from pytorch_lightning.callbacks.lambda_function import LambdaCallback
@@ -31,10 +32,11 @@ from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 
 __all__ = [
+    "FinetuningScheduler",
     "BackboneFinetuning",
     "BaseFinetuning",
-    "Callback",
     "DeviceStatsMonitor",
+    "Callback",
     "EarlyStopping",
     "GPUStatsMonitor",
     "XLAStatsMonitor",

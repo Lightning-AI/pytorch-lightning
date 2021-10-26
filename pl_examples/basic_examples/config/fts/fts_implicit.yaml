@@ -1,0 +1,20 @@
+trainer:
+  callbacks:
+  - class_path: pytorch_lightning.callbacks.FinetuningScheduler
+  - class_path: pytorch_lightning.callbacks.finetuning_scheduler.FTSCheckpoint
+    init_args:
+        save_top_k: 5
+        monitor: val_loss
+        verbose: true
+  - class_path: pytorch_lightning.callbacks.EarlyStopping
+    init_args:
+      monitor: val_loss
+      min_delta: 0.001
+      patience: 2  # limited patience for testing
+      verbose: false
+      mode: min
+  logger:
+    class_path: pytorch_lightning.loggers.TensorBoardLogger
+    init_args:
+      save_dir: lightning_logs
+      name: fts_implicit

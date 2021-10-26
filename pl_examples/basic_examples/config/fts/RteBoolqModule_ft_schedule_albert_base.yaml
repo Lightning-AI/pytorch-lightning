@@ -1,0 +1,31 @@
+0:
+- model.classifier.bias
+- model.classifier.weight
+1:
+- model.albert.pooler.bias
+- model.albert.pooler.weight
+2:
+- model.albert.encoder.albert_layer_groups.0.albert_layers.0.ffn_output.bias
+- model.albert.encoder.albert_layer_groups.0.albert_layers.0.ffn_output.weight
+3:
+- model.albert.encoder.albert_layer_groups.0.albert_layers.0.ffn.bias
+- model.albert.encoder.albert_layer_groups.0.albert_layers.0.ffn.weight
+- model.albert.encoder.albert_layer_groups.0.albert_layers.0.attention.LayerNorm.bias
+- model.albert.encoder.albert_layer_groups.0.albert_layers.0.attention.LayerNorm.weight
+- model.albert.encoder.albert_layer_groups.0.albert_layers.0.attention.dense.bias
+- model.albert.encoder.albert_layer_groups.0.albert_layers.0.attention.dense.weight
+- model.albert.encoder.albert_layer_groups.0.albert_layers.0.attention.value.bias
+- model.albert.encoder.albert_layer_groups.0.albert_layers.0.attention.value.weight
+- model.albert.encoder.albert_layer_groups.0.albert_layers.0.attention.key.bias
+- model.albert.encoder.albert_layer_groups.0.albert_layers.0.attention.key.weight
+- model.albert.encoder.albert_layer_groups.0.albert_layers.0.attention.query.bias
+- model.albert.encoder.albert_layer_groups.0.albert_layers.0.attention.query.weight
+- model.albert.encoder.albert_layer_groups.0.albert_layers.0.full_layer_layer_norm.bias
+- model.albert.encoder.albert_layer_groups.0.albert_layers.0.full_layer_layer_norm.weight
+- model.albert.encoder.embedding_hidden_mapping_in.bias
+- model.albert.encoder.embedding_hidden_mapping_in.weight
+- model.albert.embeddings.LayerNorm.bias
+- model.albert.embeddings.LayerNorm.weight
+- model.albert.embeddings.token_type_embeddings.weight
+- model.albert.embeddings.position_embeddings.weight
+- model.albert.embeddings.word_embeddings.weight

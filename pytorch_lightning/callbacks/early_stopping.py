@@ -112,6 +112,8 @@ class EarlyStopping(Callback):
         self.divergence_threshold = divergence_threshold
         self.wait_count = 0
         self.stopped_epoch = 0
+        self.es_phase_complete = True
+        self.final_phase = True
         self._check_on_train_epoch_end = check_on_train_epoch_end
 
         if self.mode not in self.mode_dict:
@@ -238,12 +240,15 @@ class EarlyStopping(Callback):
         else:
             self.wait_count += 1
             if self.wait_count >= self.patience:
-                should_stop = True
-                reason = (
-                    f"Monitored metric {self.monitor} did not improve in the last {self.wait_count} records."
-                    f" Best score: {self.best_score:.3f}. Signaling Trainer to stop."
-                )
-
+                if self.final_phase:
+                    should_stop = True
+                    reason = (
+                        f"Monitored metric {self.monitor} did not improve in the last {self.wait_count} records."
+                        f" Best score: {self.best_score:.3f}. Signaling Trainer to stop."
+                    )
+                else:
+                    self.es_phase_complete = True
+                    self.wait_count = 0
         return should_stop, reason
 
     def _improvement_message(self, current: torch.Tensor) -> str:

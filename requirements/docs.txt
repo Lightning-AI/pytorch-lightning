@@ -12,5 +12,8 @@ sphinx-paramlinks>=0.5.1
 sphinx-togglebutton>=0.2
 sphinx-copybutton>=0.3
 typing-extensions  # already in `requirements.txt` but the docs CI job does not install it
-
--r ../_notebooks/.actions/requirements.txt
+Fire
+tqdm
+PyYAML
+wcmatch
+pip

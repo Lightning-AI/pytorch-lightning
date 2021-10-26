@@ -87,6 +87,7 @@ Lightning has a few built-in callbacks.
     :nosignatures:
     :template: classtemplate.rst
 
+    FinetuningScheduler
     BackboneFinetuning
     BaseFinetuning
     BasePredictionWriter

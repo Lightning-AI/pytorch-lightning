@@ -1,0 +1,42 @@
+seed_everything: 42
+data:
+  class_path: pl_examples.basic_examples.fts_superglue.RteBoolqDataModule
+  init_args:
+    model_name_or_path: albert-base-v2
+    task_name: rte
+    prep_on_init: false
+    num_workers: 0
+    pin_memory: false
+    tokenizers_parallelism: 'false'
+    max_seq_length: 128
+    train_batch_size: 32
+    eval_batch_size: 32
+model:
+  class_path: pl_examples.basic_examples.fts_superglue.RteBoolqModule
+  init_args:
+    optimizer_init:
+      class_path: torch.optim.AdamW
+      init_args:
+        weight_decay: 1.0e-05
+        eps: 1.0e-07
+        lr: 1.0e-05
+    lr_scheduler_init:
+      class_path: torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
+      init_args:
+        T_0: 1
+        T_mult: 2
+        eta_min: 0
+    pl_lrs_cfg:
+      interval: epoch
+      frequency: 1
+      name: CosineAnnealingWithWarmRestartsLR
+trainer:
+  #plugins: ddp_find_unused_parameters_false  # use registered version of DDP with find_unused_parameters set to false
+  max_epochs: 100
+  gpus: 2
+  strategy: ddp_find_unused_parameters_false
+  precision: 16
+  logger:
+    class_path: pytorch_lightning.loggers.TensorBoardLogger
+    init_args:
+      save_dir: lightning_logs

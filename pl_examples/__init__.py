@@ -14,6 +14,7 @@ _PACKAGE_ROOT = os.path.dirname(_EXAMPLES_ROOT)
 _DATASETS_PATH = os.path.join(_PACKAGE_ROOT, "Datasets")
 
 _DALI_AVAILABLE = _module_available("nvidia.dali")
+_HF_AVAILABLE = _module_available("transformers") and _module_available("datasets")
 
 LIGHTNING_LOGO = """
                     ####
