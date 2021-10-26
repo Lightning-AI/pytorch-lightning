@@ -7,7 +7,7 @@ ______________________________________________________________________
 
 ## MNIST Examples
 
-In this folder, we have 5 implementations of simple CNN trained over the MNIST dataset:
+The following examples contain 5 MNIST examples showing how to gradually convert from pure PyTorch to PyTorch Lightning.
 
 - [MNIST with vanilla PyTorch](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_1_pytorch.py) (defines the model inside the `LightningModule`).
 - [MNIST with LightningLite](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_2_lite.py) (defines the model inside the `LightningModule`).
