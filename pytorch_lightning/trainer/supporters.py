@@ -498,7 +498,7 @@ class CombinedLoader:
     def reset(self):
         if self._iterator:
             self._iterator._loader_iters = None
-        if self.loaders:
+        if self.loaders is not None:
             apply_to_collection(self.loaders, DataLoader, self._reset)
         self._iterator = None
 
