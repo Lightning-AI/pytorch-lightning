@@ -16,7 +16,7 @@ FROM ubuntu:20.04
 
 LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
 
-ARG PYTHON_VERSION=3.8
+ARG PYTHON_VERSION=3.9
 ARG PYTORCH_VERSION=1.7.0
 ARG CONDA_VERSION=4.9.2
 
