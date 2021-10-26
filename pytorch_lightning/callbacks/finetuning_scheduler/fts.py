@@ -160,7 +160,7 @@ class FinetuningScheduler(BaseFinetuning, SchedulingMixin, CallbackDepMixin):
             The :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler` callback initially
             only supports single-schedule/optimizer finetuning configurations
         """
-        if not self._fts_state._resume_from_ckpt:
+        if not self._fts_state._resume_fit_from_ckpt:
             if self.restore_best:
                 self.restore_best_ckpt()
                 self.step_pg(depth=self.curr_depth, optimizer=self.pl_module.trainer.optimizers[0])
@@ -217,10 +217,11 @@ class FinetuningScheduler(BaseFinetuning, SchedulingMixin, CallbackDepMixin):
                 self._fts_state._fts_ckpt_metadata["best_ckpt_pgs"][opt_idx], dict(self.pl_module.named_parameters())
             )
         # we're restoring everything but callbacks, otherwise, checkpoint_connector.restore() could be used
-        self.pl_module.trainer.checkpoint_connector.resume_checkpoint_path = (
-            self.pl_module.trainer.checkpoint_callback.best_model_path
-        )
-        self.pl_module.trainer.checkpoint_connector.resume_start()
+        # self.pl_module.trainer.checkpoint_connector.resume_checkpoint_path = (
+        #     self.pl_module.trainer.checkpoint_callback.best_model_path
+        # )
+        checkpoint_path = self.pl_module.trainer.checkpoint_callback.best_model_path
+        self.pl_module.trainer.checkpoint_connector.resume_start(checkpoint_path=checkpoint_path)
         self.pl_module.trainer.checkpoint_connector.restore_datamodule()
         self.pl_module.trainer.checkpoint_connector.restore_model()
         self.pl_module.trainer.checkpoint_connector.restore_training_state()
@@ -278,8 +279,8 @@ class FinetuningScheduler(BaseFinetuning, SchedulingMixin, CallbackDepMixin):
             trainer.early_stopping_callback.final_phase = False
             trainer.early_stopping_callback.es_phase_complete = False
             self._fts_state._ft_sync_objects = pl_module.trainer.fit_loop, self._fts_state
-            if trainer.resume_from_checkpoint:
-                self._fts_state._resume_from_ckpt = True
+            if trainer.fit_ckpt_path:
+                self._fts_state._resume_fit_from_ckpt = True
             self.freeze_before_training(pl_module)
             self.pl_module = pl_module  # save pl_module ref for downstream configuration convenience
 
@@ -346,7 +347,7 @@ class FinetuningScheduler(BaseFinetuning, SchedulingMixin, CallbackDepMixin):
         self._restarting = True
         self._internal_optimizer_metadata = callback_state["optimizer_metadata"]
         self._fts_state._fts_ckpt_metadata = callback_state["fts_metadata"]
-        if self._fts_state._resume_from_ckpt:  # if resuming training, on_fit_start will already be called
+        if self._fts_state._resume_fit_from_ckpt:  # if resuming training, on_fit_start will already be called
             # if resuming from a checkpoint, we need to update current fts depth from the used ckpt
             self._fts_state._curr_depth = self._fts_state._fts_ckpt_metadata["current_ckpt_depth"]
             # if we're restoring from a non-best ckpt depth, and new_incarnation_mode=True, ensure it is the new
@@ -383,9 +384,9 @@ class FinetuningScheduler(BaseFinetuning, SchedulingMixin, CallbackDepMixin):
                 :class:`~pytorch_lightning.core.lightning.LightningModule` object
         """
         # if resuming from a ckpt, we need to sync fts_state
-        if self._fts_state._resume_from_ckpt:
+        if self._fts_state._resume_fit_from_ckpt:
             self.step()
-            self._fts_state._resume_from_ckpt = False
+            self._fts_state._resume_fit_from_ckpt = False
         # increment ft_epoch on each train epoch
         if trainer.current_epoch > 0:
             self.sync(self._fts_state._ft_sync_objects, self._fts_state._ft_sync_props)

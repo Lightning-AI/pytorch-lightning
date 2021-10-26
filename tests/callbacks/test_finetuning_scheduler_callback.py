@@ -321,8 +321,8 @@ def test_finetuningscheduler_callback_resume(tmpdir, ckpt_set, ckpt: str, inc_mo
 
     seed_everything(42)
     model = FinetuningSchedulerBoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=resume_callbacks, resume_from_checkpoint=ckpt_set[ckpt])
-    trainer.fit(model)
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=resume_callbacks)
+    trainer.fit(model, ckpt_path=ckpt_set[ckpt])
     expected_state = EXPECTED_RESUME_RESULTS[(ckpt, getattr(resume_callbacks[2], "new_incarnation_mode"), max_depth)]
     assert trainer.checkpoint_callback.best_ckpt_depth == expected_state[0]
     assert trainer.finetuning_scheduler_callback.depth_remaining == expected_state[1]

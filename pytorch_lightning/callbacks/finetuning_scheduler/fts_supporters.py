@@ -46,7 +46,7 @@ class FTSState:
     """Dataclass to encapsulate the
     :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler` internal state."""
 
-    _resume_from_ckpt: bool = False
+    _resume_fit_from_ckpt: bool = False
     _ft_epoch: int = 0
     _ft_global_steps: int = 0
     _curr_depth: int = 0
@@ -187,7 +187,7 @@ class FTSCheckpoint(ModelCheckpoint):
         # min_delta
         if trainer.finetuning_scheduler_callback.curr_depth > self.best_ckpt_depth:
             trainer.early_stopping_callback.wait_count = 0
-        if trainer.finetuning_scheduler_callback._fts_state._resume_from_ckpt:
+        if trainer.finetuning_scheduler_callback._fts_state._resume_fit_from_ckpt:
             if trainer.finetuning_scheduler_callback.new_incarnation_mode:
                 # reset state for new training incarnation at resumption depth
                 self.best_ckpt_depth = self.current_ckpt_depth

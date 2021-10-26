@@ -143,7 +143,7 @@ Resuming Scheduled Finetuning Training Sessions
 ===============================================
 
 Resumption of scheduled finetuning training is identical to the continuation of
-:ref:`other training sessions<common/trainer:resume_from_checkpoint>` with the caveat that the provided checkpoint must
+:ref:`other training sessions<common/trainer:trainer>` with the caveat that the provided checkpoint must
 have been saved by a :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler` session.
 :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler` uses
 :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts_supporters.FTSCheckpoint` (an extension of
