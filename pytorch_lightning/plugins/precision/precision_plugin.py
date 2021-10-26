@@ -97,13 +97,6 @@ class PrecisionPlugin(CheckpointHooks):
         """
         tensor.backward(*args, **kwargs)
 
-    def pre_optimizer_step(
-        self, model: Union["pl.LightningModule", Module], optimizer: Optimizer, optimizer_idx: int
-    ) -> None:
-        """Hook to do something before each optimizer step."""
-        if isinstance(model, pl.LightningModule):
-            model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
-
     def optimizer_step(
         self,
         model: Union["pl.LightningModule", Module],
@@ -113,6 +106,8 @@ class PrecisionPlugin(CheckpointHooks):
         **kwargs: Any,
     ) -> None:
         """Hook to run the optimizer step."""
+        if isinstance(model, pl.LightningModule):
+            model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         optimizer.step(closure=lambda_closure, **kwargs)
 
     def post_optimizer_step(
