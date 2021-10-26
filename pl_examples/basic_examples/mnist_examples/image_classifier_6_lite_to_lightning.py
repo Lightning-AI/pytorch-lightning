@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import argparse
+from typing import Any
 
 import torch
 import torch.nn.functional as F
@@ -23,6 +24,7 @@ from torchvision import datasets, transforms
 from pl_examples.basic_examples.mnist_examples.image_classifier_1_pytorch import Net
 from pytorch_lightning import LightningDataModule, LightningModule, seed_everything
 from pytorch_lightning.lite import LightningLite
+from pytorch_lightning.loops import Loop
 
 
 class MNISTDataModule(LightningDataModule):
@@ -76,59 +78,124 @@ class LiftModel(LightningModule):
         return optimizer, StepLR(optimizer, step_size=1, gamma=self.hparams.gamma)
 
 
-def train(lite, args, model, train_loader, optimizer, epoch):
-    model.train()
-    for batch_idx, batch in enumerate(train_loader):
-        optimizer.zero_grad()
-        loss = model.training_step(batch, batch_idx)
-        lite.backward(loss)
-        optimizer.step()
-        if (batch_idx == 0) or ((batch_idx + 1) % args.log_interval == 0):
+class TrainLoop(Loop):
+    def __init__(self, lite, args, model, optimizer, scheduler, dataloader):
+        super().__init__()
+        self.lite = lite
+        self.args = args
+        self.model = model
+        self.optimizer = optimizer
+        self.scheduler = scheduler
+        self.dataloader = dataloader
+
+    @property
+    def done(self) -> bool:
+        return False
+
+    def reset(self):
+        self.dataloader_iter = enumerate(self.dataloader)
+
+    def advance(self, epoch) -> None:
+        batch_idx, batch = next(self.dataloader_iter)
+        self.optimizer.zero_grad()
+        loss = self.model.training_step(batch, batch_idx)
+        self.lite.backward(loss)
+        self.optimizer.zero_grad()
+
+        if (batch_idx == 0) or ((batch_idx + 1) % self.args.log_interval == 0):
             print(
                 "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
                     epoch,
-                    batch_idx * len(batch[0]),
-                    len(train_loader.dataset),
-                    100.0 * batch_idx / len(train_loader),
+                    batch_idx * len(self.dataloader),
+                    len(self.dataloader.dataset),
+                    100.0 * batch_idx / len(self.dataloader),
                     loss.item(),
                 )
             )
-            if args.dry_run:
-                break
+
+        if self.args.dry_run:
+            raise StopIteration
+
+    def on_run_end(self):
+        self.scheduler.step()
+        self.dataloader_iter = None
 
 
-def test(lite, args, model, test_loader):
-    model.eval()
-    test_loss = 0
-    with torch.no_grad():
-        for batch_idx, batch in enumerate(test_loader):
-            test_loss += model.test_step(batch, batch_idx)
-            if args.dry_run:
-                break
+class TestLoop(Loop):
+    def __init__(self, lite, args, model, dataloader):
+        super().__init__()
+        self.lite = lite
+        self.args = args
+        self.model = model
+        self.dataloader = dataloader
 
-    test_loss = lite.all_gather(test_loss).sum() / len(test_loader.dataset)
+    @property
+    def done(self) -> bool:
+        return False
 
-    if lite.is_global_zero:
-        print(f"\nTest set: Average loss: {test_loss:.4f}, Accuracy: ({model.val_acc.compute():.0f}%)\n")
+    def reset(self):
+        self.dataloader_iter = enumerate(self.dataloader)
+        self.test_loss = 0
+
+    def advance(self) -> None:
+        batch_idx, batch = next(self.dataloader_iter)
+        self.test_loss += self.model.test_step(batch, batch_idx)
+
+        if self.args.dry_run:
+            raise StopIteration
+
+    def on_run_end(self):
+        test_loss = self.lite.all_gather(self.test_loss).sum() / len(self.dataloader.dataset)
+
+        if self.lite.is_global_zero:
+            print(f"\nTest set: Average loss: {test_loss:.4f}, Accuracy: ({self.model.val_acc.compute():.0f}%)\n")
+
+
+class MainLoop(Loop):
+    def __init__(self, lite, args, model, datamodule):
+        super().__init__()
+        self.lite = lite
+        self.args = args
+        self.model = model
+        self.datamodule = datamodule
+        self.epoch = 0
+
+    @property
+    def done(self) -> bool:
+        return self.epoch >= self.args.epochs
+
+    def reset(self):
+        pass
+
+    def on_run_start(self, *args: Any, **kwargs: Any) -> None:
+        if self.lite.is_global_zero:
+            self.datamodule.prepare_data()
+        self.datamodule.setup()
+
+        train_loader, test_loader = self.lite.setup_dataloaders(
+            self.datamodule.train_dataloader(), self.datamodule.train_dataloader()
+        )
+
+        optimizer, scheduler = self.model.configure_optimizers()
+        model, optimizer = self.lite.setup(self.model, optimizer)
+
+        self.train_loop = TrainLoop(self.lite, self.args, model, optimizer, scheduler, train_loader)
+        self.test_loop = TestLoop(self.lite, self.args, model, test_loader)
+
+    def advance(self, *args: Any, **kwargs: Any) -> None:
+        self.train_loop.run(self.epoch)
+        self.test_loop.run()
+        self.epoch += 1
 
 
 class Lite(LightningLite):
     def run(self, args):
 
-        dm = MNISTDataModule(args.batch_size)
-        if self.is_global_zero:
-            dm.prepare_data()
-        dm.setup()
-        train_loader, test_loader = self.setup_dataloaders(dm.train_dataloader(), dm.train_dataloader())
-
         model = LiftModel(Net(), args.lr, args.gamma)
-        optimizer, scheduler = model.configure_optimizers()
-        model, optimizer = self.setup(model, optimizer)
+        dm = MNISTDataModule(args.batch_size)
 
-        for epoch in range(1, args.epochs + 1):
-            train(self, args, model, train_loader, optimizer, epoch)
-            test(self, args, model, test_loader)
-            scheduler.step()
+        loop = MainLoop(self, args, model, dm)
+        loop.run()
 
         if args.save_model and self.is_global_zero:
             torch.save(model.state_dict(), "mnist_cnn.pt")

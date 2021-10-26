@@ -126,9 +126,4 @@ if __name__ == "__main__":
     else:
         lite_kwargs = {"accelerator": "cpu"}
 
-    if torch.cuda.is_available():
-        lite_kwargs = {"accelerator": "gpu", "devices": torch.cuda.device_count()}
-    else:
-        lite_kwargs = {"accelerator": "cpu"}
-
     Lite(**lite_kwargs).run(args)
