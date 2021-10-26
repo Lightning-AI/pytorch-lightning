@@ -51,6 +51,8 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             )
         if scaler is None and precision == 16:
             scaler = torch.cuda.amp.GradScaler()
+        if scaler is not None and precision == "bf16":
+            raise MisconfigurationException(f"`precision='bf16'` does not use a scaler, found {scaler}.")
         self.precision = precision
         self.device = device
         self.scaler = scaler
