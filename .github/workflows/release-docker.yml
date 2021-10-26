@@ -38,7 +38,7 @@ jobs:
 
       - name: Publish Latest to Docker
         uses: docker/build-push-action@v1.1.0
-        # only on releases AND latest PT and py
+        # only on releases and latest Python and PyTorch
         if: matrix.python_version == 3.9 && matrix.pytorch_version == 1.9
         with:
           repository: pytorchlightning/pytorch_lightning
@@ -48,25 +48,3 @@ jobs:
           build_args: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }},LIGHTNING_VERSION=${{ steps.get_version.outputs.RELEASE_VERSION }}
           tags: "latest"
         timeout-minutes: 55
-
-#  nvidia-PL:
-#    runs-on: ubuntu-20.04
-#    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
-#    steps:
-#      - name: Checkout
-#        uses: actions/checkout@v2
-#
-#      - name: Get release version
-#        id: get_version
-#        run: echo "::set-output name=RELEASE_VERSION::$(echo ${GITHUB_REF##*/})"
-#
-#      - name: Publish Releases to Docker
-#        uses: docker/build-push-action@v1.1.0
-#        with:
-#          repository: nvcr.io/pytorchlightning/pytorch_lightning
-#          username: ${{ secrets.DOCKER_USERNAME }}
-#          password: ${{ secrets.DOCKER_PASSWORD }}
-#          dockerfile: dockers/nvidia/Dockerfile
-#          build_args: LIGHTNING_VERSION=${{ steps.get_version.outputs.RELEASE_VERSION }}
-#          tags: "${{ steps.get_version.outputs.RELEASE_VERSION }}-nvidia"
-#        timeout-minutes: 55

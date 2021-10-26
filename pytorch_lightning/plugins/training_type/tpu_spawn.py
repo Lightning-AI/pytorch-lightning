@@ -138,12 +138,12 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # HOST_WORLD_SIZE is None outside the xmp.spawn process
         return os.getenv(xenv.HOST_WORLD_SIZE, None) and self.world_size != 1
 
-    def process_dataloader(
-        self,
-        dataloader: DataLoader,
-    ) -> MpDeviceLoader:
-        self._validate_dataloader(dataloader, self.lightning_module)
-        return MpDeviceLoader(dataloader, self.root_device)
+    def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
+        TPUSpawnPlugin._validate_dataloader(dataloader)
+        dataloader = MpDeviceLoader(dataloader, self.root_device)
+        # Mimic interface to torch.utils.data.DataLoader
+        dataloader.dataset = dataloader._loader.dataset
+        return dataloader
 
     def configure_ddp(self) -> None:
         pass
