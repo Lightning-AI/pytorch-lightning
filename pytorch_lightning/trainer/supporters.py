@@ -493,7 +493,7 @@ class CombinedLoader:
 
     @staticmethod
     def _reset(dataloader) -> None:
-        if isinstance(dataloader._iterator, _MultiProcessingDataLoaderIter):
+        if hasattr(dataloader, "_iterator") and isinstance(dataloader._iterator, _MultiProcessingDataLoaderIter):
             dataloader._iterator._shutdown_workers()
         dataloader._iterator = None
 

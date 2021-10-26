@@ -209,7 +209,9 @@ class AbstractDataFetcher(ABC):
         if isinstance(self.dataloader, CombinedLoader):
             self.dataloader.reset()
         if isinstance(self.dataloader, DataLoader):
-            if isinstance(self.dataloader._iterator, _MultiProcessingDataLoaderIter):
+            if hasattr(self.dataloader, "_iterator") and isinstance(
+                self.dataloader._iterator, _MultiProcessingDataLoaderIter
+            ):
                 self.dataloader._iterator._shutdown_workers()
             self.dataloader._iterator = None
         self.dataloader_iter = None
