@@ -4,10 +4,9 @@ Use these examples to test how lightning works.
 
 ## MNIST Examples
 
-This tutorial contains 5 examples implementing simple ImageClassifier trained over MNIST.
-They demonstrate how to slowly convert from raw PyTorch to PyTorch Lightning.
+The following examples contain 5 MNIST examples showing how to gradually convert from pure PyTorch to PyTorch Lightning.
 
-#### 1. Image Classifier with PyTorch
+#### 1 . Image Classifier with PyTorch
 
 Trains a simple CNN over MNIST using raw PyTorch.
 
@@ -31,45 +30,39 @@ ______________________________________________________________________
 
 #### 3. Image Classifier - Conversion Lite to Lightning.
 
-Trains MNIST where the model is defined inside the `LightningModule`.
+Trains a simple CNN over MNIST with a `LightningModule` and `LightningLite`.
 
 ```bash
-# cpu
+# cpu / multiple gpus if available
 python mnist_examples/image_classifier_3_lite_to_lightning.py
-
-# gpus (any number)
-python mnist_examples/image_classifier_3_lite_to_lightning.py --trainer.gpus 2
-
-# dataparallel
-python mnist_examples/image_classifier_3_lite_to_lightning.py --trainer.gpus 2 --trainer.accelerator 'dp'
 ```
 
 ______________________________________________________________________
 
-#### 4. Image Classifier with Lightning.
+#### 4. Image Classifier - Conversion Lite to Lightning + Lightning Loops
 
-Trains MNIST where the model is defined inside the `LightningModule`.
+Trains a simple CNN over MNIST with a `LightningModule` and `LightningLite` and `Loops`.
+
+```bash
+# cpu / multiple gpus if available
+python mnist_examples/image_classifier_4_lite_to_lightning_and_loops.py
+```
+
+______________________________________________________________________
+
+#### 5. Image Classifier with Lightning.
+
+Trains a simple CNN over MNIST with a `Trainer` and `LightningModule`.
 
 ```bash
 # cpu
-python mnist_examples/image_classifier_4_lightning.py
+python mnist_examples/image_classifier_5_lightning.py
 
 # gpus (any number)
-python mnist_examples/image_classifier_4_lightning.py --trainer.gpus 2
+python mnist_examples/image_classifier_5_lightning.py --trainer.gpus 2
 
-# dataparallel
-python mnist_examples/image_classifier_4_lightning.py --trainer.gpus 2 --trainer.accelerator 'dp'
-```
-
-______________________________________________________________________
-
-#### 5. Image Classifier with DALI
-
-The MNIST example above using [NVIDIA DALI](https://developer.nvidia.com/DALI).
-Requires NVIDIA DALI to be installed based on your CUDA version, see [here](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/installation.html).
-
-```bash
-python mnist_examples/image_classifier_5_dali.py
+# distributed data parallel
+python mnist_examples/image_classifier_5_lightning.py --trainer.gpus 2 --trainer.strategy 'ddp'
 ```
 
 ______________________________________________________________________
@@ -87,6 +80,17 @@ python backbone_image_classifier.py --trainer.gpus 2
 
 # dataparallel
 python backbone_image_classifier.py --trainer.gpus 2 --trainer.accelerator 'dp'
+```
+
+______________________________________________________________________
+
+#### Image Classifier with DALI
+
+The MNIST example above using [NVIDIA DALI](https://developer.nvidia.com/DALI).
+Requires NVIDIA DALI to be installed based on your CUDA version, see [here](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/installation.html).
+
+```bash
+python dali_image_classifier.py.py
 ```
 
 ______________________________________________________________________
