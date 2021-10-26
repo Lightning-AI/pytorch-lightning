@@ -151,7 +151,7 @@ class TestLoop(Loop):
             print(f"\nTest set: Average loss: {test_loss:.4f}, Accuracy: ({self.model.val_acc.compute():.0f}%)\n")
 
 
-class MainLoop(Loop):
+class RunLoop(Loop):
     def __init__(self, lite, args, model, datamodule):
         super().__init__()
         self.lite = lite
@@ -185,6 +185,10 @@ class MainLoop(Loop):
     def advance(self, *args: Any, **kwargs: Any) -> None:
         self.train_loop.run(self.epoch)
         self.test_loop.run()
+
+        if self.args.dry_run:
+            raise StopIteration
+
         self.epoch += 1
 
 
@@ -194,7 +198,7 @@ class Lite(LightningLite):
         model = LiftModel(Net(), args.lr, args.gamma)
         dm = MNISTDataModule(args.batch_size)
 
-        loop = MainLoop(self, args, model, dm)
+        loop = RunLoop(self, args, model, dm)
         loop.run()
 
         if args.save_model and self.is_global_zero:
@@ -203,7 +207,7 @@ class Lite(LightningLite):
 
 if __name__ == "__main__":
     # Training settings
-    parser = argparse.ArgumentParser(description="LightningLite MNIST Example")
+    parser = argparse.ArgumentParser(description="LightningLite MNIST Example with Lightning Loops")
     parser.add_argument(
         "--batch-size", type=int, default=64, metavar="N", help="input batch size for training (default: 64)"
     )
