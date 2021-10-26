@@ -491,11 +491,15 @@ class CombinedLoader:
     def __len__(self) -> int:
         return self._calc_num_batches(self.loaders)
 
+    @staticmethod
+    def _reset(dataloader) -> None:
+        dataloader._iterator = None
+
     def reset(self):
         if self._iterator:
             self._iterator._loader_iters = None
         if self.loaders:
-            self.loaders._iterator = None
+            apply_to_collection(self.loaders, DataLoader, self._reset)
         self._iterator = None
 
 
