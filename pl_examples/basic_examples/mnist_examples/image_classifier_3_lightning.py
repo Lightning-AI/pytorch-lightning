@@ -15,13 +15,15 @@
 
 To run: python simple_image_classifier.py --trainer.max_epochs=50
 """
+from typing import Optional
 
 import torch
 from torch.nn import functional as F
 
 import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
-from pl_examples.basic_examples.mnist_datamodule import MNISTDataModule
+from pl_examples.basic_examples.mnist_examples.image_classifier_1_pytorch import Net
+from pl_examples.basic_examples.mnist_examples.mnist_datamodule import MNISTDataModule
 from pytorch_lightning.utilities.cli import LightningCLI
 
 
@@ -34,23 +36,19 @@ class LitClassifier(pl.LightningModule):
     )
     """
 
-    def __init__(self, hidden_dim: int = 128, learning_rate: float = 0.0001):
+    def __init__(self, learning_rate: float = 1.0, model: Optional[torch.nn.Module] = None):
         super().__init__()
         self.save_hyperparameters()
-
-        self.l1 = torch.nn.Linear(28 * 28, self.hparams.hidden_dim)
-        self.l2 = torch.nn.Linear(self.hparams.hidden_dim, 10)
+        self.model = model or Net()
 
     def forward(self, x):
-        x = x.view(x.size(0), -1)
-        x = torch.relu(self.l1(x))
-        x = torch.relu(self.l2(x))
-        return x
+        return self.model(x)
 
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
+        self.log("train_loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):

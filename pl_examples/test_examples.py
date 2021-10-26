@@ -34,7 +34,7 @@ ARGS_GPU = ARGS_DEFAULT + "--trainer.gpus 1 "
 @RunIf(min_gpus=1, skip_windows=True)
 @pytest.mark.parametrize("cli_args", [ARGS_GPU])
 def test_examples_mnist_dali(tmpdir, cli_args):
-    from pl_examples.basic_examples.dali_image_classifier import cli_main
+    from pl_examples.basic_examples.mnist_examples.image_classifier_4_dali import cli_main
 
     # update the temp dir
     cli_args = cli_args % {"tmpdir": tmpdir}

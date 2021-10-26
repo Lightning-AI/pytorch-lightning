@@ -14,12 +14,61 @@
 import argparse
 
 import torch
+import torch.nn.functional as F
 import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR
 from torchvision import datasets, transforms
 
-from pl_examples.mnist_examples.pytorch import Net, test, train
+from pl_examples.basic_examples.mnist_examples.image_classifier_1_pytorch import Net
+from pytorch_lightning import seed_everything
 from pytorch_lightning.lite import LightningLite
+
+
+def train(lite, args, model, train_loader, optimizer, epoch):
+    model.train()
+    for batch_idx, (data, target) in enumerate(train_loader):
+        optimizer.zero_grad()
+        output = model(data)
+        loss = F.nll_loss(output, target)
+        lite.backward(loss)
+        optimizer.step()
+        if (batch_idx == 0) or ((batch_idx + 1) % args.log_interval == 0):
+            print(
+                "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
+                    epoch,
+                    batch_idx * len(data),
+                    len(train_loader.dataset),
+                    100.0 * batch_idx / len(train_loader),
+                    loss.item(),
+                )
+            )
+            if args.dry_run:
+                break
+
+
+def test(lite, args, model, test_loader):
+    model.eval()
+    test_loss = 0
+    correct = 0
+    with torch.no_grad():
+        for data, target in test_loader:
+            output = model(data)
+            test_loss += F.nll_loss(output, target, reduction="sum").item()  # sum up batch loss
+            pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+            correct += pred.eq(target.view_as(pred)).sum().item()
+            if args.dry_run:
+                break
+
+    test_loss /= len(test_loader.dataset)
+
+    test_loss = lite.all_gather(test_loss).mean()
+
+    if lite.is_global_zero:
+        print(
+            "\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n".format(
+                test_loss, correct, len(test_loader.dataset), 100.0 * correct / len(test_loader.dataset)
+            )
+        )
 
 
 class Lite(LightningLite):
@@ -27,10 +76,10 @@ class Lite(LightningLite):
         train_kwargs = {"batch_size": args.batch_size}
         test_kwargs = {"batch_size": args.test_batch_size}
         transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-        dataset1 = datasets.MNIST("./data", train=True, download=True, transform=transform)
-        dataset2 = datasets.MNIST("./data", train=False, transform=transform)
-        train_loader = torch.utils.data.DataLoader(dataset1, **train_kwargs)
-        test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
+        train_dataset = datasets.MNIST("./data", train=True, download=True, transform=transform)
+        test_dataset = datasets.MNIST("./data", train=False, transform=transform)
+        train_loader = torch.utils.data.DataLoader(train_dataset, **train_kwargs)
+        test_loader = torch.utils.data.DataLoader(test_dataset, **test_kwargs)
 
         # this line ensures distributed training works properly with your dataloaders
         train_loader, test_loader = self.setup_dataloaders(train_loader, test_loader)
@@ -43,17 +92,17 @@ class Lite(LightningLite):
 
         scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
         for epoch in range(1, args.epochs + 1):
-            train(args, model, self.device, train_loader, optimizer, epoch, compute_backward=self.backward)
-            test(model, self.device, test_loader)
+            train(self, args, model, train_loader, optimizer, epoch)
+            test(self, args, model, test_loader)
             scheduler.step()
 
-        if args.save_model:
+        if args.save_model and self.is_global_zero:
             torch.save(model.state_dict(), "mnist_cnn.pt")
 
 
 if __name__ == "__main__":
     # Training settings
-    parser = argparse.ArgumentParser(description="PyTorch MNIST Example")
+    parser = argparse.ArgumentParser(description="LightningLite MNIST Example")
     parser.add_argument(
         "--batch-size", type=int, default=64, metavar="N", help="input batch size for training (default: 64)"
     )
@@ -76,6 +125,11 @@ if __name__ == "__main__":
     parser.add_argument("--save-model", action="store_true", default=False, help="For Saving the current Model")
     args = parser.parse_args()
 
-    torch.manual_seed(args.seed)
+    seed_everything(args.seed)
 
-    Lite(devices=1, accelerator="gpus" if torch.cuda.is_available() else "cpu").run(args)
+    if torch.cuda.is_available():
+        lite_kwargs = {"accelerator": "gpu", "devices": torch.cuda.device_count()}
+    else:
+        lite_kwargs = {"accelerator": "cpu"}
+
+    Lite(**lite_kwargs).run(args)

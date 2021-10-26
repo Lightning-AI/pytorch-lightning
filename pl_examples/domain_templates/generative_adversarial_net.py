@@ -27,7 +27,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from pl_examples import cli_lightning_logo
-from pl_examples.basic_examples.mnist_datamodule import MNIST
+from pl_examples.basic_examples.mnist_examples.mnist_datamodule import MNIST
 from pytorch_lightning.core import LightningDataModule, LightningModule
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE

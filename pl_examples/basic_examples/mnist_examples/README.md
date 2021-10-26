@@ -1,7 +1,3 @@
-## Basic Examples
-
-Use these examples to test how lightning works.
-
 ## MNIST Examples
 
 This tutorial contains 4 examples implementing simple ImageClassifier trained over MNIST.
@@ -12,7 +8,7 @@ Trains a simple CNN over MNIST using raw PyTorch.
 
 ```bash
 # cpu
-python mnist_examples/image_classifier_1_pytorch.py
+python image_classifier_1_pytorch.py
 ```
 
 ______________________________________________________________________
@@ -23,7 +19,7 @@ Trains a simple CNN over MNIST using [LightningLite](https://pytorch-lightning.r
 
 ```bash
 # cpu / multiple gpus if available
-python mnist_examples/image_classifier_2_lite.py
+python image_classifier_2_lite.py
 ```
 
 #### 3. Image Classifier with Lightning.
@@ -32,13 +28,13 @@ Trains MNIST where the model is defined inside the `LightningModule`.
 
 ```bash
 # cpu
-python mnist_examples/image_classifier_3_lightning.py
+python image_classifier_3_lightning.py
 
 # gpus (any number)
-python mnist_examples/image_classifier_3_lightning.py --trainer.gpus 2
+python image_classifier_3_lightning.py --trainer.gpus 2
 
 # dataparallel
-python mnist_examples/image_classifier_3_lightning.py --trainer.gpus 2 --trainer.accelerator 'dp'
+python image_classifier_3_lightning.py --trainer.gpus 2 --trainer.accelerator 'dp'
 ```
 
 ______________________________________________________________________
@@ -49,41 +45,7 @@ The MNIST example above using [NVIDIA DALI](https://developer.nvidia.com/DALI).
 Requires NVIDIA DALI to be installed based on your CUDA version, see [here](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/installation.html).
 
 ```bash
-python mnist_examples/image_classifier_4_dali.py
-```
-
-______________________________________________________________________
-
-#### Image classifier
-
-Generic image classifier with an arbitrary backbone (ie: a simple system)
-
-```bash
-# cpu
-python backbone_image_classifier.py
-
-# gpus (any number)
-python backbone_image_classifier.py --trainer.gpus 2
-
-# dataparallel
-python backbone_image_classifier.py --trainer.gpus 2 --trainer.accelerator 'dp'
-```
-
-______________________________________________________________________
-
-#### Autoencoder
-
-Showing the power of a system... arbitrarily complex training loops
-
-```bash
-# cpu
-python autoencoder.py
-
-# gpus (any number)
-python autoencoder.py --trainer.gpus 2
-
-# dataparallel
-python autoencoder.py --trainer.gpus 2 --trainer.accelerator 'dp'
+python image_classifier_4_dali.py
 ```
 
 ______________________________________________________________________
