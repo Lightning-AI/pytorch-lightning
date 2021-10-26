@@ -20,6 +20,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.loops import TrainingEpochLoop
 from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 def test_outputs_format(tmpdir):
@@ -147,6 +148,7 @@ def test_warning_valid_train_step_end(tmpdir):
     trainer.fit(model)
 
 
+@RunIf(min_torch="1.8.0")
 @pytest.mark.parametrize("persistent_workers", (True, False))
 def test_training_loop_workers_are_shutdown(tmpdir, persistent_workers):
     # `num_workers == 1` uses `_MultiProcessingDataLoaderIter`

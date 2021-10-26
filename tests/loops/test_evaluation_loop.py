@@ -133,6 +133,7 @@ def test_evaluation_loop_doesnt_store_outputs_if_epoch_end_not_overridden(tmpdir
     assert did_assert
 
 
+@RunIf(min_torch="1.8.0")
 @pytest.mark.parametrize("persistent_workers", (True, False))
 def test_evaluation_workers_are_shutdown(tmpdir, persistent_workers):
     # `num_workers == 1` uses `_MultiProcessingDataLoaderIter`
