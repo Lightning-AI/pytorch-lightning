@@ -140,7 +140,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         TPUSpawnPlugin._validate_dataloader(dataloader)
         dataloader = MpDeviceLoader(dataloader, self.root_device)
         # Mimic interface to torch.utils.data.DataLoader
-        setattr(dataloader, "dataset", dataloader._loader.dataset)
+        dataloader.dataset = dataloader._loader.dataset
         return dataloader
 
     def configure_ddp(self) -> None:

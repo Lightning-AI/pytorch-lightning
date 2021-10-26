@@ -13,7 +13,7 @@
 # limitations under the License
 import collections
 from copy import deepcopy
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 import torch
@@ -306,8 +306,7 @@ def test_xla_checkpoint_plugin_being_default():
 @RunIf(tpu=True)
 @patch("pytorch_lightning.plugins.training_type.tpu_spawn.xm")
 def test_mp_device_dataloader_attribute(_):
-
     dataset = RandomDataset(32, 64)
-    dataloader = TPUSpawnPlugin(MagicMock()).process_dataloader(DataLoader(dataset))
+    dataloader = TPUSpawnPlugin().process_dataloader(DataLoader(dataset))
 
     assert dataloader.dataset == dataset
