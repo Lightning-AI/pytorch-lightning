@@ -34,6 +34,8 @@ class TPUPrecisionPlugin(PrecisionPlugin):
         lambda_closure: Callable[[], Any],
         **kwargs: Any
     ) -> None:
+        if isinstance(model, pl.LightningModule):
+            model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         closure_result = xm.optimizer_step(optimizer, optimizer_args={"closure": lambda_closure, **kwargs})
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value

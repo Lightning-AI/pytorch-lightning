@@ -332,7 +332,6 @@ class Accelerator:
             **kwargs: Any extra arguments to ``optimizer.step``
         """
         model = model or self.lightning_module
-        self.precision_plugin.pre_optimizer_step(model, optimizer, opt_idx)
         self.precision_plugin.optimizer_step(model, optimizer, opt_idx, lambda_closure, **kwargs)
 
     def optimizer_zero_grad(self, current_epoch: int, batch_idx: int, optimizer: Optimizer, opt_idx: int) -> None:

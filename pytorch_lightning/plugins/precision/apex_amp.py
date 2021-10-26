@@ -96,10 +96,6 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
                 if state is not None:
                     break
 
-    def pre_optimizer_step(self, *_: Any, **__: Any) -> None:
-        # override because the `on_before_optimizer_step` hook call is already in `optimizer_step`
-        pass
-
     def optimizer_step(
         self,
         model: Union["pl.LightningModule", Module],
@@ -113,7 +109,8 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
                 f"apex AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
         closure_result = lambda_closure()
-        super().pre_optimizer_step(model, optimizer, optimizer_idx)
+        if isinstance(model, pl.LightningModule):
+            model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if not isinstance(model, pl.LightningModule) or not model.automatic_optimization or not skipped_backward:
