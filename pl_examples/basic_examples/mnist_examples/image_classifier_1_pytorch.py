@@ -20,7 +20,7 @@ import torch.optim as optim
 import torchvision.transforms as T
 from torch.optim.lr_scheduler import StepLR
 
-from pl_examples.basic_examples.mnist_examples.mnist_datamodule import MNIST
+from pl_examples.basic_examples.mnist_datamodule import MNIST
 
 # Credit to the PyTorch Team
 # Taken from https://github.com/pytorch/examples/blob/master/mnist/main.py and slightly adapted.

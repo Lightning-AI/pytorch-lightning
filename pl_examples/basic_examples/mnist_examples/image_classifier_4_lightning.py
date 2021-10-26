@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""MNIST simple image classifier example.
+"""MNIST simple image classifier example with LightningModule.
 
-To run: python simple_image_classifier.py --trainer.max_epochs=50
+To run: python image_classifier_4_lightning.py --trainer.max_epochs=50
 """
 import torch
 import torchvision.transforms as T
@@ -32,7 +32,7 @@ class ImageClassifier(LightningModule):
         super().__init__()
         self.save_hyperparameters()
         self.model = model or Net()
-        self.val_acc = Accuracy()
+        self.test_acc = Accuracy()
 
     def forward(self, x):
         return self.model(x)
@@ -47,14 +47,17 @@ class ImageClassifier(LightningModule):
         x, y = batch
         logits = self.forward(x)
         loss = F.nll_loss(logits, y.long())
-        self.val_acc(logits, y.long())
+        self.test_acc(logits, y.long())
         return loss
+
+    def test_epoch_end(self, *_) -> None:
+        self.log("test_acc", self.test_acc.compute())
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adadelta(self.model.parameters(), lr=self.hparams.lr)
         return [optimizer], [torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=self.hparams.gamma)]
 
-    # Functions for the `LightningDataModule` convertion
+    # Functions for the `LightningDataModule` conversion
 
     @property
     def transform(self):

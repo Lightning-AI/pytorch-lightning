@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""MNIST simple image classifier example.
+"""MNIST simple image classifier example with LightningModule and DataModule.
 
-To run: python simple_image_classifier.py --trainer.max_epochs=50
+To run: python image_classifier_5_lightning_datamodule.py --trainer.max_epochs=50
 """
 import torch
 import torchvision.transforms as T
@@ -25,7 +25,6 @@ from pl_examples import cli_lightning_logo
 from pl_examples.basic_examples.mnist_examples.image_classifier_1_pytorch import Net
 from pytorch_lightning import LightningDataModule, LightningModule
 from pytorch_lightning.utilities.cli import LightningCLI
-from pytorch_lightning.utilities.parsing import save_hyperparameters
 
 
 class ImageClassifier(LightningModule):
@@ -33,7 +32,7 @@ class ImageClassifier(LightningModule):
         super().__init__()
         self.save_hyperparameters()
         self.model = model or Net()
-        self.val_acc = Accuracy()
+        self.test_acc = Accuracy()
 
     def forward(self, x):
         return self.model(x)
@@ -48,8 +47,11 @@ class ImageClassifier(LightningModule):
         x, y = batch
         logits = self.forward(x)
         loss = F.nll_loss(logits, y.long())
-        self.val_acc(logits, y.long())
+        self.test_acc(logits, y.long())
         return loss
+
+    def test_epoch_end(self, *_) -> None:
+        self.log("test_acc", self.test_acc.compute())
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adadelta(self.model.parameters(), lr=self.hparams.lr)
@@ -59,7 +61,7 @@ class ImageClassifier(LightningModule):
 class MNISTDataModule(LightningDataModule):
     def __init__(self, batch_size=32):
         super().__init__()
-        save_hyperparameters(self)
+        self.save_hyperparameters()
 
     @property
     def transform(self):

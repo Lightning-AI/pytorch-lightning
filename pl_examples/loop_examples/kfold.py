@@ -26,7 +26,7 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset, Subset
 
 from pl_examples import _DATASETS_PATH
-from pl_examples.basic_examples.mnist_examples.mnist_datamodule import MNIST
+from pl_examples.basic_examples.mnist_datamodule import MNIST
 from pl_examples.basic_examples.simple_image_classifier import LitClassifier
 from pytorch_lightning import LightningDataModule, seed_everything, Trainer
 from pytorch_lightning.core.lightning import LightningModule

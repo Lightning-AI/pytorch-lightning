@@ -59,7 +59,7 @@ def test(lite, args, model, test_loader):
     test_loss = lite.all_gather(test_loss).sum() / len(test_loader.dataset)
 
     if lite.is_global_zero:
-        print(f"\nTest set: Average loss: {test_loss:.4f}, Accuracy: ({lite.val_acc.compute():.0f}%)\n")
+        print(f"\nTest set: Average loss: {test_loss:.4f}, Accuracy: ({lite.test_acc.compute():.0f}%)\n")
 
 
 class Lite(LightningLite):
@@ -70,25 +70,25 @@ class Lite(LightningLite):
         self.hparams = hparams
 
         self.model = Net()
-        optimizer, scheduler = self.configure_optimizers()
-        model, optimizer = self.setup(self.model, optimizer[0])
+        [optimizer], [scheduler] = self.configure_optimizers()
+        model, optimizer = self.setup(self.model, optimizer)
 
         if self.is_global_zero:
             self.prepare_data()
 
         train_loader, test_loader = self.setup_dataloaders(self.train_dataloader(), self.train_dataloader())
 
-        self.val_acc = Accuracy()
+        self.test_acc = Accuracy()
 
         for epoch in range(1, hparams.epochs + 1):
             train(self, hparams, model, train_loader, optimizer, epoch)
             test(self, hparams, model, test_loader)
-            scheduler[0].step()
+            scheduler.step()
 
         if hparams.save_model and self.is_global_zero:
             torch.save(model.state_dict(), "mnist_cnn.pt")
 
-    # Functions for the `LightningModule` convertion
+    # Functions for the `LightningModule` conversion
 
     def forward(self, x):
         return self.model(x)
@@ -103,14 +103,14 @@ class Lite(LightningLite):
         x, y = batch
         logits = self.forward(x)
         loss = F.nll_loss(logits, y.long())
-        self.val_acc(logits, y.long())
+        self.test_acc(logits, y.long())
         return loss
 
     def configure_optimizers(self):
         optimizer = optim.Adadelta(self.model.parameters(), lr=self.hparams.lr)
         return [optimizer], [StepLR(optimizer, step_size=1, gamma=self.hparams.gamma)]
 
-    # Functions for the `LightningDataModule` convertion
+    # Functions for the `LightningDataModule` conversion
 
     @property
     def transform(self):
@@ -130,7 +130,7 @@ class Lite(LightningLite):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="LightningLite MNIST Example")
+    parser = argparse.ArgumentParser(description="LightningLite to LightningModule MNIST Example")
     parser.add_argument(
         "--batch-size", type=int, default=64, metavar="N", help="input batch size for training (default: 64)"
     )

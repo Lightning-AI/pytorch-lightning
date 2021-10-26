@@ -21,8 +21,8 @@ import torchvision.transforms as T
 from torch.optim.lr_scheduler import StepLR
 from torchmetrics import Accuracy
 
+from pl_examples.basic_examples.mnist_datamodule import MNIST
 from pl_examples.basic_examples.mnist_examples.image_classifier_1_pytorch import Net
-from pl_examples.basic_examples.mnist_examples.mnist_datamodule import MNIST
 from pytorch_lightning import seed_everything
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.loops import Loop

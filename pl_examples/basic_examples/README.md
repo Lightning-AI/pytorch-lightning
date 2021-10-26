@@ -30,8 +30,6 @@ python mnist_examples/image_classifier_2_lite.py
 
 ______________________________________________________________________
 
-#### 3. Image Classifier - Conversion Lite to Lightning.
-
 Trains a simple CNN over MNIST where `LightningLite` is almost a `LightningModule`.
 
 ```bash
@@ -55,7 +53,7 @@ python mnist_examples/image_classifier_4_lightning.py --trainer.gpus 2
 
 ______________________________________________________________________
 
-#### 5. Image Classifier with LightningModule + LightningDataModule.
+#### 5. Image Classifier with LightningModule + LightningDataModule
 
 Trains a simple CNN over MNIST with `Lightning Trainer` and the converted `LightningModule` and `LightningDataModule`
 
