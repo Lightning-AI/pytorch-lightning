@@ -1,6 +1,7 @@
 ## MNIST Examples
 
-This tutorial contains 4 examples implementing simple ImageClassifier trained over MNIST.
+This tutorial contains 5 examples implementing simple ImageClassifier trained over MNIST.
+They demonstrate how to slowly convert from raw PyTorch to PyTorch Lightning.
 
 #### 1 . Image Classifier with PyTorch
 
@@ -22,30 +23,49 @@ Trains a simple CNN over MNIST using [LightningLite](https://pytorch-lightning.r
 python image_classifier_2_lite.py
 ```
 
-#### 3. Image Classifier with Lightning.
+______________________________________________________________________
+
+#### 3. Image Classifier - Conversion Lite to Lightning.
 
 Trains MNIST where the model is defined inside the `LightningModule`.
 
 ```bash
 # cpu
-python image_classifier_3_lightning.py
+python image_classifier_3_lite_to_lightning.py
 
 # gpus (any number)
-python image_classifier_3_lightning.py --trainer.gpus 2
+python image_classifier_3_lite_to_lightning.py --trainer.gpus 2
 
 # dataparallel
-python image_classifier_3_lightning.py --trainer.gpus 2 --trainer.accelerator 'dp'
+python image_classifier_3_lite_to_lightning.py --trainer.gpus 2 --trainer.accelerator 'dp'
 ```
 
 ______________________________________________________________________
 
-#### 4. Image Classifier with DALI
+#### 4. Image Classifier with Lightning.
+
+Trains MNIST where the model is defined inside the `LightningModule`.
+
+```bash
+# cpu
+python image_classifier_4_lightning.py
+
+# gpus (any number)
+python image_classifier_4_lightning.py --trainer.gpus 2
+
+# dataparallel
+python image_classifier_4_lightning.py --trainer.gpus 2 --trainer.accelerator 'dp'
+```
+
+______________________________________________________________________
+
+#### 5. Image Classifier with DALI
 
 The MNIST example above using [NVIDIA DALI](https://developer.nvidia.com/DALI).
 Requires NVIDIA DALI to be installed based on your CUDA version, see [here](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/installation.html).
 
 ```bash
-python image_classifier_4_dali.py
+python image_classifier_5_dali.py
 ```
 
 ______________________________________________________________________
