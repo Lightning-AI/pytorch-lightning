@@ -6,6 +6,8 @@ on:
   schedule:
     # At the end of every day
     - cron: "0 0 * * *"
+  # FIXME: HACK HACK HACK
+  push: {}
 
 env:
   PUSH_TO_HUB: true
