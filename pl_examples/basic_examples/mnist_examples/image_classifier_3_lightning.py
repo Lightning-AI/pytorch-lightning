@@ -15,8 +15,6 @@
 
 To run: python simple_image_classifier.py --trainer.max_epochs=50
 """
-from typing import Optional
-
 import torch
 from torch.nn import functional as F
 
@@ -36,10 +34,10 @@ class LitClassifier(pl.LightningModule):
     )
     """
 
-    def __init__(self, learning_rate: float = 1.0, model: Optional[torch.nn.Module] = None):
+    def __init__(self, learning_rate: float = 1.0):
         super().__init__()
         self.save_hyperparameters()
-        self.model = model or Net()
+        self.model = Net()
 
     def forward(self, x):
         return self.model(x)

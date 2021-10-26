@@ -99,6 +99,12 @@ class Lite(LightningLite):
         if args.save_model and self.is_global_zero:
             torch.save(model.state_dict(), "mnist_cnn.pt")
 
+    def reduce_loss(self, loss):
+        return self.all_gather(loss).mean()
+
+    def should_print(self):
+        return self.is_global_zero
+
 
 if __name__ == "__main__":
     # Training settings
@@ -126,6 +132,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     seed_everything(args.seed)
+
+    if torch.cuda.is_available():
+        lite_kwargs = {"accelerator": "gpu", "devices": torch.cuda.device_count()}
+    else:
+        lite_kwargs = {"accelerator": "cpu"}
 
     if torch.cuda.is_available():
         lite_kwargs = {"accelerator": "gpu", "devices": torch.cuda.device_count()}
