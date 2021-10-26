@@ -13,11 +13,10 @@
 # limitations under the License.
 import os
 from abc import ABC, abstractmethod
-from collections import Callable
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import Any, Dict, Generator, Iterable, List, Optional, overload, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, overload, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -170,17 +169,7 @@ class LightningLite(ABC):
         self._validate_setup(model, optimizers)
 
         if move_to_device:
-            params_on_cpu = dict(model.named_parameters())
-            model = self.to_device(model)
-            params_on_device = dict(model.named_parameters())
-
-            # When the user creates the optimizer, they reference the parameters on the CPU.
-            # However, when running with TPU the parameters get copied and the reference in the optimizer
-            # remains invalid. We need to update the references to point to the parameter tensors on the device.
-            mapping = {param: params_on_device[name] for name, param in params_on_cpu.items()}
-            for optimizer in optimizers:
-                for param_group in optimizer.param_groups:
-                    param_group["params"] = [mapping.get(p, p) for p in param_group["params"]]
+            model = self._move_model_to_device(model=model, optimizers=list(optimizers))
 
         # Let accelerator/plugin wrap and connect the models and optimizers
         model, optimizers = self._strategy._setup_model_and_optimizers(model, list(optimizers))
@@ -402,7 +391,25 @@ class LightningLite(ABC):
         if isinstance(self._strategy, DDPShardedPlugin):
             self._strategy._precision = self._accelerator_connector.precision
 
+    def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
+        if isinstance(self._strategy, TPUSpawnPlugin):
+            # When the user creates the optimizer, they reference the parameters on the CPU.
+            # However, when running with TPU the parameters get copied and the reference in the optimizer
+            # remains invalid. We need to update the references to point to the parameter tensors on the device.
+            params_on_cpu = dict(model.named_parameters())
+            model = self.to_device(model)
+            params_on_device = dict(model.named_parameters())
+
+            mapping = {param: params_on_device[name] for name, param in params_on_cpu.items()}
+            for optimizer in optimizers:
+                for param_group in optimizer.param_groups:
+                    param_group["params"] = [mapping.get(p, p) for p in param_group["params"]]
+        else:
+            model = self.to_device(model)
+        return model
+
     def _set_deepspeed_precision_variables(self) -> None:
+        # TODO: Refactor this once precision pluging is part of the strategy.
         amp_type = self._accelerator_connector.amp_type
         amp_level = self._accelerator_connector.amp_level
         precision = self._accelerator_connector.precision
