@@ -226,39 +226,25 @@ def test_precision_selection_raises(monkeypatch):
 
 
 class GradientUnscaleNativeAMPPlugin(NativeMixedPrecisionPlugin):
-    def pre_optimizer_step(
-        self,
-        model,
-        optimizer,
-        optimizer_idx,
-        lambda_closure,
-        **kwargs,
-    ) -> bool:
-        ret_val = super().pre_optimizer_step(
-            model,
-            optimizer,
-            optimizer_idx,
-            lambda_closure,
-            **kwargs,
-        )
-        model.norm_after = torch.nn.utils.clip_grad_norm_(model.parameters(), 2)
+    _was_scaled_finite = 0
+
+    def post_backward(self, model, closure_loss):
+        norm_before = torch.nn.utils.clip_grad_norm_(model.parameters(), 2)
+        ret_val = super().post_backward(model, closure_loss)
+        norm_after = torch.nn.utils.clip_grad_norm_(model.parameters(), 2)
+
+        # norm_after unscale should be smaller by scaling factor greater than 10
+        if not (torch.isinf(norm_before) or torch.isnan(norm_before)):
+            assert norm_after < norm_before * 10
+            # during initial phase of finding the appropriate scaling, AMP skips optimizer steps that have
+            # non-finite gradients; we count and assert that we had at least one finite gradient here
+            self._was_scaled_finite += 1
         return ret_val
 
 
-@RunIf(min_gpus=1, amp_native=True)
+@RunIf(min_gpus=1)
 def test_correct_native_grad_unscaling(tmpdir):
-    class TestModel(BoringModel):
-        _WAS_SCALED_NON_NAN = 0
-
-        def on_after_backward(self) -> None:
-            self.norm_before = torch.nn.utils.clip_grad_norm_(model.parameters(), 2)
-
-        def on_train_batch_end(self, *args, **kwargs) -> None:
-            if not (torch.isinf(self.norm_before) or torch.isnan(self.norm_before)):
-                # norm_after unscale should be smaller by scaling factor greater than 1
-                assert self.norm_after < self.norm_before
-                self._WAS_SCALED_NON_NAN += 1
-
+    """Test that the gradient clipping gets applied at the appropriate place when using mixed precision plugins."""
     seed_everything(42)
     plugin = GradientUnscaleNativeAMPPlugin()
     trainer = Trainer(
@@ -271,6 +257,6 @@ def test_correct_native_grad_unscaling(tmpdir):
         plugins=plugin,
     )
     assert isinstance(trainer.precision_plugin, GradientUnscaleNativeAMPPlugin)
-    model = TestModel()
+    model = BoringModel()
     trainer.fit(model)
-    assert model._WAS_SCALED_NON_NAN
+    assert plugin._was_scaled_finite
