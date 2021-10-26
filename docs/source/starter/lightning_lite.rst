@@ -404,7 +404,7 @@ num_nodes
 
 Number of cluster nodes for distributed operation.
 
-.. testcode::
+.. code-block:: python
 
     # Default used by Lite
     lite = Lite(num_nodes=1)
