@@ -20,6 +20,12 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.plugins.environments import (
+    KubeflowEnvironment,
+    LightningEnvironment,
+    SLURMEnvironment,
+    TorchElasticEnvironment,
+)
 from pytorch_lightning.plugins.training_type import DDPPlugin, DDPSpawnPlugin
 from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -421,3 +427,17 @@ def test_v1_6_0_is_slurm_managing_tasks():
 
     with pytest.deprecated_call(match=r"`AcceleratorConnector.is_slurm_managing_tasks` was deprecated in v1.5"):
         trainer._accelerator_connector.is_slurm_managing_tasks = False
+
+
+@pytest.mark.parametrize(
+    "cluster_environment",
+    [
+        KubeflowEnvironment(),
+        LightningEnvironment(),
+        SLURMEnvironment(),
+        TorchElasticEnvironment(),
+    ],
+)
+def test_v1_6_0_cluster_environment_creates_children(cluster_environment):
+    with pytest.deprecated_call(match="was deprecated in v1.5 and will be removed in v1.6"):
+        cluster_environment.creates_children()

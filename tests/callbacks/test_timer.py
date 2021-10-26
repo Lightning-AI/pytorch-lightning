@@ -49,7 +49,7 @@ def test_trainer_flag(caplog):
     timer = [c for c in trainer.callbacks if isinstance(c, Timer)][0]
     assert timer._duration == 1
     assert trainer.max_epochs == -1
-    assert trainer.max_steps is None
+    assert trainer.max_steps == -1
 
 
 @pytest.mark.parametrize(
