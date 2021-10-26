@@ -20,7 +20,7 @@ from functools import partial
 from typing import Any, Callable, Generator, List, Optional, Tuple
 
 import torch
-from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
@@ -209,6 +209,8 @@ class AbstractDataFetcher(ABC):
         if isinstance(self.dataloader, CombinedLoader):
             self.dataloader.reset()
         if isinstance(self.dataloader, DataLoader):
+            if isinstance(self.dataloader._iterator, _MultiProcessingDataLoaderIter):
+                self.dataloader._iterator._shutdown_workers()
             self.dataloader._iterator = None
         self.dataloader_iter = None
 

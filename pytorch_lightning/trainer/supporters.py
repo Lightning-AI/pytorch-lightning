@@ -19,7 +19,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 from torch.utils.data import Dataset
-from torch.utils.data.dataloader import _BaseDataLoaderIter, DataLoader
+from torch.utils.data.dataloader import _BaseDataLoaderIter, _MultiProcessingDataLoaderIter, DataLoader
 from torch.utils.data.dataset import IterableDataset
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
@@ -493,6 +493,8 @@ class CombinedLoader:
 
     @staticmethod
     def _reset(dataloader) -> None:
+        if isinstance(dataloader._iterator, _MultiProcessingDataLoaderIter):
+            dataloader._iterator._shutdown_workers()
         dataloader._iterator = None
 
     def reset(self):
