@@ -57,8 +57,6 @@ from pytorch_lightning.trainer.connectors.debugging_connector import DebuggingCo
 from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_from_env_vars
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
-from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
@@ -430,7 +428,6 @@ class Trainer(
 
         # init connectors
         self._data_connector = DataConnector(self, multiple_trainloader_mode)
-        self.optimizer_connector = OptimizerConnector(self)
 
         self._accelerator_connector = AcceleratorConnector(
             num_processes,
@@ -452,7 +449,6 @@ class Trainer(
             plugins,
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
-        self.model_connector = ModelConnector(self)
         self._callback_connector = CallbackConnector(self)
         self.debugging_connector = DebuggingConnector(self)
         self.training_tricks_connector = TrainingTricksConnector(self)
@@ -517,7 +513,9 @@ class Trainer(
         self.on_init_start()
 
         # init optimizer + lr scheduler related flags
-        self.optimizer_connector.on_trainer_init()
+        self.lr_schedulers = []
+        self.optimizers = []
+        self.optimizer_frequencies = []
 
         # init data flags
         self._data_connector.on_trainer_init(
@@ -1048,7 +1046,7 @@ class Trainer(
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
         # check if we should delay restoring checkpoint till later
-        if not self.accelerator.restore_checkpoint_after_pre_dispatch:
+        if not self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
             self._restore_modules_and_callbacks(ckpt_path)
 
         self._call_configure_sharded_model()  # allow user to setup in model sharded environment
@@ -1097,7 +1095,7 @@ class Trainer(
         # plugin will setup fitting (e.g. ddp will launch child processes)
         self._pre_dispatch()
 
-        if self.accelerator.restore_checkpoint_after_pre_dispatch:
+        if self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
             self._restore_modules_and_callbacks(ckpt_path)
 
         # restore optimizers, etc.
@@ -1804,11 +1802,14 @@ class Trainer(
 
     @property
     def resume_from_checkpoint(self) -> Optional[Union[str, Path]]:
-        rank_zero_deprecation(
-            "`trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7."
-            " Specify the fit checkpoint path with `trainer.fit(ckpt_path=)` instead."
-        )
-        return self.checkpoint_connector.resume_from_checkpoint_fit_path
+        resume_from_checkpoint = self.checkpoint_connector.resume_from_checkpoint_fit_path
+        if resume_from_checkpoint is not None:
+            rank_zero_deprecation(
+                "`trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7."
+                " Specify the fit checkpoint path with `trainer.fit(ckpt_path=)` instead."
+            )
+
+        return resume_from_checkpoint
 
     def save_checkpoint(self, filepath: _PATH, weights_only: bool = False) -> None:
         self.checkpoint_connector.save_checkpoint(filepath, weights_only)
