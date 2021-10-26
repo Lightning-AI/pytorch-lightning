@@ -24,7 +24,6 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import StochasticWeightAveraging
 from pytorch_lightning.plugins import DDPSpawnPlugin
-from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.runif import RunIf
@@ -110,7 +109,7 @@ class SwaTestCallback(StochasticWeightAveraging):
 
 
 def train_with_swa(
-    tmpdir, batchnorm=True, accelerator=None, gpus=None, num_processes=1, interval="epoch", iterable_dataset=False
+    tmpdir, batchnorm=True, strategy=None, gpus=None, num_processes=1, interval="epoch", iterable_dataset=False
 ):
     model = SwaTestModel(batchnorm=batchnorm, interval=interval, iterable_dataset=iterable_dataset)
     swa_start = 2
@@ -127,7 +126,7 @@ def train_with_swa(
         limit_val_batches=0,
         callbacks=[swa_callback],
         accumulate_grad_batches=2,
-        accelerator=accelerator,
+        strategy=strategy,
         gpus=gpus,
         num_processes=num_processes,
     )
@@ -141,17 +140,17 @@ def train_with_swa(
 
 @RunIf(min_gpus=2, special=True)
 def test_swa_callback_ddp(tmpdir):
-    train_with_swa(tmpdir, accelerator="ddp", gpus=2)
+    train_with_swa(tmpdir, strategy="ddp", gpus=2)
 
 
 @RunIf(min_gpus=2)
 def test_swa_callback_ddp_spawn(tmpdir):
-    train_with_swa(tmpdir, accelerator="ddp_spawn", gpus=2)
+    train_with_swa(tmpdir, strategy="ddp_spawn", gpus=2)
 
 
 @RunIf(skip_windows=True)
 def test_swa_callback_ddp_cpu(tmpdir):
-    train_with_swa(tmpdir, accelerator="ddp_cpu", num_processes=2)
+    train_with_swa(tmpdir, strategy="ddp_spawn", num_processes=2)
 
 
 @RunIf(min_gpus=1)
@@ -228,7 +227,6 @@ def test_swa_deepcopy(tmpdir):
             super().on_before_accelerator_backend_setup(trainer, pl_module)
             assert self._average_model.train_dataloader is not pl_module.train_dataloader
             assert self._average_model.train_dataloader.__self__ == self._average_model
-            assert isinstance(pl_module.train_dataloader, _PatchDataLoader)
             assert self._average_model.trainer is None
             self.on_before_accelerator_backend_setup_called = True
 

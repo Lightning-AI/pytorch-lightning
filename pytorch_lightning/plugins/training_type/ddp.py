@@ -27,6 +27,7 @@ import __main__
 import numpy as np
 import torch
 import torch.distributed
+from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
@@ -41,6 +42,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
     _FAIRSCALE_AVAILABLE,
     _HYDRA_AVAILABLE,
+    _IS_WINDOWS,
     _TORCH_GREATER_EQUAL_1_7,
     _TORCH_GREATER_EQUAL_1_8,
     _TORCH_GREATER_EQUAL_1_9,
@@ -56,7 +58,9 @@ from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _TORCH_GREATER_EQUAL_1_10:
-    from torch.distributed.optim import DistributedOptimizer, PostLocalSGDOptimizer, ZeroRedundancyOptimizer
+    if not _IS_WINDOWS:
+        from torch.distributed.optim import DistributedOptimizer
+    from torch.distributed.optim import PostLocalSGDOptimizer, ZeroRedundancyOptimizer
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
@@ -173,13 +177,17 @@ class DDPPlugin(ParallelPlugin):
 
     def setup_environment(self) -> None:
         # start the other scripts
-        if not self.cluster_environment.creates_children():
+        if not self.cluster_environment.creates_processes_externally:
             self._call_children_scripts()
 
         # set the task idx
         self.task_idx = self.cluster_environment.local_rank()
 
         self.setup_distributed()
+
+    def _setup_model(self, model: Module) -> DistributedDataParallel:
+        """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
+        return DistributedDataParallel(module=model, device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs)
 
     def _call_children_scripts(self):
         # bookkeeping of spawned processes
@@ -269,7 +277,7 @@ class DDPPlugin(ParallelPlugin):
             raise RuntimeError(
                 "Lightning attempted to launch new distributed processes with `local_rank > 0`. This should not happen."
                 " Possible reasons: 1) LOCAL_RANK environment variable was incorrectly modified by the user,"
-                " 2) `ClusterEnvironment.creates_children()` incorrectly implemented."
+                " 2) `ClusterEnvironment.creates_processes_externally` incorrectly implemented."
             )
 
     def set_world_ranks(self) -> None:
@@ -328,8 +336,9 @@ class DDPPlugin(ParallelPlugin):
             if isinstance(optimizer, LightningOptimizer):
                 optimizer = optimizer._optimizer
 
+            is_distributed_optimizer = isinstance(optimizer, DistributedOptimizer) if not _IS_WINDOWS else False
             if (
-                isinstance(optimizer, DistributedOptimizer)
+                is_distributed_optimizer
                 or isinstance(optimizer, ZeroRedundancyOptimizer)
                 or (_FAIRSCALE_AVAILABLE and isinstance(optimizer, OSS))
             ):
@@ -355,9 +364,7 @@ class DDPPlugin(ParallelPlugin):
 
     def configure_ddp(self) -> None:
         self.pre_configure_ddp()
-        self._model = DistributedDataParallel(
-            LightningDistributedModule(self.model), device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
-        )
+        self._model = self._setup_model(LightningDistributedModule(self.model))
         self._register_ddp_hooks()
 
     def determine_ddp_device_ids(self):

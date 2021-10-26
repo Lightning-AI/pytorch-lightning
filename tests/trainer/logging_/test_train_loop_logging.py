@@ -20,13 +20,14 @@ from re import escape
 import numpy as np
 import pytest
 import torch
+from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBar
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.boring_model import BoringModel, RandomDictDataset
+from tests.helpers.boring_model import BoringModel, RandomDataset, RandomDictDataset
 from tests.helpers.runif import RunIf
 
 
@@ -276,9 +277,19 @@ def test_log_works_in_train_callback(tmpdir):
                 pl_module, "on_train_epoch_start", on_steps=self.choices, on_epochs=[True], prob_bars=self.choices
             )
 
+        def on_batch_start(self, _, pl_module, *__):
+            self.make_logging(
+                pl_module, "on_batch_start", on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
+            )
+
         def on_batch_end(self, _, pl_module):
             self.make_logging(
                 pl_module, "on_batch_end", on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
+            )
+
+        def on_train_batch_start(self, _, pl_module, *__):
+            self.make_logging(
+                pl_module, "on_train_batch_start", on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
             )
 
         def on_train_batch_end(self, _, pl_module, *__):
@@ -323,7 +334,9 @@ def test_log_works_in_train_callback(tmpdir):
         "on_train_start": 1,
         "on_epoch_start": 1,
         "on_train_epoch_start": 1,
+        "on_train_batch_start": 2,
         "on_train_batch_end": 2,
+        "on_batch_start": 2,
         "on_batch_end": 2,
         "on_train_epoch_end": 1,
         "on_epoch_end": 1,
@@ -440,7 +453,7 @@ def test_logging_sync_dist_true_ddp(tmpdir):
         limit_val_batches=1,
         max_epochs=2,
         enable_model_summary=False,
-        accelerator="ddp",
+        strategy="ddp",
         gpus=2,
         profiler="pytorch",
     )
@@ -672,28 +685,6 @@ def test_sanity_metrics_are_reset(tmpdir):
     assert "val_loss" not in trainer.progress_bar_metrics
 
 
-@RunIf(min_gpus=2)
-@pytest.mark.parametrize("log_gpu_memory", ["all", "min_max"])
-def test_log_gpu_memory_without_logging_on_step(tmpdir, log_gpu_memory):
-
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=1,
-        limit_val_batches=0,
-        log_gpu_memory=log_gpu_memory,
-        log_every_n_steps=1,
-        gpus=[1],
-    )
-    trainer.fit(model)
-    if log_gpu_memory == "min_max":
-        assert "min_gpu_mem" in trainer.logged_metrics
-        assert "max_gpu_mem" in trainer.logged_metrics
-    else:
-        assert "gpu_id: 1/memory.used (MB)" in trainer.logged_metrics
-
-
 @RunIf(min_gpus=1)
 def test_move_metrics_to_cpu(tmpdir):
     class TestModel(BoringModel):
@@ -709,3 +700,40 @@ def test_move_metrics_to_cpu(tmpdir):
         gpus=1,
     )
     trainer.fit(TestModel())
+
+
+def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
+    class TestModel(BoringModel):
+        def on_train_epoch_end(self):
+            assert all(v == 3 for v in self.trainer.callback_metrics.values())
+
+        def on_validation_epoch_end(self):
+            assert all(v == 3 for v in self.trainer.callback_metrics.values())
+
+        def on_train_batch_start(self, batch, batch_idx):
+            assert self.trainer._results.batch_size == 2
+            self.log("on_train_batch_start", 1.0, reduce_fx="sum")
+
+        def on_train_batch_end(self, outputs, batch, batch_idx):
+            assert self.trainer._results.batch_size == 2
+            self.log("on_train_batch_end", 1.0, reduce_fx="sum")
+
+        def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
+            assert self.trainer._results.batch_size == 2
+            self.log("on_validation_batch_start", 1.0, reduce_fx="sum")
+
+        def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+            assert self.trainer._results.batch_size == 2
+            self.log("on_validation_batch_end", 1.0, reduce_fx="sum")
+
+    model = TestModel()
+    trainer = Trainer(
+        enable_progress_bar=False,
+        limit_train_batches=3,
+        limit_val_batches=3,
+        num_sanity_val_steps=3,
+        max_epochs=1,
+    )
+    train_data = DataLoader(RandomDataset(32, 64), batch_size=2)
+    val_data = DataLoader(RandomDataset(32, 64), batch_size=2)
+    trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)

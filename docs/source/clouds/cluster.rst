@@ -55,7 +55,7 @@ To train a model using multiple nodes, do the following:
     .. code-block:: python
 
        # train on 32 GPUs across 4 nodes
-       trainer = Trainer(gpus=8, num_nodes=4, accelerator="ddp")
+       trainer = Trainer(gpus=8, num_nodes=4, strategy="ddp")
 
 
 Submit a job to the cluster
@@ -127,7 +127,7 @@ To train a model using multiple nodes, do the following:
     .. code-block:: python
 
        # train on 32 GPUs across 4 nodes
-       trainer = Trainer(gpus=8, num_nodes=4, accelerator="ddp")
+       trainer = Trainer(gpus=8, num_nodes=4, strategy="ddp")
 
 3.  It's a good idea to structure your training script like this:
 
@@ -137,7 +137,7 @@ To train a model using multiple nodes, do the following:
         def main(hparams):
             model = LightningTemplateModel(hparams)
 
-            trainer = Trainer(gpus=8, num_nodes=4, accelerator="ddp")
+            trainer = Trainer(gpus=8, num_nodes=4, strategy="ddp")
 
             trainer.fit(model)
 
@@ -290,8 +290,9 @@ and node rank (node id). Here is an example of a custom
 
 
     class MyClusterEnvironment(ClusterEnvironment):
-        def creates_children(self) -> bool:
-            # return True if the cluster is managed (you don't launch processes yourself)
+        @property
+        def creates_processes_externally(self) -> bool:
+            """Return True if the cluster is managed (you don't launch processes yourself)"""
             return True
 
         def world_size(self) -> int:

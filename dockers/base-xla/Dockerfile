@@ -17,13 +17,11 @@ FROM google/cloud-sdk:slim
 LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
 
 # CALL: docker image build -t pytorch-lightning:XLA-extras-py3.6 -f dockers/base-xla/Dockerfile . --build-arg PYTHON_VERSION=3.6
-# This Dockerfile installs pytorch/xla 3.7 wheels. There are also 3.6 wheels available; see below.
 ARG PYTHON_VERSION=3.7
+ARG CONDA_VERSION=4.9.2
 ARG XLA_VERSION=1.6
 
 SHELL ["/bin/bash", "-c"]
-
-ARG CONDA_VERSION=4.9.2
 # for skipping configurations
 ENV \
     DEBIAN_FRONTEND=noninteractive \
@@ -61,8 +59,8 @@ COPY environment.yml environment.yml
 
 RUN conda create -y --name $CONDA_ENV && \
     conda init bash && \
-    # replace channel to nigtly if neede, fix PT version and remove Horovod as it will be installe later
     python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'python>=[\d\.]+', 'python=${PYTHON_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
+    # drop unnecessary packages
     python -c "fname = 'environment.yml' ; req = open(fname).readlines() ; open(fname, 'w').writelines([ln for ln in req if not any(n in ln for n in ['pytorch>', 'horovod'])])" && \
     cat environment.yml && \
     conda env update --file environment.yml && \
@@ -81,7 +79,6 @@ RUN pip --version && \
     conda remove pytorch torchvision && \
     # Install Pytorch XLA
     py_version=${PYTHON_VERSION/./} && \
-    # Python 3.7 wheels are available. Replace cp36-cp36m with cp37-cp37m
     gsutil cp "gs://tpu-pytorch/wheels/torch-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" . && \
     gsutil cp "gs://tpu-pytorch/wheels/torch_xla-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" . && \
     gsutil cp "gs://tpu-pytorch/wheels/torchvision-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" . && \
@@ -95,11 +92,10 @@ RUN \
     python --version && \
     cd pytorch-lightning && \
     # drop packages installed with XLA
-    python -c "fname = 'requirements.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('torch')] ; open(fname, 'w').writelines(lines)" && \
-    python -c "fname = 'requirements/examples.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('torchvision')] ; open(fname, 'w').writelines(lines)" && \
+    python .github/prune-packages.py requirements.txt "torch" && \
+    python .github/prune-packages.py requirements/examples.txt "torchvision" && \
     # drop unnecessary packages
-    python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)" && \
-    python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)" && \
+    python .github/prune-packages.py requirements/extra.txt "fairscale" "horovod" && \
     python ./requirements/adjust_versions.py ./requirements/extra.txt && \
     # install PL dependencies
     pip install --requirement ./requirements/devel.txt --no-cache-dir && \
@@ -113,4 +109,4 @@ RUN \
     conda info && \
     pip list && \
     python -c "import sys; assert sys.version[:3] == '$PYTHON_VERSION', sys.version" && \
-    python -c "import torch; ver = '$XLA_VERSION' ; ver = dict(nightly='1.9').get(ver, ver) ; assert torch.__version__[:3] == ver, torch.__version__"
+    python -c "import torch; ver = '$XLA_VERSION' ; assert torch.__version__.startswith(ver), torch.__version__"

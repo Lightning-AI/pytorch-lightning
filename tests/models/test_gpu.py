@@ -27,8 +27,8 @@ from tests.helpers.simple_models import ClassificationModel
 
 @RunIf(min_gpus=2)
 def test_multi_gpu_none_backend(tmpdir):
-    """Make sure when using multiple GPUs the user can't use `distributed_backend = None`."""
-    tutils.set_random_master_port()
+    """Make sure when using multiple GPUs the user can't use `accelerator = None`."""
+    tutils.set_random_main_port()
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,

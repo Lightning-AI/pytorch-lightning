@@ -170,6 +170,8 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
     This loop implements what is known in Lightning as Automatic Optimization.
     """
 
+    output_result_cls = ClosureResult
+
     def __init__(self) -> None:
         super().__init__()
         self.optim_progress: OptimizationProgress = OptimizationProgress()
@@ -458,7 +460,9 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
 
             self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
 
-            result = ClosureResult.from_training_step_output(training_step_output, self.trainer.accumulate_grad_batches)
+            result = self.output_result_cls.from_training_step_output(
+                training_step_output, self.trainer.accumulate_grad_batches
+            )
 
             if self.trainer._terminate_on_nan:
                 check_finite_loss(result.closure_loss)
@@ -478,17 +482,16 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         """
         # track gradient norms
         grad_norm_dict = {}
-        can_log = (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0
-        should_track = float(self.trainer.track_grad_norm) > 0
-        if should_track and can_log:
-            grad_norm_dict = grad_norm(self.trainer.lightning_module, self.trainer.track_grad_norm)
+        if self.trainer.track_grad_norm != -1:
+            grad_norm_dict = grad_norm(
+                self.trainer.lightning_module, self.trainer.track_grad_norm, self.trainer.logger.group_separator
+            )
 
         # clip gradients
-        if not self.trainer.accelerator_connector.use_deepspeed:
-            self.trainer.lightning_module.configure_gradient_clipping(
-                optimizer,
-                opt_idx,
-                gradient_clip_val=self.trainer.gradient_clip_val,
-                gradient_clip_algorithm=self.trainer.gradient_clip_algorithm,
-            )
+        self.trainer.lightning_module.configure_gradient_clipping(
+            optimizer,
+            opt_idx,
+            gradient_clip_val=self.trainer.gradient_clip_val,
+            gradient_clip_algorithm=self.trainer.gradient_clip_algorithm,
+        )
         return grad_norm_dict
