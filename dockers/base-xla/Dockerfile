@@ -38,6 +38,7 @@ RUN apt-get update -qq && \
         curl \
         unzip \
         ca-certificates \
+        libomp5 \
     && \
     # Install conda and python.
     # NOTE new Conda does not forward the exit status... https://github.com/conda/conda/issues/8385

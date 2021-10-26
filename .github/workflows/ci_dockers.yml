@@ -72,7 +72,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-
+      - run: |
+          cuda=$(python -c "from distutils.version import LooseVersion as LVer ; print(11.1 if LVer('${{matrix.pytorch_version}}') > LVer('1.7') else 10.2)" 2>&1)
+          echo "::set-output name=CUDA::$cuda"
+        id: extend
       - name: Build CUDA Docker
         # publish master/release
         uses: docker/build-push-action@v2
@@ -80,7 +83,7 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
-            CUDA_VERSION=10.2
+            CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
           file: dockers/base-cuda/Dockerfile
           push: false
         timeout-minutes: 75
@@ -95,14 +98,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-
-      - name: Build CUDA Docker
+      - run: |
+          cuda=$(python -c "from distutils.version import LooseVersion as LVer ; print(11.1 if LVer('${{matrix.pytorch_version}}') > LVer('1.7') else 10.2)" 2>&1)
+          echo "::set-output name=CUDA::$cuda"
+        id: extend
+      - name: Build Conda Docker
         # publish master/release
         uses: docker/build-push-action@v2
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
+            CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
           file: dockers/base-conda/Dockerfile
           push: false
         timeout-minutes: 75
