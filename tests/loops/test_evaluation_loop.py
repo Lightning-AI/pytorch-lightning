@@ -15,7 +15,7 @@ from unittest import mock
 
 import pytest
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loops import EvaluationEpochLoop
@@ -138,9 +138,26 @@ def test_evaluation_loop_doesnt_store_outputs_if_epoch_end_not_overridden(tmpdir
 def test_evaluation_workers_are_shutdown(tmpdir, persistent_workers):
     # `num_workers == 1` uses `_MultiProcessingDataLoaderIter`
     # `persistent_workers` makes sure `self._iterator` gets set on the `DataLoader` instance
+    has_shutdown_workers = False
+
+    class _TestMultiProcessingDataLoaderIter(_MultiProcessingDataLoaderIter):
+        def _shutdown_workers(self):
+            nonlocal has_shutdown_workers
+            has_shutdown_workers = True
+            super()._shutdown_workers()
+
+    class TestDataLoader(DataLoader):
+        def _get_iterator(self):
+            if self.num_workers == 0:
+                return super()._get_iterator()
+            else:
+                self.check_worker_number_rationality()
+                return _TestMultiProcessingDataLoaderIter(self)
+
     train_dataloader = DataLoader(RandomDataset(32, 64), num_workers=0)
-    val_dataloader = DataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
+    val_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=2)
     trainer.fit(model, train_dataloader, val_dataloader)
+    assert has_shutdown_workers
     assert val_dataloader._iterator is None
