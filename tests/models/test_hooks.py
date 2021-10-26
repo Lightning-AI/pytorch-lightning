@@ -623,6 +623,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
         callbacks=[callback],
+        track_grad_norm=1,
     )
     assert called == [
         dict(name="Callback.on_init_start", args=(trainer,)),
