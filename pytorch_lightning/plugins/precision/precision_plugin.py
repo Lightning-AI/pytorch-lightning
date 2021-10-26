@@ -106,6 +106,8 @@ class PrecisionPlugin(CheckpointHooks):
         **kwargs: Any,
     ) -> None:
         """Hook to run the optimizer step."""
+        if isinstance(model, pl.LightningModule):
+            model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         optimizer.step(closure=lambda_closure, **kwargs)
 
     def clip_gradients(
