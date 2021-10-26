@@ -259,8 +259,9 @@ Turn off automatic optimization and you control the train loop!
 
 
     def training_step(self, batch, batch_idx):
-        # access your optimizers with use_pl_optimizer=False. Default is True
-        opt_a, opt_b = self.optimizers(use_pl_optimizer=False)
+        # access your optimizers with use_pl_optimizer=False. Default is True,
+        # setting use_pl_optimizer=True will maintain plugin/precision support
+        opt_a, opt_b = self.optimizers(use_pl_optimizer=True)
 
         loss_a = self.generator(batch)
         opt_a.zero_grad()
