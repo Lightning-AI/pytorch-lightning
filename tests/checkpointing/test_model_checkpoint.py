@@ -63,17 +63,17 @@ class LogInTwoMethods(BoringModel):
         self.log("val_acc", outs)
 
 
-def mock_optimizer_connector(trainer):
+def mock_training_epoch_loop(trainer):
     # do not use `unittest.Mock` because we need to store the return value
     calls = {}
-    old_get_monitor_value = trainer.optimizer_connector._get_monitor_value
+    old_get_monitor_value = trainer.fit_loop.epoch_loop._get_monitor_value
 
     def mock(key):
         value = old_get_monitor_value(key)
         calls[trainer.current_epoch] = {key: value}
         return value
 
-    trainer.optimizer_connector._get_monitor_value = mock
+    trainer.fit_loop.epoch_loop._get_monitor_value = mock
     return calls
 
 
@@ -150,7 +150,7 @@ def test_model_checkpoint_score_and_ckpt(
         max_epochs=max_epochs,
         enable_progress_bar=False,
     )
-    calls = mock_optimizer_connector(trainer)
+    calls = mock_training_epoch_loop(trainer)
     trainer.fit(model)
 
     ckpt_files = list(Path(tmpdir).glob("*.ckpt"))
@@ -248,7 +248,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         enable_progress_bar=False,
         num_sanity_val_steps=0,
     )
-    calls = mock_optimizer_connector(trainer)
+    calls = mock_training_epoch_loop(trainer)
     trainer.fit(model)
 
     def _make_assertions(epoch, ix):
@@ -896,11 +896,10 @@ def test_checkpoint_repeated_strategy(tmpdir):
             limit_train_batches=2,
             limit_val_batches=2,
             limit_test_batches=2,
-            resume_from_checkpoint=checkpoint_callback.best_model_path,
             enable_progress_bar=False,
             enable_model_summary=False,
         )
-        trainer.fit(model)
+        trainer.fit(model, ckpt_path=checkpoint_callback.best_model_path)
         trainer.test(model, verbose=False)
     assert set(os.listdir(tmpdir)) == {"epoch=00.ckpt", "lightning_logs"}
     assert set(os.listdir(tmpdir.join("lightning_logs"))) == {f"version_{i}" for i in range(4)}
@@ -972,12 +971,16 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
 
         # load from checkpoint
         trainer_config["callbacks"] = [ModelCheckpoint(dirpath=ckpt_dir, save_top_k=-1)]
-        trainer = pl.Trainer(**trainer_config, resume_from_checkpoint=chk)
+        trainer = pl.Trainer(**trainer_config)
         assert_trainer_init(trainer)
 
         model = ExtendedBoringModel()
 
         trainer.test(model)
+        assert trainer.global_step == 0
+        assert trainer.current_epoch == 0
+
+        trainer.fit(model, ckpt_path=chk)
         assert trainer.global_step == epochs * limit_train_batches
         assert trainer.current_epoch == epochs
 

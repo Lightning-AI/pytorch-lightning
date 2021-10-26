@@ -21,7 +21,7 @@ from torchmetrics import Metric
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.loops.fit_loop import FitLoop
+from pytorch_lightning.loops.utilities import _is_max_limit_reached
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
@@ -38,7 +38,14 @@ if _OMEGACONF_AVAILABLE:
 class CheckpointConnector:
     def __init__(self, trainer: "pl.Trainer", resume_from_checkpoint: Optional[_PATH] = None) -> None:
         self.trainer = trainer
-        self.resume_checkpoint_path = resume_from_checkpoint
+        self.resume_checkpoint_path: Optional[_PATH] = None
+        # TODO: remove resume_from_checkpoint_fit_path in v1.7
+        self.resume_from_checkpoint_fit_path: Optional[_PATH] = resume_from_checkpoint
+        if resume_from_checkpoint is not None:
+            rank_zero_deprecation(
+                "Setting `Trainer(resume_from_checkpoint=)` is deprecated in v1.5 and"
+                " will be removed in v1.7. Please pass `Trainer.fit(ckpt_path=)` directly instead."
+            )
         self._loaded_checkpoint: Dict[str, Any] = {}
 
     @property
@@ -53,14 +60,14 @@ class CheckpointConnector:
         if os.path.exists(auto_save_checkpoint):
             return auto_save_checkpoint
 
-    def resume_start(self) -> None:
+    def resume_start(self, checkpoint_path: Optional[_PATH] = None) -> None:
         """Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
 
         1. from HPC weights if found
-        2. from `resume_from_checkpoint` file if provided
+        2. from `checkpoint_path` file if provided
         3. don't restore
         """
-        self.resume_checkpoint_path = self.hpc_resume_path or self.resume_checkpoint_path
+        self.resume_checkpoint_path = self.hpc_resume_path or checkpoint_path
         checkpoint_path = self.resume_checkpoint_path
         if not checkpoint_path:
             return
@@ -83,8 +90,18 @@ class CheckpointConnector:
     def resume_end(self) -> None:
         """Signal the connector that all states have resumed and memory for the checkpoint object can be
         released."""
+        assert self.trainer.state.fn is not None
         if self.resume_checkpoint_path:
-            rank_zero_info(f"Restored all states from the checkpoint file at {self.resume_checkpoint_path}")
+            if self.trainer.state.fn == TrainerFn.FITTING:
+                rank_zero_info(f"Restored all states from the checkpoint file at {self.resume_checkpoint_path}")
+            elif self.trainer.state.fn in (TrainerFn.VALIDATING, TrainerFn.TESTING, TrainerFn.PREDICTING):
+                rank_zero_info(f"Loaded model weights from checkpoint at {self.resume_checkpoint_path}")
+        # TODO: remove resume_from_checkpoint_fit_path in v1.7
+        if (
+            self.trainer.state.fn == TrainerFn.FITTING
+            and self.resume_checkpoint_path == self.resume_from_checkpoint_fit_path
+        ):
+            self.resume_from_checkpoint_fit_path = None
         self.resume_checkpoint_path = None
         self._loaded_checkpoint = {}
 
@@ -99,7 +116,7 @@ class CheckpointConnector:
         state-restore, in this priority:
 
         1. from HPC weights if found
-        2. from `resume_from_checkpoint` file if provided
+        2. from `checkpoint_path` file if provided
         3. don't restore
 
         All restored states are listed in return value description of `dump_checkpoint`.
@@ -107,8 +124,7 @@ class CheckpointConnector:
         Args:
             checkpoint_path: Path to a PyTorch Lightning checkpoint file.
         """
-        self.resume_checkpoint_path = checkpoint_path
-        self.resume_start()
+        self.resume_start(checkpoint_path)
 
         # restore module states
         self.restore_datamodule()
@@ -156,15 +172,6 @@ class CheckpointConnector:
             for module in self.trainer.lightning_module.modules():
                 if isinstance(module, Metric):
                     module.reset()
-
-    def restore_model_weights(self, checkpoint_path: Optional[_PATH]) -> None:
-        """Restore only the model weights."""
-        checkpoint = self._loaded_checkpoint
-        if checkpoint_path is not None:
-            checkpoint = self._load_and_validate_checkpoint(checkpoint_path)
-
-        self.trainer.lightning_module.on_load_checkpoint(checkpoint)
-        self.trainer.training_type_plugin.load_model_state_dict(checkpoint)
 
     def restore_training_state(self) -> None:
         """Restore the trainer state from the pre-loaded checkpoint.
@@ -220,7 +227,7 @@ class CheckpointConnector:
 
         # crash if max_epochs is lower then the current epoch from the checkpoint
         if (
-            FitLoop._is_max_limit_enabled(self.trainer.max_epochs)
+            self.trainer.max_epochs != -1
             and self.trainer.max_epochs is not None
             and self.trainer.current_epoch > self.trainer.max_epochs
         ):
@@ -351,7 +358,7 @@ class CheckpointConnector:
         # dump epoch/global_step/pytorch-lightning_version
         current_epoch = self.trainer.current_epoch
         global_step = self.trainer.global_step
-        has_reached_max_steps = self.trainer.max_steps and self.trainer.max_steps <= global_step
+        has_reached_max_steps = _is_max_limit_reached(global_step, self.trainer.max_steps)
 
         global_step += 1
         if not has_reached_max_steps:

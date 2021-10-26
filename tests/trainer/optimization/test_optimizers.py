@@ -383,7 +383,7 @@ def test_lr_scheduler_strict(step_mock, tmpdir, complete_epoch):
     optimizer = optim.Adam(model.parameters())
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
     max_epochs = 1 if complete_epoch else None
-    max_steps = None if complete_epoch else 1
+    max_steps = -1 if complete_epoch else 1
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=max_epochs, max_steps=max_steps)
 
     model.configure_optimizers = lambda: {

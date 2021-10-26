@@ -40,7 +40,7 @@ PRETEND_N_OF_GPUS = 16
 @RunIf(min_gpus=2)
 def test_multi_gpu_none_backend(tmpdir):
     """Make sure when using multiple GPUs the user can't use `accelerator = None`."""
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
@@ -239,8 +239,8 @@ def test_torchelastic_gpu_parsing(mocked_device_count, gpus):
     """Ensure when using torchelastic and nproc_per_node is set to the default of 1 per GPU device That we omit
     sanitizing the gpus as only one of the GPUs is visible."""
     trainer = Trainer(gpus=gpus)
-    assert isinstance(trainer.accelerator_connector.cluster_environment, TorchElasticEnvironment)
-    assert trainer.accelerator_connector.parallel_device_ids == device_parser.parse_gpu_ids(gpus)
+    assert isinstance(trainer._accelerator_connector.cluster_environment, TorchElasticEnvironment)
+    assert trainer._accelerator_connector.parallel_device_ids == device_parser.parse_gpu_ids(gpus)
     assert trainer.gpus == gpus
 
 
