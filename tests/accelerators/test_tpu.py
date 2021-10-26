@@ -22,7 +22,7 @@ from torch import nn
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
-from pytorch_lightning.plugins import TPUSpawnPlugin
+from pytorch_lightning.plugins import TPUPrecisionPlugin, TPUSpawnPlugin, XLACheckpointIO
 from pytorch_lightning.utilities import find_shared_parameters
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
@@ -62,8 +62,8 @@ def test_resume_training_on_cpu(tmpdir):
     assert weight_tensor.device == torch.device("cpu")
 
     # Verify that training is resumed on CPU
-    trainer = Trainer(resume_from_checkpoint=model_path, max_epochs=1, default_root_dir=tmpdir)
-    trainer.fit(model)
+    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    trainer.fit(model, ckpt_path=model_path)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
@@ -284,3 +284,19 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
     trainer.fit(model)
 
     assert torch.all(torch.eq(model.net_a.layer.weight, model.net_b.layer.weight))
+
+
+def test_tpu_invalid_raises():
+    accelerator = TPUAccelerator(object(), TPUSpawnPlugin())
+    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `TPUPrecisionPlugin"):
+        accelerator.setup(object())
+
+    accelerator = TPUAccelerator(TPUPrecisionPlugin(), object())
+    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUPlugin` or `TPUSpawnPlugi"):
+        accelerator.setup(object())
+
+
+@RunIf(tpu=True)
+def test_xla_checkpoint_plugin_being_default():
+    trainer = Trainer(tpu_cores=8)
+    assert isinstance(trainer.training_type_plugin.checkpoint_io, XLACheckpointIO)

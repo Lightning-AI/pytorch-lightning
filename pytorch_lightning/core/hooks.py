@@ -691,7 +691,7 @@ class DataHooks:
 
         Raises:
             MisconfigurationException:
-                If using data-parallel, ``Trainer(accelerator='dp')``.
+                If using data-parallel, ``Trainer(strategy='dp')``.
 
         See Also:
             - :meth:`move_data_to_device`
@@ -726,7 +726,7 @@ class DataHooks:
 
         Raises:
             MisconfigurationException:
-                If using data-parallel, ``Trainer(accelerator='dp')``.
+                If using data-parallel, ``Trainer(strategy='dp')``.
 
         See Also:
             - :meth:`on_after_batch_transfer`
@@ -761,7 +761,7 @@ class DataHooks:
 
         Raises:
             MisconfigurationException:
-                If using data-parallel, ``Trainer(accelerator='dp')``.
+                If using data-parallel, ``Trainer(strategy='dp')``.
 
         See Also:
             - :meth:`on_before_batch_transfer`

@@ -49,7 +49,7 @@ def test_trainer_flag(caplog):
     timer = [c for c in trainer.callbacks if isinstance(c, Timer)][0]
     assert timer._duration == 1
     assert trainer.max_epochs == -1
-    assert trainer.max_steps is None
+    assert trainer.max_steps == -1
 
 
 @pytest.mark.parametrize(
@@ -173,9 +173,8 @@ def test_timer_resume_training(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[timer, checkpoint_callback],
-        resume_from_checkpoint=checkpoint_callback.best_model_path,
     )
-    trainer.fit(model)
+    trainer.fit(model, ckpt_path=checkpoint_callback.best_model_path)
     assert timer._offset > 0
     assert trainer.global_step == saved_global_step + 1
 

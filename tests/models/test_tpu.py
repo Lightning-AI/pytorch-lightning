@@ -39,13 +39,6 @@ if _TPU_AVAILABLE:
 
     SERIAL_EXEC = xmp.MpSerialExecutor()
 
-_LARGER_DATASET = RandomDataset(32, 2000)
-
-
-# 8 cores needs a big dataset
-def _serial_train_loader():
-    return DataLoader(_LARGER_DATASET, batch_size=32)
-
 
 class SerialLoaderBoringModel(BoringModel):
     def train_dataloader(self):
@@ -258,7 +251,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
 @RunIf(tpu=True)
 def test_tpu_id_to_be_as_expected(tpu_cores, expected_tpu_id):
     """Test if trainer.tpu_id is set as expected."""
-    assert Trainer(tpu_cores=tpu_cores).accelerator_connector.tpu_id == expected_tpu_id
+    assert Trainer(tpu_cores=tpu_cores)._accelerator_connector.tpu_id == expected_tpu_id
 
 
 def test_tpu_misconfiguration():
@@ -277,9 +270,9 @@ def test_exception_when_no_tpu_found(tmpdir):
 
 @pytest.mark.parametrize("tpu_cores", [1, 8, [1]])
 @RunIf(tpu=True)
-def test_distributed_backend_set_when_using_tpu(tmpdir, tpu_cores):
-    """Test if distributed_backend is set to `tpu` when tpu_cores is not None."""
-    assert Trainer(tpu_cores=tpu_cores).distributed_backend == "tpu"
+def test_accelerator_set_when_using_tpu(tmpdir, tpu_cores):
+    """Test if the accelerator is set to `tpu` when tpu_cores is not None."""
+    assert isinstance(Trainer(tpu_cores=tpu_cores).accelerator, TPUAccelerator)
 
 
 @RunIf(tpu=True)
@@ -322,7 +315,7 @@ def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
             Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores)
     else:
         trainer = Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores)
-        assert trainer.accelerator_connector.tpu_id == expected_tpu_id
+        assert trainer._accelerator_connector.tpu_id == expected_tpu_id
 
 
 @pytest.mark.parametrize(
@@ -442,7 +435,7 @@ def test_tpu_debug_mode(tmpdir):
         tpu_cores=8,
         limit_train_batches=0.4,
         limit_val_batches=0.4,
-        plugins=TPUSpawnPlugin(debug=True),
+        strategy=TPUSpawnPlugin(debug=True),
     )
 
     model = DebugModel()

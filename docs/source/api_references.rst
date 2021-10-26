@@ -15,6 +15,7 @@ Accelerator API
 
     Accelerator
     CPUAccelerator
+    IPUAccelerator
     GPUAccelerator
     TPUAccelerator
 
@@ -170,12 +171,16 @@ Precision Plugins
     :template: classtemplate.rst
 
     PrecisionPlugin
+    MixedPrecisionPlugin
     NativeMixedPrecisionPlugin
     ShardedNativeMixedPrecisionPlugin
     ApexMixedPrecisionPlugin
     DeepSpeedPrecisionPlugin
-    TPUHalfPrecisionPlugin
+    TPUPrecisionPlugin
+    TPUBf16PrecisionPlugin
     DoublePrecisionPlugin
+    FullyShardedNativeMixedPrecisionPlugin
+    IPUPrecisionPlugin
 
 Cluster Environments
 ^^^^^^^^^^^^^^^^^^^^
@@ -206,6 +211,7 @@ Checkpoint IO Plugins
 
     CheckpointIO
     TorchCheckpointIO
+    XLACheckpointIO
 
 Profiler API
 ------------
@@ -223,6 +229,7 @@ Profiler API
     PassThroughProfiler
     PyTorchProfiler
     SimpleProfiler
+    XLAProfiler
 
 
 Trainer API

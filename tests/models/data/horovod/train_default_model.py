@@ -37,7 +37,7 @@ else:
     print("You requested to import Horovod which is missing or not supported for your OS.")
 
 from tests.helpers import BoringModel  # noqa: E402
-from tests.helpers.utils import reset_seed, set_random_master_port  # noqa: E402
+from tests.helpers.utils import reset_seed, set_random_main_port  # noqa: E402
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--trainer-options", required=True)
@@ -46,7 +46,7 @@ parser.add_argument("--on-gpu", action="store_true", default=False)
 
 def run_test_from_config(trainer_options, on_gpu, check_size=True):
     """Trains the default model with the given config."""
-    set_random_master_port()
+    set_random_main_port()
     reset_seed()
 
     ckpt_path = trainer_options["weights_save_path"]

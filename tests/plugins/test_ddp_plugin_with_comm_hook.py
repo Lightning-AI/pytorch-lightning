@@ -34,7 +34,7 @@ def test_ddp_fp16_compress_comm_hook(tmpdir):
     trainer = Trainer(
         max_epochs=1,
         gpus=2,
-        plugins=[training_type_plugin],
+        strategy=training_type_plugin,
         default_root_dir=tmpdir,
         sync_batchnorm=True,
         fast_dev_run=True,
@@ -58,7 +58,7 @@ def test_ddp_sgd_comm_hook(tmpdir):
     trainer = Trainer(
         max_epochs=1,
         gpus=2,
-        plugins=[training_type_plugin],
+        strategy=training_type_plugin,
         default_root_dir=tmpdir,
         sync_batchnorm=True,
         fast_dev_run=True,
@@ -83,7 +83,7 @@ def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
     trainer = Trainer(
         max_epochs=1,
         gpus=2,
-        plugins=[training_type_plugin],
+        strategy=training_type_plugin,
         default_root_dir=tmpdir,
         sync_batchnorm=True,
         fast_dev_run=True,
@@ -103,7 +103,7 @@ def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
     trainer = Trainer(
         max_epochs=1,
         gpus=2,
-        plugins=[training_type_plugin],
+        strategy=training_type_plugin,
         default_root_dir=tmpdir,
         sync_batchnorm=True,
         fast_dev_run=True,
@@ -130,7 +130,7 @@ def test_ddp_post_local_sgd_comm_hook(tmpdir):
     trainer = Trainer(
         fast_dev_run=True,
         gpus=2,
-        plugins=[training_type_plugin],
+        strategy=training_type_plugin,
         default_root_dir=tmpdir,
         sync_batchnorm=True,
     )

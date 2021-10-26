@@ -274,31 +274,13 @@ class HookedModel(BoringModel):
     @staticmethod
     def _auto_train_batch(trainer, model, batches, device=torch.device("cpu"), current_epoch=0, **kwargs):
         using_native_amp = kwargs.get("amp_backend") == "native"
-        using_deepspeed = kwargs.get("plugins") == "deepspeed"
-        using_plugin = kwargs.get("amp_backend") or kwargs.get("plugins")
+        using_deepspeed = kwargs.get("strategy") == "deepspeed"
+        using_plugin = kwargs.get("amp_backend") or kwargs.get("strategy")
         out = []
         on_before_optimizer_step = [
             dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY, 0)),
             dict(name="on_before_optimizer_step", args=(ANY, 0)),
         ]
-
-        # deepspeed handles gradient clipping internally
-        configure_gradient_clipping = (
-            []
-            if using_deepspeed
-            else [
-                dict(
-                    name="clip_gradients",
-                    args=(ANY,),
-                    kwargs=dict(gradient_clip_val=None, gradient_clip_algorithm=None),
-                ),
-                dict(
-                    name="configure_gradient_clipping",
-                    args=(ANY, 0),
-                    kwargs=dict(gradient_clip_val=None, gradient_clip_algorithm=None),
-                ),
-            ]
-        )
         for i in range(batches):
             out.extend(
                 [
@@ -323,7 +305,16 @@ class HookedModel(BoringModel):
                     *([dict(name="backward", args=(ANY, ANY, 0))] if not using_deepspeed else []),
                     dict(name="Callback.on_after_backward", args=(trainer, model)),
                     dict(name="on_after_backward"),
-                    *configure_gradient_clipping,
+                    dict(
+                        name="clip_gradients",
+                        args=(ANY,),
+                        kwargs=dict(gradient_clip_val=None, gradient_clip_algorithm=None),
+                    ),
+                    dict(
+                        name="configure_gradient_clipping",
+                        args=(ANY, 0),
+                        kwargs=dict(gradient_clip_val=None, gradient_clip_algorithm=None),
+                    ),
                     *(on_before_optimizer_step if using_plugin else []),
                     dict(
                         name="optimizer_step",
@@ -339,8 +330,8 @@ class HookedModel(BoringModel):
 
     @staticmethod
     def _manual_train_batch(trainer, model, batches, device=torch.device("cpu"), **kwargs):
-        using_deepspeed = kwargs.get("plugins") == "deepspeed"
-        using_plugin = kwargs.get("amp_backend") or kwargs.get("plugins")
+        using_deepspeed = kwargs.get("strategy") == "deepspeed"
+        using_plugin = kwargs.get("amp_backend") or kwargs.get("strategy")
         out = []
         for i in range(batches):
             out.extend(
@@ -438,14 +429,14 @@ class HookedModel(BoringModel):
 @RunIf(deepspeed=True, min_gpus=1, special=True)
 def test_trainer_model_hook_system_fit_deepspeed_automatic_optimization(tmpdir):
     _run_trainer_model_hook_system_fit(
-        dict(gpus=1, precision=16, plugins="deepspeed"), tmpdir, automatic_optimization=True
+        dict(gpus=1, precision=16, strategy="deepspeed"), tmpdir, automatic_optimization=True
     )
 
 
 @RunIf(deepspeed=True, min_gpus=1, special=True)
 def test_trainer_model_hook_system_fit_deepspeed_manual_optimization(tmpdir):
     _run_trainer_model_hook_system_fit(
-        dict(gpus=1, precision=16, plugins="deepspeed"), tmpdir, automatic_optimization=False
+        dict(gpus=1, precision=16, strategy="deepspeed"), tmpdir, automatic_optimization=False
     )
 
 
@@ -521,18 +512,18 @@ def _run_trainer_model_hook_system_fit(kwargs, tmpdir, automatic_optimization):
         dict(name="configure_callbacks"),
         dict(name="Callback.on_before_accelerator_backend_setup", args=(trainer, model)),
         # DeepSpeed needs the batch size to figure out throughput logging
-        *([dict(name="train_dataloader")] if kwargs.get("plugins") == "deepspeed" else []),
+        *([dict(name="train_dataloader")] if kwargs.get("strategy") == "deepspeed" else []),
         dict(name="Callback.setup", args=(trainer, model), kwargs=dict(stage="fit")),
         dict(name="setup", kwargs=dict(stage="fit")),
         dict(name="configure_sharded_model"),
         dict(name="Callback.on_configure_sharded_model", args=(trainer, model)),
         # DeepSpeed skips initializing optimizers here as they are handled via config
-        *([dict(name="configure_optimizers")] if kwargs.get("plugins") != "deepspeed" else []),
+        *([dict(name="configure_optimizers")] if kwargs.get("strategy") != "deepspeed" else []),
         dict(name="Callback.on_fit_start", args=(trainer, model)),
         dict(name="on_fit_start"),
         # TODO: explore whether DeepSpeed can have the same flow for optimizers
         # DeepSpeed did not find any optimizer in the config so they are loaded here
-        *([dict(name="configure_optimizers")] if kwargs.get("plugins") == "deepspeed" else []),
+        *([dict(name="configure_optimizers")] if kwargs.get("strategy") == "deepspeed" else []),
         dict(name="Callback.on_pretrain_routine_start", args=(trainer, model)),
         dict(name="on_pretrain_routine_start"),
         dict(name="Callback.on_pretrain_routine_end", args=(trainer, model)),
@@ -616,14 +607,13 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         limit_val_batches=0,
         enable_progress_bar=False,
         enable_model_summary=False,
-        resume_from_checkpoint=best_model_path,
         callbacks=[callback],
     )
     assert called == [
         dict(name="Callback.on_init_start", args=(trainer,)),
         dict(name="Callback.on_init_end", args=(trainer,)),
     ]
-    trainer.fit(model)
+    trainer.fit(model, ckpt_path=best_model_path)
     saved_ckpt = {
         "callbacks": ANY,
         "epoch": 2,  # TODO: wrong saved epoch

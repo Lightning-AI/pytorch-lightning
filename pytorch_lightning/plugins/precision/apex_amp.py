@@ -11,15 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Dict, Optional, Sequence
+from typing import Any, Callable, Dict, Optional, Sequence, Union
 
 import torch
 from torch import Tensor
-from torch.optim import Optimizer
+from torch.nn import Module
+from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _PARAMETERS
 
 if _APEX_AVAILABLE:
@@ -29,13 +31,19 @@ if _APEX_AVAILABLE:
 class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     """Mixed Precision Plugin based on Nvidia/Apex (https://github.com/NVIDIA/apex)"""
 
+    backend = AMPType.APEX
+
     def __init__(self, amp_level: str = "O2") -> None:
+        if not _APEX_AVAILABLE:
+            raise MisconfigurationException(
+                "You have asked for Apex AMP but you have not installed it."
+                " Install `apex` using this guide: https://github.com/NVIDIA/apex"
+            )
         super().__init__()
-        self.backend = AMPType.APEX
         self.amp_level = amp_level
         self._connected = False
 
-    def master_params(self, optimizer: Optimizer) -> _PARAMETERS:
+    def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
         return amp.master_params(optimizer)
 
     def dispatch(self, trainer: "pl.Trainer") -> None:
@@ -90,18 +98,22 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def pre_optimizer_step(
         self,
-        model: "pl.LightningModule",
+        model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Callable,
+        lambda_closure: Callable[[], Any],
         **kwargs: Any,
     ) -> bool:
         """Hook to do something before each optimizer step."""
+        if isinstance(optimizer, LBFGS):
+            raise MisconfigurationException(
+                f"apex AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
+            )
         result = lambda_closure()  # APEX amp does not support closures
         super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
         skipped_backward = result is None
         # in manual optimization, the closure does not return a value
-        if not model.automatic_optimization or not skipped_backward:
+        if not isinstance(model, pl.LightningModule) or not model.automatic_optimization or not skipped_backward:
             # the following should be in a `optimizer_step` hook but we don't have one in the precision plugin.
             optimizer.step(**kwargs)
         return False

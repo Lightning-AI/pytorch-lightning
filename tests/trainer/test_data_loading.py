@@ -90,7 +90,7 @@ def test_replace_distributed_sampler(tmpdir, mode):
     model.test_epoch_end = None
 
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_test_batches=2, plugins="ddp_find_unused_parameters_false", num_processes=1
+        default_root_dir=tmpdir, limit_test_batches=2, strategy="ddp_find_unused_parameters_false", num_processes=1
     )
     if mode == 1:
         match = escape("missing attributes are ['num_features']")
@@ -122,7 +122,7 @@ class TestSpawnBoringModel(BoringModel):
                 else:
                     warn_str = "Consider setting persistent_workers=True"
             else:
-                warn_str = "Consider setting accelerator=ddp"
+                warn_str = "Consider setting strategy=ddp"
 
             return warn_str
 
@@ -136,8 +136,8 @@ class TestSpawnBoringModel(BoringModel):
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("num_workers", [0, 1])
 def test_dataloader_warnings(tmpdir, num_workers):
-    trainer = Trainer(default_root_dir=tmpdir, accelerator="ddp_spawn", num_processes=2, fast_dev_run=4)
-    assert trainer.accelerator_connector._distrib_type == DistributedType.DDP_SPAWN
+    trainer = Trainer(default_root_dir=tmpdir, strategy="ddp_spawn", num_processes=2, fast_dev_run=4)
+    assert trainer._accelerator_connector._distrib_type == DistributedType.DDP_SPAWN
     trainer.fit(TestSpawnBoringModel(num_workers))
 
 
