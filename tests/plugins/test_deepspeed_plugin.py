@@ -203,17 +203,20 @@ def test_deepspeed_defaults(tmpdir):
 
 
 @RunIf(min_gpus=1, deepspeed=True, special=True)
-def test_warn_deepspeed_override_backward(tmpdir):
-    """Test to ensure that if the backward hook in the LightningModule is overridden, we throw a warning."""
-
+def test_warn_deepspeed_overrides(tmpdir):
     class TestModel(BoringModel):
         def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
             return loss.backward()
 
     model = TestModel()
-    trainer = Trainer(fast_dev_run=True, default_root_dir=tmpdir, strategy=DeepSpeedPlugin(), gpus=1, precision=16)
+    trainer = Trainer(
+        fast_dev_run=True, default_root_dir=tmpdir, strategy=DeepSpeedPlugin(), gpus=1, precision=16, track_grad_norm=2
+    )
+    from pytorch_lightning.plugins.precision.deepspeed_precision import warning_cache
+
     with pytest.warns(UserWarning, match="will be ignored since DeepSpeed handles the backward"):
         trainer.fit(model)
+    assert any("track_grad_norm=2.0)' but this is not supported" in w for w in warning_cache)
 
 
 @RunIf(min_gpus=1, deepspeed=True)

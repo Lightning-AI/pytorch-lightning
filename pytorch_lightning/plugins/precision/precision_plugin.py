@@ -127,6 +127,7 @@ class PrecisionPlugin(CheckpointHooks):
         self, model: Union["pl.LightningModule", Module], optimizer: Optimizer, optimizer_idx: int
     ) -> None:
         trainer = model.trainer
+        assert isinstance(trainer, pl.Trainer)
         # TODO: this is done for the entire model but should be changed to per-optimizer
         if optimizer_idx == 0:
             self._track_grad_norm(trainer)

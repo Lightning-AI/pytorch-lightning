@@ -78,3 +78,12 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
         """DeepSpeed handles gradient clipping internally."""
+
+    def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
+        if float(trainer.track_grad_norm) == -1:
+            return
+        # the gradients are not available in the model due to gradient partitioning in zero stage >= 2
+        warning_cache.warn(
+            f"You set `Trainer(track_grad_norm={trainer.track_grad_norm!r})' but this is not supported for DeepSpeed."
+            " The setting will be ignored."
+        )

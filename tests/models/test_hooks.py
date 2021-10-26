@@ -306,7 +306,7 @@ class HookedModel(BoringModel):
                     dict(name="Callback.on_after_backward", args=(trainer, model)),
                     dict(name="on_after_backward"),
                     *(on_before_optimizer_step if using_plugin else []),
-                    dict(name="log_grad_norm", args=ANY),
+                    *([dict(name="log_grad_norm", args=ANY)] if not using_deepspeed else []),
                     dict(
                         name="clip_gradients",
                         args=(ANY,),
@@ -360,7 +360,7 @@ class HookedModel(BoringModel):
                     dict(name="on_before_optimizer_step", args=(ANY, 0)),
                     # without a precision plugin, we execute the closure inside the `optimizer.step`
                     *([] if using_plugin else [dict(name="closure")]),
-                    dict(name="log_grad_norm", args=ANY),
+                    *([dict(name="log_grad_norm", args=ANY)] if not using_deepspeed else []),
                     dict(
                         name="clip_gradients",
                         args=(ANY,),
