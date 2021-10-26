@@ -92,7 +92,9 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def autocast_context_manager(self) -> autocast:
         if _TORCH_GREATER_EQUAL_DEV_1_10:
-            return autocast(self.device)
+            # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
+            # https://github.com/pytorch/pytorch/issues/67233
+            return autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16" else torch.half)
         return autocast()
 
     @contextmanager

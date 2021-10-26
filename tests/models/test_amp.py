@@ -54,11 +54,11 @@ class AMPTestModel(BoringModel):
         output = self._step(batch)
         return {"y": output}
 
-    def predict(self, batch, batch_idx, dataloader_idx=None):
+    def predict_step(self, batch, batch_idx, dataloader_idx=None):
         self._assert_autocast_enabled()
         output = self(batch)
-        bfloat16 = self.trainer.precision_plugin.is_bfloat16
-        assert output.dtype == torch.float16 if not bfloat16 else torch.bfloat16
+        is_bfloat16 = self.trainer.precision_plugin.precision == "bf16"
+        assert output.dtype == torch.float16 if not is_bfloat16 else torch.bfloat16
         return output
 
     def _assert_autocast_enabled(self):

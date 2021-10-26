@@ -183,7 +183,8 @@ def test_cpu_amp_precision_context_manager(tmpdir):
     assert plugin.scaler is None
     context_manager = plugin.autocast_context_manager()
     assert isinstance(context_manager, torch.autocast)
-    assert context_manager.fast_dtype == torch.bfloat16
+    # check with str due to a bug upstream: https://github.com/pytorch/pytorch/issues/65786
+    assert str(context_manager.fast_dtype) == str(torch.bfloat16)
 
 
 def test_precision_selection_raises(monkeypatch):
