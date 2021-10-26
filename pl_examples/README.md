@@ -7,13 +7,15 @@ ______________________________________________________________________
 
 ## MNIST Examples
 
-The following examples contain 5 MNIST examples showing how to gradually convert from pure PyTorch to PyTorch Lightning.
+5 MNIST examples showing how to gradually convert from pure PyTorch to PyTorch Lightning.
+
+The transition through [LightningLite](https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.rst) from pure PyTorch is optional but it might helpful to learn about it.
 
 - [MNIST with vanilla PyTorch](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_1_pytorch.py)
 - [MNIST with LightningLite](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_2_lite.py)
 - [MNIST LightningLite to PyTorchLightning](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_3_lite_to_lightning.py)
-- [Optional: MNIST LightningLite + Loops to PyTorchLightning](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_4_lite_to_lightning_and_loops.py)
-- [MNIST with PyTorchLightning](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_5_lightning.py)
+- [MNIST with LightningModule](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_4_lightning.py)
+- [MNIST with LightningModule + LightningDataModule](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_5_lightning_datamodule.py)
 
 ______________________________________________________________________
 

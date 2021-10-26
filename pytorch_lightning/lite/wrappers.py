@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import functools
 from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Union
 
 import torch
@@ -21,7 +20,6 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.accelerators import Accelerator
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 
 
@@ -102,30 +100,14 @@ class _LiteModule(nn.Module):
         self._module = module
         self._accelerator = accelerator
 
-        if isinstance(self._module, LightningModule):
-            self.training_step = self._apply_fn(self._module.training_step)
-            self.validation_step = self._apply_fn(self._module.validation_step)
-            self.test_step = self._apply_fn(self._module.test_step)
-            self.predict_step = self._apply_fn(self._module.predict_step)
-        else:
-            self.forward = self._apply_fn(self._module.forward)
-
-    def __getattr__(self, name: str) -> Any:
-        if "_modules" in self.__dict__:
-            # nn.Module properly instantiated.
-            if name in self.__dict__:
-                return self.__dict__[name]
-            elif name == "_module":
-                return self.__dict__["_modules"]["_module"]
-            return self._module.__getattr__(name)
-        return super().__getattr__(name)
-
     @property
     def module(self) -> nn.Module:
         return self._module
 
-    def _apply_fn(self, func: Callable) -> Callable:
-        precision_plugin = self._accelerator.precision_plugin
+    def forward(self, *args: Any, **kwargs: Any) -> Any:
+        """Casts all inputs to the right precision and handles autocast for operations in the module forward
+        method."""
+        precision = self._accelerator.precision_plugin.precision
         precision_to_type = {
             "mixed": torch.float16,
             16: torch.float16,
@@ -133,19 +115,14 @@ class _LiteModule(nn.Module):
             64: torch.float64,
         }
         # TODO (@awaelchli): let the precision plugin handle the conversion
-        to_type = precision_to_type[precision_plugin.precision]
+        to_type = precision_to_type[precision]
+        args, kwargs = apply_to_collection([args, kwargs], function=lambda t: t.to(to_type), dtype=Tensor)
 
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs) -> Any:
-            args, kwargs = apply_to_collection([args, kwargs], function=lambda t: t.to(to_type), dtype=Tensor)
+        with self._accelerator.precision_plugin.forward_context():
+            output = self.module(*args, **kwargs)
 
-            with precision_plugin.forward_context():
-                output = func(*args, **kwargs)
-
-            output = apply_to_collection(output, function=lambda t: t.to(torch.get_default_dtype()), dtype=Tensor)
-            return output
-
-        return wrapper
+        output = apply_to_collection(output, function=lambda t: t.to(torch.get_default_dtype()), dtype=Tensor)
+        return output
 
 
 class _LiteDataLoader(DataLoader):

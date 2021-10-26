@@ -16,9 +16,10 @@ import argparse
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
+import torchvision.transforms as T
+from mnist_datamodule import MNIST
 from torch.optim.lr_scheduler import StepLR
 from torchmetrics.classification import Accuracy
-from torchvision import datasets, transforms
 
 from pl_examples.basic_examples.mnist_examples.image_classifier_1_pytorch import Net
 from pytorch_lightning import seed_everything
@@ -69,19 +70,17 @@ class Lite(LightningLite):
     def run(self, args):
         train_kwargs = {"batch_size": args.batch_size}
         test_kwargs = {"batch_size": args.test_batch_size}
-        transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-        train_dataset = datasets.MNIST("./data", train=True, download=True, transform=transform)
-        test_dataset = datasets.MNIST("./data", train=False, transform=transform)
+        transform = T.Compose([T.ToTensor(), T.Normalize((0.1307,), (0.3081,))])
+        train_dataset = MNIST("./data", train=True, download=True, transform=transform)
+        test_dataset = MNIST("./data", train=False, transform=transform)
         train_loader = torch.utils.data.DataLoader(train_dataset, **train_kwargs)
         test_loader = torch.utils.data.DataLoader(test_dataset, **test_kwargs)
 
-        # this line ensures distributed training works properly with your dataloaders
         train_loader, test_loader = self.setup_dataloaders(train_loader, test_loader)
 
         model = Net()
         optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
 
-        # this line ensures distributed training works properly the selected strategy.
         model, optimizer = self.setup(model, optimizer)
 
         scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
@@ -95,7 +94,7 @@ class Lite(LightningLite):
 
 
 if __name__ == "__main__":
-    # Training settings
+
     parser = argparse.ArgumentParser(description="LightningLite MNIST Example")
     parser.add_argument(
         "--batch-size", type=int, default=64, metavar="N", help="input batch size for training (default: 64)"

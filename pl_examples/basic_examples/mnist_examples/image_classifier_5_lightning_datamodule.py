@@ -23,8 +23,9 @@ from torchmetrics.classification import Accuracy
 
 from pl_examples import cli_lightning_logo
 from pl_examples.basic_examples.mnist_examples.image_classifier_1_pytorch import Net
-from pytorch_lightning import LightningModule
+from pytorch_lightning import LightningDataModule, LightningModule
 from pytorch_lightning.utilities.cli import LightningCLI
+from pytorch_lightning.utilities.parsing import save_hyperparameters
 
 
 class ImageClassifier(LightningModule):
@@ -54,7 +55,11 @@ class ImageClassifier(LightningModule):
         optimizer = torch.optim.Adadelta(self.model.parameters(), lr=self.hparams.lr)
         return [optimizer], [torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=self.hparams.gamma)]
 
-    # Future LightningDataModule
+
+class MNISTDataModule(LightningDataModule):
+    def __init__(self, batch_size=32):
+        super().__init__()
+        save_hyperparameters(self)
 
     @property
     def transform(self):
@@ -73,7 +78,9 @@ class ImageClassifier(LightningModule):
 
 
 def cli_main():
-    cli = LightningCLI(ImageClassifier, seed_everything_default=1234, save_config_overwrite=True, run=False)
+    cli = LightningCLI(
+        ImageClassifier, MNISTDataModule, seed_everything_default=1234, save_config_overwrite=True, run=False
+    )
     cli.trainer.fit(cli.model, datamodule=cli.datamodule)
     cli.trainer.test(ckpt_path="best", datamodule=cli.datamodule)
 

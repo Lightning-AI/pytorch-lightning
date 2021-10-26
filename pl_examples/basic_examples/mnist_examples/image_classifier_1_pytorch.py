@@ -17,8 +17,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import torchvision.transforms as T
 from torch.optim.lr_scheduler import StepLR
-from torchvision import datasets, transforms
+
+from pl_examples.basic_examples.mnist_examples.mnist_datamodule import MNIST
 
 # Credit to the PyTorch Team
 # Taken from https://github.com/pytorch/examples/blob/master/mnist/main.py
@@ -98,7 +100,6 @@ def test(args, model, device, test_loader):
 
 
 def main():
-    # Training settings
     parser = argparse.ArgumentParser(description="PyTorch MNIST Example")
     parser.add_argument(
         "--batch-size", type=int, default=64, metavar="N", help="input batch size for training (default: 64)"
@@ -134,9 +135,9 @@ def main():
         train_kwargs.update(cuda_kwargs)
         test_kwargs.update(cuda_kwargs)
 
-    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-    train_dataset = datasets.MNIST("./data", train=True, download=True, transform=transform)
-    test_dataset = datasets.MNIST("./data", train=False, transform=transform)
+    transform = T.Compose([T.ToTensor(), T.Normalize((0.1307,), (0.3081,))])
+    train_dataset = MNIST("./data", train=True, download=True, transform=transform)
+    test_dataset = MNIST("./data", train=False, transform=transform)
     train_loader = torch.utils.data.DataLoader(train_dataset, **train_kwargs)
     test_loader = torch.utils.data.DataLoader(test_dataset, **test_kwargs)
 

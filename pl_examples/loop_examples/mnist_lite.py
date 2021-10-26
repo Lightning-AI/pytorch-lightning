@@ -17,65 +17,15 @@ from typing import Any
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
+import torchvision.transforms as T
 from torch.optim.lr_scheduler import StepLR
 from torchmetrics import Accuracy
-from torchvision import datasets, transforms
 
 from pl_examples.basic_examples.mnist_examples.image_classifier_1_pytorch import Net
-from pytorch_lightning import LightningDataModule, LightningModule, seed_everything
+from pl_examples.basic_examples.mnist_examples.mnist_datamodule import MNIST
+from pytorch_lightning import seed_everything
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.loops import Loop
-
-
-class MNISTDataModule(LightningDataModule):
-    def __init__(self, batch_size):
-        super().__init__()
-        self.batch_size = batch_size
-
-    @property
-    def transform(self):
-        return transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-
-    def prepare_data(self) -> None:
-        datasets.MNIST("./data", download=True)
-
-    def setup(self, stage=None) -> None:
-        self.train_dataset = datasets.MNIST("./data", train=True, download=False, transform=self.transform)
-        self.test_dataset = datasets.MNIST("./data", train=False, download=False, transform=self.transform)
-
-    def train_dataloader(self):
-        return torch.utils.data.DataLoader(self.train_dataset, batch_size=self.batch_size)
-
-    def test_dataloader(self):
-        return torch.utils.data.DataLoader(self.test_dataset, batch_size=self.batch_size)
-
-
-class LiftModel(LightningModule):
-    def __init__(self, model, lr, gamma):
-        super().__init__()
-        self.save_hyperparameters()
-        self.model = model
-        self.val_acc = Accuracy()
-
-    def forward(self, x):
-        return self.model(x)
-
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-        logits = self(x)
-        loss = F.nll_loss(logits, y.long())
-        return loss
-
-    def test_step(self, batch, batch_idx):
-        x, y = batch
-        logits = self(x)
-        loss = F.nll_loss(logits, y.long())
-        self.val_acc(logits, y.long())
-        return loss
-
-    def configure_optimizers(self):
-        optimizer = optim.Adadelta(self.parameters(), lr=self.hparams.lr)
-        return optimizer, StepLR(optimizer, step_size=1, gamma=self.hparams.gamma)
 
 
 class TrainLoop(Loop):
@@ -96,9 +46,10 @@ class TrainLoop(Loop):
         self.dataloader_iter = enumerate(self.dataloader)
 
     def advance(self, epoch) -> None:
-        batch_idx, batch = next(self.dataloader_iter)
+        batch_idx, (data, target) = next(self.dataloader_iter)
         self.optimizer.zero_grad()
-        loss = self.model.training_step(batch, batch_idx)
+        output = self.model(data)
+        loss = F.nll_loss(output, target)
         self.lite.backward(loss)
         self.optimizer.zero_grad()
 
@@ -128,6 +79,7 @@ class TestLoop(Loop):
         self.args = args
         self.model = model
         self.dataloader = dataloader
+        self.accuracy = Accuracy()
 
     @property
     def done(self) -> bool:
@@ -136,10 +88,13 @@ class TestLoop(Loop):
     def reset(self):
         self.dataloader_iter = enumerate(self.dataloader)
         self.test_loss = 0
+        self.accuracy.reset()
 
     def advance(self) -> None:
-        batch_idx, batch = next(self.dataloader_iter)
-        self.test_loss += self.model.test_step(batch, batch_idx)
+        _, (data, target) = next(self.dataloader_iter)
+        output = self.model(data)
+        self.test_loss += F.nll_loss(output, target)
+        self.accuracy(output, target)
 
         if self.args.dry_run:
             raise StopIteration
@@ -148,17 +103,17 @@ class TestLoop(Loop):
         test_loss = self.lite.all_gather(self.test_loss).sum() / len(self.dataloader.dataset)
 
         if self.lite.is_global_zero:
-            print(f"\nTest set: Average loss: {test_loss:.4f}, Accuracy: ({self.model.val_acc.compute():.0f}%)\n")
+            print(f"\nTest set: Average loss: {test_loss:.4f}, Accuracy: ({self.accuracy.compute():.0f}%)\n")
 
 
-class RunLoop(Loop):
-    def __init__(self, lite, args, model, datamodule):
+class MainLoop(Loop):
+    def __init__(self, lite, args, model, optimizer, scheduler, train_loader, test_loader):
         super().__init__()
         self.lite = lite
         self.args = args
-        self.model = model
-        self.datamodule = datamodule
         self.epoch = 0
+        self.train_loop = TrainLoop(self.lite, self.args, model, optimizer, scheduler, train_loader)
+        self.test_loop = TestLoop(self.lite, self.args, model, test_loader)
 
     @property
     def done(self) -> bool:
@@ -166,21 +121,6 @@ class RunLoop(Loop):
 
     def reset(self):
         pass
-
-    def on_run_start(self, *args: Any, **kwargs: Any) -> None:
-        if self.lite.is_global_zero:
-            self.datamodule.prepare_data()
-        self.datamodule.setup()
-
-        train_loader, test_loader = self.lite.setup_dataloaders(
-            self.datamodule.train_dataloader(), self.datamodule.train_dataloader()
-        )
-
-        optimizer, scheduler = self.model.configure_optimizers()
-        model, optimizer = self.lite.setup(self.model, optimizer)
-
-        self.train_loop = TrainLoop(self.lite, self.args, model, optimizer, scheduler, train_loader)
-        self.test_loop = TestLoop(self.lite, self.args, model, test_loader)
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
         self.train_loop.run(self.epoch)
@@ -190,24 +130,33 @@ class RunLoop(Loop):
             raise StopIteration
 
         self.epoch += 1
+        self.lite.val_acc.reset()
 
 
 class Lite(LightningLite):
-    def run(self, args):
+    def run(self, hparams):
+        transform = T.Compose([T.ToTensor(), T.Normalize((0.1307,), (0.3081,))])
+        train_dataset = MNIST("./data", train=True, download=True, transform=transform)
+        test_dataset = MNIST("./data", train=False, transform=transform)
+        train_loader = torch.utils.data.DataLoader(train_dataset, hparams.batch_size)
+        test_loader = torch.utils.data.DataLoader(test_dataset, hparams.test_batch_size)
 
-        model = LiftModel(Net(), args.lr, args.gamma)
-        dm = MNISTDataModule(args.batch_size)
+        train_loader, test_loader = self.setup_dataloaders(train_loader, test_loader)
 
-        loop = RunLoop(self, args, model, dm)
-        loop.run()
+        model = Net()
+        optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+
+        model, optimizer = self.setup(model, optimizer)
+        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+
+        MainLoop(self, args, model, optimizer, scheduler, train_loader, test_loader).run()
 
         if args.save_model and self.is_global_zero:
             torch.save(model.state_dict(), "mnist_cnn.pt")
 
 
 if __name__ == "__main__":
-    # Training settings
-    parser = argparse.ArgumentParser(description="LightningLite MNIST Example with Lightning Loops")
+    parser = argparse.ArgumentParser(description="LightningLite MNIST Example with Lightning Loops.")
     parser.add_argument(
         "--batch-size", type=int, default=64, metavar="N", help="input batch size for training (default: 64)"
     )
