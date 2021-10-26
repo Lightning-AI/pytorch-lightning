@@ -142,7 +142,7 @@ class _LiteDataLoader(DataLoader):
     def device(self) -> Optional[torch.device]:
         return self._device
 
-    def __iter__(self) -> Union[Iterator[Any], Generator[Any, None, None]]:  # type: ignore
+    def __iter__(self) -> Union[Iterator[Any], Generator[Any, None, None]]:
         iterator = super().__iter__()
         if self._device is None:
             return iterator
