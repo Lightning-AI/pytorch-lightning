@@ -214,6 +214,7 @@ class AbstractDataFetcher(ABC):
 
     def teardown(self) -> None:
         self.reset()
+        self.dataloader = None
 
 
 class DataFetcher(AbstractDataFetcher):
