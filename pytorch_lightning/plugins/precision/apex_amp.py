@@ -95,7 +95,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
                 if state is not None:
                     break
-    
+
     def pre_optimizer_step(self, *_: Any, **__: Any) -> None:
         # override because the `on_before_optimizer_step` hook call is already in `optimizer_step`
         pass
