@@ -31,6 +31,7 @@ from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, rank_zero_warn, set_shared_parameters
+from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -265,6 +266,15 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         return_queue = smp.SimpleQueue()
         xmp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), **self.get_mp_spawn_kwargs())
         return return_queue.get()
+
+    def _wrapped_function(
+        self, process_idx: int, function: Callable, args: Any, kwargs: Any, return_queue: SimpleQueue
+    ) -> None:
+        self._worker_setup(process_idx)
+        result = function(*args, **kwargs)
+        if self.local_rank == 0:
+            return_queue.put(move_data_to_device(result, "cpu"))
+        self.barrier("end-process")
 
     def _worker_setup(self, process_idx: int):
         reset_seed()
