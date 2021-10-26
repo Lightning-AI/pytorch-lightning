@@ -132,7 +132,6 @@ def get_len(dataloader: DataLoader) -> Union[int, float]:
     """
 
     if has_len(dataloader):
-    # if has_len_all_ranks(dataloader):
         return len(dataloader)
 
     return float("inf")
