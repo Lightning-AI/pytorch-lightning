@@ -27,7 +27,7 @@ from torch.utils.data.dataset import Dataset, Subset
 
 from pl_examples import _DATASETS_PATH
 from pl_examples.basic_examples.mnist_datamodule import MNIST
-from pl_examples.basic_examples.simple_image_classifier import LitClassifier
+from pl_examples.basic_examples.mnist_examples.image_classifier_4_lightning import ImageClassifier
 from pytorch_lightning import LightningDataModule, seed_everything, Trainer
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loops.base import Loop
@@ -241,7 +241,7 @@ class KFoldLoop(Loop):
 #############################################################################################
 
 if __name__ == "__main__":
-    model = LitClassifier()
+    model = ImageClassifier()
     datamodule = MNISTKFoldDataModule()
     trainer = Trainer(
         max_epochs=10,

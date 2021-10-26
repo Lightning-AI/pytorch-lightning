@@ -28,7 +28,7 @@ from pytorch_lightning.utilities.cli import LightningCLI
 
 
 class ImageClassifier(LightningModule):
-    def __init__(self, model, lr=1.0, gamma=0.7, batch_size=32):
+    def __init__(self, model=None, lr=1.0, gamma=0.7, batch_size=32):
         super().__init__()
         self.save_hyperparameters()
         self.model = model or Net()
