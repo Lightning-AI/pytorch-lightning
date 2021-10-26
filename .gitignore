@@ -139,6 +139,7 @@ mnist/
 legacy/checkpoints/
 *.gz
 *ubyte
+*0.png
 
 # pl tests
 ml-runs/
