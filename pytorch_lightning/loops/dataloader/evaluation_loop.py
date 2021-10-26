@@ -124,6 +124,7 @@ class EvaluationLoop(DataLoaderLoop):
         # free memory
         self.outputs = []
         self.data_fetcher.reset()
+        self.data_fetcher = None
 
         # with a single dataloader don't pass a 2D list
         if len(outputs) > 0 and self.num_dataloaders == 1:
