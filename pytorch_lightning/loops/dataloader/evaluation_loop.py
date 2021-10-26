@@ -19,6 +19,7 @@ from torch.utils.data.dataloader import DataLoader
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, ResultCollection
+from pytorch_lightning.utilities.fetching import AbstractDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
@@ -34,6 +35,7 @@ class EvaluationLoop(DataLoaderLoop):
         self._results = ResultCollection(training=False)
         self._max_batches: Optional[Union[int, Sequence[int]]] = None
         self._has_run: bool = False
+        self.data_fetcher: Optional[AbstractDataFetcher] = None
 
     @property
     def num_dataloaders(self) -> int:
@@ -101,7 +103,9 @@ class EvaluationLoop(DataLoaderLoop):
 
         dataloader_idx: int = self.current_dataloader_idx
         dataloader = self.trainer.training_type_plugin.process_dataloader(self.current_dataloader)
-        dataloader = self.trainer._data_connector.get_profiled_dataloader(dataloader, dataloader_idx=dataloader_idx)
+        self.data_fetcher = dataloader = self.trainer._data_connector.get_profiled_dataloader(
+            dataloader, dataloader_idx=dataloader_idx
+        )
         dl_max_batches = self._max_batches[dataloader_idx]
 
         dl_outputs = self.epoch_loop.run(dataloader, dataloader_idx, dl_max_batches, self.num_dataloaders)
@@ -119,6 +123,7 @@ class EvaluationLoop(DataLoaderLoop):
 
         # free memory
         self.outputs = []
+        self.data_fetcher.reset()
 
         # with a single dataloader don't pass a 2D list
         if len(outputs) > 0 and self.num_dataloaders == 1:
@@ -138,8 +143,6 @@ class EvaluationLoop(DataLoaderLoop):
 
         # enable train mode again
         self._on_evaluation_model_train()
-
-        self.trainer._data_connector.teardown(self.trainer.state.stage)
 
         return eval_loop_results
 

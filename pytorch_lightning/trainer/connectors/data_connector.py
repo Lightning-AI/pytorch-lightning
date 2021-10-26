@@ -240,17 +240,17 @@ class DataConnector:
         if hasattr(datamodule, "data_pipeline"):
             model.data_pipeline = datamodule.data_pipeline
 
-    def teardown(self, stage: Optional[RunningStage] = None) -> None:
-        if (stage is None or stage == RunningStage.TRAINING) and self.train_data_fetcher:
+    def teardown(self) -> None:
+        if self.train_data_fetcher:
             self.train_data_fetcher.teardown()
             self.train_data_fetcher = None
-        if (stage is None or stage == RunningStage.VALIDATING) and self.validate_data_fetcher:
+        if self.validate_data_fetcher:
             self.validate_data_fetcher.teardown()
             self.validate_data_fetcher = None
-        if (stage is None or stage == RunningStage.TESTING) and self.test_data_fetcher:
+        if self.test_data_fetcher:
             self.test_data_fetcher.teardown()
             self.test_data_fetcher = None
-        if (stage is None or stage == RunningStage.SANITY_CHECKING) and self.sanity_check_data_fetcher:
+        if self.sanity_check_data_fetcher:
             self.sanity_check_data_fetcher.teardown()
             self.sanity_check_data_fetcher = None
 

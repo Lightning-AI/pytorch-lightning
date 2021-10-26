@@ -494,6 +494,8 @@ class CombinedLoader:
     def reset(self):
         if self._iterator:
             self._iterator._loader_iters = None
+        if self.loaders:
+            self.loaders._iterator = None
         self._iterator = None
 
 
