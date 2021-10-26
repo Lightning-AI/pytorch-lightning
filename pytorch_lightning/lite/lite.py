@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, overload, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -275,7 +275,19 @@ class LightningLite(ABC):
         with self._precision_plugin.forward_context():
             yield
 
+    @overload
+    def to_device(self, obj: nn.Module) -> nn.Module:
+        ...
+
+    @overload
+    def to_device(self, obj: Tensor) -> Tensor:
+        ...
+
+    @overload
     def to_device(self, obj: Any) -> Any:
+        ...
+
+    def to_device(self, obj: Union[nn.Module, Tensor, Any]) -> Union[nn.Module, Tensor, Any]:
         """Move a :class:`torch.nn.Module` or a collection of tensors to the current device, if it is not already
         on that device.
 
