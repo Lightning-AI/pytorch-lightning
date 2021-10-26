@@ -97,14 +97,16 @@ In Python scripts, it's recommended you use a main function to call the Trainer.
 
     from argparse import ArgumentParser
 
+
     def main(hparams):
         model = LightningModule()
         trainer = Trainer(gpus=hparams.gpus)
         trainer.fit(model)
 
-    if __name__ == '__main__':
+
+    if __name__ == "__main__":
         parser = ArgumentParser()
-        parser.add_argument('--gpus', default=None)
+        parser.add_argument("--gpus", default=None)
         args = parser.parse_args()
 
         main(args)
@@ -123,12 +125,14 @@ So you can run it like so:
 
     from argparse import ArgumentParser
 
+
     def main(args):
         model = LightningModule()
         trainer = Trainer.from_argparse_args(args)
         trainer.fit(model)
 
-    if __name__ == '__main__':
+
+    if __name__ == "__main__":
         parser = ArgumentParser()
         parser = Trainer.add_argparse_args(parser)
         args = parser.parse_args()
@@ -204,53 +208,41 @@ Trainer flags
 accelerator
 ^^^^^^^^^^^
 
-.. raw:: html
+Supports passing different accelerator types (``"cpu", "gpu", "tpu", "ipu", "auto"``)
+as well as custom accelerator instances.
 
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/distributed_backend.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/distributed_backend.mp4"></video>
+.. code-block:: python
 
-|
+    # CPU accelerator
+    trainer = Trainer(accelerator="cpu")
 
-The accelerator backend to use (previously known as distributed_backend).
+    # Training with GPU Accelerator using 2 gpus
+    trainer = Trainer(devices=2, accelerator="gpu")
 
-- (``'dp'``) is DataParallel (split batch among GPUs of same machine)
-- (``'ddp'``) is DistributedDataParallel (each gpu on each node trains, and syncs grads)
-- (``'ddp_cpu'``) is DistributedDataParallel on CPU (same as ``'ddp'``, but does not use GPUs.
-  Useful for multi-node CPU training or single-node debugging. Note that this will **not** give
-  a speedup on a single node, since Torch already makes efficient use of multiple CPUs on a single
-  machine.)
-- (``'ddp2'``) dp on node, ddp across nodes. Useful for things like increasing
-    the number of negative samples
+    # Training with TPU Accelerator using 8 tpu cores
+    trainer = Trainer(devices=8, accelerator="tpu")
 
-.. testcode::
+    # Training with GPU Accelerator using the DistributedDataParallel strategy
+    trainer = Trainer(devices=4, accelerator="gpu", strategy="ddp")
 
-    # default used by the Trainer
-    trainer = Trainer(accelerator=None)
+.. note:: The ``"auto"`` option recognizes the machine you are on, and selects the respective ``Accelerator``.
 
-Example::
+.. code-block:: python
 
-    # dp = DataParallel
-    trainer = Trainer(gpus=2, accelerator='dp')
-
-    # ddp = DistributedDataParallel
-    trainer = Trainer(gpus=2, num_nodes=2, accelerator='ddp')
-
-    # ddp2 = DistributedDataParallel + dp
-    trainer = Trainer(gpus=2, num_nodes=2, accelerator='ddp2')
-
-.. note:: This option does not apply to TPU. TPUs use ``'ddp'`` by default (over each core)
+    # If your machine has GPUs, it will use the GPU Accelerator for training
+    trainer = Trainer(devices=2, accelerator="auto")
 
 You can also modify hardware behavior by subclassing an existing accelerator to adjust for your needs.
 
 Example::
 
-    class MyOwnAcc(Accelerator):
+    class MyOwnAcc(CPUAccelerator):
         ...
 
     Trainer(accelerator=MyOwnAcc())
 
-.. warning:: Passing in custom accelerators is experimental but work is in progress to enable full compatibility.
+.. warning:: Passing training strategies (e.g., ``"ddp"``) to ``accelerator`` has been deprecated in v1.5.0
+    and will be removed in v1.7.0. Please use the ``strategy`` argument instead.
 
 accumulate_grad_batches
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -295,10 +287,10 @@ Use PyTorch AMP ('native') (available PyTorch 1.6+), or NVIDIA apex ('apex').
 .. testcode::
 
     # using PyTorch built-in AMP, default used by the Trainer
-    trainer = Trainer(amp_backend='native')
+    trainer = Trainer(amp_backend="native")
 
     # using NVIDIA Apex
-    trainer = Trainer(amp_backend='apex')
+    trainer = Trainer(amp_backend="apex")
 
 amp_level
 ^^^^^^^^^
@@ -341,7 +333,7 @@ before any training.
     trainer = Trainer(auto_scale_batch_size=None)
 
     # run batch size scaling, result overrides hparams.batch_size
-    trainer = Trainer(auto_scale_batch_size='binsearch')
+    trainer = Trainer(auto_scale_batch_size="binsearch")
 
     # call tune to find the batch size
     trainer.tune(model)
@@ -524,43 +516,8 @@ Example::
 checkpoint_callback
 ^^^^^^^^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/checkpoint_callback.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/checkpoint_callback.mp4"></video>
-
-|
-
-By default Lightning saves a checkpoint for you in your current working directory, with the state of your last training epoch,
-Checkpoints capture the exact value of all parameters used by a model.
-To disable automatic checkpointing, set this to `False`.
-
-.. code-block:: python
-
-    # default used by Trainer
-    trainer = Trainer(checkpoint_callback=True)
-
-    # turn off automatic checkpointing
-    trainer = Trainer(checkpoint_callback=False)
-
-
-You can override the default behavior by initializing the :class:`~pytorch_lightning.callbacks.ModelCheckpoint`
-callback, and adding it to the :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks` list.
-See :doc:`Saving and Loading Weights <../common/weights_loading>` for how to customize checkpointing.
-
-.. testcode::
-
-    from pytorch_lightning.callbacks import ModelCheckpoint
-    # Init ModelCheckpoint callback, monitoring 'val_loss'
-    checkpoint_callback = ModelCheckpoint(monitor='val_loss')
-
-    # Add your callback to the callbacks list
-    trainer = Trainer(callbacks=[checkpoint_callback])
-
-
-.. warning:: Passing a ModelCheckpoint instance to this argument is deprecated since
-    v1.1 and will be unsupported from v1.3. Use `callbacks` argument instead.
+.. warning:: `checkpoint_callback` has been deprecated in v1.5 and will be removed in v1.7.
+    To disable checkpointing, pass ``enable_checkpointing = False`` to the Trainer instead.
 
 
 default_root_dir
@@ -586,9 +543,43 @@ will need to be set up to use remote filepaths.
     # default used by the Trainer
     trainer = Trainer(default_root_dir=os.getcwd())
 
-distributed_backend
-^^^^^^^^^^^^^^^^^^^
-Deprecated: This has been renamed ``accelerator``.
+enable_checkpointing
+^^^^^^^^^^^^^^^^^^^^
+
+.. raw:: html
+
+    <video width="50%" max-width="400px" controls
+    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/checkpoint_callback.jpg"
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/checkpoint_callback.mp4"></video>
+
+|
+
+By default Lightning saves a checkpoint for you in your current working directory, with the state of your last training epoch,
+Checkpoints capture the exact value of all parameters used by a model.
+To disable automatic checkpointing, set this to `False`.
+
+.. code-block:: python
+
+    # default used by Trainer, saves the most recent model to a single checkpoint after each epoch
+    trainer = Trainer(enable_checkpointing=True)
+
+    # turn off automatic checkpointing
+    trainer = Trainer(enable_checkpointing=False)
+
+
+You can override the default behavior by initializing the :class:`~pytorch_lightning.callbacks.ModelCheckpoint`
+callback, and adding it to the :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks` list.
+See :doc:`Saving and Loading Weights <../common/weights_loading>` for how to customize checkpointing.
+
+.. testcode::
+
+    from pytorch_lightning.callbacks import ModelCheckpoint
+
+    # Init ModelCheckpoint callback, monitoring 'val_loss'
+    checkpoint_callback = ModelCheckpoint(monitor="val_loss")
+
+    # Add your callback to the callbacks list
+    trainer = Trainer(callbacks=[checkpoint_callback])
 
 fast_dev_run
 ^^^^^^^^^^^^
@@ -833,36 +824,6 @@ How often to add logging rows (does not write to disk)
 See Also:
     - :doc:`logging <../extensions/logging>`
 
-log_gpu_memory
-^^^^^^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/log_gpu_memory.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/log_gpu_memory.mp4"></video>
-
-|
-
-Options:
-
-- None
-- 'min_max'
-- 'all'
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(log_gpu_memory=None)
-
-    # log all the GPUs (on master node only)
-    trainer = Trainer(log_gpu_memory='all')
-
-    # log only the min and max memory on the master node
-    trainer = Trainer(log_gpu_memory='min_max')
-
-.. note:: Might slow performance because it uses the output of ``nvidia-smi``.
-
 logger
 ^^^^^^
 
@@ -881,11 +842,7 @@ logger
     from pytorch_lightning.loggers import TensorBoardLogger
 
     # default logger used by trainer
-    logger = TensorBoardLogger(
-        save_dir=os.getcwd(),
-        version=1,
-        name='lightning_logs'
-    )
+    logger = TensorBoardLogger(save_dir=os.getcwd(), version=1, name="lightning_logs")
     Trainer(logger=logger)
 
 max_epochs
@@ -905,6 +862,9 @@ Stop training once this number of epochs is reached
 
     # default used by the Trainer
     trainer = Trainer(max_epochs=1000)
+
+If both ``max_epochs`` and ``max_steps`` aren't specified, ``max_epochs`` will default to ``1000``.
+To enable infinite training, set ``max_epochs = -1``.
 
 min_epochs
 ^^^^^^^^^^
@@ -945,6 +905,9 @@ Training will stop if max_steps or max_epochs have reached (earliest).
 
     # Stop after 100 steps
     trainer = Trainer(max_steps=100)
+
+If ``max_steps`` is not specified, ``max_epochs`` will be used instead (and ``max_epochs`` defaults to
+``1000`` if ``max_epochs`` is not specified). To disable this default, set ``max_steps = -1``.
 
 min_steps
 ^^^^^^^^^
@@ -1021,16 +984,18 @@ num_processes
 |
 
 Number of processes to train with. Automatically set to the number of GPUs
-when using ``accelerator="ddp"``. Set to a number greater than 1 when
-using ``accelerator="ddp_cpu"`` to mimic distributed training on a
+when using ``strategy="ddp"``. Set to a number greater than 1 when
+using ``accelerator="cpu"`` and ``strategy="ddp"`` to mimic distributed training on a
 machine without GPUs. This is useful for debugging, but **will not** provide
 any speedup, since single-process Torch already makes efficient use of multiple
-CPUs.
+CPUs. While it would typically spawns subprocesses for training, setting
+``num_nodes > 1`` and keeping ``num_processes = 1`` runs training in the main
+process.
 
 .. testcode::
 
     # Simulate DDP for debugging on your GPU-less laptop
-    trainer = Trainer(accelerator="ddp_cpu", num_processes=2)
+    trainer = Trainer(accelerator="cpu", strategy="ddp", num_processes=2)
 
 num_sanity_val_steps
 ^^^^^^^^^^^^^^^^^^^^
@@ -1112,8 +1077,8 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 
     from pytorch_lightning.plugins.environments import ClusterEnvironment
 
-    class MyCluster(ClusterEnvironment):
 
+    class MyCluster(ClusterEnvironment):
         def master_address(self):
             return your_master_address
 
@@ -1122,6 +1087,7 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 
         def world_size(self):
             return the_world_size
+
 
     trainer = Trainer(plugins=[MyCluster()], ...)
 
@@ -1164,7 +1130,7 @@ Lightning supports either double precision (64), full precision (32), or half pr
 Half precision, or mixed precision, is the combined use of 32 and 16 bit floating points to reduce memory footprint during model training. This can result in improved performance, achieving +3X speedups on modern GPUs.
 
 .. testcode::
-    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
+    :skipif: not torch.cuda.is_available()
 
     # default used by the Trainer
     trainer = Trainer(precision=32, gpus=1)
@@ -1213,10 +1179,10 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
     2. Set the `precision` trainer flag to 16. You can customize the `Apex optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`_ by setting the `amp_level` flag.
 
     .. testcode::
-        :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
+        :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
 
         # turn on 16-bit
-        trainer = Trainer(amp_backend="apex", amp_level='O2', precision=16)
+        trainer = Trainer(amp_backend="apex", amp_level="O2", precision=16)
 
     If you need to configure the apex init for your particular use case, or want to customize the
     16-bit training behaviour, override :meth:`pytorch_lightning.core.LightningModule.configure_apex`.
@@ -1273,6 +1239,10 @@ See the :doc:`profiler documentation <../advanced/profiler>`. for more details.
 
 progress_bar_refresh_rate
 ^^^^^^^^^^^^^^^^^^^^^^^^^
+``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
+Please pass :class:`~pytorch_lightning.callbacks.progress.ProgressBar` with ``refresh_rate``
+directly to the Trainer's ``callbacks`` argument instead. To disable the progress bar,
+pass ``enable_progress_bar = False`` to the Trainer.
 
 .. raw:: html
 
@@ -1296,6 +1266,19 @@ Note:
     - In Google Colab notebooks, faster refresh rates (lower number) is known to crash them because of their screen refresh rates.
       Lightning will set it to 20 in these environments if the user does not provide a value.
     - This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
+
+enable_progress_bar
+^^^^^^^^^^^^^^^^^^^
+
+Whether to enable or disable the progress bar. Defaults to True.
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(enable_progress_bar=True)
+
+    # disable progress bar
+    trainer = Trainer(enable_progress_bar=False)
 
 reload_dataloaders_every_n_epochs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1323,6 +1306,7 @@ Set to a postive integer to reload dataloaders every n epochs.
         if not epoch % reload_dataloaders_every_n_epochs:
             train_loader = model.train_dataloader()
         for batch in train_loader:
+            ...
 
 .. _replace-sampler-ddp:
 
@@ -1365,6 +1349,10 @@ By setting to False, you have to add your own distributed sampler:
 resume_from_checkpoint
 ^^^^^^^^^^^^^^^^^^^^^^
 
+.. warning:: ``resume_from_checkpoint`` is deprecated in v1.5 and will be removed in v1.7.
+    Please pass ``trainer.fit(ckpt_path="some/path/to/my_checkpoint.ckpt")`` instead.
+
+
 .. raw:: html
 
     <video width="50%" max-width="400px" controls
@@ -1382,7 +1370,42 @@ checkpoint, training will start from the beginning of the next epoch.
     trainer = Trainer(resume_from_checkpoint=None)
 
     # resume from a specific checkpoint
-    trainer = Trainer(resume_from_checkpoint='some/path/to/my_checkpoint.ckpt')
+    trainer = Trainer(resume_from_checkpoint="some/path/to/my_checkpoint.ckpt")
+
+strategy
+^^^^^^^^
+
+Supports passing different training strategies with aliases (ddp, ddp_spawn, etc) as well as custom training type plugins.
+
+.. code-block:: python
+
+    # Training with the DistributedDataParallel strategy on 4 gpus
+    trainer = Trainer(strategy="ddp", accelerator="gpu", devices=4)
+
+    # Training with the DDP Spawn strategy using 4 cpu processes
+    trainer = Trainer(strategy="ddp_spawn", accelerator="cpu", devices=4)
+
+.. note:: Additionally, you can pass your custom training type plugins to the ``strategy`` argument.
+
+.. code-block:: python
+
+    from pytorch_lightning.plugins import DDPPlugin
+
+
+    class CustomDDPPlugin(DDPPlugin):
+        def configure_ddp(self):
+            self._model = MyCustomDistributedDataParallel(
+                self.model,
+                device_ids=...,
+            )
+
+
+    trainer = Trainer(strategy=CustomDDPPlugin(), accelerator="gpu", devices=2)
+
+See Also:
+    - :doc:`Multi-GPU training guide <../advanced/multi_gpu>`.
+    - :doc:`Model Parallel GPU training guide <../advanced/advanced_gpu>`.
+    - :doc:`TPU training guide <../advanced/tpu>`.
 
 sync_batchnorm
 ^^^^^^^^^^^^^^
@@ -1479,69 +1502,6 @@ Example::
     --env=XLA_USE_BF16=1
     -- python your_trainer_file.py
 
-truncated_bptt_steps
-^^^^^^^^^^^^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/truncated_bptt_steps.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/truncated_bptt_steps.mp4"></video>
-
-|
-
-Truncated back prop breaks performs backprop every k steps of
-a much longer sequence.
-
-If this is enabled, your batches will automatically get truncated
-and the trainer will apply Truncated Backprop to it.
-
-(`Williams et al. "An efficient gradient-based algorithm for on-line training of
-recurrent network trajectories."
-<http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.7941&rep=rep1&type=pdf>`_)
-
-.. testcode::
-
-    # default used by the Trainer (ie: disabled)
-    trainer = Trainer(truncated_bptt_steps=None)
-
-    # backprop every 5 steps in a batch
-    trainer = Trainer(truncated_bptt_steps=5)
-
-.. note::  Make sure your batches have a sequence dimension.
-
-Lightning takes care to split your batch along the time-dimension.
-
-.. code-block:: python
-
-    # we use the second as the time dimension
-    # (batch, time, ...)
-    sub_batch = batch[0, 0:t, ...]
-
-Using this feature requires updating your LightningModule's
-:meth:`pytorch_lightning.core.LightningModule.training_step` to include a `hiddens` arg
-with the hidden
-
-.. code-block:: python
-
-        # Truncated back-propagation through time
-        def training_step(self, batch, batch_idx, hiddens):
-            # hiddens are the hiddens from the previous truncated backprop step
-            out, hiddens = self.lstm(data, hiddens)
-            return {
-                "loss": ...,
-                "hiddens": hiddens
-            }
-
-To modify how the batch is split,
-override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`:
-
-.. testcode::
-
-    class LitMNIST(LightningModule):
-        def tbptt_split_batch(self, batch, split_size):
-            # do your own splitting on the batch
-            return splits
 
 val_check_interval
 ^^^^^^^^^^^^^^^^^^
@@ -1611,7 +1571,7 @@ Directory of where to save weights if specified.
     trainer = Trainer(weights_save_path=os.getcwd())
 
     # save to your custom path
-    trainer = Trainer(weights_save_path='my/path')
+    trainer = Trainer(weights_save_path="my/path")
 
 Example::
 
@@ -1625,6 +1585,11 @@ Example::
 
 weights_summary
 ^^^^^^^^^^^^^^^
+
+.. warning:: `weights_summary` is deprecated in v1.5 and will be removed in v1.7. Please pass :class:`~pytorch_lightning.callbacks.model_summary.ModelSummary`
+    directly to the Trainer's ``callbacks`` argument instead. To disable the model summary,
+    pass ``enable_model_summary = False`` to the Trainer.
+
 
 .. raw:: html
 
@@ -1640,13 +1605,32 @@ Options: 'full', 'top', None.
 .. testcode::
 
     # default used by the Trainer (ie: print summary of top level modules)
-    trainer = Trainer(weights_summary='top')
+    trainer = Trainer(weights_summary="top")
 
     # print full summary of all modules and submodules
-    trainer = Trainer(weights_summary='full')
+    trainer = Trainer(weights_summary="full")
 
     # don't print a summary
     trainer = Trainer(weights_summary=None)
+
+
+enable_model_summary
+^^^^^^^^^^^^^^^^^^^^
+
+Whether to enable or disable the model summarization. Defaults to True.
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(enable_model_summary=True)
+
+    # disable summarization
+    trainer = Trainer(enable_model_summary=False)
+
+    # enable custom summarization
+    from pytorch_lightning.callbacks import ModelSummary
+
+    trainer = Trainer(enable_model_summary=True, callbacks=[ModelSummary(max_depth=-1)])
 
 -----
 
@@ -1703,11 +1687,11 @@ The metrics available to callbacks. These are automatically set when you log via
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        self.log('a_val', 2)
+        self.log("a_val", 2)
 
 
     callback_metrics = trainer.callback_metrics
-    assert callback_metrics['a_val'] == 2
+    assert callback_metrics["a_val"] == 2
 
 current_epoch
 *************
@@ -1743,11 +1727,11 @@ The metrics sent to the logger (visualizer).
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        self.log('a_val', 2, log=True)
+        self.log("a_val", 2, logger=True)
 
 
     logged_metrics = trainer.logged_metrics
-    assert logged_metrics['a_val'] == 2
+    assert logged_metrics["a_val"] == 2
 
 log_dir
 *******
@@ -1770,7 +1754,7 @@ Whether this process is the global zero in multi-node training
 
     def training_step(self, batch, batch_idx):
         if self.trainer.is_global_zero:
-            print('in node 0, accelerator 0')
+            print("in node 0, accelerator 0")
 
 progress_bar_metrics
 ********************
@@ -1780,8 +1764,8 @@ The metrics sent to the progress bar.
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        self.log('a_val', 2, prog_bar=True)
+        self.log("a_val", 2, prog_bar=True)
 
 
     progress_bar_metrics = trainer.progress_bar_metrics
-    assert progress_bar_metrics['a_val'] == 2
+    assert progress_bar_metrics["a_val"] == 2

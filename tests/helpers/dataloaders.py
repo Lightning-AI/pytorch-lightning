@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Custom dataloaders for testing"""
+"""Custom dataloaders for testing."""
 
 
 class CustomInfDataloader:
@@ -38,7 +38,7 @@ class CustomInfDataloader:
 
 class CustomNotImplementedErrorDataloader(CustomInfDataloader):
     def __len__(self):
-        """raise NotImplementedError"""
+        """raise NotImplementedError."""
         raise NotImplementedError
 
     def __next__(self):

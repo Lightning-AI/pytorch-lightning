@@ -10,8 +10,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.accelerators.accelerator import Accelerator  # noqa F401
-from pytorch_lightning.accelerators.cpu import CPUAccelerator  # noqa F401
-from pytorch_lightning.accelerators.gpu import GPUAccelerator  # noqa F401
-from pytorch_lightning.accelerators.ipu import IPUAccelerator  # noqa F401
-from pytorch_lightning.accelerators.tpu import TPUAccelerator  # noqa F401
+from pytorch_lightning.accelerators.accelerator import Accelerator  # noqa: F401
+from pytorch_lightning.accelerators.cpu import CPUAccelerator  # noqa: F401
+from pytorch_lightning.accelerators.gpu import GPUAccelerator  # noqa: F401
+from pytorch_lightning.accelerators.ipu import IPUAccelerator  # noqa: F401
+from pytorch_lightning.accelerators.tpu import TPUAccelerator  # noqa: F401

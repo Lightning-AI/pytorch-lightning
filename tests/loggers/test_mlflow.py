@@ -171,7 +171,6 @@ def test_mlflow_logger_dirs_creation(tmpdir):
         max_epochs=1,
         limit_train_batches=limit_batches,
         limit_val_batches=limit_batches,
-        log_gpu_memory=True,
     )
     trainer.fit(model)
     assert set(os.listdir(tmpdir / exp_id)) == {run_id, "meta.yaml"}
@@ -184,9 +183,7 @@ def test_mlflow_logger_dirs_creation(tmpdir):
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
 def test_mlflow_experiment_id_retrieved_once(client, mlflow, tmpdir):
-    """
-    Test that the logger experiment_id retrieved only once.
-    """
+    """Test that the logger experiment_id retrieved only once."""
     logger = MLFlowLogger("test", save_dir=tmpdir)
     _ = logger.experiment
     _ = logger.experiment
@@ -197,9 +194,7 @@ def test_mlflow_experiment_id_retrieved_once(client, mlflow, tmpdir):
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
 def test_mlflow_logger_with_unexpected_characters(client, mlflow, tmpdir):
-    """
-    Test that the logger raises warning with special characters not accepted by MLFlow.
-    """
+    """Test that the logger raises warning with special characters not accepted by MLFlow."""
     logger = MLFlowLogger("test", save_dir=tmpdir)
     metrics = {"[some_metric]": 10}
 
@@ -210,9 +205,7 @@ def test_mlflow_logger_with_unexpected_characters(client, mlflow, tmpdir):
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
 def test_mlflow_logger_with_long_param_value(client, mlflow, tmpdir):
-    """
-    Test that the logger raises warning with special characters not accepted by MLFlow.
-    """
+    """Test that the logger raises warning with special characters not accepted by MLFlow."""
     logger = MLFlowLogger("test", save_dir=tmpdir)
     value = "test" * 100
     key = "test_param"
@@ -226,9 +219,7 @@ def test_mlflow_logger_with_long_param_value(client, mlflow, tmpdir):
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
 def test_mlflow_logger_experiment_calls(client, mlflow, time, tmpdir):
-    """
-    Test that the logger calls methods on the mlflow experiment correctly.
-    """
+    """Test that the logger calls methods on the mlflow experiment correctly."""
     time.return_value = 1
 
     logger = MLFlowLogger("test", save_dir=tmpdir, artifact_location="my_artifact_location")

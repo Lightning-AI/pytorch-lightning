@@ -5,8 +5,8 @@
     from pytorch_lightning.callbacks.base import Callback
     from pytorch_lightning.core.lightning import LightningModule
 
-    class LitMNIST(LightningModule):
 
+    class LitMNIST(LightningModule):
         def __init__(self):
             super().__init__()
 
@@ -33,11 +33,12 @@ The only things that change in the `Autoencoder` model are the init, forward, tr
     class Encoder(torch.nn.Module):
         pass
 
+
     class Decoder(torch.nn.Module):
         pass
 
-    class AutoEncoder(LitMNIST):
 
+    class AutoEncoder(LitMNIST):
         def __init__(self):
             super().__init__()
             self.encoder = Encoder()
@@ -57,10 +58,10 @@ The only things that change in the `Autoencoder` model are the init, forward, tr
             return loss
 
         def validation_step(self, batch, batch_idx):
-            self._shared_eval(batch, batch_idx, 'val')
+            self._shared_eval(batch, batch_idx, "val")
 
         def test_step(self, batch, batch_idx):
-            self._shared_eval(batch, batch_idx, 'test')
+            self._shared_eval(batch, batch_idx, "test")
 
         def _shared_eval(self, batch, batch_idx, prefix):
             x, _ = batch
@@ -68,7 +69,7 @@ The only things that change in the `Autoencoder` model are the init, forward, tr
             x_hat = self.decoder(representation)
 
             loss = self.metric(x, x_hat)
-            self.log(f'{prefix}_loss', loss)
+            self.log(f"{prefix}_loss", loss)
 
 
 and we can train this using the same trainer

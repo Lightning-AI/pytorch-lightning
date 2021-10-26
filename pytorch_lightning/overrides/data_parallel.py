@@ -27,18 +27,19 @@ def _ignore_scalar_return_in_dp():
     # Users get confused by this warning so we silence it
     warnings.filterwarnings(
         "ignore",
-        message="Was asked to gather along dimension 0, but all input tensors were scalars;"
-        " will instead unsqueeze and return a vector.",
+        message=(
+            "Was asked to gather along dimension 0, but all input tensors were scalars;"
+            " will instead unsqueeze and return a vector."
+        ),
     )
 
 
 class LightningParallelModule(_LightningModuleWrapperBase):
-    """
-    Wraps the user's LightningModule and redirects the forward call to the appropriate
-    method, either ``training_step``, ``validation_step``, ``test_step`` or ``predict``.
-    This class is used in combination with :class:`~torch.nn.parallel.DataParallel` as
-    shown in the example. It also takes care of converting Python scalars to Tensors and
-    un-squeezes 0-dimensional Tensors as it is required by :class:`~torch.nn.parallel.DataParallel`.
+    """Wraps the user's LightningModule and redirects the forward call to the appropriate method, either
+    ``training_step``, ``validation_step``, ``test_step`` or ``predict``. This class is used in combination with
+    :class:`~torch.nn.parallel.DataParallel` as shown in the example. It also takes care of converting Python
+    scalars to Tensors and un-squeezes 0-dimensional Tensors as it is required by
+    :class:`~torch.nn.parallel.DataParallel`.
 
     Example:
 
@@ -50,7 +51,6 @@ class LightningParallelModule(_LightningModuleWrapperBase):
 
     Args:
         pl_module: the model to wrap
-
     """
 
     def __init__(self, pl_module: "pl.LightningModule") -> None:
@@ -71,11 +71,10 @@ class LightningParallelModule(_LightningModuleWrapperBase):
         return output
 
     def update_replica_device_attributes(self, inputs: Any) -> None:
-        """
-        Updates the device information of LightningModule by reading the device from the inputs.
-        In :class:`~torch.nn.data_parallel.DataParallel` changes to the state during the `forward` pass
-        are lost when the replicas get discarded. The only way to know the current device is from the
-        inputs passed into the model.
+        """Updates the device information of LightningModule by reading the device from the inputs. In
+        :class:`~torch.nn.data_parallel.DataParallel` changes to the state during the `forward` pass are lost when
+        the replicas get discarded. The only way to know the current device is from the inputs passed into the
+        model.
 
         Args:
             inputs: A collection of inputs (typically a tuple). If the inputs don't contain tensors,
@@ -97,7 +96,7 @@ class LightningParallelModule(_LightningModuleWrapperBase):
         else:
             rank_zero_warn(
                 "Could not determine on which device the inputs are."
-                " When using DataParallel (accelerator='dp'), be aware that in case you are using self.device"
+                " When using DataParallel (strategy='dp'), be aware that in case you are using self.device"
                 " in your code, it will reference only the root device."
             )
 

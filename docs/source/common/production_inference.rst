@@ -13,7 +13,7 @@ To export your model to ONNX format call the ``to_onnx`` function on your Lightn
 
 .. code-block:: python
 
-    filepath = 'model.onnx'
+    filepath = "model.onnx"
     model = SimpleModel()
     input_sample = torch.randn((1, 64))
     model.to_onnx(filepath, input_sample, export_params=True)

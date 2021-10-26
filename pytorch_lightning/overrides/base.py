@@ -23,9 +23,8 @@ from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 
 class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
     def __init__(self, pl_module: "pl.LightningModule") -> None:
-        """
-        Wraps the user's LightningModule. Requires overriding all ``*_step`` methods and ``forward`` so that it can
-        safely be wrapped by a ``_LightningModuleWrapperBase`` and a ``*DataParallel``.
+        """Wraps the user's LightningModule. Requires overriding all ``*_step`` methods and ``forward`` so that it
+        can safely be wrapped by a ``_LightningModuleWrapperBase`` and a ``*DataParallel``.
 
         Args:
             pl_module: the model to wrap

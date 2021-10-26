@@ -9,7 +9,8 @@ If we didn't discuss your PR in Github issues there's a high chance it will not 
 
 The following links the related issue to the PR (https://docs.github.com/en/free-pro-team@latest/github/managing-your-work-on-github/linking-a-pull-request-to-an-issue#linking-a-pull-request-to-an-issue-using-a-keyword)
 -->
-Fixes #<issue_number>
+
+Fixes #\<issue_number>
 
 ### Does your PR introduce any breaking changes? If yes, please list them.
 
@@ -25,6 +26,7 @@ Fixes #<issue_number>
 - [ ] Did you verify new and **existing tests pass** locally with your changes?
 - [ ] Did you list all the **breaking changes** introduced by this pull request?
 - [ ] Did you **update the [CHANGELOG](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/CHANGELOG.md)**? (not for typos, docs, test updates, or internal minor changes/refactorings)
+
 <!-- In the CHANGELOG, separate each item in the unreleased section by a blank line to reduce collisions -->
 
 ## PR review
@@ -32,10 +34,10 @@ Fixes #<issue_number>
 Anyone in the community is welcome to review the PR.
 Before you start reviewing make sure you have read [Review guidelines](https://github.com/PyTorchLightning/pytorch-lightning/wiki/Review-guidelines). In short, see the following bullet-list:
 
- - [ ] Is this pull request ready for review? (if not, please submit in draft mode)
- - [ ] Check that all items from **Before submitting** are resolved
- - [ ] Make sure the title is self-explanatory and the description concisely explains the PR
- - [ ] Add labels and milestones (and optionally projects) to the PR so it can be classified
+- [ ] Is this pull request ready for review? (if not, please submit in draft mode)
+- [ ] Check that all items from **Before submitting** are resolved
+- [ ] Make sure the title is self-explanatory and the description concisely explains the PR
+- [ ] Add labels and milestones (and optionally projects) to the PR so it can be classified
 
 ## Did you have fun?
 

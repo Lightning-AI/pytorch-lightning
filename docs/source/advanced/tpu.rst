@@ -23,7 +23,7 @@ A TPU is a Tensor processing unit. Each TPU has 8 cores where each
 core is optimized for 128x128 matrix multiplies. In general, a single
 TPU is about as fast as 5 V100 GPUs!
 
-A TPU pod hosts many TPUs on it. Currently, TPU pod v2 has 2048 cores!
+A TPU pod hosts many TPUs on it. Currently, TPU v3 Pod has up to 2048 TPU cores and 32 TiB of memory!
 You can request a full pod from Google cloud or a "slice" which gives you
 some subset of those 2048 cores.
 
@@ -64,9 +64,9 @@ To get a TPU on colab, follow these steps:
 
    .. code-block::
 
-        !pip install cloud-tpu-client==0.10 https://storage.googleapis.com/tpu-pytorch/wheels/torch_xla-1.8-cp37-cp37m-linux_x86_64.whl
+        !pip install cloud-tpu-client==0.10 https://storage.googleapis.com/tpu-pytorch/wheels/torch_xla-1.9-cp37-cp37m-linux_x86_64.whl
 
-5. Once the above is done, install PyTorch Lightning (v 0.7.0+).
+5. Once the above is done, install PyTorch Lightning.
 
    .. code-block::
 
@@ -92,29 +92,18 @@ for TPU use
 
     import torch_xla.core.xla_model as xm
 
+
     def train_dataloader(self):
-        dataset = MNIST(
-            os.getcwd(),
-            train=True,
-            download=True,
-            transform=transforms.ToTensor()
-        )
+        dataset = MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor())
 
         # required for TPU support
         sampler = None
         if use_tpu:
             sampler = torch.utils.data.distributed.DistributedSampler(
-                dataset,
-                num_replicas=xm.xrt_world_size(),
-                rank=xm.get_ordinal(),
-                shuffle=True
+                dataset, num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal(), shuffle=True
             )
 
-        loader = DataLoader(
-            dataset,
-            sampler=sampler,
-            batch_size=32
-        )
+        loader = DataLoader(dataset, sampler=sampler, batch_size=32)
 
         return loader
 
@@ -360,14 +349,14 @@ Don't use ``xm.xla_device()`` while working on Lightning + TPUs!
 
 PyTorch XLA only supports Tensor objects for CPU to TPU data transfer. Might cause issues if the User is trying to send some non-tensor objects through the DataLoader or during saving states.
 
-- **Using `tpu_spawn_debug` Plugin**
+- **Using `tpu_spawn_debug` Plugin alias**
 
 .. code-block:: python
 
     import pytorch_lightning as pl
 
     my_model = MyLightningModule()
-    trainer = pl.Trainer(tpu_cores=8, plugins="tpu_spawn_debug")
+    trainer = pl.Trainer(tpu_cores=8, strategy="tpu_spawn_debug")
     trainer.fit(my_model)
 
 Example Metrics report:

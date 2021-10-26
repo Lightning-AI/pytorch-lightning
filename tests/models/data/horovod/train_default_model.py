@@ -1,5 +1,4 @@
-"""
-This script is meant to be executed from `../../test_horovod.py`.
+"""This script is meant to be executed from `../../test_horovod.py`.
 
 Because Horovod uses a parallel programming model similar to MPI, unit tests for collective
 ops like allreduce need to be run in parallel. The most common approach for running parallel
@@ -33,12 +32,12 @@ from pytorch_lightning.callbacks import ModelCheckpoint  # noqa: E402
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE  # noqa: E402
 
 if _HOROVOD_AVAILABLE:
-    import horovod.torch as hvd  # noqa: E402
+    import horovod.torch as hvd
 else:
     print("You requested to import Horovod which is missing or not supported for your OS.")
 
 from tests.helpers import BoringModel  # noqa: E402
-from tests.helpers.utils import reset_seed, set_random_master_port  # noqa: E402
+from tests.helpers.utils import reset_seed, set_random_main_port  # noqa: E402
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--trainer-options", required=True)
@@ -47,7 +46,7 @@ parser.add_argument("--on-gpu", action="store_true", default=False)
 
 def run_test_from_config(trainer_options, on_gpu, check_size=True):
     """Trains the default model with the given config."""
-    set_random_master_port()
+    set_random_main_port()
     reset_seed()
 
     ckpt_path = trainer_options["weights_save_path"]
@@ -97,7 +96,7 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
     trainer.checkpoint_connector.restore(checkpoint_path)
 
     if on_gpu:
-        trainer = Trainer(gpus=1, accelerator="horovod", max_epochs=1)
+        trainer = Trainer(gpus=1, strategy="horovod", max_epochs=1)
         # Test the root_gpu property
         assert trainer.root_gpu == hvd.local_rank()
 

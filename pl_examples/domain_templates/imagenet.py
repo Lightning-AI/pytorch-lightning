@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-This example is largely adapted from https://github.com/pytorch/examples/blob/master/imagenet/main.py
+"""This example is largely adapted from https://github.com/pytorch/examples/blob/master/imagenet/main.py.
 
 Before you can run this example, you will need to download the ImageNet dataset manually from the
 `official website <http://image-net.org/download>`_ and place it into a folder `path/to/imagenet`.
@@ -28,7 +27,6 @@ or show all options you can change:
 .. code-block: bash
 
     python imagenet.py --help
-
 """
 import os
 from argparse import ArgumentParser, Namespace
@@ -112,7 +110,7 @@ class ImageNetLightningModel(LightningModule):
 
     @staticmethod
     def __accuracy(output, target, topk=(1,)):
-        """Computes the accuracy over the k top predictions for the specified values of k"""
+        """Computes the accuracy over the k top predictions for the specified values of k."""
         with torch.no_grad():
             maxk = max(topk)
             batch_size = target.size(0)

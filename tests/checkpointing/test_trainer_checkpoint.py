@@ -17,17 +17,13 @@ from copy import deepcopy
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from tests.helpers import BoringModel
 
 
-def test_finetuning_with_resume_from_checkpoint(tmpdir):
-    """
-    This test validates that generated ModelCheckpoint is pointing to the right best_model_path during test
-    """
-
-    seed_everything(4)
+def test_finetuning_with_ckpt_path(tmpdir):
+    """This test validates that generated ModelCheckpoint is pointing to the right best_model_path during test."""
 
     checkpoint_callback = ModelCheckpoint(monitor="val_loss", dirpath=tmpdir, filename="{epoch:02d}", save_top_k=-1)
 
@@ -67,16 +63,12 @@ def test_finetuning_with_resume_from_checkpoint(tmpdir):
             limit_train_batches=12,
             limit_val_batches=12,
             limit_test_batches=12,
-            resume_from_checkpoint=best_model_paths[-1],
-            progress_bar_refresh_rate=0,
+            enable_progress_bar=False,
         )
-        trainer.fit(model)
+        trainer.fit(model, ckpt_path=best_model_paths[-1])
         trainer.test()
         results.append(deepcopy(trainer.callback_metrics))
         best_model_paths.append(trainer.checkpoint_callback.best_model_path)
-
-    for idx in range(len(results) - 1):
-        assert results[idx]["val_loss"] > results[idx + 1]["val_loss"]
 
     for idx, best_model_path in enumerate(best_model_paths):
         if idx == 0:
@@ -85,10 +77,8 @@ def test_finetuning_with_resume_from_checkpoint(tmpdir):
             assert f"epoch={idx + 1}" in best_model_path
 
 
-def test_accumulated_gradient_batches_with_resume_from_checkpoint(tmpdir):
-    """
-    This test validates that accumulated gradient is properly recomputed and reset on the trainer.
-    """
+def test_accumulated_gradient_batches_with_ckpt_path(tmpdir):
+    """This test validates that accumulated gradient is properly recomputed and reset on the trainer."""
 
     ckpt = ModelCheckpoint(dirpath=tmpdir, save_last=True)
     model = BoringModel()
@@ -99,6 +89,5 @@ def test_accumulated_gradient_batches_with_resume_from_checkpoint(tmpdir):
     trainer.fit(model)
 
     trainer_kwargs["max_epochs"] = 2
-    trainer_kwargs["resume_from_checkpoint"] = ckpt.last_model_path
     trainer = Trainer(**trainer_kwargs)
-    trainer.fit(model)
+    trainer.fit(model, ckpt_path=ckpt.last_model_path)

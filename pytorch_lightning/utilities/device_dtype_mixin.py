@@ -8,4 +8,4 @@ rank_zero_deprecation(
 
 # To support backward compatibility as `device_dtype_mixin` has been
 # moved to `pytorch_lightning.core.mixins.device_dtype_mixin`
-from pytorch_lightning.core.mixins.device_dtype_mixin import DeviceDtypeModuleMixin  # noqa: E402 F401 # isort: skip
+from pytorch_lightning.core.mixins.device_dtype_mixin import DeviceDtypeModuleMixin  # noqa: E402, F401 # isort: skip

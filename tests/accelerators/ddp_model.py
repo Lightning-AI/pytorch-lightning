@@ -11,9 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Runs either `.fit()` or `.test()` on a single node across multiple gpus.
-"""
+"""Runs either `.fit()` or `.test()` on a single node across multiple gpus."""
 import os
 from argparse import ArgumentParser
 
@@ -33,7 +31,7 @@ def main():
     parser.add_argument("--tmpdir")
     parser.add_argument("--workdir")
     parser.set_defaults(gpus=2)
-    parser.set_defaults(accelerator="ddp")
+    parser.set_defaults(strategy="ddp")
     args = parser.parse_args()
 
     dm = ClassifDataModule()

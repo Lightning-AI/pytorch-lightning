@@ -1,5 +1,5 @@
 import os
-from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 import torch
@@ -12,7 +12,7 @@ from tests.helpers import BoringModel
 
 @pytest.mark.parametrize("tuner_alg", ["batch size scaler", "learning rate finder"])
 def test_skip_on_fast_dev_run_tuner(tmpdir, tuner_alg):
-    """Test that tuner algorithms are skipped if fast dev run is enabled"""
+    """Test that tuner algorithms are skipped if fast dev run is enabled."""
 
     model = BoringModel()
     model.lr = 0.1  # avoid no-lr-found exception
@@ -29,11 +29,8 @@ def test_skip_on_fast_dev_run_tuner(tmpdir, tuner_alg):
 
 
 @pytest.mark.parametrize("fast_dev_run", [1, 4])
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
-    """
-    Test that ModelCheckpoint, EarlyStopping and Logger are turned off with fast_dev_run
-    """
+    """Test that ModelCheckpoint, EarlyStopping and Logger are turned off with fast_dev_run."""
 
     class FastDevRunModel(BoringModel):
         def __init__(self):
@@ -67,7 +64,9 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
             return super().test_step(batch, batch_idx)
 
     checkpoint_callback = ModelCheckpoint()
+    checkpoint_callback.save_checkpoint = Mock()
     early_stopping_callback = EarlyStopping()
+    early_stopping_callback._evaluate_stopping_criteria = Mock()
     trainer_config = dict(
         default_root_dir=tmpdir,
         fast_dev_run=fast_dev_run,
@@ -97,17 +96,17 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
 
         # checkpoint callback should not have been called with fast_dev_run
         assert trainer.checkpoint_callback == checkpoint_callback
+        checkpoint_callback.save_checkpoint.assert_not_called()
         assert not os.path.exists(checkpoint_callback.dirpath)
-        assert len(trainer.dev_debugger.checkpoint_callback_history) == 0
 
         # early stopping should not have been called with fast_dev_run
         assert trainer.early_stopping_callback == early_stopping_callback
-        assert len(trainer.dev_debugger.early_stopping_history) == 0
+        early_stopping_callback._evaluate_stopping_criteria.assert_not_called()
 
     train_val_step_model = FastDevRunModel()
     trainer = Trainer(**trainer_config)
     trainer.fit(train_val_step_model)
-    trainer.test(ckpt_path=None)
+    trainer.test(train_val_step_model)
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     _make_fast_dev_run_assertions(trainer, train_val_step_model)
@@ -120,7 +119,7 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
 
     trainer = Trainer(**trainer_config)
     trainer.fit(train_step_only_model)
-    trainer.test(ckpt_path=None)
+    trainer.test(train_step_only_model)
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     _make_fast_dev_run_assertions(trainer, train_step_only_model)

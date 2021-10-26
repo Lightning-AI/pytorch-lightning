@@ -11,10 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections import Callable
-from typing import Any
+from typing import Any, Dict, Union
 
-from torch.optim import Optimizer
+import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
@@ -25,11 +24,16 @@ class IPUAccelerator(Accelerator):
     """Accelerator for IPUs."""
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
+        """
+        Raises:
+            MisconfigurationException:
+                If multiple optimizers are provided.
+        """
         super().setup_optimizers(trainer)
 
         if len(self.optimizers) > 1:
             raise MisconfigurationException("IPUs currently only support one optimizer.")
 
-    def optimizer_step(self, optimizer: Optimizer, opt_idx: int, lambda_closure: Callable, **kwargs: Any) -> None:
-        # Optimizer step is handled by the IPU accelerator.
-        lambda_closure()
+    def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
+        """IPU device stats aren't supported yet."""
+        return {}

@@ -42,22 +42,18 @@ To enable it:
 
     from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
-    def validation_step(...):
-        self.log('val_loss', loss)
 
-    trainer = Trainer(callbacks=[EarlyStopping(monitor='val_loss')])
+    def validation_step(self):
+        self.log("val_loss", loss)
+
+
+    trainer = Trainer(callbacks=[EarlyStopping(monitor="val_loss")])
 
 You can customize the callbacks behaviour by changing its parameters.
 
 .. testcode::
 
-    early_stop_callback = EarlyStopping(
-       monitor='val_accuracy',
-       min_delta=0.00,
-       patience=3,
-       verbose=False,
-       mode='max'
-    )
+    early_stop_callback = EarlyStopping(monitor="val_accuracy", min_delta=0.00, patience=3, verbose=False, mode="max")
     trainer = Trainer(callbacks=[early_stop_callback])
 
 
@@ -75,7 +71,6 @@ and change where it is called:
 .. testcode::
 
     class MyEarlyStopping(EarlyStopping):
-
         def on_validation_end(self, trainer, pl_module):
             # override this to disable early stopping at the end of val loop
             pass

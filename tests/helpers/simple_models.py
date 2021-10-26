@@ -14,9 +14,9 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
+from torchmetrics import Accuracy, MeanSquaredError
 
 from pytorch_lightning import LightningModule
-from pytorch_lightning.metrics import Accuracy, MeanSquaredError
 
 
 class ClassificationModel(LightningModule):
@@ -67,6 +67,10 @@ class ClassificationModel(LightningModule):
         logits = self.forward(x)
         self.log("test_loss", F.cross_entropy(logits, y), prog_bar=False)
         self.log("test_acc", self.test_acc(logits, y), prog_bar=True)
+
+    def predict_step(self, batch, batch_idx):
+        x, _ = batch
+        return self.forward(x)
 
 
 class RegressionModel(LightningModule):

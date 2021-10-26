@@ -23,12 +23,12 @@ import pytest
 import torch
 from sklearn.metrics import accuracy_score
 from torch import optim
+from torchmetrics.classification.accuracy import Accuracy
 
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
-from pytorch_lightning.metrics.classification.accuracy import Accuracy
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import BasicGAN
@@ -73,12 +73,11 @@ def test_horovod_cpu(tmpdir):
         default_root_dir=str(tmpdir),
         weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        accelerator="horovod",
-        deterministic=True,
+        strategy="horovod",
     )
     _run_horovod(trainer_options)
 
@@ -91,12 +90,11 @@ def test_horovod_cpu_clip_grad_by_value(tmpdir):
         weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         gradient_clip_algorithm="value",
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        accelerator="horovod",
-        deterministic=True,
+        strategy="horovod",
     )
     _run_horovod(trainer_options)
 
@@ -108,11 +106,10 @@ def test_horovod_cpu_implicit(tmpdir):
         default_root_dir=str(tmpdir),
         weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        deterministic=True,
     )
     _run_horovod(trainer_options)
 
@@ -124,13 +121,12 @@ def test_horovod_multi_gpu(tmpdir):
         default_root_dir=str(tmpdir),
         weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         gpus=2,
-        deterministic=True,
-        accelerator="horovod",
+        strategy="horovod",
     )
     _run_horovod(trainer_options, on_gpu=True)
 
@@ -143,13 +139,12 @@ def test_horovod_multi_gpu_grad_by_value(tmpdir):
         weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         gradient_clip_algorithm="value",
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         gpus=2,
-        deterministic=True,
-        accelerator="horovod",
+        strategy="horovod",
     )
     _run_horovod(trainer_options, on_gpu=True)
 
@@ -165,33 +160,31 @@ def test_horovod_apex(tmpdir):
         default_root_dir=str(tmpdir),
         weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         gpus=2,
-        deterministic=True,
-        accelerator="horovod",
+        strategy="horovod",
         amp_backend="apex",
         precision=16,
     )
     _run_horovod(trainer_options, on_gpu=True)
 
 
-@RunIf(min_gpus=2, skip_windows=True, amp_native=True, horovod_nccl=True)
+@RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
 def test_horovod_amp(tmpdir):
     """Test Horovod with multi-GPU support using native amp."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
         weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         gpus=2,
-        deterministic=True,
-        accelerator="horovod",
+        strategy="horovod",
         amp_backend="native",
         precision=16,
     )
@@ -205,13 +198,12 @@ def test_horovod_gather(tmpdir):
         default_root_dir=str(tmpdir),
         weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         gpus=2,
-        deterministic=True,
-        accelerator="horovod",
+        strategy="horovod",
     )
     _run_horovod(trainer_options, on_gpu=True)
 
@@ -231,19 +223,16 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
 
     trainer_options = dict(
         default_root_dir=str(tmpdir),
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         gpus=1,
-        deterministic=True,
-        accelerator="horovod",
+        strategy="horovod",
     )
     tpipes.run_model_test_without_loggers(trainer_options, model)
 
 
-# todo: need to be fixed :]
-@pytest.mark.skip("TODO: flaky test - Fatal Python error: Aborted")
 @RunIf(skip_windows=True, horovod=True)
 def test_horovod_multi_optimizer(tmpdir):
     model = BasicGAN()
@@ -251,12 +240,11 @@ def test_horovod_multi_optimizer(tmpdir):
     # fit model
     trainer = Trainer(
         default_root_dir=str(tmpdir),
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        deterministic=True,
-        accelerator="horovod",
+        strategy="horovod",
     )
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -285,7 +273,7 @@ def test_result_reduce_horovod(tmpdir):
     This test mirrors tests/core/test_results.py::_ddp_test_fn
     """
     tutils.reset_seed()
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
 
     def hvd_test_fn():
         path_here = os.path.abspath(os.path.dirname(__file__))
@@ -318,7 +306,7 @@ def test_result_reduce_horovod(tmpdir):
             limit_val_batches=2,
             max_epochs=1,
             log_every_n_steps=1,
-            weights_summary=None,
+            enable_model_summary=False,
             logger=False,
         )
 
@@ -344,7 +332,7 @@ def test_accuracy_metric_horovod():
     target = torch.randint(high=2, size=(num_batches, batch_size))
 
     def _compute_batch():
-        trainer = Trainer(fast_dev_run=True, accelerator="horovod", logger=False)
+        trainer = Trainer(fast_dev_run=True, strategy="horovod", logger=False)
 
         assert isinstance(trainer.accelerator, CPUAccelerator)
         # TODO: test that we selected the correct training_type_plugin based on horovod flags
@@ -377,8 +365,6 @@ def test_accuracy_metric_horovod():
     horovod.run(_compute_batch, np=2)
 
 
-# todo: need to be fixed :]
-@pytest.mark.skip("TODO: flaky test - Fatal Python error: Aborted")
 @RunIf(skip_windows=True, horovod=True)
 def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
     class TestModel(BoringModel):
@@ -402,7 +388,7 @@ def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
 
         # fit model
         trainer = Trainer(
-            default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.5, limit_train_batches=0.2, accelerator="horovod"
+            default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.5, limit_train_batches=0.2, strategy="horovod"
         )
         trainer.fit(model)
 

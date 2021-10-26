@@ -21,10 +21,10 @@ log = logging.getLogger(__name__)
 
 
 class KubeflowEnvironment(ClusterEnvironment):
-    """
-    Environment for distributed training using the
-    `PyTorchJob <https://www.kubeflow.org/docs/components/training/pytorch/>`_
-    operator from `Kubeflow <https://www.kubeflow.org>`_
+    """Environment for distributed training using the `PyTorchJob`_ operator from `Kubeflow`_
+
+    .. _PyTorchJob: https://www.kubeflow.org/docs/components/training/pytorch/
+    .. _Kubeflow: https://www.kubeflow.org
     """
 
     @staticmethod
@@ -35,7 +35,8 @@ class KubeflowEnvironment(ClusterEnvironment):
         excluded_env_vars = ("GROUP_RANK", "LOCAL_RANK", "LOCAL_WORLD_SIZE")
         return all(v in os.environ for v in required_env_vars) and not any(v in os.environ for v in excluded_env_vars)
 
-    def creates_children(self) -> bool:
+    @property
+    def creates_processes_externally(self) -> bool:
         return True
 
     def master_address(self) -> str:
