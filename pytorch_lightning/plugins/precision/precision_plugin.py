@@ -21,7 +21,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.hooks import CheckpointHooks
-from pytorch_lightning.utilities import grad_norm, GradClipAlgorithmType
+from pytorch_lightning.utilities import grad_norm, GradClipAlgorithmType, rank_zero_deprecation
 from pytorch_lightning.utilities.types import _PARAMETERS
 
 
@@ -34,7 +34,20 @@ class PrecisionPlugin(CheckpointHooks):
     precision: Union[str, int] = 32
 
     def master_params(self, optimizer: Optimizer) -> _PARAMETERS:
-        """The master params of the model.
+        """The main params of the model.
+
+        .. deprecated:: v1.5
+
+            This method is deprecated in v1.5 and will be removed in v1.6. Use :meth:`main_params` instead.
+        """
+        rank_zero_deprecation(
+            f"`{self.__class__.__name__}.master_params` was deprecated in v1.5 and will be removed in v1.6."
+            f" Use `main_params` instead."
+        )
+        return self.main_params(optimizer)
+
+    def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
+        """The main params of the model.
 
         Returns the plain model params here. Maybe different in other precision plugins.
         """
@@ -168,12 +181,12 @@ class PrecisionPlugin(CheckpointHooks):
 
     def clip_grad_by_value(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
         """Clip gradients by value."""
-        parameters = self.master_params(optimizer)
+        parameters = self.main_params(optimizer)
         torch.nn.utils.clip_grad_value_(parameters, clip_value=clip_val)
 
     def clip_grad_by_norm(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
         """Clip gradients by norm."""
-        parameters = self.master_params(optimizer)
+        parameters = self.main_params(optimizer)
         torch.nn.utils.clip_grad_norm_(parameters, clip_val)
 
     def pre_dispatch(self) -> None:
