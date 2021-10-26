@@ -120,6 +120,7 @@ class BaseProfiler(AbstractProfiler):
         if self.filename:
             filepath = os.path.join(self.dirpath, self._prepare_filename())
             fs = get_filesystem(filepath)
+            fs.mkdirs(self.dirpath, exist_ok=True)
             file = fs.open(filepath, "a")
             self._output_file = file
             self._write_stream = file.write

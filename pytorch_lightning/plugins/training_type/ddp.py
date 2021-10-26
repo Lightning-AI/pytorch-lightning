@@ -177,7 +177,7 @@ class DDPPlugin(ParallelPlugin):
 
     def setup_environment(self) -> None:
         # start the other scripts
-        if not self.cluster_environment.creates_children():
+        if not self.cluster_environment.creates_processes_externally:
             self._call_children_scripts()
 
         # set the task idx
@@ -277,7 +277,7 @@ class DDPPlugin(ParallelPlugin):
             raise RuntimeError(
                 "Lightning attempted to launch new distributed processes with `local_rank > 0`. This should not happen."
                 " Possible reasons: 1) LOCAL_RANK environment variable was incorrectly modified by the user,"
-                " 2) `ClusterEnvironment.creates_children()` incorrectly implemented."
+                " 2) `ClusterEnvironment.creates_processes_externally` incorrectly implemented."
             )
 
     def set_world_ranks(self) -> None:

@@ -103,7 +103,7 @@ def _ddp_test_fn(rank, worldsize):
 @RunIf(skip_windows=True, min_gpus=2)
 def test_result_reduce_ddp():
     """Make sure result logging works with DDP."""
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
 
     worldsize = 2
     mp.spawn(_ddp_test_fn, args=(worldsize,), nprocs=worldsize)
@@ -463,10 +463,9 @@ def result_collection_reload(**kwargs):
         else trainer_kwargs["default_root_dir"]
     )
     ckpt_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
-    trainer_kwargs["resume_from_checkpoint"] = ckpt_path
 
     trainer = Trainer(**trainer_kwargs)
-    trainer.fit(model)
+    trainer.fit(model, ckpt_path=ckpt_path)
     assert model.has_validated_sum
 
 
