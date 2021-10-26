@@ -40,7 +40,9 @@ def test_models(tmpdir, data_class, model_class):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     trainer.fit(model, datamodule=dm)
-    trainer.test(model, datamodule=dm)
+
+    if dm is not None:
+        trainer.test(model, datamodule=dm)
 
     model.to_torchscript()
     if data_class:
