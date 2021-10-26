@@ -203,7 +203,7 @@ def test_deepspeed_defaults(tmpdir):
 
 
 @RunIf(min_gpus=1, deepspeed=True, special=True)
-def test_warn_deepspeed_overrides(tmpdir):
+def test_warn_deepspeed_ignored(tmpdir):
     class TestModel(BoringModel):
         def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
             return loss.backward()
