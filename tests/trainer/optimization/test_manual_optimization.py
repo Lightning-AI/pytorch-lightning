@@ -593,6 +593,9 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
             super().__init__()
             self.automatic_optimization = False
 
+        def on_train_start(self) -> None:
+            step_mock.reset_mock()
+
         def training_step(self, batch, batch_idx):
             # manual
             opt = self.optimizers()
@@ -628,8 +631,7 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
     )
 
     trainer.fit(model)
-    expected_calls = [call(closure=ANY) for _ in range(2)]
-    step_mock.assert_has_calls(expected_calls)
+    assert step_mock.mock_calls == [call(closure=ANY) for _ in range(limit_train_batches)]
 
 
 @patch("torch.optim.Adam.step")
@@ -641,6 +643,10 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
+
+        def on_train_start(self) -> None:
+            mock_sgd_step.reset_mock()
+            mock_adam_step.reset_mock()
 
         def training_step(self, batch, batch_idx):
 
@@ -699,10 +705,8 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
     )
 
     trainer.fit(model)
-    expected_calls = [call(closure=ANY, optim="sgd") for s in range(4)]
-    mock_sgd_step.assert_has_calls(expected_calls)
-    expected_calls = [call(closure=ANY) for s in range(2)]
-    mock_adam_step.assert_has_calls(expected_calls)
+    assert mock_sgd_step.mock_calls == [call(closure=ANY, optim="sgd") for _ in range(4)]
+    assert mock_adam_step.mock_calls == [call(closure=ANY) for _ in range(2)]
 
 
 class TesManualOptimizationDDPModel(BoringModel):

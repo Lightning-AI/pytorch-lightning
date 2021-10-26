@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -246,9 +246,6 @@ class TrainingTypePlugin(ABC):
 
     def init_optimizers(self, trainer: "pl.Trainer", model: "pl.LightningModule"):
         return trainer.init_optimizers(model)
-
-    def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs: Any) -> None:
-        optimizer.step(closure=lambda_closure, **kwargs)
 
     @property
     def setup_optimizers_in_pre_dispatch(self) -> bool:
