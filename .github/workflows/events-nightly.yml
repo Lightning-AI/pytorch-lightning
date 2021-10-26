@@ -55,8 +55,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: ["3.9"]
-        xla_version: ["1.7.1", "1.8.1", "1.9.1", "1.10.0"]
+        # the config used in '.circleci/config.yml`'
+        python_version: ["3.7"]
+        xla_version: ["1.8.1"]
 
     steps:
       - name: Checkout
@@ -89,8 +90,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: ["3.6", "3.7", "3.8", "3.9"]
-        pytorch_version: ["1.7.1", "1.8.1", "1.9.1", "1.10.0"]
+        # the config used in '.azure-pipelines/gpu-tests.yml'
+        python_version: ["3.7"]
+        pytorch_version: ["1.8.1"]
 
     steps:
       - name: Checkout
@@ -121,8 +123,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: ["3.6", "3.7", "3.8", "3.9"]
-        pytorch_version: ["1.7.1", "1.8.1", "1.9.1", "1.10.0"]  # nightly: add when there's a release candidate
+        # the config used in '.github/workflows/ci_test-conda.yml'
+        python_version: ["3.8"]
+        pytorch_version: ["1.7.1", "1.8.1", "1.9.1", "1.10.0"]
 
     steps:
       - name: Checkout
@@ -160,6 +163,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # the config used in 'dockers/ipu-ci-runner/Dockerfile'
         include:
           - python_version: "3.9"
             pytorch_version: "1.7.1"
