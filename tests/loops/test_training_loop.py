@@ -19,7 +19,6 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.loops import TrainingEpochLoop
-from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from tests.helpers import BoringModel, RandomDataset
 
 

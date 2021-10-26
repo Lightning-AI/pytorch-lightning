@@ -17,7 +17,6 @@ from functools import partial
 from typing import Iterable, Optional, Union
 
 import pytorch_lightning as pl
-from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import (
