@@ -26,15 +26,16 @@ if _XLA_AVAILABLE:
 
 
 class TPUPrecisionPlugin(PrecisionPlugin):
-    def pre_optimizer_step(
+    def optimizer_step(
         self,
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable[[], Any],
-        **kwargs: Any,
-    ) -> bool:
-        super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
+        **kwargs: Any
+    ) -> None:
+        if isinstance(model, pl.LightningModule):
+            model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         closure_result = xm.optimizer_step(optimizer, optimizer_args={"closure": lambda_closure, **kwargs})
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
@@ -45,4 +46,3 @@ class TPUPrecisionPlugin(PrecisionPlugin):
                 " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`"
                 " requesting this feature."
             )
-        return False
