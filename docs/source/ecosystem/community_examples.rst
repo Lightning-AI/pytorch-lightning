@@ -1,6 +1,9 @@
 Community Examples
 ==================
 
+
+- `Lightning Bolts: Deep Learning components for extending PyTorch Lightning <https://pytorch-lightning.readthedocs.io/en/latest/ecosystem/bolts.html>`_.
+- `Lightning Flash: Your PyTorch AI Factory - Flash enables you to easily configure and run complex AI recipes <https://github.com/PyTorchLightning/lightning-flash>`_.
 - `Contextual Emotion Detection (DoubleDistilBert) <https://github.com/PyTorchLightning/emotion_transformer>`_
 - `Cotatron: Transcription-Guided Speech Encoder <https://github.com/mindslab-ai/cotatron>`_
 - `FasterRCNN object detection + Hydra <https://github.com/PyTorchLightning/wheat>`_
