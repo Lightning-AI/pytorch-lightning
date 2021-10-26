@@ -119,6 +119,7 @@ class IPUPlugin(ParallelPlugin):
         precision = self.lightning_module.trainer.precision
         model = LightningIPUModule(self.lightning_module, precision)
         self.model = model
+        self.poptorch_models = {}
 
         # Separate models are instantiated for different stages, but they share the same weights on host.
         # When validation/test models are run, weights are synced first.
