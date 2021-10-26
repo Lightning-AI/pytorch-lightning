@@ -329,6 +329,7 @@ class Accelerator:
             opt_idx: index of the current optimizer
             lambda_closure: closure calculating the loss value
             model: reference to the model, optionally defining optimizer step related hooks
+            **kwargs: Any extra arguments to ``optimizer.step``
         """
         model = model or self.lightning_module
         make_optimizer_step = self.precision_plugin.pre_optimizer_step(
@@ -349,9 +350,7 @@ class Accelerator:
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
         """clips all the optimizer parameters to the given value."""
-        self.precision_plugin.clip_gradients(
-            optimizer, clip_val, gradient_clip_algorithm=gradient_clip_algorithm, model=self.model
-        )
+        self.precision_plugin.clip_gradients(optimizer, clip_val, gradient_clip_algorithm=gradient_clip_algorithm)
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         """Creates optimizers and schedulers.
@@ -562,8 +561,8 @@ class Accelerator:
             If true, restore checkpoint after pre_dispatch.
         """
         rank_zero_deprecation(
-            "`Accelerator.restore_checkpoint_after_pre_dispatch` is deprecated in v1.5 and will be removed in v1.6. "
-            "Accesse `restore_checkpoint_after_pre_dispatch` directly from the `TrainingTypePlugin`."
+            "`Accelerator.restore_checkpoint_after_pre_dispatch` is deprecated in v1.5 and will be removed in v1.6."
+            " Access `restore_checkpoint_after_pre_dispatch` directly from the `TrainingTypePlugin`."
         )
         return self.training_type_plugin.restore_checkpoint_after_pre_dispatch
 

@@ -18,7 +18,6 @@ FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
 
 ARG PYTHON_VERSION=3.9
 ARG PYTORCH_VERSION=1.8.1
-ARG CONDA_VERSION=4.9.2
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
