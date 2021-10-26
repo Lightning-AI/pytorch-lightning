@@ -17,8 +17,8 @@ from typing import Any, Iterable, Mapping, Union, Optional, Dict
 import torch
 from torch.utils.data import DataLoader, IterableDataset, Sampler, BatchSampler
 
+import pytorch_lightning as pl
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
-from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -93,7 +93,7 @@ def get_len(dataloader: DataLoader) -> Union[int, float]:
 
 
 def _get_dataloader_init_kwargs(
-    dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
+    dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional["pl.trainer.states.RunningStage"] = None
 ) -> Dict[str, Any]:
     if not isinstance(dataloader, DataLoader):
         raise ValueError(f"The dataloader {dataloader} needs to subclass `torch.utils.data.DataLoader`")
@@ -172,7 +172,7 @@ def _get_dataloader_init_kwargs(
 
 
 def _dataloader_init_kwargs_resolve_sampler(
-    dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
+    dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional["pl.trainer.states.RunningStage"] = None
 ) -> Dict[str, Any]:
     """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for
     its re-instantiation.
@@ -182,7 +182,7 @@ def _dataloader_init_kwargs_resolve_sampler(
     into a `FastForwardSampler`.
     """
     batch_sampler = getattr(dataloader, "batch_sampler")
-    is_predicting = mode == RunningStage.PREDICTING
+    is_predicting = mode == pl.trainer.states.RunningStage.PREDICTING
     # checking the batch sampler type is different than PyTorch default.
     if (batch_sampler is not None and type(batch_sampler) is not BatchSampler) or is_predicting:
         batch_sampler = type(batch_sampler)(
