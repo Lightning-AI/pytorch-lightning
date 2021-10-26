@@ -64,7 +64,7 @@ def test(lite, args, model, test_loader):
 
 class Lite(LightningLite):
 
-    """`Lite` will be converted to a LightningModule in next script."""
+    """`Lite` is starting to look like a `LightningModule`."""
 
     def run(self, hparams):
         self.hparams = hparams

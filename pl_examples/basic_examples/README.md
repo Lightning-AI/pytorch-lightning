@@ -46,8 +46,11 @@ ______________________________________________________________________
 Trains a simple CNN over MNIST with `Lightning Trainer` and the converted `LightningModule`.
 
 ```bash
-# cpu / multiple gpus if available
+# cpu
 python mnist_examples/image_classifier_4_lightning.py
+
+# gpus (any number)
+python mnist_examples/image_classifier_4_lightning.py --trainer.gpus 2
 ```
 
 ______________________________________________________________________

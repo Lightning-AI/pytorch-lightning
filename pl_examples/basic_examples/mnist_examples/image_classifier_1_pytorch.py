@@ -23,8 +23,7 @@ from torch.optim.lr_scheduler import StepLR
 from pl_examples.basic_examples.mnist_examples.mnist_datamodule import MNIST
 
 # Credit to the PyTorch Team
-# Taken from https://github.com/pytorch/examples/blob/master/mnist/main.py
-# and slightly adapted.
+# Taken from https://github.com/pytorch/examples/blob/master/mnist/main.py and slightly adapted.
 
 
 class Net(nn.Module):
