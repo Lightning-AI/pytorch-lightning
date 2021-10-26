@@ -17,6 +17,7 @@ To run: python simple_image_classifier.py --trainer.max_epochs=50
 """
 import torch
 from torch.nn import functional as F
+from torchmetrics import Accuracy
 
 import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
@@ -34,10 +35,11 @@ class LitClassifier(pl.LightningModule):
     )
     """
 
-    def __init__(self, learning_rate: float = 1.0):
+    def __init__(self, lr: float = 1.0, gamma: float = 0.7):
         super().__init__()
         self.save_hyperparameters()
         self.model = Net()
+        self.val_acc = Accuracy()
 
     def forward(self, x):
         return self.model(x)
@@ -45,24 +47,27 @@ class LitClassifier(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = F.cross_entropy(y_hat, y)
+        loss = F.nll_loss(y_hat, y)
         self.log("train_loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = F.cross_entropy(y_hat, y)
+        loss = F.nll_loss(y_hat, y)
         self.log("valid_loss", loss)
+        self.val_acc(y_hat, y)
+        self.log("val_acc", self.val_acc)
 
     def test_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = F.cross_entropy(y_hat, y)
+        loss = F.nll_loss(y_hat, y)
         self.log("test_loss", loss)
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
+        optimizer = torch.optim.Adadelta(self.parameters(), lr=self.hparams.lr)
+        return [optimizer], [torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=self.hparams.gamma)]
 
 
 def cli_main():

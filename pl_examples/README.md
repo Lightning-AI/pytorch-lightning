@@ -9,11 +9,11 @@ ______________________________________________________________________
 
 The following examples contain 5 MNIST examples showing how to gradually convert from pure PyTorch to PyTorch Lightning.
 
-- [MNIST with vanilla PyTorch](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_1_pytorch.py) (defines the model inside the `LightningModule`).
-- [MNIST with LightningLite](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_2_lite.py) (defines the model inside the `LightningModule`).
-- [MNIST LightningLite to PyTorchLightning](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_3_lite_to_lightning.py) (defines the model inside the `LightningModule`).
-- [MNIST LightningLite + Loops to PyTorchLightning](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_4_lite_to_lightning_and_loops.py) (defines the model inside the `LightningModule`).
-- [MNIST with PyTorchLightning](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_5_lightning.py) (defines the model inside the `LightningModule`).
+- [MNIST with vanilla PyTorch](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_1_pytorch.py)
+- [MNIST with LightningLite](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_2_lite.py)
+- [MNIST LightningLite to PyTorchLightning](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_3_lite_to_lightning.py)
+- [Optional: MNIST LightningLite + Loops to PyTorchLightning](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_4_lite_to_lightning_and_loops.py)
+- [MNIST with PyTorchLightning](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_5_lightning.py)
 
 ______________________________________________________________________
 
