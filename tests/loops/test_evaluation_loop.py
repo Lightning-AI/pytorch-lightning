@@ -18,7 +18,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.loops import EvaluationEpochLoop, EvaluationLoop
+from pytorch_lightning.loops import EvaluationEpochLoop
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -140,19 +140,7 @@ def test_evaluation_workers_are_shutdown(tmpdir, persistent_workers):
     # `persistent_workers` makes sure `self._iterator` gets set on the `DataLoader` instance
     train_dataloader = DataLoader(RandomDataset(32, 64), num_workers=0)
     val_dataloader = DataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
-
-    class ValLoop(EvaluationLoop):
-        def on_run_end(self):
-            with mock.patch(
-                "torch.utils.data.dataloader._MultiProcessingDataLoaderIter._shutdown_workers"
-            ) as shutdown_mock:
-                out = super().on_run_end()
-            shutdown_mock.assert_called_once()
-            return out
-
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=2)
-    val_loop = ValLoop()
-    trainer.fit_loop.epoch_loop.connect(trainer.fit_loop.epoch_loop.batch_loop, val_loop)
-    val_loop.trainer = trainer
     trainer.fit(model, train_dataloader, val_dataloader)
+    assert val_dataloader._iterator is None
