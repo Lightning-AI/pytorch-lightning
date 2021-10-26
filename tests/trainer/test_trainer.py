@@ -1021,42 +1021,36 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
     assert model.assertion_called
 
 
-@pytest.mark.parametrize(
-    "precision",
-    [32, pytest.param(16, marks=RunIf(min_gpus=1))],
-)
+@pytest.mark.parametrize("precision", [32, pytest.param(16, marks=RunIf(min_gpus=1))])
 def test_gradient_clipping_by_value(tmpdir, precision):
     """Test gradient clipping by value."""
     tutils.reset_seed()
 
-    model = BoringModel()
-
-    grad_clip_val = 1e-10
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_steps=1,
         max_epochs=1,
+        gpus=1,
         precision=precision,
-        gpus=int(torch.cuda.is_available()),
-        gradient_clip_val=grad_clip_val,
         gradient_clip_algorithm="value",
-        default_root_dir=tmpdir,
+        gradient_clip_val=1e-10,
     )
 
-    old_backward = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward
+    class TestModel(BoringModel):
+        def configure_gradient_clipping(self, *args, **kwargs):
+            super().configure_gradient_clipping(*args, **kwargs)
+            # test that gradient is clipped correctly
+            parameters = self.parameters()
+            grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
+            grad_max = torch.max(torch.stack(grad_max_list))
+            assert (
+                abs(grad_max.item() - 1e-10) < 1e-11
+            ), f"Gradient max value {grad_max} != grad_clip_val {grad_clip_val} ."
+            self.assertion_called = True
 
-    def backward(*args, **kwargs):
-        # test that gradient is clipped correctly
-        ret_val = old_backward(*args, **kwargs)
-        parameters = model.parameters()
-        grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
-        grad_max = torch.max(torch.stack(grad_max_list))
-        assert (
-            abs(grad_max.item() - grad_clip_val) < 1e-11
-        ), f"Gradient max value {grad_max} != grad_clip_val {grad_clip_val} ."
-        return ret_val
-
-    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward = backward
+    model = TestModel()
     trainer.fit(model)
+    assert model.assertion_called
 
 
 def test_invalid_gradient_clip_value(tmpdir):
