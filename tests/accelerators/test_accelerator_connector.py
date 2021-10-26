@@ -637,7 +637,7 @@ def test_accelerator_ddp_for_cpu(tmpdir):
 
 def test_exception_when_strategy_used_with_accelerator():
     with pytest.raises(MisconfigurationException, match="but have also passed"):
-        Trainer(strategy="ddp", strategy="ddp_spawn")
+        Trainer(accelerator="ddp", strategy="ddp_spawn")
 
 
 def test_exception_when_strategy_used_with_plugins():
