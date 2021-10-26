@@ -45,35 +45,23 @@ jobs:
       run: echo "::set-output name=period::$(python -c 'import time ; days = time.time() / 60 / 60 / 24 ; print(int(days / 7))' 2>&1)"
       id: times
 
-    - name: Update pip
+    - name: Upgrade pip
       run: |
+        python --version
         # needed for `pip cache` command
-        pip install --quiet "pip==20.2" --upgrade --user
+        pip install --upgrade pip --user
+        pip --version
 
     # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
     - name: Setup macOS
       if: runner.os == 'macOS'
       run: |
-        brew install libomp  # https://github.com/pytorch/pytorch/issues/20030
         brew install openmpi libuv  # Horovod on macOS requires OpenMPI, Gloo not currently supported
 
     - name: Setup Windows
       if: runner.os == 'windows'
       run: |
         python .github/prune-packages.py requirements/extra.txt "horovod"
-
-    # todo: re-enable when allow testing py 3.9 with min config, atm some Hydra issues
-    #- name: Adjust minimal for Python 3.9
-    #  if: matrix.requires == 'minimal' && matrix.python-version == 3.9
-    #  run: |
-    #    import re
-    #    def _req(fname, ptn, ver):
-    #        req = re.sub(ptn, ver, open(fname).read())
-    #        open(fname, 'w').write(req)
-    #
-    #    _req('requirements.txt', r'torch>=[\d\.]+', 'torch>=1.8.0')
-    #    _req('requirements/extra.txt', r'onnxruntime>=[\d\.]+', 'onnxruntime>=1.7.0')
-    #  shell: python
 
     - name: Set min. dependencies
       if: matrix.requires == 'minimal'
@@ -104,37 +92,35 @@ jobs:
         unzip -o checkpoints.zip
         ls -l checkpoints/
 
-    # todo: re-enable testing with Horovod
-    - name: py3.9 - temp skip Horovod
-      if: matrix.python-version == 3.9
-      run: |
-        # pip uninstall -y horovod
-        python .github/prune-packages.py requirements/extra.txt "horovod"
-
     - name: Install dependencies
+      run: |
+        flag=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
+        pip install --requirement requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade $flag
+        # adjust versions according installed Torch version
+        python ./requirements/adjust_versions.py requirements/examples.txt
+        pip install --requirement requirements/examples.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
+        pip install --requirement requirements/test.txt --upgrade
+        pip list
+      shell: bash
+
+    - name: Install extra dependencies
       env:
-        # MAKEFLAGS: "-j2"
         HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
         HOROVOD_WITHOUT_MXNET: 1
         HOROVOD_WITHOUT_TENSORFLOW: 1
       run: |
-        python --version
-        pip --version
-        # python -m pip install --upgrade --user pip
-        flag=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
-        pip install --requirement requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade $flag
         # adjust versions according installed Torch version
         python ./requirements/adjust_versions.py requirements/extra.txt
-        python ./requirements/adjust_versions.py requirements/examples.txt
-        pip install --requirement ./requirements/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
+        pip install --requirement ./requirements/extra.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
         pip list
       shell: bash
 
     - name: Reinstall Horovod if necessary
-      # todo: re-enable horovod on py3.9 when it will be supported
-      if: runner.os != 'windows' && matrix.python-version != 3.9
+      if: runner.os != 'windows'
       env:
         HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
+        HOROVOD_WITHOUT_MXNET: 1
+        HOROVOD_WITHOUT_TENSORFLOW: 1
       run: |
         HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')" || true)
         if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then

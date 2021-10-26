@@ -19,8 +19,6 @@ FROM pytorchlightning/pytorch_lightning:base-xla-py${PYTHON_VERSION}-torch${PYTO
 
 LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
 
-#SHELL ["/bin/bash", "-c"]
-
 COPY ./ ./pytorch-lightning/
 
 # Pull the legacy checkpoints
@@ -29,17 +27,10 @@ RUN cd pytorch-lightning && \
     unzip -o legacy/checkpoints.zip -d legacy/ && \
     ls -l legacy/checkpoints/
 
-# If using this image for tests, intall more dependencies and don"t delete the source code where the tests live.
 RUN \
-    # Install pytorch-lightning at the current PR, plus dependencies.
-    #pip install -r pytorch-lightning/requirements.txt --no-cache-dir && \
-    # drop Horovod as it is not needed
-    python -c "fname = 'pytorch-lightning/requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)" && \
-    # drop fairscale as it is not needed
-    python -c "fname = 'pytorch-lightning/requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)" && \
+    # drop unnecessary packages
+    python .github/prune-packages.py ./pytorch-lightning/requirements/extra.txt "fairscale" "horovod" && \
     pip install -r pytorch-lightning/requirements/devel.txt --no-cache-dir
-
-#RUN python -c "import pytorch_lightning as pl; print(pl.__version__)"
 
 COPY ./dockers/tpu-tests/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
