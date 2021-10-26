@@ -54,7 +54,7 @@ class ImageClassifier(LightningModule):
         optimizer = torch.optim.Adadelta(self.model.parameters(), lr=self.hparams.lr)
         return [optimizer], [torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=self.hparams.gamma)]
 
-    # Future LightningDataModule
+    # Functions for the `LightningDataModule` convertion
 
     @property
     def transform(self):

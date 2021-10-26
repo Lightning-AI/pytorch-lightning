@@ -63,6 +63,9 @@ def test(lite, args, model, test_loader):
 
 
 class Lite(LightningLite):
+
+    """`Lite` will be converted to a LightningModule in next script."""
+
     def run(self, hparams):
         self.hparams = hparams
 
@@ -85,7 +88,7 @@ class Lite(LightningLite):
         if hparams.save_model and self.is_global_zero:
             torch.save(model.state_dict(), "mnist_cnn.pt")
 
-    # Future LightningModule
+    # Functions for the `LightningModule` convertion
 
     def forward(self, x):
         return self.model(x)
@@ -107,7 +110,7 @@ class Lite(LightningLite):
         optimizer = optim.Adadelta(self.model.parameters(), lr=self.hparams.lr)
         return [optimizer], [StepLR(optimizer, step_size=1, gamma=self.hparams.gamma)]
 
-    # Future LightningDataModule
+    # Functions for the `LightningDataModule` convertion
 
     @property
     def transform(self):
