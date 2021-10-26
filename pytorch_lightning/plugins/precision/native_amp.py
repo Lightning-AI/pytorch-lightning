@@ -67,30 +67,32 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             tensor = self.scaler.scale(tensor)
         super()._run_backward(tensor, model, *args, **kwargs)
 
-    def pre_optimizer_step(
+    def optimizer_step(
         self,
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable[[], Any],
         **kwargs: Any,
-    ) -> bool:
+    ) -> None:
         if self.scaler is None:
-            return super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
+            # skip scaler logic, as bfloat16 does not require scaler
+            return super().optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"Native AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
-        result = lambda_closure()  # native amp does not support closures
+        closure_result = lambda_closure()
+        # `unscale` after the closure is executed but before the `on_before_optimizer_step` hook.
         self.scaler.unscale_(optimizer)
-        super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
-        skipped_backward = result is None
+        if isinstance(model, pl.LightningModule):
+            model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
+        skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if not isinstance(model, pl.LightningModule) or not model.automatic_optimization or not skipped_backward:
             # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
             self.scaler.step(optimizer, **kwargs)
             self.scaler.update()
-        return False
 
     def autocast_context_manager(self) -> autocast:
         if _TORCH_GREATER_EQUAL_DEV_1_10:
