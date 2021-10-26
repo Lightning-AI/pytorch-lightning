@@ -398,7 +398,7 @@ def test_multiple_optimizers_step(tmpdir):
 
         def on_before_optimizer_step(self, *args):
             self.called = True
-            # FIXME
+            # FIXME: does this do anything?
             norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
             if not (torch.isinf(norm) or torch.isnan(norm)):
                 assert norm.item() < 100, norm.item()

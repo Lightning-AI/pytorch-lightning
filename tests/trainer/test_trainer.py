@@ -1012,7 +1012,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
 
     old_backward = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward
 
-    # FIXME
+    # FIXME: does this do anything?
     def backward(*args, **kwargs):
         # test that gradient is clipped correctly
         ret_val = old_backward(*args, **kwargs)
