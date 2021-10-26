@@ -35,7 +35,8 @@ class KubeflowEnvironment(ClusterEnvironment):
         excluded_env_vars = ("GROUP_RANK", "LOCAL_RANK", "LOCAL_WORLD_SIZE")
         return all(v in os.environ for v in required_env_vars) and not any(v in os.environ for v in excluded_env_vars)
 
-    def creates_children(self) -> bool:
+    @property
+    def creates_processes_externally(self) -> bool:
         return True
 
     def master_address(self) -> str:

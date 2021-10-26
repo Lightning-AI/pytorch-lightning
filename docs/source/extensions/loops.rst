@@ -411,18 +411,33 @@ To run the following demo, install Flash and `BaaL <https://github.com/ElementAI
 Here is the `Active Learning Loop example <https://github.com/PyTorchLightning/lightning-flash/blob/master/flash_examples/integrations/baal/image_classification_active_learning.py>`_ and the `code for the active learning loop <https://github.com/PyTorchLightning/lightning-flash/blob/master/flash/image/classification/integrations/baal/loop.py#L31>`_.
 
 
-`KFold / Cross Validation <https://en.wikipedia.org/wiki/Cross-validation_(statistics)>`__ is a machine learning practice in which the training dataset is being partitioned into `num_folds` complementary subsets.
-One cross validation round will perform fitting where one fold is left out for validation and the other folds are used for training.
-To reduce variability, once all rounds are performed using the different folds, the trained models are ensembled and their predictions are
-averaged when estimating the model's predictive performance on the test dataset.
-KFold can elegantly be implemented with `Lightning Loop Customization` as follows:
+----------
 
-Here is the `KFold Loop example <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/loops/kfold.py>`_.
+Advanced Examples
+-----------------
+
+
+.. list-table:: Ready-to-run loop examples and tutorials
+   :widths: 25 75
+   :header-rows: 1
+
+   * - Link to Example
+     - Description
+   * - `K-fold Cross Validation <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/loop_examples/kfold.py>`_
+     - `KFold / Cross Validation <https://en.wikipedia.org/wiki/Cross-validation_(statistics)>`__ is a machine learning practice in which the training dataset is being partitioned into ``num_folds`` complementary subsets.
+       One cross validation round will perform fitting where one fold is left out for validation and the other folds are used for training.
+       To reduce variability, once all rounds are performed using the different folds, the trained models are ensembled and their predictions are
+       averaged when estimating the model's predictive performance on the test dataset.
+   * - `Yielding Training Step <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/loop_examples/yielding_training_step.py>`_
+     - This loop enables you to write the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` hook
+       as a Python Generator for automatic optimization with multiple optimizers, i.e., you can :code:`yield` loss
+       values from it instead of returning them. This can enable more elegant and expressive implementations, as shown
+       shown with a GAN in this example.
 
 
 ----------
 
-Advanced Topics and Examples
-----------------------------
+Advanced Features
+-----------------
 
-Next: :doc:`Advanced loop features and examples <../extensions/loops_advanced>`
+Next: :doc:`Advanced loop features <../extensions/loops_advanced>`

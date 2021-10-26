@@ -163,27 +163,27 @@ def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
     model = CustomBoringModel()
 
     with pytest.deprecated_call(
-        match="Method `on_train_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+        match="Method `on_train_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
     ):
         _run(model, "fit")
 
     with pytest.deprecated_call(
-        match="Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+        match="Method `on_val_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
     ):
         _run(model, "fit")
 
     with pytest.deprecated_call(
-        match="Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+        match="Method `on_val_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
     ):
         _run(model, "validate")
 
     with pytest.deprecated_call(
-        match="Method `on_test_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+        match="Method `on_test_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
     ):
         _run(model, "test")
 
     with pytest.deprecated_call(
-        match="Method `on_predict_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+        match="Method `on_predict_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
     ):
         _run(model, "predict")
 
@@ -388,6 +388,15 @@ def test_v1_7_0_deprecate_gpu_stats_monitor(tmpdir):
 def test_v1_7_0_deprecate_xla_stats_monitor(tmpdir):
     with pytest.deprecated_call(match="The `XLAStatsMonitor` callback was deprecated in v1.5"):
         _ = XLAStatsMonitor()
+
+
+def test_v1_7_0_deprecated_max_steps_none(tmpdir):
+    with pytest.deprecated_call(match="`max_steps = None` is deprecated in v1.5"):
+        _ = Trainer(max_steps=None)
+
+    trainer = Trainer()
+    with pytest.deprecated_call(match="`max_steps = None` is deprecated in v1.5"):
+        trainer.fit_loop.max_steps = None
 
 
 def test_v1_7_0_resume_from_checkpoint_trainer_constructor(tmpdir):
