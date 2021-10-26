@@ -1006,7 +1006,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
         gradient_clip_val=1.0,
     )
 
-    # TODO: when precision=16, BoringModel produces NaN, but EvalModelTemplate not  
+    # TODO: when precision=16, BoringModel produces NaN, but EvalModelTemplate not
     class TestModel(EvalModelTemplate):
         def configure_gradient_clipping(self, *args, **kwargs):
             super().configure_gradient_clipping(*args, **kwargs)
