@@ -49,11 +49,10 @@ class MNISTDataModule(LightningDataModule):
 
 
 class LiftModel(LightningModule):
-    def __init__(self, model, lr):
+    def __init__(self, model, lr, gamma):
         super().__init__()
         self.save_hyperparameters()
         self.model = model
-        self.lr = lr
         self.val_acc = Accuracy()
 
     def forward(self, x):
@@ -73,7 +72,8 @@ class LiftModel(LightningModule):
         return loss
 
     def configure_optimizers(self):
-        return optim.Adadelta(self.parameters(), lr=args.lr)
+        optimizer = optim.Adadelta(self.parameters(), lr=self.hparams.lr)
+        return optimizer, StepLR(optimizer, step_size=1, gamma=self.hparams.gamma)
 
 
 def train(lite, args, model, train_loader, optimizer, epoch):
@@ -121,10 +121,10 @@ class Lite(LightningLite):
         dm.setup()
         train_loader, test_loader = self.setup_dataloaders(dm.train_dataloader(), dm.train_dataloader())
 
-        model = LiftModel(Net(), args.lr)
-        model, optimizer = self.setup(model, model.configure_optimizers())
+        model = LiftModel(Net(), args.lr, args.gamma)
+        optimizer, scheduler = model.configure_optimizers()
+        model, optimizer = self.setup(model, optimizer)
 
-        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
         for epoch in range(1, args.epochs + 1):
             train(self, args, model, train_loader, optimizer, epoch)
             test(self, args, model, test_loader)
