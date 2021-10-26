@@ -8,8 +8,8 @@ mypy>=0.900
 flake8>=3.9.2
 pre-commit>=1.0
 
+# needed in tests
 cloudpickle>=1.3
 scikit-learn>0.22.1
-scikit-image>0.17.1
-nltk>=3.3
+onnxruntime
 pandas  # needed in benchmarks

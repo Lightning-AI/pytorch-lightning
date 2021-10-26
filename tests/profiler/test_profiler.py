@@ -125,6 +125,43 @@ def test_simple_profiler_log_dir(tmpdir):
     assert expected.join("fit-profiler.txt").exists()
 
 
+def test_simple_profiler_with_nonexisting_log_dir(tmpdir):
+    """Ensure the profiler dirpath defaults to `trainer.log_dir`and creates it when not present."""
+    nonexisting_tmpdir = tmpdir / "nonexisting"
+
+    profiler = SimpleProfiler(filename="profiler")
+    assert profiler._log_dir is None
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=nonexisting_tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=1, profiler=profiler
+    )
+    trainer.fit(model)
+
+    expected = nonexisting_tmpdir / "lightning_logs" / "version_0"
+    assert expected.exists()
+    assert trainer.log_dir == expected
+    assert profiler._log_dir == trainer.log_dir
+    assert expected.join("fit-profiler.txt").exists()
+
+
+def test_simple_profiler_with_nonexisting_dirpath(tmpdir):
+    """Ensure the profiler creates non-existing dirpath."""
+    nonexisting_tmpdir = tmpdir / "nonexisting"
+
+    profiler = SimpleProfiler(dirpath=nonexisting_tmpdir, filename="profiler")
+    assert profiler._log_dir is None
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=1, profiler=profiler
+    )
+    trainer.fit(model)
+
+    assert nonexisting_tmpdir.exists()
+    assert nonexisting_tmpdir.join("fit-profiler.txt").exists()
+
+
 @RunIf(skip_windows=True)
 def test_simple_profiler_distributed_files(tmpdir):
     """Ensure the proper files are saved in distributed."""

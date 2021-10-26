@@ -52,7 +52,8 @@ class LSFEnvironment(ClusterEnvironment):
         required_env_vars = ("LSB_JOBID", "LSB_HOSTS", "JSM_NAMESPACE_LOCAL_RANK", "JSM_NAMESPACE_SIZE")
         return all(v in os.environ for v in required_env_vars)
 
-    def creates_children(self) -> bool:
+    @property
+    def creates_processes_externally(self) -> bool:
         return True
 
     def master_address(self):

@@ -12,17 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Existing images:
-# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.7 --build-arg CUDA_VERSION=10.2
-# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.6 --build-arg CUDA_VERSION=10.2
-
 ARG CUDA_VERSION=10.2
 
-# FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu20.04
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
-# FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
 
 ARG PYTHON_VERSION=3.8
+ARG PYTORCH_VERSION=1.6
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
@@ -80,8 +75,6 @@ ENV \
 COPY ./requirements.txt requirements.txt
 COPY ./requirements/ ./requirements/
 
-ARG PYTORCH_VERSION=1.6
-
 # conda init
 RUN \
     wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
@@ -90,15 +83,11 @@ RUN \
 
     # Disable cache
     pip config set global.cache-dir false && \
-    # eventualy use pre-release
-    #pip install "torch==${PYTORCH_VERSION}.*" --pre && \
     # set particular PyTorch version
     python ./requirements/adjust_versions.py requirements.txt ${PYTORCH_VERSION} && \
     python ./requirements/adjust_versions.py requirements/extra.txt ${PYTORCH_VERSION} && \
     python ./requirements/adjust_versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
     # Install all requirements
-    # todo: find a way how to install nightly PT version
-    #  --pre --extra-index-url https://download.pytorch.org/whl/nightly/cu${cuda_ver[0]}${cuda_ver[1]}/torch_nightly.html
     pip install -r requirements/devel.txt --no-cache-dir && \
     rm -rf requirements.* requirements/
 
@@ -111,7 +100,6 @@ RUN \
         pip install --extra-index-url https://developer.download.nvidia.com/compute/redist "nvidia-dali-cuda${CUDA_VERSION_MAJOR}0>1.0" ; \
         python -c 'from nvidia.dali.pipeline import Pipeline' ; \
     fi
-
 
 RUN \
     # install NVIDIA apex

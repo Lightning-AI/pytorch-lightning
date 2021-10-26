@@ -134,3 +134,22 @@ def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
 
     # provide model path, will create a new unwrapped model and load and then call configure_shared_model to wrap
     trainer.test(ckpt_path=model_path)
+
+
+@RunIf(min_gpus=1, skip_windows=True, fairscale_fully_sharded=True, special=True)
+def test_fsdp_gradient_clipping_raises(tmpdir):
+    """Test to ensure that an exception is raised when clipping gradients by value with FSDP."""
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        strategy="fsdp",
+        fast_dev_run=True,
+        gpus=1,
+        precision=16,
+        gradient_clip_val=1,
+        gradient_clip_algorithm="norm",
+    )
+    with pytest.raises(
+        MisconfigurationException, match="gradient_clip_algorithm='norm'` is currently not supported for `FullySharded"
+    ):
+        trainer.fit(model)
