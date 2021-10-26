@@ -23,7 +23,7 @@ from pytorch_lightning.plugins.environments import LightningEnvironment
 def test_default_attributes():
     """Test the default attributes when no environment variables are set."""
     env = LightningEnvironment()
-    assert not env.creates_children()
+    assert not env.creates_processes_externally
     assert env.master_address() == "127.0.0.1"
     assert isinstance(env.master_port(), int)
     assert env.world_size() == 1
@@ -48,13 +48,13 @@ def test_attributes_from_environment_variables():
 
 
 @pytest.mark.parametrize(
-    "environ, creates_children", [({}, False), (dict(LOCAL_RANK="2"), True), (dict(NODE_RANK="1"), False)]
+    "environ, creates_processes_externally", [({}, False), (dict(LOCAL_RANK="2"), True), (dict(NODE_RANK="1"), False)]
 )
-def test_manual_user_launch(environ, creates_children):
+def test_manual_user_launch(environ, creates_processes_externally):
     """Test that the environment switches to manual user mode when LOCAL_RANK env variable detected."""
     with mock.patch.dict(os.environ, environ):
         env = LightningEnvironment()
-        assert env.creates_children() == creates_children
+        assert env.creates_processes_externally == creates_processes_externally
 
 
 @mock.patch.dict(os.environ, {"GROUP_RANK": "1"})
