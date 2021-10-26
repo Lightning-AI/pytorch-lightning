@@ -17,11 +17,11 @@ To run: python image_classifier_4_lightning.py --trainer.max_epochs=50
 """
 import torch
 import torchvision.transforms as T
-from mnist_datamodule import MNIST
 from torch.nn import functional as F
 from torchmetrics.classification import Accuracy
 
 from pl_examples import cli_lightning_logo
+from pl_examples.basic_examples.mnist_datamodule import MNIST
 from pl_examples.basic_examples.mnist_examples.image_classifier_1_pytorch import Net
 from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.cli import LightningCLI

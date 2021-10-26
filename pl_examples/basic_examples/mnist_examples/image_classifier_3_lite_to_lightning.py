@@ -17,10 +17,10 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.transforms as T
-from mnist_datamodule import MNIST
 from torch.optim.lr_scheduler import StepLR
 from torchmetrics import Accuracy
 
+from pl_examples.basic_examples.mnist_datamodule import MNIST
 from pl_examples.basic_examples.mnist_examples.image_classifier_1_pytorch import Net
 from pytorch_lightning import seed_everything
 from pytorch_lightning.lite import LightningLite
@@ -84,6 +84,9 @@ class Lite(LightningLite):
             train(self, hparams, model, train_loader, optimizer, epoch)
             test(self, hparams, model, test_loader)
             scheduler.step()
+
+            if args.dry_run:
+                break
 
         if hparams.save_model and self.is_global_zero:
             torch.save(model.state_dict(), "mnist_cnn.pt")
