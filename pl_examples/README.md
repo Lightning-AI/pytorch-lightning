@@ -7,12 +7,13 @@ ______________________________________________________________________
 
 ## MNIST Examples
 
-In this folder, we have 4 implementations of simple CNN trained over the MNIST dataset:
+In this folder, we have 5 implementations of simple CNN trained over the MNIST dataset:
 
-- [MNIST with raw PyTorch](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_1_pytorch.py) (defines the model inside the `LightningModule`).
+- [MNIST with vanilla PyTorch](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_1_pytorch.py) (defines the model inside the `LightningModule`).
 - [MNIST with LightningLite](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_2_lite.py) (defines the model inside the `LightningModule`).
-- [MNIST with LightningModule](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_3_lightning.py) (defines the model inside the `LightningModule`).
-- [MNIST with LightningModule + DALI](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_4_dali.py) (defines the model inside the `LightningModule`).
+- [MNIST LightningLite to PyTorchLightning](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_3_lite_to_lightning.py) (defines the model inside the `LightningModule`).
+- [MNIST LightningLite + Loops to PyTorchLightning](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_4_lite_to_lightning_and_loops.py) (defines the model inside the `LightningModule`).
+- [MNIST with PyTorchLightning](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_5_lightning.py) (defines the model inside the `LightningModule`).
 
 ______________________________________________________________________
 
@@ -21,6 +22,7 @@ ______________________________________________________________________
 In this folder, we add 2 simple examples:
 
 - [Image Classifier](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/backbone_image_classifier.py) (trains arbitrary datasets with arbitrary backbones).
+- [Image Classifier + DALI](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_4_dali.py) (defines the model inside the `LightningModule`).
 - [Autoencoder](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/autoencoder.py) (shows how the `LightningModule` can be used as a system)
 
 ______________________________________________________________________
