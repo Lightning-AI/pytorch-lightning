@@ -85,7 +85,7 @@ class SignalConnector:
         self.trainer._terminate_gracefully = True
 
     def sigterm_handler_fn(self, signum: Signals, frame: FrameType) -> None:
-        log.debug("bypassing sigterm")
+        log.info("bypassing sigterm")
 
     def _is_on_slurm(self) -> bool:
         # see if we're using slurm (not interactive)
