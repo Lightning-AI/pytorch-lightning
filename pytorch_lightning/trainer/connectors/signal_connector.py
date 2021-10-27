@@ -40,7 +40,7 @@ class SignalConnector:
             log.info("Set SLURM handle signals.")
             sigusr1_handlers.append(self.slurm_sigusr1_handler_fn)
 
-        sigterm_handlers.append(self.sigterm_handler_fn)
+            sigterm_handlers.append(self.sigterm_handler_fn)
 
         # signal.SIGUSR1 doesn't seem available on windows
         if not self._is_on_windows():
