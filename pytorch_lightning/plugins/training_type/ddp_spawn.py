@@ -188,8 +188,8 @@ class DDPSpawnPlugin(ParallelPlugin):
             The output of the function of process 0.
         """
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        smp = mp.get_context("spawn")
-        return_queue = smp.SimpleQueue()
+        context = mp.get_context("spawn")
+        return_queue = context.SimpleQueue()
         mp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), nprocs=self.num_processes)
         return return_queue.get()
 
