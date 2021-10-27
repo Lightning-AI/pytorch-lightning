@@ -107,9 +107,9 @@ class ImageNetLightningModel(LightningModule):
         self.log(f"{prefix}_loss", loss_val, on_step=True, on_epoch=True)
         self.log(f"{prefix}_acc1", acc1, on_step=True, prog_bar=True, on_epoch=True)
         self.log(f"{prefix}_acc5", acc5, on_step=True, on_epoch=True)
-        
+
     def validation_step(self, batch, batch_idx):
-        return self.eval_step(batch, batch_idx, 'val')
+        return self.eval_step(batch, batch_idx, "val")
 
     @staticmethod
     def __accuracy(output, target, topk=(1,)):
@@ -169,7 +169,7 @@ class ImageNetLightningModel(LightningModule):
         return self.val_dataloader()
 
     def test_step(self, batch, batch_idx):
-        return self.eval_step(batch, batch_idx,'test')
+        return self.eval_step(batch, batch_idx, "test")
 
     @staticmethod
     def add_model_specific_args(parent_parser):  # pragma: no-cover
