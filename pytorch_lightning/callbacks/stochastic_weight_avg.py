@@ -137,6 +137,7 @@ class StochasticWeightAveraging(Callback):
         self._initialized = False
         self._swa_scheduler = None
         self._batch_norm_moments = None
+        self._scheduler_step_count = None
 
     @property
     def swa_start(self) -> int:
@@ -201,6 +202,9 @@ class StochasticWeightAveraging(Callback):
                 anneal_strategy=self._annealing_strategy,
                 last_epoch=trainer.max_epochs if self._annealing_strategy == "cos" else -1,
             )
+            if self._scheduler_step_count is not None:
+                # Restore scheduler step count from checkpoint
+                self._swa_scheduler._step_count = self._scheduler_step_count
             default_scheduler_cfg = _get_default_scheduler_config()
             assert default_scheduler_cfg["interval"] == "epoch" and default_scheduler_cfg["frequency"] == 1
             default_scheduler_cfg["scheduler"] = self._swa_scheduler
@@ -337,6 +341,7 @@ class StochasticWeightAveraging(Callback):
             "swa_lrs": self._swa_lrs,
             "annealing_epochs": self._annealing_epochs,
             "annealing_strategy": self._annealing_strategy,
+            "scheduler_step_count": None if self._swa_scheduler is None else self._swa_scheduler._step_count,
             "average_model_parameters": self._get_average_model_parameters(trainer),
         }
         return checkpoint_data
@@ -349,6 +354,7 @@ class StochasticWeightAveraging(Callback):
             self._swa_lrs = callback_state["swa_lrs"]
             self._annealing_strategy = callback_state["annealing_strategy"]
             self._annealing_epochs = callback_state["annealing_epochs"]
+            self._scheduler_step_count = callback_state["scheduler_step_count"]
             self._load_average_model_parameters(callback_state["average_model_parameters"])
         else:
             rank_zero_warn(

@@ -125,6 +125,9 @@ class SwaTestCallback(StochasticWeightAveraging):
         if self.swa_start <= trainer.current_epoch <= self.swa_end:
             swa_epoch = trainer.current_epoch - self.swa_start
             assert self.n_averaged == swa_epoch + 1
+            assert self._swa_scheduler is not None
+            # Scheduler is stepped once on initialization and then at the end of each epoch
+            assert self._swa_scheduler._step_count == swa_epoch + 2
         elif trainer.current_epoch > self.swa_end:
             assert self.n_averaged == self._max_epochs - self.swa_start
 
