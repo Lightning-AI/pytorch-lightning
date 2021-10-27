@@ -119,20 +119,23 @@ class IPUPlugin(ParallelPlugin):
         precision = self.lightning_module.trainer.precision
         model = LightningIPUModule(self.lightning_module, precision)
         self.model = model
+        
+        # reset the backup
         self.poptorch_models = {}
 
         # Separate models are instantiated for different stages, but they share the same weights on host.
         # When validation/test models are run, weights are synced first.
-
         trainer_fn = self.lightning_module.trainer.state.fn
         if trainer_fn in (TrainerFn.FITTING, TrainerFn.TUNING):
             # Create model for training and validation which will run on fit
+            training_opts = self.training_opts
+            inference_opts = self.inference_opts
             optimizer = self.lightning_module.trainer.optimizers[0]
-            model = poptorch.trainingModel(model=model, options=self.training_opts, optimizer=optimizer)
+            model = poptorch.trainingModel(model=model, options=training_opts, optimizer=optimizer)
             self.poptorch_models[RunningStage.TRAINING] = model
 
             if self.lightning_module.trainer.enable_validation:
-                model = poptorch.inferenceModel(model=model, options=self.inference_opts)
+                model = poptorch.inferenceModel(model=model, options=inference_opts)
                 self.poptorch_models[RunningStage.VALIDATING] = model
         elif trainer_fn == TrainerFn.VALIDATING:
             model = poptorch.inferenceModel(model=model, options=self.inference_opts)
@@ -146,7 +149,7 @@ class IPUPlugin(ParallelPlugin):
 
     @property
     def replication_factor(self) -> int:
-        if not self.lightning_module:
+        if not self.lightning_module or not self.poptorch_models:
             # The plugin has been passed in by the user and has not been connected to the Trainer.
             # Check if the user has passed in custom poptorch.Options to infer number of IPUs being used.
             # In this scenario we prioritize the training options.

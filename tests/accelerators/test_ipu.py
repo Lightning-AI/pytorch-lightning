@@ -338,6 +338,7 @@ def test_autoreport(tmpdir):
     )
     trainer.fit(model)
     assert os.path.exists(autoreport_path)
+    import pdb; pdb.set_trace()
     assert os.path.isfile(autoreport_path + "profile.pop")
 
 
@@ -429,15 +430,24 @@ def test_replication_factor(tmpdir):
     inference_opts = poptorch.Options()
     training_opts.replicationFactor(8)
     inference_opts.replicationFactor(7)
-    plugin = (IPUPlugin(inference_opts=inference_opts, training_opts=training_opts),)
+    plugin = IPUPlugin(inference_opts=inference_opts, training_opts=training_opts)
 
     trainer = Trainer(default_root_dir=tmpdir, ipus=1, strategy=plugin)
-    trainer.state.stage = RunningStage.TRAINING
+    trainer.optimizers = model.configure_optimizers()[0]
     plugin.model = model
-    assert trainer.training_type_plugin.replication_factor == 8
+    model.trainer = trainer
+    trainer.state.fn = TrainerFn.FITTING
+    trainer.training_type_plugin.pre_dispatch()
 
-    for stage in (RunningStage.VALIDATING, RunningStage.TESTING, RunningStage.PREDICTING):
+    trainer.state.stage = RunningStage.TRAINING
+    assert trainer.training_type_plugin.replication_factor == 8
+    trainer.state.stage = RunningStage.VALIDATING
+    assert trainer.training_type_plugin.replication_factor == 7
+
+    for fn, stage in ((TrainerFn.VALIDATING, RunningStage.VALIDATING), (TrainerFn.TESTING, RunningStage.TESTING), (TrainerFn.PREDICTING, RunningStage.PREDICTING)):
+        trainer.state.fn = fn
         trainer.state.stage = stage
+        trainer.training_type_plugin.pre_dispatch()
         assert trainer.training_type_plugin.replication_factor == 7
 
 
@@ -570,18 +580,14 @@ def test_poptorch_models_at_different_stages(tmpdir):
     model.trainer = trainer
     plugin.model = model
 
+    trainer.optimizers = model.configure_optimizers()[0]
     trainer.state.fn = TrainerFn.FITTING
     trainer.training_type_plugin.pre_dispatch()
     assert list(trainer.training_type_plugin.poptorch_models) == [RunningStage.TRAINING, RunningStage.VALIDATING]
 
-    trainer.state.fn = TrainerFn.VALIDATING
-    trainer.training_type_plugin.pre_dispatch()
-    assert list(trainer.training_type_plugin.poptorch_models) == [RunningStage.VALIDATING]
+    for fn, stage in ((TrainerFn.VALIDATING, RunningStage.VALIDATING), (TrainerFn.TESTING, RunningStage.TESTING), (TrainerFn.PREDICTING, RunningStage.PREDICTING)):
+        trainer.state.fn = fn
+        trainer.state.stage = stage
+        trainer.training_type_plugin.pre_dispatch()
+        assert list(trainer.training_type_plugin.poptorch_models) == [stage]
 
-    trainer.state.fn = TrainerFn.TESTING
-    trainer.training_type_plugin.pre_dispatch()
-    assert list(trainer.training_type_plugin.poptorch_models) == [RunningStage.TESTING]
-
-    trainer.state.fn = TrainerFn.PREDICTING
-    trainer.training_type_plugin.pre_dispatch()
-    assert list(trainer.training_type_plugin.poptorch_models) == [RunningStage.PREDICTING]
