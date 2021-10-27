@@ -517,7 +517,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
     @property
     def precision(self) -> Union[str, int]:
-        return self.lightning_module.trainer.precision
+        return self._precision or self.lightning_module.trainer.precision
 
     def _set_deepspeed_activation_checkpointing(self):
         if self.config.get("activation_checkpointing"):
@@ -631,9 +631,10 @@ class DeepSpeedPlugin(DDPPlugin):
         return batch_size
 
     def _format_precision_config(self):
-        amp_type = self.lightning_module.trainer._accelerator_connector.amp_type
-        amp_level = self.lightning_module.trainer._accelerator_connector.amp_level
-        precision = self.lightning_module.trainer._accelerator_connector.precision
+        amp_type = self.amp_type or self.lightning_module.trainer._accelerator_connector.amp_type
+        precision = self.precision or self.lightning_module.trainer._accelerator_connector.precision
+        if amp_type == AMPType.APEX:
+            amp_level = self.amp_level or self.lightning_module.trainer._accelerator_connector.amp_level
         if precision in (16, "mixed"):
             if "fp16" not in self.config and amp_type == AMPType.NATIVE:
                 # FP16 is a DeepSpeed standalone AMP implementation
