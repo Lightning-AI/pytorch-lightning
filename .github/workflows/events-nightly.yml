@@ -6,6 +6,8 @@ on:
   schedule:
     # At the end of every day
     - cron: "0 0 * * *"
+  # FIXME: HACK HACK HACK
+  push: {}
 
 env:
   PUSH_TO_HUB: true
@@ -53,8 +55,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # the config used in '.circleci/config.yml`'
         python_version: ["3.7"]
-        xla_version: ["1.6", "1.7", "1.8", "1.9"]
+        xla_version: ["1.8"]
 
     steps:
       - name: Checkout
@@ -87,11 +90,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: ["3.6", "3.7", "3.8", "3.9"]
-        pytorch_version: ["1.6", "1.7", "1.8", "1.9"]
-        exclude:
-          - python_version: "3.9"
-            pytorch_version: "1.6"
+        # the config used in '.azure-pipelines/gpu-tests.yml'
+        python_version: ["3.7"]
+        pytorch_version: ["1.8.1"]
 
     steps:
       - name: Checkout
@@ -122,11 +123,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: ["3.6", "3.7", "3.8", "3.9"]
+        # the config used in '.github/workflows/ci_test-conda.yml'
+        python_version: ["3.6"]
         pytorch_version: ["1.6", "1.7", "1.8", "1.9", "1.10"]
-        exclude:
-          - python_version: "3.9"
-            pytorch_version: "1.6"
 
     steps:
       - name: Checkout
@@ -164,6 +163,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # the config used in 'dockers/ipu-ci-runner/Dockerfile'
         include:
           - python_version: "3.8"
             pytorch_version: "1.7"
