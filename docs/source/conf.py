@@ -377,7 +377,7 @@ from pytorch_lightning.utilities import (
     _XLA_AVAILABLE,
     _TPU_AVAILABLE,
     _TORCHVISION_AVAILABLE,
-    _TORCH_GREATER_EQUAL_DEV_1_10,
+    _TORCH_GREATER_EQUAL_1_10,
     _module_available,
 )
 _JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
