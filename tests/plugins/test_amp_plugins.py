@@ -18,7 +18,7 @@ from unittest import mock
 import pytest
 import torch
 
-from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_DEV_1_10

@@ -1043,9 +1043,7 @@ def test_gradient_clipping_by_value(tmpdir, precision):
             parameters = self.parameters()
             grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
             grad_max = torch.max(torch.stack(grad_max_list))
-            assert (
-                abs(grad_max.item() - 1e-10) < 1e-11
-            ), f"Gradient max value {grad_max} != grad_clip_val {grad_clip_val} ."
+            assert abs(grad_max.item() - 1e-10) < 1e-11, f"Gradient max value {grad_max} != grad_clip_val {1e-10} ."
             self.assertion_called = True
 
     model = TestModel()

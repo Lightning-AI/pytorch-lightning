@@ -468,7 +468,6 @@ def test_multiple_optimizers_step(tmpdir):
         amp_backend="native",
         gpus=1,
         track_grad_norm=2,
-        gradient_clip_val=2,
     )
 
     with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward) as bwd_mock:
