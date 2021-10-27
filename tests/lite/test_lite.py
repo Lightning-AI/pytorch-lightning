@@ -209,7 +209,6 @@ def test_setup_dataloaders_distributed_sampler_not_needed():
         DistributedType.DP,
         DistributedType.DDP,
         DistributedType.DDP_SPAWN,
-        DistributedType.TPU_SPAWN,
         pytest.param(DistributedType.DEEPSPEED, marks=RunIf(deepspeed=True)),
         pytest.param(DistributedType.DDP_SHARDED, marks=RunIf(fairscale=True)),
         pytest.param(DistributedType.DDP_SHARDED_SPAWN, marks=RunIf(fairscale=True)),
