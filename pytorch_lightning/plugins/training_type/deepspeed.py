@@ -334,11 +334,11 @@ class DeepSpeedPlugin(DDPPlugin):
         return self._precision or self.lightning_module.trainer.precision
 
     @property
-    def amp_level(self):
+    def amp_level(self) -> Optional[str]:
         return self._amp_level or self.lightning_module.trainer._accelerator_connector.amp_level
 
     @property
-    def amp_type(self):
+    def amp_type(self) -> Optional[str]:
         return self._amp_type or self.lightning_module.trainer._accelerator_connector.amp_type
 
     def _load_config(self, config):
