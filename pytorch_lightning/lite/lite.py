@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, overload, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -46,21 +46,22 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 class LightningLite(ABC):
     """Lite accelerates your PyTorch training or inference code with minimal changes required.
 
-    - Automatic placement of models and data onto the device
-    - Automatic support for mixed and double precision (smaller memory footprint)
+    - Automatic placement of models and data onto the device.
+    - Automatic support for mixed and double precision (smaller memory footprint).
     - Seamless switching between hardware (CPU, GPU, TPU) and distributed training strategies
-      (data-parallel training, sharded training, etc.)
-    - Automated spawning of processes, no launch utilities required
-    - Multi-node support
+      (data-parallel training, sharded training, etc.).
+    - Automated spawning of processes, no launch utilities required.
+    - Multi-node support.
 
     Args:
-        accelerator: The hardware to run on. Possible choices are: cpu, gpu, tpu, auto.
+        accelerator: The hardware to run on. Possible choices are: ```cpu"``, ```gpu"``, ```tpu"``, ```auto"``.
         strategy: Strategy for how to run across multiple devices. Possible choices are:
-            dp, ddp, ddp_spawn, tpu_spawn, deepspeed, ddp_sharded.
-        devices: Number of devices to train on (int) or which GPUs to train on (list or str). The value applies
-            per node.
+            ```dp"``, ```ddp"``, ```ddp_spawn"``, ```deepspeed"``, ```ddp_sharded"``.
+        devices: Number of devices to train on (``int``) or which GPUs to train on (``list`` or ``str``).
+            The value applies per node.
         num_nodes: Number of GPU nodes for distributed training.
-        precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
+        precision: Double precision (``64``), full precision (``32``), half precision (``16``),
+            or bfloat16 precision (```bf16"``).
         plugins: One or several custom plugins
         gpus: Provides the same function as the ``devices`` argument but implies ``accelerator="gpu"``.
         tpu_cores: Provides the same function as the ``devices`` argument but implies ``accelerator="tpu"``.
@@ -250,7 +251,7 @@ class LightningLite(ABC):
             **kwargs: Optional named keyword arguments passed to the underlying backward function.
 
         Note:
-            When using ``strategy='deepspeed'`` and multiple models were setup, it is required to pass in the
+            When using ``strategy='deepspeed"`` and multiple models were setup, it is required to pass in the
             model as argument here.
         """
         module = model.module if model is not None else model
