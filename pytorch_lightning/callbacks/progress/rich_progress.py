@@ -277,6 +277,7 @@ class RichProgressBar(ProgressBarBase):
                 CustomTimeColumn(style=self.theme.time),
                 ProcessingSpeedColumn(style=self.theme.processing_speed),
                 self._metric_component,
+                auto_refresh=False,
                 refresh_per_second=self.refresh_rate_per_second,
                 disable=self.is_disabled,
                 console=self._console,
@@ -284,6 +285,10 @@ class RichProgressBar(ProgressBarBase):
             self.progress.start()
             # progress has started
             self._progress_stopped = False
+
+    def refresh(self):
+        if self.progress:
+            self.progress.refresh()
 
     def on_train_start(self, trainer, pl_module):
         super().on_train_start(trainer, pl_module)
@@ -316,10 +321,12 @@ class RichProgressBar(ProgressBarBase):
         super().on_sanity_check_start(trainer, pl_module)
         self._init_progress(trainer)
         self.val_sanity_progress_bar_id = self._add_task(trainer.num_sanity_val_steps, self.sanity_check_description)
+        self.refresh()
 
     def on_sanity_check_end(self, trainer, pl_module):
         super().on_sanity_check_end(trainer, pl_module)
         self._update(self.val_sanity_progress_bar_id, visible=False)
+        self.refresh()
 
     def on_train_epoch_start(self, trainer, pl_module):
         super().on_train_epoch_start(trainer, pl_module)
@@ -337,6 +344,7 @@ class RichProgressBar(ProgressBarBase):
             self.main_progress_bar_id = self._add_task(total_batches, train_description)
         if self.progress is not None:
             self.progress.reset(self.main_progress_bar_id, total=total_batches, description=train_description)
+        self.refresh()
 
     def on_validation_epoch_start(self, trainer, pl_module):
         super().on_validation_epoch_start(trainer, pl_module)
@@ -347,6 +355,7 @@ class RichProgressBar(ProgressBarBase):
                 val_checks_per_epoch = self.total_train_batches // trainer.val_check_batch
                 total_val_batches = self.total_val_batches * val_checks_per_epoch
             self.val_progress_bar_id = self._add_task(total_val_batches, self.validation_description, visible=False)
+            self.refresh()
 
     def _add_task(self, total_batches: int, description: str, visible: bool = True) -> Optional[int]:
         if self.progress is not None:
@@ -357,6 +366,7 @@ class RichProgressBar(ProgressBarBase):
     def _update(self, progress_bar_id: int, visible: bool = True) -> None:
         if self.progress is not None:
             self.progress.update(progress_bar_id, advance=1.0, visible=visible)
+            self.refresh()
 
     def on_validation_epoch_end(self, trainer, pl_module):
         super().on_validation_epoch_end(trainer, pl_module)
@@ -370,15 +380,18 @@ class RichProgressBar(ProgressBarBase):
     def on_test_epoch_start(self, trainer, pl_module):
         super().on_train_epoch_start(trainer, pl_module)
         self.test_progress_bar_id = self._add_task(self.total_test_batches, self.test_description)
+        self.refresh()
 
     def on_predict_epoch_start(self, trainer, pl_module):
         super().on_predict_epoch_start(trainer, pl_module)
         self.predict_progress_bar_id = self._add_task(self.total_predict_batches, self.predict_description)
+        self.refresh()
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
         self._update(self.main_progress_bar_id)
         self._update_metrics(trainer, pl_module)
+        self.refresh()
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
@@ -389,14 +402,17 @@ class RichProgressBar(ProgressBarBase):
             if self.main_progress_bar_id is not None:
                 self._update(self.main_progress_bar_id)
             self._update(self.val_progress_bar_id)
+        self.refresh()
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_test_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         self._update(self.test_progress_bar_id)
+        self.refresh()
 
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_predict_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         self._update(self.predict_progress_bar_id)
+        self.refresh()
 
     def _get_train_description(self, current_epoch: int) -> str:
         train_description = f"Epoch {current_epoch}"
