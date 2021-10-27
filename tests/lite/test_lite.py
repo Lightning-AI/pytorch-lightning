@@ -59,24 +59,24 @@ def test_unsupported_strategy(strategy):
         EmptyLite(strategy=strategy)
 
 
-def test_run_input_output():
+class LiteReturnSpawnResult(LightningLite):
+    def run(self, *args, **kwargs):
+        return args, kwargs, "result", self.local_rank
+
+
+@pytest.mark.parametrize(
+    "accelerator, strategy, devices",
+    [
+        ("cpu", None, None),
+        ("cpu", "ddp_spawn", 2),
+        pytest.param("tpu", "tpu_spawn", 1, marks=RunIf(tpu=True)),
+    ],
+)
+def test_run_input_output(accelerator, strategy, devices):
     """Test that the dynamically patched run() method receives the input arguments and returns the result."""
-
-    class Lite(LightningLite):
-
-        run_args = ()
-        run_kwargs = {}
-
-        def run(self, *args, **kwargs):
-            self.run_args = args
-            self.run_kwargs = kwargs
-            return "result"
-
-    lite = Lite()
+    lite = LiteReturnSpawnResult(accelerator=accelerator, strategy=strategy, devices=devices)
     result = lite.run(1, 2, three=3)
-    assert result == "result"
-    assert lite.run_args == (1, 2)
-    assert lite.run_kwargs == {"three": 3}
+    assert result == ((1, 2), {"three": 3}, "result", 0)
 
 
 def test_setup_optimizers():
