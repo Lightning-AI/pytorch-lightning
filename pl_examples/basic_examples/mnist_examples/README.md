@@ -2,7 +2,7 @@
 
 5 MNIST examples showing how to gradually convert from pure PyTorch to PyTorch Lightning.
 
-The transition through [LightningLite](https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.rst) from pure PyTorch is optional but it might helpful to learn about it.
+The transition through [LightningLite](https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.rst) from pure PyTorch is optional but it might be helpful to learn about it.
 
 #### 1 . Image Classifier with Vanilla PyTorch
 
@@ -43,10 +43,10 @@ Trains a simple CNN over MNIST with `Lightning Trainer` and the converted `Light
 
 ```bash
 # cpu
-python mnist_examples/image_classifier_4_lightning.py
+python image_classifier_4_lightning.py
 
 # gpus (any number)
-python mnist_examples/image_classifier_4_lightning.py --trainer.gpus 2
+python image_classifier_4_lightning.py --trainer.gpus 2
 ```
 
 ______________________________________________________________________
