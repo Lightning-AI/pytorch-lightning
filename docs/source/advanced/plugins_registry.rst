@@ -3,7 +3,7 @@ Training Type Plugins Registry
 
 Lightning includes a registry that holds information about Training Type plugins and allows for the registration of new custom plugins.
 
-The Plugins are associated with strings. These strings are names that identify the plugin, such as "deepspeed."
+The Plugins are assigned strings that identify them, such as "ddp", "deepspeed_stage_2_offload", and so on.
 It also returns the optional description and parameters for initialising the Plugin that were defined during registration.
 
 
