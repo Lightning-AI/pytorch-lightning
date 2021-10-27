@@ -153,6 +153,26 @@ class SwaTestCallback(StochasticWeightAveraging):
             assert self.transfer_weights_calls == 1
 
 
+class SwaTestDataModule(LightningDataModule):
+    """Shim data module that just wraps a model."""
+
+    def __init__(self, model: LightningModule):
+        super().__init__()
+        self._model = model
+
+    def train_dataloader(self):
+        return self._model.train_dataloader()
+
+    def test_dataloader(self):
+        return self._model.test_dataloader()
+
+    def predict_dataloader(self):
+        return self._model.predict_dataloader()
+
+    def val_dataloader(self):
+        return self._model.val_dataloader()
+
+
 def train_with_swa(
     tmpdir,
     batchnorm=True,
@@ -297,9 +317,10 @@ def test_swa_multiple_lrs(tmpdir):
 
     class TestModel(BoringModel):
         def __init__(self):
-            super(BoringModel, self).__init__()
+            super().__init__()
             self.layer1 = torch.nn.Linear(32, 32)
             self.layer2 = torch.nn.Linear(32, 2)
+            self.on_train_epoch_start_called = False
 
         def forward(self, x):
             x = self.layer1(x)
@@ -402,15 +423,7 @@ def test_swa_load_best_checkpoint(tmpdir, batchnorm: bool, within_swa_epochs: bo
     with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward):
         trainer.fit(model)
 
-    if use_datamodule:
-
-        class TestDataModule(LightningDataModule):
-            def train_dataloader(self):
-                return model.train_dataloader()
-
-        datamodule = TestDataModule()
-    else:
-        datamodule = None
+    datamodule = SwaTestDataModule(model) if use_datamodule else None
 
     checkpoint_path = checkpoint_callback.best_model_path
     new_model = SwaTestModel.load_from_checkpoint(checkpoint_path)
