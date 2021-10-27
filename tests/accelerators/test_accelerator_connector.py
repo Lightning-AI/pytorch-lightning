@@ -341,7 +341,7 @@ def _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class):
         plugins=[ddp_plugin_class(find_unused_parameters=True)],
         fast_dev_run=True,
         strategy="ddp",
-        accelerator="cpu"
+        accelerator="cpu",
         num_processes=2,
     )
     assert isinstance(trainer.training_type_plugin, ddp_plugin_class)
