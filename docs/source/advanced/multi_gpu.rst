@@ -97,7 +97,7 @@ Note if you use any built in metrics or custom metrics that use the :doc:`Metric
         x, y = batch
         logits = self(x)
         loss = self.loss(logits, y)
-        # Add sync_dist=True to sync logging across all GPU workers
+        # Add sync_dist=True to sync logging across all GPU workers (may have performance impact)
         self.log("validation_loss", loss, on_step=True, on_epoch=True, sync_dist=True)
 
 
@@ -105,7 +105,7 @@ Note if you use any built in metrics or custom metrics that use the :doc:`Metric
         x, y = batch
         logits = self(x)
         loss = self.loss(logits, y)
-        # Add sync_dist=True to sync logging across all GPU workers
+        # Add sync_dist=True to sync logging across all GPU workers (may have performance impact)
         self.log("test_loss", loss, on_step=True, on_epoch=True, sync_dist=True)
 
 It is possible to perform some computation manually and log the reduced result on rank 0 as follows:
