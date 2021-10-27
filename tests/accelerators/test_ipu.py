@@ -543,3 +543,10 @@ def test_device_type_when_training_plugin_ipu_passed(tmpdir):
     assert isinstance(trainer.training_type_plugin, IPUPlugin)
     assert trainer._device_type == DeviceType.IPU
     assert isinstance(trainer.accelerator, IPUAccelerator)
+
+
+@RunIf(ipu=True)
+def test_accelerator_auto_choice_and_devices_ipu():
+    trainer = Trainer(accelerator="auto")
+    assert trainer.devices == 1
+    assert trainer.ipus == 1

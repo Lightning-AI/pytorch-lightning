@@ -310,3 +310,10 @@ def test_mp_device_dataloader_attribute(_):
     dataloader = TPUSpawnPlugin().process_dataloader(DataLoader(dataset))
 
     assert dataloader.dataset == dataset
+
+
+@RunIf(tpu=True)
+def test_accelerator_auto_choice_and_devices_tpu():
+    trainer = Trainer(accelerator="auto")
+    assert trainer.devices == 1
+    assert trainer.tpu_cores == 1

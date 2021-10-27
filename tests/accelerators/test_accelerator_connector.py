@@ -43,7 +43,7 @@ from pytorch_lightning.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from pytorch_lightning.utilities import DeviceType, DistributedType
+from pytorch_lightning.utilities import _IPU_AVAILABLE, _TPU_AVAILABLE, DeviceType, DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -1005,3 +1005,17 @@ def test_unsupported_ipu_choice(monkeypatch):
         Trainer(accelerator="ipu", precision="bf16")
     with pytest.raises(MisconfigurationException, match=r"accelerator='ipu', precision=64\)` is not supported"):
         Trainer(accelerator="ipu", precision=64)
+
+
+@pytest.mark.skipif(torch.cuda.is_available() or _TPU_AVAILABLE or _IPU_AVAILABLE, reason="test requires to run on CPU")
+def test_accelerator_auto_choice_and_devices_cpu():
+    trainer = Trainer(accelerator="auto")
+    assert trainer.devices == 1
+    assert trainer.num_processes == 1
+
+
+@RunIf(min_gpus=1)
+def test_accelerator_auto_choice_and_devices_gpu():
+    trainer = Trainer(accelerator="auto")
+    assert trainer.devices == 1
+    assert trainer.gpus == 1
