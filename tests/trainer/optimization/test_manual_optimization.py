@@ -393,18 +393,7 @@ def test_multiple_optimizers_step(tmpdir):
     """Tests that `step` works with several optimizers."""
 
     class TestModel(ManualOptModel):
-
-        called = False
-
-        def on_before_optimizer_step(self, *args):
-            self.called = True
-            # FIXME: does this do anything?
-            norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
-            if not (torch.isinf(norm) or torch.isnan(norm)):
-                assert norm.item() < 100, norm.item()
-
         def training_step(self, batch, batch_idx):
-            # manual
             opt_a, opt_b = self.optimizers()
             x = batch[0]
 
@@ -437,6 +426,33 @@ def test_multiple_optimizers_step(tmpdir):
             # outputs should be an array with an entry per optimizer
             assert len(outputs) == 2
 
+        # sister test: tests/plugins/test_amp_plugins.py::test_amp_gradient_unscale
+        def on_after_backward(self) -> None:
+            # check grads are scaled
+            scale = self.trainer.precision_plugin.scaler.get_scale()
+            assert scale != 1.0  # the return value if not enabled
+            grads = [p.grad for p in self.parameters()]
+            inv_scale = 1 / scale
+            self.original_grads = [p * inv_scale for p in grads]
+
+        def check_grads_unscaled(self, optimizer=None):
+            if optimizer is not None:
+                scaler = self.trainer.precision_plugin.scaler
+                state = scaler._per_optimizer_states[id(optimizer)]
+                assert state["stage"].name == "UNSCALED"
+
+            grads = [p.grad for p in self.parameters()]
+            assert len(grads) == len(self.original_grads)
+            for actual, expected in zip(grads, self.original_grads):
+                torch.testing.assert_allclose(actual, expected)
+
+        def on_before_optimizer_step(self, optimizer, *_):
+            self.check_grads_unscaled(optimizer)
+
+        def log_grad_norm(self, grad_norm_dict):
+            self.check_grads_unscaled()
+            assert len(grad_norm_dict)
+
     model = TestModel()
     model.val_dataloader = None
 
@@ -451,12 +467,13 @@ def test_multiple_optimizers_step(tmpdir):
         precision=16,
         amp_backend="native",
         gpus=1,
+        track_grad_norm=2,
+        gradient_clip_val=2,
     )
 
     with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward) as bwd_mock:
         trainer.fit(model)
     assert bwd_mock.call_count == limit_train_batches * 3
-    assert model.called
 
 
 def test_step_with_optimizer_closure(tmpdir):
