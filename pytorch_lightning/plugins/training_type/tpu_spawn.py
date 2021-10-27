@@ -139,7 +139,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         return os.getenv(xenv.HOST_WORLD_SIZE, None) and self.world_size != 1
 
     def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
-        TPUSpawnPlugin._validate_dataloader(dataloader)
+        self._validate_dataloader(dataloader, self.lightning_module)
         dataloader = MpDeviceLoader(dataloader, self.root_device)
         # Mimic interface to torch.utils.data.DataLoader
         dataloader.dataset = dataloader._loader.dataset
