@@ -338,9 +338,6 @@ def test_autoreport(tmpdir):
     )
     trainer.fit(model)
     assert os.path.exists(autoreport_path)
-    import pdb
-
-    pdb.set_trace()
     assert os.path.isfile(autoreport_path + "profile.pop")
 
 
