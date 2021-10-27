@@ -1,3 +1,5 @@
+# this jobs runs `pytest` over the source directory. It does not install any extra dependencies.
+# this is useful to catch errors where an import has been added which is not part of the basic dependencies.
 name: CI basic testing
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
@@ -13,10 +15,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
-      # max-parallel: 6
       matrix:
-        os: [ubuntu-20.04, windows-2019, macOS-10.15]
-        python-version: [3.8]
+        os: [ubuntu-20.04]
+        # this will install stable torch
+        python-version: [3.9]
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 20
@@ -26,12 +28,6 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-
-    # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
-    - name: Setup macOS
-      if: runner.os == 'macOS'
-      run: |
-        brew install libomp  # https://github.com/pytorch/pytorch/issues/20030
 
     - name: Weekly reset caching
       run: echo "::set-output name=period::$(python -c 'import time ; days = time.time() / 60 / 60 / 24 ; print(int(days / 7))' 2>&1)"
@@ -54,20 +50,13 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade --user pip
-        pip install --requirement ./requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
-        pip install "pytest>6.0" "pytest-cov>2.10" --upgrade-strategy only-if-needed
         python --version
+        python -m pip install --upgrade --user pip
         pip --version
+        pip install --requirement requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
+        pip install --requirement requirements/test.txt
         pip list
       shell: bash
-
-    - name: Cache datasets
-      uses: actions/cache@v2
-      with:
-        path: Datasets # This path is specific to Ubuntu
-        # Look to see if there is a cache hit for the corresponding requirements file
-        key: PL-dataset
 
     - name: Test Package [only]
       run: |
