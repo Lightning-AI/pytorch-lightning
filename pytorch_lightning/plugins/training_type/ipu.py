@@ -119,7 +119,7 @@ class IPUPlugin(ParallelPlugin):
         precision = self.lightning_module.trainer.precision
         model = LightningIPUModule(self.lightning_module, precision)
         self.model = model
-        
+
         # reset the backup
         self.poptorch_models = {}
 
