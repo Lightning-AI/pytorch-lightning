@@ -85,7 +85,7 @@ def test_overfit_batch_limits(tmpdir):
     # ------------------------------------------------------
     trainer = Trainer(overfit_batches=4)
     model.trainer = trainer
-    trainer.data_connector.attach_dataloaders(model=model)
+    trainer._data_connector.attach_dataloaders(model=model)
     trainer.reset_train_dataloader(model)
     assert trainer.num_training_batches == 4
 
@@ -96,7 +96,7 @@ def test_overfit_batch_limits(tmpdir):
 
     trainer = Trainer(overfit_batches=0.11)
     model.trainer = trainer
-    trainer.data_connector.attach_dataloaders(model=model)
+    trainer._data_connector.attach_dataloaders(model=model)
     trainer.reset_train_dataloader(model)
     # The dataloader should have been overwritten with a Sequential sampler.
     assert trainer.train_dataloader is not train_loader
@@ -116,7 +116,7 @@ def test_overfit_batch_limits(tmpdir):
         # test overfit_batches as percent
         # ------------------------------------------------------
         trainer = Trainer(overfit_batches=0.11)
-        trainer.data_connector.attach_dataloaders(model)
+        trainer._data_connector.attach_dataloaders(model)
         loader_num_batches, dataloaders = trainer._reset_eval_dataloader(split, model=model)
         assert loader_num_batches[0] == num_train_samples
 
@@ -132,11 +132,11 @@ def test_overfit_batch_limits(tmpdir):
         # test overfit_batches as int
         # ------------------------------------------------------
         trainer = Trainer(overfit_batches=1)
-        trainer.data_connector.attach_dataloaders(model)
+        trainer._data_connector.attach_dataloaders(model)
         loader_num_batches, dataloaders = trainer._reset_eval_dataloader(split, model=model)
         assert loader_num_batches[0] == 1
         trainer = Trainer(overfit_batches=5)
-        trainer.data_connector.attach_dataloaders(model)
+        trainer._data_connector.attach_dataloaders(model)
         loader_num_batches, dataloaders = trainer._reset_eval_dataloader(split, model=model)
         assert loader_num_batches[0] == 5
 
@@ -145,21 +145,21 @@ def test_overfit_batch_limits(tmpdir):
         # ------------------------------------------------------
         if split == RunningStage.VALIDATING:
             trainer = Trainer(limit_val_batches=0.1)
-            trainer.data_connector.attach_dataloaders(model)
+            trainer._data_connector.attach_dataloaders(model)
             loader_num_batches, dataloaders = trainer._reset_eval_dataloader(split, model=model)
             assert loader_num_batches[0] == int(0.1 * len(val_loader))
 
             trainer = Trainer(limit_val_batches=10)
-            trainer.data_connector.attach_dataloaders(model)
+            trainer._data_connector.attach_dataloaders(model)
             loader_num_batches, dataloaders = trainer._reset_eval_dataloader(split, model=model)
             assert loader_num_batches[0] == 10
         else:
             trainer = Trainer(limit_test_batches=0.1)
-            trainer.data_connector.attach_dataloaders(model)
+            trainer._data_connector.attach_dataloaders(model)
             loader_num_batches, dataloaders = trainer._reset_eval_dataloader(split, model=model)
             assert loader_num_batches[0] == int(0.1 * len(test_loader))
 
             trainer = Trainer(limit_test_batches=10)
-            trainer.data_connector.attach_dataloaders(model)
+            trainer._data_connector.attach_dataloaders(model)
             loader_num_batches, dataloaders = trainer._reset_eval_dataloader(split, model=model)
             assert loader_num_batches[0] == 10
