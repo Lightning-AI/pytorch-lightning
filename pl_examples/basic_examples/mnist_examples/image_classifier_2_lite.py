@@ -26,73 +26,80 @@ from pytorch_lightning import seed_everything
 from pytorch_lightning.lite import LightningLite
 
 
-def train(lite, args, model, train_loader, optimizer, epoch):
-    model.train()
-    for batch_idx, (data, target) in enumerate(train_loader):
-        optimizer.zero_grad()
-        output = model(data)
-        loss = F.nll_loss(output, target)
-        lite.backward(loss)
-        optimizer.step()
-        if (batch_idx == 0) or ((batch_idx + 1) % args.log_interval == 0):
-            print(
-                "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
-                    epoch,
-                    batch_idx * len(data),
-                    len(train_loader.dataset),
-                    100.0 * batch_idx / len(train_loader),
-                    loss.item(),
-                )
-            )
-            if args.dry_run:
-                break
-
-
-def test(lite, args, model, test_loader):
-    model.eval()
-    test_loss = 0
-    acc = Accuracy().to(lite.device)
-    with torch.no_grad():
-        for data, target in test_loader:
-            output = model(data)
-            test_loss += F.nll_loss(output, target, reduction="sum").item()  # sum up batch loss
-            acc.update(output, target)
-            if args.dry_run:
-                break
-
-    test_loss = lite.all_gather(test_loss).sum() / len(test_loader.dataset)
-
-    if lite.is_global_zero:
-        print(f"\nTest set: Average loss: {test_loss:.4f}, Accuracy: ({acc.compute():.0f}%)\n")
-
-
 class Lite(LightningLite):
-    def run(self, args):
-        train_kwargs = {"batch_size": args.batch_size}
-        test_kwargs = {"batch_size": args.test_batch_size}
+    def run(self, hparams):
+        self.hparams = hparams
+        seed_everything(hparams.seed)
+
         transform = T.Compose([T.ToTensor(), T.Normalize((0.1307,), (0.3081,))])
         train_dataset = MNIST("./data", train=True, download=True, transform=transform)
         test_dataset = MNIST("./data", train=False, transform=transform)
-        train_loader = torch.utils.data.DataLoader(train_dataset, **train_kwargs)
-        test_loader = torch.utils.data.DataLoader(test_dataset, **test_kwargs)
+        train_loader = torch.utils.data.DataLoader(
+            train_dataset,
+            batch_size=hparams.batch_size,
+        )
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=hparams.batch_size)
 
         train_loader, test_loader = self.setup_dataloaders(train_loader, test_loader)
 
         model = Net()
-        optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
-
+        optimizer = optim.Adadelta(model.parameters(), lr=hparams.lr)
         model, optimizer = self.setup(model, optimizer)
 
-        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
-        for epoch in range(1, args.epochs + 1):
-            train(self, args, model, train_loader, optimizer, epoch)
-            test(self, args, model, test_loader)
+        scheduler = StepLR(optimizer, step_size=1, gamma=hparams.gamma)
+
+        test_acc = Accuracy()
+
+        # EPOCH LOOP
+        for epoch in range(1, hparams.epochs + 1):
+
+            # TRAINING LOOP
+            model.train()
+            for batch_idx, (data, target) in enumerate(train_loader):
+                optimizer.zero_grad()
+                output = model(data)
+                loss = F.nll_loss(output, target)
+
+                ####################
+                self.backward(loss)
+                ####################
+
+                optimizer.step()
+                if (batch_idx == 0) or ((batch_idx + 1) % hparams.log_interval == 0):
+                    print(
+                        "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
+                            epoch,
+                            batch_idx * len(data),
+                            len(train_loader.dataset),
+                            100.0 * batch_idx / len(train_loader),
+                            loss.item(),
+                        )
+                    )
+                    if hparams.dry_run:
+                        break
+
             scheduler.step()
 
-            if args.dry_run:
+            # TESTING LOOP
+            model.eval()
+            test_loss = 0
+            with torch.no_grad():
+                for data, target in test_loader:
+                    output = model(data)
+                    test_loss += F.nll_loss(output, target, reduction="sum").item()  # sum up batch loss
+                    test_acc(output, target)
+                    if hparams.dry_run:
+                        break
+
+            test_loss = self.all_gather(test_loss).sum() / len(test_loader.dataset)
+
+            print(f"\nTest set: Average loss: {test_loss:.4f}, Accuracy: ({test_acc.compute():.0f}%)\n")
+            test_acc.reset()
+
+            if hparams.dry_run:
                 break
 
-        if args.save_model and self.is_global_zero:
+        if hparams.save_model and self.is_global_zero:
             torch.save(model.state_dict(), "mnist_cnn.pt")
 
 
@@ -101,9 +108,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="LightningLite MNIST Example")
     parser.add_argument(
         "--batch-size", type=int, default=64, metavar="N", help="input batch size for training (default: 64)"
-    )
-    parser.add_argument(
-        "--test-batch-size", type=int, default=1000, metavar="N", help="input batch size for testing (default: 1000)"
     )
     parser.add_argument("--epochs", type=int, default=14, metavar="N", help="number of epochs to train (default: 14)")
     parser.add_argument("--lr", type=float, default=1.0, metavar="LR", help="learning rate (default: 1.0)")
@@ -119,13 +123,6 @@ if __name__ == "__main__":
         help="how many batches to wait before logging training status",
     )
     parser.add_argument("--save-model", action="store_true", default=False, help="For Saving the current Model")
-    args = parser.parse_args()
+    hparams = parser.parse_args()
 
-    seed_everything(args.seed)
-
-    if torch.cuda.is_available():
-        lite_kwargs = {"accelerator": "gpu", "devices": torch.cuda.device_count()}
-    else:
-        lite_kwargs = {"accelerator": "cpu"}
-
-    Lite(**lite_kwargs).run(args)
+    Lite(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=torch.cuda.device_count()).run(hparams)

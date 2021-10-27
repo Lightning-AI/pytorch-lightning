@@ -26,48 +26,13 @@ from pytorch_lightning import seed_everything
 from pytorch_lightning.lite import LightningLite
 
 
-def train(lite, args, model, train_loader, optimizer, epoch):
-    model.train()
-    for batch_idx, batch in enumerate(train_loader):
-        optimizer.zero_grad()
-        loss = lite.training_step(batch, batch_idx)
-        lite.backward(loss)
-        optimizer.step()
-        if (batch_idx == 0) or ((batch_idx + 1) % args.log_interval == 0):
-            print(
-                "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
-                    epoch,
-                    batch_idx * len(batch[0]),
-                    len(train_loader.dataset),
-                    100.0 * batch_idx / len(train_loader),
-                    loss.item(),
-                )
-            )
-            if args.dry_run:
-                break
-
-
-def test(lite, args, model, test_loader):
-    model.eval()
-    test_loss = 0
-    with torch.no_grad():
-        for batch_idx, batch in enumerate(test_loader):
-            test_loss += lite.test_step(batch, batch_idx)
-            if args.dry_run:
-                break
-
-    test_loss = lite.all_gather(test_loss).sum() / len(test_loader.dataset)
-
-    if lite.is_global_zero:
-        print(f"\nTest set: Average loss: {test_loss:.4f}, Accuracy: ({lite.test_acc.compute():.0f}%)\n")
-
-
 class Lite(LightningLite):
 
     """`Lite` is starting to look like a `LightningModule`."""
 
     def run(self, hparams):
         self.hparams = hparams
+        seed_everything(hparams.seed)
 
         self.model = Net()
         [optimizer], [scheduler] = self.configure_optimizers()
@@ -77,15 +42,49 @@ class Lite(LightningLite):
             self.prepare_data()
 
         train_loader, test_loader = self.setup_dataloaders(self.train_dataloader(), self.train_dataloader())
-
         self.test_acc = Accuracy()
 
+        # EPOCH LOOP
         for epoch in range(1, hparams.epochs + 1):
-            train(self, hparams, model, train_loader, optimizer, epoch)
-            test(self, hparams, model, test_loader)
+
+            # TRAINING LOOP
+            self.model.train()
+            for batch_idx, batch in enumerate(train_loader):
+                optimizer.zero_grad()
+                loss = self.training_step(batch, batch_idx)
+                self.backward(loss)
+                optimizer.step()
+
+                if (batch_idx == 0) or ((batch_idx + 1) % hparams.log_interval == 0):
+                    print(
+                        "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
+                            epoch,
+                            (batch_idx + 1) * self.hparams.batch_size,
+                            len(train_loader.dataset),
+                            100.0 * batch_idx / len(train_loader),
+                            loss.item(),
+                        )
+                    )
+                    if hparams.dry_run:
+                        break
+
             scheduler.step()
 
-            if args.dry_run:
+            # TESTING LOOP
+            self.model.eval()
+            test_loss = 0
+            with torch.no_grad():
+                for batch_idx, batch in enumerate(test_loader):
+                    test_loss += self.test_step(batch, batch_idx)
+                    if hparams.dry_run:
+                        break
+
+            test_loss = self.all_gather(test_loss).sum() / len(test_loader.dataset)
+
+            print(f"\nTest set: Average loss: {test_loss:.4f}, Accuracy: ({self.test_acc.compute():.0f}%)\n")
+            self.test_acc.reset()
+
+            if hparams.dry_run:
                 break
 
         if hparams.save_model and self.is_global_zero:
@@ -97,12 +96,14 @@ class Lite(LightningLite):
         return self.model(x)
 
     def training_step(self, batch, batch_idx):
+        """Here you compute and return the training loss+ compute extra training metrics."""
         x, y = batch
         logits = self.forward(x)
         loss = F.nll_loss(logits, y.long())
         return loss
 
     def test_step(self, batch, batch_idx):
+        """Here you compute and return the testing loss+ compute extra testing metrics."""
         x, y = batch
         logits = self.forward(x)
         loss = F.nll_loss(logits, y.long())
@@ -137,13 +138,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--batch-size", type=int, default=64, metavar="N", help="input batch size for training (default: 64)"
     )
-    parser.add_argument(
-        "--test-batch-size", type=int, default=1000, metavar="N", help="input batch size for testing (default: 1000)"
-    )
     parser.add_argument("--epochs", type=int, default=14, metavar="N", help="number of epochs to train (default: 14)")
     parser.add_argument("--lr", type=float, default=1.0, metavar="LR", help="learning rate (default: 1.0)")
     parser.add_argument("--gamma", type=float, default=0.7, metavar="M", help="Learning rate step gamma (default: 0.7)")
-    parser.add_argument("--no-cuda", action="store_true", default=False, help="disables CUDA training")
     parser.add_argument("--dry-run", action="store_true", default=False, help="quickly check a single pass")
     parser.add_argument("--seed", type=int, default=1, metavar="S", help="random seed (default: 1)")
     parser.add_argument(
@@ -154,13 +151,6 @@ if __name__ == "__main__":
         help="how many batches to wait before logging training status",
     )
     parser.add_argument("--save-model", action="store_true", default=False, help="For Saving the current Model")
-    args = parser.parse_args()
+    hparams = parser.parse_args()
 
-    seed_everything(args.seed)
-
-    if torch.cuda.is_available():
-        lite_kwargs = {"accelerator": "gpu", "devices": torch.cuda.device_count()}
-    else:
-        lite_kwargs = {"accelerator": "cpu"}
-
-    Lite(**lite_kwargs).run(args)
+    Lite(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=torch.cuda.device_count()).run(hparams)
