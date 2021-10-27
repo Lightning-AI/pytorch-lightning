@@ -461,18 +461,18 @@ class AcceleratorConnector:
             self._map_devices_to_accelerator(DeviceType.CPU)
 
     def _map_devices_to_accelerator(self, accelerator: str) -> bool:
-        if accelerator in ("auto", DeviceType.TPU) and _TPU_AVAILABLE:
+        if accelerator == DeviceType.TPU and _TPU_AVAILABLE:
             self.devices = self.devices or 1
             self.tpu_cores = device_parser.parse_tpu_cores(self.devices)
             return True
-        if accelerator in ("auto", DeviceType.IPU) and _IPU_AVAILABLE:
+        if accelerator == DeviceType.IPU and _IPU_AVAILABLE:
             self.ipus = self.devices = self.devices or 1
             return True
-        if accelerator in ("auto", DeviceType.GPU) and torch.cuda.is_available():
+        if accelerator == DeviceType.GPU and torch.cuda.is_available():
             self.gpus = self.devices = self.devices or 1
             self.parallel_device_ids = device_parser.parse_gpu_ids(self.gpus)
             return True
-        if accelerator in ("auto", DeviceType.CPU):
+        if accelerator == DeviceType.CPU:
             self.devices = self.devices or 1
             if not isinstance(self.devices, int):
                 raise MisconfigurationException(
