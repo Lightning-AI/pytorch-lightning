@@ -375,7 +375,12 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
             return True
 
     trainer = Trainer(
-        default_root_dir=tmpdir, plugins=[CustomCluster()], fast_dev_run=True, strategy="ddp", accelerator="cpu", num_processes=2
+        default_root_dir=tmpdir,
+        plugins=[CustomCluster()],
+        fast_dev_run=True,
+        strategy="ddp",
+        accelerator="cpu",
+        num_processes=2,
     )
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.training_type_plugin, DDPPlugin)
