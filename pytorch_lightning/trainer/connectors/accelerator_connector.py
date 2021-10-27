@@ -461,17 +461,15 @@ class AcceleratorConnector:
             self._map_devices_to_accelerator(DeviceType.CPU)
 
     def _map_devices_to_accelerator(self, accelerator: str) -> bool:
-        if self.devices is None:
-            return False
         if accelerator == DeviceType.TPU and _TPU_AVAILABLE:
-            self.tpu_cores = device_parser.parse_tpu_cores(self.devices)
+            self.tpu_cores = device_parser.parse_tpu_cores(self.devices) if self.devices is not None else 1
             return True
         if accelerator == DeviceType.IPU and _IPU_AVAILABLE:
-            self.ipus = self.devices
+            self.ipus = self.devices if self.devices is not None else 1
             return True
         if accelerator == DeviceType.GPU and torch.cuda.is_available():
-            self.gpus = self.devices
-            self.parallel_device_ids = device_parser.parse_gpu_ids(self.devices)
+            self.gpus = self.devices if self.devices is not None else 1
+            self.parallel_device_ids = device_parser.parse_gpu_ids(self.gpus)
             return True
         if accelerator == DeviceType.CPU:
             if not isinstance(self.devices, int):
@@ -479,7 +477,7 @@ class AcceleratorConnector:
                     "The flag `devices` must be an int with `accelerator='cpu'`,"
                     f" got `devices={self.devices}` instead."
                 )
-            self.num_processes = self.devices
+            self.num_processes = self.devices if self.devices is not None else 1
             return True
         return False
 
