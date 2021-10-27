@@ -103,25 +103,25 @@ class PrecisionPlugin(CheckpointHooks):
         model.trainer.call_hook("on_after_backward")
         return closure_loss
 
-    def _run_backward(self, tensor: Tensor, model: Module, *args: Any, **kwargs: Any) -> None:
+    def _run_backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
         """Lightning-independent backward logic.
 
         Currently only used by Lightning Lite. Subject to further refactors.
         """
         tensor.backward(*args, **kwargs)
 
-    def pre_optimizer_step(
+    def optimizer_step(
         self,
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Callable,
+        lambda_closure: Callable[[], Any],
         **kwargs: Any,
-    ) -> bool:
-        """Hook to do something before each optimizer step."""
+    ) -> None:
+        """Hook to run the optimizer step."""
         if isinstance(model, pl.LightningModule):
             model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
-        return True
+        optimizer.step(closure=lambda_closure, **kwargs)
 
     def clip_gradients(
         self,
