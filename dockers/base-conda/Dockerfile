@@ -16,8 +16,8 @@ ARG CUDA_VERSION=11.1
 
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
 
-ARG PYTHON_VERSION=3.9
-ARG PYTORCH_VERSION=1.8.1
+ARG PYTHON_VERSION=3.8
+ARG PYTORCH_VERSION=1.6
 ARG CONDA_VERSION=4.9.2
 
 SHELL ["/bin/bash", "-c"]
@@ -43,7 +43,7 @@ RUN apt-get update -qq --fix-missing && \
 
 # Install conda and python.
 # NOTE new Conda does not forward the exit status... https://github.com/conda/conda/issues/8385
-    curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py39_${CONDA_VERSION}-Linux-x86_64.sh && \
+    curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py38_${CONDA_VERSION}-Linux-x86_64.sh && \
     chmod +x ~/miniconda.sh && \
     ~/miniconda.sh -b && \
     rm ~/miniconda.sh && \
@@ -129,4 +129,4 @@ RUN \
     conda info && \
     pip list && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
-    python -c "from torch import __version__ as ver; assert '.'.join(ver.split('.')[:2]) == '$PYTORCH_VERSION', ver"
+    python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__"

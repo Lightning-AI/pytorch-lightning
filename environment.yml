@@ -29,7 +29,7 @@ dependencies:
     - python>=3.6
     - pip>20.1
     - numpy>=1.17.2
-    - pytorch>=1.7.1
+    - pytorch>=1.8.1
     - future>=0.17.1
     - PyYAML>=5.1
     - tqdm>=4.41.0
