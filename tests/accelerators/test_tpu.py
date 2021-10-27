@@ -18,6 +18,7 @@ from unittest.mock import patch
 import pytest
 import torch
 from torch import nn
+from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
@@ -25,7 +26,7 @@ from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import TPUPrecisionPlugin, TPUSpawnPlugin, XLACheckpointIO
 from pytorch_lightning.utilities import find_shared_parameters
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 from tests.helpers.utils import pl_multi_process_test
 
@@ -62,8 +63,8 @@ def test_resume_training_on_cpu(tmpdir):
     assert weight_tensor.device == torch.device("cpu")
 
     # Verify that training is resumed on CPU
-    trainer = Trainer(resume_from_checkpoint=model_path, max_epochs=1, default_root_dir=tmpdir)
-    trainer.fit(model)
+    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    trainer.fit(model, ckpt_path=model_path)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
@@ -300,3 +301,12 @@ def test_tpu_invalid_raises():
 def test_xla_checkpoint_plugin_being_default():
     trainer = Trainer(tpu_cores=8)
     assert isinstance(trainer.training_type_plugin.checkpoint_io, XLACheckpointIO)
+
+
+@RunIf(tpu=True)
+@patch("pytorch_lightning.plugins.training_type.tpu_spawn.xm")
+def test_mp_device_dataloader_attribute(_):
+    dataset = RandomDataset(32, 64)
+    dataloader = TPUSpawnPlugin().process_dataloader(DataLoader(dataset))
+
+    assert dataloader.dataset == dataset

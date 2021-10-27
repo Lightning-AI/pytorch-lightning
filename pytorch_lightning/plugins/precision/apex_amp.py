@@ -43,7 +43,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         self.amp_level = amp_level
         self._connected = False
 
-    def master_params(self, optimizer: Optimizer) -> _PARAMETERS:
+    def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
         return amp.master_params(optimizer)
 
     def dispatch(self, trainer: "pl.Trainer") -> None:
@@ -96,27 +96,25 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
                 if state is not None:
                     break
 
-    def pre_optimizer_step(
+    def optimizer_step(
         self,
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Callable,
+        lambda_closure: Callable[[], Any],
         **kwargs: Any,
-    ) -> bool:
-        """Hook to do something before each optimizer step."""
+    ) -> None:
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"apex AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
-        result = lambda_closure()  # APEX amp does not support closures
-        super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
-        skipped_backward = result is None
+        closure_result = lambda_closure()
+        if isinstance(model, pl.LightningModule):
+            model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
+        skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if not isinstance(model, pl.LightningModule) or not model.automatic_optimization or not skipped_backward:
-            # the following should be in a `optimizer_step` hook but we don't have one in the precision plugin.
             optimizer.step(**kwargs)
-        return False
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         if "amp_scaling_state" in checkpoint:

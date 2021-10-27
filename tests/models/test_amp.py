@@ -22,7 +22,6 @@ from torch.utils.data import DataLoader
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins.environments import SLURMEnvironment
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_DEV_1_10
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -68,7 +67,7 @@ class AMPTestModel(BoringModel):
             assert torch.is_autocast_enabled()
 
 
-@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_DEV_1_10, reason="Needs bfloat16 support")
+@RunIf(min_torch="1.10")
 @pytest.mark.parametrize(
     "strategy",
     [
@@ -95,8 +94,7 @@ def test_amp_cpus(tmpdir, strategy, precision, num_processes):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-@RunIf(min_gpus=2)
-@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_DEV_1_10, reason="Needs bfloat16 support")
+@RunIf(min_gpus=2, min_torch="1.10")
 @pytest.mark.parametrize("strategy", [None, "dp", "ddp_spawn"])
 @pytest.mark.parametrize("precision", [16, "bf16"])
 @pytest.mark.parametrize("gpus", [1, 2])
@@ -129,7 +127,7 @@ def test_amp_gpus(tmpdir, strategy, precision, gpus):
 def test_amp_gpu_ddp_slurm_managed(tmpdir):
     """Make sure DDP + AMP work."""
     # simulate setting slurm flags
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
 
     model = AMPTestModel()
 
