@@ -361,16 +361,6 @@ class HookedModel(BoringModel):
                     # without a precision plugin, we execute the closure inside the `optimizer.step`
                     *([] if using_plugin else [dict(name="closure")]),
                     *([dict(name="log_grad_norm", args=ANY)] if not using_deepspeed else []),
-                    dict(
-                        name="clip_gradients",
-                        args=(ANY,),
-                        kwargs=dict(gradient_clip_val=None, gradient_clip_algorithm=None),
-                    ),
-                    dict(
-                        name="configure_gradient_clipping",
-                        args=(ANY, 0),
-                        kwargs=dict(gradient_clip_val=None, gradient_clip_algorithm=None),
-                    ),
                     dict(name="training_step", args=(ANY, i)),
                     dict(name="training_step_end", args=(dict(loss=ANY),)),
                     dict(name="Callback.on_train_batch_end", args=(trainer, model, dict(loss=ANY), ANY, i)),

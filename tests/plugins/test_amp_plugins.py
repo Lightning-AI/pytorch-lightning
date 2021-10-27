@@ -76,11 +76,49 @@ def test_amp_apex_ddp(
 
 
 class GradientUnscaleBoringModel(BoringModel):
-    def on_before_optimizer_step(self, *_):
-        # FIXME: does this do anything?
-        norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
-        if not (torch.isinf(norm) or torch.isnan(norm)):
-            assert norm.item() < 15.0
+    # sister test: tests/trainer/optimization/test_manual_optimization.py::test_multiple_optimizers_step
+    def on_after_backward(self) -> None:
+        # check grads are scaled
+        scale = self.trainer.precision_plugin.scaler.get_scale()
+        assert scale != 1.0  # the return value if not enabled
+        grads = [p.grad for p in self.parameters()]
+        inv_scale = 1 / scale
+        self.original_grads = [p * inv_scale for p in grads]
+
+    def check_grads_unscaled(self, optimizer=None):
+        if optimizer is not None:
+            scaler = self.trainer.precision_plugin.scaler
+            state = scaler._per_optimizer_states[id(optimizer)]
+            assert state["stage"].name == "UNSCALED"
+
+        grads = [p.grad for p in self.parameters()]
+        assert len(grads) == len(self.original_grads)
+        for actual, expected in zip(grads, self.original_grads):
+            torch.testing.assert_allclose(actual, expected)
+
+    def on_before_optimizer_step(self, optimizer, *_):
+        self.check_grads_unscaled(optimizer)
+        # manually clip
+        self.clipped_parameters = []
+        for p in self.parameters():
+            copy = p.clone()
+            copy.grad = p.grad.clone()
+            self.clipped_parameters.append(copy)
+        clip_val = self.trainer.gradient_clip_val
+        torch.nn.utils.clip_grad_value_(self.clipped_parameters, clip_val)
+
+    def configure_gradient_clipping(self, *args, **kwargs):
+        # let lightning clip
+        super().configure_gradient_clipping(*args, **kwargs)
+        # check clipping worked as expected
+        parameters = list(self.parameters())
+        assert len(parameters) == len(self.clipped_parameters)
+        for actual, expected in zip(parameters, self.clipped_parameters):
+            torch.testing.assert_allclose(actual.grad, expected.grad)
+
+    def log_grad_norm(self, grad_norm_dict):
+        self.check_grads_unscaled()
+        assert len(grad_norm_dict)
 
 
 @RunIf(min_gpus=2)
@@ -92,14 +130,15 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
         max_epochs=2,
         default_root_dir=tmpdir,
         limit_train_batches=2,
-        limit_test_batches=2,
-        limit_val_batches=2,
+        limit_val_batches=0,
         amp_backend="native",
         strategy="ddp_spawn",
         gpus=2,
         precision=16,
         track_grad_norm=2,
-        gradient_clip_val=2,
+        # use a tiny value to make sure it works
+        gradient_clip_val=1e-3,
+        gradient_clip_algorithm="value",
         log_every_n_steps=1,
         accumulate_grad_batches=accum,
     )
@@ -223,40 +262,3 @@ def test_precision_selection_raises(monkeypatch):
         MisconfigurationException, match="asked for Apex AMP but you have not installed it"
     ):
         Trainer(amp_backend="apex", precision=16, gpus=1)
-
-
-class GradientUnscaleNativeAMPPlugin(NativeMixedPrecisionPlugin):
-    _was_scaled_finite = 0
-
-    def post_backward(self, model, closure_loss):
-        norm_before = torch.nn.utils.clip_grad_norm_(model.parameters(), 2)
-        ret_val = super().post_backward(model, closure_loss)
-        norm_after = torch.nn.utils.clip_grad_norm_(model.parameters(), 2)
-
-        # norm_after unscale should be smaller by scaling factor greater than 10
-        if not (torch.isinf(norm_before) or torch.isnan(norm_before)):
-            assert norm_after < norm_before * 10
-            # during initial phase of finding the appropriate scaling, AMP skips optimizer steps that have
-            # non-finite gradients; we count and assert that we had at least one finite gradient here
-            self._was_scaled_finite += 1
-        return ret_val
-
-
-@RunIf(min_gpus=1)
-def test_correct_native_grad_unscaling(tmpdir):
-    """Test that the gradient clipping gets applied at the appropriate place when using mixed precision plugins."""
-    seed_everything(42)
-    plugin = GradientUnscaleNativeAMPPlugin()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=4,
-        max_epochs=1,
-        precision=16,
-        amp_backend="native",
-        gpus=1,
-        plugins=plugin,
-    )
-    assert isinstance(trainer.precision_plugin, GradientUnscaleNativeAMPPlugin)
-    model = BoringModel()
-    trainer.fit(model)
-    assert plugin._was_scaled_finite

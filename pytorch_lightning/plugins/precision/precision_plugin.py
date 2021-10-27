@@ -157,7 +157,8 @@ class PrecisionPlugin(CheckpointHooks):
         clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[GradClipAlgorithmType] = None,
     ) -> None:
-        if not isinstance(model, pl.LightningModule):
+        if not isinstance(model, pl.LightningModule) or not model.automatic_optimization:
+            # the configuration validator disallows clipping on manual
             return
         model.configure_gradient_clipping(
             optimizer,
