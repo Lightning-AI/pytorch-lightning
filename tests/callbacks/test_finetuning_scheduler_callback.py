@@ -122,7 +122,7 @@ def ckpt_set(tmpdir_factory):
     return {"best": trainer.checkpoint_callback.best_model_path, "kth": trainer.checkpoint_callback.kth_best_model_path}
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def boring_ft_schedule(tmpdir_factory) -> Tuple[Path, Dict]:
     """Generates one default and one non-default finetuning schedule for 'implicit' and 'explicit' mode testing."""
     seed_everything(42)
