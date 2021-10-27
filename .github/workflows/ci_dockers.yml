@@ -23,9 +23,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # the config used in '.github/workflows/ci_test-base.yml'
-        python_version: ["3.9"]  # latest
-        pytorch_version: ["1.10.0"]  # stable
+        # should be the config used in '.github/workflows/release-docker.yml', but we just keep one to check.
+        python_version: ["3.9"]
+        pytorch_version: ["1.9"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
