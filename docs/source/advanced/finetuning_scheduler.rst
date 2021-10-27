@@ -315,6 +315,9 @@ In summary,
 non-trivial model performance improvements in both implicit and explicit scheduling contexts at an also non-trivial
 computational cost.
 
+.. figure:: ../_static/images/lightning_examples/fts_explicit_loss_anim.gif
+   :alt: FinetuningScheduler Explicit Loss Animation
+   :width: 300
 
 Footnotes
 =========
