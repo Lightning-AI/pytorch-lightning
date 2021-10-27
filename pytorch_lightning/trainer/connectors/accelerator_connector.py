@@ -277,7 +277,8 @@ class AcceleratorConnector:
             self.devices = self.num_processes
 
     def _handle_accelerator_and_strategy(self) -> None:
-        if self.distributed_backend is not None and self.distributed_backend in list(DistributedType):
+        deprecated_types = [t for t in DistributedType if t not in (DistributedType.TPU_SPAWN, DistributedType.DDP_CPU)]
+        if self.distributed_backend is not None and self.distributed_backend in deprecated_types:
             rank_zero_deprecation(
                 f"Passing `Trainer(accelerator={self.distributed_backend!r})` has been deprecated"
                 f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={self.distributed_backend!r})` instead."
