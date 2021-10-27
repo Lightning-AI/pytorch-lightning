@@ -194,7 +194,7 @@ def test_gen_ft_schedule(tmpdir, model: "LightningModule", expected: Tuple):
     assert isinstance(test_schedule, Dict)
     assert len(test_schedule) == expected[0]
     assert test_schedule[1] == expected[1]
-    assert test_schedule[next(reversed(test_schedule))] == expected[2]
+    assert test_schedule[next(reversed(list(test_schedule.keys())))] == expected[2]
 
 
 EXPECTED_EXPIMP_RESULTS = {
@@ -412,10 +412,10 @@ def test_finetuningscheduling_misconfiguration(tmpdir, callbacks: List[Callback]
 @pytest.mark.parametrize(
     "strategy, gpus, plugins",
     [
-        ("ddp2", 2, None),
-        ("ddp_fully_sharded", 2, None),
+        pytest.param("ddp2", 2, None, marks=RunIf(min_gpus=2)),
+        pytest.param("ddp_fully_sharded", 2, None, marks=RunIf(min_gpus=2)),
         ("horovod", None, None),
-        pytest.param("ddp", 2, "deepspeed_stage_2", marks=RunIf(deepspeed=True, min_gpus=1)),
+        pytest.param("ddp", 2, "deepspeed_stage_2", marks=RunIf(deepspeed=True, min_gpus=2)),
     ],
 )
 def test_finetuningscheduling_distributed_compat(tmpdir, strategy, gpus, plugins):

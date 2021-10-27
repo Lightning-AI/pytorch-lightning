@@ -76,11 +76,7 @@ Callbacks API
     model_checkpoint
     progress
     finetuning_scheduler.fts
-
-.. toctree::
-    :hidden:
-
-    api/pytorch_lightning.callbacks.finetuning_scheduler.fts_supporters
+    finetuning_scheduler.fts_supporters
 
 Loggers API
 -----------
