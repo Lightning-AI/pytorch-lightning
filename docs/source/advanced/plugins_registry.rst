@@ -1,6 +1,8 @@
 Training Type Plugins Registry
 ==============================
 
+.. warning:: The Plugins Registry is experimental and subject to change.
+
 Lightning includes a registry that holds information about Training Type plugins and allows for the registration of new custom plugins.
 
 The Plugins are assigned strings that identify them, such as "ddp", "deepspeed_stage_2_offload", and so on.
@@ -18,7 +20,8 @@ It also returns the optional description and parameters for initialising the Plu
     # Training with the TPU Spawn Plugin with `debug` as True
     trainer = Trainer(strategy="tpu_spawn_debug", accelerator="tpu", devices=8)
 
-.. note:: Additionally, you can pass your custom registered training type plugins to the ``strategy`` argument.
+
+Additionally, you can pass your custom registered training type plugins to the ``strategy`` argument.
 
 .. code-block:: python
 
