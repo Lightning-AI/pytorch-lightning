@@ -123,22 +123,6 @@ class PrecisionPlugin(CheckpointHooks):
             model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         optimizer.step(closure=lambda_closure, **kwargs)
 
-    def post_optimizer_step(
-        self, model: Union["pl.LightningModule", Module], optimizer: Optimizer, optimizer_idx: int
-    ) -> None:
-        trainer = model.trainer
-        assert isinstance(trainer, pl.Trainer)
-        # TODO: this is done for the entire model but should be changed to per-optimizer
-        if optimizer_idx == 0:
-            self._track_grad_norm(trainer)
-        self._clip_gradients(
-            model,
-            optimizer,
-            optimizer_idx,
-            trainer.gradient_clip_val,
-            gradient_clip_algorithm=trainer.gradient_clip_algorithm,
-        )
-
     def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
         if float(trainer.track_grad_norm) == -1:
             return

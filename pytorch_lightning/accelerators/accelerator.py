@@ -333,7 +333,18 @@ class Accelerator:
         """
         model = model or self.lightning_module
         self.precision_plugin.optimizer_step(model, optimizer, opt_idx, lambda_closure, **kwargs)
-        self.precision_plugin.post_optimizer_step(model, optimizer, opt_idx)
+        trainer = model.trainer
+        assert isinstance(trainer, pl.Trainer)
+        # TODO: this is done for the entire model but should be changed to per-optimizer
+        if opt_idx == 0:
+            self.precision_plugin._track_grad_norm(trainer)
+        self.precision_plugin._clip_gradients(
+            model,
+            optimizer,
+            opt_idx,
+            trainer.gradient_clip_val,
+            gradient_clip_algorithm=trainer.gradient_clip_algorithm,
+        )
 
     def optimizer_zero_grad(self, current_epoch: int, batch_idx: int, optimizer: Optimizer, opt_idx: int) -> None:
         """Zeros all model parameter's gradients."""
