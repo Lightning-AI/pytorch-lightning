@@ -54,14 +54,14 @@ class LightningLite(ABC):
     - Multi-node support.
 
     Args:
-        accelerator: The hardware to run on. Possible choices are: ```cpu"``, ```gpu"``, ```tpu"``, ```auto"``.
+        accelerator: The hardware to run on. Possible choices are: ``"cpu"``, ``"gpu"``, ``"tpu"``, ``"auto"``.
         strategy: Strategy for how to run across multiple devices. Possible choices are:
-            ```dp"``, ```ddp"``, ```ddp_spawn"``, ```deepspeed"``, ```ddp_sharded"``.
-        devices: Number of devices to train on (``int``) or which GPUs to train on (``list`` or ``str``).
+            ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"``, ``"ddp_sharded"``.
+        devices: Number of devices to train on (``int``), which GPUs to train on (``list`` or ``str``), or ``"auto"``.
             The value applies per node.
         num_nodes: Number of GPU nodes for distributed training.
         precision: Double precision (``64``), full precision (``32``), half precision (``16``),
-            or bfloat16 precision (```bf16"``).
+            or bfloat16 precision (``"bf16"``).
         plugins: One or several custom plugins
         gpus: Provides the same function as the ``devices`` argument but implies ``accelerator="gpu"``.
         tpu_cores: Provides the same function as the ``devices`` argument but implies ``accelerator="tpu"``.
@@ -448,7 +448,6 @@ class LightningLite(ABC):
             DistributedType.DP,
             DistributedType.DDP,
             DistributedType.DDP_SPAWN,
-            DistributedType.TPU_SPAWN,
             DistributedType.DEEPSPEED,
             DistributedType.DDP_SHARDED,
             DistributedType.DDP_SHARDED_SPAWN,
