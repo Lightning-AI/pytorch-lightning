@@ -21,10 +21,10 @@ from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_DEV_1_10, AMPType
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if _TORCH_GREATER_EQUAL_DEV_1_10:
+if _TORCH_GREATER_EQUAL_1_10:
     from torch import autocast
 else:
     from torch.cuda.amp import autocast
@@ -47,7 +47,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def _select_precision_dtype(self, precision: Union[int, str] = 16) -> torch.dtype:
         if precision == "bf16":
-            if not _TORCH_GREATER_EQUAL_DEV_1_10:
+            if not _TORCH_GREATER_EQUAL_1_10:
                 raise MisconfigurationException(
                     "To use bfloat16 with native amp you must install torch greater or equal to 1.10."
                 )
@@ -97,7 +97,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             self.scaler.update()
 
     def autocast_context_manager(self) -> autocast:
-        if _TORCH_GREATER_EQUAL_DEV_1_10:
+        if _TORCH_GREATER_EQUAL_1_10:
             return autocast("cpu" if self.use_cpu else "cuda", dtype=self._dtype)
         return autocast()
 
