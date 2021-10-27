@@ -285,7 +285,7 @@ def test_accelerator_choice_ddp_cpu_kubeflow(device_count_mock, setup_distribute
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, strategy="ddp_cpu", num_processes=1, callbacks=[CB()])
+    trainer = Trainer(fast_dev_run=True, strategy="ddp", accelerator="cpu", num_processes=1, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -315,7 +315,7 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_m
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, strategy="ddp_cpu", num_processes=2, callbacks=[CB()])
+    trainer = Trainer(fast_dev_run=True, strategy="ddp", accelerator="cpu", num_processes=2, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -323,13 +323,13 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_m
 
 @RunIf(special=True)
 def test_accelerator_choice_ddp_cpu_and_plugin(tmpdir):
-    """Test that strategy="ddp_cpu" can work together with an instance of DDPPlugin."""
+    """Test that strategy="ddp", accelerator="cpu" can work together with an instance of DDPPlugin."""
     _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class=DDPPlugin)
 
 
 @RunIf(special=True)
 def test_accelerator_choice_ddp_cpu_and_plugin_spawn(tmpdir):
-    """Test that strategy="ddp_cpu" can work together with an instance of DDPPSpawnPlugin."""
+    """Test that strategy="ddp", accelerator="cpu" can work together with an instance of DDPPSpawnPlugin."""
     _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class=DDPSpawnPlugin)
 
 
@@ -340,7 +340,8 @@ def _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class):
         default_root_dir=tmpdir,
         plugins=[ddp_plugin_class(find_unused_parameters=True)],
         fast_dev_run=True,
-        strategy="ddp_cpu",
+        strategy="ddp", 
+        accelerator="cpu"
         num_processes=2,
     )
     assert isinstance(trainer.training_type_plugin, ddp_plugin_class)
@@ -374,7 +375,7 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
             return True
 
     trainer = Trainer(
-        default_root_dir=tmpdir, plugins=[CustomCluster()], fast_dev_run=True, strategy="ddp_cpu", num_processes=2
+        default_root_dir=tmpdir, plugins=[CustomCluster()], fast_dev_run=True, strategy="ddp", accelerator="cpu", num_processes=2
     )
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.training_type_plugin, DDPPlugin)
