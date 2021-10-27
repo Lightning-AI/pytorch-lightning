@@ -101,7 +101,7 @@ class GradientUnscaleBoringModel(BoringModel):
         # manually clip
         self.clipped_parameters = []
         for p in self.parameters():
-            copy = p.clone()
+            copy = p.detach().clone()
             copy.grad = p.grad.clone()
             self.clipped_parameters.append(copy)
         clip_val = self.trainer.gradient_clip_val

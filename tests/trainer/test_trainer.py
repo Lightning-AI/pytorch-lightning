@@ -1001,6 +1001,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
         max_steps=1,
         max_epochs=1,
         accelerator="auto",
+        devices=1,
         precision=precision,
         gradient_clip_algorithm="norm",
         gradient_clip_val=1.0,
