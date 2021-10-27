@@ -340,7 +340,7 @@ def _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class):
         default_root_dir=tmpdir,
         plugins=[ddp_plugin_class(find_unused_parameters=True)],
         fast_dev_run=True,
-        strategy="ddp", 
+        strategy="ddp",
         accelerator="cpu"
         num_processes=2,
     )
