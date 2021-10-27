@@ -256,7 +256,7 @@ def test_accelerator_choice_ddp_kubeflow(device_count_mock, setup_distributed_mo
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=1, callbacks=[CB()])
+    trainer = Trainer(fast_dev_run=True, strategy="ddp", gpus=1, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -285,7 +285,7 @@ def test_accelerator_choice_ddp_cpu_kubeflow(device_count_mock, setup_distribute
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp_cpu", num_processes=1, callbacks=[CB()])
+    trainer = Trainer(fast_dev_run=True, strategy="ddp_cpu", num_processes=1, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -315,7 +315,7 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_m
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp_cpu", num_processes=2, callbacks=[CB()])
+    trainer = Trainer(fast_dev_run=True, strategy="ddp_cpu", num_processes=2, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -323,13 +323,13 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_m
 
 @RunIf(special=True)
 def test_accelerator_choice_ddp_cpu_and_plugin(tmpdir):
-    """Test that accelerator="ddp_cpu" can work together with an instance of DDPPlugin."""
+    """Test that strategy="ddp_cpu" can work together with an instance of DDPPlugin."""
     _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class=DDPPlugin)
 
 
 @RunIf(special=True)
 def test_accelerator_choice_ddp_cpu_and_plugin_spawn(tmpdir):
-    """Test that accelerator="ddp_cpu" can work together with an instance of DDPPSpawnPlugin."""
+    """Test that strategy="ddp_cpu" can work together with an instance of DDPPSpawnPlugin."""
     _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class=DDPSpawnPlugin)
 
 
@@ -340,7 +340,7 @@ def _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class):
         default_root_dir=tmpdir,
         plugins=[ddp_plugin_class(find_unused_parameters=True)],
         fast_dev_run=True,
-        accelerator="ddp_cpu",
+        strategy="ddp_cpu",
         num_processes=2,
     )
     assert isinstance(trainer.training_type_plugin, ddp_plugin_class)
@@ -374,7 +374,7 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
             return True
 
     trainer = Trainer(
-        default_root_dir=tmpdir, plugins=[CustomCluster()], fast_dev_run=True, accelerator="ddp_cpu", num_processes=2
+        default_root_dir=tmpdir, plugins=[CustomCluster()], fast_dev_run=True, strategy="ddp_cpu", num_processes=2
     )
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.training_type_plugin, DDPPlugin)
@@ -463,7 +463,7 @@ def test_ipython_compatible_backend(*_):
 @pytest.mark.parametrize(["accelerator", "plugin"], [("ddp_spawn", "ddp_sharded"), (None, "ddp_sharded")])
 def test_plugin_accelerator_choice(accelerator: Optional[str], plugin: str):
     """Ensure that when a plugin and accelerator is passed in, that the plugin takes precedent."""
-    trainer = Trainer(accelerator=accelerator, plugins=plugin, num_processes=2)
+    trainer = Trainer(accelerator=strategy, plugins=plugin, num_processes=2)
     assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
 
     trainer = Trainer(plugins=plugin, num_processes=2)
@@ -486,7 +486,7 @@ def test_plugin_accelerator_choice(accelerator: Optional[str], plugin: str):
 def test_accelerator_choice_multi_node_gpu(
     mock_is_available, mock_device_count, tmpdir, accelerator: str, plugin: ParallelPlugin, gpus: int
 ):
-    trainer = Trainer(accelerator=accelerator, default_root_dir=tmpdir, num_nodes=2, gpus=gpus)
+    trainer = Trainer(strategy=accelerator, default_root_dir=tmpdir, num_nodes=2, gpus=gpus)
     assert isinstance(trainer.training_type_plugin, plugin)
 
 
@@ -624,13 +624,13 @@ def test_devices_with_cpu_only_supports_integer():
 def test_unsupported_distrib_types_on_cpu(training_type):
 
     with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
-        trainer = Trainer(accelerator=training_type, num_processes=2)
+        trainer = Trainer(strategy=training_type, num_processes=2)
 
     assert trainer._distrib_type == DistributedType.DDP
 
 
 def test_accelerator_ddp_for_cpu(tmpdir):
-    trainer = Trainer(accelerator="ddp", num_processes=2)
+    trainer = Trainer(strategy="ddp", num_processes=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.training_type_plugin, DDPPlugin)
 
