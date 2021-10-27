@@ -21,10 +21,10 @@ from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_DEV_1_10, AMPType
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if _TORCH_GREATER_EQUAL_DEV_1_10:
+if _TORCH_GREATER_EQUAL_1_10:
     from torch import autocast
 else:
     from torch.cuda.amp import autocast
@@ -95,7 +95,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             self.scaler.update()
 
     def autocast_context_manager(self) -> autocast:
-        if _TORCH_GREATER_EQUAL_DEV_1_10:
+        if _TORCH_GREATER_EQUAL_1_10:
             # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
             # https://github.com/pytorch/pytorch/issues/67233
             return autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16" else torch.half)
