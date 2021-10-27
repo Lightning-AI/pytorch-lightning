@@ -325,9 +325,10 @@ class DeepSpeedPlugin(DDPPlugin):
         self.hysteresis = hysteresis
         self.min_loss_scale = min_loss_scale
 
-        self._precision = None
-        self._amp_level = None
-        self._amp_type = None
+        # optionally set by Lite
+        self._precision: Optional[Union[str, int]] = None
+        self._amp_level: Optional[str] = None
+        self._amp_type: Optional[str] = None
 
     @property
     def precision(self) -> Union[str, int]:
