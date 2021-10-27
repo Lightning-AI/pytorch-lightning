@@ -106,7 +106,7 @@ class TrainerDataLoadingMixin(ABC):
                     " Consider setting strategy=ddp and set num_workers>0"
                 )
 
-        elif dataloader.num_workers <= 2 < num_cpus and not using_spawn:
+        elif 0 < dataloader.num_workers <= 2 < num_cpus and not using_spawn:
             rank_zero_warn(
                 f"The dataloader, {name}, does not have many workers which may be a bottleneck."
                 " Consider increasing the value of the `num_workers` argument`"
