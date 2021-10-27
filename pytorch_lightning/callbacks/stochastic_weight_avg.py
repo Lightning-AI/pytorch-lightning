@@ -372,6 +372,11 @@ class StochasticWeightAveraging(Callback):
         r"""
         Set model weights to the SWA averaged weights saved in a checkpoint.
 
+        When loading a model that was trained using SWA from a checkpoint,
+        the loaded weights will not be the SWA averaged weights, so this method is required if you
+        wish to use SWA in conjunction with the :class:`~pytorch_lightning.callbacks.ModelCheckpoint`
+        callback to select the best performing model during validation for example.
+
         Arguments:
             pl_module: The module to set weights on
 
@@ -381,13 +386,13 @@ class StochasticWeightAveraging(Callback):
                 or a different number of GPUs, use this to map to the new setup.
                 The behaviour is the same as in :func:`torch.load`.
 
-            datamodule: If the module uses batch normalization and does not implement the train_dataloder method,
+            datamodule: If the module uses batch normalization and does not implement the ``train_dataloder`` method,
                 a data module must be provided in order to allow recomputing the batch normalization parameters after
                 loading the SWA weights.
 
         Return:
-            A `bool` indicating whether averaged weights were loaded. If `False`, this means the checkpoint is
-                from an epoch before the SWA epoch start.
+            Whether averaged weights were loaded. If ``False``, this means the checkpoint is
+            from an epoch before the SWA epoch start.
         """
         if map_location is not None:
             checkpoint = pl_load(checkpoint_path, map_location=map_location)
