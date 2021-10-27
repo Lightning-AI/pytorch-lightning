@@ -277,7 +277,11 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         result = function(*args, **kwargs)
         if self.local_rank == 0:
             return_queue.put(move_data_to_device(result, "cpu"))
+
         self.barrier("end-process")
+        # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
+        if self.local_rank == 0:
+            time.sleep(2)
 
     def _worker_setup(self, process_idx: int):
         reset_seed()
