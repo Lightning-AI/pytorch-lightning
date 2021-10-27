@@ -35,7 +35,6 @@ RUN apt-get update -qq && \
         curl \
         git \
         jq \
-        libomp5 \
         libopenmpi-dev \
         unzip \
         wget \
@@ -58,7 +57,7 @@ ENV \
 
 COPY environment.yml environment.yml
 
-RUN conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} cudatoolkit=${CUDA_VERSION} -c pytorch -c pytorch-test -c pytorch-nightly && \
+RUN conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} cudatoolkit=${CUDA_VERSION} -c pytorch && \
     conda init bash && \
     python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'python>=[\d\.]+', 'python=${PYTHON_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
     python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'- pytorch[>=]+[\d\.]+', '# - pytorch=${PYTORCH_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
@@ -77,14 +76,14 @@ ENV \
 
 COPY ./requirements/extra.txt requirements-extra.txt
 COPY ./requirements/test.txt requirements-test.txt
-COPY ./requirements/adjust_versions.py requirements_adjust_versions.py
+COPY ./requirements/adjust_versions.py adjust_versions.py
+COPY ./.github/prune-packages.py prune_packages.py
 
 RUN \
     pip list | grep torch && \
     python -c "import torch; print(torch.__version__)" && \
-    python requirements_adjust_versions.py requirements-extra.txt && \
-    python -c "fname = 'requirements-extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)" && \
-    python -c "fname = 'requirements-extra.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)" && \
+    python adjust_versions.py requirements-extra.txt && \
+    python prune_packages.py requirements-extra.txt "fairscale" "horovod" && \
     # Install remaining requirements
     pip install -r requirements-extra.txt --no-cache-dir && \
     pip install -r requirements-test.txt --no-cache-dir && \

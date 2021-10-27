@@ -915,8 +915,9 @@ def test_deepspeed_setup_train_dataloader(tmpdir):
         gpus=1,
         fast_dev_run=True,
     )
-    trainer.fit(model, datamodule=TestSetupIsCalledDataModule())
-    trainer.test(model)
+    dm = TestSetupIsCalledDataModule()
+    trainer.fit(model, datamodule=dm)
+    trainer.test(model, datamodule=dm)
 
 
 @mock.patch("torch.optim.lr_scheduler.StepLR.step", autospec=True)

@@ -57,8 +57,6 @@ from pytorch_lightning.trainer.connectors.debugging_connector import DebuggingCo
 from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_from_env_vars
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
-from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
@@ -145,7 +143,7 @@ class Trainer(
         accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None,
         max_epochs: Optional[int] = None,
         min_epochs: Optional[int] = None,
-        max_steps: Optional[int] = None,
+        max_steps: int = -1,
         min_steps: Optional[int] = None,
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
         limit_train_batches: Union[int, float] = 1.0,
@@ -327,9 +325,9 @@ class Trainer(
             min_epochs: Force training for at least these many epochs. Disabled by default (None).
                 If both min_epochs and min_steps are not specified, defaults to ``min_epochs = 1``.
 
-            max_steps: Stop training after this number of steps. Disabled by default (None). If ``max_steps = None``
-                and ``max_epochs = None``, will default to ``max_epochs = 1000``. To disable this default, set
-                ``max_steps`` to ``-1``.
+            max_steps: Stop training after this number of steps. Disabled by default (-1). If ``max_steps = -1``
+                and ``max_epochs = None``, will default to ``max_epochs = 1000``. To enable infinite training, set
+                ``max_epochs`` to ``-1``.
 
             min_steps: Force training for at least these number of steps. Disabled by default (None).
 
@@ -430,9 +428,8 @@ class Trainer(
 
         # init connectors
         self._data_connector = DataConnector(self, multiple_trainloader_mode)
-        self.optimizer_connector = OptimizerConnector(self)
 
-        self.accelerator_connector = AcceleratorConnector(
+        self._accelerator_connector = AcceleratorConnector(
             num_processes,
             devices,
             tpu_cores,
@@ -452,7 +449,6 @@ class Trainer(
             plugins,
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
-        self.model_connector = ModelConnector(self)
         self.callback_connector = CallbackConnector(self)
         self.debugging_connector = DebuggingConnector(self)
         self.training_tricks_connector = TrainingTricksConnector(self)
@@ -460,10 +456,11 @@ class Trainer(
         self.signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
-        # max_epochs won't default to 1000 if max_steps/max_time are specified (including being set to -1).
         fit_loop = FitLoop(
             min_epochs=(1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs),
-            max_epochs=(1000 if (max_epochs is None and max_steps is None and max_time is None) else max_epochs),
+            max_epochs=(
+                max_epochs if max_epochs is not None else (1000 if (max_steps == -1 and max_time is None) else -1)
+            ),
         )
         training_epoch_loop = TrainingEpochLoop(min_steps, max_steps)
         training_batch_loop = TrainingBatchLoop()
@@ -516,7 +513,9 @@ class Trainer(
         self.on_init_start()
 
         # init optimizer + lr scheduler related flags
-        self.optimizer_connector.on_trainer_init()
+        self.lr_schedulers = []
+        self.optimizers = []
+        self.optimizer_frequencies = []
 
         # init data flags
         self._data_connector.on_trainer_init(
@@ -1047,7 +1046,7 @@ class Trainer(
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
         # check if we should delay restoring checkpoint till later
-        if not self.accelerator.restore_checkpoint_after_pre_dispatch:
+        if not self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
             self._restore_modules_and_callbacks(ckpt_path)
 
         self._call_configure_sharded_model()  # allow user to setup in model sharded environment
@@ -1096,7 +1095,7 @@ class Trainer(
         # plugin will setup fitting (e.g. ddp will launch child processes)
         self._pre_dispatch()
 
-        if self.accelerator.restore_checkpoint_after_pre_dispatch:
+        if self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
             self._restore_modules_and_callbacks(ckpt_path)
 
         # restore optimizers, etc.
@@ -1332,7 +1331,7 @@ class Trainer(
 
         if not ckpt_path:
             raise MisconfigurationException(
-                f'`.{fn}()` found no path for the best weights: "{ckpt_path}". Please'
+                f"`.{fn}()` found no path for the best weights: {ckpt_path!r}. Please"
                 f" specify a path for a checkpoint `.{fn}(ckpt_path=PATH)`"
             )
         return ckpt_path
@@ -1507,7 +1506,7 @@ class Trainer(
 
     @property
     def accelerator(self) -> Accelerator:
-        return self.accelerator_connector.accelerator
+        return self._accelerator_connector.accelerator
 
     @property
     def training_type_plugin(self) -> TrainingTypePlugin:
@@ -1542,43 +1541,43 @@ class Trainer(
 
     @property
     def _distrib_type(self) -> DistributedType:
-        return self.accelerator_connector._distrib_type
+        return self._accelerator_connector._distrib_type
 
     @property
     def _device_type(self) -> DeviceType:
-        return self.accelerator_connector._device_type
+        return self._accelerator_connector._device_type
 
     @property
     def num_nodes(self) -> int:
-        return self.accelerator_connector.num_nodes
+        return self._accelerator_connector.num_nodes
 
     @property
     def num_processes(self) -> int:
-        return self.accelerator_connector.num_processes
+        return self._accelerator_connector.num_processes
 
     @property
     def root_gpu(self) -> Optional[int]:
-        return self.accelerator_connector.root_gpu
+        return self._accelerator_connector.root_gpu
 
     @property
     def tpu_cores(self) -> int:
-        return self.accelerator_connector.tpu_cores
+        return self._accelerator_connector.tpu_cores
 
     @property
     def ipus(self) -> int:
-        return self.accelerator_connector.num_ipus
+        return self._accelerator_connector.num_ipus
 
     @property
     def num_gpus(self) -> int:
-        return self.accelerator_connector.num_gpus
+        return self._accelerator_connector.num_gpus
 
     @property
     def devices(self) -> Optional[Union[List[int], str, int]]:
-        return self.accelerator_connector.devices
+        return self._accelerator_connector.devices
 
     @property
     def data_parallel_device_ids(self) -> Optional[List[int]]:
-        return self.accelerator_connector.parallel_device_ids
+        return self._accelerator_connector.parallel_device_ids
 
     @property
     def lightning_module(self) -> "pl.LightningModule":
@@ -1627,7 +1626,7 @@ class Trainer(
 
     @property
     def gpus(self) -> Optional[Union[List[int], str, int]]:
-        return self.accelerator_connector.gpus
+        return self._accelerator_connector.gpus
 
     @property
     def model(self) -> torch.nn.Module:
@@ -1803,11 +1802,14 @@ class Trainer(
 
     @property
     def resume_from_checkpoint(self) -> Optional[Union[str, Path]]:
-        rank_zero_deprecation(
-            "`trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7."
-            " Specify the fit checkpoint path with `trainer.fit(ckpt_path=)` instead."
-        )
-        return self.checkpoint_connector.resume_from_checkpoint_fit_path
+        resume_from_checkpoint = self.checkpoint_connector.resume_from_checkpoint_fit_path
+        if resume_from_checkpoint is not None:
+            rank_zero_deprecation(
+                "`trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7."
+                " Specify the fit checkpoint path with `trainer.fit(ckpt_path=)` instead."
+            )
+
+        return resume_from_checkpoint
 
     def save_checkpoint(self, filepath: _PATH, weights_only: bool = False) -> None:
         self.checkpoint_connector.save_checkpoint(filepath, weights_only)
@@ -1937,7 +1939,7 @@ class Trainer(
         return self.fit_loop.current_epoch
 
     @property
-    def max_epochs(self) -> Optional[int]:
+    def max_epochs(self) -> int:
         return self.fit_loop.max_epochs
 
     @property
@@ -1945,7 +1947,7 @@ class Trainer(
         return self.fit_loop.min_epochs
 
     @property
-    def max_steps(self) -> Optional[int]:
+    def max_steps(self) -> int:
         return self.fit_loop.max_steps
 
     @property

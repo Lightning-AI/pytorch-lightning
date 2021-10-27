@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
-          python-version: 3.8
+          python-version: 3.9
 
       - name: Install dependencies
         run: >-
@@ -54,7 +54,7 @@ jobs:
       fail-fast: false
       matrix:
         python_version: ["3.7"]
-        xla_version: ["1.6", "1.7", "1.8", "1.9"] # todo: , "nightly"
+        xla_version: ["1.6", "1.7", "1.8", "1.9"]
 
     steps:
       - name: Checkout
@@ -114,7 +114,7 @@ jobs:
           file: dockers/base-cuda/Dockerfile
           push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
-        timeout-minutes: 55
+        timeout-minutes: 85
 
   docker-Conda:
     if: ${{ github.repository_owner == 'PyTorchLightning' }}
@@ -156,7 +156,7 @@ jobs:
           file: dockers/base-conda/Dockerfile
           push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
-        timeout-minutes: 55
+        timeout-minutes: 85
 
   docker-IPU:
     if: ${{ github.repository_owner == 'PyTorchLightning' }}
