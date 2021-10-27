@@ -47,7 +47,9 @@ from pytorch_lightning.utilities.seed import seed_everything
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.boring_model import RandomIterableDataset, RandomIterableDatasetWithLen
+from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
+from tests.helpers.simple_models import ClassificationModel
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -1004,21 +1006,20 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
         devices=1,
         precision=precision,
         gradient_clip_algorithm="norm",
-        gradient_clip_val=1.0,
+        gradient_clip_val=0.05,
     )
 
-    # TODO: when precision=16, BoringModel produces NaN, but EvalModelTemplate not
-    class TestModel(EvalModelTemplate):
+    class TestModel(ClassificationModel):
         def configure_gradient_clipping(self, *args, **kwargs):
             super().configure_gradient_clipping(*args, **kwargs)
             # test that gradient is clipped correctly
             parameters = self.parameters()
             grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
-            assert (grad_norm - 1.0).abs() < 0.01, f"Gradient norm != 1.0: {grad_norm}"
+            torch.testing.assert_allclose(grad_norm, torch.tensor(0.05))
             self.assertion_called = True
 
     model = TestModel()
-    trainer.fit(model)
+    trainer.fit(model, ClassifDataModule())
     assert model.assertion_called
 
 
@@ -1032,6 +1033,7 @@ def test_gradient_clipping_by_value(tmpdir, precision):
         max_steps=1,
         max_epochs=1,
         accelerator="auto",
+        devices=1,
         precision=precision,
         gradient_clip_algorithm="value",
         gradient_clip_val=1e-10,
@@ -1044,7 +1046,7 @@ def test_gradient_clipping_by_value(tmpdir, precision):
             parameters = self.parameters()
             grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
             grad_max = torch.max(torch.stack(grad_max_list))
-            assert abs(grad_max.item() - 1e-10) < 1e-11, f"Gradient max value {grad_max} != grad_clip_val {1e-10} ."
+            torch.testing.assert_allclose(grad_max.abs(), torch.tensor(1e-10))
             self.assertion_called = True
 
     model = TestModel()
