@@ -43,7 +43,7 @@ from pytorch_lightning.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from pytorch_lightning.utilities import _IPU_AVAILABLE, _TPU_AVAILABLE, DeviceType, DistributedType
+from pytorch_lightning.utilities import DeviceType, DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -1007,15 +1007,18 @@ def test_unsupported_ipu_choice(monkeypatch):
         Trainer(accelerator="ipu", precision=64)
 
 
-@pytest.mark.skipif(torch.cuda.is_available() or _TPU_AVAILABLE or _IPU_AVAILABLE, reason="test requires to run on CPU")
-def test_accelerator_auto_choice_and_devices_cpu():
+@mock.patch("torch.cuda.is_available", return_value=False)
+@mock.patch("pytorch_lightning.utilities.imports._TPU_AVAILABLE", return_value=False)
+@mock.patch("pytorch_lightning.utilities.imports._IPU_AVAILABLE", return_value=False)
+def test_accelerator_auto_choice_and_devices_cpu(is_ipu_available_mock, is_tpu_available_mock, is_gpu_available_mock):
     trainer = Trainer(accelerator="auto")
     assert trainer.devices == 1
     assert trainer.num_processes == 1
 
 
-@RunIf(min_gpus=1)
-def test_accelerator_auto_choice_and_devices_gpu():
+@mock.patch("torch.cuda.is_available", return_value=True)
+@mock.patch("torch.cuda.device_count", return_value=1)
+def test_accelerator_auto_choice_and_devices_gpu(is_gpu_available_mock, device_count_mock):
     trainer = Trainer(accelerator="auto")
     assert trainer.devices == 1
     assert trainer.gpus == 1
