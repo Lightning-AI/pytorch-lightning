@@ -33,7 +33,7 @@ from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.loggers.base import LoggerCollection, DummyLogger
+from pytorch_lightning.loggers.base import DummyLogger, LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop, TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
@@ -2162,11 +2162,12 @@ class Trainer(
         )
         self._terminate_on_nan = val  # : 212
 
+
 def _determine_batch_limits(batches: Union[int, float], name: str) -> Union[int, float]:
-        if 0 <= batches <= 1:
-            return batches
-        if batches > 1 and batches % 1.0 == 0:
-            return int(batches)
-        raise MisconfigurationException(
-            f"You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int."
-        )
+    if 0 <= batches <= 1:
+        return batches
+    if batches > 1 and batches % 1.0 == 0:
+        return int(batches)
+    raise MisconfigurationException(
+        f"You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int."
+    )
