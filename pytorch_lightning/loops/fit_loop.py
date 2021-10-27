@@ -247,7 +247,6 @@ class FitLoop(Loop):
 
     def teardown(self) -> None:
         self.epoch_loop.teardown()
-        self.trainer._data_connector.teardown()
 
     def _should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated."""
