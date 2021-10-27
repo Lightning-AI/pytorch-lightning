@@ -46,7 +46,7 @@ jobs:
       fail-fast: false
       matrix:
         python_version: ["3.7"]
-        xla_version: ["1.6", "1.8", "nightly"]
+        xla_version: ["1.6", "1.8", "1.10"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -60,7 +60,7 @@ jobs:
             XLA_VERSION=${{ matrix.xla_version }}
           file: dockers/base-xla/Dockerfile
           push: false
-        timeout-minutes: 50
+        timeout-minutes: 60
 
   build-CUDA:
     runs-on: ubuntu-20.04
@@ -87,7 +87,7 @@ jobs:
             CUDA_VERSION=10.2
           file: dockers/base-cuda/Dockerfile
           push: false
-        timeout-minutes: 50
+        timeout-minutes: 75
 
   build-Conda:
     runs-on: ubuntu-20.04
@@ -121,7 +121,7 @@ jobs:
             CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
           file: dockers/base-conda/Dockerfile
           push: false
-        timeout-minutes: 50
+        timeout-minutes: 75
 
   build-ipu:
     runs-on: ubuntu-20.04
@@ -154,4 +154,4 @@ jobs:
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
           file: dockers/ipu-ci-runner/Dockerfile
           push: false
-        timeout-minutes: 50
+        timeout-minutes: 60

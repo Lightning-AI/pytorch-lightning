@@ -70,7 +70,7 @@ class TrainerDataLoadingMixin(ABC):
         if not isinstance(dataloader, DataLoader):
             return
 
-        using_spawn = self.accelerator_connector._distrib_type == DistributedType.DDP_SPAWN
+        using_spawn = self._accelerator_connector._distrib_type == DistributedType.DDP_SPAWN
         num_cpus = multiprocessing.cpu_count()
 
         # ddp_spawn + num_workers > 0 don't mix! tell the user
@@ -120,8 +120,8 @@ class TrainerDataLoadingMixin(ABC):
 
     def _requires_distributed_sampler(self, dataloader) -> bool:
         return (
-            self.accelerator_connector.replace_sampler_ddp
-            and self.accelerator_connector.is_distributed
+            self._accelerator_connector.replace_sampler_ddp
+            and self._accelerator_connector.is_distributed
             and not isinstance(dataloader.sampler, DistributedSampler)
             and not has_iterable_dataset(dataloader)
         )
@@ -147,7 +147,7 @@ class TrainerDataLoadingMixin(ABC):
             _fault_tolerant_training()  # injects components to track the state
             or self._requires_distributed_sampler(dataloader)  # sets the distributed sampler
             or mode == RunningStage.PREDICTING  # to track indices for the predictions
-            or self.accelerator_connector.use_ipu  # IPUs use a custom `DataLoader`
+            or self._accelerator_connector.use_ipu  # IPUs use a custom `DataLoader`
         ):
             sampler = self._resolve_sampler(dataloader, shuffle=shuffle, mode=mode)
             dataloader = self._update_dataloader(dataloader, sampler, mode=mode)
@@ -343,7 +343,7 @@ class TrainerDataLoadingMixin(ABC):
             apply_to_collection(self.train_dataloader, DataLoader, self._add_sampler_metadata_collate)
 
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
-        self.train_dataloader = CombinedLoader(self.train_dataloader, self.data_connector.multiple_trainloader_mode)
+        self.train_dataloader = CombinedLoader(self.train_dataloader, self._data_connector.multiple_trainloader_mode)
 
         self.num_training_batches = len(self.train_dataloader) if has_len(self.train_dataloader) else float("inf")
 
@@ -488,7 +488,7 @@ class TrainerDataLoadingMixin(ABC):
         Args:
             model: The `LightningModule` if called outside of the trainer scope.
         """
-        source = self.data_connector._val_dataloader_source
+        source = self._data_connector._val_dataloader_source
         pl_module = self.lightning_module or model
         has_step = is_overridden("validation_step", pl_module)
         if source.is_defined() and has_step:
@@ -502,7 +502,7 @@ class TrainerDataLoadingMixin(ABC):
         Args:
             model: The `LightningModule` if called outside of the trainer scope.
         """
-        source = self.data_connector._test_dataloader_source
+        source = self._data_connector._test_dataloader_source
         pl_module = self.lightning_module or model
         has_step = is_overridden("test_step", pl_module)
         if source.is_defined() and has_step:
@@ -516,7 +516,7 @@ class TrainerDataLoadingMixin(ABC):
         Args:
             model: The `LightningModule` if called outside of the trainer scope.
         """
-        source = self.data_connector._predict_dataloader_source
+        source = self._data_connector._predict_dataloader_source
         pl_module = self.lightning_module or model
         if source.is_defined():
             self.num_predict_batches, self.predict_dataloaders = self._reset_eval_dataloader(
@@ -545,7 +545,7 @@ class TrainerDataLoadingMixin(ABC):
         Returns:
             The requested dataloader
         """
-        source = getattr(self.data_connector, f"_{stage.dataloader_prefix}_dataloader_source")
+        source = getattr(self._data_connector, f"_{stage.dataloader_prefix}_dataloader_source")
 
         hook = f"{stage.dataloader_prefix}_dataloader"
         self.call_hook("on_" + hook, pl_module=model)
