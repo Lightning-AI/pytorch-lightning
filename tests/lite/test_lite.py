@@ -129,12 +129,12 @@ def test_setup_tracks_num_models():
     model = nn.Linear(1, 2)
     optimizer = torch.optim.Adam(model.parameters())
 
-    assert lite._num_models == 0
+    assert lite._models_setup == 0
     lite.setup(model, optimizer)
-    assert lite._num_models == 1
+    assert lite._models_setup == 1
 
     lite.setup(model, optimizer)
-    assert lite._num_models == 2
+    assert lite._models_setup == 2
 
 
 def test_setup_dataloaders_unsupported_type():
