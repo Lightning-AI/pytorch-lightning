@@ -21,7 +21,6 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_DEV_1_10
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -219,7 +218,7 @@ def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_DEV_1_10, reason="Torch CPU AMP is not available.")
+@RunIf(min_torch="1.10")
 def test_cpu_amp_precision_context_manager(tmpdir):
     """Test to ensure that the context manager correctly is set to CPU + bfloat16, and a scaler isn't set."""
     plugin = NativeMixedPrecisionPlugin(precision="bf16", use_cpu=True)
@@ -238,7 +237,7 @@ def test_precision_selection_raises(monkeypatch):
 
     import pytorch_lightning.plugins.precision.native_amp as amp
 
-    monkeypatch.setattr(amp, "_TORCH_GREATER_EQUAL_DEV_1_10", False)
+    monkeypatch.setattr(amp, "_TORCH_GREATER_EQUAL_1_10", False)
     with pytest.warns(
         UserWarning, match=r"precision=16\)` but native AMP is not supported on CPU. Using `precision='bf16"
     ), pytest.raises(MisconfigurationException, match="must install torch greater or equal to 1.10"):
