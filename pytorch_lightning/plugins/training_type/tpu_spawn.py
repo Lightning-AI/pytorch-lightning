@@ -31,8 +31,8 @@ from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, rank_zero_warn, set_shared_parameters
-from pytorch_lightning.utilities.data import has_len_all_ranks
 from pytorch_lightning.utilities.apply_func import move_data_to_device
+from pytorch_lightning.utilities.data import has_len_all_ranks
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
