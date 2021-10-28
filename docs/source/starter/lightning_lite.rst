@@ -571,6 +571,27 @@ device, so calling this method is only necessary for manual operation when neede
     data = self.to_device(data)
 
 
+autocast
+========
+
+Let the precision backend autocast the block of code under this context manager. This is optional and already done by
+Lite for the model's forward method (one the model was :meth:`~pytorch_lightning.lite.lite.LightningLite.setup`).
+You need this only if you wish to autocast more operations outside the ones in model forward:
+
+.. code-block:: python
+
+    model, optimizer = self.setup(model, optimizer)
+
+    # Lite handles precision automatically for the model
+    output = model(inputs)
+
+    with self.autocast():  # optional
+        loss = loss_function(output, target)
+
+    self.backward(loss)
+    ...
+
+
 print
 =====
 
