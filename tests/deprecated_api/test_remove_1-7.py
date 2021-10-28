@@ -19,6 +19,7 @@ import torch
 
 from pytorch_lightning import Callback, LightningDataModule, Trainer
 from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
+from pytorch_lightning.callbacks.progress import ProgressBar
 from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
 from tests.callbacks.test_callbacks import OldStatefulCallback
@@ -391,10 +392,8 @@ def test_v1_7_0_deprecate_xla_stats_monitor(tmpdir):
 
 
 def test_v1_7_0_progress_bar():
-
-    _soft_unimport_module("pytorch_lightning.callbacks.progress")
     with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.7."):
-        from pytorch_lightning.callbacks.progress import ProgressBar  # noqa: F401
+        _ = ProgressBar()
 
 
 def test_v1_7_0_deprecated_max_steps_none(tmpdir):
