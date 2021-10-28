@@ -47,14 +47,14 @@ class BoringModel(nn.Module):
         return torch.nn.functional.mse_loss(x, torch.ones_like(x))
 
 
-@pytest.mark.parametrize("accelerator", ["coconut"])
-def test_unsupported_accelerator(accelerator):
+def test_unsupported_accelerator():
+    accelerator = "coconut"
     with pytest.raises(MisconfigurationException, match=f"`accelerator={repr(accelerator)}` is not a valid choice"):
         EmptyLite(accelerator=accelerator)
 
 
-@pytest.mark.parametrize("strategy", ["coconut"])
-def test_unsupported_strategy(strategy):
+def test_unsupported_strategy():
+    strategy = "coconut"
     with pytest.raises(MisconfigurationException, match=f"`strategy={repr(strategy)}` is not a valid choice"):
         EmptyLite(strategy=strategy)
 
