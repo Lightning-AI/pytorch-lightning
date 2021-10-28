@@ -20,7 +20,6 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
-from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -47,7 +46,7 @@ class MyApexPlugin(ApexMixedPrecisionPlugin):
     },
 )
 @mock.patch("torch.cuda.device_count", return_value=2)
-@pytest.mark.parametrize("ddp_backend,gpus", [("ddp", 2), ("ddp2", 2), ("ddp_spawn", 2)])
+@pytest.mark.parametrize("strategy,gpus", [("ddp", 2), ("ddp2", 2), ("ddp_spawn", 2)])
 @pytest.mark.parametrize(
     "amp,custom_plugin,plugin_cls",
     [
@@ -57,21 +56,19 @@ class MyApexPlugin(ApexMixedPrecisionPlugin):
         pytest.param("apex", True, MyApexPlugin, marks=RunIf(amp_apex=True)),
     ],
 )
-def test_amp_apex_ddp(
-    mocked_device_count, ddp_backend: str, gpus: int, amp: str, custom_plugin: bool, plugin_cls: MixedPrecisionPlugin
-):
-
+def test_amp_apex_ddp(mocked_device_count, strategy, gpus, amp, custom_plugin, plugin_cls):
+    plugin = None
+    if custom_plugin:
+        plugin = plugin_cls(16, "cpu") if amp == "native" else plugin_cls()
     trainer = Trainer(
         fast_dev_run=True,
         precision=16,
         amp_backend=amp,
         gpus=gpus,
-        strategy=ddp_backend,
-        plugins=[plugin_cls()] if custom_plugin else None,
+        strategy=strategy,
+        plugins=plugin,
     )
     assert isinstance(trainer.precision_plugin, plugin_cls)
-    if amp == "native":
-        assert not trainer.precision_plugin.is_bfloat16
 
 
 class GradientUnscaleBoringModel(BoringModel):
@@ -220,13 +217,14 @@ def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
 
 @RunIf(min_torch="1.10")
 def test_cpu_amp_precision_context_manager(tmpdir):
-    """Test to ensure that the context manager correctly is set to CPU + bfloat16, and a scaler isn't set."""
-    plugin = NativeMixedPrecisionPlugin(precision="bf16", use_cpu=True)
-    assert plugin.use_cpu
-    assert not hasattr(plugin, "scaler")
+    """Test to ensure that the context manager correctly is set to CPU + bfloat16."""
+    plugin = NativeMixedPrecisionPlugin("bf16", "cpu")
+    assert plugin.device == "cpu"
+    assert plugin.scaler is None
     context_manager = plugin.autocast_context_manager()
     assert isinstance(context_manager, torch.autocast)
-    assert context_manager.fast_dtype == torch.bfloat16
+    # check with str due to a bug upstream: https://github.com/pytorch/pytorch/issues/65786
+    assert str(context_manager.fast_dtype) == str(torch.bfloat16)
 
 
 def test_precision_selection_raises(monkeypatch):
