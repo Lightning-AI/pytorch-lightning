@@ -103,7 +103,7 @@ class LightningLite(ABC):
         self._accelerator = self._accelerator_connector.accelerator
         self._strategy = self._accelerator.training_type_plugin
         self._precision_plugin = self._accelerator.precision_plugin
-        self._num_models: int = 0
+        self._models_setup: int = 0
 
         # wrap the run method so we can inject setup logic or spawn processes for the user
         setattr(self, "run", partial(self._run_impl, self.run))
@@ -146,8 +146,8 @@ class LightningLite(ABC):
         """All the code inside this run method gets accelerated by Lite.
 
         Args:
-            *args: Add any positional arguments you need, e.g., the hyperparameters for your model
-            **kwargs: Add any keyword arguments you need, e.g., the hyperparameters for your model
+            *args: Add any positional arguments you need, e.g., the hyperparameters for your model.
+            **kwargs: Add any keyword arguments you need, e.g., the hyperparameters for your model.
         """
 
     def setup(
@@ -176,7 +176,7 @@ class LightningLite(ABC):
         model, optimizers = self._strategy._setup_model_and_optimizers(model, list(optimizers))
         model = _LiteModule(model, self._accelerator)
         optimizers = [_LiteOptimizer(optimizer=optimizer, accelerator=self._accelerator) for optimizer in optimizers]
-        self._num_models += 1
+        self._models_setup += 1
         if optimizers:
             return [model] + optimizers  # type: ignore
         return model
@@ -251,20 +251,20 @@ class LightningLite(ABC):
             **kwargs: Optional named keyword arguments passed to the underlying backward function.
 
         Note:
-            When using ``strategy='deepspeed"`` and multiple models were setup, it is required to pass in the
+            When using ``strategy="deepspeed"`` and multiple models were setup, it is required to pass in the
             model as argument here.
         """
         module = model.module if model is not None else model
         if isinstance(self._strategy, DeepSpeedPlugin):
             if model is None:
-                if self._num_models == 0:
+                if self._models_setup == 0:
                     raise MisconfigurationException(
-                        "No models were setup for backward. Did you forget to call `self.setup`?"
+                        "No models were setup for backward. Did you forget to call `self.setup()`?"
                     )
-                if self._num_models > 1:
+                if self._models_setup > 1:
                     raise MisconfigurationException(
                         "When using multiple models + deepspeed, please provide the model used to perform"
-                        " the optimization."
+                        " the optimization: `self.backward(loss, model=model)`"
                     )
                 module = self._strategy.model
             else:
@@ -447,7 +447,7 @@ class LightningLite(ABC):
         )
 
     @staticmethod
-    def _supported_strategy_types() -> Sequence[str]:
+    def _supported_strategy_types() -> Sequence[DistributedType]:
         return (
             DistributedType.DP,
             DistributedType.DDP,
