@@ -255,7 +255,7 @@ class LightningLite(ABC):
             model as argument here.
         """
         module = model.module if model is not None else model
-        if self._num_models > 0 and isinstance(self._strategy, DeepSpeedPlugin):
+        if self._num_models > 1 and isinstance(self._strategy, DeepSpeedPlugin):
             if model is None:
                 raise MisconfigurationException(
                     "When using multiple models + deepspeed, please provide the model used to perform the optimization."
