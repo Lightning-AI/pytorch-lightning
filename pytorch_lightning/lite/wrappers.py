@@ -40,8 +40,12 @@ class _LiteOptimizer:
         """
         self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("step",)}
         self.__class__ = type("Lite" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
-        self.optimizer = optimizer
+        self._optimizer = optimizer
         self._accelerator = accelerator
+
+    @property
+    def optimizer(self) -> Optimizer:
+        return self._optimizer
 
     def step(self, closure: Optional[Callable] = None) -> None:
         closure = closure or _do_nothing_closure
