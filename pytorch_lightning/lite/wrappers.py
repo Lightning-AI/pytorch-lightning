@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Generator, Iterator, List, Optional, Union
+from typing import Any, Callable, Generator, Iterator, Optional, Union
 
 import torch
 from torch import nn as nn
@@ -38,50 +38,19 @@ class _LiteOptimizer:
             optimizer: The optimizer to wrap
             accelerator: Reference to the accelerator for handling the optimizer step
         """
-        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("step", "__del__")}
+        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("step",)}
         self.__class__ = type("Lite" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
-        self._optimizer = optimizer
+        self.optimizer = optimizer
         self._accelerator = accelerator
-
-    @property
-    def optimizer(self) -> Optimizer:
-        return self._optimizer
-
-    @property
-    def defaults(self) -> dict:
-        return self._optimizer.defaults
-
-    @defaults.setter
-    def defaults(self, defaults: dict) -> None:
-        self._optimizer.defaults = defaults
-
-    @property
-    def state(self) -> dict:
-        return self._optimizer.state
-
-    @state.setter
-    def state(self, state: dict) -> None:
-        self._optimizer.state = state
-
-    @property
-    def param_groups(self) -> List[dict]:
-        return self._optimizer.param_groups
-
-    @param_groups.setter
-    def param_groups(self, param_groups: List[dict]) -> None:
-        self._optimizer.param_groups = param_groups
 
     def step(self, closure: Optional[Callable] = None) -> None:
         closure = closure or _do_nothing_closure
         self._accelerator.optimizer_step(
-            self._optimizer,
+            self.optimizer,
             opt_idx=0,
             lambda_closure=closure,
             model=self._accelerator.model,
         )
-
-    def zero_grad(self, *args: Any, **kwargs: Any) -> None:
-        self._optimizer.zero_grad(*args, **kwargs)
 
 
 class _LiteModule(nn.Module):
