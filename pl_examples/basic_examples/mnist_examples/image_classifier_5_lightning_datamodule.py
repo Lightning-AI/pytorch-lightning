@@ -80,8 +80,9 @@ class MNISTDataModule(LightningDataModule):
 
 
 def cli_main():
+    # The LightningCLI removes all the boilerplate associate to arguments parsing. This is purely optional.
     cli = LightningCLI(
-        ImageClassifier, MNISTDataModule, seed_everything_default=1234, save_config_overwrite=True, run=False
+        ImageClassifier, MNISTDataModule, seed_everything_default=42, save_config_overwrite=True, run=False
     )
     cli.trainer.fit(cli.model, datamodule=cli.datamodule)
     cli.trainer.test(ckpt_path="best", datamodule=cli.datamodule)

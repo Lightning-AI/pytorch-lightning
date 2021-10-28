@@ -6,7 +6,7 @@ Use these examples to test how Lightning works.
 
 5 MNIST examples showing how to gradually convert from pure PyTorch to PyTorch Lightning.
 
-The transition through [LightningLite](https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.rst) from pure PyTorch is optional but it might helpful to learn about it.
+The transition through [LightningLite](https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.rst) from pure PyTorch is optional but it might be helpful to learn about it.
 
 #### 1 . Image Classifier with Vanilla PyTorch
 
@@ -21,7 +21,7 @@ ______________________________________________________________________
 
 #### 2. Image Classifier with LightningLite
 
-Trains a simple CNN over MNIST using [LightningLite](https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.rst).
+This script shows you how to scale the previous script to enable GPU and multi GPU training using [LightningLite](https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.rst).
 
 ```bash
 # cpu / multiple gpus if available
@@ -30,7 +30,10 @@ python mnist_examples/image_classifier_2_lite.py
 
 ______________________________________________________________________
 
-Trains a simple CNN over MNIST where `LightningLite` is almost a `LightningModule`.
+#### 3. Image Classifier - Conversion Lite to Lightning
+
+This script shows you to prepare your conversion from [LightningLite](https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.rst)
+to `LightningModule`.
 
 ```bash
 # cpu / multiple gpus if available
@@ -41,7 +44,7 @@ ______________________________________________________________________
 
 #### 4. Image Classifier with LightningModule
 
-Trains a simple CNN over MNIST with `Lightning Trainer` and the converted `LightningModule`.
+This script shows you how the result of the conversion to the `LightningModule` and finally get all the benefits from Lightning.
 
 ```bash
 # cpu
@@ -55,7 +58,7 @@ ______________________________________________________________________
 
 #### 5. Image Classifier with LightningModule + LightningDataModule
 
-Trains a simple CNN over MNIST with `Lightning Trainer` and the converted `LightningModule` and `LightningDataModule`
+This script shows you how extracts the data related components to a `LightningDataModule`.
 
 ```bash
 # cpu
@@ -64,8 +67,8 @@ python mnist_examples/image_classifier_5_lightning_datamodule.py
 # gpus (any number)
 python mnist_examples/image_classifier_5_lightning_datamodule.py --trainer.gpus 2
 
-# Distributed Data Parallel
-python backbone_image_classifier.py --trainer.gpus 2 --trainer.accelerator ddp
+# data parallel
+python mnist_examples/image_classifier_5_lightning_datamodule.py --trainer.gpus 2 --trainer.accelerator 'dp'
 ```
 
 ______________________________________________________________________

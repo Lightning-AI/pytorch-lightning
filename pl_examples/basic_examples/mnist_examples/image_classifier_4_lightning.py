@@ -48,10 +48,8 @@ class ImageClassifier(LightningModule):
         logits = self.forward(x)
         loss = F.nll_loss(logits, y.long())
         self.test_acc(logits, y.long())
+        self.log("test_acc", self.test_acc)
         return loss
-
-    def test_epoch_end(self, *_) -> None:
-        self.log("test_acc", self.test_acc.compute())
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adadelta(self.model.parameters(), lr=self.hparams.lr)
@@ -76,7 +74,8 @@ class ImageClassifier(LightningModule):
 
 
 def cli_main():
-    cli = LightningCLI(ImageClassifier, seed_everything_default=1234, save_config_overwrite=True, run=False)
+    # The LightningCLI removes all the boilerplate associate to arguments parsing. This is purely optional.
+    cli = LightningCLI(ImageClassifier, seed_everything_default=42, save_config_overwrite=True, run=False)
     cli.trainer.fit(cli.model, datamodule=cli.datamodule)
     cli.trainer.test(ckpt_path="best", datamodule=cli.datamodule)
 
