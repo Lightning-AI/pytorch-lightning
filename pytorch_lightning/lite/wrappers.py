@@ -20,6 +20,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.plugins import PrecisionPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 
 
@@ -60,8 +61,7 @@ class _LiteOptimizer:
 
 
 class _LiteModule(nn.Module):
-    # TODO: Pass in the precision plugin instead of accelerator
-    def __init__(self, module: nn.Module, accelerator: Accelerator) -> None:
+    def __init__(self, module: nn.Module, precision_plugin: PrecisionPlugin) -> None:
         """The LiteModule is a thin wrapper around the :class:`torch.nn.Module` and handles precision / autocast
         automatically for the forward pass.
 
@@ -69,11 +69,11 @@ class _LiteModule(nn.Module):
 
         Args:
             module: The module to wrap
-            accelerator: Reference to the accelerator for handling precision context
+            precision_plugin: Reference to the precision plugin for handling precision context
         """
         super().__init__()
         self._module = module
-        self._accelerator = accelerator
+        self._precision_plugin = precision_plugin
 
     @property
     def module(self) -> nn.Module:
@@ -82,7 +82,7 @@ class _LiteModule(nn.Module):
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         """Casts all inputs to the right precision and handles autocast for operations in the module forward
         method."""
-        precision = self._accelerator.precision_plugin.precision
+        precision = self._precision_plugin.precision
         precision_to_type = {
             "bf16": torch.bfloat16,
             16: torch.float16,
@@ -93,7 +93,7 @@ class _LiteModule(nn.Module):
         to_type = precision_to_type[precision]
         args, kwargs = apply_to_collection([args, kwargs], function=lambda t: t.to(to_type), dtype=Tensor)
 
-        with self._accelerator.precision_plugin.forward_context():
+        with self._precision_plugin.forward_context():
             output = self.module(*args, **kwargs)
 
         output = apply_to_collection(output, function=lambda t: t.to(torch.get_default_dtype()), dtype=Tensor)
