@@ -14,7 +14,7 @@
 
 from copy import deepcopy
 from unittest import mock
-from unittest.mock import Mock, PropertyMock, MagicMock
+from unittest.mock import MagicMock, Mock, PropertyMock
 
 import pytest
 import torch
