@@ -23,7 +23,6 @@ import torch.distributed
 import torch.multiprocessing as mp
 import torch.nn.functional
 from torch import nn
-from torch.cuda import is_available
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
@@ -34,7 +33,6 @@ from pytorch_lightning.plugins.environments.lightning_environment import find_fr
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.cloud_io import atomic_save
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_10
 from tests.helpers.boring_model import RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -100,14 +98,11 @@ def precision_context(precision, accelerator) -> Generator[None, None, None]:
     if precision == 32:
         yield
         return
-    if precision == 16 and accelerator == "gpu":
+    if accelerator == "gpu":
         with torch.cuda.amp.autocast():
             yield
     elif accelerator == "cpu":
-        with torch.cpu.amp.autocast(dtype=torch.float16 if precision == 16 else torch.bfloat16):
-            yield
-    else:
-        with torch.cuda.amp.autocast():
+        with torch.cpu.amp.autocast():
             yield
 
 
@@ -115,18 +110,9 @@ def precision_context(precision, accelerator) -> Generator[None, None, None]:
     "precision, strategy, devices, accelerator",
     [
         pytest.param(32, None, 1, "cpu"),
-        pytest.param(32, None, 1, "gpu", marks=pytest.mark.skipif(not is_available(), reason="requires a GPU")),
-        pytest.param(16, None, 1, "gpu", marks=pytest.mark.skipif(not is_available(), reason="requires a GPU")),
-        pytest.param(
-            "bf16",
-            None,
-            1,
-            "gpu",
-            marks=pytest.mark.skipif(
-                not (_TORCH_GREATER_EQUAL_1_10 and is_available()),
-                reason="bfloat16 and requires GPU isn't available.",
-            ),
-        ),
+        pytest.param(32, None, 1, "gpu", marks=RunIf(min_gpus=1)),
+        pytest.param(16, None, 1, "gpu", marks=RunIf(min_gpus=1)),
+        pytest.param("bf16", None, 1, "gpu", marks=RunIf(min_torch="1.10", min_gpus=1)),
     ],
 )
 def test_boring_lite_model_single_device(precision, strategy, devices, accelerator, tmpdir):
