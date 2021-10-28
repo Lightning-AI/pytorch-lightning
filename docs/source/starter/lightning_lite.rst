@@ -560,9 +560,9 @@ This replaces any occurences of ``loss.backward()`` and will make your code acce
 to_device
 =========
 
-Use :class:`~pytorch_lightning.lite.lite.LightningLite.to_device` to move models, tensors or collections of tensors to
-the current device. By default :class:`~pytorch_lightning.lite.lite.LightningLite.setup` and
-:class:`~pytorch_lightning.lite.lite.LightningLite.setup_dataloaders` already move the model and data to the correct
+Use :meth:`~pytorch_lightning.lite.lite.LightningLite.to_device` to move models, tensors or collections of tensors to
+the current device. By default :meth:`~pytorch_lightning.lite.lite.LightningLite.setup` and
+:meth:`~pytorch_lightning.lite.lite.LightningLite.setup_dataloaders` already move the model and data to the correct
 device, so calling this method is only necessary for manual operation when needed.
 
 .. code-block:: python
