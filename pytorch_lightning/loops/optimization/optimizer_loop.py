@@ -30,7 +30,7 @@ from pytorch_lightning.loops.utilities import (
 )
 from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler
 from pytorch_lightning.trainer.progress import OptimizationProgress
-from pytorch_lightning.utilities import AMPType, DeviceType, grad_norm
+from pytorch_lightning.utilities import AMPType, DeviceType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
@@ -228,25 +228,6 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         outputs, self._outputs = self._outputs, {}  # free memory
         return outputs
 
-    def _backward(
-        self, loss: Tensor, optimizer: torch.optim.Optimizer, opt_idx: int, *args: Any, **kwargs: Any
-    ) -> None:
-        """Performs the backward step.
-
-        Args:
-            loss: The loss value to back-propagate on
-            optimizer: Current optimizer being used
-            opt_idx: Index of the current optimizer being used
-        """
-        self.trainer.accelerator.backward(loss, optimizer, opt_idx, *args, **kwargs)
-
-        if not self.trainer.fit_loop._should_accumulate():
-            # track gradients
-            grad_norm_dict = self._track_and_norm_grad(optimizer=optimizer, opt_idx=opt_idx)
-            if grad_norm_dict:
-                self.trainer.lightning_module._current_fx_name = "on_after_backward"
-                self.trainer.lightning_module.log_grad_norm(grad_norm_dict)
-
     def _run_optimization(
         self, split_batch: Any, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int
     ) -> ClosureResult:
@@ -343,7 +324,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             return None
 
         def backward_fn(loss: Tensor) -> None:
-            self._backward(loss, optimizer, opt_idx)
+            self.trainer.accelerator.backward(loss, optimizer, opt_idx)
 
             # check if model weights are nan
             if self.trainer._terminate_on_nan:
@@ -473,25 +454,3 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
                 self.trainer._results.cpu()
 
         return result
-
-    def _track_and_norm_grad(self, optimizer: torch.optim.Optimizer, opt_idx: int) -> Dict[str, float]:
-        """Tracks gradient norms and clips the gradients of all parameters optimized by the current optimizer.
-
-        Args:
-            optimizer: the current optimizer
-        """
-        # track gradient norms
-        grad_norm_dict = {}
-        if self.trainer.track_grad_norm != -1:
-            grad_norm_dict = grad_norm(
-                self.trainer.lightning_module, self.trainer.track_grad_norm, self.trainer.logger.group_separator
-            )
-
-        # clip gradients
-        self.trainer.lightning_module.configure_gradient_clipping(
-            optimizer,
-            opt_idx,
-            gradient_clip_val=self.trainer.gradient_clip_val,
-            gradient_clip_algorithm=self.trainer.gradient_clip_algorithm,
-        )
-        return grad_norm_dict
