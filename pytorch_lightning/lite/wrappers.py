@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Union
+from typing import Any, Callable, Generator, Iterator, List, Optional, Union
 
 import torch
 from torch import nn as nn
@@ -48,27 +48,27 @@ class _LiteOptimizer:
         return self._optimizer
 
     @property
-    def state(self) -> Dict[str, torch.Tensor]:
-        return self._optimizer.state
-
-    @state.setter
-    def state(self, state: Dict[str, torch.Tensor]) -> None:
-        self._optimizer.state = state
-
-    @property
-    def defaults(self) -> Dict[str, Any]:
+    def defaults(self) -> dict:
         return self._optimizer.defaults
 
     @defaults.setter
-    def defaults(self, defaults: Dict[str, Any]) -> None:
+    def defaults(self, defaults: dict) -> None:
         self._optimizer.defaults = defaults
 
     @property
-    def param_groups(self) -> List[Dict[str, torch.Tensor]]:
+    def state(self) -> dict:
+        return self._optimizer.state
+
+    @state.setter
+    def state(self, state: dict) -> None:
+        self._optimizer.state = state
+
+    @property
+    def param_groups(self) -> List[dict]:
         return self._optimizer.param_groups
 
     @param_groups.setter
-    def param_groups(self, param_groups: List[Dict[str, torch.Tensor]]) -> None:
+    def param_groups(self, param_groups: List[dict]) -> None:
         self._optimizer.param_groups = param_groups
 
     def step(self, closure: Optional[Callable] = None) -> None:
