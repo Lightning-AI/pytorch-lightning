@@ -350,7 +350,7 @@ class LightningLite(ABC):
         return self._strategy.broadcast(obj, src=src)
 
     def save(self, content: Dict[str, Any], filepath: Union[str, Path]) -> None:
-        """Save a checkpoint contents to a file.
+        """Save checkpoint contents to a file.
 
         How and which processes save gets determined by the `strategy`. For example, the `ddp` strategy
         saves checkpoints only on process 0.
