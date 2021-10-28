@@ -583,8 +583,8 @@ Print to the console via the built-in print function, but only on the main proce
     self.print(f"{epoch}/{num_epochs}| Train Epoch Loss: {loss}")
 
 
-save_checkpoint
-===============
+save
+====
 
 Save contents to a checkpoint. Replaces all occurences of ``torch.save(...)`` in your code. Lite will take care of
 handling the saving part correctly, no matter if you are running single device, multi-device or multi-node.
@@ -592,7 +592,19 @@ handling the saving part correctly, no matter if you are running single device, 
 .. code-block:: python
 
     # Instead of `torch.save(...)`, call:
-    self.save_checkpoint("path/to/checkpoint.ckpt", model.state_dict())
+    self.save(model.state_dict(), "path/to/checkpoint.ckpt")
+
+
+load
+====
+
+Load checkpoint contents from a file. Replaces all occurences of ``torch.load(...)`` in your code. Lite will take care of
+handling the loading part correctly, no matter if you are running single device, multi-device or multi-node.
+
+.. code-block:: python
+
+    # Instead of `torch.load(...)`, call:
+    self.load("path/to/checkpoint.ckpt")
 
 
 barrier
