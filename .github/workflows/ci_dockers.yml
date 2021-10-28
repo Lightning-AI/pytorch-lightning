@@ -92,7 +92,7 @@ jobs:
       fail-fast: false
       matrix:
         # the config used in '.github/workflows/ci_test-conda.yml'
-        python_version: ["3.6"]
+        python_version: ["3.7"]
         pytorch_version: ["1.6", "1.7", "1.8", "1.9", "1.10"]
     steps:
       - name: Checkout
