@@ -11,11 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest import mock
+
 import pytest
 import torch
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.accelerators import CPUAccelerator, GPUAccelerator, IPUAccelerator, TPUAccelerator
 from pytorch_lightning.utilities.seed import seed_everything
 from tests.accelerators.test_dp import CustomClassificationModelDP
 from tests.helpers.boring_model import BoringModel
@@ -69,3 +72,11 @@ def test_model_parallel_setup_called(tmpdir):
     trainer.fit(model)
 
     assert model.configure_sharded_model_called
+
+
+@mock.patch("torch.cuda.device_count", return_value=2)
+def test_get_devices_when_set_to_auto(device_count_mock):
+    assert CPUAccelerator.get_devices_when_set_to_auto() == 1
+    assert GPUAccelerator.get_devices_when_set_to_auto() == 2
+    assert TPUAccelerator.get_devices_when_set_to_auto() == 8
+    assert IPUAccelerator.get_devices_when_set_to_auto() == 1

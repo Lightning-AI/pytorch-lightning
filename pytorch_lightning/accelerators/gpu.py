@@ -79,6 +79,11 @@ class GPUAccelerator(Accelerator):
         super().teardown()
         self._move_optimizer_state(torch.device("cpu"))
 
+    @staticmethod
+    def get_devices_when_set_to_auto():
+        """Get the devices when set to auto."""
+        return torch.cuda.device_count()
+
 
 def _get_nvidia_gpu_stats(device: torch.device) -> Dict[str, float]:
     """Get GPU stats including memory, fan speed, and temperature from nvidia-smi.

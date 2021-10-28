@@ -37,3 +37,8 @@ class CPUAccelerator(Accelerator):
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """CPU device stats aren't supported yet."""
         return {}
+
+    @staticmethod
+    def get_devices_when_set_to_auto():
+        """Get the devices when set to auto."""
+        return 1

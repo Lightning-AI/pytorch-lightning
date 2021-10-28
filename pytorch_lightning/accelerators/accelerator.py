@@ -688,3 +688,8 @@ class Accelerator:
             "`on_train_batch_start` logic is implemented directly in the `TrainingTypePlugin` implementations."
         )
         return self.training_type_plugin.on_train_batch_start(batch, batch_idx)
+
+    @staticmethod
+    def get_devices_when_set_to_auto():
+        """Get the devices when set to auto."""
+        raise NotImplementedError

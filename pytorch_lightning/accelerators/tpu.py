@@ -73,3 +73,8 @@ class TPUAccelerator(Accelerator):
             "avg. peak memory (MB)": peak_memory,
         }
         return device_stats
+
+    @staticmethod
+    def get_devices_when_set_to_auto():
+        """Get the devices when set to auto."""
+        return 8
