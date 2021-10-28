@@ -264,7 +264,7 @@ among use cases.
 
             <div style='width:150px;height:auto'>
                 <a target="_blank" rel="noopener noreferrer" href="https://tensorboard.dev/experiment/Qy917MVDRlmkx31A895CzA/#scalars&_smoothingWeight=0&runSelectionState=eyJmdHNfaW1wbGljaXQiOmZhbHNlLCJmdHNfZXhwbGljaXQiOmZhbHNlfQ%3D%3D">
-                    <img alt="open tensorboard experiment" src="../_static/images/lightning_examples/nofts_baseline.png">
+                    <img alt="open tensorboard experiment" src="../_static/images/fts/nofts_baseline.png">
                 </a>
             </div>
      -
@@ -272,7 +272,7 @@ among use cases.
 
             <div style='width:150px;height:auto'>
                 <a target="_blank" rel="noopener noreferrer" href="https://tensorboard.dev/experiment/Qy917MVDRlmkx31A895CzA/#scalars&_smoothingWeight=0&runSelectionState=eyJmdHNfaW1wbGljaXQiOnRydWUsImZ0c19leHBsaWNpdCI6ZmFsc2UsIm5vZnRzX2Jhc2VsaW5lIjpmYWxzZX0%3D">
-                    <img alt="open tensorboard experiment" src="../_static/images/lightning_examples/fts_implicit.png">
+                    <img alt="open tensorboard experiment" src="../_static/images/fts/fts_implicit.png">
                 </a>
             </div>
      -
@@ -280,7 +280,7 @@ among use cases.
 
             <div style='width:150px;height:auto'>
                 <a target="_blank" rel="noopener noreferrer" href="https://tensorboard.dev/experiment/Qy917MVDRlmkx31A895CzA/#scalars&_smoothingWeight=0&runSelectionState=eyJmdHNfaW1wbGljaXQiOmZhbHNlLCJmdHNfZXhwbGljaXQiOnRydWUsIm5vZnRzX2Jhc2VsaW5lIjpmYWxzZX0%3D">
-                    <img alt="open tensorboard experiment" src="../_static/images/lightning_examples/fts_explicit.png">
+                    <img alt="open tensorboard experiment" src="../_static/images/fts/fts_explicit.png">
                 </a>
             </div>
    * - | Validation Loss
@@ -290,7 +290,7 @@ among use cases.
 
             <div style='width:150px;height:auto'>
                 <a target="_blank" rel="noopener noreferrer" href="https://tensorboard.dev/experiment/Qy917MVDRlmkx31A895CzA/#scalars&_smoothingWeight=0&runSelectionState=eyJmdHNfaW1wbGljaXQiOmZhbHNlLCJmdHNfZXhwbGljaXQiOmZhbHNlfQ%3D%3D">
-                    <img alt="open tensorboard experiment" src="../_static/images/lightning_examples/nofts_baseline_loss.png">
+                    <img alt="open tensorboard experiment" src="../_static/images/fts/nofts_baseline_loss.png">
                 </a>
             </div>
      -
@@ -298,7 +298,7 @@ among use cases.
 
             <div style='width:150px;height:auto'>
                 <a target="_blank" rel="noopener noreferrer" href="https://tensorboard.dev/experiment/Qy917MVDRlmkx31A895CzA/#scalars&_smoothingWeight=0&runSelectionState=eyJmdHNfaW1wbGljaXQiOnRydWUsImZ0c19leHBsaWNpdCI6ZmFsc2UsIm5vZnRzX2Jhc2VsaW5lIjpmYWxzZX0%3D">
-                    <img alt="open tensorboard experiment" src="../_static/images/lightning_examples/fts_implicit_loss.png">
+                    <img alt="open tensorboard experiment" src="../_static/images/fts/fts_implicit_loss.png">
                 </a>
             </div>
      -
@@ -306,7 +306,7 @@ among use cases.
 
             <div style='width:150px;height:auto'>
                 <a target="_blank" rel="noopener noreferrer" href="https://tensorboard.dev/experiment/Qy917MVDRlmkx31A895CzA/#scalars&_smoothingWeight=0&runSelectionState=eyJmdHNfaW1wbGljaXQiOmZhbHNlLCJmdHNfZXhwbGljaXQiOnRydWUsIm5vZnRzX2Jhc2VsaW5lIjpmYWxzZX0%3D">
-                    <img alt="open tensorboard experiment" src="../_static/images/lightning_examples/fts_explicit_loss.png">
+                    <img alt="open tensorboard experiment" src="../_static/images/fts/fts_explicit_loss.png">
                 </a>
             </div>
 
@@ -315,7 +315,7 @@ In summary,
 non-trivial model performance improvements in both implicit and explicit scheduling contexts at an also non-trivial
 computational cost.
 
-.. figure:: ../_static/images/lightning_examples/fts_explicit_loss_anim.gif
+.. figure:: ../_static/images/fts/fts_explicit_loss_anim.gif
    :alt: FinetuningScheduler Explicit Loss Animation
    :width: 300
 
