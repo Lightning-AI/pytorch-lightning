@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -61,18 +61,16 @@ class TrainingTypePlugin(ABC):
     def setup(self) -> None:
         """Called by the accelerator to finish setup."""
 
-    def _setup_models_and_optimizers(
-        self, models: List[Module], optimizers: List[Optimizer]
-    ) -> Tuple[List[Module], List[Optimizer]]:
-        """Setup multiple models and multiple optimizers together.
+    def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
+        """Setup a model and multiple optimizers together.
 
         The returned objects are expected to be in the same order they were passed in. The default implementation will
-        call :meth:`_setup_model` and :meth:`_setup_optimizer` on the input lists.
+        call :meth:`_setup_model` and :meth:`_setup_optimizer` on the inputs.
         """
         # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
-        models = [self._setup_model(model) for model in models]
+        model = self._setup_model(model)
         optimizers = [self._setup_optimizer(optimizer) for optimizer in optimizers]
-        return models, optimizers
+        return model, optimizers
 
     def _setup_model(self, model: Module) -> Module:
         """Performs setup for the model, e.g., by wrapping it by another class."""
@@ -248,9 +246,6 @@ class TrainingTypePlugin(ABC):
 
     def init_optimizers(self, trainer: "pl.Trainer", model: "pl.LightningModule"):
         return trainer.init_optimizers(model)
-
-    def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs: Any) -> None:
-        optimizer.step(closure=lambda_closure, **kwargs)
 
     @property
     def setup_optimizers_in_pre_dispatch(self) -> bool:

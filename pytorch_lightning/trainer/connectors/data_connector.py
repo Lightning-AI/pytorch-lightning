@@ -15,6 +15,7 @@ import os
 from dataclasses import dataclass
 from functools import partial
 from typing import Iterable, Optional, Union
+from weakref import proxy
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_deprecation
@@ -186,7 +187,15 @@ class DataConnector:
         )
         self.attach_datamodule(model, datamodule=datamodule)
         # set local properties on the model
-        self.trainer.model_connector.copy_trainer_model_properties(model)
+        self._copy_trainer_model_properties(model)
+
+    def _copy_trainer_model_properties(self, model):
+        ref_model = self.trainer.lightning_module or model
+
+        for m in [model, ref_model]:
+            m.trainer = proxy(self.trainer)
+            m.use_amp = self.trainer.amp_backend is not None
+            m.precision = self.trainer.precision
 
     def attach_dataloaders(
         self,
