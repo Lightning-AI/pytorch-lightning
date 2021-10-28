@@ -193,7 +193,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         if self.is_tensor:
             value = value.float()
             if self.meta.on_step:
-                self._forward_cache = self.meta.sync(value.clone())
+                self._forward_cache = self.meta.sync(value.clone())  # `clone` because `sync` is in-place
 
             # performance: no need to accumulate on values only logged on_step
             if not self.meta.on_epoch:
