@@ -420,14 +420,12 @@ def test_logging_sync_dist_true(tmpdir, gpus):
     assert metrics["foo_3"] == 2
     assert metrics["foo_4"] == total / num_devices if use_multiple_devices else 1
     assert metrics["foo_5"] == fake_result * 2 + 1 if use_multiple_devices else fake_result * 2
-    assert metrics["foo_6"] == (0 + 1 + 1 + 2 + 2 + 3) if use_multiple_devices else fake_result * 3 * 2, metrics[
-        "foo_6"
-    ]
+    assert metrics["foo_6"] == (0 + 1 + 1 + 2 + 2 + 3) if use_multiple_devices else fake_result * 3 * 2
     assert metrics["foo_7"] == 2 * num_devices * 3
     assert metrics["foo_8"] == 2
     assert metrics["foo_9"] == (fake_result * 2 + 1) / num_devices if use_multiple_devices else fake_result
     assert metrics["foo_10"] == 2
-    assert metrics["foo_11_step"] == (2 + 3) / 2 if use_multiple_devices else fake_result * 2, metrics["foo_11_step"]
+    assert metrics["foo_11_step"] == (2 + 3) / 2 if use_multiple_devices else fake_result * 2
     assert metrics["foo_11"] == (0 + 1 + 1 + 2 + 2 + 3) / (num_devices * 3) if use_multiple_devices else fake_result
     assert metrics["bar"] == fake_result * 3 * num_devices
     assert metrics["bar_2"] == fake_result
