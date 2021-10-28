@@ -326,7 +326,7 @@ class LightningLite(ABC):
 
             # now all processes can read the files and start training
         """
-        self._strategy.barrier()
+        self._strategy.barrier(name=name)
 
     def all_gather(
         self, data: Union[torch.Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
