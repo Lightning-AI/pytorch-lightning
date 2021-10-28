@@ -27,7 +27,6 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
-from pytorch_lightning import seed_everything
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
@@ -116,7 +115,7 @@ def precision_context(precision, accelerator) -> Generator[None, None, None]:
     ],
 )
 def test_boring_lite_model_single_device(precision, strategy, devices, accelerator, tmpdir):
-    seed_everything(42)
+    LightningLite.seed_everything(42)
     train_dataloader = DataLoader(RandomDataset(32, 8))
     model = BoringModel()
     num_epochs = 1
@@ -168,7 +167,7 @@ def run(rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdi
     ],
 )
 def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, tmpdir):
-    seed_everything(42)
+    LightningLite.seed_everything(42)
     train_dataloader = DataLoader(RandomDataset(32, 8))
     model = BoringModel()
     num_epochs = 1
@@ -199,7 +198,7 @@ def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, 
     ],
 )
 def test_boring_lite_model_ddp(precision, strategy, devices, accelerator, tmpdir):
-    seed_everything(42)
+    LightningLite.seed_everything(42)
     train_dataloader = DataLoader(RandomDataset(32, 4))
     model = BoringModel()
     num_epochs = 1
@@ -213,7 +212,7 @@ def test_boring_lite_model_ddp(precision, strategy, devices, accelerator, tmpdir
     for w_pure, w_lite in zip(state_dict.values(), lite_model_state_dict.values()):
         assert not torch.equal(w_pure.cpu(), w_lite.cpu())
 
-    seed_everything(42)
+    LightningLite.seed_everything(42)
     train_dataloader = DataLoader(RandomDataset(32, 4))
     model = BoringModel()
     run(lite.global_rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdir)

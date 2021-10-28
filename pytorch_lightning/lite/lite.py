@@ -24,8 +24,7 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.plugins import (
     DDPShardedPlugin,
@@ -37,10 +36,12 @@ from pytorch_lightning.plugins import (
 )
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
+from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities import DeviceType, DistributedType, move_data_to_device
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.data import has_iterable_dataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.seed import seed_everything
 
 
 class LightningLite(ABC):
@@ -370,6 +371,18 @@ class LightningLite(ABC):
             filepath: A path to where the file is located
         """
         return self._strategy.load_checkpoint(filepath)
+
+    @staticmethod
+    def seed_everything(seed: Optional[int] = None, workers: Optional[bool] = None) -> int:
+        """Helper function to seed everything without explicitly importing Lightning.
+
+        See :func:`pytorch_lightning.seed_everything` for more details.
+        """
+        if workers is None:
+            # Lightning sets `workers=False` by default to avoid breaking reproducibility, but since this is a new
+            # release, we can afford to do it.
+            workers = True
+        return seed_everything(seed=seed, workers=workers)
 
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
         self._set_plugin_specific_precision_variables()

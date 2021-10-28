@@ -23,7 +23,6 @@ import torch.nn.functional
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
-from pytorch_lightning import seed_everything
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.plugins import DeepSpeedPlugin, PrecisionPlugin, TrainingTypePlugin
@@ -354,11 +353,11 @@ def test_deepspeed_multiple_models():
             for mw_b, mw_a in zip(state_dict.values(), model.state_dict().values()):
                 assert not torch.equal(mw_b, mw_a)
 
-            seed_everything(42)
+            self.seed_everything(42)
             model_1 = BoringModel()
             optimizer_1 = torch.optim.SGD(model_1.parameters(), lr=0.0001)
 
-            seed_everything(42)
+            self.seed_everything(42)
             model_2 = BoringModel()
             optimizer_2 = torch.optim.SGD(model_2.parameters(), lr=0.0001)
 
@@ -368,7 +367,7 @@ def test_deepspeed_multiple_models():
             model_1, optimizer_1 = self.setup(model_1, optimizer_1)
             model_2, optimizer_2 = self.setup(model_2, optimizer_2)
 
-            seed_everything(42)
+            self.seed_everything(42)
             data_list = []
             for _ in range(2):
                 optimizer_1.zero_grad()
