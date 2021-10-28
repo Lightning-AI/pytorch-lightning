@@ -264,7 +264,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             "start_method": self.start_method,
         }
 
-    def spawn(self, function: Callable, *args: Any, return_result: bool = False, **kwargs: Any) -> Optional[Any]:
+    def spawn(self, function: Callable, *args: Any, return_result: bool = True, **kwargs: Any) -> Optional[Any]:
         context = mp.get_context(self.start_method or "fork")
         return_queue = context.SimpleQueue() if return_result else None
         xmp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), **self.get_mp_spawn_kwargs())

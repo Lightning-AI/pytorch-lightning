@@ -174,7 +174,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     def start_predicting(self, trainer: "pl.Trainer") -> None:
         self.spawn(self.new_process, trainer, self.mp_queue, return_result=False)
 
-    def spawn(self, function: Callable, *args: Any, return_result: bool = False, **kwargs: Any) -> Optional[Any]:
+    def spawn(self, function: Callable, *args: Any, return_result: bool = True, **kwargs: Any) -> Optional[Any]:
         """Spawn processes that run the given function.
 
         Args:
