@@ -53,6 +53,7 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import (
+    _info,
     init_ddp_connection,
     rank_zero_info,
     rank_zero_only,
@@ -385,9 +386,6 @@ class DDPPlugin(ParallelPlugin):
         if self._should_run_deadlock_detection():
             self._share_information_to_prevent_deadlock()
 
-        # move the model to the correct device
-        self.model_to_device()
-
         if self.sync_batchnorm:
             self.model = self.configure_sync_batchnorm(self.model)
 
@@ -548,7 +546,7 @@ class DDPPlugin(ParallelPlugin):
         self._has_loaded_state_dict = False
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        if "state_dict" not in checkpoint and self._has_loaded_state_dict:
+        if self._has_loaded_state_dict:
             return
         self.lightning_module.load_state_dict(checkpoint["state_dict"])
 
@@ -565,8 +563,10 @@ class DDPPlugin(ParallelPlugin):
                 if self.lightning_module.trainer.checkpoint_connector.hpc_resume_path is not None:
                     self.lightning_module.on_hpc_load(checkpoint)
                 self.load_model_state_dict(checkpoint)
+                # move the model to the correct device in order to release state_dict memory
+                self.model_to_device()
                 del checkpoint["state_dict"]
                 self._has_loaded_state_dict = True
-                log.info(f"Rank {self.global_rank}: done loading model states from {checkpoint_path}.")
+                _info(f"Rank {self.global_rank}: done loading model states from {checkpoint_path}.")
             self.barrier()
         return checkpoint
