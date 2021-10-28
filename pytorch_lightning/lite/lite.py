@@ -391,6 +391,7 @@ class LightningLite(ABC):
             # remains invalid. We need to update the references to point to the parameter tensors on the device.
             params_on_cpu = dict(model.named_parameters())
             model = self.to_device(model)
+            # XLA makes a copy on the parameters, so the device should is not the same before and after to_device.
             params_on_device = dict(model.named_parameters())
 
             mapping = {param: params_on_device[name] for name, param in params_on_cpu.items()}
