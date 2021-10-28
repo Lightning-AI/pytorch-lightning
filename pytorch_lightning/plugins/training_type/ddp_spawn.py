@@ -164,17 +164,17 @@ class DDPSpawnPlugin(ParallelPlugin):
         return {"nprocs": self.num_processes}
 
     def start_training(self, trainer: "pl.Trainer") -> None:
-        self.spawn(self.new_process, trainer, self.mp_queue)
+        self.spawn(self.new_process, trainer, self.mp_queue, return_result=False)
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
 
     def start_evaluating(self, trainer: "pl.Trainer") -> None:
-        self.spawn(self.new_process, trainer, self.mp_queue)
+        self.spawn(self.new_process, trainer, self.mp_queue, return_result=False)
 
     def start_predicting(self, trainer: "pl.Trainer") -> None:
-        self.spawn(self.new_process, trainer, self.mp_queue)
+        self.spawn(self.new_process, trainer, self.mp_queue, return_result=False)
 
-    def spawn(self, function: Callable, *args: Any, return_result: bool = True, **kwargs: Any) -> Optional[Any]:
+    def spawn(self, function: Callable, *args: Any, return_result: bool = False, **kwargs: Any) -> Optional[Any]:
         """Spawn processes that run the given function.
 
         Args:
