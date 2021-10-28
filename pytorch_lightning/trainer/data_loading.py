@@ -114,9 +114,10 @@ class TrainerDataLoadingMixin(ABC):
                 " in the `DataLoader` init to improve performance."
             )
 
-    def auto_add_worker_init_fn(self, dataloader: DataLoader) -> None:
+    @staticmethod
+    def _auto_add_worker_init_fn(dataloader: DataLoader, rank: int) -> None:
         if int(os.environ.get("PL_SEED_WORKERS", 0)) and dataloader.worker_init_fn is None:
-            dataloader.worker_init_fn = partial(pl_worker_init_function, rank=self.global_rank)
+            dataloader.worker_init_fn = partial(pl_worker_init_function, rank=rank)
 
     def _requires_distributed_sampler(self, dataloader) -> bool:
         return (
@@ -336,7 +337,7 @@ class TrainerDataLoadingMixin(ABC):
         apply_to_collection(self.train_dataloader, DataLoader, self._worker_check, "train_dataloader")
 
         # add worker_init_fn for correct seeding in worker processes
-        apply_to_collection(self.train_dataloader, DataLoader, self.auto_add_worker_init_fn)
+        apply_to_collection(self.train_dataloader, DataLoader, self._auto_add_worker_init_fn, rank=self.global_rank)
 
         # add collate_fn to collect metadata for fault tolerant training
         if _fault_tolerant_training():
@@ -443,7 +444,7 @@ class TrainerDataLoadingMixin(ABC):
         dataloaders = [self.prepare_dataloader(dl, False, mode=mode) for dl in dataloaders if dl is not None]
 
         # add worker_init_fn for correct seeding in worker processes
-        apply_to_collection(dataloaders, dtype=DataLoader, function=self.auto_add_worker_init_fn)
+        apply_to_collection(dataloaders, dtype=DataLoader, function=self._auto_add_worker_init_fn)
 
         loader_num_batches = []
 

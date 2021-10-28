@@ -239,6 +239,10 @@ class LightningLite(ABC):
             dataloader = DataLoader(**kwargs)
         else:
             dataloader = _LiteDataLoader(device=device, **kwargs)
+
+        # add worker_init_fn for correct seeding in worker processes
+        TrainerDataLoadingMixin._auto_add_worker_init_fn(dataloader, self.global_rank)
+
         return self._strategy.process_dataloader(dataloader)
 
     def backward(self, tensor: Tensor, *args: Any, model: Optional[_LiteModule] = None, **kwargs: Any) -> None:
