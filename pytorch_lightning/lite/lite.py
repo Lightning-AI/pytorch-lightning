@@ -143,12 +143,10 @@ class LightningLite(ABC):
         return self._strategy.is_global_zero
 
     @abstractmethod
-    def run(self, *args: Any, **kwargs: Any) -> Any:
+    def run(self) -> Any:
         """All the code inside this run method gets accelerated by Lite.
 
-        Args:
-            *args: Add any positional arguments you need, e.g., the hyperparameters for your model.
-            **kwargs: Add any keyword arguments you need, e.g., the hyperparameters for your model.
+        You can pass arbitrary arguments to this function when overriding it.
         """
 
     def setup(
@@ -156,7 +154,7 @@ class LightningLite(ABC):
         model: nn.Module,
         *optimizers: Optimizer,
         move_to_device: bool = True,
-    ) -> Union[_LiteModule, List[Union[_LiteModule, _LiteOptimizer]]]:
+    ) -> Any:  # no specific return because the way we want our API to look does not play well with mypy
         """Setup a model and its optimizers for accelerated training.
 
         Args:
@@ -179,6 +177,7 @@ class LightningLite(ABC):
         optimizers = [_LiteOptimizer(optimizer=optimizer, accelerator=self._accelerator) for optimizer in optimizers]
         self._models_setup += 1
         if optimizers:
+            # join both types in a list for API convenience
             return [model] + optimizers  # type: ignore
         return model
 
