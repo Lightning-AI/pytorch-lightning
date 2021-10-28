@@ -671,7 +671,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue with `pl.utilities.seed.reset_seed` converting the `PL_SEED_WORKERS` environment variable to `bool` ([#10099](https://github.com/PyTorchLightning/pytorch-lightning/pull/10099))
 
 
-- Fixedbug where `log(on_step=True, on_epoch=True, sync_dist=True)` wouldn't reduce the value on step ([#10227](https://github.com/PyTorchLightning/pytorch-lightning/pull/10227))
+- Fixed bug where `log(on_step=True, on_epoch=True, sync_dist=True)` wouldn't reduce the value on step ([#10227](https://github.com/PyTorchLightning/pytorch-lightning/pull/10227))
 
 
 
