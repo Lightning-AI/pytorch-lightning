@@ -101,5 +101,3 @@ def test_lite_optimizer_steps():
     lite_optimizer.step()
     accelerator.optimizer_step.assert_called_once()
     accelerator.optimizer_step.assert_called_with(optimizer, opt_idx=0, lambda_closure=ANY, model=accelerator.model)
-    lite_optimizer.zero_grad()
-    optimizer.zero_grad.assert_called_once()
