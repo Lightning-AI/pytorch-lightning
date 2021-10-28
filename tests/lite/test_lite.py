@@ -325,6 +325,7 @@ def test_backward_model_input_required():
 
 
 def test_autocast():
+    """Test that the Lite autocast context manager lets the precision plugin handle casting."""
     lite = EmptyLite()
     lite._precision_plugin.forward_context = MagicMock()
 
