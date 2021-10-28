@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os
 from copy import deepcopy
 from unittest import mock
 from unittest.mock import MagicMock, Mock, PropertyMock
@@ -28,6 +28,7 @@ from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteO
 from pytorch_lightning.plugins import DeepSpeedPlugin, PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.utilities import DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.seed import pl_worker_init_function
 from tests.helpers.runif import RunIf
 
 
@@ -200,6 +201,18 @@ def test_setup_dataloaders_distributed_sampler_not_needed():
     lite = EmptyLite()
     lite_dataloader = lite.setup_dataloaders(dataloader, replace_sampler=True)
     assert lite_dataloader.sampler is custom_sampler
+
+
+@mock.patch.dict(os.environ, {}, clear=True)
+def test_seed_everything():
+    """Test that seed everything is static and sets the worker init function on the dataloader."""
+    EmptyLite.seed_everything(3)
+
+    lite = EmptyLite()
+    lite_dataloader = lite.setup_dataloaders(DataLoader(Mock()))
+
+    assert lite_dataloader.worker_init_fn.func is pl_worker_init_function
+    assert os.environ == {"PL_GLOBAL_SEED": "3", "PL_SEED_WORKERS": "1"}
 
 
 @pytest.mark.parametrize(
