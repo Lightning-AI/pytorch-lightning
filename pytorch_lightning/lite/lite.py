@@ -349,15 +349,15 @@ class LightningLite(ABC):
     def broadcast(self, obj: object, src: int = 0) -> object:
         return self._strategy.broadcast(obj, src=src)
 
-    def save_checkpoint(self, filepath: Union[str, Path], content: Dict[str, Any]) -> None:
+    def save(self, content: Dict[str, Any], filepath: Union[str, Path]) -> None:
         """Save a checkpoint contents to a file.
 
         How and which processes save gets determined by the `strategy`. For example, the `ddp` strategy
         saves checkpoints only on process 0.
 
         Args:
-            filepath: A path to where the file should be saved
             content: A dictionary with contents, i.e., the state dict of your model
+            filepath: A path to where the file should be saved
         """
         self._strategy.save_checkpoint(content, filepath)
 
