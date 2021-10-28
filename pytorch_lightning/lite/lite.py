@@ -274,7 +274,7 @@ class LightningLite(ABC):
         self._precision_plugin._run_backward(tensor, module, *args, **kwargs)
 
     @contextmanager
-    def cast(self) -> Generator[None, None, None]:
+    def autocast(self) -> Generator[None, None, None]:
         """A context manager to automatically convert operations for the chosen precision.
 
         Use this only if the `forward` method of your model does not cover all operations you wish to run with the
