@@ -571,6 +571,21 @@ device, so calling this method is only necessary for manual operation when neede
     data = self.to_device(data)
 
 
+seed_everything
+===============
+
+Make your code reproducible by calling this method at the beginning of your run.
+
+.. code-block:: python
+
+    # Instead of `torch.manual_seed(...)`, call:
+    self.seed_everything(1234)
+
+
+This covers PyTorch, NumPy and Python random number generators. In addition, Lite takes care of properly initializing
+the seed of dataloader worker processes (can be turned off by passing ``workers=False``).
+
+
 autocast
 ========
 
