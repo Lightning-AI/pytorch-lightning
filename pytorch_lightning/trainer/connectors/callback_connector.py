@@ -20,9 +20,9 @@ from pytorch_lightning.callbacks import (
     GradientAccumulationScheduler,
     ModelCheckpoint,
     ModelSummary,
-    ProgressBar,
     ProgressBarBase,
     RichProgressBar,
+    TQDMProgressBar,
 )
 from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.timer import Timer
@@ -230,7 +230,7 @@ class CallbackConnector:
         if len(progress_bars) == 1:
             progress_bar_callback = progress_bars[0]
         elif refresh_rate > 0:
-            progress_bar_callback = ProgressBar(refresh_rate=refresh_rate, process_position=process_position)
+            progress_bar_callback = TQDMProgressBar(refresh_rate=refresh_rate, process_position=process_position)
             self.trainer.callbacks.append(progress_bar_callback)
         else:
             progress_bar_callback = None
