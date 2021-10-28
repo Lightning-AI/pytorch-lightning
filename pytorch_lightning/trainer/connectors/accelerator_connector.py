@@ -288,12 +288,12 @@ class AcceleratorConnector:
                     f" also passed `Trainer(accelerator={self.distributed_backend!r})`."
                     f" HINT: Use just `Trainer(strategy={self.strategy!r})` instead."
                 )
-        if self.strategy is not None and self.strategy == DistributedType.TPU_SPAWN:
+        if self.strategy == DistributedType.TPU_SPAWN:
             raise MisconfigurationException(
                 "`Trainer(strategy='tpu_spawn')` is not a valid strategy,"
                 " you can use `Trainer(strategy='ddp_spawn', accelerator='tpu')` instead."
             )
-        if self.strategy is not None and self.strategy == DistributedType.DDP_CPU:
+        if self.strategy == DistributedType.DDP_CPU:
             raise MisconfigurationException(
                 "`Trainer(strategy='ddp_cpu')` is not a valid strategy,"
                 " you can use `Trainer(strategy='ddp'|'ddp_spawn', accelerator='cpu')` instead."
