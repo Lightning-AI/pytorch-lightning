@@ -38,14 +38,17 @@ import warnings
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-import datasets
 import torch
 from torch.utils.data import DataLoader
-from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer
 
 import pytorch_lightning as pl
+from pl_examples import _HF_AVAILABLE
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cli import instantiate_class, LightningCLI
+
+if _HF_AVAILABLE:
+    import datasets
+    from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer
 
 TASK_NUM_LABELS = {"boolq": 2, "rte": 2}
 DEFAULT_TASK = "rte"
@@ -286,6 +289,9 @@ class CustLightningCLI(LightningCLI):
 
 
 def cli_main() -> None:
+    if not _HF_AVAILABLE:  # pragma: no cover
+        print("Running the fts_superglue example requires the `transformers` and `datasets` packages from Hugging Face")
+        return
     # every configuration of this example depends upon a shared set of defaults.
     default_config_file = os.path.join(os.path.dirname(__file__), "config", "fts", "fts_defaults.yaml")
     _ = CustLightningCLI(

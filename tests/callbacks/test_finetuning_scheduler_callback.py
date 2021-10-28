@@ -414,7 +414,7 @@ def test_finetuningscheduling_misconfiguration(tmpdir, callbacks: List[Callback]
     [
         pytest.param("ddp2", 2, None, marks=RunIf(min_gpus=2)),
         pytest.param("ddp_fully_sharded", 2, None, marks=RunIf(min_gpus=2)),
-        ("horovod", None, None),
+        pytest.param("horovod", None, None, marks=RunIf(min_gpus=2)),
         pytest.param("ddp", 2, "deepspeed_stage_2", marks=RunIf(deepspeed=True, min_gpus=2)),
     ],
 )
