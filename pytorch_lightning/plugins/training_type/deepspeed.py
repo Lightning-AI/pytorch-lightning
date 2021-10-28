@@ -336,7 +336,8 @@ class DeepSpeedPlugin(DDPPlugin):
 
     @property
     def amp_level(self) -> Optional[str]:
-        return self._amp_level or self.lightning_module.trainer._accelerator_connector.amp_level
+        if self._amp_type == AMPType.APEX:
+            return self._amp_level or self.lightning_module.trainer._accelerator_connector.amp_level
 
     @property
     def amp_type(self) -> Optional[str]:
