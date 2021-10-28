@@ -333,6 +333,11 @@ class Accelerator:
         """
         model = model or self.lightning_module
         self.precision_plugin.optimizer_step(model, optimizer, opt_idx, lambda_closure, **kwargs)
+
+        if not isinstance(model, pl.LightningModule):
+            # gradient clipping and norm tracking only available with a LightingModule/Trainer
+            return
+
         trainer = model.trainer
         assert isinstance(trainer, pl.Trainer)
         # TODO: this is done for the entire model but should be changed to per-optimizer
