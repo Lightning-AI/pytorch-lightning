@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Callable, Generator, List, Optional
+from typing import Any, Callable, Generator, Optional
 from weakref import proxy
 
 from torch.optim import Optimizer
@@ -31,8 +31,8 @@ class LightningOptimizer:
     across accelerators, AMP, accumulate_grad_batches."""
 
     def __init__(self, optimizer: Optimizer):
-
-        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("step", "__del__")}
+        # copy most of the `Optimizer` methods into this instance
+        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("step",)}
 
         # For Horovod
         if hasattr(optimizer, "skip_synchronize"):
@@ -51,30 +51,6 @@ class LightningOptimizer:
     @property
     def optimizer(self) -> Optimizer:
         return self._optimizer
-
-    @property
-    def defaults(self) -> dict:
-        return self._optimizer.defaults
-
-    @defaults.setter
-    def defaults(self, defaults: dict) -> None:
-        self._optimizer.defaults = defaults
-
-    @property
-    def state(self) -> dict:
-        return self._optimizer.state
-
-    @state.setter
-    def state(self, state: dict) -> None:
-        self._optimizer.state = state
-
-    @property
-    def param_groups(self) -> List[dict]:
-        return self._optimizer.param_groups
-
-    @param_groups.setter
-    def param_groups(self, param_groups: List[dict]) -> None:
-        self._optimizer.param_groups = param_groups
 
     def _on_trainer_init(self, trainer: "pl.Trainer") -> None:
         self._trainer = proxy(trainer)
@@ -185,10 +161,3 @@ class LightningOptimizer:
         assert trainer is not None
         with trainer.profiler.profile(profiler_action):
             trainer.accelerator.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
-
-    def __repr__(self) -> str:
-        groups = [
-            {k: round(v, 12) if isinstance(v, float) else v for k, v in sorted(group.items()) if k != "params"}
-            for group in self.param_groups
-        ]
-        return f"{self.__class__.__name__}(groups={groups})"
