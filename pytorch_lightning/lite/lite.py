@@ -106,7 +106,7 @@ class LightningLite(ABC):
         self._num_models: int = 0
 
         # wrap the run method so we can inject setup logic or spawn processes for the user
-        setattr(self, "run", self._run_wrapper(self.run))
+        setattr(self, "run", partial(self._run_impl, self.run))
 
     @property
     def device(self) -> torch.device:
@@ -360,9 +360,6 @@ class LightningLite(ABC):
             content: A dictionary with contents, i.e., the state dict of your model
         """
         self._strategy.save_checkpoint(content, filepath)
-
-    def _run_wrapper(self, run_method: Callable) -> Callable:
-        return partial(self._run_impl, run_method)
 
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
         self._set_plugin_specific_precision_variables()
