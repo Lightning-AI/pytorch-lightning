@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, overload, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -139,6 +139,12 @@ class LightningLite(ABC):
     def is_global_zero(self) -> bool:
         """Wether this rank is rank zero."""
         return self._strategy.is_global_zero
+
+    @property
+    def can_save_checkpoint(self) -> bool:
+        if isinstance(self._strategy, DeepSpeedPlugin):
+            return True
+        return self.is_global_zero
 
     @abstractmethod
     def run(self, *args: Any, **kwargs: Any) -> Any:

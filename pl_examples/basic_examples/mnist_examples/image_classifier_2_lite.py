@@ -40,14 +40,19 @@ class Lite(LightningLite):
         )
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=hparams.batch_size)
 
+        # don't forget to call `setup_dataloaders` to prepare for dataloaders for distributed training.
         train_loader, test_loader = self.setup_dataloaders(train_loader, test_loader)
 
-        model = Net()
+        model = Net()  # remove call to .to(device)
         optimizer = optim.Adadelta(model.parameters(), lr=hparams.lr)
+
+        # don't forget to call `setup` to prepare for model / optimizer for distributed training.
+        # the model is moved automatically to the right device.
         model, optimizer = self.setup(model, optimizer)
 
         scheduler = StepLR(optimizer, step_size=1, gamma=hparams.gamma)
 
+        # use torchmetrics instead of manually computing the accuracy
         test_acc = Accuracy()
 
         # EPOCH LOOP
@@ -56,13 +61,11 @@ class Lite(LightningLite):
             # TRAINING LOOP
             model.train()
             for batch_idx, (data, target) in enumerate(train_loader):
+                # NOTE: no need to call .to(device) on the data, target"
                 optimizer.zero_grad()
                 output = model(data)
                 loss = F.nll_loss(output, target)
-
-                ####################
-                self.backward(loss)
-                ####################
+                self.backward(loss)  # instead of loss.backward()
 
                 optimizer.step()
                 if (batch_idx == 0) or ((batch_idx + 1) % hparams.log_interval == 0):
@@ -85,12 +88,21 @@ class Lite(LightningLite):
             test_loss = 0
             with torch.no_grad():
                 for data, target in test_loader:
+                    # NOTE: no need to call .to(device) on the data, target"
                     output = model(data)
-                    test_loss += F.nll_loss(output, target, reduction="sum").item()  # sum up batch loss
+                    test_loss += F.nll_loss(output, target, reduction="sum").item()
+
+                    # WITHOUT TorchMetrics
+                    # pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+                    # correct += pred.eq(target.view_as(pred)).sum().item()
+
+                    # WITH TorchMetrics
                     test_acc(output, target)
+
                     if hparams.dry_run:
                         break
 
+            # all_gather is used to aggregated the value across processes
             test_loss = self.all_gather(test_loss).sum() / len(test_loader.dataset)
 
             print(f"\nTest set: Average loss: {test_loss:.4f}, Accuracy: ({test_acc.compute():.0f}%)\n")
@@ -99,7 +111,9 @@ class Lite(LightningLite):
             if hparams.dry_run:
                 break
 
-        if hparams.save_model and self.is_global_zero:
+        # When using distributed training, use `self.can_save_checkpoint`
+        # to ensure the current process is allowed to save a checkpoint
+        if hparams.save_model and self.can_save_checkpoint:
             torch.save(model.state_dict(), "mnist_cnn.pt")
 
 
