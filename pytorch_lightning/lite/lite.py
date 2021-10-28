@@ -361,6 +361,16 @@ class LightningLite(ABC):
         """
         self._strategy.save_checkpoint(content, filepath)
 
+    def load(self, filepath: Union[str, Path]) -> Any:
+        """Load a checkpoint from a file.
+
+        How and which processes load gets determined by the `strategy`
+
+        Args:
+            filepath: A path to where the file is located
+        """
+        return self._strategy.load_checkpoint(filepath)
+
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
         self._set_plugin_specific_precision_variables()
         self._accelerator.setup_environment()
