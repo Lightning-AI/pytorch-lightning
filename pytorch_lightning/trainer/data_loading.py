@@ -444,7 +444,9 @@ class TrainerDataLoadingMixin(ABC):
         dataloaders = [self.prepare_dataloader(dl, False, mode=mode) for dl in dataloaders if dl is not None]
 
         # add worker_init_fn for correct seeding in worker processes
-        apply_to_collection(dataloaders, dtype=DataLoader, function=self._auto_add_worker_init_fn)
+        apply_to_collection(
+            dataloaders, dtype=DataLoader, function=self._auto_add_worker_init_fn, rank=self.global_rank
+        )
 
         loader_num_batches = []
 
