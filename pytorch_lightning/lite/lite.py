@@ -365,7 +365,7 @@ class LightningLite(ABC):
         run_method = partial(self._run_with_sharded_context, run_method)
 
         if isinstance(self._strategy, DDPSpawnPlugin):
-            return self._strategy.spawn(run_method, *args, **kwargs)
+            return self._strategy.spawn(run_method, *args, return_result=True, **kwargs)
         else:
             return run_method(*args, **kwargs)
 
@@ -402,7 +402,7 @@ class LightningLite(ABC):
         amp_type = self._accelerator_connector.amp_type
         amp_level = self._accelerator_connector.amp_level
         precision = self._accelerator_connector.precision
-        self._strategy.amp_level, self._strategy.amp_type, self._strategy._precision = amp_level, amp_type, precision
+        self._strategy._amp_level, self._strategy._amp_type, self._strategy._precision = amp_level, amp_type, precision
 
     def _requires_distributed_sampler(self, dataloader: DataLoader) -> bool:
         return (
