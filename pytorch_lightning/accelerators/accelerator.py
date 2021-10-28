@@ -690,6 +690,6 @@ class Accelerator:
         return self.training_type_plugin.on_train_batch_start(batch, batch_idx)
 
     @staticmethod
-    def get_devices_when_set_to_auto():
+    def get_devices_when_set_to_auto() -> None:
         """Get the devices when set to auto."""
         raise NotImplementedError

@@ -80,7 +80,7 @@ class GPUAccelerator(Accelerator):
         self._move_optimizer_state(torch.device("cpu"))
 
     @staticmethod
-    def get_devices_when_set_to_auto():
+    def get_devices_when_set_to_auto() -> int:
         """Get the devices when set to auto."""
         return torch.cuda.device_count()
 
