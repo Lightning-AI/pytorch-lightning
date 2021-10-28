@@ -412,12 +412,12 @@ class LightningLite(ABC):
             # When the user creates the optimizer, they reference the parameters on the CPU.
             # However, when running with TPU the parameters get copied and the reference in the optimizer
             # remains invalid. We need to update the references to point to the parameter tensors on the device.
-            params_on_cpu = dict(model.named_parameters())
+            params_before_move = dict(model.named_parameters())
             model = self.to_device(model)
             # XLA makes a copy on the parameters, so the device is not the same before and after to_device.
             params_on_device = dict(model.named_parameters())
 
-            mapping = {param: params_on_device[name] for name, param in params_on_cpu.items()}
+            mapping = {param: params_on_device[name] for name, param in params_before_move.items()}
             for optimizer in optimizers:
                 for param_group in optimizer.param_groups:
                     param_group["params"] = [mapping.get(p, p) for p in param_group["params"]]
