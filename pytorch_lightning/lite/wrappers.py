@@ -38,7 +38,9 @@ class _LiteOptimizer:
             optimizer: The optimizer to wrap
             accelerator: Reference to the accelerator for handling the optimizer step
         """
-        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("step",)}
+        # `__del__` is skipped in case the optimizer has implemented custom destructor logic which we would
+        # not want to call on desturction of the `_LiteOptimizer`
+        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("step", "__del__")}
         self.__class__ = type("Lite" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
         self._optimizer = optimizer
         self._accelerator = accelerator
