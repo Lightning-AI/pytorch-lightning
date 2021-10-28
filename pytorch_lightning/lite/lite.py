@@ -263,7 +263,8 @@ class LightningLite(ABC):
                     )
                 if self._num_models > 1:
                     raise MisconfigurationException(
-                        "When using multiple models + deepspeed, please provide the model used to perform the optimization."
+                        "When using multiple models + deepspeed, please provide the model used to perform"
+                        " the optimization."
                     )
                 module = self._strategy.model
             else:
