@@ -264,18 +264,18 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             "start_method": self.start_method,
         }
 
-    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
+    def spawn(self, function: Callable, *args: Any, return_result: bool = False, **kwargs: Any) -> Optional[Any]:
         context = mp.get_context(self.start_method or "fork")
-        return_queue = context.SimpleQueue()
+        return_queue = context.SimpleQueue() if return_result else None
         xmp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), **self.get_mp_spawn_kwargs())
-        return return_queue.get()
+        return return_queue.get() if return_result else None
 
     def _wrapped_function(
-        self, process_idx: int, function: Callable, args: Any, kwargs: Any, return_queue: SimpleQueue
+        self, process_idx: int, function: Callable, args: Any, kwargs: Any, return_queue: Optional[SimpleQueue]
     ) -> None:
         self._worker_setup(process_idx)
         result = function(*args, **kwargs)
-        if self.local_rank == 0:
+        if return_queue is not None and self.local_rank == 0:
             return_queue.put(move_data_to_device(result, "cpu"))
 
         self.barrier("end-process")

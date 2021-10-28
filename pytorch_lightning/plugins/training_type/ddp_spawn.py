@@ -174,13 +174,15 @@ class DDPSpawnPlugin(ParallelPlugin):
     def start_predicting(self, trainer: "pl.Trainer") -> None:
         self.spawn(self.new_process, trainer, self.mp_queue)
 
-    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
+    def spawn(self, function: Callable, *args: Any, return_result: bool = True, **kwargs: Any) -> Optional[Any]:
         """Spawn processes that run the given function.
 
         Args:
             function: The function to spawn processes from.
             *args: Optional positional arguments that will be passed to the function in addition to the process index.
                 These arguments must be pickleable.
+            return_result: If ``True``, copies the output of the function from process 0 to the main process and
+                returns it.
             **kwargs: Optional named arguments that will be passed to the function in addition to the process index.
                 These arguments must be pickleable.
 
@@ -189,16 +191,16 @@ class DDPSpawnPlugin(ParallelPlugin):
         """
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
         context = mp.get_context("spawn")
-        return_queue = context.SimpleQueue()
+        return_queue = context.SimpleQueue() if return_result else None
         mp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), nprocs=self.num_processes)
-        return return_queue.get()
+        return return_queue.get() if return_result else None
 
     def _wrapped_function(
-        self, process_idx: int, function: Callable, args: Any, kwargs: Any, return_queue: SimpleQueue
+        self, process_idx: int, function: Callable, args: Any, kwargs: Any, return_queue: Optional[SimpleQueue]
     ) -> None:
         self._worker_setup(process_idx)
         result = function(*args, **kwargs)
-        if self.local_rank == 0:
+        if return_queue is not None and self.local_rank == 0:
             return_queue.put(move_data_to_device(result, "cpu"))
 
     def _worker_setup(self, process_idx: int):
