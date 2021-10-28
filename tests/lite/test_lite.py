@@ -14,7 +14,7 @@
 
 from copy import deepcopy
 from unittest import mock
-from unittest.mock import Mock, PropertyMock
+from unittest.mock import Mock, PropertyMock, MagicMock
 
 import pytest
 import torch
@@ -324,23 +324,14 @@ def test_backward_model_input_required():
         lite.backward(loss)
 
 
-@mock.patch("torch.cuda.is_available")
-@mock.patch("torch.cuda.device_count", return_value=2)
-@pytest.mark.parametrize(
-    "plugin_context, precision",
-    [
-        ("pytorch_lightning.plugins.precision.double.DoublePrecisionPlugin.forward_context", 64),
-        ("pytorch_lightning.plugins.precision.precision_plugin.PrecisionPlugin.forward_context", 32),
-        ("pytorch_lightning.plugins.precision.native_amp.NativeMixedPrecisionPlugin.forward_context", 16),
-    ],
-)
-def test_autocast(_, __, plugin_context, precision):
-    lite = EmptyLite(gpus=1, precision=precision)
-    with mock.patch(plugin_context) as context:
-        context().__enter__.assert_not_called()
-        with lite.autocast():
-            context().__enter__.assert_called()
-        context().__exit__.assert_called()
+def test_autocast():
+    lite = EmptyLite()
+    lite._precision_plugin.forward_context = MagicMock()
+
+    lite._precision_plugin.forward_context().__enter__.assert_not_called()
+    with lite.autocast():
+        lite._precision_plugin.forward_context().__enter__.assert_called()
+    lite._precision_plugin.forward_context().__exit__.assert_called()
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
