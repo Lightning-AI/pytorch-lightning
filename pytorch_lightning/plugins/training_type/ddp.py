@@ -385,6 +385,9 @@ class DDPPlugin(ParallelPlugin):
         if self._should_run_deadlock_detection():
             self._share_information_to_prevent_deadlock()
 
+        # move the model to the correct device
+        self.model_to_device()
+
         if self.sync_batchnorm:
             self.model = self.configure_sync_batchnorm(self.model)
 
