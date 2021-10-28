@@ -66,6 +66,7 @@ PyTorch Lightning
    advanced/checkpoint_io
    common/optimizers
    advanced/profiler
+   advanced/plugins_registry
    advanced/sequences
    common/single_gpu
    advanced/training_tricks
