@@ -34,7 +34,7 @@ from pytorch_lightning.plugins.environments.lightning_environment import find_fr
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.cloud_io import atomic_save
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_DEV_1_10
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_10
 from tests.helpers.boring_model import RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -123,7 +123,7 @@ def precision_context(precision, accelerator) -> Generator[None, None, None]:
             1,
             "gpu",
             marks=pytest.mark.skipif(
-                not (_TORCH_GREATER_EQUAL_DEV_1_10 and is_available()),
+                not (_TORCH_GREATER_EQUAL_1_10 and is_available()),
                 reason="bfloat16 and requires GPU isn't available.",
             ),
         ),
