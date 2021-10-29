@@ -32,11 +32,11 @@ class TPUPrecisionPlugin(PrecisionPlugin):
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Callable[[], Any],
+        closure: Callable[[], Any],
         **kwargs: Any
     ) -> None:
         if isinstance(model, pl.LightningModule):
-            closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, lambda_closure)
+            closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, closure)
         closure_result = xm.optimizer_step(optimizer, optimizer_args={"closure": closure, **kwargs})
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value

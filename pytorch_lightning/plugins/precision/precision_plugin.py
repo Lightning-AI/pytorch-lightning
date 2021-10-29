@@ -116,7 +116,7 @@ class PrecisionPlugin(CheckpointHooks):
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Callable[[], Any],
+        closure: Callable[[], Any],
     ) -> Any:
         """This double-closure allows makes sure the ``lambda_closure`` is executed before the
         ``on_before_optimizer_step`` hook is called.
@@ -124,7 +124,7 @@ class PrecisionPlugin(CheckpointHooks):
         The closure (generally) runs ``backward`` so this allows inspecting gradients in this hook. This structure is
         consistent with the ``PrecisionPlugin`` subclasses that cannot pass ``optimizer.step(lambda_closure)`` directly.
         """
-        closure_result = lambda_closure()
+        closure_result = closure()
         model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         return closure_result
 
@@ -133,12 +133,12 @@ class PrecisionPlugin(CheckpointHooks):
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Callable[[], Any],
+        closure: Callable[[], Any],
         **kwargs: Any,
     ) -> None:
         """Hook to run the optimizer step."""
         if isinstance(model, pl.LightningModule):
-            closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, lambda_closure)
+            closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, closure)
         optimizer.step(closure=closure, **kwargs)
 
     def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
