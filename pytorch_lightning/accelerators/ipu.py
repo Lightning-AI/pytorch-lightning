@@ -39,6 +39,8 @@ class IPUAccelerator(Accelerator):
         return {}
 
     @staticmethod
-    def get_devices_when_set_to_auto() -> int:
+    def auto_device_count() -> int:
         """Get the devices when set to auto."""
-        return 1
+        # TODO (@kaushikb11): 4 is the minimal unit they are shipped in.
+        # Update this when api is exposed by the Graphcore team.
+        return 4

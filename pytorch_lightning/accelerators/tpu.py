@@ -75,6 +75,6 @@ class TPUAccelerator(Accelerator):
         return device_stats
 
     @staticmethod
-    def get_devices_when_set_to_auto() -> int:
+    def auto_device_count() -> int:
         """Get the devices when set to auto."""
         return 8

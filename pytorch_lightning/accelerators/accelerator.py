@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from abc import abstractmethod
 import contextlib
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
 
@@ -690,6 +691,6 @@ class Accelerator:
         return self.training_type_plugin.on_train_batch_start(batch, batch_idx)
 
     @staticmethod
-    def get_devices_when_set_to_auto() -> int:
+    @abstractmethod
+    def auto_device_count() -> int:
         """Get the devices when set to auto."""
-        raise NotImplementedError
