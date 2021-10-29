@@ -77,12 +77,13 @@ The ``run`` function contains custom training loop used to train ``MyModel`` on 
 Convert to LightningLite
 ========================
 
-Here are 4 required steps to convert to :class:`~pytorch_lightning.lite.LightningLite`.
+Here are 5 required steps to convert to :class:`~pytorch_lightning.lite.LightningLite`.
 
 1. Subclass :class:`~pytorch_lightning.lite.LightningLite` and override its :meth:`~pytorch_lightning.lite.LightningLite.run` method.
 2. Move the body of your existing `run` function.
-3. Apply :meth:`~pytorch_lightning.lite.LightningLite.setup` over each model and optimizers pair, :meth:`~pytorch_lightning.lite.LightningLite.setup_dataloaders` on all your dataloaders and replace ``loss.backward()`` by ``self.backward(loss)``
-4. Instantiate your :class:`~pytorch_lightning.lite.LightningLite` and call its :meth:`~pytorch_lightning.lite.LightningLite.run` method.
+3. Remove all calls to `to`, `cuda` etc. as `LightningLite` will take care of it
+4. Apply :meth:`~pytorch_lightning.lite.LightningLite.setup` over each model and optimizers pair, :meth:`~pytorch_lightning.lite.LightningLite.setup_dataloaders` on all your dataloaders and replace ``loss.backward()`` by ``self.backward(loss)``
+5. Instantiate your :class:`~pytorch_lightning.lite.LightningLite` and call its :meth:`~pytorch_lightning.lite.LightningLite.run` method.
 
 
 .. code-block:: python
