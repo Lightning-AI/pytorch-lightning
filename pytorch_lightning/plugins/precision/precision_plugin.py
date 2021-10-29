@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+from functools import partial
 from typing import Any, Callable, Generator, List, Optional, Tuple, Union
 
 import torch
@@ -116,21 +117,16 @@ class PrecisionPlugin(CheckpointHooks):
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable[[], Any],
-    ) -> Callable[[], Any]:
+    ) -> Any:
         """This double-closure allows makes sure the ``lambda_closure`` is executed before the
         ``on_before_optimizer_step`` hook is called.
 
         The closure (generally) runs ``backward`` so this allows inspecting gradients in this hook. This structure is
         consistent with the ``PrecisionPlugin`` subclasses that cannot pass ``optimizer.step(lambda_closure)`` directly.
         """
-
-        def inner() -> Any:
-            closure_result = lambda_closure()
-            if isinstance(model, pl.LightningModule):
-                model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
-            return closure_result
-
-        return inner
+        closure_result = lambda_closure()
+        model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
+        return closure_result
 
     def optimizer_step(
         self,
@@ -141,7 +137,8 @@ class PrecisionPlugin(CheckpointHooks):
         **kwargs: Any,
     ) -> None:
         """Hook to run the optimizer step."""
-        closure = self._wrap_closure(model, optimizer, optimizer_idx, lambda_closure)
+        if isinstance(model, pl.LightningModule):
+            closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, lambda_closure)
         optimizer.step(closure=closure, **kwargs)
 
     def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
