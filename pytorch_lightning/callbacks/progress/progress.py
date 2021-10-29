@@ -16,7 +16,7 @@ from pytorch_lightning.utilities import rank_zero_deprecation
 
 
 class ProgressBar(TQDMProgressBar):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         rank_zero_deprecation(
             "`ProgressBar` has been deprecated in v1.5 and will be removed in v1.7."
