@@ -229,9 +229,27 @@ class HookedCallback(Callback):
         return {"foo": True}
 
 
+class HookedOptimizer(torch.optim.SGD):
+    def __init__(self, *args, called=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.called = called
+
+    def step(self, *args, **kwargs):
+        loss = super().step(*args, **kwargs)
+        if self.called is not None:
+            d = {"name": "Optimizer.step"}
+            if args:
+                d["args"] = args
+            if kwargs:
+                d["kwargs"] = kwargs
+            self.called.append(d)
+        return loss
+
+
 class HookedModel(BoringModel):
     def __init__(self, called):
         super().__init__()
+        self.called = called
         pl_module_hooks = get_members(LightningModule)
         # remove non-hooks
         pl_module_hooks.difference_update({"optimizers", "log", "log_dict"})
@@ -265,6 +283,11 @@ class HookedModel(BoringModel):
     def test_epoch_end(self, *args, **kwargs):
         # `BoringModel` does not have a return for `test_step_end` so this would fail
         pass
+
+    def configure_optimizers(self):
+        optimizer = HookedOptimizer(self.layer.parameters(), called=self.called, lr=0.1)
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+        return [optimizer], [lr_scheduler]
 
     def _train_batch(self, *args, **kwargs):
         if self.automatic_optimization:
@@ -312,6 +335,7 @@ class HookedModel(BoringModel):
                         args=(ANY, 0),
                         kwargs=dict(gradient_clip_val=None, gradient_clip_algorithm=None),
                     ),
+                    dict(name="Optimizer.step", kwargs={"closure": ANY}),
                     # this is after because it refers to the `LightningModule.optimizer_step` hook which encapsulates
                     # the actual call to `PrecisionPlugin.optimizer_step`
                     dict(
@@ -353,6 +377,7 @@ class HookedModel(BoringModel):
                     dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY, 0)),
                     dict(name="on_before_optimizer_step", args=(ANY, 0)),
                     *([dict(name="log_grad_norm", args=ANY)] if not using_deepspeed else []),
+                    dict(name="Optimizer.step", kwargs={"closure": ANY}),
                     dict(name="training_step", args=(ANY, i)),
                     dict(name="training_step_end", args=(dict(loss=ANY),)),
                     dict(name="Callback.on_train_batch_end", args=(trainer, model, dict(loss=ANY), ANY, i)),
