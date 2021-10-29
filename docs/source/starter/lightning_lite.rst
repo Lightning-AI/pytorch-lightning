@@ -340,10 +340,10 @@ Support for Horovod and Fully Sharded training strategies are coming soon.
 devices
 =======
 
-Configure the devices to run on. Can of type:
+Configure the devices to run on. Can be of type:
 
-- int: the number of GPUs to train on
-- list of int: which GPUs to train on (0-indexed)
+- int: the number of devices (e.g., GPUs) to train on
+- list of int: which device index (e.g., GPU ID) to train on (0-indexed)
 - str: a string representation of one of the above
 
 .. code-block:: python
@@ -417,7 +417,7 @@ precision
 =========
 
 Lightning Lite supports double precision (64), full precision (32), or half precision (16) operation (including `bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_).
-Half precision, or mixed precision, is the combined use of 32 and 16 bit floating points to reduce memory footprint during model training.
+Half precision, or mixed precision, is the combined use of 32 and 16 bit floating points to reduce the memory footprint during model training.
 This can result in improved performance, achieving significant speedups on modern GPUs.
 
 .. code-block:: python
@@ -522,7 +522,7 @@ cast automatically.
 setup_dataloaders
 =================
 
-Setup one or multiple dataloaders for accelerated operation. If you are running a distributed plugin (e.g., DDP), Lite
+Setup one or multiple dataloaders for accelerated operation. If you are running a distributed strategy (e.g., DDP), Lite
 will replace the sampler automatically for you. In addition, the dataloader will be configured to move the returned
 data tensors to the correct device automatically.
 
@@ -587,7 +587,7 @@ autocast
 ========
 
 Let the precision backend autocast the block of code under this context manager. This is optional and already done by
-Lite for the model's forward method (one the model was :meth:`~pytorch_lightning.lite.lite.LightningLite.setup`).
+Lite for the model's forward method (once the model was :meth:`~pytorch_lightning.lite.lite.LightningLite.setup`).
 You need this only if you wish to autocast more operations outside the ones in model forward:
 
 .. code-block:: python
@@ -608,6 +608,7 @@ print
 =====
 
 Print to the console via the built-in print function, but only on the main process.
+This avoids excessive printing and logs when running on multiple devices/nodes.
 
 
 .. code-block:: python
