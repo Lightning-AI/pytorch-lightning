@@ -21,8 +21,12 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
+
+if _DEEPSPEED_AVAILABLE:
+    from deepspeed import DeepSpeedEngine
 
 warning_cache = WarningCache()
 
@@ -40,7 +44,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
                 "You have overridden the `LightningModule.backward` hook but it will be ignored since DeepSpeed handles"
                 " the backward logic internally."
             )
-        deepspeed_engine = model.trainer.model
+        deepspeed_engine: DeepSpeedEngine = model.trainer.model
         deepspeed_engine.backward(closure_loss, *args, **kwargs)
 
     def _run_backward(self, tensor: Tensor, model: Module, *args: Any, **kwargs: Any) -> None:
@@ -51,14 +55,14 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Callable[[], Any],
+        closure: Callable[[], Any],
         **kwargs: Any,
     ) -> None:
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"DeepSpeed and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
-        closure_result = lambda_closure()
+        closure_result = closure()
         if isinstance(model, pl.LightningModule):
             model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         skipped_backward = closure_result is None
@@ -78,3 +82,12 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
         """DeepSpeed handles gradient clipping internally."""
+
+    def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
+        if trainer.track_grad_norm == -1:
+            return
+        # the gradients are not available in the model due to gradient partitioning in zero stage >= 2
+        warning_cache.warn(
+            f"You set `Trainer(track_grad_norm={trainer.track_grad_norm!r})' but this is not supported for DeepSpeed."
+            " The setting will be ignored."
+        )

@@ -277,7 +277,8 @@ class AcceleratorConnector:
             self.devices = self.num_processes
 
     def _handle_accelerator_and_strategy(self) -> None:
-        if self.distributed_backend is not None and self.distributed_backend in list(DistributedType):
+        deprecated_types = [t for t in DistributedType if t not in (DistributedType.TPU_SPAWN, DistributedType.DDP_CPU)]
+        if self.distributed_backend is not None and self.distributed_backend in deprecated_types:
             rank_zero_deprecation(
                 f"Passing `Trainer(accelerator={self.distributed_backend!r})` has been deprecated"
                 f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={self.distributed_backend!r})` instead."
@@ -288,6 +289,16 @@ class AcceleratorConnector:
                     f" also passed `Trainer(accelerator={self.distributed_backend!r})`."
                     f" HINT: Use just `Trainer(strategy={self.strategy!r})` instead."
                 )
+        if self.strategy == DistributedType.TPU_SPAWN:
+            raise MisconfigurationException(
+                "`Trainer(strategy='tpu_spawn')` is not a valid strategy,"
+                " you can use `Trainer(strategy='ddp_spawn', accelerator='tpu')` instead."
+            )
+        if self.strategy == DistributedType.DDP_CPU:
+            raise MisconfigurationException(
+                "`Trainer(strategy='ddp_cpu')` is not a valid strategy,"
+                " you can use `Trainer(strategy='ddp'|'ddp_spawn', accelerator='cpu')` instead."
+            )
 
     def _set_training_type_plugin(self) -> None:
         if isinstance(self.strategy, str) and self.strategy in TrainingTypePluginsRegistry:
@@ -638,16 +649,27 @@ class AcceleratorConnector:
             )
             self.precision = "bf16"
 
-        if self.precision == 16:
-            rank_zero_info(f"Using 16bit {self.amp_type.value} Automatic Mixed Precision (AMP)")
+        if self.precision in (16, "bf16"):
+            if self.precision == "bf16" and self.amp_type != AMPType.NATIVE:
+                raise MisconfigurationException(
+                    f"You passed `Trainer(amp_type={self.amp_type.value!r}, precision='bf16')` but it's not supported."
+                    " Try using `amp_type='native'` instead."
+                )
+
+            rank_zero_info(
+                f"Using 16bit {self.amp_type.value} Automatic Mixed Precision (AMP)"
+                if self.precision == 16
+                else "Using bfloat16 Automatic Mixed Precision (AMP)"
+            )
 
             if self.amp_type == AMPType.NATIVE:
-                if self._is_sharded_training_type:
-                    return ShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
-                if self._is_fully_sharded_training_type:
-                    return FullyShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+                device = "cpu" if self.use_cpu else "cuda"
 
-                return NativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+                if self._is_sharded_training_type:
+                    return ShardedNativeMixedPrecisionPlugin(self.precision, device)
+                if self._is_fully_sharded_training_type:
+                    return FullyShardedNativeMixedPrecisionPlugin(self.precision, device)
+                return NativeMixedPrecisionPlugin(self.precision, device)
 
             if self.amp_type == AMPType.APEX:
                 if self._is_sharded_training_type or self._is_fully_sharded_training_type:
@@ -656,19 +678,6 @@ class AcceleratorConnector:
                     )
                 self.amp_level = self.amp_level or "O2"
                 return ApexMixedPrecisionPlugin(self.amp_level)
-
-        if self.precision == "bf16":
-            if self.amp_type != AMPType.NATIVE:
-                raise MisconfigurationException(
-                    "You passed `Trainer(amp_type='apex', precision='bf16')` but it's not supported."
-                    " Try using `amp_type='native'` instead."
-                )
-            rank_zero_info("Using bfloat16 Automatic Mixed Precision (AMP)")
-            if self._is_sharded_training_type:
-                return ShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
-            if self._is_fully_sharded_training_type:
-                return FullyShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
-            return NativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
 
         raise RuntimeError("No precision set")
 
