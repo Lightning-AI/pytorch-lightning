@@ -133,6 +133,7 @@ class TestPrecisionModel(BoringModel):
         return TestClippingOptimizer(self.layer.parameters(), lr=0.1)
 
 
+@RunIf(min_gpus=2)
 @pytest.mark.parametrize("accum", [1, 2])
 def test_amp_gradient_unscale(tmpdir, accum: int):
     model = TestPrecisionModel()
@@ -144,8 +145,7 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
         limit_val_batches=0,
         amp_backend="native",
         strategy="ddp_spawn",
-        accelerator="auto",
-        devices=2,
+        gpus=2,
         precision=16,
         track_grad_norm=2,
         # use a tiny value to make sure it works
