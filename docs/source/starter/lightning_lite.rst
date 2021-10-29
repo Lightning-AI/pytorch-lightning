@@ -49,7 +49,7 @@ The ``run`` function contains custom training loop used to train ``MyModel`` on 
         ...
 
 
-    def run(num_epochs: int):
+    def run(args):
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -59,7 +59,7 @@ The ``run`` function contains custom training loop used to train ``MyModel`` on 
         dataloader = DataLoader(MyDataset(...), ...)
 
         model.train()
-        for epoch in range(num_epochs):
+        for epoch in range(args.num_epochs):
             for batch in dataloader:
                 batch = batch.to(device)
                 optimizer.zero_grad()
@@ -68,7 +68,7 @@ The ``run`` function contains custom training loop used to train ``MyModel`` on 
                 optimizer.step()
 
 
-    run(10)
+    run(args)
 
 
 ----------
@@ -103,7 +103,7 @@ Here are 5 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
 
 
     class Lite(LightningLite):
-        def run(self, num_epochs: int):
+        def run(self, args):
 
             model = MyModel(...)
             optimizer = torch.optim.SGD(model.parameters(), ...)
@@ -114,7 +114,7 @@ Here are 5 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
             dataloader = self.setup_dataloaders(dataloader)
 
             model.train()
-            for epoch in range(num_epochs):
+            for epoch in range(args.num_epochs):
                 for batch in dataloader:
                     optimizer.zero_grad()
                     loss = model(batch)
@@ -122,7 +122,7 @@ Here are 5 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
                     optimizer.step()
 
 
-    Lite(...).run(10)
+    Lite(...).run(args)
 
 
 That's all. You can now train on any kind of device and scale your training.
@@ -227,27 +227,75 @@ Convert to Lightning
 The :class:`~pytorch_lightning.lite.LightningLite` is a stepping stone to transition fully to the Lightning API and benefits
 from its hundreds of features.
 
+You can see our :class:`~pytorch_lightning.lite.LightningLite` as a
+future :class:`~pytorch_lightning.core.lightning.LightningModule` and slowly refactor / re-organize your code.
+
+
+.. code-block:: python
+
+    class Lite(LightningLite):
+
+        # 1. This would becomes the LightningModule `__init__` function.
+
+        def run(self, args):
+            self.args = args
+
+            model = MyModel(...)
+
+            self.fit(model)  # This would be automated by Lightning Trainer.
+
+        # 2. This can be fully removed as Lightning handles the loop and setting up the model, optimizer, dataloader.
+
+        def fit(self):
+            optimizer = self.configure_optimizers()
+            model, optimizer = self.setup(model, optimizer)
+            dataloader = self.setup_dataloaders(self.train_dataloader())
+            model.train()
+            for epoch in range(num_epochs):
+                for batch in enumerate(dataloader):
+                    optimizer.zero_grad()
+                    loss = self.training_step(batch, batch_idx)
+                    self.backward(loss)
+                    optimizer.step()
+
+        # 3. This stays here as it belongs to the LightningModule.
+
+        def forward(self, x):
+            return self.model(x)
+
+        def training_step(self, batch, batch_idx):
+            return self.forward(batch)
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(model.parameters(), ...)
+
+        # 4. [Optionally] This can stay here or be extracted within a LightningDataModule to enable higher composability.
+
+        def train_dataloader(self):
+            return DataLoader(MyDataset(...), ...)
+
+
+    Lite(...).run(args)
+
+Finally, change the :meth:`~pytorch_lightning.lite.LightningLite.run` into a
+:class:`~pytorch_lightning.core.lightning.LightningModule.__init__` and drop the inner code for setting up the components.
+
 .. code-block:: python
 
     from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 
 
     class LiftModel(LightningModule):
-        def __init__(self, module: nn.Module):
+        def __init__(self, model: nn.Module):
             super().__init__()
-            self.module = module
+            self.model = model
 
         def forward(self, x):
-            return self.module(x)
+            return self.model(x)
 
         def training_step(self, batch, batch_idx):
             loss = self(batch)
             self.log("train_loss", loss)
-            return loss
-
-        def validation_step(self, batch, batch_idx):
-            loss = self(batch)
-            self.log("val_loss", loss)
             return loss
 
         def configure_optimizers(self):
@@ -260,17 +308,19 @@ from its hundreds of features.
             self.dataset = dataset
 
         def train_dataloader(self):
-            return DataLoader(self.dataset)
+            return DataLoader(MyDataset(...), ...)
 
 
     seed_everything(42)
     model = MyModel(...)
     lightning_module = LiftModel(model)
-    dataset = MyDataset(...)
     datamodule = BoringDataModule(dataset)
     trainer = Trainer(max_epochs=10)
     trainer.fit(lightning_module, datamodule=datamodule)
 
+
+
+You are finally converted to PyTorch Lightning !
 
 ----------
 
