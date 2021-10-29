@@ -41,7 +41,6 @@ def test_lite_module_wraps():
         (32, torch.float64, torch.float32),
         (16, torch.float32, torch.float16),
         (16, torch.float64, torch.float16),
-        # ("mixed", torch.float32, torch.float16),  # TODO: support precision="mixed"
     ],
 )
 def test_lite_module_forward_conversion(precision, input_type, expected_type):
@@ -50,11 +49,11 @@ def test_lite_module_forward_conversion(precision, input_type, expected_type):
     device = torch.device("cuda", 0)
 
     def check_autocast(forward_input):
-        assert precision not in (16, "mixed") or torch.is_autocast_enabled()
+        assert precision != 16 or torch.is_autocast_enabled()
         return forward_input
 
     module = Mock(wraps=torch.nn.Linear(1, 1), side_effect=check_autocast)
-    lite_module = _LiteModule(module, lite._accelerator).to(device)
+    lite_module = _LiteModule(module, lite._precision_plugin).to(device)
     out = lite_module(torch.rand(1, dtype=input_type, device=device))
     assert module.call_args[0][0].dtype == expected_type
     assert out.dtype == torch.get_default_dtype()
@@ -102,5 +101,3 @@ def test_lite_optimizer_steps():
     lite_optimizer.step()
     accelerator.optimizer_step.assert_called_once()
     accelerator.optimizer_step.assert_called_with(optimizer, opt_idx=0, lambda_closure=ANY, model=accelerator.model)
-    lite_optimizer.zero_grad()
-    optimizer.zero_grad.assert_called_once()

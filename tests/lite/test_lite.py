@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os
 from copy import deepcopy
 from unittest import mock
-from unittest.mock import Mock, PropertyMock
+from unittest.mock import MagicMock, Mock, PropertyMock
 
 import pytest
 import torch
@@ -23,12 +23,12 @@ import torch.nn.functional
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
-from pytorch_lightning import seed_everything
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.plugins import DeepSpeedPlugin, PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.utilities import DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.seed import pl_worker_init_function
 from tests.helpers.runif import RunIf
 
 
@@ -47,36 +47,36 @@ class BoringModel(nn.Module):
         return torch.nn.functional.mse_loss(x, torch.ones_like(x))
 
 
-@pytest.mark.parametrize("accelerator", ["coconut"])
-def test_unsupported_accelerator(accelerator):
+def test_unsupported_accelerator():
+    accelerator = "coconut"
     with pytest.raises(MisconfigurationException, match=f"`accelerator={repr(accelerator)}` is not a valid choice"):
         EmptyLite(accelerator=accelerator)
 
 
-@pytest.mark.parametrize("strategy", ["coconut"])
-def test_unsupported_strategy(strategy):
+def test_unsupported_strategy():
+    strategy = "coconut"
     with pytest.raises(MisconfigurationException, match=f"`strategy={repr(strategy)}` is not a valid choice"):
         EmptyLite(strategy=strategy)
 
 
-class LiteReturnSpawnResult(LightningLite):
-    def run(self, *args, **kwargs):
-        return args, kwargs, "result", self.local_rank
-
-
-@pytest.mark.parametrize(
-    "accelerator, strategy, devices",
-    [
-        ("cpu", None, None),
-        ("cpu", "ddp_spawn", 2),
-        pytest.param("tpu", "tpu_spawn", 1, marks=RunIf(tpu=True)),
-    ],
-)
-def test_run_input_output(accelerator, strategy, devices):
+def test_run_input_output():
     """Test that the dynamically patched run() method receives the input arguments and returns the result."""
-    lite = LiteReturnSpawnResult(accelerator=accelerator, strategy=strategy, devices=devices)
+
+    class Lite(LightningLite):
+
+        run_args = ()
+        run_kwargs = {}
+
+        def run(self, *args, **kwargs):
+            self.run_args = args
+            self.run_kwargs = kwargs
+            return "result"
+
+    lite = Lite()
     result = lite.run(1, 2, three=3)
-    assert result == ((1, 2), {"three": 3}, "result", 0)
+    assert result == "result"
+    assert lite.run_args == (1, 2)
+    assert lite.run_kwargs == {"three": 3}
 
 
 def test_setup_optimizers():
@@ -129,12 +129,12 @@ def test_setup_tracks_num_models():
     model = nn.Linear(1, 2)
     optimizer = torch.optim.Adam(model.parameters())
 
-    assert lite._num_models == 0
+    assert lite._models_setup == 0
     lite.setup(model, optimizer)
-    assert lite._num_models == 1
+    assert lite._models_setup == 1
 
     lite.setup(model, optimizer)
-    assert lite._num_models == 2
+    assert lite._models_setup == 2
 
 
 def test_setup_dataloaders_unsupported_type():
@@ -203,13 +203,24 @@ def test_setup_dataloaders_distributed_sampler_not_needed():
     assert lite_dataloader.sampler is custom_sampler
 
 
+@mock.patch.dict(os.environ, {}, clear=True)
+def test_seed_everything():
+    """Test that seed everything is static and sets the worker init function on the dataloader."""
+    EmptyLite.seed_everything(3)
+
+    lite = EmptyLite()
+    lite_dataloader = lite.setup_dataloaders(DataLoader(Mock()))
+
+    assert lite_dataloader.worker_init_fn.func is pl_worker_init_function
+    assert os.environ == {"PL_GLOBAL_SEED": "3", "PL_SEED_WORKERS": "1"}
+
+
 @pytest.mark.parametrize(
     "strategy",
     [
         DistributedType.DP,
         DistributedType.DDP,
         DistributedType.DDP_SPAWN,
-        DistributedType.TPU_SPAWN,
         pytest.param(DistributedType.DEEPSPEED, marks=RunIf(deepspeed=True)),
         pytest.param(DistributedType.DDP_SHARDED, marks=RunIf(fairscale=True)),
         pytest.param(DistributedType.DDP_SHARDED_SPAWN, marks=RunIf(fairscale=True)),
@@ -238,7 +249,6 @@ def test_setup_dataloaders_replace_custom_sampler(strategy):
         DistributedType.DP,
         DistributedType.DDP,
         DistributedType.DDP_SPAWN,
-        DistributedType.TPU_SPAWN,
         pytest.param(DistributedType.DEEPSPEED, marks=RunIf(deepspeed=True)),
         pytest.param(DistributedType.DDP_SHARDED, marks=RunIf(fairscale=True)),
         pytest.param(DistributedType.DDP_SHARDED_SPAWN, marks=RunIf(fairscale=True)),
@@ -326,6 +336,17 @@ def test_backward_model_input_required():
         lite.backward(loss)
 
 
+def test_autocast():
+    """Test that the Lite autocast context manager lets the precision plugin handle casting."""
+    lite = EmptyLite()
+    lite._precision_plugin.forward_context = MagicMock()
+
+    lite._precision_plugin.forward_context().__enter__.assert_not_called()
+    with lite.autocast():
+        lite._precision_plugin.forward_context().__enter__.assert_called()
+    lite._precision_plugin.forward_context().__exit__.assert_called()
+
+
 @RunIf(min_gpus=2, deepspeed=True, special=True)
 def test_deepspeed_multiple_models():
     class Lite(LightningLite):
@@ -345,11 +366,11 @@ def test_deepspeed_multiple_models():
             for mw_b, mw_a in zip(state_dict.values(), model.state_dict().values()):
                 assert not torch.equal(mw_b, mw_a)
 
-            seed_everything(42)
+            self.seed_everything(42)
             model_1 = BoringModel()
             optimizer_1 = torch.optim.SGD(model_1.parameters(), lr=0.0001)
 
-            seed_everything(42)
+            self.seed_everything(42)
             model_2 = BoringModel()
             optimizer_2 = torch.optim.SGD(model_2.parameters(), lr=0.0001)
 
@@ -359,7 +380,7 @@ def test_deepspeed_multiple_models():
             model_1, optimizer_1 = self.setup(model_1, optimizer_1)
             model_2, optimizer_2 = self.setup(model_2, optimizer_2)
 
-            seed_everything(42)
+            self.seed_everything(42)
             data_list = []
             for _ in range(2):
                 optimizer_1.zero_grad()

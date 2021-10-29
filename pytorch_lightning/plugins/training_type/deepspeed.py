@@ -336,7 +336,8 @@ class DeepSpeedPlugin(DDPPlugin):
 
     @property
     def amp_level(self) -> Optional[str]:
-        return self._amp_level or self.lightning_module.trainer._accelerator_connector.amp_level
+        if self._amp_type == AMPType.APEX:
+            return self._amp_level or self.lightning_module.trainer._accelerator_connector.amp_level
 
     @property
     def amp_type(self) -> Optional[str]:
@@ -441,8 +442,10 @@ class DeepSpeedPlugin(DDPPlugin):
         # deepspeed handles gradient clipping internally
         if is_overridden("configure_gradient_clipping", self.lightning_module, pl.LightningModule):
             rank_zero_warn(
-                "Since deepspeed handles gradient clipping internally, `LightningModule.configure_gradient_clipping`"
-                " will be ignored. Consider setting `Trainer(gradient_clip_val=..., gradient_clip_algorithm='norm')`"
+                "Since DeepSpeed handles gradient clipping internally, the default"
+                " `LightningModule.configure_gradient_clipping` implementation will not actually clip gradients."
+                " The hook will still be called. Consider setting"
+                " `Trainer(gradient_clip_val=..., gradient_clip_algorithm='norm')`"
                 " which will use the internal mechanism."
             )
 

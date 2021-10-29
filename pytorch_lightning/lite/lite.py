@@ -24,8 +24,7 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.plugins import (
     DDPShardedPlugin,
@@ -37,30 +36,33 @@ from pytorch_lightning.plugins import (
 )
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
+from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities import DeviceType, DistributedType, move_data_to_device
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.data import has_iterable_dataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.seed import seed_everything
 
 
 class LightningLite(ABC):
     """Lite accelerates your PyTorch training or inference code with minimal changes required.
 
-    - Automatic placement of models and data onto the device
-    - Automatic support for mixed and double precision (smaller memory footprint)
+    - Automatic placement of models and data onto the device.
+    - Automatic support for mixed and double precision (smaller memory footprint).
     - Seamless switching between hardware (CPU, GPU, TPU) and distributed training strategies
-      (data-parallel training, sharded training, etc.)
-    - Automated spawning of processes, no launch utilities required
-    - Multi-node support
+      (data-parallel training, sharded training, etc.).
+    - Automated spawning of processes, no launch utilities required.
+    - Multi-node support.
 
     Args:
-        accelerator: The hardware to run on. Possible choices are: cpu, gpu, tpu, auto.
+        accelerator: The hardware to run on. Possible choices are: ``"cpu"``, ``"gpu"``, ``"tpu"``, ``"auto"``.
         strategy: Strategy for how to run across multiple devices. Possible choices are:
-            dp, ddp, ddp_spawn, tpu_spawn, deepspeed, ddp_sharded.
-        devices: Number of devices to train on (int) or which GPUs to train on (list or str). The value applies
-            per node.
+            ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"``, ``"ddp_sharded"``.
+        devices: Number of devices to train on (``int``), which GPUs to train on (``list`` or ``str``), or ``"auto"``.
+            The value applies per node.
         num_nodes: Number of GPU nodes for distributed training.
-        precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
+        precision: Double precision (``64``), full precision (``32``), half precision (``16``),
+            or bfloat16 precision (``"bf16"``).
         plugins: One or several custom plugins
         gpus: Provides the same function as the ``devices`` argument but implies ``accelerator="gpu"``.
         tpu_cores: Provides the same function as the ``devices`` argument but implies ``accelerator="tpu"``.
@@ -102,10 +104,10 @@ class LightningLite(ABC):
         self._accelerator = self._accelerator_connector.accelerator
         self._strategy = self._accelerator.training_type_plugin
         self._precision_plugin = self._accelerator.precision_plugin
-        self._num_models: int = 0
+        self._models_setup: int = 0
 
         # wrap the run method so we can inject setup logic or spawn processes for the user
-        setattr(self, "run", self._run_wrapper(self.run))
+        setattr(self, "run", partial(self._run_impl, self.run))
 
     @property
     def device(self) -> torch.device:
@@ -140,19 +142,11 @@ class LightningLite(ABC):
         """Wether this rank is rank zero."""
         return self._strategy.is_global_zero
 
-    @property
-    def can_save_checkpoint(self) -> bool:
-        if isinstance(self._strategy, DeepSpeedPlugin):
-            return True
-        return self.is_global_zero
-
     @abstractmethod
-    def run(self, *args: Any, **kwargs: Any) -> Any:
+    def run(self) -> Any:
         """All the code inside this run method gets accelerated by Lite.
 
-        Args:
-            *args: Add any positional arguments you need, e.g., the hyperparameters for your model
-            **kwargs: Add any keyword arguments you need, e.g., the hyperparameters for your model
+        You can pass arbitrary arguments to this function when overriding it.
         """
 
     def setup(
@@ -160,7 +154,7 @@ class LightningLite(ABC):
         model: nn.Module,
         *optimizers: Optimizer,
         move_to_device: bool = True,
-    ) -> Union[_LiteModule, List[Union[_LiteModule, _LiteOptimizer]]]:
+    ) -> Any:  # no specific return because the way we want our API to look does not play well with mypy
         """Setup a model and its optimizers for accelerated training.
 
         Args:
@@ -179,10 +173,11 @@ class LightningLite(ABC):
 
         # Let accelerator/plugin wrap and connect the models and optimizers
         model, optimizers = self._strategy._setup_model_and_optimizers(model, list(optimizers))
-        model = _LiteModule(model, self._accelerator)
+        model = _LiteModule(model, self._precision_plugin)
         optimizers = [_LiteOptimizer(optimizer=optimizer, accelerator=self._accelerator) for optimizer in optimizers]
-        self._num_models += 1
+        self._models_setup += 1
         if optimizers:
+            # join both types in a list for API convenience
             return [model] + optimizers  # type: ignore
         return model
 
@@ -244,6 +239,10 @@ class LightningLite(ABC):
             dataloader = DataLoader(**kwargs)
         else:
             dataloader = _LiteDataLoader(device=device, **kwargs)
+
+        # add worker_init_fn for correct seeding in worker processes
+        TrainerDataLoadingMixin._auto_add_worker_init_fn(dataloader, self.global_rank)
+
         return self._strategy.process_dataloader(dataloader)
 
     def backward(self, tensor: Tensor, *args: Any, model: Optional[_LiteModule] = None, **kwargs: Any) -> None:
@@ -256,23 +255,30 @@ class LightningLite(ABC):
             **kwargs: Optional named keyword arguments passed to the underlying backward function.
 
         Note:
-            When using ``strategy='deepspeed'`` and multiple models were setup, it is required to pass in the
+            When using ``strategy="deepspeed"`` and multiple models were setup, it is required to pass in the
             model as argument here.
         """
         module = model.module if model is not None else model
-        if self._num_models > 0 and isinstance(self._strategy, DeepSpeedPlugin):
+        if isinstance(self._strategy, DeepSpeedPlugin):
             if model is None:
-                raise MisconfigurationException(
-                    "When using multiple models + deepspeed, please provide the model used to perform the optimization."
-                )
-
-            # requires to attach the current `DeepSpeedEngine` for the `_LiteOptimizer.step` call.
-            self._strategy.model = module
+                if self._models_setup == 0:
+                    raise MisconfigurationException(
+                        "No models were setup for backward. Did you forget to call `self.setup()`?"
+                    )
+                if self._models_setup > 1:
+                    raise MisconfigurationException(
+                        "When using multiple models + deepspeed, please provide the model used to perform"
+                        " the optimization: `self.backward(loss, model=model)`"
+                    )
+                module = self._strategy.model
+            else:
+                # requires to attach the current `DeepSpeedEngine` for the `_LiteOptimizer.step` call.
+                self._strategy.model = module
 
         self._precision_plugin._run_backward(tensor, module, *args, **kwargs)
 
     @contextmanager
-    def cast(self) -> Generator[None, None, None]:
+    def autocast(self) -> Generator[None, None, None]:
         """A context manager to automatically convert operations for the chosen precision.
 
         Use this only if the `forward` method of your model does not cover all operations you wish to run with the
@@ -323,7 +329,7 @@ class LightningLite(ABC):
 
             # now all processes can read the files and start training
         """
-        self._strategy.barrier()
+        self._strategy.barrier(name=name)
 
     def all_gather(
         self, data: Union[torch.Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
@@ -347,20 +353,39 @@ class LightningLite(ABC):
     def broadcast(self, obj: object, src: int = 0) -> object:
         return self._strategy.broadcast(obj, src=src)
 
-    def save_checkpoint(self, filepath: Union[str, Path], content: Dict[str, Any]) -> None:
-        """Save a checkpoint contents to a file.
+    def save(self, content: Dict[str, Any], filepath: Union[str, Path]) -> None:
+        """Save checkpoint contents to a file.
 
         How and which processes save gets determined by the `strategy`. For example, the `ddp` strategy
         saves checkpoints only on process 0.
 
         Args:
-            filepath: A path to where the file should be saved
             content: A dictionary with contents, i.e., the state dict of your model
+            filepath: A path to where the file should be saved
         """
         self._strategy.save_checkpoint(content, filepath)
 
-    def _run_wrapper(self, run_method: Callable) -> Callable:
-        return partial(self._run_impl, run_method)
+    def load(self, filepath: Union[str, Path]) -> Any:
+        """Load a checkpoint from a file.
+
+        How and which processes load gets determined by the `strategy`
+
+        Args:
+            filepath: A path to where the file is located
+        """
+        return self._strategy.load_checkpoint(filepath)
+
+    @staticmethod
+    def seed_everything(seed: Optional[int] = None, workers: Optional[bool] = None) -> int:
+        """Helper function to seed everything without explicitly importing Lightning.
+
+        See :func:`pytorch_lightning.seed_everything` for more details.
+        """
+        if workers is None:
+            # Lightning sets `workers=False` by default to avoid breaking reproducibility, but since this is a new
+            # release, we can afford to do it.
+            workers = True
+        return seed_everything(seed=seed, workers=workers)
 
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
         self._set_plugin_specific_precision_variables()
@@ -390,11 +415,12 @@ class LightningLite(ABC):
             # When the user creates the optimizer, they reference the parameters on the CPU.
             # However, when running with TPU the parameters get copied and the reference in the optimizer
             # remains invalid. We need to update the references to point to the parameter tensors on the device.
-            params_on_cpu = dict(model.named_parameters())
+            params_before_move = dict(model.named_parameters())
             model = self.to_device(model)
+            # XLA makes a copy on the parameters, so the device is not the same before and after to_device.
             params_on_device = dict(model.named_parameters())
 
-            mapping = {param: params_on_device[name] for name, param in params_on_cpu.items()}
+            mapping = {param: params_on_device[name] for name, param in params_before_move.items()}
             for optimizer in optimizers:
                 for param_group in optimizer.param_groups:
                     param_group["params"] = [mapping.get(p, p) for p in param_group["params"]]
@@ -448,12 +474,11 @@ class LightningLite(ABC):
         )
 
     @staticmethod
-    def _supported_strategy_types() -> Sequence[str]:
+    def _supported_strategy_types() -> Sequence[DistributedType]:
         return (
             DistributedType.DP,
             DistributedType.DDP,
             DistributedType.DDP_SPAWN,
-            DistributedType.TPU_SPAWN,
             DistributedType.DEEPSPEED,
             DistributedType.DDP_SHARDED,
             DistributedType.DDP_SHARDED_SPAWN,
