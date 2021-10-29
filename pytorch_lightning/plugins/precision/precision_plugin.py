@@ -119,6 +119,7 @@ class PrecisionPlugin(CheckpointHooks):
             # none of this applies to Lite
             return
         trainer = model.trainer
+        assert trainer is not None
         trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         # TODO: this is done for the entire model but should be changed to per-optimizer
         if optimizer_idx == 0:
