@@ -139,7 +139,7 @@ Here is how to use `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/ze
 
     Lite(strategy="deepspeed", devices=8, accelerator="gpu", precision=16).run(10)
 
-Lightning can also figure it automatically for you!
+Lightning can also figure it out automatically for you!
 
 .. code-block:: python
 
@@ -180,14 +180,11 @@ Here is an example while running on 256 GPUs.
             # Wait for all processes to enter this call.
             self.barrier()
 
-            # Reduce a boolean decision across processes.
-            self.reduce_decision(...)
-
 
     Lite(strategy="ddp", gpus=8, num_nodes=32, accelerator="gpu").run()
 
 
-.. note:: We recommend instantiating the models within the :meth:`~pytorch_lightning.lite.LightningLite.run` method as large models would cause OOM Error otherwise.
+.. note:: We recommend instantiating the models within the :meth:`~pytorch_lightning.lite.LightningLite.run` method as large models would cause an out-of-memory error otherwise.
 
 
 ----------
