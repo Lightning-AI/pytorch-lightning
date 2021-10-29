@@ -227,6 +227,13 @@ def test_dummylogger_support_indexing():
     assert logger[0] == logger
 
 
+def test_dummylogger_empty_iterable():
+    """Test that DummyLogger represents an empty iterable."""
+    logger = DummyLogger()
+    for _ in logger:
+        assert False
+
+
 def test_dummylogger_noop_method_calls():
     """Test that the DummyLogger methods can be called with arbitrary arguments."""
     logger = DummyLogger()
