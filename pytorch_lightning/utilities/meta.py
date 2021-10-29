@@ -27,9 +27,9 @@ from torch.nn.modules.container import ModuleDict, ModuleList, Sequential
 
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_DEV_1_10
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_10
 
-if _TORCH_GREATER_EQUAL_DEV_1_10:
+if _TORCH_GREATER_EQUAL_1_10:
     from torch._C import _DisableTorchDispatch  # type: ignore[attr-defined]
 
     ####################################################################
@@ -141,7 +141,7 @@ if _TORCH_GREATER_EQUAL_DEV_1_10:
 else:
 
     def init_meta(*_, **__):
-        if not _TORCH_GREATER_EQUAL_DEV_1_10:
+        if not _TORCH_GREATER_EQUAL_1_10:
             return MisconfigurationException("`init_meta` is supported from PyTorch 1.10.0")
 
 
@@ -173,7 +173,7 @@ def recursively_setattr(root_module: nn.Module, prefix: str, materialized_module
 
 def materialize_module(root_module: nn.Module) -> nn.Module:
     """This utility performs an in-place operation by materialize a module and its children."""
-    if not _TORCH_GREATER_EQUAL_DEV_1_10:
+    if not _TORCH_GREATER_EQUAL_1_10:
         return root_module
 
     materialize_fn = getattr(root_module, "materialize", None)
@@ -197,7 +197,7 @@ __CREATED_MODULES__ = set()
 
 def _unset_meta_device(from_created: bool = False) -> None:
     """Replace all meta module by their original version."""
-    if not _TORCH_GREATER_EQUAL_DEV_1_10:
+    if not _TORCH_GREATER_EQUAL_1_10:
         raise MisconfigurationException("`init_meta` is supported from PyTorch 1.10.0")
 
     if from_created:
@@ -212,7 +212,7 @@ def _unset_meta_device(from_created: bool = False) -> None:
 
 def _set_meta_device_populated(from_created: bool = False) -> None:
     """Replace all meta module by their original version."""
-    if not _TORCH_GREATER_EQUAL_DEV_1_10:
+    if not _TORCH_GREATER_EQUAL_1_10:
         raise MisconfigurationException("`init_meta` is supported from PyTorch 1.10.0")
 
     if from_created:
@@ -228,7 +228,7 @@ def _set_meta_device_populated(from_created: bool = False) -> None:
 def _set_meta_device() -> None:
     """Replace all torch.nn.Module by their meta replacement."""
 
-    if not _TORCH_GREATER_EQUAL_DEV_1_10:
+    if not _TORCH_GREATER_EQUAL_1_10:
         raise MisconfigurationException("`init_meta` is supported from PyTorch 1.10.0")
 
     # Author note: This can be optimized further by searching all subclasses at once.
