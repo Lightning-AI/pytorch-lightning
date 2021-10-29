@@ -18,8 +18,11 @@ import torch
 from torch.utils.data import DataLoader, IterableDataset
 
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.warnings import WarningCache
 
 BType = Union[torch.Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
+
+warning_cache = WarningCache()
 
 
 def extract_batch_size(batch: BType) -> int:
@@ -34,10 +37,22 @@ def extract_batch_size(batch: BType) -> int:
         return len(batch)
     if isinstance(batch, dict):
         sample = next(iter(batch.values()), 1)
-        return extract_batch_size(sample)
+        batch_size = extract_batch_size(sample)
+        if len(batch) > 1:
+            warning_cache.warn(
+                f"Lightning is trying to infer the `batch_size`. We found {batch_size}."
+                "To avoid any mis-calculations, use self.log(..., batch_size=batch_size, ...)"
+            )
+        return batch_size
     if isinstance(batch, Iterable):
         sample = next(iter(batch), 1)
-        return extract_batch_size(sample)
+        batch_size = extract_batch_size(sample)
+        if len(batch) > 1:
+            warning_cache.warn(
+                f"Lightning is trying to infer the `batch_size`. We found {batch_size}."
+                "To avoid any mis-calculations, use self.log(..., batch_size=batch_size, ...)"
+            )
+        return batch_size
 
     return 1
 
