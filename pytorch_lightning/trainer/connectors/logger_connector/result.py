@@ -98,6 +98,8 @@ class _Metadata:
     _sync: Optional[_Sync] = None
 
     def __post_init__(self) -> None:
+        if not self.on_step and not self.on_epoch:
+            raise MisconfigurationException("`self.log(on_step=False, on_epoch=False)` is not useful.")
         self._parse_reduce_fx()
 
     def _parse_reduce_fx(self) -> None:
