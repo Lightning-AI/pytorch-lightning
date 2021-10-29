@@ -20,7 +20,7 @@ import warnings
 from argparse import ArgumentParser, Namespace
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Union
 from weakref import proxy
 
 import torch
@@ -62,7 +62,6 @@ from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
-from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
@@ -424,7 +423,7 @@ class Trainer(
         Trainer._log_api_event("init")
         self.state = TrainerState()
 
-        gpu_ids, tpu_cores = self._parse_devices(gpus, auto_select_gpus, tpu_cores)
+        gpu_ids, tpu_cores = device_parser._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
         # init connectors
         self._data_connector = DataConnector(self, multiple_trainloader_mode)
@@ -1454,20 +1453,6 @@ class Trainer(
             pl_module._current_fx_name = prev_fx_name
 
         return output
-
-    @staticmethod
-    def _parse_devices(
-        gpus: Optional[Union[List[int], str, int]],
-        auto_select_gpus: bool,
-        tpu_cores: Optional[Union[List[int], str, int]],
-    ) -> Tuple[Optional[List[int]], Optional[Union[List[int], int]]]:
-        if auto_select_gpus and isinstance(gpus, int):
-            gpus = pick_multiple_gpus(gpus)
-
-        # TODO (@seannaren, @kaushikb11): Include IPU parsing logic here
-        gpu_ids = device_parser.parse_gpu_ids(gpus)
-        tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
-        return gpu_ids, tpu_cores
 
     @staticmethod
     def _log_api_event(event: str) -> None:

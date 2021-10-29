@@ -36,10 +36,10 @@ from pytorch_lightning.plugins import (
 )
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities import DeviceType, DistributedType, move_data_to_device
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.data import has_iterable_dataset
+from pytorch_lightning.utilities.device_parser import _parse_devices
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
 
@@ -81,7 +81,7 @@ class LightningLite(ABC):
     ) -> None:
         self._check_accelerator_support(accelerator)
         self._check_strategy_support(strategy)
-        gpu_ids, tpu_cores = Trainer._parse_devices(gpus=gpus, auto_select_gpus=False, tpu_cores=tpu_cores)
+        gpu_ids, tpu_cores = _parse_devices(gpus=gpus, auto_select_gpus=False, tpu_cores=tpu_cores)
         self._accelerator_connector = AcceleratorConnector(
             num_processes=1,
             devices=devices,
