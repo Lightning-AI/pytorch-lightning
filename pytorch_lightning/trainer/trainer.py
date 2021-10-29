@@ -58,7 +58,6 @@ from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_fr
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
-from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
@@ -72,6 +71,7 @@ from pytorch_lightning.utilities import (
     device_parser,
     DeviceType,
     DistributedType,
+    GradClipAlgorithmType,
     parsing,
     rank_zero_deprecation,
     rank_zero_info,
@@ -451,7 +451,6 @@ class Trainer(
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self._callback_connector = CallbackConnector(self)
         self.debugging_connector = DebuggingConnector(self)
-        self.training_tricks_connector = TrainingTricksConnector(self)
         self.checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
         self.signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
@@ -525,13 +524,43 @@ class Trainer(
             prepare_data_per_node,
         )
 
-        # init training tricks
-        self.training_tricks_connector.on_trainer_init(
-            gradient_clip_val,
-            gradient_clip_algorithm,
-            track_grad_norm,
-            terminate_on_nan,
+        if terminate_on_nan is not None:
+            rank_zero_deprecation(
+                "Trainer argument `terminate_on_nan` was deprecated in v1.5 and will be removed in 1.7."
+                " Please use `Trainer(detect_anomaly=True)` instead."
+            )
+            if not isinstance(terminate_on_nan, bool):
+                raise TypeError(f"`terminate_on_nan` should be a bool, got {terminate_on_nan}.")
+
+        # gradient clipping
+        if gradient_clip_val is not None and not isinstance(gradient_clip_val, (int, float)):
+            raise TypeError(f"`gradient_clip_val` should be an int or a float. Got {gradient_clip_val}.")
+
+        if gradient_clip_algorithm is not None and not GradClipAlgorithmType.supported_type(
+            gradient_clip_algorithm.lower()
+        ):
+            raise MisconfigurationException(
+                f"`gradient_clip_algorithm` {gradient_clip_algorithm} is invalid. "
+                f"Allowed algorithms: {GradClipAlgorithmType.supported_types()}."
+            )
+
+        # gradient norm tracking
+        if track_grad_norm != -1 and not (
+            (isinstance(track_grad_norm, (int, float)) or track_grad_norm == "inf") and float(track_grad_norm) > 0
+        ):
+            raise MisconfigurationException(
+                f"`track_grad_norm` must be a positive number or 'inf' (infinity norm). Got {track_grad_norm}."
+            )
+
+        self._terminate_on_nan = terminate_on_nan
+        self.gradient_clip_val = gradient_clip_val
+        self.gradient_clip_algorithm = (
+            GradClipAlgorithmType(gradient_clip_algorithm.lower())
+            if gradient_clip_algorithm is not None
+            else gradient_clip_algorithm
         )
+        self.track_grad_norm = float(track_grad_norm)
+
         self._detect_anomaly: bool = detect_anomaly
         self._setup_on_init(num_sanity_val_steps)
 

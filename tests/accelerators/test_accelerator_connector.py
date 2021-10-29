@@ -657,6 +657,13 @@ def test_exception_when_strategy_used_with_plugins():
         Trainer(plugins="ddp_find_unused_parameters_false", strategy="ddp_spawn")
 
 
+def test_exception_invalid_strategy():
+    with pytest.raises(MisconfigurationException, match=r"strategy='ddp_cpu'\)` is not a valid"):
+        Trainer(strategy="ddp_cpu")
+    with pytest.raises(MisconfigurationException, match=r"strategy='tpu_spawn'\)` is not a valid"):
+        Trainer(strategy="tpu_spawn")
+
+
 @pytest.mark.parametrize(
     ["strategy", "plugin"],
     [

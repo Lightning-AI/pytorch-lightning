@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+from abc import abstractmethod
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
 
 import torch
@@ -705,3 +706,8 @@ class Accelerator:
             "`on_train_batch_start` logic is implemented directly in the `TrainingTypePlugin` implementations."
         )
         return self.training_type_plugin.on_train_batch_start(batch, batch_idx)
+
+    @staticmethod
+    @abstractmethod
+    def auto_device_count() -> int:
+        """Get the devices when set to auto."""
