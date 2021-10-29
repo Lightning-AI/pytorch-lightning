@@ -19,7 +19,7 @@ on any kind of device while retaining full control over their own loops and opti
 - I would like to convert my existing code to the Lightning API, but a full path to Lightning transition might be too complex. I am looking for a stepping stone to ensure reproducibility during the transition.
 
 
-.. note:: LightningLite is a Lightning beta feature and will be considered stable for v1.6.
+.. note:: LightningLite is a beta feature and will be considered stable for v1.6.
 
 ----------
 
