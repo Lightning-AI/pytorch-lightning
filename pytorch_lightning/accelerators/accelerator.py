@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+from abc import abstractmethod
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
 
 import torch
@@ -318,7 +319,7 @@ class Accelerator:
         self,
         optimizer: Optimizer,
         opt_idx: int,
-        lambda_closure: Callable[[], Any],
+        closure: Callable[[], Any],
         model: Optional[Union["pl.LightningModule", Module]] = None,
         **kwargs: Any
     ) -> None:
@@ -327,12 +328,17 @@ class Accelerator:
         Args:
             optimizer: the optimizer performing the step
             opt_idx: index of the current optimizer
-            lambda_closure: closure calculating the loss value
+            closure: closure calculating the loss value
             model: reference to the model, optionally defining optimizer step related hooks
             **kwargs: Any extra arguments to ``optimizer.step``
         """
         model = model or self.lightning_module
-        self.precision_plugin.optimizer_step(model, optimizer, opt_idx, lambda_closure, **kwargs)
+        self.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
+
+        if not isinstance(model, pl.LightningModule):
+            # gradient clipping and norm tracking only available with a LightingModule/Trainer
+            return
+
         trainer = model.trainer
         assert isinstance(trainer, pl.Trainer)
         # TODO: this is done for the entire model but should be changed to per-optimizer
@@ -700,3 +706,8 @@ class Accelerator:
             "`on_train_batch_start` logic is implemented directly in the `TrainingTypePlugin` implementations."
         )
         return self.training_type_plugin.on_train_batch_start(batch, batch_idx)
+
+    @staticmethod
+    @abstractmethod
+    def auto_device_count() -> int:
+        """Get the devices when set to auto."""

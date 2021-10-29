@@ -20,7 +20,7 @@ from unittest.mock import ANY
 
 import pytest
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader
 
 from pl_examples.bug_report_model import RandomDataset
 from pytorch_lightning import LightningModule, Trainer
@@ -909,3 +909,38 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
     expected[val_batch_progress]["total"]["ready"] += 1
     expected[val_batch_progress]["total"]["started"] += 1
     assert state_dict_after_restart[val_batch_progress] == expected[val_batch_progress]
+
+
+@RunIf(min_torch="1.8.0")
+@pytest.mark.parametrize("persistent_workers", (True, False))
+def test_workers_are_shutdown(tmpdir, persistent_workers):
+    # `num_workers == 1` uses `_MultiProcessingDataLoaderIter`
+    # `persistent_workers` makes sure `self._iterator` gets set on the `DataLoader` instance
+
+    class _TestMultiProcessingDataLoaderIter(_MultiProcessingDataLoaderIter):
+        def __init__(self, *args, dataloader: DataLoader, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.dataloader = dataloader
+
+        def _shutdown_workers(self):
+            setattr(self.dataloader, "has_shutdown_workers", True)
+            super()._shutdown_workers()
+
+    class TestDataLoader(DataLoader):
+        def _get_iterator(self):
+            if self.num_workers == 0:
+                return super()._get_iterator()
+            else:
+                self.check_worker_number_rationality()
+                return _TestMultiProcessingDataLoaderIter(self, dataloader=self)
+
+    train_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
+    val_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
+
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=2)
+    trainer.fit(model, train_dataloader, val_dataloader)
+    assert train_dataloader.has_shutdown_workers
+    assert val_dataloader.has_shutdown_workers
+    assert train_dataloader._iterator is None
+    assert val_dataloader._iterator is None

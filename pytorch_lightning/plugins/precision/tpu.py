@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
 from typing import Any, Callable, Union
 
 from torch.nn import Module
@@ -31,12 +32,12 @@ class TPUPrecisionPlugin(PrecisionPlugin):
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Callable[[], Any],
+        closure: Callable[[], Any],
         **kwargs: Any
     ) -> None:
         if isinstance(model, pl.LightningModule):
-            model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
-        closure_result = xm.optimizer_step(optimizer, optimizer_args={"closure": lambda_closure, **kwargs})
+            closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, closure)
+        closure_result = xm.optimizer_step(optimizer, optimizer_args={"closure": closure, **kwargs})
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if isinstance(model, pl.LightningModule) and model.automatic_optimization and skipped_backward:

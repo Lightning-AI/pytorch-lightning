@@ -45,7 +45,7 @@ coverage:
     patch:
       default:
         target: 50% # specify the target "X%" coverage to hit
-        # threshold: 50% # allow this much decrease on patch
+        threshold: 5% # allow this much decrease on patch
     changes: false
 
 # https://docs.codecov.com/docs/github-checks#disabling-github-checks-patch-annotations
