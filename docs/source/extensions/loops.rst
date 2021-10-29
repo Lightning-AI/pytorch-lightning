@@ -126,8 +126,8 @@ For example with the :class:`~pytorch_lightning.loops.fit_loop.FitLoop`:
 
     from pytorch_lightning.loops import FitLoop
 
-    class MyLoop(FitLoop):
 
+    class MyLoop(FitLoop):
         def advance(self):
             """Advance from one iteration to the next."""
 
@@ -189,8 +189,8 @@ You will need to override a minimum of two things:
 
     from pytorch_lightning.loop import Loop
 
-    class MyFancyLoop(Loop):
 
+    class MyFancyLoop(Loop):
         @property
         def done(self):
             """Provide a condition to stop the loop."""
