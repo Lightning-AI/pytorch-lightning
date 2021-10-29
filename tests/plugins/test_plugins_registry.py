@@ -15,6 +15,7 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import (
+    CheckpointIO,
     DDPPlugin,
     DDPShardedPlugin,
     DDPSpawnPlugin,
@@ -110,3 +111,29 @@ def test_ddp_find_unused_parameters_training_type_plugins_registry(tmpdir, plugi
     assert plugin_name in TrainingTypePluginsRegistry
     assert TrainingTypePluginsRegistry[plugin_name]["init_params"] == {"find_unused_parameters": False}
     assert TrainingTypePluginsRegistry[plugin_name]["plugin"] == plugin
+
+
+def test_custom_registered_training_plugin_to_strategy():
+    class CustomCheckpointIO(CheckpointIO):
+        def save_checkpoint(self, checkpoint, path):
+            pass
+
+        def load_checkpoint(self, path):
+            pass
+
+        def remove_checkpoint(self, path):
+            pass
+
+    custom_checkpoint_io = CustomCheckpointIO()
+
+    # Register the DDP Plugin with your custom CheckpointIO plugin
+    TrainingTypePluginsRegistry.register(
+        "ddp_custom_checkpoint_io",
+        DDPPlugin,
+        description="DDP Plugin with custom checkpoint io plugin",
+        checkpoint_io=custom_checkpoint_io,
+    )
+    trainer = Trainer(strategy="ddp_custom_checkpoint_io", accelerator="cpu", devices=2)
+
+    assert isinstance(trainer.training_type_plugin, DDPPlugin)
+    assert trainer.training_type_plugin.checkpoint_io == custom_checkpoint_io
