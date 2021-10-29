@@ -24,7 +24,7 @@ from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
 from pytorch_lightning import callbacks, Trainer
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBar
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomDictDataset
@@ -475,7 +475,7 @@ def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmpdir: str):
             )
             self.on_train_epoch_end_called = True
 
-    class TestProgressBar(ProgressBar):
+    class TestProgressBar(TQDMProgressBar):
         def get_metrics(self, trainer: Trainer, model: LightningModule):
             items = super().get_metrics(trainer, model)
             items.pop("v_num", None)
