@@ -12,34 +12,57 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Iterable, Mapping, Union
+from typing import Any, Iterable, List, Mapping, Union
 
 import torch
 from torch.utils.data import DataLoader, IterableDataset
 
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.warnings import WarningCache
 
 BType = Union[torch.Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
 
+warning_cache = WarningCache()
 
-def extract_batch_size(batch: BType) -> int:
+
+def flatten_list(lst):
+    for el in lst:
+        if isinstance(el, Iterable) and not isinstance(el, (str, bytes)):
+            yield from flatten_list(el)
+        else:
+            yield el
+
+
+def _extract_batch_size(batch: BType, recursive=False) -> List[int]:
     """Recursively unpack a batch to find a torch.Tensor.
 
     Returns:
         ``len(tensor)`` when found, or ``1`` when it hits an empty or non iterable.
     """
     if isinstance(batch, torch.Tensor):
-        return batch.size(0)
+        return [batch.size(0)]
     if isinstance(batch, str):
-        return len(batch)
-    if isinstance(batch, dict):
-        sample = next(iter(batch.values()), 1)
-        return extract_batch_size(sample)
-    if isinstance(batch, Iterable):
-        sample = next(iter(batch), 1)
-        return extract_batch_size(sample)
+        return [len(batch)]
+    if isinstance(batch, (Iterable, dict)):
+        if isinstance(batch, dict):
+            batch = batch.values()
 
-    return 1
+        batch_sizes = list(flatten_list([_extract_batch_size(sample, recursive=True) for sample in batch]))
+        batch_size = batch_sizes[0]
+
+        if not all(bs == batch_size for bs in batch_sizes) and not recursive:
+            warning_cache.warn(
+                f"Lightning is trying to infer the `batch_size` from an ambiguous collection. The batch size we"
+                f" found is {batch_size}. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`."
+            )
+
+        return batch_sizes
+
+    return [1]
+
+
+def extract_batch_size(batch: BType) -> int:
+    return _extract_batch_size(batch)[0]
 
 
 def has_iterable_dataset(dataloader: DataLoader) -> bool:

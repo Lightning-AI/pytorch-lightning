@@ -2,7 +2,7 @@ import pytest
 import torch
 from torch.utils.data.dataloader import DataLoader
 
-from pytorch_lightning.utilities.data import extract_batch_size, get_len, has_iterable_dataset, has_len
+from pytorch_lightning.utilities.data import extract_batch_size, get_len, has_iterable_dataset, has_len, warning_cache
 from tests.helpers.boring_model import RandomDataset, RandomIterableDataset
 
 
@@ -22,6 +22,22 @@ def test_extract_batch_size():
 
     batch = {"test": [{"test": [torch.zeros(11, 10)]}]}
     assert extract_batch_size(batch) == 11
+
+    batch = {"test": [{"test": [torch.zeros(11, 10), torch.zeros(10, 10)]}]}
+    with pytest.warns(UserWarning, match="Lightning is trying to infer the `batch_size` .* we found is 11."):
+        extract_batch_size(batch)
+
+    warning_cache.clear()
+
+    batch = {"test": [{"test": [torch.zeros(10, 10), torch.zeros(11, 10)]}]}
+    with pytest.warns(UserWarning, match="Lightning is trying to infer the `batch_size` .* we found is 10."):
+        extract_batch_size(batch)
+
+    warning_cache.clear()
+
+    batch = [{"test": torch.zeros(10, 10), "test_1": torch.zeros(11, 10)}]
+    with pytest.warns(UserWarning, match="Lightning is trying to infer the `batch_size` .* we found is 10."):
+        extract_batch_size(batch)
 
 
 def test_has_iterable_dataset():
