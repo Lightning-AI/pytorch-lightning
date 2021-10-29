@@ -55,14 +55,14 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Callable[[], Any],
+        closure: Callable[[], Any],
         **kwargs: Any,
     ) -> None:
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"DeepSpeed and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
-        closure_result = lambda_closure()
+        closure_result = closure()
         if isinstance(model, pl.LightningModule):
             model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         skipped_backward = closure_result is None

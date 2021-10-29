@@ -23,6 +23,7 @@ import torch
 
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 
 
@@ -273,6 +274,10 @@ def test_log_works_in_val_callback(tmpdir):
 
             for idx, (on_step, on_epoch, prog_bar) in enumerate(itertools.product(on_steps, on_epochs, prob_bars)):
                 fx = f"{func_name}_{idx}"
+                if not on_step and not on_epoch:
+                    with pytest.raises(MisconfigurationException, match="is not useful"):
+                        pl_module.log(fx, self.count, on_step=on_step, on_epoch=on_epoch)
+                    continue
                 pl_module.log(fx, self.count, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
                 self.logged_values[fx].append(self.count)
                 self.logged_arguments[fx] = {"on_step": on_step, "on_epoch": on_epoch, "prog_bar": prog_bar}
@@ -380,6 +385,10 @@ def test_log_works_in_test_callback(tmpdir):
                 func_name = original_func_name[:]
                 custom_func_name = f"{idx}_{func_name}"
 
+                if not on_step and not on_epoch:
+                    with pytest.raises(MisconfigurationException, match="is not useful"):
+                        pl_module.log(custom_func_name, self.count, on_step=on_step, on_epoch=on_epoch)
+                    continue
                 pl_module.log(custom_func_name, self.count, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
 
                 num_dl_ext = ""
@@ -507,7 +516,6 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
             self.log("valid_loss_0", loss, on_step=True, on_epoch=True)
             self.log("valid_loss_1", loss, on_step=False, on_epoch=True)
             self.log("valid_loss_2", loss, on_step=True, on_epoch=False)
-            self.log("valid_loss_3", loss, on_step=False, on_epoch=False)
             return {"val_loss": loss}  # not added to callback_metrics
 
         def test_step(self, batch, batch_idx):

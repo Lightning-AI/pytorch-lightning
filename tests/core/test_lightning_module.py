@@ -349,23 +349,20 @@ def test_lightning_module_configure_gradient_clipping(tmpdir):
 
             for pg in optimizer.param_groups:
                 for p in pg["params"]:
-                    p.grad[p.grad > self.custom_gradient_clip_val] = self.custom_gradient_clip_val
-                    p.grad[p.grad <= 0] = 0
-
-        def on_before_optimizer_step(self, optimizer, optimizer_idx):
-            for pg in optimizer.param_groups:
-                for p in pg["params"]:
-                    if p.grad is not None and p.grad.abs().sum() > 0:
-                        self.has_validated_gradients = True
-                        assert p.grad.min() >= 0
-                        assert p.grad.max() <= self.custom_gradient_clip_val
+                    p.grad.clamp_(min=0, max=self.custom_gradient_clip_val)
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, limit_val_batches=0, gradient_clip_val=1e-4
+        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=0, gradient_clip_val=1e-4
     )
     trainer.fit(model)
-    assert model.has_validated_gradients
+
+    optimizer = model.optimizers()
+    for pg in optimizer.param_groups:
+        for p in pg["params"]:
+            if p.grad is not None:
+                assert p.grad.min() >= 0
+                assert p.grad.max() <= model.custom_gradient_clip_val
 
 
 def test_lightning_module_configure_gradient_clipping_different_argument_values(tmpdir):
