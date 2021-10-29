@@ -42,6 +42,7 @@ from pytorch_lightning.plugins import (
     IPUPlugin,
     IPUPrecisionPlugin,
     NativeMixedPrecisionPlugin,
+    ParallelPlugin,
     PrecisionPlugin,
     ShardedNativeMixedPrecisionPlugin,
     SingleDevicePlugin,
@@ -164,9 +165,12 @@ class AcceleratorConnector:
             self._set_training_type_plugin()
         else:
             self.set_distributed_mode()
-        self._configure_slurm_ddp()
 
         self.handle_given_plugins()
+        self._set_distrib_type_if_training_type_plugin_passed()
+
+        self._configure_slurm_ddp()
+
         self.update_device_type_if_ipu_plugin()
         self.update_device_type_if_training_type_plugin_passed()
 
@@ -1028,3 +1032,12 @@ class AcceleratorConnector:
         # notify user the that slurm is managing tasks
         if self._is_slurm_managing_tasks:
             rank_zero_info("Multi-processing is handled by Slurm.")
+
+    def _set_distrib_type_if_training_type_plugin_passed(self):
+        # This is required as when `TrainingTypePlugin` instance is passed to either `strategy`
+        # or `plugins` flag, `AcceleratorConnector.set_distributed_mode` is not required to be
+        # called and `_distrib_type` is not set.
+        if self._distrib_type is not None:
+            return
+        if self._training_type_plugin is not None and isinstance(self._training_type_plugin, ParallelPlugin):
+            self._distrib_type = self._training_type_plugin.distributed_backend

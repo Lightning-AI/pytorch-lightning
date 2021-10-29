@@ -33,7 +33,7 @@ class DataParallelPlugin(ParallelPlugin):
 
     def __init__(
         self,
-        parallel_devices: Optional[List[torch.device]],
+        parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
     ):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=None, checkpoint_io=checkpoint_io)
