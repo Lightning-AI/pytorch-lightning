@@ -61,7 +61,7 @@ class Lite(LightningLite):
             # TRAINING LOOP
             model.train()
             for batch_idx, (data, target) in enumerate(train_loader):
-                # NOTE: no need to call .to(device) on the data, target"
+                # NOTE: no need to call .to(device) on the data, target
                 optimizer.zero_grad()
                 output = model(data)
                 loss = F.nll_loss(output, target)
