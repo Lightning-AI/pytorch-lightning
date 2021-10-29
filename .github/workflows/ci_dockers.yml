@@ -71,7 +71,7 @@ jobs:
       matrix:
         # the config used in '.azure-pipelines/gpu-tests.yml'
         python_version: ["3.7"]
-        pytorch_version: ["1.8.1"]
+        pytorch_version: ["1.8"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
