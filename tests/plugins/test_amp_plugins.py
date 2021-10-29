@@ -71,7 +71,13 @@ def test_amp_apex_ddp(mocked_device_count, strategy, gpus, amp, custom_plugin, p
     assert isinstance(trainer.precision_plugin, plugin_cls)
 
 
-class GradientUnscaleBoringModel(BoringModel):
+class TestClippingOptimizer(torch.optim.SGD):
+    def step(self, *args, pl_module=None):
+        pl_module.check_grads_clipped()
+        return super().step(*args)
+
+
+class TestPrecisionModel(BoringModel):
     # sister test: tests/trainer/optimization/test_manual_optimization.py::test_multiple_optimizers_step
     def on_after_backward(self) -> None:
         # check grads are scaled
@@ -92,6 +98,12 @@ class GradientUnscaleBoringModel(BoringModel):
         for actual, expected in zip(grads, self.original_grads):
             torch.testing.assert_allclose(actual, expected)
 
+    def check_grads_clipped(self):
+        parameters = list(self.parameters())
+        assert len(parameters) == len(self.clipped_parameters)
+        for actual, expected in zip(parameters, self.clipped_parameters):
+            torch.testing.assert_allclose(actual.grad, expected.grad)
+
     def on_before_optimizer_step(self, optimizer, *_):
         self.check_grads_unscaled(optimizer)
         # manually clip
@@ -103,24 +115,27 @@ class GradientUnscaleBoringModel(BoringModel):
         clip_val = self.trainer.gradient_clip_val
         torch.nn.utils.clip_grad_value_(self.clipped_parameters, clip_val)
 
-    def configure_gradient_clipping(self, *args, **kwargs):
-        # let lightning clip
-        super().configure_gradient_clipping(*args, **kwargs)
-        # check clipping worked as expected
-        parameters = list(self.parameters())
-        assert len(parameters) == len(self.clipped_parameters)
-        for actual, expected in zip(parameters, self.clipped_parameters):
-            torch.testing.assert_allclose(actual.grad, expected.grad)
-
     def log_grad_norm(self, grad_norm_dict):
         self.check_grads_unscaled()
         assert len(grad_norm_dict)
 
+    def configure_gradient_clipping(self, *args, **kwargs):
+        # let lightning clip
+        super().configure_gradient_clipping(*args, **kwargs)
+        # check clipping worked as expected
+        self.check_grads_clipped()
 
-@RunIf(min_gpus=2)
+    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, closure, **_):
+        # pass self as a kwarg
+        optimizer.step(closure, pl_module=self)
+
+    def configure_optimizers(self):
+        return TestClippingOptimizer(self.layer.parameters(), lr=0.1)
+
+
 @pytest.mark.parametrize("accum", [1, 2])
 def test_amp_gradient_unscale(tmpdir, accum: int):
-    model = GradientUnscaleBoringModel()
+    model = TestPrecisionModel()
 
     trainer = Trainer(
         max_epochs=2,
@@ -129,7 +144,8 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
         limit_val_batches=0,
         amp_backend="native",
         strategy="ddp_spawn",
-        gpus=2,
+        accelerator="auto",
+        devices=2,
         precision=16,
         track_grad_norm=2,
         # use a tiny value to make sure it works
@@ -137,6 +153,7 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
         gradient_clip_algorithm="value",
         log_every_n_steps=1,
         accumulate_grad_batches=accum,
+        enable_progress_bar=False,
     )
     trainer.fit(model)
 
@@ -200,7 +217,6 @@ def test_amp_apex_ddp_fit(amp_level, tmpdir):
 @RunIf(min_gpus=2, amp_apex=True)
 @pytest.mark.parametrize("amp_level", ["O2"])
 def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
