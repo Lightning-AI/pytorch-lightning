@@ -326,6 +326,17 @@ class HookedModel(BoringModel):
                         args=(current_epoch, i, ANY, 0, ANY),
                         kwargs=dict(on_tpu=False, using_lbfgs=False, using_native_amp=using_native_amp),
                     ),
+                    *(
+                        [
+                            dict(
+                                name="scheduler_step",
+                                args=(ANY, current_epoch),
+                                kwargs=dict(optimizer_idx=None, monitor_val=None),
+                            )
+                        ]
+                        if i == (batches - 1)
+                        else []
+                    ),
                     dict(name="Callback.on_train_batch_end", args=(trainer, model, dict(loss=ANY), ANY, i)),
                     dict(name="on_train_batch_end", args=(dict(loss=ANY), ANY, i)),
                     dict(name="Callback.on_batch_end", args=(trainer, model)),

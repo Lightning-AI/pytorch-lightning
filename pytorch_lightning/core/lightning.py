@@ -1493,6 +1493,18 @@ class LightningModule(
             optimizer, gradient_clip_val=gradient_clip_val, gradient_clip_algorithm=gradient_clip_algorithm
         )
 
+    def scheduler_step(
+        self,
+        scheduler: Any,
+        step: int,
+        optimizer_idx: Optional[int] = None,
+        monitor_val: Optional[Union[float, torch.Tensor]] = None,
+    ):
+        if monitor_val is None:
+            scheduler.step()
+        else:
+            scheduler.step(monitor_val)
+
     def optimizer_step(
         self,
         epoch: int,
