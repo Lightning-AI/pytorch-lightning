@@ -726,6 +726,14 @@ def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
             assert self.trainer._results.batch_size == 2
             self.log("on_validation_batch_end", 1.0, reduce_fx="sum")
 
+        def training_epoch_end(self, *_) -> None:
+            self.log("training_epoch_end", 3.0, reduce_fx="mean")
+            assert self.trainer._results["training_epoch_end.training_epoch_end"].value == 3.0
+
+        def validation_epoch_end(self, *_) -> None:
+            self.log("validation_epoch_end", 3.0, reduce_fx="mean")
+            assert self.trainer._results["validation_epoch_end.validation_epoch_end"].value == 3.0
+
     model = TestModel()
     trainer = Trainer(
         enable_progress_bar=False,

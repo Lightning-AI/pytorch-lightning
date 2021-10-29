@@ -374,6 +374,9 @@ class ResultCollection(dict):
     def batch_size(self, value: int) -> None:
         self._batch_size = torch.tensor(value, device=self.device)
 
+    def _reset_batch_size(self) -> None:
+        self._batch_size = torch.tensor(1.0, device=self.device)
+
     def log(
         self,
         fx: str,
