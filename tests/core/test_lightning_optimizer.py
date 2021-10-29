@@ -209,6 +209,11 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
 def test_lightning_optimizer_automatic_optimization_optimizer_step(tmpdir):
     """Test overriding step works in automatic_optimization."""
 
+    # Allow UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`.
+    import warnings
+
+    warnings.filterwarnings("ignore", "Detected call of", UserWarning)
+
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx=None):
             return super().training_step(batch, batch_idx)
