@@ -684,6 +684,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed iterating over a logger collection when `fast_dev_run > 0` ([#10232](https://github.com/PyTorchLightning/pytorch-lightning/pull/10232))
 
 
+- Fixed `batch_size` in `ResultCollection` not being reset to 1 on epoch end ([#10242](https://github.com/PyTorchLightning/pytorch-lightning/pull/10242))
+
 
 ## [1.4.9] - 2021-09-30
 
