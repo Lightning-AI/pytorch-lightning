@@ -118,11 +118,11 @@ class PrecisionPlugin(CheckpointHooks):
         optimizer_idx: int,
         closure: Callable[[], Any],
     ) -> Any:
-        """This double-closure allows makes sure the ``lambda_closure`` is executed before the
+        """This double-closure allows makes sure the ``closure`` is executed before the
         ``on_before_optimizer_step`` hook is called.
 
         The closure (generally) runs ``backward`` so this allows inspecting gradients in this hook. This structure is
-        consistent with the ``PrecisionPlugin`` subclasses that cannot pass ``optimizer.step(lambda_closure)`` directly.
+        consistent with the ``PrecisionPlugin`` subclasses that cannot pass ``optimizer.step(closure)`` directly.
         """
         closure_result = closure()
         model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
