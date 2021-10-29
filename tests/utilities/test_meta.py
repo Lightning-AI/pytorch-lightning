@@ -15,7 +15,7 @@ import pytest
 from torch import nn
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_DEV_1_10
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_10
 from pytorch_lightning.utilities.meta import init_meta_context, materialize_module
 
 
@@ -32,7 +32,7 @@ class BoringModel(LightningModule):
         self.layer = nn.Sequential(*[nn.Linear(1, 1) for _ in range(self.hparams.num_layers)])
 
 
-@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_DEV_1_10, reason="Support only with PyTorch 1.10")
+@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_10, reason="Support only with PyTorch 1.10")
 def test_init_meta_context():
 
     with init_meta_context():
