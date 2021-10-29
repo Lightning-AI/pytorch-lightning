@@ -37,20 +37,14 @@ def extract_batch_size(batch: BType) -> int:
         return len(batch)
     if isinstance(batch, dict):
         sample = next(iter(batch.values()), 1)
-        batch_size = extract_batch_size(sample)
-        if len(batch) > 1:
-            warning_cache.warn(
-                f"Lightning is trying to infer the `batch_size`. We found {batch_size}."
-                "To avoid any mis-calculations, use self.log(..., batch_size=batch_size, ...)"
-            )
-        return batch_size
     if isinstance(batch, Iterable):
         sample = next(iter(batch), 1)
+    if isinstance(batch, (dict, Iterable)):
         batch_size = extract_batch_size(sample)
         if len(batch) > 1:
             warning_cache.warn(
-                f"Lightning is trying to infer the `batch_size`. We found {batch_size}."
-                "To avoid any mis-calculations, use self.log(..., batch_size=batch_size, ...)"
+                f"Lightning is trying to infer the `batch_size` from a collection. We found {batch_size}."
+                " To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`."
             )
         return batch_size
 
