@@ -353,6 +353,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Changed default value of the `max_steps` Trainer argument from `None` to -1 ([#9460](https://github.com/PyTorchLightning/pytorch-lightning/pull/9460))
 
 
+- Raise an error when calling `log(on_step=False, on_epoch=False)` ([#10227](https://github.com/PyTorchLightning/pytorch-lightning/pull/10227))
+
+
 - Disable quantization aware training observers by default during validating/testing/predicting stages ([#8540](https://github.com/PyTorchLightning/pytorch-lightning/pull/8540))
 
 
@@ -670,6 +673,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed incorrect handling of sigterm ([#10189](https://github.com/PyTorchLightning/pytorch-lightning/pull/10189))
+
+
+- Fixed bug where `log(on_step=True, on_epoch=True, sync_dist=True)` wouldn't reduce the value on step ([#10227](https://github.com/PyTorchLightning/pytorch-lightning/pull/10227))
 
 
 - Fixed an issue with `pl.utilities.seed.reset_seed` converting the `PL_SEED_WORKERS` environment variable to `bool` ([#10099](https://github.com/PyTorchLightning/pytorch-lightning/pull/10099))
