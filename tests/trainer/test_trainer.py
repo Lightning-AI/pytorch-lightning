@@ -47,7 +47,9 @@ from pytorch_lightning.utilities.seed import seed_everything
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.boring_model import RandomIterableDataset, RandomIterableDatasetWithLen
+from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
+from tests.helpers.simple_models import ClassificationModel
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -991,75 +993,65 @@ def test_on_exception_hook(tmpdir):
     assert isinstance(handle_interrupt_callback.exception, MisconfigurationException)
 
 
-@pytest.mark.parametrize(
-    "precision",
-    [32, pytest.param(16, marks=RunIf(min_gpus=1))],
-)
+@pytest.mark.parametrize("precision", [32, pytest.param(16, marks=RunIf(min_gpus=1))])
 def test_gradient_clipping_by_norm(tmpdir, precision):
     """Test gradient clipping by norm."""
     tutils.reset_seed()
 
-    model = EvalModelTemplate()  # TODO: when precision=16, BoringModel produces NaN, but EvalModelTemplate not
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=1,
         max_epochs=1,
-        gpus=int(torch.cuda.is_available()),
+        accelerator="auto",
+        devices=1,
         precision=precision,
         gradient_clip_algorithm="norm",
-        gradient_clip_val=1.0,
+        gradient_clip_val=0.05,
     )
 
-    old_backward = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward
+    class TestModel(ClassificationModel):
+        def configure_gradient_clipping(self, *args, **kwargs):
+            super().configure_gradient_clipping(*args, **kwargs)
+            # test that gradient is clipped correctly
+            parameters = self.parameters()
+            grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
+            torch.testing.assert_allclose(grad_norm, torch.tensor(0.05))
+            self.assertion_called = True
 
-    def backward(*args, **kwargs):
-        # test that gradient is clipped correctly
-        ret_val = old_backward(*args, **kwargs)
-        parameters = model.parameters()
-        grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
-        assert (grad_norm - 1.0).abs() < 0.01, f"Gradient norm != 1.0: {grad_norm}"
-        return ret_val
-
-    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward = backward
-    trainer.fit(model)
+    model = TestModel()
+    trainer.fit(model, ClassifDataModule())
+    assert model.assertion_called
 
 
-@pytest.mark.parametrize(
-    "precision",
-    [32, pytest.param(16, marks=RunIf(min_gpus=1))],
-)
+@pytest.mark.parametrize("precision", [32, pytest.param(16, marks=RunIf(min_gpus=1))])
 def test_gradient_clipping_by_value(tmpdir, precision):
     """Test gradient clipping by value."""
     tutils.reset_seed()
 
-    model = BoringModel()
-
-    grad_clip_val = 1e-10
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_steps=1,
         max_epochs=1,
+        accelerator="auto",
+        devices=1,
         precision=precision,
-        gpus=int(torch.cuda.is_available()),
-        gradient_clip_val=grad_clip_val,
         gradient_clip_algorithm="value",
-        default_root_dir=tmpdir,
+        gradient_clip_val=1e-10,
     )
 
-    old_backward = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward
+    class TestModel(BoringModel):
+        def configure_gradient_clipping(self, *args, **kwargs):
+            super().configure_gradient_clipping(*args, **kwargs)
+            # test that gradient is clipped correctly
+            parameters = self.parameters()
+            grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
+            grad_max = torch.max(torch.stack(grad_max_list))
+            torch.testing.assert_allclose(grad_max.abs(), torch.tensor(1e-10))
+            self.assertion_called = True
 
-    def backward(*args, **kwargs):
-        # test that gradient is clipped correctly
-        ret_val = old_backward(*args, **kwargs)
-        parameters = model.parameters()
-        grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
-        grad_max = torch.max(torch.stack(grad_max_list))
-        assert (
-            abs(grad_max.item() - grad_clip_val) < 1e-11
-        ), f"Gradient max value {grad_max} != grad_clip_val {grad_clip_val} ."
-        return ret_val
-
-    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward = backward
+    model = TestModel()
     trainer.fit(model)
+    assert model.assertion_called
 
 
 def test_invalid_gradient_clip_value(tmpdir):

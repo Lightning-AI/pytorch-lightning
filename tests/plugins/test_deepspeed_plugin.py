@@ -17,7 +17,7 @@ from pytorch_lightning.callbacks import Callback, LearningRateMonitor, ModelChec
 from pytorch_lightning.plugins import DeepSpeedPlugin, DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE, _TORCH_META_AVAILABLE
+from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE, _TORCH_GREATER_EQUAL_DEV_1_10
 from pytorch_lightning.utilities.meta import init_meta_context
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.datamodules import ClassifDataModule
@@ -203,17 +203,20 @@ def test_deepspeed_defaults(tmpdir):
 
 
 @RunIf(min_gpus=1, deepspeed=True, special=True)
-def test_warn_deepspeed_override_backward(tmpdir):
-    """Test to ensure that if the backward hook in the LightningModule is overridden, we throw a warning."""
-
+def test_warn_deepspeed_ignored(tmpdir):
     class TestModel(BoringModel):
         def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
             return loss.backward()
 
     model = TestModel()
-    trainer = Trainer(fast_dev_run=True, default_root_dir=tmpdir, strategy=DeepSpeedPlugin(), gpus=1, precision=16)
+    trainer = Trainer(
+        fast_dev_run=True, default_root_dir=tmpdir, strategy=DeepSpeedPlugin(), gpus=1, precision=16, track_grad_norm=2
+    )
+    from pytorch_lightning.plugins.precision.deepspeed_precision import warning_cache
+
     with pytest.warns(UserWarning, match="will be ignored since DeepSpeed handles the backward"):
         trainer.fit(model)
+    assert any("track_grad_norm=2.0)' but this is not supported" in w for w in warning_cache)
 
 
 @RunIf(min_gpus=1, deepspeed=True)
@@ -1046,7 +1049,7 @@ def test_specific_gpu_device_id(tmpdir):
     trainer.test(model)
 
 
-@pytest.mark.skipif(not _TORCH_META_AVAILABLE, reason="the meta device context is supported from PyTorch 1.10.")
+@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_DEV_1_10, reason="the meta device context is supported from PyTorch 1.10.")
 @RunIf(min_gpus=2, deepspeed=True, special=True)
 def test_deepspeed_with_meta_device(tmpdir):
     with init_meta_context():
