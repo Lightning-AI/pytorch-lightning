@@ -113,7 +113,7 @@ class PrecisionPlugin(CheckpointHooks):
 
     def _wrap_closure(
         self,
-        model: pl.LightningModule,
+        model: "pl.LightningModule",
         optimizer: Optimizer,
         optimizer_idx: int,
         closure: Callable[[], Any],
