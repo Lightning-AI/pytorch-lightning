@@ -318,7 +318,7 @@ class Accelerator:
         self,
         optimizer: Optimizer,
         opt_idx: int,
-        lambda_closure: Callable[[], Any],
+        closure: Callable[[], Any],
         model: Optional[Union["pl.LightningModule", Module]] = None,
         **kwargs: Any
     ) -> None:
@@ -327,12 +327,17 @@ class Accelerator:
         Args:
             optimizer: the optimizer performing the step
             opt_idx: index of the current optimizer
-            lambda_closure: closure calculating the loss value
+            closure: closure calculating the loss value
             model: reference to the model, optionally defining optimizer step related hooks
             **kwargs: Any extra arguments to ``optimizer.step``
         """
         model = model or self.lightning_module
-        self.precision_plugin.optimizer_step(model, optimizer, opt_idx, lambda_closure, **kwargs)
+        self.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
+
+        if not isinstance(model, pl.LightningModule):
+            # gradient clipping and norm tracking only available with a LightingModule/Trainer
+            return
+
         trainer = model.trainer
         assert isinstance(trainer, pl.Trainer)
         # TODO: this is done for the entire model but should be changed to per-optimizer

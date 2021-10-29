@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+from functools import partial
 from typing import Any, Callable, Generator, List, Optional, Tuple, Union
 
 import torch
@@ -110,21 +111,38 @@ class PrecisionPlugin(CheckpointHooks):
         """
         tensor.backward(*args, **kwargs)
 
+    def _wrap_closure(
+        self,
+        model: "pl.LightningModule",
+        optimizer: Optimizer,
+        optimizer_idx: int,
+        closure: Callable[[], Any],
+    ) -> Any:
+        """This double-closure allows makes sure the ``closure`` is executed before the
+        ``on_before_optimizer_step`` hook is called.
+
+        The closure (generally) runs ``backward`` so this allows inspecting gradients in this hook. This structure is
+        consistent with the ``PrecisionPlugin`` subclasses that cannot pass ``optimizer.step(closure)`` directly.
+        """
+        closure_result = closure()
+        model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
+        return closure_result
+
     def optimizer_step(
         self,
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Callable[[], Any],
+        closure: Callable[[], Any],
         **kwargs: Any,
     ) -> None:
         """Hook to run the optimizer step."""
         if isinstance(model, pl.LightningModule):
-            model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
-        optimizer.step(closure=lambda_closure, **kwargs)
+            closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, closure)
+        optimizer.step(closure=closure, **kwargs)
 
     def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
-        if float(trainer.track_grad_norm) == -1:
+        if trainer.track_grad_norm == -1:
             return
         grad_norm_dict = grad_norm(trainer.lightning_module, trainer.track_grad_norm, trainer.logger.group_separator)
         if grad_norm_dict:
