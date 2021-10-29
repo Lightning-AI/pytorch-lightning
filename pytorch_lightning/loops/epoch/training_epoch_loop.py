@@ -476,6 +476,10 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             if update_plateau_schedulers ^ lr_scheduler["reduce_on_plateau"]:
                 continue
 
+            # skip if `optimizer.step()` is skipped
+            if getattr(lr_scheduler["scheduler"].optimizer, "skipped_optimizer_step", False):
+                continue
+
             current_idx = self.batch_idx if interval == "step" else self.trainer.current_epoch
             current_idx += 1  # account for both batch and epoch starts from 0
             # Take step if call to update_learning_rates matches the interval key and

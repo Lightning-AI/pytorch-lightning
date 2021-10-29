@@ -93,8 +93,11 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         # in manual optimization, the closure does not return a value
         if not isinstance(model, pl.LightningModule) or not model.automatic_optimization or not skipped_backward:
             # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
+            scale_before_optimizer_step = self.scaler.get_scale()
             self.scaler.step(optimizer, **kwargs)
             self.scaler.update()
+            scale_after_optimizer_step = self.scaler.get_scale()
+            optimizer.skipped_optimizer_step = scale_before_optimizer_step > scale_after_optimizer_step
 
     def autocast_context_manager(self) -> autocast:
         if _TORCH_GREATER_EQUAL_1_10:
