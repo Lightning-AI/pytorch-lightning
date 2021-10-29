@@ -549,4 +549,4 @@ class CallbackDepMixin(ABC):
         # ensure existing callback_connector logic is adhered to. Adding an FTS configuration method to
         # CallbackConnector or forcing users to manually add default EarlyStopping and FTSCheckpoint classes
         # would avoid this callback_connector call
-        return trainer.callback_connector._reorder_callbacks(trainer.callbacks)
+        return trainer._callback_connector._reorder_callbacks(trainer.callbacks)
