@@ -34,11 +34,6 @@ def flatten_list(lst):
 
 
 def _extract_batch_size(batch: BType, recursive=False) -> List[int]:
-    """Recursively unpack a batch to find a torch.Tensor.
-
-    Returns:
-        ``len(tensor)`` when found, or ``1`` when it hits an empty or non iterable.
-    """
     if isinstance(batch, torch.Tensor):
         return [batch.size(0)]
     if isinstance(batch, str):
@@ -62,6 +57,11 @@ def _extract_batch_size(batch: BType, recursive=False) -> List[int]:
 
 
 def extract_batch_size(batch: BType) -> int:
+    """Unpack a batch to find a ``torch.Tensor``.
+
+    Returns:
+        ``len(tensor)`` when found, or ``1`` when it hits an empty or non iterable.
+    """
     return _extract_batch_size(batch)[0]
 
 
