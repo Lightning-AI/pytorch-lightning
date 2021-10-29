@@ -410,6 +410,8 @@ class LightningModule(
         # set the default depending on the fx_name
         on_step = self.__auto_choose_log_on_step(on_step)
         on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
+        if not on_step and not on_epoch:
+            raise MisconfigurationException("`self.log(on_step=False, on_epoch=False)` is not useful.")
 
         if self.trainer is None:
             # not an error to support testing the `*_step` methods without a `Trainer` reference
