@@ -449,7 +449,6 @@ class Trainer(
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self._callback_connector = CallbackConnector(self)
-        self._debugging_connector = DebuggingConnector(self)
         self.training_tricks_connector = TrainingTricksConnector(self)
         self.checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
         self.signal_connector = SignalConnector(self)
