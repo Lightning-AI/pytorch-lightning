@@ -559,7 +559,7 @@ class Trainer(
             if gradient_clip_algorithm is not None
             else gradient_clip_algorithm
         )
-        self.track_grad_norm = float(track_grad_norm)
+        self.track_grad_norm: float = float(track_grad_norm)
 
         self._detect_anomaly: bool = detect_anomaly
         self._setup_on_init(num_sanity_val_steps)
