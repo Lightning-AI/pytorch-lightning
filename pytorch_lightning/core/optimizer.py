@@ -31,8 +31,9 @@ class LightningOptimizer:
     across accelerators, AMP, accumulate_grad_batches."""
 
     def __init__(self, optimizer: Optimizer):
-        # copy most of the `Optimizer` methods into this instance
-        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("step",)}
+        # copy most of the `Optimizer` methods into this instance. `__del__` is skipped in case the optimizer has
+        # implemented custom logic which we would not want to call on destruction of the `LightningOptimizer`
+        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("step", "__del__")}
 
         # For Horovod
         if hasattr(optimizer, "skip_synchronize"):
