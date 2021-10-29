@@ -193,12 +193,14 @@ You will need to override a minimum of two things:
 
         @property
         def done(self):
-            # provide condition to stop the loop
+            """Provide a condition to stop the loop."""
 
         def advance(self):
-            # access your dataloader/s in whatever way you want
-            # do your fancy optimization things
-            # call the lightning module methods at your leisure
+            """
+            Access your dataloader/s in whatever way you want.
+            Do your fancy optimization things.
+            Call the LightningModule methods at your leisure.
+            """
 
 Finally, attach it into the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
