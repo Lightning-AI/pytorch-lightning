@@ -93,7 +93,6 @@ _NEPTUNE_GREATER_EQUAL_0_9 = _NEPTUNE_AVAILABLE and _compare_version("neptune", 
 _OMEGACONF_AVAILABLE = _module_available("omegaconf")
 _POPTORCH_AVAILABLE = _module_available("poptorch")
 _RICH_AVAILABLE = _module_available("rich") and _compare_version("rich", operator.ge, "10.2.2")
-_TORCH_META_AVAILABLE = _compare_version("torch", operator.ge, "1.10.0.dev20210922")
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
 _TORCHTEXT_AVAILABLE = _module_available("torchtext")
 _TORCHVISION_AVAILABLE = _module_available("torchvision")

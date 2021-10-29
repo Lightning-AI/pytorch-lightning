@@ -122,20 +122,20 @@ For simple changes that don't require a custom loop, you can modify each of thes
 Each loop has a series of methods that can be modified.
 For example with the :class:`~pytorch_lightning.loops.fit_loop.FitLoop`:
 
-.. code-block::
+.. code-block:: python
 
     from pytorch_lightning.loops import FitLoop
 
+
     class MyLoop(FitLoop):
+        def advance(self):
+            """Advance from one iteration to the next."""
 
-        def advance():
-            ...
-
-        def on_advance_end(self)
-            ...
+        def on_advance_end(self):
+            """Do something at the end of an iteration."""
 
         def on_run_end(self):
-            ...
+            """Do something when the loop ends."""
 
 A full list with all built-in loops and subloops can be found :ref:`here <loop structure>`.
 
@@ -185,20 +185,22 @@ Creating a new loop from scratch
 You can also go wild and implement a full loop from scratch by sub-classing the :class:`~pytorch_lightning.loops.base.Loop` base class.
 You will need to override a minimum of two things:
 
-.. code-block::
+.. code-block:: python
 
     from pytorch_lightning.loop import Loop
 
-    class MyFancyLoop(Loop):
 
+    class MyFancyLoop(Loop):
         @property
         def done(self):
-            # provide condition to stop the loop
+            """Provide a condition to stop the loop."""
 
         def advance(self):
-            # access your dataloader/s in whatever way you want
-            # do your fancy optimization things
-            # call the lightning module methods at your leisure
+            """
+            Access your dataloader/s in whatever way you want.
+            Do your fancy optimization things.
+            Call the LightningModule methods at your leisure.
+            """
 
 Finally, attach it into the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 

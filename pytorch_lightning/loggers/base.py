@@ -510,6 +510,10 @@ class DummyLogger(LightningLoggerBase):
         # enables self.logger[0].experiment.add_image(...)
         return self
 
+    def __iter__(self):
+        # if DummyLogger is substituting a logger collection, pretend it is empty
+        yield from ()
+
 
 def merge_dicts(
     dicts: Sequence[Mapping],
