@@ -70,7 +70,10 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
     _check_data_type(gpus)
 
     # Handle the case when no gpus are requested
-    if gpus is None or (isinstance(gpus, int) and gpus == 0) or str(gpus).strip() == "0" or len(gpus) == 0:
+    if (gpus is None 
+        or (isinstance(gpus, int) and gpus == 0) 
+        or str(gpus).strip() == "0" 
+        or (isinstance(gpus, list) and len(gpus) == 0)):
         return None
 
     # We know user requested GPUs therefore if some of the
