@@ -11,12 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pytest
 from torch import nn
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_10
 from pytorch_lightning.utilities.meta import init_meta_context, materialize_module
+from tests.helpers.runif import RunIf
 
 
 class MLP(nn.Module):
@@ -32,7 +31,7 @@ class BoringModel(LightningModule):
         self.layer = nn.Sequential(*[nn.Linear(1, 1) for _ in range(self.hparams.num_layers)])
 
 
-@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_10, reason="Support only with PyTorch 1.10")
+@RunIf(min_torch="1.10.0")
 def test_init_meta_context():
 
     with init_meta_context():
