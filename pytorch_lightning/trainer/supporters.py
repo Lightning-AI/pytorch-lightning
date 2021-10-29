@@ -492,7 +492,7 @@ class CombinedLoader:
         return self._calc_num_batches(self.loaders)
 
     @staticmethod
-    def _reset(dataloader) -> None:
+    def _shutdown_workers_and_reset_iterator(dataloader) -> None:
         if hasattr(dataloader, "_iterator") and isinstance(dataloader._iterator, _MultiProcessingDataLoaderIter):
             dataloader._iterator._shutdown_workers()
         dataloader._iterator = None
@@ -501,7 +501,7 @@ class CombinedLoader:
         if self._iterator:
             self._iterator._loader_iters = None
         if self.loaders is not None:
-            apply_to_collection(self.loaders, DataLoader, self._reset)
+            apply_to_collection(self.loaders, DataLoader, self._shutdown_workers_and_reset_iterator)
         self._iterator = None
 
 

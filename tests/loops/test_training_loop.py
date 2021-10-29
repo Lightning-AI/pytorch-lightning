@@ -13,11 +13,9 @@
 # limitations under the License.
 import pytest
 import torch
-from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader
 
 from pytorch_lightning import seed_everything, Trainer
-from tests.helpers import BoringModel, RandomDataset
-from tests.helpers.runif import RunIf
+from tests.helpers import BoringModel
 
 
 def test_outputs_format(tmpdir):
@@ -143,34 +141,3 @@ def test_warning_valid_train_step_end(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
 
     trainer.fit(model)
-
-
-@RunIf(min_torch="1.8.0")
-@pytest.mark.parametrize("persistent_workers", (True, False))
-def test_training_loop_workers_are_shutdown(tmpdir, persistent_workers):
-    # `num_workers == 1` uses `_MultiProcessingDataLoaderIter`
-    # `persistent_workers` makes sure `self._iterator` gets set on the `DataLoader` instance
-
-    has_shutdown_workers = False
-
-    class _TestMultiProcessingDataLoaderIter(_MultiProcessingDataLoaderIter):
-        def _shutdown_workers(self):
-            nonlocal has_shutdown_workers
-            has_shutdown_workers = True
-            super()._shutdown_workers()
-
-    class TestDataLoader(DataLoader):
-        def _get_iterator(self):
-            if self.num_workers == 0:
-                return super()._get_iterator()
-            else:
-                self.check_worker_number_rationality()
-                return _TestMultiProcessingDataLoaderIter(self)
-
-    train_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
-
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=0, max_epochs=2)
-    trainer.fit(model, train_dataloader)
-    assert has_shutdown_workers
-    assert train_dataloader._iterator is None
