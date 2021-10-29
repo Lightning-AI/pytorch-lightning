@@ -700,7 +700,7 @@ class ModelCheckpoint(Callback):
 
         # do not save nan, replace with +/- inf
         if isinstance(current, torch.Tensor) and torch.isnan(current):
-            current = torch.tensor(float("inf" if self.mode == "min" else "-inf"))
+            current = torch.tensor(float("inf" if self.mode == "min" else "-inf"), device=current.device)
 
         filepath = self._get_metric_interpolated_filepath_name(monitor_candidates, trainer, del_filepath)
 
