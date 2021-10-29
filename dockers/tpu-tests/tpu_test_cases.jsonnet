@@ -16,7 +16,7 @@ local tputests = base.BaseTest {
   tpuSettings+: {
     softwareVersion: 'pytorch-{PYTORCH_VERSION}',
   },
-  accelerator: tpus.v3_8,
+  accelerator: tpus.v2_8,
 
   command: utils.scriptCommand(
     |||
