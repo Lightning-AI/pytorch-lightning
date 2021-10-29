@@ -10,7 +10,7 @@ jobs:
   verify_linked_issue:
     runs-on: ubuntu-latest
     name: Ensure Pull Request has a linked issue.
-    if: github.event.pull_request.draft == false and github.event.label.name in ['bug / fix', 'enhancement']
+    if: github.event.pull_request.draft == false and github.event.label.name == 'enhancement'
     steps:
       - name: Verify Linked Issue
         uses: hattan/verify-linked-issue-action@v1.1.0
