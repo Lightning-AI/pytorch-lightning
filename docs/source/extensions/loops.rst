@@ -129,13 +129,13 @@ For example with the :class:`~pytorch_lightning.loops.fit_loop.FitLoop`:
     class MyLoop(FitLoop):
 
         def advance(self):
-            # advance from one iteration to the next
+            """Advance from one iteration to the next."""
 
         def on_advance_end(self):
-            # do something at the end of an iteration
+            """Do something at the end of an iteration."""
 
         def on_run_end(self):
-            # do something when the loop ends
+            """Do something when the loop ends."""
 
 A full list with all built-in loops and subloops can be found :ref:`here <loop structure>`.
 
