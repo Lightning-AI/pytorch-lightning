@@ -356,6 +356,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Changed default value of the `max_steps` Trainer argument from `None` to -1 ([#9460](https://github.com/PyTorchLightning/pytorch-lightning/pull/9460))
 
 
+- Raise an error when calling `log(on_step=False, on_epoch=False)` ([#10227](https://github.com/PyTorchLightning/pytorch-lightning/pull/10227))
+
+
 - Disable quantization aware training observers by default during validating/testing/predicting stages ([#8540](https://github.com/PyTorchLightning/pytorch-lightning/pull/8540))
 
 
@@ -662,17 +665,22 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed undesired side effects being caused by `Trainer` patching dataloader methods on the `LightningModule` ([#9764](https://github.com/PyTorchLightning/pytorch-lightning/pull/9764))
 
 
+- Fixed gradients not being unscaled when clipping or logging the gradient norm ([#9287](https://github.com/PyTorchLightning/pytorch-lightning/pull/9287))
+
+
 - Fixed monitor value in `ModelCheckpoint` getting moved to the wrong device in a special case where it becomes NaN ([#10118](https://github.com/PyTorchLightning/pytorch-lightning/pull/10118))
 
 
 - Fixed creation of `dirpath` in `BaseProfiler` if it doesn't exist ([#10073](https://github.com/PyTorchLightning/pytorch-lightning/pull/10073))
 
 
-- Fixed an issue with `pl.utilities.seed.reset_seed` converting the `PL_SEED_WORKERS` environment variable to `bool` ([#10099](https://github.com/PyTorchLightning/pytorch-lightning/pull/10099))
+- Fixed incorrect handling of sigterm ([#10189](https://github.com/PyTorchLightning/pytorch-lightning/pull/10189))
 
 
 - Fixed bug where `log(on_step=True, on_epoch=True, sync_dist=True)` wouldn't reduce the value on step ([#10227](https://github.com/PyTorchLightning/pytorch-lightning/pull/10227))
 
+
+- Fixed an issue with `pl.utilities.seed.reset_seed` converting the `PL_SEED_WORKERS` environment variable to `bool` ([#10099](https://github.com/PyTorchLightning/pytorch-lightning/pull/10099))
 
 
 ## [1.4.9] - 2021-09-30
