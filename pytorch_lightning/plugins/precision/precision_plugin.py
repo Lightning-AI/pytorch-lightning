@@ -21,7 +21,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.hooks import CheckpointHooks
-from pytorch_lightning.utilities import GradClipAlgorithmType
+from pytorch_lightning.utilities import grad_norm, GradClipAlgorithmType, rank_zero_deprecation
 from pytorch_lightning.utilities.types import _PARAMETERS
 
 
@@ -34,7 +34,20 @@ class PrecisionPlugin(CheckpointHooks):
     precision: Union[str, int] = 32
 
     def master_params(self, optimizer: Optimizer) -> _PARAMETERS:
-        """The master params of the model.
+        """The main params of the model.
+
+        .. deprecated:: v1.5
+
+            This method is deprecated in v1.5 and will be removed in v1.6. Use :meth:`main_params` instead.
+        """
+        rank_zero_deprecation(
+            f"`{self.__class__.__name__}.master_params` was deprecated in v1.5 and will be removed in v1.6."
+            f" Use `main_params` instead."
+        )
+        return self.main_params(optimizer)
+
+    def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
+        """The main params of the model.
 
         Returns the plain model params here. Maybe different in other precision plugins.
         """
@@ -90,55 +103,76 @@ class PrecisionPlugin(CheckpointHooks):
         model.trainer.call_hook("on_after_backward")
         return closure_loss
 
-    def _run_backward(self, tensor: Tensor, model: Module, *args: Any, **kwargs: Any) -> None:
+    def _run_backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
         """Lightning-independent backward logic.
 
         Currently only used by Lightning Lite. Subject to further refactors.
         """
         tensor.backward(*args, **kwargs)
 
-    def pre_optimizer_step(
+    def optimizer_step(
         self,
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Callable,
+        lambda_closure: Callable[[], Any],
         **kwargs: Any,
-    ) -> bool:
-        """Hook to do something before each optimizer step."""
+    ) -> None:
+        """Hook to run the optimizer step."""
         if isinstance(model, pl.LightningModule):
             model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
-        return True
+        optimizer.step(closure=lambda_closure, **kwargs)
+
+    def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
+        if float(trainer.track_grad_norm) == -1:
+            return
+        grad_norm_dict = grad_norm(trainer.lightning_module, trainer.track_grad_norm, trainer.logger.group_separator)
+        if grad_norm_dict:
+            prev_fx = trainer.lightning_module._current_fx_name
+            trainer.lightning_module._current_fx_name = "on_before_optimizer_step"
+            trainer.lightning_module.log_grad_norm(grad_norm_dict)
+            trainer.lightning_module._current_fx_name = prev_fx
+
+    def _clip_gradients(
+        self,
+        model: Union["pl.LightningModule", Module],
+        optimizer: Optimizer,
+        optimizer_idx: int,
+        clip_val: Optional[Union[int, float]] = None,
+        gradient_clip_algorithm: Optional[GradClipAlgorithmType] = None,
+    ) -> None:
+        if not isinstance(model, pl.LightningModule) or not model.automatic_optimization:
+            # the configuration validator disallows clipping on manual
+            return
+        model.configure_gradient_clipping(
+            optimizer,
+            optimizer_idx,
+            gradient_clip_val=clip_val,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+        )
 
     def clip_gradients(
         self,
         optimizer: Optimizer,
-        clip_val: Union[int, float],
+        clip_val: Union[int, float] = 0.0,
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
-        model: Optional[Module] = None,
     ) -> None:
         """Clips the gradients."""
-        if clip_val is None:
-            return
-
-        clip_val = float(clip_val)
         if clip_val <= 0:
             return
-
         if gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
             self.clip_grad_by_value(optimizer, clip_val)
         elif gradient_clip_algorithm == GradClipAlgorithmType.NORM:
-            # TODO: there should be a mechanism to set `norm_type`
             self.clip_grad_by_norm(optimizer, clip_val)
 
     def clip_grad_by_value(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
         """Clip gradients by value."""
-        parameters = self.master_params(optimizer)
+        parameters = self.main_params(optimizer)
         torch.nn.utils.clip_grad_value_(parameters, clip_value=clip_val)
 
     def clip_grad_by_norm(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
         """Clip gradients by norm."""
-        parameters = self.master_params(optimizer)
+        parameters = self.main_params(optimizer)
         torch.nn.utils.clip_grad_norm_(parameters, clip_val)
 
     def pre_dispatch(self) -> None:

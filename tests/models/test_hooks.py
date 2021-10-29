@@ -234,7 +234,7 @@ class HookedModel(BoringModel):
         super().__init__()
         pl_module_hooks = get_members(LightningModule)
         # remove non-hooks
-        pl_module_hooks.difference_update({"optimizers"})
+        pl_module_hooks.difference_update({"optimizers", "log", "log_dict"})
         # remove most `nn.Module` hooks
         module_hooks = get_members(torch.nn.Module)
         module_hooks.difference_update({"forward", "zero_grad", "train"})
@@ -281,24 +281,6 @@ class HookedModel(BoringModel):
             dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY, 0)),
             dict(name="on_before_optimizer_step", args=(ANY, 0)),
         ]
-
-        # deepspeed handles gradient clipping internally
-        configure_gradient_clipping = (
-            []
-            if using_deepspeed
-            else [
-                dict(
-                    name="clip_gradients",
-                    args=(ANY,),
-                    kwargs=dict(gradient_clip_val=None, gradient_clip_algorithm=None),
-                ),
-                dict(
-                    name="configure_gradient_clipping",
-                    args=(ANY, 0),
-                    kwargs=dict(gradient_clip_val=None, gradient_clip_algorithm=None),
-                ),
-            ]
-        )
         for i in range(batches):
             out.extend(
                 [
@@ -323,8 +305,20 @@ class HookedModel(BoringModel):
                     *([dict(name="backward", args=(ANY, ANY, 0))] if not using_deepspeed else []),
                     dict(name="Callback.on_after_backward", args=(trainer, model)),
                     dict(name="on_after_backward"),
-                    *configure_gradient_clipping,
                     *(on_before_optimizer_step if using_plugin else []),
+                    *([dict(name="log_grad_norm", args=ANY)] if not using_deepspeed else []),
+                    dict(
+                        name="clip_gradients",
+                        args=(ANY,),
+                        kwargs=dict(gradient_clip_val=None, gradient_clip_algorithm=None),
+                    ),
+                    dict(
+                        name="configure_gradient_clipping",
+                        args=(ANY, 0),
+                        kwargs=dict(gradient_clip_val=None, gradient_clip_algorithm=None),
+                    ),
+                    # this is after because it refers to the `LightningModule.optimizer_step` hook which encapsulates
+                    # the actual call to `PrecisionPlugin.optimizer_step`
                     dict(
                         name="optimizer_step",
                         args=(current_epoch, i, ANY, 0, ANY),
@@ -366,6 +360,7 @@ class HookedModel(BoringModel):
                     dict(name="on_before_optimizer_step", args=(ANY, 0)),
                     # without a precision plugin, we execute the closure inside the `optimizer.step`
                     *([] if using_plugin else [dict(name="closure")]),
+                    *([dict(name="log_grad_norm", args=ANY)] if not using_deepspeed else []),
                     dict(name="training_step", args=(ANY, i)),
                     dict(name="training_step_end", args=(dict(loss=ANY),)),
                     dict(name="Callback.on_train_batch_end", args=(trainer, model, dict(loss=ANY), ANY, i)),
@@ -493,6 +488,7 @@ def _run_trainer_model_hook_system_fit(kwargs, tmpdir, automatic_optimization):
         enable_progress_bar=False,
         enable_model_summary=False,
         callbacks=[callback],
+        track_grad_norm=1,
         **kwargs,
     )
     assert called == [
@@ -616,14 +612,14 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         limit_val_batches=0,
         enable_progress_bar=False,
         enable_model_summary=False,
-        resume_from_checkpoint=best_model_path,
         callbacks=[callback],
+        track_grad_norm=1,
     )
     assert called == [
         dict(name="Callback.on_init_start", args=(trainer,)),
         dict(name="Callback.on_init_end", args=(trainer,)),
     ]
-    trainer.fit(model)
+    trainer.fit(model, ckpt_path=best_model_path)
     saved_ckpt = {
         "callbacks": ANY,
         "epoch": 2,  # TODO: wrong saved epoch

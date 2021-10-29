@@ -20,6 +20,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 import torch.multiprocessing as mp
+from torch.nn import Module
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
@@ -30,6 +31,7 @@ from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, rank_zero_warn, set_shared_parameters
+from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -118,6 +120,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def setup(self) -> None:
         self.create_mp_queue()
 
+    def _setup_model(self, model: Module) -> Module:
+        return model
+
     def create_mp_queue(self):
         self.start_method = "fork"
         smp = mp.get_context(self.start_method)
@@ -134,7 +139,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
         TPUSpawnPlugin._validate_dataloader(dataloader)
-        return MpDeviceLoader(dataloader, self.root_device)
+        dataloader = MpDeviceLoader(dataloader, self.root_device)
+        # Mimic interface to torch.utils.data.DataLoader
+        dataloader.dataset = dataloader._loader.dataset
+        return dataloader
 
     def configure_ddp(self) -> None:
         pass
@@ -256,8 +264,24 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             "start_method": self.start_method,
         }
 
-    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> None:
-        xmp.spawn(self._wrapped_function, args=(function, args, kwargs), **self.get_mp_spawn_kwargs())
+    def spawn(self, function: Callable, *args: Any, return_result: bool = True, **kwargs: Any) -> Optional[Any]:
+        context = mp.get_context(self.start_method or "fork")
+        return_queue = context.SimpleQueue() if return_result else None
+        xmp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), **self.get_mp_spawn_kwargs())
+        return return_queue.get() if return_result else None
+
+    def _wrapped_function(
+        self, process_idx: int, function: Callable, args: Any, kwargs: Any, return_queue: Optional[SimpleQueue]
+    ) -> None:
+        self._worker_setup(process_idx)
+        result = function(*args, **kwargs)
+        if return_queue is not None and self.local_rank == 0:
+            return_queue.put(move_data_to_device(result, "cpu"))
+
+        self.barrier("end-process")
+        # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
+        if self.local_rank == 0:
+            time.sleep(2)
 
     def _worker_setup(self, process_idx: int):
         reset_seed()

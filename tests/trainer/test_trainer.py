@@ -47,7 +47,9 @@ from pytorch_lightning.utilities.seed import seed_everything
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.boring_model import RandomIterableDataset, RandomIterableDatasetWithLen
+from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
+from tests.helpers.simple_models import ClassificationModel
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -399,7 +401,7 @@ def test_model_freeze_unfreeze():
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
-def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
+def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Verify resuming from checkpoint runs the right number of epochs."""
     # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
     monkeypatch.setenv("TORCH_HOME", tmpdir)
@@ -450,8 +452,8 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         state = pl_load(ckpt)
 
         # Resume training
-        new_trainer = Trainer(default_root_dir=tmpdir, resume_from_checkpoint=ckpt, max_epochs=2)
-        new_trainer.fit(next_model)
+        new_trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)
+        new_trainer.fit(next_model, ckpt_path=ckpt)
         assert state["global_step"] + next_model.num_batches_seen == trainer.num_training_batches * trainer.max_epochs
         assert next_model.num_on_load_checkpoint_called == 1
 
@@ -498,17 +500,17 @@ def test_trainer_max_steps_and_epochs(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "max_epochs,max_steps,incorrect_variable,incorrect_value",
+    "max_epochs,max_steps,incorrect_variable",
     [
-        (-100, None, "max_epochs", -100),
-        (1, -2, "max_steps", -2),
+        (-100, -1, "max_epochs"),
+        (1, -2, "max_steps"),
     ],
 )
-def test_trainer_max_steps_and_epochs_validation(max_epochs, max_steps, incorrect_variable, incorrect_value):
+def test_trainer_max_steps_and_epochs_validation(max_epochs, max_steps, incorrect_variable):
     """Don't allow max_epochs or max_steps to be less than -1 or a float."""
     with pytest.raises(
         MisconfigurationException,
-        match=f"`{incorrect_variable}` must be a positive integer or -1. You passed in {incorrect_value}",
+        match=f"`{incorrect_variable}` must be a non-negative integer or -1",
     ):
         Trainer(max_epochs=max_epochs, max_steps=max_steps)
 
@@ -516,13 +518,12 @@ def test_trainer_max_steps_and_epochs_validation(max_epochs, max_steps, incorrec
 @pytest.mark.parametrize(
     "max_epochs,max_steps,is_done,correct_trainer_epochs",
     [
-        (None, None, False, 1000),
-        (-1, None, False, -1),
-        (None, -1, False, None),
+        (None, -1, False, 1000),
+        (-1, -1, False, -1),
         (5, -1, False, 5),
         (-1, 10, False, -1),
-        (None, 0, True, None),
-        (0, None, True, 0),
+        (None, 0, True, -1),
+        (0, -1, True, 0),
         (-1, 0, True, -1),
         (0, -1, True, 0),
     ],
@@ -992,75 +993,65 @@ def test_on_exception_hook(tmpdir):
     assert isinstance(handle_interrupt_callback.exception, MisconfigurationException)
 
 
-@pytest.mark.parametrize(
-    "precision",
-    [32, pytest.param(16, marks=RunIf(min_gpus=1))],
-)
+@pytest.mark.parametrize("precision", [32, pytest.param(16, marks=RunIf(min_gpus=1))])
 def test_gradient_clipping_by_norm(tmpdir, precision):
     """Test gradient clipping by norm."""
     tutils.reset_seed()
 
-    model = EvalModelTemplate()  # TODO: when precision=16, BoringModel produces NaN, but EvalModelTemplate not
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=1,
         max_epochs=1,
-        gpus=int(torch.cuda.is_available()),
+        accelerator="auto",
+        devices=1,
         precision=precision,
         gradient_clip_algorithm="norm",
-        gradient_clip_val=1.0,
+        gradient_clip_val=0.05,
     )
 
-    old_backward = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward
+    class TestModel(ClassificationModel):
+        def configure_gradient_clipping(self, *args, **kwargs):
+            super().configure_gradient_clipping(*args, **kwargs)
+            # test that gradient is clipped correctly
+            parameters = self.parameters()
+            grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
+            torch.testing.assert_allclose(grad_norm, torch.tensor(0.05))
+            self.assertion_called = True
 
-    def backward(*args, **kwargs):
-        # test that gradient is clipped correctly
-        ret_val = old_backward(*args, **kwargs)
-        parameters = model.parameters()
-        grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
-        assert (grad_norm - 1.0).abs() < 0.01, f"Gradient norm != 1.0: {grad_norm}"
-        return ret_val
-
-    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward = backward
-    trainer.fit(model)
+    model = TestModel()
+    trainer.fit(model, ClassifDataModule())
+    assert model.assertion_called
 
 
-@pytest.mark.parametrize(
-    "precision",
-    [32, pytest.param(16, marks=RunIf(min_gpus=1))],
-)
+@pytest.mark.parametrize("precision", [32, pytest.param(16, marks=RunIf(min_gpus=1))])
 def test_gradient_clipping_by_value(tmpdir, precision):
     """Test gradient clipping by value."""
     tutils.reset_seed()
 
-    model = BoringModel()
-
-    grad_clip_val = 1e-10
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_steps=1,
         max_epochs=1,
+        accelerator="auto",
+        devices=1,
         precision=precision,
-        gpus=int(torch.cuda.is_available()),
-        gradient_clip_val=grad_clip_val,
         gradient_clip_algorithm="value",
-        default_root_dir=tmpdir,
+        gradient_clip_val=1e-10,
     )
 
-    old_backward = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward
+    class TestModel(BoringModel):
+        def configure_gradient_clipping(self, *args, **kwargs):
+            super().configure_gradient_clipping(*args, **kwargs)
+            # test that gradient is clipped correctly
+            parameters = self.parameters()
+            grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
+            grad_max = torch.max(torch.stack(grad_max_list))
+            torch.testing.assert_allclose(grad_max.abs(), torch.tensor(1e-10))
+            self.assertion_called = True
 
-    def backward(*args, **kwargs):
-        # test that gradient is clipped correctly
-        ret_val = old_backward(*args, **kwargs)
-        parameters = model.parameters()
-        grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
-        grad_max = torch.max(torch.stack(grad_max_list))
-        assert (
-            abs(grad_max.item() - grad_clip_val) < 1e-11
-        ), f"Gradient max value {grad_max} != grad_clip_val {grad_clip_val} ."
-        return ret_val
-
-    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward = backward
+    model = TestModel()
     trainer.fit(model)
+    assert model.assertion_called
 
 
 def test_invalid_gradient_clip_value(tmpdir):
@@ -1352,7 +1343,7 @@ class CustomPredictionWriter(BasePredictionWriter):
         self.write_on_batch_end_called = True
 
     def write_on_epoch_end(self, trainer, pl_module, predictions, batch_indices):
-        expected = 1 if trainer.accelerator_connector.is_distributed else 2
+        expected = 1 if trainer._accelerator_connector.is_distributed else 2
         assert len(predictions) == 2
         assert len(predictions[0]) == expected
         assert len(batch_indices) == 2
@@ -1360,7 +1351,7 @@ class CustomPredictionWriter(BasePredictionWriter):
         self.write_on_epoch_end_called = True
 
     def on_predict_epoch_end(self, trainer, pl_module, outputs):
-        if trainer.accelerator_connector.is_distributed:
+        if trainer._accelerator_connector.is_distributed:
             for idx in range(2):
                 assert isinstance(trainer.predict_dataloaders[idx].batch_sampler.sampler, UnrepeatedDistributedSampler)
                 assert isinstance(trainer.predict_dataloaders[idx].batch_sampler, IndexBatchSamplerWrapper)
@@ -1834,7 +1825,7 @@ class TestDummyModelForCheckpoint(BoringModel):
 @RunIf(skip_windows=True)
 def test_fit_test_synchronization(tmpdir):
     """Test that the trainer synchronizes processes before returning control back to the caller."""
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
     model = TestDummyModelForCheckpoint()
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="x", mode="min", save_top_k=1)
     trainer = Trainer(
@@ -1859,9 +1850,9 @@ def test_on_load_checkpoint_missing_callbacks(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, callbacks=[chk, CustomCallbackOnLoadCheckpoint()])
     trainer.fit(model)
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=5, resume_from_checkpoint=chk.last_model_path)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=5)
     with pytest.warns(UserWarning, match="CustomCallbackOnLoadCheckpoint"):
-        trainer.fit(model)
+        trainer.fit(model, ckpt_path=chk.last_model_path)
 
 
 def test_module_current_fx_attributes_reset(tmpdir):
