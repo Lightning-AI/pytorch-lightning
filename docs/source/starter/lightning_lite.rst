@@ -237,8 +237,6 @@ from its hundreds of features.
 You can see our :class:`~pytorch_lightning.lite.LightningLite` as a
 future :class:`~pytorch_lightning.core.lightning.LightningModule` and slowly refactor / re-organize your code into its API.
 
-If you have hundreds of line within your run function and feeling weird about it, it is exactly the expected feeling.
-
 
 .. code-block:: python
 
