@@ -75,8 +75,8 @@ def test_model_parallel_setup_called(tmpdir):
 
 
 @mock.patch("torch.cuda.device_count", return_value=2)
-def test_get_devices_when_set_to_auto(device_count_mock):
-    assert CPUAccelerator.get_devices_when_set_to_auto() == 1
-    assert GPUAccelerator.get_devices_when_set_to_auto() == 2
-    assert TPUAccelerator.get_devices_when_set_to_auto() == 8
-    assert IPUAccelerator.get_devices_when_set_to_auto() == 1
+def test_auto_device_count(device_count_mock):
+    assert CPUAccelerator.auto_device_count() == 1
+    assert GPUAccelerator.auto_device_count() == 2
+    assert TPUAccelerator.auto_device_count() == 8
+    assert IPUAccelerator.auto_device_count() == 4
