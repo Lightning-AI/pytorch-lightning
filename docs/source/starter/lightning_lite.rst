@@ -187,6 +187,13 @@ Here is an example while running on 256 GPUs.
 
 .. note:: We recommend instantiating the models within the :meth:`~pytorch_lightning.lite.LightningLite.run` method as large models would cause an out-of-memory error otherwise.
 
+.. note::
+
+    If you have hundreds or thousands of line within your :meth:`~pytorch_lightning.lite.LightningLite.run` function
+    and you are feeling weird about it, this is exactly the expected feeling.
+    This is how our :class:`~pytorch_lightning.core.lightning.LightningModule` started 2-3 years ago
+    and then we started to organize the code for simplicity, interoperability and standardization.
+
 
 ----------
 
@@ -228,7 +235,9 @@ The :class:`~pytorch_lightning.lite.LightningLite` is a stepping stone to transi
 from its hundreds of features.
 
 You can see our :class:`~pytorch_lightning.lite.LightningLite` as a
-future :class:`~pytorch_lightning.core.lightning.LightningModule` and slowly refactor / re-organize your code.
+future :class:`~pytorch_lightning.core.lightning.LightningModule` and slowly refactor / re-organize your code into its API.
+
+If you have hundreds of line within your run function and feeling weird about it, it is exactly the expected feeling.
 
 
 .. code-block:: python
@@ -244,7 +253,8 @@ future :class:`~pytorch_lightning.core.lightning.LightningModule` and slowly ref
 
             self.fit(model)  # This would be automated by Lightning Trainer.
 
-        # 2. This can be fully removed as Lightning handles the loop and setting up the model, optimizer, dataloader.
+        # 2. This can be fully removed as Lightning handles the FitLoop
+        # and setting up the model, optimizer, dataloader and many more.
 
         def fit(self):
             optimizer = self.configure_optimizers()
@@ -277,8 +287,9 @@ future :class:`~pytorch_lightning.core.lightning.LightningModule` and slowly ref
 
     Lite(...).run(args)
 
+
 Finally, change the :meth:`~pytorch_lightning.lite.LightningLite.run` into a
-:class:`~pytorch_lightning.core.lightning.LightningModule.__init__` and drop the inner code for setting up the components.
+:meth:`~pytorch_lightning.core.lightning.LightningModule.__init__` and drop the inner code for setting up the components.
 
 .. code-block:: python
 
@@ -317,7 +328,6 @@ Finally, change the :meth:`~pytorch_lightning.lite.LightningLite.run` into a
     datamodule = BoringDataModule(dataset)
     trainer = Trainer(max_epochs=10)
     trainer.fit(lightning_module, datamodule=datamodule)
-
 
 
 You are finally converted to PyTorch Lightning !
