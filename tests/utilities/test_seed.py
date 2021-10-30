@@ -56,12 +56,19 @@ def test_reset_seed_no_op():
     assert "PL_GLOBAL_SEED" not in os.environ
 
 
-def test_reset_seed_everything():
+@pytest.mark.parametrize("workers", (True, False))
+def test_reset_seed_everything(workers):
     """Test that we can reset the seed to the initial value set by seed_everything()"""
     assert "PL_GLOBAL_SEED" not in os.environ
-    seed_utils.seed_everything(123)
-    assert os.environ["PL_GLOBAL_SEED"] == "123"
+    assert "PL_SEED_WORKERS" not in os.environ
+
+    seed_utils.seed_everything(123, workers)
     before = torch.rand(1)
+    assert os.environ["PL_GLOBAL_SEED"] == "123"
+    assert os.environ["PL_SEED_WORKERS"] == str(int(workers))
+
     seed_utils.reset_seed()
     after = torch.rand(1)
+    assert os.environ["PL_GLOBAL_SEED"] == "123"
+    assert os.environ["PL_SEED_WORKERS"] == str(int(workers))
     assert torch.allclose(before, after)

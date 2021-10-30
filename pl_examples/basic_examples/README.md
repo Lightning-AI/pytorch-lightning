@@ -1,6 +1,6 @@
 ## Basic Examples
 
-Use these examples to test how lightning works.
+Use these examples to test how Lightning works.
 
 #### MNIST
 
@@ -13,8 +13,8 @@ python simple_image_classifier.py
 # gpus (any number)
 python simple_image_classifier.py --trainer.gpus 2
 
-# dataparallel
-python simple_image_classifier.py --trainer.gpus 2 --trainer.accelerator 'dp'
+# Distributed Data Parallel
+python simple_image_classifier.py --trainer.gpus 2 --trainer.accelerator ddp
 ```
 
 ______________________________________________________________________
@@ -41,8 +41,8 @@ python backbone_image_classifier.py
 # gpus (any number)
 python backbone_image_classifier.py --trainer.gpus 2
 
-# dataparallel
-python backbone_image_classifier.py --trainer.gpus 2 --trainer.accelerator 'dp'
+# Distributed Data Parallel
+python backbone_image_classifier.py --trainer.gpus 2 --trainer.accelerator ddp
 ```
 
 ______________________________________________________________________
@@ -58,17 +58,6 @@ python autoencoder.py
 # gpus (any number)
 python autoencoder.py --trainer.gpus 2
 
-# dataparallel
-python autoencoder.py --trainer.gpus 2 --trainer.accelerator 'dp'
+# Distributed Data Parallel
+python autoencoder.py --trainer.gpus 2 --trainer.accelerator ddp
 ```
-
-______________________________________________________________________
-
-# Multi-node example
-
-This demo launches a job using 2 GPUs on 2 different nodes (4 GPUs total).
-To run this demo do the following:
-
-1. Log into the jumphost node of your SLURM-managed cluster.
-1. Create a conda environment with Lightning and a GPU PyTorch version.
-1. Choose a script to submit
