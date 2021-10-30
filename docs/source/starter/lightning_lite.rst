@@ -19,10 +19,10 @@ on any kind of device while retaining full control over their own loops and opti
 - I would like to convert my existing code to the Lightning API, but a full path to Lightning transition might be too complex. I am looking for a stepping stone to ensure reproducibility during the transition.
 
 
-.. note:: LightningLite is a Lightning beta feature and will be considered stable for v1.6.
+.. warning:: :class:`~pytorch_lightning.lite.LightningLite` is currently a beta feature. Its API is subject to change based on your feedbacks.
+
 
 ----------
-
 
 ****************
 Learn by example
@@ -49,8 +49,7 @@ The ``run`` function contains custom training loop used to train ``MyModel`` on 
         ...
 
 
-    def run(num_epochs: int):
-
+    def run(args):
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
         model = MyModel(...).to(device)
@@ -59,7 +58,7 @@ The ``run`` function contains custom training loop used to train ``MyModel`` on 
         dataloader = DataLoader(MyDataset(...), ...)
 
         model.train()
-        for epoch in range(num_epochs):
+        for epoch in range(args.num_epochs):
             for batch in dataloader:
                 batch = batch.to(device)
                 optimizer.zero_grad()
@@ -68,7 +67,7 @@ The ``run`` function contains custom training loop used to train ``MyModel`` on 
                 optimizer.step()
 
 
-    run(10)
+    run(args)
 
 
 ----------
@@ -77,12 +76,13 @@ The ``run`` function contains custom training loop used to train ``MyModel`` on 
 Convert to LightningLite
 ========================
 
-Here are 4 required steps to convert to :class:`~pytorch_lightning.lite.LightningLite`.
+Here are 5 required steps to convert to :class:`~pytorch_lightning.lite.LightningLite`.
 
 1. Subclass :class:`~pytorch_lightning.lite.LightningLite` and override its :meth:`~pytorch_lightning.lite.LightningLite.run` method.
-2. Move the body of your existing `run` function.
-3. Apply :meth:`~pytorch_lightning.lite.LightningLite.setup` over each model and optimizers pair, :meth:`~pytorch_lightning.lite.LightningLite.setup_dataloaders` on all your dataloaders and replace ``loss.backward()`` by ``self.backward(loss)``
-4. Instantiate your :class:`~pytorch_lightning.lite.LightningLite` and call its :meth:`~pytorch_lightning.lite.LightningLite.run` method.
+2. Move the body of your existing ``run`` function into :class:`~pytorch_lightning.lite.LightningLite` ``run`` method.
+3. Remove all ``.to``, ``.cuda`` etc calls since :class:`~pytorch_lightning.lite.LightningLite` will take care of it.
+4. Apply :meth:`~pytorch_lightning.lite.LightningLite.setup` over each model and optimizers pair and :meth:`~pytorch_lightning.lite.LightningLite.setup_dataloaders` on all your dataloaders and replace ``loss.backward()`` by ``self.backward(loss)``.
+5. Instantiate your :class:`~pytorch_lightning.lite.LightningLite` and call its :meth:`~pytorch_lightning.lite.LightningLite.run` method.
 
 
 .. code-block:: python
@@ -102,31 +102,32 @@ Here are 4 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
 
 
     class Lite(LightningLite):
-        def run(self, num_epochs: int):
+        def run(self, args):
 
             model = MyModel(...)
             optimizer = torch.optim.SGD(model.parameters(), ...)
-
-            model, optimizer = self.setup(model, optimizer)
+            model, optimizer = self.setup(model, optimizer)  # Scale your model / optimizers
 
             dataloader = DataLoader(MyDataset(...), ...)
-            dataloader = self.setup_dataloaders(dataloader)
+            dataloader = self.setup_dataloaders(dataloader)  # Scale your dataloaders
 
             model.train()
-            for epoch in range(num_epochs):
+            for epoch in range(args.num_epochs):
                 for batch in dataloader:
                     optimizer.zero_grad()
                     loss = model(batch)
-                    self.backward(loss)
+                    self.backward(loss)  # instead of loss.backward()
                     optimizer.step()
 
 
-    Lite(...).run(10)
+    Lite(...).run(args)
 
 
 That's all. You can now train on any kind of device and scale your training.
+
 The :class:`~pytorch_lightning.lite.LightningLite` takes care of device management, so you don't have to.
 You should remove any device specific logic within your code.
+
 Here is how to train on 8 GPUs with `torch.bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_ precision:
 
 .. code-block:: python
@@ -139,12 +140,11 @@ Here is how to use `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/ze
 
     Lite(strategy="deepspeed", devices=8, accelerator="gpu", precision=16).run(10)
 
-Lightning can also figure it automatically for you!
+:class:`~pytorch_lightning.lite.LightningLite` can also figure it out automatically for you!
 
 .. code-block:: python
 
     Lite(devices="auto", accelerator="auto", precision=16).run(10)
-
 
 You can also easily use distributed collectives if required.
 Here is an example while running on 256 GPUs.
@@ -180,14 +180,29 @@ Here is an example while running on 256 GPUs.
             # Wait for all processes to enter this call.
             self.barrier()
 
-            # Reduce a boolean decision across processes.
-            self.reduce_decision(...)
-
 
     Lite(strategy="ddp", gpus=8, num_nodes=32, accelerator="gpu").run()
 
 
-.. note:: We recommend instantiating the models within the :meth:`~pytorch_lightning.lite.LightningLite.run` method as large models would cause OOM Error otherwise.
+If you require custom data or model device placement, you can deactivate
+:class:`~pytorch_lightning.lite.LightningLite` automatic placement by doing
+``self.setup_dataloaders(..., move_to_device=False)`` for the data and
+``self.setup(..., move_to_device=False)`` for the model.
+Futhermore, you can access the current device from ``self.device`` or
+rely on :meth:`~pytorch_lightning.lite.LightningLite.to_device`
+utility to move an object to the current device.
+
+
+.. note:: We recommend instantiating the models within the :meth:`~pytorch_lightning.lite.LightningLite.run` method as large models would cause an out-of-memory error otherwise.
+
+.. note::
+
+    If you have hundreds or thousands of line within your :meth:`~pytorch_lightning.lite.LightningLite.run` function
+    and you are feeling weird about it then this is right feeling.
+    Back in 2019, our :class:`~pytorch_lightning.core.lightning.LightningModule` was getting larger
+    and we got the same feeling. So we started to organize our code for simplicity, interoperability and standardization.
+    This is definitely a good sign that you should consider refactoring your code and / or switch to
+    :class:`~pytorch_lightning.core.lightning.LightningModule` ultimately.
 
 
 ----------
@@ -205,14 +220,14 @@ but there are several major challenges ahead of you now:
    :header-rows: 0
 
    * - Processes divergence
-     - This happens when processes execute different section of the code due to different if/else condition, race condition on existing files, etc., resulting in hanging.
+     - This happens when processes execute a different section of the code due to different if/else conditions, race condition on existing files, etc., resulting in hanging.
    * - Cross processes reduction
-     - Wrongly reported metrics or gradients due mis-reduction.
+     - Wrongly reported metrics or gradients due to mis-reduction.
    * - Large sharded models
      - Instantiation, materialization and state management of large models.
    * - Rank 0 only actions
      - Logging, profiling, etc.
-   * - Checkpointing / Early stopping / Callbacks
+   * - Checkpointing / Early stopping / Callbacks / Logging
      - Ability to easily customize your training behaviour and make it stateful.
    * - Batch-level fault tolerance training
      - Ability to resume from a failure as if it never happened.
@@ -229,58 +244,102 @@ Convert to Lightning
 The :class:`~pytorch_lightning.lite.LightningLite` is a stepping stone to transition fully to the Lightning API and benefits
 from its hundreds of features.
 
+You can see our :class:`~pytorch_lightning.lite.LightningLite` as a
+future :class:`~pytorch_lightning.core.lightning.LightningModule` and slowly refactor your code into its API.
+
+
+.. code-block:: python
+
+    class Lite(LightningLite):
+
+        # 1. This would becomes the LightningModule `__init__` function.
+
+        def run(self, args):
+            self.args = args
+
+            self.model = MyModel(...)
+
+            self.fit()  # This would be automated by Lightning Trainer.
+
+        # 2. This can be fully removed as Lightning handles the FitLoop
+        # and setting up the model, optimizer, dataloader and many more.
+
+        def fit(self):
+            # setting everything
+            optimizer = self.configure_optimizers()
+            self.model, optimizer = self.setup(self.model, optimizer)
+            dataloader = self.setup_dataloaders(self.train_dataloader())
+
+            # start fitting
+            self.model.train()
+            for epoch in range(num_epochs):
+                for batch in enumerate(dataloader):
+                    optimizer.zero_grad()
+                    loss = self.training_step(batch, batch_idx)
+                    self.backward(loss)
+                    optimizer.step()
+
+        # 3. This stays here as it belongs to the LightningModule.
+
+        def forward(self, x):
+            return self.model(x)
+
+        def training_step(self, batch, batch_idx):
+            return self.forward(batch)
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.model.parameters(), ...)
+
+        # 4. [Optionally] This can stay here or be extracted within a LightningDataModule to enable higher composability.
+
+        def train_dataloader(self):
+            return DataLoader(MyDataset(...), ...)
+
+
+    Lite(...).run(args)
+
+
+Finally, change the :meth:`~pytorch_lightning.lite.LightningLite.run` into a
+:meth:`~pytorch_lightning.core.lightning.LightningModule.__init__` and drop the inner code for setting up the components.
+
 .. code-block:: python
 
     from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 
 
-    class LiftModel(LightningModule):
-        def __init__(self, module: nn.Module):
+    class LightningModel(LightningModule):
+        def __init__(self, args):
             super().__init__()
-            self.module = module
+            self.model = MyModel(...)
 
         def forward(self, x):
-            return self.module(x)
+            return self.model(x)
 
         def training_step(self, batch, batch_idx):
             loss = self(batch)
             self.log("train_loss", loss)
             return loss
 
-        def validation_step(self, batch, batch_idx):
-            loss = self(batch)
-            self.log("val_loss", loss)
-            return loss
-
         def configure_optimizers(self):
-            return torch.optim.SGD(self.parameters(), lr=0.001)
+            return torch.optim.SGD(self.model.parameters(), lr=0.001)
 
 
     class BoringDataModule(LightningDataModule):
-        def __init__(self, dataset: Dataset):
-            super().__init__()
-            self.dataset = dataset
-
         def train_dataloader(self):
-            return DataLoader(self.dataset)
+            return DataLoader(MyDataset(...), ...)
 
 
-    seed_everything(42)
-    model = MyModel(...)
-    lightning_module = LiftModel(model)
-    dataset = MyDataset(...)
-    datamodule = BoringDataModule(dataset)
     trainer = Trainer(max_epochs=10)
-    trainer.fit(lightning_module, datamodule=datamodule)
+    trainer.fit(LightningModel(), datamodule=BoringDataModule())
 
+
+You have successfully converted to PyTorch Lightning and can now benefit from its hundred of features !
 
 ----------
-
 
 ********************
 Lightning Lite Flags
 ********************
-
 
 Lite is a specialist for accelerated distributed training and inference. It offers you convenient ways to configure
 your device and communication strategy and to seamlessly switch from one to the other. The terminology and usage is
@@ -343,10 +402,10 @@ Support for Horovod and Fully Sharded training strategies are coming soon.
 devices
 =======
 
-Configure the devices to run on. Can of type:
+Configure the devices to run on. Can be of type:
 
-- int: the number of GPUs to train on
-- list of int: which GPUs to train on (0-indexed)
+- int: the number of devices (e.g., GPUs) to train on
+- list of int: which device index (e.g., GPU ID) to train on (0-indexed)
 - str: a string representation of one of the above
 
 .. code-block:: python
@@ -365,8 +424,8 @@ Configure the devices to run on. Can of type:
     lite = Lite(devices="1, 4", accelerator="gpu")  # equivalent
 
     # -1: run on all GPUs
-    lite = Lite(devices=-1)
-    lite = Lite(devices="-1")  # equivalent
+    lite = Lite(devices=-1, accelerator="gpu")
+    lite = Lite(devices="-1", accelerator="gpu")  # equivalent
 
 
 
@@ -392,7 +451,7 @@ Shorthand for ``devices=X`` and ``accelerator="tpu"``.
 .. code-block:: python
 
     # Run on 8 TPUs
-    lite = Lite(gpus=8)
+    lite = Lite(tpu_cores=8)
 
     # Equivalent
     lite = Lite(devices=8, accelerator="tpu")
@@ -420,7 +479,7 @@ precision
 =========
 
 Lightning Lite supports double precision (64), full precision (32), or half precision (16) operation (including `bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_).
-Half precision, or mixed precision, is the combined use of 32 and 16 bit floating points to reduce memory footprint during model training.
+Half precision, or mixed precision, is the combined use of 32 and 16 bit floating points to reduce the memory footprint during model training.
 This can result in improved performance, achieving significant speedups on modern GPUs.
 
 .. code-block:: python
@@ -525,7 +584,7 @@ cast automatically.
 setup_dataloaders
 =================
 
-Setup one or multiple dataloaders for accelerated operation. If you are running a distributed plugin (e.g., DDP), Lite
+Setup one or multiple dataloaders for accelerated operation. If you are running a distributed strategy (e.g., DDP), Lite
 will replace the sampler automatically for you. In addition, the dataloader will be configured to move the returned
 data tensors to the correct device automatically.
 
@@ -560,9 +619,9 @@ This replaces any occurences of ``loss.backward()`` and will make your code acce
 to_device
 =========
 
-Use :class:`~pytorch_lightning.lite.lite.LightningLite.to_device` to move models, tensors or collections of tensors to
-the current device. By default :class:`~pytorch_lightning.lite.lite.LightningLite.setup` and
-:class:`~pytorch_lightning.lite.lite.LightningLite.setup_dataloaders` already move the model and data to the correct
+Use :meth:`~pytorch_lightning.lite.lite.LightningLite.to_device` to move models, tensors or collections of tensors to
+the current device. By default :meth:`~pytorch_lightning.lite.lite.LightningLite.setup` and
+:meth:`~pytorch_lightning.lite.lite.LightningLite.setup_dataloaders` already move the model and data to the correct
 device, so calling this method is only necessary for manual operation when needed.
 
 .. code-block:: python
@@ -571,10 +630,47 @@ device, so calling this method is only necessary for manual operation when neede
     data = self.to_device(data)
 
 
+seed_everything
+===============
+
+Make your code reproducible by calling this method at the beginning of your run.
+
+.. code-block:: python
+
+    # Instead of `torch.manual_seed(...)`, call:
+    self.seed_everything(1234)
+
+
+This covers PyTorch, NumPy and Python random number generators. In addition, Lite takes care of properly initializing
+the seed of dataloader worker processes (can be turned off by passing ``workers=False``).
+
+
+autocast
+========
+
+Let the precision backend autocast the block of code under this context manager. This is optional and already done by
+Lite for the model's forward method (once the model was :meth:`~pytorch_lightning.lite.lite.LightningLite.setup`).
+You need this only if you wish to autocast more operations outside the ones in model forward:
+
+.. code-block:: python
+
+    model, optimizer = self.setup(model, optimizer)
+
+    # Lite handles precision automatically for the model
+    output = model(inputs)
+
+    with self.autocast():  # optional
+        loss = loss_function(output, target)
+
+    self.backward(loss)
+    ...
+
+
 print
 =====
 
 Print to the console via the built-in print function, but only on the main process.
+This avoids excessive printing and logs when running on multiple devices/nodes.
 
 
 .. code-block:: python
@@ -583,8 +679,8 @@ Print to the console via the built-in print function, but only on the main proce
     self.print(f"{epoch}/{num_epochs}| Train Epoch Loss: {loss}")
 
 
-save_checkpoint
-===============
+save
+====
 
 Save contents to a checkpoint. Replaces all occurences of ``torch.save(...)`` in your code. Lite will take care of
 handling the saving part correctly, no matter if you are running single device, multi-device or multi-node.
@@ -592,7 +688,19 @@ handling the saving part correctly, no matter if you are running single device, 
 .. code-block:: python
 
     # Instead of `torch.save(...)`, call:
-    self.save_checkpoint("path/to/checkpoint.ckpt", model.state_dict())
+    self.save(model.state_dict(), "path/to/checkpoint.ckpt")
+
+
+load
+====
+
+Load checkpoint contents from a file. Replaces all occurences of ``torch.load(...)`` in your code. Lite will take care of
+handling the loading part correctly, no matter if you are running single device, multi-device or multi-node.
+
+.. code-block:: python
+
+    # Instead of `torch.load(...)`, call:
+    self.load("path/to/checkpoint.ckpt")
 
 
 barrier

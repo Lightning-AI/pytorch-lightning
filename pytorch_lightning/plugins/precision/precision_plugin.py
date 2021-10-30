@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+from functools import partial
 from typing import Any, Callable, Generator, List, Optional, Tuple, Union
 
 import torch
@@ -110,21 +111,59 @@ class PrecisionPlugin(CheckpointHooks):
         """
         tensor.backward(*args, **kwargs)
 
+    def _after_closure(
+        self, model: Union["pl.LightningModule", Module], optimizer: Optimizer, optimizer_idx: int
+    ) -> None:
+        """Utility to share some code after the closure has been run."""
+        if not isinstance(model, pl.LightningModule):
+            # none of this applies to Lite
+            return
+        trainer = model.trainer
+        assert trainer is not None
+        trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
+        # TODO: this is done for the entire model but should be changed to per-optimizer
+        if optimizer_idx == 0:
+            self._track_grad_norm(trainer)
+        self._clip_gradients(
+            model,
+            optimizer,
+            optimizer_idx,
+            trainer.gradient_clip_val,
+            gradient_clip_algorithm=trainer.gradient_clip_algorithm,
+        )
+
+    def _wrap_closure(
+        self,
+        model: "pl.LightningModule",
+        optimizer: Optimizer,
+        optimizer_idx: int,
+        closure: Callable[[], Any],
+    ) -> Any:
+        """This double-closure allows makes sure the ``closure`` is executed before the
+        ``on_before_optimizer_step`` hook is called.
+
+        The closure (generally) runs ``backward`` so this allows inspecting gradients in this hook. This structure is
+        consistent with the ``PrecisionPlugin`` subclasses that cannot pass ``optimizer.step(closure)`` directly.
+        """
+        closure_result = closure()
+        self._after_closure(model, optimizer, optimizer_idx)
+        return closure_result
+
     def optimizer_step(
         self,
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Callable[[], Any],
+        closure: Callable[[], Any],
         **kwargs: Any,
     ) -> None:
         """Hook to run the optimizer step."""
         if isinstance(model, pl.LightningModule):
-            model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
-        optimizer.step(closure=lambda_closure, **kwargs)
+            closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, closure)
+        optimizer.step(closure=closure, **kwargs)
 
     def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
-        if float(trainer.track_grad_norm) == -1:
+        if trainer.track_grad_norm == -1:
             return
         grad_norm_dict = grad_norm(trainer.lightning_module, trainer.track_grad_norm, trainer.logger.group_separator)
         if grad_norm_dict:

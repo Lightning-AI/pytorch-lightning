@@ -55,7 +55,7 @@ class _LiteOptimizer:
         self._accelerator.optimizer_step(
             self.optimizer,
             opt_idx=0,
-            lambda_closure=closure,
+            closure=closure,
             model=self._accelerator.model,
         )
 
