@@ -11,6 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+"""Here are 5 required steps to convert to `LightningLite`.
+
+1. Subclass `LightningLite` and override its `run` method.
+
+2. Move the body of your existing `run` function into `run` method.
+
+3. Remove all ``.to``, ``.cuda`` etc calls since `LightningLite` will take care of it.
+
+4. Apply `setup` over each model and optimizers pair and `setup_dataloaders` on all your dataloaders
+and replace ``loss.backward()`` by ``self.backward(loss)``.
+
+5. Instantiate your `LightningLite` and call its `run` method.
+
+Learn more from the documentation: https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.html.
+"""
+
 import argparse
 
 import torch
@@ -23,7 +40,7 @@ from torchmetrics.classification import Accuracy
 from pl_examples.basic_examples.mnist_datamodule import MNIST
 from pl_examples.basic_examples.mnist_examples.image_classifier_1_pytorch import Net
 from pytorch_lightning import seed_everything
-from pytorch_lightning.lite import LightningLite
+from pytorch_lightning.lite import LightningLite  # import LightningLite
 
 
 class Lite(LightningLite):

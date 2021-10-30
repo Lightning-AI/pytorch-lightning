@@ -11,6 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+"""Here are the steps to convert from `LightningLite` to a `LightningModule`
+
+1. Start implementing the `training_step`, `forward`, `train_dataloader` and `configure_optimizers`
+functions on the `LightningLite` class.
+
+2. Utilize those functions within its `run` function.
+
+3. Finally, switch to `LightningModule` and validate your results are still reproducible (next script).
+
+Learn more from the documentation: https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.html.
+"""
+
 import argparse
 
 import torch

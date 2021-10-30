@@ -21,7 +21,7 @@ ______________________________________________________________________
 
 ## Basic Examples
 
-In this folder, we add 2 simple examples:
+In this folder, we have 2 simple examples:
 
 - [Image Classifier](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/backbone_image_classifier.py) (trains arbitrary datasets with arbitrary backbones).
 - [Image Classifier + DALI](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_4_dali.py) (defines the model inside the `LightningModule`).
