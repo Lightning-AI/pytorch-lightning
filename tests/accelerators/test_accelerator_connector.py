@@ -1024,3 +1024,20 @@ def test_unsupported_ipu_choice(monkeypatch):
         Trainer(accelerator="ipu", precision="bf16")
     with pytest.raises(MisconfigurationException, match=r"accelerator='ipu', precision=64\)` is not supported"):
         Trainer(accelerator="ipu", precision=64)
+
+
+@mock.patch("torch.cuda.is_available", return_value=False)
+@mock.patch("pytorch_lightning.utilities.imports._TPU_AVAILABLE", return_value=False)
+@mock.patch("pytorch_lightning.utilities.imports._IPU_AVAILABLE", return_value=False)
+def test_devices_auto_choice_cpu(is_ipu_available_mock, is_tpu_available_mock, is_gpu_available_mock):
+    trainer = Trainer(accelerator="auto", devices="auto")
+    assert trainer.devices == 1
+    assert trainer.num_processes == 1
+
+
+@mock.patch("torch.cuda.is_available", return_value=True)
+@mock.patch("torch.cuda.device_count", return_value=2)
+def test_devices_auto_choice_gpu(is_gpu_available_mock, device_count_mock):
+    trainer = Trainer(accelerator="auto", devices="auto")
+    assert trainer.devices == 2
+    assert trainer.gpus == 2
