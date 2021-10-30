@@ -1177,7 +1177,7 @@ class LightningModule(
                 # `scheduler.step()`. 1 corresponds to updating the learning
                 # rate after every epoch/step.
                 "frequency": 1,
-                # Metric to to monitor for schedulers like `ReduceLROnPlateau`
+                # Metric to to monitor for schedulers like ``ReduceLROnPlateau``
                 "monitor": "val_loss",
                 # If set to `True`, will enforce that the value specified 'monitor'
                 # is available when the scheduler is updated, thus stopping
@@ -1500,6 +1500,32 @@ class LightningModule(
         optimizer_idx: Optional[int] = None,
         monitor_val: Optional[Union[float, torch.Tensor]] = None,
     ):
+        r"""
+        Override this method to adjust the default way the
+        :class:`~pytorch_lightning.trainer.trainer.Trainer` calls each scheduler.
+        By default, Lightning calls ``step()`` and as shown in the example
+        for each scheduler based on its ``interval``.
+
+        Args:
+            scheduler: Learning rate scheduler.
+            step: Epoch or global step based on the interval of individual scheduler.
+            optimizer_idx: Index of the optimizer associated with scheduler.
+            monitor_val: Value of the metric used for schedulers like ``ReduceLROnPlateau``.
+
+        Examples::
+
+            # DEFAULT
+            def lr_scheduler_step(self, scheduler, step, optimizer_idx, monitor_val):
+                if monitor_val is None:
+                    scheduler.step()
+                else:
+                    scheduler.step(monitor_val)
+
+            # Alternative way to do step if scheduler requires an epoch value
+            def lr_scheduler_step(self, scheduler, step, optimizer_idx, monitor_val):
+                scheduler.step(epoch=step)
+
+        """
         if monitor_val is None:
             scheduler.step()
         else:

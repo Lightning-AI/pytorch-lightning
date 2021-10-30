@@ -252,6 +252,31 @@ If you want to call schedulers that require a metric value after each epoch, con
 
 -----
 
+Bring your own custom learning rate schedulers
+----------------------------------------------
+Lightning allows custom learning rate schedulers which are not present in
+`PyTorch natively <https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate>`_.
+One good example is `Timm Schedulers <https://github.com/rwightman/pytorch-image-models/blob/master/timm/scheduler/scheduler.py>`_.
+You can configure how your learning rate will be updated based on your custom implementation
+and lightning will handle when they should be updated based on the scheduler config provided inside
+:meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers`. For you custom
+implementation you must override :meth:`~pytorch_lightning.core.lightning.LightningModule.lr_scheduler_step`
+if necessary. If you are using native PyTorch schedulers, there is no need to override this hook since
+Lightning will handle it optimally by default.
+
+.. testcode:: python
+
+    def configure_optimizers(self):
+        optimizer = ...
+        scheduler = ...
+        return [optimizer], [scheduler]
+
+
+    def lr_scheduler_step(self, scheduler, step, optimizer_idx, monitor_val=None):
+        scheduler.step(epoch=step)  # timm's scheduler need the epoch value
+
+-----
+
 Use closure for LBFGS-like optimizers
 -------------------------------------
 It is a good practice to provide the optimizer with a closure function that performs a ``forward``, ``zero_grad`` and
