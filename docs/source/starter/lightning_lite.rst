@@ -307,10 +307,10 @@ Finally, change the :meth:`~pytorch_lightning.lite.LightningLite.run` into a
     from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 
 
-    class LiftModel(LightningModule):
-        def __init__(self, model: nn.Module):
+    class LightningModel(LightningModule):
+        def __init__(self, args):
             super().__init__()
-            self.model = model
+            self.model = MyModel(...)
 
         def forward(self, x):
             return self.model(x)
@@ -325,20 +325,12 @@ Finally, change the :meth:`~pytorch_lightning.lite.LightningLite.run` into a
 
 
     class BoringDataModule(LightningDataModule):
-        def __init__(self, dataset: Dataset):
-            super().__init__()
-            self.dataset = dataset
-
         def train_dataloader(self):
             return DataLoader(MyDataset(...), ...)
 
 
-    seed_everything(42)
-    model = MyModel(...)
-    lightning_module = LiftModel(model)
-    datamodule = BoringDataModule(dataset)
     trainer = Trainer(max_epochs=10)
-    trainer.fit(lightning_module, datamodule=datamodule)
+    trainer.fit(LightningModel(), datamodule=BoringDataModule())
 
 
 You are finally converted to PyTorch Lightning !
