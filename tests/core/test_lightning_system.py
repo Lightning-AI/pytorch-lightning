@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
+import torch
 from torch import nn
 
 from pytorch_lightning.core.system import LightningSystem
@@ -32,3 +33,9 @@ def test_lightning_system(tmpdir):
         match="A `LightningSystem` supports' only a single nn.Module expects `torchmetrics.Metric`",
     ):
         setattr(system, "model_1", nn.Linear(1, 1))
+
+    with pytest.raises(
+        MisconfigurationException,
+        match="A `LightningSystem` doesn't support parameters.",
+    ):
+        setattr(system, "weight", nn.Parameter(torch.Tensor(1, 1)))

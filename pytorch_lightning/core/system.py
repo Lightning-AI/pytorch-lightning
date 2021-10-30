@@ -50,12 +50,10 @@ class LightningSystem(LightningModule):
                 remove_from(self.__dict__, self._parameters, self._buffers, self._non_persistent_buffers_set)
                 if isinstance(value, Metric):
                     self._metric_modules[name] = value
-                else:
-                    breakpoint()
-                    if len(modules) > 0:
-                        raise MisconfigurationException(
-                            "A `LightningSystem` supports' only a single nn.Module expects `torchmetrics.Metric`."
-                        )
+                elif len(modules) > 0:
+                    raise MisconfigurationException(
+                        "A `LightningSystem` supports' only a single nn.Module expects `torchmetrics.Metric`."
+                    )
                 modules[name] = value
             elif modules is not None and name in modules:
                 if value is not None:
