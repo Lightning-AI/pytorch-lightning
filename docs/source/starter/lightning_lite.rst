@@ -106,10 +106,10 @@ Here are 5 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
 
             model = MyModel(...)
             optimizer = torch.optim.SGD(model.parameters(), ...)
-            model, optimizer = self.setup(model, optimizer)  # Used to prepare to scale your model
+            model, optimizer = self.setup(model, optimizer)  # Scale your model / optimizers
 
             dataloader = DataLoader(MyDataset(...), ...)
-            dataloader = self.setup_dataloaders(dataloader)  # Used to prepare to scale your dataloaders
+            dataloader = self.setup_dataloaders(dataloader)  # Scale your dataloaders
 
             model.train()
             for epoch in range(args.num_epochs):
