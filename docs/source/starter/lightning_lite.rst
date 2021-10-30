@@ -186,7 +186,7 @@ Here is an example while running on 256 GPUs.
 
 .. note:: We recommend instantiating the models within the :meth:`~pytorch_lightning.lite.LightningLite.run` method as large models would cause an out-of-memory error otherwise.
 
-.. note:
+.. note::
 
     If you require a custom data or model device placement, you can deactivate
     :class:`~pytorch_lightning.lite.LightningLite` automatic placement by doing
