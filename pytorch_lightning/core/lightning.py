@@ -578,6 +578,8 @@ class LightningModule(
     def log_grad_norm(self, grad_norm_dict: Dict[str, float]) -> None:
         """Override this method to change the default behaviour of ``log_grad_norm``.
 
+        If clipping gradients, the gradients will not have been clipped yet.
+
         Args:
             grad_norm_dict: Dictionary containing current grad norm metrics
 

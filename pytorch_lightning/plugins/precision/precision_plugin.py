@@ -111,6 +111,27 @@ class PrecisionPlugin(CheckpointHooks):
         """
         tensor.backward(*args, **kwargs)
 
+    def _after_closure(
+        self, model: Union["pl.LightningModule", Module], optimizer: Optimizer, optimizer_idx: int
+    ) -> None:
+        """Utility to share some code after the closure has been run."""
+        if not isinstance(model, pl.LightningModule):
+            # none of this applies to Lite
+            return
+        trainer = model.trainer
+        assert trainer is not None
+        trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
+        # TODO: this is done for the entire model but should be changed to per-optimizer
+        if optimizer_idx == 0:
+            self._track_grad_norm(trainer)
+        self._clip_gradients(
+            model,
+            optimizer,
+            optimizer_idx,
+            trainer.gradient_clip_val,
+            gradient_clip_algorithm=trainer.gradient_clip_algorithm,
+        )
+
     def _wrap_closure(
         self,
         model: "pl.LightningModule",
@@ -125,7 +146,7 @@ class PrecisionPlugin(CheckpointHooks):
         consistent with the ``PrecisionPlugin`` subclasses that cannot pass ``optimizer.step(closure)`` directly.
         """
         closure_result = closure()
-        model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
+        self._after_closure(model, optimizer, optimizer_idx)
         return closure_result
 
     def optimizer_step(
