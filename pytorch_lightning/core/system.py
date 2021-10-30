@@ -59,7 +59,7 @@ def _disable_class(cls):
     cls.__init__ = cls._old_init
 
 
-def from_checkpoint(
+def load_from_checkpoint(
     module_cls: Type[Module],
     checkpoint_path: Union[str, IO],
     map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
@@ -149,7 +149,7 @@ class LightningSystem(LightningModule):
             module = list(modules.values())[0]
             return (module.__module__, module.__class__.__name__)
 
-    def state_dict(self, destination=None, prefix="", keep_vars=False):
+    def state_dict(self, destination=None, prefix="", keep_vars=False, extras: bool = True):
         state_dict = super().state_dict()
         if self.has_module:
             module_name = self.module_name
@@ -160,10 +160,11 @@ class LightningSystem(LightningModule):
                 return k
 
             state_dict = {prune_name(k): v for k, v in state_dict.items()}
-            state_dict["args"] = self._args
-            state_dict["kwargs"] = self._kwargs
-            state_dict["module_name"] = self.module_name
-            state_dict["module_info"] = self.module_info
+            if extras:
+                state_dict["args"] = self._args
+                state_dict["kwargs"] = self._kwargs
+                state_dict["module_name"] = self.module_name
+                state_dict["module_info"] = self.module_info
             return state_dict
         return state_dict
 
@@ -181,4 +182,4 @@ class LightningSystem(LightningModule):
         return super().load_state_dict(state_dict, strict=strict)
 
 
-__all__ = ["LightningSystem", "from_checkpoint"]
+__all__ = ["LightningSystem", "load_from_checkpoint"]
