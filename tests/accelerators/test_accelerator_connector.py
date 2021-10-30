@@ -773,7 +773,8 @@ def test_strategy_choice_ddp_spawn(cuda_available_mock, device_count_mock):
     },
 )
 @mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_strategy_choice_ddp_slurm(setup_distributed_mock):
+@pytest.mark.parametrize("strategy", ["ddp", DDPPlugin()])
+def test_strategy_choice_ddp_slurm(setup_distributed_mock, strategy):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer._accelerator_connector._is_slurm_managing_tasks
@@ -785,7 +786,7 @@ def test_strategy_choice_ddp_slurm(setup_distributed_mock):
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, strategy="ddp", gpus=2, callbacks=[CB()])
+    trainer = Trainer(fast_dev_run=True, strategy=strategy, gpus=2, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -805,7 +806,8 @@ def test_strategy_choice_ddp_slurm(setup_distributed_mock):
 )
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_strategy_choice_ddp2_slurm(device_count_mock, setup_distributed_mock):
+@pytest.mark.parametrize("strategy", ["ddp2", DDP2Plugin()])
+def test_strategy_choice_ddp2_slurm(device_count_mock, setup_distributed_mock, strategy):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer._accelerator_connector._is_slurm_managing_tasks
@@ -817,7 +819,7 @@ def test_strategy_choice_ddp2_slurm(device_count_mock, setup_distributed_mock):
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, strategy="ddp2", gpus=2, callbacks=[CB()])
+    trainer = Trainer(fast_dev_run=True, strategy=strategy, gpus=2, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -980,7 +982,8 @@ def test_strategy_choice_ddp_cpu_kubeflow(device_count_mock, setup_distributed_m
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
 @mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_strategy_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_mock):
+@pytest.mark.parametrize("strategy", ["ddp", DDPPlugin()])
+def test_strategy_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_mock, strategy):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer._accelerator_connector._is_slurm_managing_tasks
@@ -991,7 +994,7 @@ def test_strategy_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_mock
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", num_processes=2, callbacks=[CB()])
+    trainer = Trainer(fast_dev_run=True, strategy=strategy, num_processes=2, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
