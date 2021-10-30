@@ -42,7 +42,6 @@ from pytorch_lightning.plugins import (
     IPUPlugin,
     IPUPrecisionPlugin,
     NativeMixedPrecisionPlugin,
-    ParallelPlugin,
     PrecisionPlugin,
     ShardedNativeMixedPrecisionPlugin,
     SingleDevicePlugin,
@@ -170,7 +169,7 @@ class AcceleratorConnector:
         self._set_distrib_type_if_training_type_plugin_passed()
 
         self._configure_slurm_ddp()
-        self.select_cluster_environment()
+        self._cluster_environment = self.select_cluster_environment()
 
         self.update_device_type_if_ipu_plugin()
         self.update_device_type_if_training_type_plugin_passed()
@@ -1040,5 +1039,5 @@ class AcceleratorConnector:
         # called and `_distrib_type` is not set.
         if self._distrib_type is not None:
             return
-        if self._training_type_plugin is not None and isinstance(self._training_type_plugin, ParallelPlugin):
-            self._distrib_type = self._training_type_plugin.distributed_backend
+        if self._training_type_plugin is not None:
+            self._distrib_type = getattr(self._training_type_plugin, "distributed_backend", None)
