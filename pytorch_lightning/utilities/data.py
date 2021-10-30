@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Iterable, List, Mapping, Union
+from typing import Any, Iterable, Mapping, Union
 
 import torch
 from torch.utils.data import DataLoader, IterableDataset
@@ -25,35 +25,37 @@ BType = Union[torch.Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
 warning_cache = WarningCache()
 
 
-def flatten_list(lst):
-    for el in lst:
-        if isinstance(el, Iterable) and not isinstance(el, (str, bytes)):
-            yield from flatten_list(el)
-        else:
-            yield el
+def _extract_batch_size(batch: BType, batch_sizes) -> bool:
+    current_batch_size = None
 
-
-def _extract_batch_size(batch: BType, recursive=False) -> List[int]:
     if isinstance(batch, torch.Tensor):
-        return [batch.size(0)]
-    if isinstance(batch, str):
-        return [len(batch)]
-    if isinstance(batch, (Iterable, dict)):
-        if isinstance(batch, dict):
-            batch = batch.values()
+        current_batch_size = batch.size(0)
+    elif isinstance(batch, str):
+        current_batch_size = len(batch)
+    elif not isinstance(batch, (Iterable, dict)):
+        current_batch_size = 1
 
-        batch_sizes = list(flatten_list([_extract_batch_size(sample, recursive=True) for sample in batch]))
-        batch_size = batch_sizes[0]
-
-        if not all(bs == batch_size for bs in batch_sizes) and not recursive:
+    if current_batch_size is not None:
+        if batch_sizes and batch_sizes[0] != current_batch_size:
             warning_cache.warn(
-                f"Lightning is trying to infer the `batch_size` from an ambiguous collection. The batch size we"
-                f" found is {batch_size}. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`."
+                f"Trying to infer the `batch_size` from an ambiguous collection. The batch size we"
+                f" found is {batch_sizes[0]}. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`."
             )
+            return True
+        elif not batch_sizes:
+            batch_sizes.append(current_batch_size)
 
-        return batch_sizes
+        return False
 
-    return [1]
+    if isinstance(batch, dict):
+        batch = batch.values()
+
+    for sample in batch:
+        should_exit = _extract_batch_size(sample, batch_sizes)
+        if should_exit:
+            return True
+
+    return False
 
 
 def extract_batch_size(batch: BType) -> int:
@@ -62,7 +64,9 @@ def extract_batch_size(batch: BType) -> int:
     Returns:
         ``len(tensor)`` when found, or ``1`` when it hits an empty or non iterable.
     """
-    return _extract_batch_size(batch)[0]
+    batch_sizes = []
+    _extract_batch_size(batch, batch_sizes)
+    return batch_sizes[0]
 
 
 def has_iterable_dataset(dataloader: DataLoader) -> bool:

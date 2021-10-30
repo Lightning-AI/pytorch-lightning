@@ -24,19 +24,19 @@ def test_extract_batch_size():
     assert extract_batch_size(batch) == 11
 
     batch = {"test": [{"test": [torch.zeros(11, 10), torch.zeros(10, 10)]}]}
-    with pytest.warns(UserWarning, match="Lightning is trying to infer the `batch_size` .* we found is 11."):
+    with pytest.warns(UserWarning, match="Trying to infer the `batch_size` .* we found is 11."):
         extract_batch_size(batch)
 
     warning_cache.clear()
 
     batch = {"test": [{"test": [torch.zeros(10, 10), torch.zeros(11, 10)]}]}
-    with pytest.warns(UserWarning, match="Lightning is trying to infer the `batch_size` .* we found is 10."):
+    with pytest.warns(UserWarning, match="Trying to infer the `batch_size` .* we found is 10."):
         extract_batch_size(batch)
 
     warning_cache.clear()
 
     batch = [{"test": torch.zeros(10, 10), "test_1": torch.zeros(11, 10)}]
-    with pytest.warns(UserWarning, match="Lightning is trying to infer the `batch_size` .* we found is 10."):
+    with pytest.warns(UserWarning, match="Trying to infer the `batch_size` .* we found is 10."):
         extract_batch_size(batch)
 
 
