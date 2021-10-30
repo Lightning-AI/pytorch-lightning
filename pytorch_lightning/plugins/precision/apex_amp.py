@@ -109,8 +109,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
                 f"apex AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
         closure_result = closure()
-        if isinstance(model, pl.LightningModule):
-            model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
+        self._after_closure(model, optimizer, optimizer_idx)
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if not isinstance(model, pl.LightningModule) or not model.automatic_optimization or not skipped_backward:
