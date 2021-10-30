@@ -21,6 +21,9 @@ from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence, Type,
 
 import torch
 from torch.optim import Optimizer
+from typing import Any, Dict, Iterator, List, Mapping, Sequence, Union
+
+import torch
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
 from typing_extensions import TypedDict
