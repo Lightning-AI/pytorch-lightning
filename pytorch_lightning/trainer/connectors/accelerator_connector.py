@@ -170,6 +170,7 @@ class AcceleratorConnector:
         self._set_distrib_type_if_training_type_plugin_passed()
 
         self._configure_slurm_ddp()
+        self.select_cluster_environment()
 
         self.update_device_type_if_ipu_plugin()
         self.update_device_type_if_training_type_plugin_passed()
@@ -387,7 +388,7 @@ class AcceleratorConnector:
         self._training_type_plugin = training_type
         self._precision_plugin = precision
         self._checkpoint_io = checkpoint
-        self._cluster_environment = cluster_environment or self.select_cluster_environment()
+        self._cluster_environment = cluster_environment
 
     @property
     def accelerator_types(self) -> List[str]:
