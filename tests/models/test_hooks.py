@@ -275,12 +275,7 @@ class HookedModel(BoringModel):
     def _auto_train_batch(trainer, model, batches, device=torch.device("cpu"), current_epoch=0, **kwargs):
         using_native_amp = kwargs.get("amp_backend") == "native"
         using_deepspeed = kwargs.get("strategy") == "deepspeed"
-        using_plugin = kwargs.get("amp_backend") or kwargs.get("strategy")
         out = []
-        on_before_optimizer_step = [
-            dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY, 0)),
-            dict(name="on_before_optimizer_step", args=(ANY, 0)),
-        ]
         for i in range(batches):
             out.extend(
                 [
@@ -291,8 +286,6 @@ class HookedModel(BoringModel):
                     dict(name="Callback.on_batch_start", args=(trainer, model)),
                     dict(name="Callback.on_train_batch_start", args=(trainer, model, ANY, i)),
                     dict(name="on_train_batch_start", args=(ANY, i)),
-                    # without a precision plugin, we execute the closure inside the `optimizer.step`
-                    *([] if using_plugin else on_before_optimizer_step),
                     dict(name="forward", args=(ANY,)),
                     dict(name="training_step", args=(ANY, i)),
                     dict(name="training_step_end", args=(dict(loss=ANY),)),
@@ -305,7 +298,9 @@ class HookedModel(BoringModel):
                     *([dict(name="backward", args=(ANY, ANY, 0))] if not using_deepspeed else []),
                     dict(name="Callback.on_after_backward", args=(trainer, model)),
                     dict(name="on_after_backward"),
-                    *(on_before_optimizer_step if using_plugin else []),
+                    # note: unscaling happens here in the case of AMP
+                    dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY, 0)),
+                    dict(name="on_before_optimizer_step", args=(ANY, 0)),
                     *([dict(name="log_grad_norm", args=ANY)] if not using_deepspeed else []),
                     dict(
                         name="clip_gradients",
@@ -334,7 +329,6 @@ class HookedModel(BoringModel):
     @staticmethod
     def _manual_train_batch(trainer, model, batches, device=torch.device("cpu"), **kwargs):
         using_deepspeed = kwargs.get("strategy") == "deepspeed"
-        using_plugin = kwargs.get("amp_backend") or kwargs.get("strategy")
         out = []
         for i in range(batches):
             out.extend(
@@ -355,11 +349,9 @@ class HookedModel(BoringModel):
                     dict(name="on_after_backward"),
                     # `manual_backward` calls the previous 3
                     dict(name="manual_backward", args=(ANY,)),
-                    *([dict(name="closure")] if using_plugin else []),
+                    dict(name="closure"),
                     dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY, 0)),
                     dict(name="on_before_optimizer_step", args=(ANY, 0)),
-                    # without a precision plugin, we execute the closure inside the `optimizer.step`
-                    *([] if using_plugin else [dict(name="closure")]),
                     *([dict(name="log_grad_norm", args=ANY)] if not using_deepspeed else []),
                     dict(name="training_step", args=(ANY, i)),
                     dict(name="training_step_end", args=(dict(loss=ANY),)),
