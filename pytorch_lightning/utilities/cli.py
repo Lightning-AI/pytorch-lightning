@@ -732,9 +732,7 @@ class LightningCLI:
         'AUTOMATIC'."""
         parser = self._parser(subcommand)
 
-        def get_automatic(
-            class_type: Union[Type, Tuple[Type, ...]], register: Dict[str, Tuple[Union[Type, Tuple[Type, ...]], str]]
-        ) -> List[str]:
+        def get_automatic(class_type: Any, register: Dict[str, Tuple[Union[Type, Tuple[Type, ...]], str]]) -> List[str]:
             automatic = []
             for key, (base_class, link_to) in register.items():
                 if not isinstance(base_class, tuple):
