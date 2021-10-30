@@ -13,6 +13,7 @@
 # limitations under the License.
 
 ARG PYTHON_VERSION=3.9
+ARG PYTORCH_VERSION=1.6
 
 FROM pytorchlightning/pytorch_lightning:base-cuda-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
 
