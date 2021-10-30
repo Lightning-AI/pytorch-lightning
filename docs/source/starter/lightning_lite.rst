@@ -19,7 +19,7 @@ on any kind of device while retaining full control over their own loops and opti
 - I would like to convert my existing code to the Lightning API, but a full path to Lightning transition might be too complex. I am looking for a stepping stone to ensure reproducibility during the transition.
 
 
-.. warning:: ``LightningLite`` is currently a beta feature. Its API is subject to change based on your feedbacks.
+.. warning:: :class:`~pytorch_lightning.lite.LightningLite` is currently a beta feature. Its API is subject to change based on your feedbacks.
 
 
 ----------
