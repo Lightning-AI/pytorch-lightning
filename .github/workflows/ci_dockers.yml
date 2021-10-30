@@ -23,8 +23,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: ["3.9"]  # latest
-        pytorch_version: ["1.8.1", "1.10.0"]  # LTS, stable
+        # should be the config used in '.github/workflows/release-docker.yml', but we just keep one to check.
+        python_version: ["3.9"]
+        pytorch_version: ["1.10.0"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -74,10 +75,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - run: |
-          cuda=$(python -c "from distutils.version import LooseVersion as LVer ; print(11.1 if LVer('${{matrix.pytorch_version}}') > LVer('1.7') else 10.2)" 2>&1)
-          echo "::set-output name=CUDA::$cuda"
-        id: extend
       - name: Build CUDA Docker
         # publish master/release
         uses: docker/build-push-action@v2
@@ -85,7 +82,6 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
-            CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
           file: dockers/base-cuda/Dockerfile
           push: false
         timeout-minutes: 75
