@@ -18,7 +18,7 @@
 
 2. Move the body of your existing `run` function into `run` method.
 
-3. Remove all ``.to``, ``.cuda`` etc calls since `LightningLite` will take care of it.
+3. Remove all `.to`, `.cuda` etc calls since `LightningLite` will take care of it.
 
 4. Apply `setup` over each model and optimizers pair and `setup_dataloaders` on all your dataloaders
 and replace ``loss.backward()`` by ``self.backward(loss)``.
