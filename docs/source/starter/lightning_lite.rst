@@ -333,7 +333,7 @@ Finally, change the :meth:`~pytorch_lightning.lite.LightningLite.run` into a
     trainer.fit(LightningModel(), datamodule=BoringDataModule())
 
 
-You have finally converted to PyTorch Lightning !
+You have successfully converted to PyTorch Lightning and can now benefit from its hundred of features !
 
 ----------
 
