@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """The LightningSystem - an LightningModule """
+from collections import OrderedDict
 from typing import Optional, Union
 
 import torch
@@ -26,6 +27,10 @@ __all__ = ["LightningSystem"]
 
 
 class LightningSystem(LightningModule):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._metric_modules = OrderedDict()
+
     def __setattr__(self, name: str, value: Union[Tensor, "Module"]) -> None:
         def remove_from(*dicts_or_sets):
             for d in dicts_or_sets:
@@ -40,12 +45,14 @@ class LightningSystem(LightningModule):
         else:
             modules = self.__dict__.get("_modules")
             if isinstance(value, Module):
-                print("1", name, value)
                 if modules is None:
                     raise AttributeError("cannot assign module before Module.__init__() call")
                 remove_from(self.__dict__, self._parameters, self._buffers, self._non_persistent_buffers_set)
-                if not isinstance(value, Metric):
-                    if sum(not isinstance(m, Metric) for m in modules) > 0:
+                if isinstance(value, Metric):
+                    self._metric_modules[name] = value
+                else:
+                    breakpoint()
+                    if len(modules) > 0:
                         raise MisconfigurationException(
                             "A `LightningSystem` supports' only a single nn.Module expects `torchmetrics.Metric`."
                         )
