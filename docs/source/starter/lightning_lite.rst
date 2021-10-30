@@ -79,9 +79,9 @@ Convert to LightningLite
 Here are 5 required steps to convert to :class:`~pytorch_lightning.lite.LightningLite`.
 
 1. Subclass :class:`~pytorch_lightning.lite.LightningLite` and override its :meth:`~pytorch_lightning.lite.LightningLite.run` method.
-2. Move the body of your existing `run` function.
-3. Remove all `.to`, `.cuda` etc calls since `LightningLite` will take care of it.
-4. Apply :meth:`~pytorch_lightning.lite.LightningLite.setup` over each model and optimizers pair, :meth:`~pytorch_lightning.lite.LightningLite.setup_dataloaders` on all your dataloaders and replace ``loss.backward()`` by ``self.backward(loss)``.
+2. Move the body of your existing ``run`` function into :class:`~pytorch_lightning.lite.LightningLite` ``run`` method.
+3. Remove all ``.to``, ``.cuda`` etc calls since :class:`~pytorch_lightning.lite.LightningLite` will take care of it.
+4. Apply :meth:`~pytorch_lightning.lite.LightningLite.setup` over each model and optimizers pair and :meth:`~pytorch_lightning.lite.LightningLite.setup_dataloaders` on all your dataloaders and replace ``loss.backward()`` by ``self.backward(loss)``.
 5. Instantiate your :class:`~pytorch_lightning.lite.LightningLite` and call its :meth:`~pytorch_lightning.lite.LightningLite.run` method.
 
 
@@ -106,10 +106,10 @@ Here are 5 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
 
             model = MyModel(...)
             optimizer = torch.optim.SGD(model.parameters(), ...)
-            model, optimizer = self.setup(model, optimizer)
+            model, optimizer = self.setup(model, optimizer)  # Used to prepare to scale your model
 
             dataloader = DataLoader(MyDataset(...), ...)
-            dataloader = self.setup_dataloaders(dataloader)
+            dataloader = self.setup_dataloaders(dataloader)  # Used to prepare to scale your dataloaders
 
             model.train()
             for epoch in range(args.num_epochs):
@@ -140,7 +140,7 @@ Here is how to use `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/ze
 
     Lite(strategy="deepspeed", devices=8, accelerator="gpu", precision=16).run(10)
 
-Lightning can also figure it out automatically for you!
+:class:`~pytorch_lightning.lite.LightningLite` can also figure it out automatically for you!
 
 .. code-block:: python
 
@@ -184,12 +184,12 @@ Here is an example while running on 256 GPUs.
     Lite(strategy="ddp", gpus=8, num_nodes=32, accelerator="gpu").run()
 
 
-If you require a custom data or model device placement, you can deactivate
+If you require custom data or model device placement, you can deactivate
 :class:`~pytorch_lightning.lite.LightningLite` automatic placement by doing
 ``self.setup_dataloaders(..., move_to_device=False)`` for the data and
 ``self.setup(..., move_to_device=False)`` for the model.
 Futhermore, you can access the current device from ``self.device`` or
-rely on :meth:`~pytorch_lightning.core.lightning.LightningModule.to_device`
+rely on :meth:`~pytorch_lightning.lite.LightningLite.to_device`
 utility to move an object to the current device.
 
 
@@ -198,11 +198,11 @@ utility to move an object to the current device.
 .. note::
 
     If you have hundreds or thousands of line within your :meth:`~pytorch_lightning.lite.LightningLite.run` function
-    and you are feeling weird about it, this is exactly the expected feeling.
-    This is how our :class:`~pytorch_lightning.core.lightning.LightningModule` started in 2019
-    and then we started to organize the code for simplicity, interoperability and standardization.
-    This is a good sign you should consider refactoring your code and switch to
-    :class:`~pytorch_lightning.core.lightning.LightningModule`.
+    and you are feeling weird about it then this is right feeling.
+    Back in 2019, our :class:`~pytorch_lightning.core.lightning.LightningModule` was getting larger
+    and we got the same feeling. So we started to organize our code for simplicity, interoperability and standardization.
+    This is definitely a good sign that you should consider refactoring your code and / or switch to
+    :class:`~pytorch_lightning.core.lightning.LightningModule` ultimately.
 
 
 ----------
@@ -245,7 +245,7 @@ The :class:`~pytorch_lightning.lite.LightningLite` is a stepping stone to transi
 from its hundreds of features.
 
 You can see our :class:`~pytorch_lightning.lite.LightningLite` as a
-future :class:`~pytorch_lightning.core.lightning.LightningModule` and slowly refactor / re-organize your code into its API.
+future :class:`~pytorch_lightning.core.lightning.LightningModule` and slowly refactor your code into its API.
 
 
 .. code-block:: python
