@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import math
 from unittest import mock
 
 import pytest
@@ -661,3 +662,67 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir, save_on
     model.training_epoch_end = None
     trainer.fit(model)
     assert model.on_save_checkpoint_called
+
+
+def test_lr_scheduler_step_hook(tmpdir):
+    class CustomEpochScheduler:
+        def __init__(self, optimizer):
+            self.optimizer = optimizer
+
+        def step(self, epoch):
+            for param_group in self.optimizer.param_groups:
+                param_group["lr"] = param_group["lr"] / (epoch + 1)
+
+    class CustomBoringModel(BoringModel):
+        def __init__(self, learning_rate):
+            super().__init__()
+            self.learning_rate = learning_rate
+            self.layer1 = torch.nn.Linear(32, 2)
+            self.layer2 = torch.nn.Linear(32, 2)
+
+        def training_step(self, batch, batch_idx, optimizer_idx):
+            if optimizer_idx == 0:
+                output = self.layer1(batch)
+            else:
+                output = self.layer2(batch)
+
+            return self.loss(batch, output)
+
+        def training_epoch_end(self, *args, **kwargs):
+            pass
+
+        def lr_scheduler_step(self, scheduler, step, optimizer_idx, monitor_val=None):
+            if optimizer_idx == 0:
+                assert step == self.trainer.global_step
+                super().lr_scheduler_step(scheduler, step, optimizer_idx, monitor_val)
+            if optimizer_idx == 1:
+                assert step == self.trainer.current_epoch
+                scheduler.step(epoch=step)
+
+        def configure_optimizers(self):
+            opt1 = torch.optim.SGD(self.layer1.parameters(), lr=self.learning_rate)
+            lr_scheduler1 = {"scheduler": torch.optim.lr_scheduler.StepLR(opt1, step_size=1), "interval": "step"}
+            opt2 = torch.optim.SGD(self.layer2.parameters(), lr=self.learning_rate)
+            lr_scheduler2 = CustomEpochScheduler(opt2)
+            return {"optimizer": opt1, "lr_scheduler": lr_scheduler1}, {
+                "optimizer": opt2,
+                "lr_scheduler": lr_scheduler2,
+            }
+
+    lr = 1e-2
+    max_epochs = 3
+    model = CustomBoringModel(learning_rate=lr)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        enable_checkpointing=False,
+        logger=False,
+        max_epochs=max_epochs,
+        limit_train_batches=2,
+        limit_val_batches=0,
+    )
+    trainer.fit(model)
+
+    for param_group in trainer.optimizers[1].param_groups:
+        assert param_group["lr"] == lr / math.factorial(max_epochs)
+
+    breakpoint()

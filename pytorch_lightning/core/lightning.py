@@ -1493,7 +1493,7 @@ class LightningModule(
             optimizer, gradient_clip_val=gradient_clip_val, gradient_clip_algorithm=gradient_clip_algorithm
         )
 
-    def scheduler_step(
+    def lr_scheduler_step(
         self,
         scheduler: Any,
         step: int,

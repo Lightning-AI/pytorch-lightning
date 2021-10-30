@@ -329,12 +329,12 @@ class HookedModel(BoringModel):
                     *(
                         [
                             dict(
-                                name="scheduler_step",
+                                name="lr_scheduler_step",
                                 args=(ANY, current_epoch),
                                 kwargs=dict(optimizer_idx=None, monitor_val=None),
                             )
                         ]
-                        if i == (batches - 1)
+                        if i == (trainer.num_training_batches - 1)
                         else []
                     ),
                     dict(name="Callback.on_train_batch_end", args=(trainer, model, dict(loss=ANY), ANY, i)),
