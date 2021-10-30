@@ -1038,7 +1038,7 @@ class AcceleratorConnector:
             rank_zero_info("Multi-processing is handled by Slurm.")
 
     @staticmethod
-    def _get_auto_device_count(accelerator: str):
+    def _get_auto_device_count(accelerator: str) -> int:
         if accelerator == DeviceType.TPU:
             acc_cls = TPUAccelerator
         elif accelerator == DeviceType.IPU:
