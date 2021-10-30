@@ -50,7 +50,6 @@ The ``run`` function contains custom training loop used to train ``MyModel`` on 
 
 
     def run(args):
-
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
         model = MyModel(...).to(device)
@@ -107,7 +106,6 @@ Here are 5 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
 
             model = MyModel(...)
             optimizer = torch.optim.SGD(model.parameters(), ...)
-
             model, optimizer = self.setup(model, optimizer)
 
             dataloader = DataLoader(MyDataset(...), ...)
@@ -118,7 +116,7 @@ Here are 5 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
                 for batch in dataloader:
                     optimizer.zero_grad()
                     loss = model(batch)
-                    self.backward(loss)
+                    self.backward(loss)  # instead of loss.backward()
                     optimizer.step()
 
 
@@ -145,7 +143,6 @@ Lightning can also figure it out automatically for you!
 .. code-block:: python
 
     Lite(devices="auto", accelerator="auto", precision=16).run(10)
-
 
 You can also easily use distributed collectives if required.
 Here is an example while running on 256 GPUs.
@@ -337,11 +334,9 @@ You are finally converted to PyTorch Lightning !
 
 ----------
 
-
 ********************
 Lightning Lite Flags
 ********************
-
 
 Lite is a specialist for accelerated distributed training and inference. It offers you convenient ways to configure
 your device and communication strategy and to seamlessly switch from one to the other. The terminology and usage is
