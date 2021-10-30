@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+from functools import partial
 from typing import Any, Callable, Generator, List, Optional, Tuple, Union
 
 import torch
@@ -21,7 +22,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.hooks import CheckpointHooks
-from pytorch_lightning.utilities import GradClipAlgorithmType, rank_zero_deprecation
+from pytorch_lightning.utilities import grad_norm, GradClipAlgorithmType, rank_zero_deprecation
 from pytorch_lightning.utilities.types import _PARAMETERS
 
 
@@ -103,25 +104,91 @@ class PrecisionPlugin(CheckpointHooks):
         model.trainer.call_hook("on_after_backward")
         return closure_loss
 
-    def _run_backward(self, tensor: Tensor, model: Module, *args: Any, **kwargs: Any) -> None:
+    def _run_backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
         """Lightning-independent backward logic.
 
         Currently only used by Lightning Lite. Subject to further refactors.
         """
         tensor.backward(*args, **kwargs)
 
-    def pre_optimizer_step(
+    def _after_closure(
+        self, model: Union["pl.LightningModule", Module], optimizer: Optimizer, optimizer_idx: int
+    ) -> None:
+        """Utility to share some code after the closure has been run."""
+        if not isinstance(model, pl.LightningModule):
+            # none of this applies to Lite
+            return
+        trainer = model.trainer
+        assert trainer is not None
+        trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
+        # TODO: this is done for the entire model but should be changed to per-optimizer
+        if optimizer_idx == 0:
+            self._track_grad_norm(trainer)
+        self._clip_gradients(
+            model,
+            optimizer,
+            optimizer_idx,
+            trainer.gradient_clip_val,
+            gradient_clip_algorithm=trainer.gradient_clip_algorithm,
+        )
+
+    def _wrap_closure(
+        self,
+        model: "pl.LightningModule",
+        optimizer: Optimizer,
+        optimizer_idx: int,
+        closure: Callable[[], Any],
+    ) -> Any:
+        """This double-closure allows makes sure the ``closure`` is executed before the
+        ``on_before_optimizer_step`` hook is called.
+
+        The closure (generally) runs ``backward`` so this allows inspecting gradients in this hook. This structure is
+        consistent with the ``PrecisionPlugin`` subclasses that cannot pass ``optimizer.step(closure)`` directly.
+        """
+        closure_result = closure()
+        self._after_closure(model, optimizer, optimizer_idx)
+        return closure_result
+
+    def optimizer_step(
         self,
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Callable,
+        closure: Callable[[], Any],
         **kwargs: Any,
-    ) -> bool:
-        """Hook to do something before each optimizer step."""
+    ) -> None:
+        """Hook to run the optimizer step."""
         if isinstance(model, pl.LightningModule):
-            model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
-        return True
+            closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, closure)
+        optimizer.step(closure=closure, **kwargs)
+
+    def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
+        if trainer.track_grad_norm == -1:
+            return
+        grad_norm_dict = grad_norm(trainer.lightning_module, trainer.track_grad_norm, trainer.logger.group_separator)
+        if grad_norm_dict:
+            prev_fx = trainer.lightning_module._current_fx_name
+            trainer.lightning_module._current_fx_name = "on_before_optimizer_step"
+            trainer.lightning_module.log_grad_norm(grad_norm_dict)
+            trainer.lightning_module._current_fx_name = prev_fx
+
+    def _clip_gradients(
+        self,
+        model: Union["pl.LightningModule", Module],
+        optimizer: Optimizer,
+        optimizer_idx: int,
+        clip_val: Optional[Union[int, float]] = None,
+        gradient_clip_algorithm: Optional[GradClipAlgorithmType] = None,
+    ) -> None:
+        if not isinstance(model, pl.LightningModule) or not model.automatic_optimization:
+            # the configuration validator disallows clipping on manual
+            return
+        model.configure_gradient_clipping(
+            optimizer,
+            optimizer_idx,
+            gradient_clip_val=clip_val,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+        )
 
     def clip_gradients(
         self,

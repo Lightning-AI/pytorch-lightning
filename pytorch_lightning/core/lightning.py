@@ -39,7 +39,7 @@ from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import (
     _IS_WINDOWS,
-    _TORCH_GREATER_EQUAL_DEV_1_10,
+    _TORCH_GREATER_EQUAL_1_10,
     GradClipAlgorithmType,
     rank_zero_deprecation,
     rank_zero_warn,
@@ -367,7 +367,8 @@ class LightningModule(
             on_epoch: if True logs epoch accumulated metrics. None auto-logs at the val/test step but not training_step
             reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
             enable_graph: if True, will not auto detach the graph
-            sync_dist: if True, reduces the metric across GPUs/TPUs
+            sync_dist: if True, reduces the metric across GPUs/TPUs. Use with care as this may lead to a significant
+                communication overhead.
             sync_dist_group: the ddp group to sync across
             add_dataloader_idx: if True, appends the index of the current dataloader to
                 the name (when using multiple). If False, user needs to give unique names for
@@ -529,7 +530,8 @@ class LightningModule(
             on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
             reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
             enable_graph: if True, will not auto detach the graph
-            sync_dist: if True, reduces the metric across GPUs/TPUs
+            sync_dist: if True, reduces the metric across GPUs/TPUs. Use with care as this may lead to a significant
+                communication overhead.
             sync_dist_group: the ddp group sync across
             add_dataloader_idx: if True, appends the index of the current dataloader to
                 the name (when using multiple). If False, user needs to give unique names for
@@ -575,6 +577,8 @@ class LightningModule(
 
     def log_grad_norm(self, grad_norm_dict: Dict[str, float]) -> None:
         """Override this method to change the default behaviour of ``log_grad_norm``.
+
+        If clipping gradients, the gradients will not have been clipped yet.
 
         Args:
             grad_norm_dict: Dictionary containing current grad norm metrics
@@ -1537,7 +1541,7 @@ class LightningModule(
             )
 
         gradient_clip_algorithm = GradClipAlgorithmType(gradient_clip_algorithm)
-        self.trainer.accelerator.clip_gradients(optimizer, gradient_clip_val, gradient_clip_algorithm)
+        self.trainer.precision_plugin.clip_gradients(optimizer, gradient_clip_val, gradient_clip_algorithm)
 
     def configure_gradient_clipping(
         self,
@@ -2043,7 +2047,7 @@ class LightningModule(
 
         These hooks ensure that ShardedTensors are included when saving, and are loaded the LightningModule correctly.
         """
-        if not _TORCH_GREATER_EQUAL_DEV_1_10 or _IS_WINDOWS:
+        if not _TORCH_GREATER_EQUAL_1_10 or _IS_WINDOWS:
             return
 
         from torch.distributed._sharded_tensor import pre_load_state_dict_hook, state_dict_hook

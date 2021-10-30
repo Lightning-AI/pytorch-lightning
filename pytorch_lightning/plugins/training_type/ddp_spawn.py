@@ -38,7 +38,7 @@ from pytorch_lightning.utilities import (
     rank_zero_deprecation,
     rank_zero_warn,
 )
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import distributed_available
@@ -164,32 +164,44 @@ class DDPSpawnPlugin(ParallelPlugin):
         return {"nprocs": self.num_processes}
 
     def start_training(self, trainer: "pl.Trainer") -> None:
-        self.spawn(self.new_process, trainer, self.mp_queue)
+        self.spawn(self.new_process, trainer, self.mp_queue, return_result=False)
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
 
     def start_evaluating(self, trainer: "pl.Trainer") -> None:
-        self.spawn(self.new_process, trainer, self.mp_queue)
+        self.spawn(self.new_process, trainer, self.mp_queue, return_result=False)
 
     def start_predicting(self, trainer: "pl.Trainer") -> None:
-        self.spawn(self.new_process, trainer, self.mp_queue)
+        self.spawn(self.new_process, trainer, self.mp_queue, return_result=False)
 
-    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> None:
+    def spawn(self, function: Callable, *args: Any, return_result: bool = True, **kwargs: Any) -> Optional[Any]:
         """Spawn processes that run the given function.
 
         Args:
             function: The function to spawn processes from.
             *args: Optional positional arguments that will be passed to the function in addition to the process index.
                 These arguments must be pickleable.
+            return_result: If ``True``, copies the output of the function from process 0 to the main process and
+                returns it.
             **kwargs: Optional named arguments that will be passed to the function in addition to the process index.
                 These arguments must be pickleable.
+
+        Return:
+            The output of the function of process 0.
         """
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        mp.spawn(self._wrapped_function, args=(function, args, kwargs), **self.get_mp_spawn_kwargs())
+        context = mp.get_context("spawn")
+        return_queue = context.SimpleQueue() if return_result else None
+        mp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), nprocs=self.num_processes)
+        return return_queue.get() if return_result else None
 
-    def _wrapped_function(self, process_idx: int, function: Callable, args: Any, kwargs: Any) -> None:
+    def _wrapped_function(
+        self, process_idx: int, function: Callable, args: Any, kwargs: Any, return_queue: Optional[SimpleQueue]
+    ) -> None:
         self._worker_setup(process_idx)
-        function(*args, **kwargs)
+        result = function(*args, **kwargs)
+        if return_queue is not None and self.local_rank == 0:
+            return_queue.put(move_data_to_device(result, "cpu"))
 
     def _worker_setup(self, process_idx: int):
         reset_seed()

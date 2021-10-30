@@ -22,53 +22,52 @@ from torch.utils.data import DataLoader
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins.environments import SLURMEnvironment
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_DEV_1_10
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 
 class AMPTestModel(BoringModel):
-    def _step(self, batch, batch_idx):
+    def _step(self, batch):
         self._assert_autocast_enabled()
         output = self(batch)
-        bfloat16 = self.trainer.precision_plugin.is_bfloat16
-        assert output.dtype == torch.float16 if not bfloat16 else torch.bfloat16
+        is_bfloat16 = self.trainer.precision_plugin.precision == "bf16"
+        assert output.dtype == torch.float16 if not is_bfloat16 else torch.bfloat16
         loss = self.loss(batch, output)
         return loss
 
     def loss(self, batch, prediction):
         # todo (sean): convert bfloat16 to float32 as mse loss for cpu amp is currently not supported
-        if self.trainer.precision_plugin.use_cpu:
+        if self.trainer.precision_plugin.device == "cpu":
             prediction = prediction.float()
         return super().loss(batch, prediction)
 
     def training_step(self, batch, batch_idx):
-        output = self._step(batch, batch_idx)
+        output = self._step(batch)
         return {"loss": output}
 
     def validation_step(self, batch, batch_idx):
-        output = self._step(batch, batch_idx)
+        output = self._step(batch)
         return {"x": output}
 
     def test_step(self, batch, batch_idx):
-        output = self._step(batch, batch_idx)
+        output = self._step(batch)
         return {"y": output}
 
-    def predict(self, batch, batch_idx, dataloader_idx=None):
+    def predict_step(self, batch, batch_idx, dataloader_idx=None):
         self._assert_autocast_enabled()
         output = self(batch)
-        bfloat16 = self.trainer.precision_plugin.is_bfloat16
-        assert output.dtype == torch.float16 if not bfloat16 else torch.bfloat16
+        is_bfloat16 = self.trainer.precision_plugin.precision == "bf16"
+        assert output.dtype == torch.float16 if not is_bfloat16 else torch.bfloat16
         return output
 
     def _assert_autocast_enabled(self):
-        if self.trainer.precision_plugin.use_cpu:
+        if self.trainer.precision_plugin.device == "cpu":
             assert torch.is_autocast_cpu_enabled()
         else:
             assert torch.is_autocast_enabled()
 
 
-@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_DEV_1_10, reason="Needs bfloat16 support")
+@RunIf(min_torch="1.10")
 @pytest.mark.parametrize(
     "strategy",
     [
@@ -95,8 +94,7 @@ def test_amp_cpus(tmpdir, strategy, precision, num_processes):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-@RunIf(min_gpus=2)
-@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_DEV_1_10, reason="Needs bfloat16 support")
+@RunIf(min_gpus=2, min_torch="1.10")
 @pytest.mark.parametrize("strategy", [None, "dp", "ddp_spawn"])
 @pytest.mark.parametrize("precision", [16, "bf16"])
 @pytest.mark.parametrize("gpus", [1, 2])
