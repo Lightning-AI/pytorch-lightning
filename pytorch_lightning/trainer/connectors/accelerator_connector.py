@@ -475,16 +475,24 @@ class AcceleratorConnector:
         if self.devices is None:
             return False
         if accelerator == DeviceType.TPU and _TPU_AVAILABLE:
+            if self.devices == "auto":
+                self.devices = self._get_auto_device_count(DeviceType.TPU)
             self.tpu_cores = device_parser.parse_tpu_cores(self.devices)
             return True
         if accelerator == DeviceType.IPU and _IPU_AVAILABLE:
+            if self.devices == "auto":
+                self.devices = self._get_auto_device_count(DeviceType.IPU)
             self.ipus = self.devices
             return True
         if accelerator == DeviceType.GPU and torch.cuda.is_available():
+            if self.devices == "auto":
+                self.devices = self._get_auto_device_count(DeviceType.GPU)
             self.gpus = self.devices
             self.parallel_device_ids = device_parser.parse_gpu_ids(self.devices)
             return True
         if accelerator == DeviceType.CPU:
+            if self.devices == "auto":
+                self.devices = self._get_auto_device_count(DeviceType.CPU)
             if not isinstance(self.devices, int):
                 raise MisconfigurationException(
                     "The flag `devices` must be an int with `accelerator='cpu'`,"
@@ -1028,3 +1036,15 @@ class AcceleratorConnector:
         # notify user the that slurm is managing tasks
         if self._is_slurm_managing_tasks:
             rank_zero_info("Multi-processing is handled by Slurm.")
+
+    @staticmethod
+    def _get_auto_device_count(accelerator: str):
+        if accelerator == DeviceType.TPU:
+            acc_cls = TPUAccelerator
+        elif accelerator == DeviceType.IPU:
+            acc_cls = IPUAccelerator
+        elif accelerator == DeviceType.GPU:
+            acc_cls = GPUAccelerator
+        else:
+            acc_cls = CPUAccelerator
+        return acc_cls.auto_device_count()
