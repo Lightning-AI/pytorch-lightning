@@ -52,7 +52,7 @@ class LightningSystem(LightningModule):
                     self._metric_modules[name] = value
                 elif len(modules) > 0:
                     raise MisconfigurationException(
-                        "A `LightningSystem` supports' only a single nn.Module expects `torchmetrics.Metric`."
+                        "A `LightningSystem` supports only a single nn.Module expects `torchmetrics.Metric`."
                     )
                 modules[name] = value
             elif modules is not None and name in modules:
@@ -70,18 +70,37 @@ class LightningSystem(LightningModule):
                     object.__setattr__(self, name, value)
 
     @property
-    def _has_module(self) -> bool:
-        modules = self.__dict__.get("_modules")
-        return sum(not isinstance(m, Metric) for m in modules) > 0
+    def has_module(self) -> bool:
+        return len(self.__dict__.get("_modules")) > 0
 
     @property
-    def _name_module(self) -> Optional[str]:
-        if self._has_module:
-            modules = self.__dict__.get("_modules")
-            return [not isinstance(m, Metric) for m in modules][0]
+    def module_name(self) -> Optional[str]:
+        if self.has_module:
+            modules: OrderedDict = self.__dict__.get("_modules")
+            return list(modules.keys())[0]
 
     def state_dict(self, destination=None, prefix="", keep_vars=False):
         state_dict = super().state_dict()
-        if self._has_module:
-            return state_dict
+        if self.has_module:
+            module_name = self.module_name
+
+            def prune_name(k: str) -> str:
+                if k.startswith(module_name):
+                    return k.replace(module_name + ".", "")
+                return k
+
+            return {prune_name(k): v for k, v in state_dict.items()}
         return state_dict
+
+    def load_state_dict(self, state_dict: "OrderedDict[str, Tensor]", strict: bool = True):
+        if not self.has_module:
+            raise MisconfigurationException("A `LightningSystem doesn't contain any module.")
+        module_name = self.module_name
+
+        def add_name(k: str) -> str:
+            if "." not in k:
+                return module_name + "." + k
+            return k
+
+        state_dict = OrderedDict({add_name(k): v for k, v in state_dict.items()})
+        return super().load_state_dict(state_dict, strict=strict)
