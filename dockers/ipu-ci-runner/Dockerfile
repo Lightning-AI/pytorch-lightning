@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG PYTHON_VERSION=3.8
-ARG PYTORCH_VERSION=1.7
+ARG PYTHON_VERSION=3.9
 
 FROM pytorchlightning/pytorch_lightning:base-ipu-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
 
