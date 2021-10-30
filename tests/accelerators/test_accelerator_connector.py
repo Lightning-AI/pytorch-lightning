@@ -466,7 +466,7 @@ def test_ipython_compatible_backend(*_):
     Trainer(strategy="ddp_spawn", num_processes=2)
 
 
-@pytest.mark.parametrize(["accelerator", "plugin"], [("ddp_spawn", "ddp_sharded"), (None, "ddp_sharded")])
+@pytest.mark.parametrize(["strategy", "plugin"], [("ddp_spawn", "ddp_sharded"), (None, "ddp_sharded")])
 def test_plugin_accelerator_choice(accelerator: Optional[str], plugin: str):
     """Ensure that when a plugin and accelerator is passed in, that the plugin takes precedent."""
     trainer = Trainer(accelerator=strategy, plugins=plugin, num_processes=2)
