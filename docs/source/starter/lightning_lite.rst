@@ -185,7 +185,7 @@ Here is an example while running on 256 GPUs.
 
 
 If you require a custom data or model device placement, you can deactivate
-:class:`~pytorch_lightning.lite.LightningLite` automatic placement by doing
+:class:`~pytorch_lightning.lite.LightningLite` automatic device placement by doing
 ``self.setup_dataloaders(..., move_to_device=False)`` for the data and
 ``self.setup(..., move_to_device=False)`` for the model.
 Futhermore, you can access the current device from ``self.device`` or
