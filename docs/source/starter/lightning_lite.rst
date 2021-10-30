@@ -184,17 +184,16 @@ Here is an example while running on 256 GPUs.
     Lite(strategy="ddp", gpus=8, num_nodes=32, accelerator="gpu").run()
 
 
+If you require a custom data or model device placement, you can deactivate
+:class:`~pytorch_lightning.lite.LightningLite` automatic placement by doing
+``self.setup_dataloaders(..., move_to_device=False)`` for the data and
+``self.setup(..., move_to_device=False)`` for the model.
+Futhermore, you can access the current device from ``self.device`` or
+rely on :meth:`~pytorch_lightning.core.lightning.LightningModule.to_device`
+utility to move an object to the current device.
+
+
 .. note:: We recommend instantiating the models within the :meth:`~pytorch_lightning.lite.LightningLite.run` method as large models would cause an out-of-memory error otherwise.
-
-.. note::
-
-    If you require a custom data or model device placement, you can deactivate
-    :class:`~pytorch_lightning.lite.LightningLite` automatic placement by doing
-    ``self.setup_dataloaders(..., move_to_device=False)`` for the data and
-    ``self.setup(..., move_to_device=False)`` for the model.
-    Futhermore, you can access the current device from ``self.device`` or
-    rely on :meth:`~pytorch_lightning.core.lightning.LightningModule.to_device`
-    utility to move an object to the current device.
 
 .. note::
 
