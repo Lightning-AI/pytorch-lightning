@@ -124,8 +124,10 @@ Here are 5 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
 
 
 That's all. You can now train on any kind of device and scale your training.
+
 The :class:`~pytorch_lightning.lite.LightningLite` takes care of device management, so you don't have to.
 You should remove any device specific logic within your code.
+
 Here is how to train on 8 GPUs with `torch.bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_ precision:
 
 .. code-block:: python
@@ -183,6 +185,16 @@ Here is an example while running on 256 GPUs.
 
 
 .. note:: We recommend instantiating the models within the :meth:`~pytorch_lightning.lite.LightningLite.run` method as large models would cause an out-of-memory error otherwise.
+
+.. note:
+
+    If you require a custom data or model device placement, you can deactivate
+    :class:`~pytorch_lightning.lite.LightningLite` automatic placement by doing
+    ``self.setup_dataloaders(..., move_to_device=False)`` for the data and
+    ``self.setup(..., move_to_device=False)`` for the model.
+    Futhermore, you can access the current device from ``self.device`` or
+    rely on :meth:`~pytorch_lightning.core.lightning.LightningModule.to_device`
+    utility to move an object to the current device.
 
 .. note::
 
