@@ -65,6 +65,8 @@ def load_from_checkpoint(
     map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
     **kwargs,
 ) -> Module:
+    if issubclass(module_cls, LightningSystem):
+        raise MisconfigurationException("This utility should be used to instantiate your model, not a LightningSystem")
     if map_location is not None:
         checkpoint = pl_load(checkpoint_path, map_location=map_location)
     else:
