@@ -81,8 +81,8 @@ Here are 5 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
 
 1. Subclass :class:`~pytorch_lightning.lite.LightningLite` and override its :meth:`~pytorch_lightning.lite.LightningLite.run` method.
 2. Move the body of your existing `run` function.
-3. Remove all calls to `to`, `cuda` etc. as `LightningLite` will take care of it
-4. Apply :meth:`~pytorch_lightning.lite.LightningLite.setup` over each model and optimizers pair, :meth:`~pytorch_lightning.lite.LightningLite.setup_dataloaders` on all your dataloaders and replace ``loss.backward()`` by ``self.backward(loss)``
+3. Remove all `.to`, `.cuda` etc calls since `LightningLite` will take care of it.
+4. Apply :meth:`~pytorch_lightning.lite.LightningLite.setup` over each model and optimizers pair, :meth:`~pytorch_lightning.lite.LightningLite.setup_dataloaders` on all your dataloaders and replace ``loss.backward()`` by ``self.backward(loss)``.
 5. Instantiate your :class:`~pytorch_lightning.lite.LightningLite` and call its :meth:`~pytorch_lightning.lite.LightningLite.run` method.
 
 
@@ -191,8 +191,10 @@ Here is an example while running on 256 GPUs.
 
     If you have hundreds or thousands of line within your :meth:`~pytorch_lightning.lite.LightningLite.run` function
     and you are feeling weird about it, this is exactly the expected feeling.
-    This is how our :class:`~pytorch_lightning.core.lightning.LightningModule` started 2-3 years ago
+    This is how our :class:`~pytorch_lightning.core.lightning.LightningModule` started in 2019
     and then we started to organize the code for simplicity, interoperability and standardization.
+    This is a good sign you should consider refactoring your code and switch to
+    :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
 
 ----------
@@ -210,14 +212,14 @@ but there are several major challenges ahead of you now:
    :header-rows: 0
 
    * - Processes divergence
-     - This happens when processes execute different section of the code due to different if/else condition, race condition on existing files, etc., resulting in hanging.
+     - This happens when processes execute a different section of the code due to different if/else conditions, race condition on existing files, etc., resulting in hanging.
    * - Cross processes reduction
-     - Wrongly reported metrics or gradients due mis-reduction.
+     - Wrongly reported metrics or gradients due to mis-reduction.
    * - Large sharded models
      - Instantiation, materialization and state management of large models.
    * - Rank 0 only actions
      - Logging, profiling, etc.
-   * - Checkpointing / Early stopping / Callbacks
+   * - Checkpointing / Early stopping / Callbacks / Logging
      - Ability to easily customize your training behaviour and make it stateful.
    * - Batch-level fault tolerance training
      - Ability to resume from a failure as if it never happened.
@@ -247,18 +249,21 @@ future :class:`~pytorch_lightning.core.lightning.LightningModule` and slowly ref
         def run(self, args):
             self.args = args
 
-            model = MyModel(...)
+            self.model = MyModel(...)
 
-            self.fit(model)  # This would be automated by Lightning Trainer.
+            self.fit()  # This would be automated by Lightning Trainer.
 
         # 2. This can be fully removed as Lightning handles the FitLoop
         # and setting up the model, optimizer, dataloader and many more.
 
         def fit(self):
+            # setting everything
             optimizer = self.configure_optimizers()
-            model, optimizer = self.setup(model, optimizer)
+            self.model, optimizer = self.setup(self.model, optimizer)
             dataloader = self.setup_dataloaders(self.train_dataloader())
-            model.train()
+
+            # start fitting
+            self.model.train()
             for epoch in range(num_epochs):
                 for batch in enumerate(dataloader):
                     optimizer.zero_grad()
@@ -275,7 +280,7 @@ future :class:`~pytorch_lightning.core.lightning.LightningModule` and slowly ref
             return self.forward(batch)
 
         def configure_optimizers(self):
-            return torch.optim.SGD(model.parameters(), ...)
+            return torch.optim.SGD(self.model.parameters(), ...)
 
         # 4. [Optionally] This can stay here or be extracted within a LightningDataModule to enable higher composability.
 
@@ -308,7 +313,7 @@ Finally, change the :meth:`~pytorch_lightning.lite.LightningLite.run` into a
             return loss
 
         def configure_optimizers(self):
-            return torch.optim.SGD(self.parameters(), lr=0.001)
+            return torch.optim.SGD(self.model.parameters(), lr=0.001)
 
 
     class BoringDataModule(LightningDataModule):
@@ -421,8 +426,8 @@ Configure the devices to run on. Can be of type:
     lite = Lite(devices="1, 4", accelerator="gpu")  # equivalent
 
     # -1: run on all GPUs
-    lite = Lite(devices=-1)
-    lite = Lite(devices="-1")  # equivalent
+    lite = Lite(devices=-1, accelerator="gpu")
+    lite = Lite(devices="-1", accelerator="gpu")  # equivalent
 
 
 
