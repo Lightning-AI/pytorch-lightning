@@ -142,7 +142,7 @@ mnist/
 legacy/checkpoints/
 *.gz
 *ubyte
-
+MNIST/
 
 # pl tests
 ml-runs/
