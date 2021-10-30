@@ -144,15 +144,15 @@ class Lite(LightningLite):
         train_loader, test_loader = self.setup_dataloaders(train_loader, test_loader)
 
         model = Net()
-        optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+        optimizer = optim.Adadelta(model.parameters(), lr=hparams.lr)
 
         model, optimizer = self.setup(model, optimizer)
-        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+        scheduler = StepLR(optimizer, step_size=1, gamma=hparams.gamma)
 
-        MainLoop(self, args, model, optimizer, scheduler, train_loader, test_loader).run()
+        MainLoop(self, hparams, model, optimizer, scheduler, train_loader, test_loader).run()
 
-        if args.save_model and self.is_global_zero:
-            torch.save(model.state_dict(), "mnist_cnn.pt")
+        if hparams.save_model:
+            self.save(model.state_dict(), "mnist_cnn.pt")
 
 
 if __name__ == "__main__":
@@ -177,13 +177,8 @@ if __name__ == "__main__":
         help="how many batches to wait before logging training status",
     )
     parser.add_argument("--save-model", action="store_true", default=False, help="For Saving the current Model")
-    args = parser.parse_args()
+    hparams = parser.parse_args()
 
-    seed_everything(args.seed)
+    seed_everything(hparams.seed)
 
-    if torch.cuda.is_available():
-        lite_kwargs = {"accelerator": "gpu", "devices": torch.cuda.device_count()}
-    else:
-        lite_kwargs = {"accelerator": "cpu"}
-
-    Lite(**lite_kwargs).run(args)
+    Lite(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=torch.cuda.device_count()).run(hparams)

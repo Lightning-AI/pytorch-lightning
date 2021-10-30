@@ -111,10 +111,10 @@ class Lite(LightningLite):
             if hparams.dry_run:
                 break
 
-        # When using distributed training, use `self.can_save_checkpoint`
+        # When using distributed training, use `self.save`
         # to ensure the current process is allowed to save a checkpoint
-        if hparams.save_model and self.can_save_checkpoint:
-            torch.save(model.state_dict(), "mnist_cnn.pt")
+        if hparams.save_model:
+            self.save(model.state_dict(), "mnist_cnn.pt")
 
 
 if __name__ == "__main__":

@@ -87,8 +87,8 @@ class Lite(LightningLite):
             if hparams.dry_run:
                 break
 
-        if hparams.save_model and self.can_save_checkpoint:
-            torch.save(model.state_dict(), "mnist_cnn.pt")
+        if hparams.save_model:
+            self.save(model.state_dict(), "mnist_cnn.pt")
 
     # Functions for the `LightningModule` conversion
 
