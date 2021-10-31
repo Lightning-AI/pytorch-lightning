@@ -238,7 +238,8 @@ class LightningLite(ABC):
         # add worker_init_fn for correct seeding in worker processes
         TrainerDataLoadingMixin._auto_add_worker_init_fn(dataloader, self.global_rank)
         return _LiteDataLoader(
-            iterator=self._strategy.process_dataloader(dataloader), device=self.device if move_to_device else None)
+            iterator=self._strategy.process_dataloader(dataloader), device=self.device if move_to_device else None
+        )
 
     def backward(self, tensor: Tensor, *args: Any, model: Optional[_LiteModule] = None, **kwargs: Any) -> None:
         """Replaces ``loss.backward()`` in your training loop. Handles precision and automatically for you.
