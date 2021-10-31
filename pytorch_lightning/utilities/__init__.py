@@ -13,7 +13,7 @@
 # limitations under the License.
 """General utilities."""
 
-import numpy
+# import numpy
 
 from pytorch_lightning.utilities.apply_func import move_data_to_device  # noqa: F401
 from pytorch_lightning.utilities.distributed import AllGatherGrad, rank_zero_info, rank_zero_only  # noqa: F401
@@ -41,6 +41,7 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _IS_WINDOWS,
     _JSONARGPARSE_AVAILABLE,
     _module_available,
+    _NUMPY_AVAILABLE,
     _OMEGACONF_AVAILABLE,
     _POPTORCH_AVAILABLE,
     _RICH_AVAILABLE,
@@ -53,11 +54,12 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _TORCHVISION_AVAILABLE,
     _TPU_AVAILABLE,
     _XLA_AVAILABLE,
+    _YAML_AVAILABLE,
 )
 from pytorch_lightning.utilities.parameter_tying import find_shared_parameters, set_shared_parameters  # noqa: F401
 from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable  # noqa: F401
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn  # noqa: F401
 
-FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
-FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps
-FLOAT64_EPSILON = numpy.finfo(numpy.float64).eps
+# FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
+# FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps
+# FLOAT64_EPSILON = numpy.finfo(numpy.float64).eps

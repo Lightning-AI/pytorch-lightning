@@ -18,11 +18,14 @@ import os
 import random
 from typing import Optional
 
-import numpy as np
 import torch
 
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7, rank_zero_warn
 from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.imports import _NUMPY_AVAILABLE
+
+if _NUMPY_AVAILABLE:
+    import numpy as np
 
 log = logging.getLogger(__name__)
 

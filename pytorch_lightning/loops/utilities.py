@@ -16,7 +16,6 @@ from contextlib import contextmanager
 from functools import lru_cache
 from typing import Any, Dict, Generator, Iterator, List, Optional, Sequence, Tuple
 
-import numpy as np
 import torch
 from torch.optim import Optimizer
 
@@ -24,9 +23,13 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
+from pytorch_lightning.utilities.imports import _NUMPY_AVAILABLE
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import STEP_OUTPUT
+
+if _NUMPY_AVAILABLE:
+    import numpy as np
 
 
 def check_finite_loss(loss: Optional[torch.Tensor]) -> None:

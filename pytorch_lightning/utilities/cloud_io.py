@@ -16,12 +16,22 @@ import io
 from pathlib import Path
 from typing import Any, Callable, Dict, IO, Optional, Union
 
-import fsspec
 import torch
-from fsspec.implementations.local import AbstractFileSystem, LocalFileSystem
 from packaging.version import Version
 
+from pytorch_lightning.utilities.imports import _FSSPEC_AVAILABLE, requires
 
+if _FSSPEC_AVAILABLE:
+    import fsspec
+    from fsspec.implementations.local import AbstractFileSystem, LocalFileSystem
+
+else:
+
+    class AbstractFileSystem:
+        pass
+
+
+@requires("fsspec")
 def load(
     path_or_url: Union[str, IO, Path],
     map_location: Optional[
@@ -38,6 +48,7 @@ def load(
         return torch.load(f, map_location=map_location)
 
 
+@requires("fsspec")
 def get_filesystem(path: Union[str, Path]) -> AbstractFileSystem:
     path = str(path)
     if "://" in path:

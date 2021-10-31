@@ -13,7 +13,6 @@
 # limitations under the License.
 from typing import Any, List, Optional, Union
 
-from deprecate import void
 from torch import Tensor
 
 from pytorch_lightning.loops.base import Loop
@@ -23,6 +22,7 @@ from pytorch_lightning.loops.optimization.optimizer_loop import _OUTPUTS_TYPE as
 from pytorch_lightning.loops.optimization.optimizer_loop import OptimizerLoop
 from pytorch_lightning.loops.utilities import _get_active_optimizers
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
+from pytorch_lightning.utilities.types import void
 
 _OUTPUTS_TYPE = List[Union[_OPTIMIZER_LOOP_OUTPUTS_TYPE, _MANUAL_LOOP_OUTPUTS_TYPE]]
 

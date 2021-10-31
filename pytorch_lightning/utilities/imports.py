@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """General utilities."""
+import functools
 import importlib
 import operator
 import os
 import platform
 import sys
 from importlib.util import find_spec
-from typing import Callable
+from typing import Callable, List, Union
 
 import pkg_resources
 import torch
@@ -82,6 +83,7 @@ _DEEPSPEED_AVAILABLE = _module_available("deepspeed")
 _FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
 _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.3")
 _FAIRSCALE_FULLY_SHARDED_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.4")
+_FSSPEC_AVAILABLE: bool = _module_available("fsspec")
 _GROUP_AVAILABLE = not _IS_WINDOWS and _module_available("torch.distributed.group")
 _HOROVOD_AVAILABLE = _module_available("horovod.torch")
 _HYDRA_AVAILABLE = _module_available("hydra")
@@ -90,13 +92,17 @@ _JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
 _KINETO_AVAILABLE = _TORCH_GREATER_EQUAL_1_8_1 and torch.profiler.kineto_available()
 _NEPTUNE_AVAILABLE = _module_available("neptune")
 _NEPTUNE_GREATER_EQUAL_0_9 = _NEPTUNE_AVAILABLE and _compare_version("neptune", operator.ge, "0.9.0")
+_NUMPY_AVAILABLE = _module_available("numpy")
 _OMEGACONF_AVAILABLE = _module_available("omegaconf")
 _POPTORCH_AVAILABLE = _module_available("poptorch")
 _RICH_AVAILABLE = _module_available("rich") and _compare_version("rich", operator.ge, "10.2.2")
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
+_TORCHMETRICS_AVAILABLE = _module_available("torchmetrics")
 _TORCHTEXT_AVAILABLE = _module_available("torchtext")
+_TQDM_AVAILABLE: bool = _module_available("tqdm")
 _TORCHVISION_AVAILABLE = _module_available("torchvision")
 _XLA_AVAILABLE: bool = _module_available("torch_xla")
+_YAML_AVAILABLE: bool = _module_available("yaml")
 
 from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402
 
@@ -108,6 +114,34 @@ if _POPTORCH_AVAILABLE:
     _IPU_AVAILABLE = poptorch.ipuHardwareIsAvailable()
 else:
     _IPU_AVAILABLE = False
+
+
+def requires(module_paths: Union[str, List]):
+
+    if not isinstance(module_paths, list):
+        module_paths = [module_paths]
+
+    def decorator(func):
+        available = True
+        modules = []
+        for module_path in module_paths:
+            modules.append(module_path)
+            if not _module_available(module_path):
+                available = False
+
+        if not available:
+            modules = [f"'{module}'" for module in modules]
+
+            @functools.wraps(func)
+            def wrapper(*args, **kwargs):
+                raise ModuleNotFoundError(
+                    f"Required dependencies not available. Please run: pip install {' '.join(modules)}"
+                )
+
+            return wrapper
+        return func
+
+    return decorator
 
 
 # experimental feature within PyTorch Lightning.

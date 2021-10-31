@@ -24,18 +24,21 @@ from typing import Any, Callable, Dict, IO, MutableMapping, Optional, Union
 from warnings import warn
 
 import torch
-import yaml
 
-from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict, rank_zero_warn
+from pytorch_lightning.utilities import AttributeDict, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE, _YAML_AVAILABLE
 from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.parsing import parse_class_init_keys
 
 log = logging.getLogger(__name__)
 PRIMITIVE_TYPES = (bool, int, float, str)
 ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
+
+if _YAML_AVAILABLE:
+    import yaml
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf

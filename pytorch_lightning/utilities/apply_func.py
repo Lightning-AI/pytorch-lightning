@@ -20,10 +20,17 @@ from copy import copy
 from functools import partial
 from typing import Any, Callable, List, Optional, Tuple, Union
 
-import numpy as np
 import torch
 
-from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_AVAILABLE
+from pytorch_lightning.utilities.imports import _compare_version, _NUMPY_AVAILABLE, _TORCHTEXT_AVAILABLE
+
+if _NUMPY_AVAILABLE:
+    import numpy as np
+else:
+
+    class np:
+        ndarray = None
+
 
 if _TORCHTEXT_AVAILABLE:
     if _compare_version("torchtext", operator.ge, "0.9.0"):

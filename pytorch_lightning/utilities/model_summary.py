@@ -16,7 +16,6 @@ import logging
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import numpy as np
 import torch
 import torch.nn as nn
 from torch import Tensor
@@ -25,8 +24,11 @@ from torch.utils.hooks import RemovableHandle
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import AMPType, DeviceType, ModelSummaryMode, rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities.imports import _NUMPY_AVAILABLE, _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.warnings import WarningCache
+
+if _NUMPY_AVAILABLE:
+    import numpy as np
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()

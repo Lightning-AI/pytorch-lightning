@@ -18,7 +18,6 @@ import uuid
 from functools import wraps
 from typing import Optional, Sequence
 
-import numpy as np
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
@@ -29,14 +28,20 @@ from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _NUMPY_AVAILABLE, _TQDM_AVAILABLE
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
+
+if _NUMPY_AVAILABLE:
+    import numpy as np
+
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
-if importlib.util.find_spec("ipywidgets") is not None:
-    from tqdm.auto import tqdm
-else:
-    from tqdm import tqdm
+if _TQDM_AVAILABLE:
+    if importlib.util.find_spec("ipywidgets") is not None:
+        from tqdm.auto import tqdm
+    else:
+        from tqdm import tqdm
 
 log = logging.getLogger(__name__)
 

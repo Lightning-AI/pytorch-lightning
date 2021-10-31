@@ -17,8 +17,6 @@ from dataclasses import asdict
 from functools import lru_cache
 from typing import Any, Dict, Iterator, Optional, Union
 
-from deprecate import void
-
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.utilities import _update_dataloader_iter
 from pytorch_lightning.trainer.progress import BatchProgress
@@ -26,7 +24,7 @@ from pytorch_lightning.utilities.auto_restart import MergedIteratorState, reload
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataFetcher
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT, void
 
 
 class EvaluationEpochLoop(Loop):

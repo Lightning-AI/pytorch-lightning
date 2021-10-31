@@ -27,17 +27,22 @@ from datetime import timedelta
 from typing import Any, Dict, Optional
 from weakref import proxy
 
-import numpy as np
 import torch
-import yaml
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _NUMPY_AVAILABLE, _YAML_AVAILABLE, requires
 from pytorch_lightning.utilities.types import _METRIC, _PATH, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
+
+if _NUMPY_AVAILABLE:
+    import numpy as np
+
+if _YAML_AVAILABLE:
+    import yaml
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
@@ -730,6 +735,7 @@ class ModelCheckpoint(Callback):
         if del_filepath is not None and filepath != del_filepath:
             trainer.training_type_plugin.remove_checkpoint(del_filepath)
 
+    @requires("yaml")
     def to_yaml(self, filepath: Optional[_PATH] = None) -> None:
         """Saves the `best_k_models` dict containing the checkpoint paths with the corresponding scores to a YAML
         file."""

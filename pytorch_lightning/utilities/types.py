@@ -22,7 +22,16 @@ from typing import Any, Dict, Iterator, List, Mapping, Sequence, Type, Union
 import torch
 from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 from torch.utils.data import DataLoader
-from torchmetrics import Metric
+
+from pytorch_lightning.utilities.imports import _TORCHMETRICS_AVAILABLE
+
+if _TORCHMETRICS_AVAILABLE:
+    from torchmetrics import Metric
+else:
+
+    class Metric:
+        pass
+
 
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, torch.Tensor, _NUMBER]
@@ -47,3 +56,9 @@ EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
 LRSchedulerTypeTuple = (_LRScheduler, ReduceLROnPlateau)
 LRSchedulerTypeUnion = Union[_LRScheduler, ReduceLROnPlateau]
 LRSchedulerType = Union[Type[_LRScheduler], Type[ReduceLROnPlateau]]
+
+
+def void(*args: Any, **kwrgs: Any) -> None:
+    """Empty function which does nothing, just let your IDE stop complaining about unused arguments."""
+    _ = args
+    _ = kwrgs

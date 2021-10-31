@@ -19,15 +19,18 @@ from random import getstate as python_get_rng_state
 from random import setstate as python_set_rng_state
 from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Tuple, Union
 
-import numpy as np
 import torch
 from torch.utils.data import Dataset, get_worker_info, Sampler
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
 
 import pytorch_lightning as pl
+from pytorch_lightning.utilities import _NUMPY_AVAILABLE
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
+
+if _NUMPY_AVAILABLE:
+    import numpy as np
 
 
 class FastForwardSampler(Sampler):

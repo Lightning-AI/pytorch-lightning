@@ -14,7 +14,6 @@
 from collections import defaultdict
 from typing import Any, Dict, Generator, Iterator, List, Optional, overload, Tuple, Union
 
-import numpy as np
 import torch
 
 from pytorch_lightning import loops  # import as loops to avoid circular imports
@@ -27,9 +26,18 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher
+from pytorch_lightning.utilities.imports import _NUMPY_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation, WarningCache
+
+if _NUMPY_AVAILABLE:
+    import numpy as np
+else:
+
+    class np:
+        array = None
+
 
 _OUTPUTS_TYPE = List[_BATCH_OUTPUTS_TYPE]
 

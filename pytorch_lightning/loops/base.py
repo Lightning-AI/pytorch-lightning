@@ -15,13 +15,20 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Generic, Optional, TypeVar
 
-from deprecate import void
-from torchmetrics import Metric
-
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _TORCHMETRICS_AVAILABLE
+from pytorch_lightning.utilities.types import void
+
+if _TORCHMETRICS_AVAILABLE:
+    from torchmetrics import Metric
+else:
+
+    class Metric:
+        pass
+
 
 T = TypeVar("T")  # the output type of `run`
 

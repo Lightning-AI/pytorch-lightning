@@ -17,7 +17,6 @@ import re
 from multiprocessing.queues import SimpleQueue
 from typing import Any, Callable, Dict, List, Optional, Union
 
-import numpy as np
 import torch
 import torch.distributed
 import torch.multiprocessing as mp
@@ -33,6 +32,7 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
+    _NUMPY_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_7,
     _TORCH_GREATER_EQUAL_1_8,
     rank_zero_deprecation,
@@ -47,6 +47,9 @@ from pytorch_lightning.utilities.distributed import init_ddp_connection, rank_ze
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
+
+if _NUMPY_AVAILABLE:
+    import numpy as np
 
 if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook

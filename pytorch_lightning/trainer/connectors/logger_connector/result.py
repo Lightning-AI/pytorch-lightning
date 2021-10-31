@@ -17,7 +17,6 @@ from functools import partial, wraps
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
-from torchmetrics import Metric
 from typing_extensions import TypedDict
 
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
@@ -25,9 +24,18 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
 from pytorch_lightning.utilities.data import extract_batch_size
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _TORCHMETRICS_AVAILABLE, requires
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.warnings import WarningCache
+
+if _TORCHMETRICS_AVAILABLE:
+    from torchmetrics import Metric
+else:
+
+    class Metric:
+        pass
+
 
 # TODO(@tchaton): Typing-pickle issue on python<3.7 (https://github.com/cloudpipe/cloudpickle/pull/318)
 _IN_METRIC = Any  # Union[Metric, torch.Tensor]  # Do not include scalars as they were converted to tensors
@@ -353,6 +361,7 @@ class ResultCollection(dict):
 
     DATALOADER_SUFFIX = "/dataloader_idx_{}"
 
+    @requires("torchmetrics")
     def __init__(self, training: bool, device: Optional[Union[str, torch.device]] = None) -> None:
         super().__init__()
         self.training = training

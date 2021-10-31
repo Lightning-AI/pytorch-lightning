@@ -40,12 +40,13 @@ setup_tools = _load_py_module("setup_tools.py")
 # From local copy of repo, use like `pip install ".[dev, docs]"`
 extras = {
     # 'docs': load_requirements(file_name='docs.txt'),
+    "default": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="default.txt"),
     "examples": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="examples.txt"),
     "loggers": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="loggers.txt"),
     "extra": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="extra.txt"),
     "test": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="test.txt"),
 }
-extras["dev"] = extras["extra"] + extras["loggers"] + extras["test"]
+extras["dev"] = extras["extra"] + extras["loggers"] + extras["test"] + extras["default"]
 extras["all"] = extras["dev"] + extras["examples"]  # + extras['docs']
 
 # These packages shall be installed only on GPU machines

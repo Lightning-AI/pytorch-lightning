@@ -21,13 +21,22 @@ Monitor a metric and stop training when it stops improving.
 import logging
 from typing import Any, Callable, Dict, Optional, Tuple
 
-import numpy as np
 import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _NUMPY_AVAILABLE
+
+if _NUMPY_AVAILABLE:
+    import numpy as np
+else:
+
+    class np:
+        Inf = None
+        ndarray = None
+
 
 log = logging.getLogger(__name__)
 

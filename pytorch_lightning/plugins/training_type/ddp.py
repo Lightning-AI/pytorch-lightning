@@ -24,7 +24,6 @@ from time import sleep
 from typing import Any, Dict, List, Optional, Union
 
 import __main__
-import numpy as np
 import torch
 import torch.distributed
 from torch.nn import Module
@@ -54,6 +53,7 @@ from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import init_ddp_connection, rank_zero_only, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
+from pytorch_lightning.utilities.imports import _NUMPY_AVAILABLE
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -69,9 +69,12 @@ if _HYDRA_AVAILABLE:
     from hydra.utils import get_original_cwd, to_absolute_path
 if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
-if _TORCH_GREATER_EQUAL_1_10:
+if _TORCH_GREATER_EQUAL_1_10 and _NUMPY_AVAILABLE:
     import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
     import torch.distributed.algorithms.model_averaging.averagers as averagers
+
+if _NUMPY_AVAILABLE:
+    import numpy as np
 
 log = logging.getLogger(__name__)
 

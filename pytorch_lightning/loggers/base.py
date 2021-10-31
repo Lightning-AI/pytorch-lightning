@@ -22,13 +22,19 @@ from functools import wraps
 from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 from weakref import ReferenceType
 
-import numpy as np
 import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities import _NUMPY_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation
+
+if _NUMPY_AVAILABLE:
+    import numpy as np
+else:
+
+    class np:
+        mean = None
 
 
 def rank_zero_experiment(fn: Callable) -> Callable:

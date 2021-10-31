@@ -21,21 +21,27 @@ import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
-import numpy as np
 import torch
-from torch.utils.tensorboard import SummaryWriter
-from torch.utils.tensorboard.summary import hparams
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import _NUMPY_AVAILABLE, _OMEGACONF_AVAILABLE, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.imports import requires
 
 log = logging.getLogger(__name__)
 
+if _NUMPY_AVAILABLE:
+    import numpy as np
+
+
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
+
+
+class SummaryWriter:
+    pass
 
 
 class TensorBoardLogger(LightningLoggerBase):
@@ -82,6 +88,7 @@ class TensorBoardLogger(LightningLoggerBase):
     NAME_HPARAMS_FILE = "hparams.yaml"
     LOGGER_JOIN_CHAR = "-"
 
+    @requires("tensorboard")
     def __init__(
         self,
         save_dir: str,
@@ -164,6 +171,8 @@ class TensorBoardLogger(LightningLoggerBase):
             self.logger.experiment.some_tensorboard_function()
 
         """
+        from torch.utils.tensorboard import SummaryWriter
+
         if self._experiment is not None:
             return self._experiment
 
@@ -185,6 +194,7 @@ class TensorBoardLogger(LightningLoggerBase):
             params: a dictionary-like container with the hyperparameters
             metrics: Dictionary with metric names as keys and measured quantities as values
         """
+        from torch.utils.tensorboard.summary import hparams
 
         params = self._convert_params(params)
 

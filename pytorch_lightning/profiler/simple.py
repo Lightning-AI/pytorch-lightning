@@ -19,9 +19,12 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict, Optional, Tuple, Union
 
-import numpy as np
-
 from pytorch_lightning.profiler.base import BaseProfiler
+from pytorch_lightning.utilities.imports import _NUMPY_AVAILABLE
+
+if _NUMPY_AVAILABLE:
+    import numpy as np
+
 
 log = logging.getLogger(__name__)
 

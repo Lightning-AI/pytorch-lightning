@@ -13,14 +13,13 @@
 # limitations under the License.
 from typing import Any, List, Optional, Sequence, Union
 
-from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, ResultCollection
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT, void
 
 
 class EvaluationLoop(DataLoaderLoop):

@@ -17,7 +17,6 @@ import re
 from typing import Any, Dict, Optional
 
 import torch
-from torchmetrics import Metric
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import LightningLoggerBase
@@ -26,13 +25,16 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
+from pytorch_lightning.utilities.imports import _fault_tolerant_training, _TORCHMETRICS_AVAILABLE
 from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.types import _PATH
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container
+
+if _TORCHMETRICS_AVAILABLE:
+    from torchmetrics import Metric
 
 
 class CheckpointConnector:

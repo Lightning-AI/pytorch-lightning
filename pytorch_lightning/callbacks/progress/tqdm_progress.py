@@ -18,12 +18,20 @@ import os
 import sys
 from typing import Optional, Union
 
+from pytorch_lightning.utilities.imports import _TQDM_AVAILABLE, requires
+
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
-if importlib.util.find_spec("ipywidgets") is not None:
-    from tqdm.auto import tqdm as _tqdm
+if _TQDM_AVAILABLE:
+    if importlib.util.find_spec("ipywidgets") is not None:
+        from tqdm.auto import tqdm as _tqdm
+    else:
+        from tqdm import tqdm as _tqdm
 else:
-    from tqdm import tqdm as _tqdm
+
+    class _tqdm:
+        pass
+
 
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
 
@@ -98,6 +106,7 @@ class ProgressBar(ProgressBarBase):
             :class:`~pytorch_lightning.trainer.trainer.Trainer`.
     """
 
+    @requires("tqdm")
     def __init__(self, refresh_rate: int = 1, process_position: int = 0):
         super().__init__()
         self._refresh_rate = refresh_rate
