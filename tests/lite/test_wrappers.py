@@ -16,6 +16,7 @@ from contextlib import suppress
 import pytest
 import torch
 from torch.utils.data.dataloader import DataLoader
+
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from tests.helpers.runif import RunIf
