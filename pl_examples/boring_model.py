@@ -37,6 +37,7 @@ def run():
         state_dict = {"state_dict": BoringModel().state_dict()}
         torch.save(state_dict, checkpoint_path)
         BoringModel.load_from_checkpoint(checkpoint_path)
+    print("Worked !")
 
 
 if __name__ == "__main__":
