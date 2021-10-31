@@ -124,7 +124,11 @@ class _LiteDataLoader(Iterator):
         return self
 
     def __next__(self) -> Any:
-        item = next(self._iterator_iter)
-        if self._device:
-            item = move_data_to_device(item, self._device)
-        return item
+        try:
+            item = next(self._iterator_iter)
+            if self._device:
+                item = move_data_to_device(item, self._device)
+            return item
+        except StopIteration as e:
+            self._iterator_iter = None
+            raise e
