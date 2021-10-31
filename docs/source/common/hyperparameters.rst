@@ -144,8 +144,8 @@ In addition, loggers that support it will automatically log the contents of ``se
 Excluding hyperparameters
 """""""""""""""""""""""""
 
-By default, every parameter of the ``__init__`` method will be considered a hyperparameter in Lightning.
-However, sometimes some parameters need to be excluded from saving, for example when they are not pickleble.
+By default, every parameter of the ``__init__`` method will be considered a hyperparameter to the LightningModule.
+However, sometimes some parameters need to be excluded from saving, for example when they are not serializable.
 In this case, exclude them explicitly:
 
 .. code-block:: python
