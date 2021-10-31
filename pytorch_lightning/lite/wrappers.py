@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Generator, Iterator, Optional, Union
+from typing import Any, Callable, Iterable, Iterator, Optional, Union
 
 import torch
 from torch import nn as nn
@@ -101,7 +101,7 @@ class _LiteModule(nn.Module):
 
 
 class _LiteDataLoader(Iterator):
-    def __init__(self, iterator: Union[Iterator, DataLoader], device: Optional[torch.device] = None) -> None:
+    def __init__(self, iterator: Union[Iterable[Any], DataLoader], device: Optional[torch.device] = None) -> None:
         """The LiteDataLoader is an extension of an Iterator. It would move move the data to the device
         automatically if the device is specified.
 
@@ -114,17 +114,19 @@ class _LiteDataLoader(Iterator):
         self.__dict__.update(getattr(iterator, "__dict__", {}))
         self._iterator = iterator
         self._device = device
+        self._iterator_iter: Optional[Iterator] = None
 
     @property
     def device(self) -> Optional[torch.device]:
         return self._device
 
-    def __iter__(self) -> Union[Iterator[Any], Generator[Any, None, None]]:
+    def __iter__(self) -> "_LiteDataLoader":
         self._iterator_iter = iter(self._iterator)
         return self
 
     def __next__(self) -> Any:
         try:
+            assert self._iterator_iter
             item = next(self._iterator_iter)
             if self._device:
                 item = move_data_to_device(item, self._device)
