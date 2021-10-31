@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest.mock import ANY, Mock
-
+from contextlib import suppress
 import pytest
 import torch
 from torch.utils.data.dataloader import DataLoader
@@ -82,6 +82,11 @@ def test_lite_dataloader_device_placement(src_device, dest_device):
 
     batch1 = next(iterator)
     assert torch.equal(batch1["data"], torch.tensor([2, 3], device=dest_device))
+
+    assert lite_dataloader._iterator_iter
+    with suppress(StopIteration):
+        batch1 = next(iterator)
+    assert lite_dataloader._iterator_iter is None
 
 
 def test_lite_optimizer_wraps():
