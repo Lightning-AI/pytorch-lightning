@@ -102,11 +102,11 @@ class _LiteModule(nn.Module):
 
 class _LiteDataLoader(Iterator):
     def __init__(self, iterator: Union[Iterator, DataLoader], device: Optional[torch.device] = None) -> None:
-        """The LiteDataLoader is an extension of Iterator. It would move move the data to the device automatically
-        if the device is specified.
+        """The LiteDataLoader is an extension of an Iterator. It would move move the data to the device
+        automatically if the device is specified.
 
         Args:
-            iterator: The current iterator.
+            iterator: The current iterator to be used.
             device: The device to which the data should be moved. By default the device is `None` and no data
                 transfers will be made (identical behavior as :class:`~torch.utils.data.DataLoader`).
         """
