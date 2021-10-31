@@ -22,80 +22,71 @@ from torch.utils.data import DataLoader
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins.environments import SLURMEnvironment
-from pytorch_lightning.utilities import _TORCH_BFLOAT_AVAILABLE, _TORCH_CPU_AMP_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 
 class AMPTestModel(BoringModel):
-    def _step(self, batch, batch_idx):
+    def _step(self, batch):
         self._assert_autocast_enabled()
         output = self(batch)
-        bfloat16 = self.trainer.precision_plugin.is_bfloat16
-        assert output.dtype == torch.float16 if not bfloat16 else torch.bfloat16
+        is_bfloat16 = self.trainer.precision_plugin.precision == "bf16"
+        assert output.dtype == torch.float16 if not is_bfloat16 else torch.bfloat16
         loss = self.loss(batch, output)
         return loss
 
     def loss(self, batch, prediction):
         # todo (sean): convert bfloat16 to float32 as mse loss for cpu amp is currently not supported
-        if self.trainer.precision_plugin.use_cpu:
+        if self.trainer.precision_plugin.device == "cpu":
             prediction = prediction.float()
         return super().loss(batch, prediction)
 
     def training_step(self, batch, batch_idx):
-        output = self._step(batch, batch_idx)
+        output = self._step(batch)
         return {"loss": output}
 
     def validation_step(self, batch, batch_idx):
-        output = self._step(batch, batch_idx)
+        output = self._step(batch)
         return {"x": output}
 
     def test_step(self, batch, batch_idx):
-        output = self._step(batch, batch_idx)
+        output = self._step(batch)
         return {"y": output}
 
-    def predict(self, batch, batch_idx, dataloader_idx=None):
+    def predict_step(self, batch, batch_idx, dataloader_idx=None):
         self._assert_autocast_enabled()
         output = self(batch)
-        bfloat16 = self.trainer.precision_plugin.is_bfloat16
-        assert output.dtype == torch.float16 if not bfloat16 else torch.bfloat16
+        is_bfloat16 = self.trainer.precision_plugin.precision == "bf16"
+        assert output.dtype == torch.float16 if not is_bfloat16 else torch.bfloat16
         return output
 
     def _assert_autocast_enabled(self):
-        if self.trainer.precision_plugin.use_cpu:
+        if self.trainer.precision_plugin.device == "cpu":
             assert torch.is_autocast_cpu_enabled()
         else:
             assert torch.is_autocast_enabled()
 
 
-@pytest.mark.skipif(not _TORCH_CPU_AMP_AVAILABLE, reason="CPU AMP not available")
+@RunIf(min_torch="1.10")
 @pytest.mark.parametrize(
-    "accelerator",
+    "strategy",
     [
         None,
         pytest.param("dp", marks=pytest.mark.skip("dp + amp not supported on CPU currently")),  # TODO
         "ddp_spawn",
     ],
 )
-@pytest.mark.parametrize(
-    "precision",
-    [
-        pytest.param(16, marks=pytest.mark.skip("CPU precision 16 is not supported in PyTorch yet.")),  # TODO
-        "bf16",
-    ],
-)
+@pytest.mark.parametrize("precision", [16, "bf16"])
 @pytest.mark.parametrize("num_processes", [1, 2])
-def test_amp_cpus(tmpdir, accelerator, precision, num_processes):
+def test_amp_cpus(tmpdir, strategy, precision, num_processes):
     """Make sure combinations of AMP and training types work if supported."""
     tutils.reset_seed()
 
     trainer = Trainer(
-        default_root_dir=tmpdir, num_processes=num_processes, max_epochs=1, accelerator=accelerator, precision=precision
+        default_root_dir=tmpdir, num_processes=num_processes, max_epochs=1, strategy=strategy, precision=precision
     )
 
     model = AMPTestModel()
-    # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
     trainer.test(model)
     trainer.predict(model, DataLoader(RandomDataset(32, 64)))
@@ -103,30 +94,17 @@ def test_amp_cpus(tmpdir, accelerator, precision, num_processes):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-@RunIf(min_gpus=2)
-@pytest.mark.parametrize(
-    "accelerator",
-    [None, "dp", "ddp_spawn"],
-)
-@pytest.mark.parametrize(
-    "precision",
-    [
-        16,
-        pytest.param(
-            "bf16",
-            marks=pytest.mark.skipif(not _TORCH_BFLOAT_AVAILABLE, reason="torch.bfloat16 not available"),
-        ),
-    ],
-)
+@RunIf(min_gpus=2, min_torch="1.10")
+@pytest.mark.parametrize("strategy", [None, "dp", "ddp_spawn"])
+@pytest.mark.parametrize("precision", [16, "bf16"])
 @pytest.mark.parametrize("gpus", [1, 2])
-def test_amp_gpus(tmpdir, accelerator, precision, gpus):
+def test_amp_gpus(tmpdir, strategy, precision, gpus):
     """Make sure combinations of AMP and training types work if supported."""
     tutils.reset_seed()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=gpus, accelerator=accelerator, precision=precision)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=gpus, strategy=strategy, precision=precision)
 
     model = AMPTestModel()
-    # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
     trainer.test(model)
     trainer.predict(model, DataLoader(RandomDataset(32, 64)))
@@ -149,7 +127,7 @@ def test_amp_gpus(tmpdir, accelerator, precision, gpus):
 def test_amp_gpu_ddp_slurm_managed(tmpdir):
     """Make sure DDP + AMP work."""
     # simulate setting slurm flags
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
 
     model = AMPTestModel()
 
@@ -164,7 +142,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=[0],
-        accelerator="ddp_spawn",
+        strategy="ddp_spawn",
         precision=16,
         callbacks=[checkpoint],
         logger=logger,
@@ -181,16 +159,6 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address("abc[23-24]") == "abc23"
     generated = trainer.training_type_plugin.cluster_environment.resolve_root_node_address("abc[23-24, 45-40, 40]")
     assert generated == "abc23"
-
-
-@pytest.mark.skipif(torch.cuda.is_available(), reason="test is restricted only on CPU")
-@RunIf(max_torch="1.9")
-@pytest.mark.parametrize("precision", [16, "bf16"])
-def test_cpu_model_with_amp(tmpdir, precision):
-    """Make sure exception is thrown on CPU when precision 16 is enabled on PyTorch 1.9 and lower."""
-
-    with pytest.raises(MisconfigurationException, match="AMP is only available on GPU for PyTorch 1.9"):
-        Trainer(precision=precision)
 
 
 @mock.patch("pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward")

@@ -258,9 +258,12 @@ class ModelHooks:
 
         The hook is only called if gradients do not need to be accumulated.
         See: :paramref:`~pytorch_lightning.trainer.Trainer.accumulate_grad_batches`.
+
         If using native AMP, the loss will be unscaled before calling this hook.
         See these `docs <https://pytorch.org/docs/stable/notes/amp_examples.html#working-with-unscaled-gradients>`__
         for more information on the scaling of gradients.
+
+        If clipping gradients, the gradients will not have been clipped yet.
 
         Args:
             optimizer: Current optimizer being used.
@@ -691,7 +694,7 @@ class DataHooks:
 
         Raises:
             MisconfigurationException:
-                If using data-parallel, ``Trainer(accelerator='dp')``.
+                If using data-parallel, ``Trainer(strategy='dp')``.
 
         See Also:
             - :meth:`move_data_to_device`
@@ -726,7 +729,7 @@ class DataHooks:
 
         Raises:
             MisconfigurationException:
-                If using data-parallel, ``Trainer(accelerator='dp')``.
+                If using data-parallel, ``Trainer(strategy='dp')``.
 
         See Also:
             - :meth:`on_after_batch_transfer`
@@ -761,7 +764,7 @@ class DataHooks:
 
         Raises:
             MisconfigurationException:
-                If using data-parallel, ``Trainer(accelerator='dp')``.
+                If using data-parallel, ``Trainer(strategy='dp')``.
 
         See Also:
             - :meth:`on_before_batch_transfer`

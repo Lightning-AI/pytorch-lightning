@@ -35,5 +35,10 @@ class CPUAccelerator(Accelerator):
         return super().setup(trainer)
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
-        """Returns dummy implementation for now."""
+        """CPU device stats aren't supported yet."""
         return {}
+
+    @staticmethod
+    def auto_device_count() -> int:
+        """Get the devices when set to auto."""
+        return 1

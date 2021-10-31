@@ -30,8 +30,6 @@ from tests.helpers.runif import RunIf
 
 
 class TestModel(BoringModel):
-    test_step = None
-
     def __init__(self):
         super().__init__()
         self.layer = Sequential(
@@ -65,7 +63,7 @@ def train_with_pruning_callback(
     use_global_unstructured=False,
     pruning_fn="l1_unstructured",
     use_lottery_ticket_hypothesis=False,
-    accelerator=None,
+    strategy=None,
     gpus=None,
     num_processes=1,
 ):
@@ -108,13 +106,13 @@ def train_with_pruning_callback(
     trainer = Trainer(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
         enable_checkpointing=False,
         logger=False,
         limit_train_batches=10,
         limit_val_batches=2,
         max_epochs=10,
-        accelerator=accelerator,
+        strategy=strategy,
         gpus=gpus,
         num_processes=num_processes,
         callbacks=pruning,
@@ -122,7 +120,7 @@ def train_with_pruning_callback(
     trainer.fit(model)
     trainer.test(model)
 
-    if not accelerator:
+    if not strategy:
         # Check some have been pruned
         assert torch.any(model.layer.mlp_2.weight == 0)
 
@@ -165,39 +163,33 @@ def test_pruning_callback(
 @RunIf(special=True, min_gpus=2)
 def test_pruning_callback_ddp_0(tmpdir):
     train_with_pruning_callback(
-        tmpdir, parameters_to_prune=False, use_global_unstructured=False, accelerator="ddp", gpus=2
+        tmpdir, parameters_to_prune=False, use_global_unstructured=False, strategy="ddp", gpus=2
     )
 
 
 @RunIf(special=True, min_gpus=2)
 def test_pruning_callback_ddp_1(tmpdir):
-    train_with_pruning_callback(
-        tmpdir, parameters_to_prune=False, use_global_unstructured=True, accelerator="ddp", gpus=2
-    )
+    train_with_pruning_callback(tmpdir, parameters_to_prune=False, use_global_unstructured=True, strategy="ddp", gpus=2)
 
 
 @RunIf(special=True, min_gpus=2)
 def test_pruning_callback_ddp_2(tmpdir):
-    train_with_pruning_callback(
-        tmpdir, parameters_to_prune=True, use_global_unstructured=False, accelerator="ddp", gpus=2
-    )
+    train_with_pruning_callback(tmpdir, parameters_to_prune=True, use_global_unstructured=False, strategy="ddp", gpus=2)
 
 
 @RunIf(special=True, min_gpus=2)
 def test_pruning_callback_ddp_3(tmpdir):
-    train_with_pruning_callback(
-        tmpdir, parameters_to_prune=True, use_global_unstructured=True, accelerator="ddp", gpus=2
-    )
+    train_with_pruning_callback(tmpdir, parameters_to_prune=True, use_global_unstructured=True, strategy="ddp", gpus=2)
 
 
 @RunIf(min_gpus=2, skip_windows=True)
 def test_pruning_callback_ddp_spawn(tmpdir):
-    train_with_pruning_callback(tmpdir, use_global_unstructured=True, accelerator="ddp_spawn", gpus=2)
+    train_with_pruning_callback(tmpdir, use_global_unstructured=True, strategy="ddp_spawn", gpus=2)
 
 
 @RunIf(skip_windows=True)
 def test_pruning_callback_ddp_cpu(tmpdir):
-    train_with_pruning_callback(tmpdir, parameters_to_prune=True, accelerator="ddp_cpu", num_processes=2)
+    train_with_pruning_callback(tmpdir, parameters_to_prune=True, strategy="ddp_spawn", num_processes=2)
 
 
 @pytest.mark.parametrize("resample_parameters", (False, True))
@@ -226,7 +218,7 @@ def test_pruning_lth_callable(tmpdir, resample_parameters: bool):
     trainer = Trainer(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
         enable_checkpointing=False,
         logger=False,
         limit_train_batches=10,
@@ -253,7 +245,7 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool
     trainer = Trainer(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
         enable_checkpointing=False,
         logger=False,
         limit_train_batches=10,

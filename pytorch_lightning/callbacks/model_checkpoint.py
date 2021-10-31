@@ -609,7 +609,7 @@ class ModelCheckpoint(Callback):
 
         self.dirpath = ckpt_path
 
-        if not trainer.fast_dev_run and trainer.should_rank_save_checkpoint:
+        if not trainer.fast_dev_run and trainer.training_type_plugin.should_rank_save_checkpoint:
             self._fs.makedirs(self.dirpath, exist_ok=True)
 
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
@@ -700,7 +700,7 @@ class ModelCheckpoint(Callback):
 
         # do not save nan, replace with +/- inf
         if isinstance(current, torch.Tensor) and torch.isnan(current):
-            current = torch.tensor(float("inf" if self.mode == "min" else "-inf"))
+            current = torch.tensor(float("inf" if self.mode == "min" else "-inf"), device=current.device)
 
         filepath = self._get_metric_interpolated_filepath_name(monitor_candidates, trainer, del_filepath)
 

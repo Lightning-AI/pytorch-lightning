@@ -15,6 +15,7 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import (
+    CheckpointIO,
     DDPPlugin,
     DDPShardedPlugin,
     DDPSpawnPlugin,
@@ -74,7 +75,7 @@ def test_training_type_plugins_registry_with_deepspeed_plugins(plugin_name, init
 @pytest.mark.parametrize("plugin", ["deepspeed", "deepspeed_stage_2_offload", "deepspeed_stage_3"])
 def test_deepspeed_training_type_plugins_registry_with_trainer(tmpdir, plugin):
 
-    trainer = Trainer(default_root_dir=tmpdir, plugins=plugin, precision=16)
+    trainer = Trainer(default_root_dir=tmpdir, strategy=plugin, precision=16)
 
     assert isinstance(trainer.training_type_plugin, DeepSpeedPlugin)
 
@@ -87,7 +88,7 @@ def test_tpu_spawn_debug_plugins_registry(tmpdir):
     assert TrainingTypePluginsRegistry[plugin]["init_params"] == {"debug": True}
     assert TrainingTypePluginsRegistry[plugin]["plugin"] == TPUSpawnPlugin
 
-    trainer = Trainer(plugins=plugin)
+    trainer = Trainer(strategy=plugin)
 
     assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
 
@@ -103,10 +104,36 @@ def test_tpu_spawn_debug_plugins_registry(tmpdir):
 )
 def test_ddp_find_unused_parameters_training_type_plugins_registry(tmpdir, plugin_name, plugin):
 
-    trainer = Trainer(default_root_dir=tmpdir, plugins=plugin_name)
+    trainer = Trainer(default_root_dir=tmpdir, strategy=plugin_name)
 
     assert isinstance(trainer.training_type_plugin, plugin)
 
     assert plugin_name in TrainingTypePluginsRegistry
     assert TrainingTypePluginsRegistry[plugin_name]["init_params"] == {"find_unused_parameters": False}
     assert TrainingTypePluginsRegistry[plugin_name]["plugin"] == plugin
+
+
+def test_custom_registered_training_plugin_to_strategy():
+    class CustomCheckpointIO(CheckpointIO):
+        def save_checkpoint(self, checkpoint, path):
+            pass
+
+        def load_checkpoint(self, path):
+            pass
+
+        def remove_checkpoint(self, path):
+            pass
+
+    custom_checkpoint_io = CustomCheckpointIO()
+
+    # Register the DDP Plugin with your custom CheckpointIO plugin
+    TrainingTypePluginsRegistry.register(
+        "ddp_custom_checkpoint_io",
+        DDPPlugin,
+        description="DDP Plugin with custom checkpoint io plugin",
+        checkpoint_io=custom_checkpoint_io,
+    )
+    trainer = Trainer(strategy="ddp_custom_checkpoint_io", accelerator="cpu", devices=2)
+
+    assert isinstance(trainer.training_type_plugin, DDPPlugin)
+    assert trainer.training_type_plugin.checkpoint_io == custom_checkpoint_io

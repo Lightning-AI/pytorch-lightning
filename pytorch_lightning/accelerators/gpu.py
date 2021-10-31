@@ -46,6 +46,7 @@ class GPUAccelerator(Accelerator):
         return super().setup(trainer)
 
     def on_train_start(self) -> None:
+        super().on_train_start()
         # clear cache before training
         torch.cuda.empty_cache()
 
@@ -77,6 +78,11 @@ class GPUAccelerator(Accelerator):
     def teardown(self) -> None:
         super().teardown()
         self._move_optimizer_state(torch.device("cpu"))
+
+    @staticmethod
+    def auto_device_count() -> int:
+        """Get the devices when set to auto."""
+        return torch.cuda.device_count()
 
 
 def _get_nvidia_gpu_stats(device: torch.device) -> Dict[str, float]:

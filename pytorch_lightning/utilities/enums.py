@@ -62,6 +62,7 @@ class PrecisionType(LightningEnum):
     FLOAT = "32"
     FULL = "64"
     BFLOAT = "bf16"
+    MIXED = "mixed"
 
     @staticmethod
     def supported_type(precision: Union[str, int]) -> bool:

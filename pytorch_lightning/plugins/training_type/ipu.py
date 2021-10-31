@@ -23,8 +23,8 @@ from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
-from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities import _POPTORCH_AVAILABLE
+from pytorch_lightning.trainer.states import RunningStage, TrainerFn
+from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -85,7 +85,7 @@ class IPUPlugin(ParallelPlugin):
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
         )
-        if not _POPTORCH_AVAILABLE or not poptorch.ipuHardwareIsAvailable():
+        if not _IPU_AVAILABLE:
             raise MisconfigurationException(
                 "The IPU Accelerator requires IPU devices to run. "
                 "Learn more or get started with IPUs at https://www.graphcore.ai/getstarted"
@@ -120,21 +120,36 @@ class IPUPlugin(ParallelPlugin):
         model = LightningIPUModule(self.lightning_module, precision)
         self.model = model
 
+        # reset the backup
+        self.poptorch_models = {}
+
         # Separate models are instantiated for different stages, but they share the same weights on host.
         # When validation/test models are run, weights are synced first.
-
-        if self.lightning_module.trainer.state.stage is RunningStage.TRAINING:
-            # Create model for training which will run training.
+        trainer_fn = self.lightning_module.trainer.state.fn
+        if trainer_fn in (TrainerFn.FITTING, TrainerFn.TUNING):
+            # Create model for training and validation which will run on fit
+            training_opts = self.training_opts
+            inference_opts = self.inference_opts
             optimizer = self.lightning_module.trainer.optimizers[0]
-            model = poptorch.trainingModel(model=model, options=self.training_opts, optimizer=optimizer)
+            model = poptorch.trainingModel(model=model, options=training_opts, optimizer=optimizer)
             self.poptorch_models[RunningStage.TRAINING] = model
-        for x in (RunningStage.VALIDATING, RunningStage.TESTING, RunningStage.PREDICTING):
+
+            if self.lightning_module.trainer.enable_validation:
+                model = poptorch.inferenceModel(model=model, options=inference_opts)
+                self.poptorch_models[RunningStage.VALIDATING] = model
+        elif trainer_fn == TrainerFn.VALIDATING:
             model = poptorch.inferenceModel(model=model, options=self.inference_opts)
-            self.poptorch_models[x] = model
+            self.poptorch_models[RunningStage.VALIDATING] = model
+        elif trainer_fn == TrainerFn.TESTING:
+            model = poptorch.inferenceModel(model=model, options=self.inference_opts)
+            self.poptorch_models[RunningStage.TESTING] = model
+        elif trainer_fn == TrainerFn.PREDICTING:
+            model = poptorch.inferenceModel(model=model, options=self.inference_opts)
+            self.poptorch_models[RunningStage.PREDICTING] = model
 
     @property
     def replication_factor(self) -> int:
-        if not self.lightning_module:
+        if not self.lightning_module or not self.poptorch_models:
             # The plugin has been passed in by the user and has not been connected to the Trainer.
             # Check if the user has passed in custom poptorch.Options to infer number of IPUs being used.
             # In this scenario we prioritize the training options.
@@ -142,7 +157,11 @@ class IPUPlugin(ParallelPlugin):
                 return self._training_opts.replication_factor
             if self._inference_opts:
                 return self._inference_opts.replication_factor
-        return len(self.parallel_devices)
+
+            return len(self.parallel_devices)
+
+        stage = self.lightning_module.trainer.state.stage
+        return self.poptorch_models[stage]._options.toDict()["replication_factor"]
 
     def _create_opts(self, training: bool) -> "poptorch.Options":
         opts = poptorch.Options()
@@ -285,7 +304,7 @@ class IPUPlugin(ParallelPlugin):
     def on_predict_end(self):
         self._detach_models()
 
-    def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         # Updates optimizer stats if LR scheduler modified the optimizer state
         optimizer = self.lightning_module.trainer.optimizers[0]
         self.poptorch_models[RunningStage.TRAINING].setOptimizer(optimizer)

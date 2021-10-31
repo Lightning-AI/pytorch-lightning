@@ -15,12 +15,13 @@ import logging
 import os
 import re
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import numpy as np
 import torch
 import torch.distributed
 import torch.multiprocessing as mp
+from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
@@ -37,7 +38,7 @@ from pytorch_lightning.utilities import (
     rank_zero_deprecation,
     rank_zero_warn,
 )
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import distributed_available
@@ -147,6 +148,10 @@ class DDPSpawnPlugin(ParallelPlugin):
         smp = mp.get_context("spawn")
         self.mp_queue = smp.SimpleQueue()
 
+    def _setup_model(self, model: Module) -> DistributedDataParallel:
+        """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
+        return DistributedDataParallel(module=model, device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs)
+
     def set_world_ranks(self, process_idx: int = 0) -> None:
         self._local_rank = process_idx
         if self.cluster_environment is None:
@@ -155,38 +160,57 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
         rank_zero_only.rank = self.cluster_environment.global_rank()
 
-    def get_mp_spawn_kwargs(self, trainer: "pl.Trainer") -> dict:
-        return {"args": (trainer, self.mp_queue), "nprocs": self.num_processes}
+    def get_mp_spawn_kwargs(self, trainer: Optional["pl.Trainer"] = None) -> Dict[str, Any]:
+        return {"nprocs": self.num_processes}
 
     def start_training(self, trainer: "pl.Trainer") -> None:
-        mp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
+        self.spawn(self.new_process, trainer, self.mp_queue, return_result=False)
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
 
     def start_evaluating(self, trainer: "pl.Trainer") -> None:
-        mp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
+        self.spawn(self.new_process, trainer, self.mp_queue, return_result=False)
 
     def start_predicting(self, trainer: "pl.Trainer") -> None:
-        mp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
+        self.spawn(self.new_process, trainer, self.mp_queue, return_result=False)
 
-    def new_process(self, process_idx: int, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
-        self.mp_queue = mp_queue
+    def spawn(self, function: Callable, *args: Any, return_result: bool = True, **kwargs: Any) -> Optional[Any]:
+        """Spawn processes that run the given function.
 
+        Args:
+            function: The function to spawn processes from.
+            *args: Optional positional arguments that will be passed to the function in addition to the process index.
+                These arguments must be pickleable.
+            return_result: If ``True``, copies the output of the function from process 0 to the main process and
+                returns it.
+            **kwargs: Optional named arguments that will be passed to the function in addition to the process index.
+                These arguments must be pickleable.
+
+        Return:
+            The output of the function of process 0.
+        """
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
+        context = mp.get_context("spawn")
+        return_queue = context.SimpleQueue() if return_result else None
+        mp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), nprocs=self.num_processes)
+        return return_queue.get() if return_result else None
+
+    def _wrapped_function(
+        self, process_idx: int, function: Callable, args: Any, kwargs: Any, return_queue: Optional[SimpleQueue]
+    ) -> None:
+        self._worker_setup(process_idx)
+        result = function(*args, **kwargs)
+        if return_queue is not None and self.local_rank == 0:
+            return_queue.put(move_data_to_device(result, "cpu"))
+
+    def _worker_setup(self, process_idx: int):
         reset_seed()
-
         self.set_world_ranks(process_idx)
-
-        # set warning rank
         rank_zero_only.rank = self.global_rank
-
-        # set up server using proc 0's ip address
-        # try to init for 20 times at max in case ports are taken
-        # where to store ip_table
         init_ddp_connection(self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size)
 
-        # TODO: we moved it to the trainer.fit after calling pre_dispatch
-        #   ... need to double check that it is the correct place
-        # self.trainer.call_setup_hook(self.model)
+    def new_process(self, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
+        self.mp_queue = mp_queue
 
         # move the model to the correct device
         self.model_to_device()
@@ -256,9 +280,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def configure_ddp(self) -> None:
         self.pre_configure_ddp()
-        self._model = DistributedDataParallel(
-            LightningDistributedModule(self.model), device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
-        )
+        self._model = self._setup_model(LightningDistributedModule(self.model))
         self._register_ddp_hooks()
 
     def determine_ddp_device_ids(self):

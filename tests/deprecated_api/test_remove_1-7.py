@@ -18,7 +18,11 @@ import pytest
 import torch
 
 from pytorch_lightning import Callback, LightningDataModule, Trainer
+from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
+from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
+from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
+from tests.callbacks.test_callbacks import OldStatefulCallback
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
@@ -131,6 +135,13 @@ def test_v1_7_0_trainer_terminate_on_nan(tmpdir, terminate_on_nan):
         assert trainer.terminate_on_nan is terminate_on_nan
         assert trainer._detect_anomaly is False
 
+    trainer = Trainer()
+    with pytest.deprecated_call(match=r"`Trainer.terminate_on_nan` is deprecated in v1.5"):
+        _ = trainer.terminate_on_nan
+
+    with pytest.deprecated_call(match=r"Setting `Trainer.terminate_on_nan = True` is deprecated in v1.5"):
+        trainer.terminate_on_nan = True
+
 
 def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
     class CustomBoringModel(BoringModel):
@@ -153,27 +164,27 @@ def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
     model = CustomBoringModel()
 
     with pytest.deprecated_call(
-        match="Method `on_train_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+        match="Method `on_train_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
     ):
         _run(model, "fit")
 
     with pytest.deprecated_call(
-        match="Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+        match="Method `on_val_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
     ):
         _run(model, "fit")
 
     with pytest.deprecated_call(
-        match="Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+        match="Method `on_val_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
     ):
         _run(model, "validate")
 
     with pytest.deprecated_call(
-        match="Method `on_test_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+        match="Method `on_test_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
     ):
         _run(model, "test")
 
     with pytest.deprecated_call(
-        match="Method `on_predict_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+        match="Method `on_predict_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
     ):
         _run(model, "predict")
 
@@ -233,7 +244,7 @@ class BoringCallbackDDPSpawnModel(BoringModel):
 @RunIf(skip_windows=True)
 def test_v1_7_0_deprecate_add_get_queue(tmpdir):
     model = BoringCallbackDDPSpawnModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, num_processes=2, accelerator="ddp_cpu")
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, num_processes=2, strategy="ddp_spawn")
 
     with pytest.deprecated_call(match=r"`LightningModule.add_to_queue` method was deprecated in v1.5"):
         trainer.fit(model)
@@ -334,3 +345,107 @@ def test_v1_7_0_deprecate_parameter_validation():
         match="Using `pytorch_lightning.core.decorators.parameter_validation` is deprecated in v1.5"
     ):
         from pytorch_lightning.core.decorators import parameter_validation  # noqa: F401
+
+
+def test_v1_7_0_passing_strategy_to_accelerator_trainer_flag():
+    with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.7."):
+        Trainer(accelerator="ddp_spawn")
+
+
+def test_v1_7_0_passing_strategy_to_plugins_flag():
+    with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.7."):
+        Trainer(plugins="ddp_spawn")
+
+
+def test_v1_7_0_weights_summary_trainer(tmpdir):
+    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_summary=full\)` is deprecated in v1.5"):
+        t = Trainer(weights_summary="full")
+
+    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_summary=None\)` is deprecated in v1.5"):
+        t = Trainer(weights_summary=None)
+
+    t = Trainer(weights_summary="top")
+    with pytest.deprecated_call(match=r"`Trainer.weights_summary` is deprecated in v1.5"):
+        _ = t.weights_summary
+
+    with pytest.deprecated_call(match=r"Setting `Trainer.weights_summary` is deprecated in v1.5"):
+        t.weights_summary = "blah"
+
+
+def test_v1_7_0_trainer_log_gpu_memory(tmpdir):
+    with pytest.deprecated_call(
+        match="Setting `log_gpu_memory` with the trainer flag is deprecated in v1.5 and will be removed"
+    ):
+        _ = Trainer(log_gpu_memory="min_max")
+
+
+@RunIf(min_gpus=1)
+def test_v1_7_0_deprecate_gpu_stats_monitor(tmpdir):
+    with pytest.deprecated_call(match="The `GPUStatsMonitor` callback was deprecated in v1.5"):
+        _ = GPUStatsMonitor()
+
+
+@RunIf(tpu=True)
+def test_v1_7_0_deprecate_xla_stats_monitor(tmpdir):
+    with pytest.deprecated_call(match="The `XLAStatsMonitor` callback was deprecated in v1.5"):
+        _ = XLAStatsMonitor()
+
+
+def test_v1_7_0_deprecated_max_steps_none(tmpdir):
+    with pytest.deprecated_call(match="`max_steps = None` is deprecated in v1.5"):
+        _ = Trainer(max_steps=None)
+
+    trainer = Trainer()
+    with pytest.deprecated_call(match="`max_steps = None` is deprecated in v1.5"):
+        trainer.fit_loop.max_steps = None
+
+
+def test_v1_7_0_resume_from_checkpoint_trainer_constructor(tmpdir):
+    with pytest.deprecated_call(match=r"Setting `Trainer\(resume_from_checkpoint=\)` is deprecated in v1.5"):
+        trainer = Trainer(resume_from_checkpoint="a")
+    with pytest.deprecated_call(
+        match=r"trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7."
+    ):
+        _ = trainer.resume_from_checkpoint
+
+    # test resume_from_checkpoint still works until v1.7 deprecation
+    model = BoringModel()
+    callback = OldStatefulCallback(state=111)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, callbacks=[callback])
+    trainer.fit(model)
+    ckpt_path = trainer.checkpoint_callback.best_model_path
+
+    callback = OldStatefulCallback(state=222)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback], resume_from_checkpoint=ckpt_path)
+    assert trainer.checkpoint_connector.resume_checkpoint_path is None
+    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path == ckpt_path
+    trainer.validate(model=model, ckpt_path=ckpt_path)
+    assert callback.state == 222
+    assert trainer.checkpoint_connector.resume_checkpoint_path is None
+    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path == ckpt_path
+    trainer.fit(model)
+    assert callback.state == 111
+    assert trainer.checkpoint_connector.resume_checkpoint_path is None
+    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path is None
+    trainer.predict(model=model, ckpt_path=ckpt_path)
+    assert trainer.checkpoint_connector.resume_checkpoint_path is None
+    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path is None
+    trainer.fit(model)
+    assert trainer.checkpoint_connector.resume_checkpoint_path is None
+    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path is None
+
+    # test fit(ckpt_path=) precedence over Trainer(resume_from_checkpoint=) path
+    model = BoringModel()
+    trainer = Trainer(resume_from_checkpoint="trainer_arg_path")
+    with pytest.raises(FileNotFoundError, match="Checkpoint at fit_arg_ckpt_path not found. Aborting training."):
+        trainer.fit(model, ckpt_path="fit_arg_ckpt_path")
+
+
+def test_v1_7_0_deprecate_lr_sch_names(tmpdir):
+    model = BoringModel()
+    lr_monitor = LearningRateMonitor()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, callbacks=[lr_monitor])
+    trainer.fit(model)
+
+    with pytest.deprecated_call(match="`LearningRateMonitor.lr_sch_names` has been deprecated in v1.5"):
+        assert lr_monitor.lr_sch_names == ["lr-SGD"]

@@ -227,6 +227,13 @@ def test_dummylogger_support_indexing():
     assert logger[0] == logger
 
 
+def test_dummylogger_empty_iterable():
+    """Test that DummyLogger represents an empty iterable."""
+    logger = DummyLogger()
+    for _ in logger:
+        assert False
+
+
 def test_dummylogger_noop_method_calls():
     """Test that the DummyLogger methods can be called with arbitrary arguments."""
     logger = DummyLogger()
@@ -320,7 +327,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         num_sanity_val_steps=0,
         enable_checkpointing=False,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     # there should be no exceptions raised for the same key/value pair in the hparams of both
     # the lightning module and data module
@@ -344,7 +351,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         num_sanity_val_steps=0,
         enable_checkpointing=False,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     with pytest.raises(MisconfigurationException, match="Error while merging hparams"):
         trainer.fit(model, dm)
@@ -361,7 +368,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         num_sanity_val_steps=0,
         enable_checkpointing=False,
         enable_progress_bar=False,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     with pytest.raises(MisconfigurationException, match="Error while merging hparams"):
         trainer.fit(model, dm)

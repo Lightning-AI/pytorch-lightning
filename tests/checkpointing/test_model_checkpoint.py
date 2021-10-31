@@ -63,17 +63,17 @@ class LogInTwoMethods(BoringModel):
         self.log("val_acc", outs)
 
 
-def mock_optimizer_connector(trainer):
+def mock_training_epoch_loop(trainer):
     # do not use `unittest.Mock` because we need to store the return value
     calls = {}
-    old_get_monitor_value = trainer.optimizer_connector._get_monitor_value
+    old_get_monitor_value = trainer.fit_loop.epoch_loop._get_monitor_value
 
     def mock(key):
         value = old_get_monitor_value(key)
         calls[trainer.current_epoch] = {key: value}
         return value
 
-    trainer.optimizer_connector._get_monitor_value = mock
+    trainer.fit_loop.epoch_loop._get_monitor_value = mock
     return calls
 
 
@@ -150,7 +150,7 @@ def test_model_checkpoint_score_and_ckpt(
         max_epochs=max_epochs,
         enable_progress_bar=False,
     )
-    calls = mock_optimizer_connector(trainer)
+    calls = mock_training_epoch_loop(trainer)
     trainer.fit(model)
 
     ckpt_files = list(Path(tmpdir).glob("*.ckpt"))
@@ -248,7 +248,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         enable_progress_bar=False,
         num_sanity_val_steps=0,
     )
-    calls = mock_optimizer_connector(trainer)
+    calls = mock_training_epoch_loop(trainer)
     trainer.fit(model)
 
     def _make_assertions(epoch, ix):
@@ -392,7 +392,7 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
     num_epochs = 4
     model_checkpoint = ModelCheckpointTestInvocations(monitor="early_stop_on", expected_count=num_epochs, save_top_k=-1)
     trainer = Trainer(
-        accelerator="ddp_cpu",
+        strategy="ddp_spawn",
         num_processes=2,
         default_root_dir=tmpdir,
         callbacks=[model_checkpoint],
@@ -881,8 +881,8 @@ def test_checkpoint_repeated_strategy(tmpdir):
         limit_val_batches=2,
         limit_test_batches=2,
         callbacks=[checkpoint_callback],
-        weights_summary=None,
         enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
     assert os.listdir(tmpdir) == ["epoch=00.ckpt"]
@@ -896,11 +896,10 @@ def test_checkpoint_repeated_strategy(tmpdir):
             limit_train_batches=2,
             limit_val_batches=2,
             limit_test_batches=2,
-            resume_from_checkpoint=checkpoint_callback.best_model_path,
-            weights_summary=None,
             enable_progress_bar=False,
+            enable_model_summary=False,
         )
-        trainer.fit(model)
+        trainer.fit(model, ckpt_path=checkpoint_callback.best_model_path)
         trainer.test(model, verbose=False)
     assert set(os.listdir(tmpdir)) == {"epoch=00.ckpt", "lightning_logs"}
     assert set(os.listdir(tmpdir.join("lightning_logs"))) == {f"version_{i}" for i in range(4)}
@@ -972,12 +971,16 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
 
         # load from checkpoint
         trainer_config["callbacks"] = [ModelCheckpoint(dirpath=ckpt_dir, save_top_k=-1)]
-        trainer = pl.Trainer(**trainer_config, resume_from_checkpoint=chk)
+        trainer = pl.Trainer(**trainer_config)
         assert_trainer_init(trainer)
 
         model = ExtendedBoringModel()
 
         trainer.test(model)
+        assert trainer.global_step == 0
+        assert trainer.current_epoch == 0
+
+        trainer.fit(model, ckpt_path=chk)
         assert trainer.global_step == epochs * limit_train_batches
         assert trainer.current_epoch == epochs
 
@@ -1032,8 +1035,8 @@ def test_val_check_interval_checkpoint_files(tmpdir):
         limit_train_batches=10,
         callbacks=[model_checkpoint],
         logger=False,
-        weights_summary=None,
         enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
     files = {p.basename for p in tmpdir.listdir()}
@@ -1056,8 +1059,8 @@ def test_current_score(tmpdir):
         limit_val_batches=1,
         callbacks=[model_checkpoint],
         logger=False,
-        weights_summary=None,
         enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(TestModel())
     assert model_checkpoint.current_score == 0.3
@@ -1089,8 +1092,8 @@ def test_current_score_when_nan(tmpdir, mode: str):
         limit_val_batches=1,
         callbacks=[model_checkpoint],
         logger=False,
-        weights_summary=None,
         enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(TestModel())
     expected = float("inf" if mode == "min" else "-inf")
@@ -1113,8 +1116,8 @@ def test_hparams_type(tmpdir, hparams_type):
         limit_val_batches=1,
         callbacks=[model_checkpoint],
         logger=False,
-        weights_summary=None,
         enable_progress_bar=False,
+        enable_model_summary=False,
     )
     hp = {"test_hp_0": 1, "test_hp_1": 2}
     hp = OmegaConf.create(hp) if hparams_type == Container else Namespace(**hp)
@@ -1141,8 +1144,8 @@ def test_ckpt_version_after_rerun_new_trainer(tmpdir):
             default_root_dir=tmpdir,
             callbacks=[mc],
             logger=False,
-            weights_summary=None,
             enable_progress_bar=False,
+            enable_model_summary=False,
         )
         trainer.fit(BoringModel())
 
@@ -1167,8 +1170,8 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
         default_root_dir=tmpdir,
         callbacks=[mc],
         logger=False,
-        weights_summary=None,
         enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(BoringModel())
     trainer.fit_loop.max_epochs = 4
@@ -1187,12 +1190,6 @@ def test_model_checkpoint_mode_options():
         ModelCheckpoint(mode="unknown_option")
 
 
-def test_trainer_checkpoint_callback_bool(tmpdir):
-    mc = ModelCheckpoint(dirpath=tmpdir)
-    with pytest.raises(MisconfigurationException, match="Invalid type provided for `enable_checkpointing`"):
-        Trainer(enable_checkpointing=mc)
-
-
 def test_check_val_every_n_epochs_top_k_integration(tmpdir):
     model = BoringModel()
     mc = ModelCheckpoint(dirpath=tmpdir, monitor="epoch", save_top_k=-1, filename="{epoch}")
@@ -1204,7 +1201,7 @@ def test_check_val_every_n_epochs_top_k_integration(tmpdir):
         max_epochs=5,
         check_val_every_n_epoch=2,
         callbacks=mc,
-        weights_summary=None,
+        enable_model_summary=False,
         logger=False,
     )
     trainer.fit(model)

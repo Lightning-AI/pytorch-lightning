@@ -21,13 +21,14 @@ import os
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, overload, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
+from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress import base as progress_base
@@ -37,8 +38,9 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import (
+    _IS_WINDOWS,
     _TORCH_GREATER_EQUAL_1_10,
-    _TORCH_SHARDED_TENSOR_AVAILABLE,
+    GradClipAlgorithmType,
     rank_zero_deprecation,
     rank_zero_warn,
 )
@@ -124,6 +126,20 @@ class LightningModule(
 
         # deprecated, will be removed in 1.6
         self._loaded_optimizer_states_dict = {}
+
+    @overload
+    def optimizers(self, use_pl_optimizer: Literal[True] = True) -> Union[LightningOptimizer, List[LightningOptimizer]]:
+        ...
+
+    @overload
+    def optimizers(self, use_pl_optimizer: Literal[False]) -> Union[Optimizer, List[Optimizer]]:
+        ...
+
+    @overload
+    def optimizers(
+        self, use_pl_optimizer: bool
+    ) -> Union[Optimizer, LightningOptimizer, List[Optimizer], List[LightningOptimizer]]:
+        ...
 
     def optimizers(
         self, use_pl_optimizer: bool = True
@@ -356,7 +372,8 @@ class LightningModule(
             on_epoch: if True logs epoch accumulated metrics. None auto-logs at the val/test step but not training_step
             reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
             enable_graph: if True, will not auto detach the graph
-            sync_dist: if True, reduces the metric across GPUs/TPUs
+            sync_dist: if True, reduces the metric across GPUs/TPUs. Use with care as this may lead to a significant
+                communication overhead.
             sync_dist_group: the ddp group to sync across
             add_dataloader_idx: if True, appends the index of the current dataloader to
                 the name (when using multiple). If False, user needs to give unique names for
@@ -518,7 +535,8 @@ class LightningModule(
             on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
             reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
             enable_graph: if True, will not auto detach the graph
-            sync_dist: if True, reduces the metric across GPUs/TPUs
+            sync_dist: if True, reduces the metric across GPUs/TPUs. Use with care as this may lead to a significant
+                communication overhead.
             sync_dist_group: the ddp group sync across
             add_dataloader_idx: if True, appends the index of the current dataloader to
                 the name (when using multiple). If False, user needs to give unique names for
@@ -564,6 +582,8 @@ class LightningModule(
 
     def log_grad_norm(self, grad_norm_dict: Dict[str, float]) -> None:
         """Override this method to change the default behaviour of ``log_grad_norm``.
+
+        If clipping gradients, the gradients will not have been clipped yet.
 
         Args:
             grad_norm_dict: Dictionary containing current grad norm metrics
@@ -642,7 +662,7 @@ class LightningModule(
             - :class:`~torch.Tensor` - The loss tensor
             - ``dict`` - A dictionary. Can include any keys, but must include the key ``'loss'``
             - ``None`` - Training will skip to the next batch. This is only for automatic optimization.
-                This is not supported for multi-GPU or TPU, or using ``DeepSpeed``.
+                This is not supported for multi-GPU, TPU, IPU, or DeepSpeed.
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
         You can also do fancier things like multiple forward passes or something model specific.
@@ -1165,7 +1185,7 @@ class LightningModule(
         callback to write the predictions to disk or database after each batch or on epoch end.
 
         The :class:`~pytorch_lightning.callbacks.BasePredictionWriter` should be used while using a spawn
-        based accelerator. This happens for ``Trainer(accelerator="ddp_spawn")``
+        based accelerator. This happens for ``Trainer(strategy="ddp_spawn")``
         or training on 8 TPU cores with ``Trainer(tpu_cores=8)`` as predictions won't be returned.
 
         Example ::
@@ -1406,10 +1426,7 @@ class LightningModule(
             *args: Additional positional arguments to be forwarded to :meth:`~torch.Tensor.backward`
             **kwargs: Additional keyword arguments to be forwarded to :meth:`~torch.Tensor.backward`
         """
-        # make sure we're using manual opt
         self._verify_is_manual_optimization("manual_backward")
-
-        # backward
         self.trainer.accelerator.backward(loss, None, None, *args, **kwargs)
 
     def backward(
@@ -1431,17 +1448,16 @@ class LightningModule(
         """
         loss.backward(*args, **kwargs)
 
-    def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):
+    def toggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer], optimizer_idx: int) -> None:
         """Makes sure only the gradients of the current optimizer's parameters are calculated in the training step
-        to prevent dangling gradients in multiple-optimizer setup. It works with :meth:`untoggle_optimizer` to make
-        sure ``param_requires_grad_state`` is properly reset. Override for your own behavior.
+        to prevent dangling gradients in multiple-optimizer setup.
+
+        This is only called automatically when automatic optimization is enabled and multiple optimizers are used.
+        It works with :meth:`untoggle_optimizer` to make sure ``param_requires_grad_state`` is properly reset.
 
         Args:
-            optimizer: Current optimizer used in the training loop
-            optimizer_idx: Current optimizer idx in the training loop
-
-        Note:
-            Only called when using multiple optimizers
+            optimizer: The optimizer to toggle.
+            optimizer_idx: The index of the optimizer to toggle.
         """
         # Iterate over all optimizer parameters to preserve their `requires_grad` information
         # in case these are pre-defined during `configure_optimizers`
@@ -1462,15 +1478,13 @@ class LightningModule(
                 param.requires_grad = param_requires_grad_state[param]
         self._param_requires_grad_state = param_requires_grad_state
 
-    def untoggle_optimizer(self, optimizer_idx: int):
-        """Resets the state of required gradients that were toggled with :meth:`toggle_optimizer`. Override for
-        your own behavior.
+    def untoggle_optimizer(self, optimizer_idx: int) -> None:
+        """Resets the state of required gradients that were toggled with :meth:`toggle_optimizer`.
+
+        This is only called automatically when automatic optimization is enabled and multiple optimizers are used.
 
         Args:
-            optimizer_idx: Current optimizer idx in the training loop
-
-        Note:
-            Only called when using multiple optimizers
+            optimizer_idx: The index of the optimizer to untoggle.
         """
         for opt_idx, opt in enumerate(self.optimizers(use_pl_optimizer=False)):
             if optimizer_idx != opt_idx:
@@ -1481,16 +1495,104 @@ class LightningModule(
         # save memory
         self._param_requires_grad_state = {}
 
+    def clip_gradients(
+        self,
+        optimizer: Optimizer,
+        gradient_clip_val: Optional[Union[int, float]] = None,
+        gradient_clip_algorithm: Optional[str] = None,
+    ):
+        """Handles gradient clipping internally.
+
+        Note:
+            Do not override this method. If you want to customize gradient clipping, consider
+            using :meth:`configure_gradient_clipping` method.
+
+        Args:
+            optimizer: Current optimizer being used.
+            gradient_clip_val: The value at which to clip gradients.
+            gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
+                to clip by value, and ``gradient_clip_algorithm="norm"`` to clip by norm.
+        """
+        if gradient_clip_val is None:
+            gradient_clip_val = self.trainer.gradient_clip_val or 0.0
+        elif self.trainer.gradient_clip_val is not None and self.trainer.gradient_clip_val != gradient_clip_val:
+            raise MisconfigurationException(
+                f"You have set `Trainer(gradient_clip_val={self.trainer.gradient_clip_val!r})`"
+                f" and have passed `clip_gradients(gradient_clip_val={gradient_clip_val!r})`."
+                " Please use only one of them."
+            )
+
+        if gradient_clip_algorithm is None:
+            gradient_clip_algorithm = self.trainer.gradient_clip_algorithm or "norm"
+        else:
+            gradient_clip_algorithm = gradient_clip_algorithm.lower()
+            if (
+                self.trainer.gradient_clip_algorithm is not None
+                and self.trainer.gradient_clip_algorithm != gradient_clip_algorithm
+            ):
+                raise MisconfigurationException(
+                    f"You have set `Trainer(gradient_clip_algorithm={self.trainer.gradient_clip_algorithm.value!r})`"
+                    f" and have passed `clip_gradients(gradient_clip_algorithm={gradient_clip_algorithm!r})"
+                    " Please use only one of them."
+                )
+
+        if not isinstance(gradient_clip_val, (int, float)):
+            raise TypeError(f"`gradient_clip_val` should be an int or a float. Got {gradient_clip_val}.")
+
+        if not GradClipAlgorithmType.supported_type(gradient_clip_algorithm.lower()):
+            raise MisconfigurationException(
+                f"`gradient_clip_algorithm` {gradient_clip_algorithm} is invalid."
+                f" Allowed algorithms: {GradClipAlgorithmType.supported_types()}."
+            )
+
+        gradient_clip_algorithm = GradClipAlgorithmType(gradient_clip_algorithm)
+        self.trainer.precision_plugin.clip_gradients(optimizer, gradient_clip_val, gradient_clip_algorithm)
+
+    def configure_gradient_clipping(
+        self,
+        optimizer: Optimizer,
+        optimizer_idx: int,
+        gradient_clip_val: Optional[Union[int, float]] = None,
+        gradient_clip_algorithm: Optional[str] = None,
+    ):
+        """Perform gradient clipping for the optimizer parameters. Called before :meth:`optimizer_step`.
+
+        Args:
+            optimizer: Current optimizer being used.
+            optimizer_idx: Index of the current optimizer being used.
+            gradient_clip_val: The value at which to clip gradients. By default value passed in Trainer
+                will be available here.
+            gradient_clip_algorithm: The gradient clipping algorithm to use. By default value
+                passed in Trainer will be available here.
+
+        Example::
+
+            # Perform gradient clipping on gradients associated with discriminator (optimizer_idx=1) in GAN
+            def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
+                if optimizer_idx == 1:
+                    # Lightning will handle the gradient clipping
+                    self.clip_gradients(
+                        optimizer,
+                        gradient_clip_val=gradient_clip_val,
+                        gradient_clip_algorithm=gradient_clip_algorithm
+                    )
+                else:
+                    # implement your own custom logic to clip gradients for generator (optimizer_idx=0)
+        """
+        self.clip_gradients(
+            optimizer, gradient_clip_val=gradient_clip_val, gradient_clip_algorithm=gradient_clip_algorithm
+        )
+
     def optimizer_step(
         self,
-        epoch: int = None,
-        batch_idx: int = None,
-        optimizer: Optimizer = None,
-        optimizer_idx: int = None,
-        optimizer_closure: Optional[Callable] = None,
-        on_tpu: bool = None,
-        using_native_amp: bool = None,
-        using_lbfgs: bool = None,
+        epoch: int,
+        batch_idx: int,
+        optimizer: Union[Optimizer, LightningOptimizer],
+        optimizer_idx: int = 0,
+        optimizer_closure: Optional[Callable[[], Any]] = None,
+        on_tpu: bool = False,
+        using_native_amp: bool = False,
+        using_lbfgs: bool = False,
     ) -> None:
         r"""
         Override this method to adjust the default way the
@@ -1498,10 +1600,6 @@ class LightningModule(
         By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example
         once per optimizer. This method (and ``zero_grad()``) won't be called during the
         accumulation phase when ``Trainer(accumulate_grad_batches != 1)``.
-
-        Warning:
-            If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter
-            to ``optimizer.step()`` function as shown in the examples.
 
         Args:
             epoch: Current epoch
@@ -1964,7 +2062,7 @@ class LightningModule(
 
         These hooks ensure that ShardedTensors are included when saving, and are loaded the LightningModule correctly.
         """
-        if not _TORCH_SHARDED_TENSOR_AVAILABLE:
+        if not _TORCH_GREATER_EQUAL_1_10 or _IS_WINDOWS:
             return
 
         from torch.distributed._sharded_tensor import pre_load_state_dict_hook, state_dict_hook

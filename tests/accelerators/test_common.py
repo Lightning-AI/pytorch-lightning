@@ -11,11 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest import mock
+
 import pytest
 import torch
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.accelerators import CPUAccelerator, GPUAccelerator, IPUAccelerator, TPUAccelerator
 from pytorch_lightning.utilities.seed import seed_everything
 from tests.accelerators.test_dp import CustomClassificationModelDP
 from tests.helpers.boring_model import BoringModel
@@ -27,12 +30,12 @@ from tests.helpers.runif import RunIf
     "trainer_kwargs",
     (
         pytest.param(dict(gpus=1), marks=RunIf(min_gpus=1)),
-        pytest.param(dict(accelerator="dp", gpus=2), marks=RunIf(min_gpus=2)),
-        pytest.param(dict(accelerator="ddp_spawn", gpus=2), marks=RunIf(min_gpus=2)),
+        pytest.param(dict(strategy="dp", gpus=2), marks=RunIf(min_gpus=2)),
+        pytest.param(dict(strategy="ddp_spawn", gpus=2), marks=RunIf(min_gpus=2)),
     ),
 )
 def test_evaluate(tmpdir, trainer_kwargs):
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
     seed_everything(1)
     dm = ClassifDataModule()
     model = CustomClassificationModelDP()
@@ -69,3 +72,11 @@ def test_model_parallel_setup_called(tmpdir):
     trainer.fit(model)
 
     assert model.configure_sharded_model_called
+
+
+@mock.patch("torch.cuda.device_count", return_value=2)
+def test_auto_device_count(device_count_mock):
+    assert CPUAccelerator.auto_device_count() == 1
+    assert GPUAccelerator.auto_device_count() == 2
+    assert TPUAccelerator.auto_device_count() == 8
+    assert IPUAccelerator.auto_device_count() == 4

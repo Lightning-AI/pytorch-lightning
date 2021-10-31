@@ -346,6 +346,11 @@ class LightningLoggerBase(ABC):
         return None
 
     @property
+    def group_separator(self):
+        """Return the default separator used by the logger to group the data into subfolders."""
+        return "/"
+
+    @property
     @abstractmethod
     def name(self) -> str:
         """Return the experiment name."""
@@ -504,6 +509,10 @@ class DummyLogger(LightningLoggerBase):
     def __getitem__(self, idx) -> "DummyLogger":
         # enables self.logger[0].experiment.add_image(...)
         return self
+
+    def __iter__(self):
+        # if DummyLogger is substituting a logger collection, pretend it is empty
+        yield from ()
 
 
 def merge_dicts(

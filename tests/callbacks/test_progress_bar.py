@@ -92,7 +92,7 @@ def test_progress_bar_totals(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, progress_bar_refresh_rate=1, max_epochs=1)
     bar = trainer.progress_bar_callback
-    assert 0 == bar.total_train_batches
+    assert float("inf") == bar.total_train_batches
     assert 0 == bar.total_val_batches
     assert 0 == bar.total_test_batches
 
@@ -547,10 +547,10 @@ def _test_progress_bar_max_val_check_interval(
         default_root_dir=tmpdir,
         num_sanity_val_steps=0,
         max_epochs=1,
-        weights_summary=None,
+        enable_model_summary=False,
         val_check_interval=val_check_interval,
         gpus=world_size,
-        accelerator="ddp",
+        strategy="ddp",
     )
     trainer.fit(model, train_dataloader=train_data, val_dataloaders=val_data)
 

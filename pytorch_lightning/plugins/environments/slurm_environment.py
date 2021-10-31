@@ -24,7 +24,8 @@ log = logging.getLogger(__name__)
 class SLURMEnvironment(ClusterEnvironment):
     """Cluster environment for training on a cluster managed by SLURM."""
 
-    def creates_children(self) -> bool:
+    @property
+    def creates_processes_externally(self) -> bool:
         return True
 
     def master_address(self) -> str:
