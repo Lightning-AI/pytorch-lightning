@@ -28,9 +28,7 @@ from pytorch_lightning.utilities.imports import _TORCHMETRICS_AVAILABLE
 if _TORCHMETRICS_AVAILABLE:
     from torchmetrics import Metric
 else:
-
-    class Metric:
-        pass
+    from pytorch_lightning.utilities._mocked import Metric
 
 
 _NUMBER = Union[int, float]

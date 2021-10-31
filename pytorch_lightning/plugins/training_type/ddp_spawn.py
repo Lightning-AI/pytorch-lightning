@@ -50,6 +50,8 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _NUMPY_AVAILABLE:
     import numpy as np
+else:
+    from pytorch_lightning.utilities._mocked import numpy as np
 
 if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook

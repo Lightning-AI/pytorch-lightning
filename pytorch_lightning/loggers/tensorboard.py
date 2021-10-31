@@ -34,6 +34,8 @@ log = logging.getLogger(__name__)
 
 if _NUMPY_AVAILABLE:
     import numpy as np
+else:
+    from pytorch_lightning.utilities._mocked import numpy as np
 
 
 if _OMEGACONF_AVAILABLE:

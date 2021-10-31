@@ -30,6 +30,8 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _NUMPY_AVAILABLE:
     import numpy as np
+else:
+    from pytorch_lightning.utilities._mocked import numpy as np
 
 
 def check_finite_loss(loss: Optional[torch.Tensor]) -> None:

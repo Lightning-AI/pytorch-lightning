@@ -34,9 +34,7 @@ from pytorch_lightning.utilities.warnings import rank_zero_deprecation, WarningC
 if _NUMPY_AVAILABLE:
     import numpy as np
 else:
-
-    class np:
-        array = None
+    from pytorch_lightning.utilities._mocked import numpy as np
 
 
 _OUTPUTS_TYPE = List[_BATCH_OUTPUTS_TYPE]

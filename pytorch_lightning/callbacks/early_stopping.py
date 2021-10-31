@@ -32,10 +32,7 @@ from pytorch_lightning.utilities.imports import _NUMPY_AVAILABLE
 if _NUMPY_AVAILABLE:
     import numpy as np
 else:
-
-    class np:
-        Inf = None
-        ndarray = None
+    from pytorch_lightning.utilities._mocked import numpy as np
 
 
 log = logging.getLogger(__name__)

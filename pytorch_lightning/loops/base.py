@@ -25,9 +25,7 @@ from pytorch_lightning.utilities.types import void
 if _TORCHMETRICS_AVAILABLE:
     from torchmetrics import Metric
 else:
-
-    class Metric:
-        pass
+    from pytorch_lightning.utilities._mocked import Metric
 
 
 T = TypeVar("T")  # the output type of `run`

@@ -32,9 +32,7 @@ from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 if _NUMPY_AVAILABLE:
     import numpy as np
 else:
-
-    class np:
-        mean = None
+    from pytorch_lightning.utilities._mocked import numpy as np
 
 
 def rank_zero_experiment(fn: Callable) -> Callable:

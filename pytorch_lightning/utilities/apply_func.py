@@ -27,9 +27,7 @@ from pytorch_lightning.utilities.imports import _compare_version, _NUMPY_AVAILAB
 if _NUMPY_AVAILABLE:
     import numpy as np
 else:
-
-    class np:
-        ndarray = None
+    from pytorch_lightning.utilities._mocked import numpy as np
 
 
 if _TORCHTEXT_AVAILABLE:

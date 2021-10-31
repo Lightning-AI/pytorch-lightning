@@ -32,9 +32,7 @@ from pytorch_lightning.utilities.warnings import WarningCache
 if _TORCHMETRICS_AVAILABLE:
     from torchmetrics import Metric
 else:
-
-    class Metric:
-        pass
+    from pytorch_lightning.utilities._mocked import Metric
 
 
 # TODO(@tchaton): Typing-pickle issue on python<3.7 (https://github.com/cloudpipe/cloudpickle/pull/318)

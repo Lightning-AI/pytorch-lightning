@@ -75,6 +75,8 @@ if _TORCH_GREATER_EQUAL_1_10 and _NUMPY_AVAILABLE:
 
 if _NUMPY_AVAILABLE:
     import numpy as np
+else:
+    from pytorch_lightning.utilities._mocked import numpy as np
 
 log = logging.getLogger(__name__)
 

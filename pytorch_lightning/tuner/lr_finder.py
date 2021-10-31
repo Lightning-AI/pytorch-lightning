@@ -33,6 +33,8 @@ from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_set
 
 if _NUMPY_AVAILABLE:
     import numpy as np
+else:
+    from pytorch_lightning.utilities._mocked import numpy as np
 
 
 # check if ipywidgets is installed before importing tqdm.auto

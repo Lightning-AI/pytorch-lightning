@@ -58,9 +58,7 @@ from pytorch_lightning.utilities.warnings import WarningCache
 if _TORCHMETRICS_AVAILABLE:
     from torchmetrics import Metric
 else:
-
-    class Metric:
-        pass
+    from pytorch_lightning.utilities._mocked import Metric
 
 
 warning_cache = WarningCache()
