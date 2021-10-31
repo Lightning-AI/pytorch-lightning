@@ -10,5 +10,6 @@ class numpy:
     gradient = None
     isfinite = None
 
+
 class Metric:
     pass
