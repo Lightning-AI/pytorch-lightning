@@ -6,7 +6,7 @@ pandoc>=1.0
 docutils>=0.16
 sphinxcontrib-fulltoc>=1.0
 sphinxcontrib-mockautodoc
-git+git://github.com/speediedan/lightning_sphinx_theme.git@ee6935124c2475804571ff5afe24d3218acbc96f#egg=pt_lightning_sphinx_theme
+git+git://github.com/speediedan/lightning_sphinx_theme.git@79da83e97ce24ab1347bfea450af056d777ba424#egg=pt_lightning_sphinx_theme
 sphinx-autodoc-typehints>=1.0,<1.15  # v1.15 failing on master (#11405)
 sphinx-paramlinks>=0.5.1
 sphinx-togglebutton>=0.2
