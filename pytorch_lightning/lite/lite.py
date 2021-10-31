@@ -234,16 +234,11 @@ class LightningLite(ABC):
             sampler = self._get_distributed_sampler(dataloader, **self._strategy.distributed_sampler_kwargs)
 
         kwargs = TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler)
-        device = self.device if move_to_device else None
-        if isinstance(self._strategy, TPUSpawnPlugin):
-            dataloader = DataLoader(**kwargs)
-        else:
-            dataloader = _LiteDataLoader(device=device, **kwargs)
-
+        dataloader = type(dataloader)(**kwargs)
         # add worker_init_fn for correct seeding in worker processes
         TrainerDataLoadingMixin._auto_add_worker_init_fn(dataloader, self.global_rank)
-
-        return self._strategy.process_dataloader(dataloader)
+        dataloader = self._strategy.process_dataloader(dataloader)
+        return _LiteDataLoader(iterator=dataloader, device=self.device if move_to_device else None)
 
     def backward(self, tensor: Tensor, *args: Any, model: Optional[_LiteModule] = None, **kwargs: Any) -> None:
         """Replaces ``loss.backward()`` in your training loop. Handles precision and automatically for you.

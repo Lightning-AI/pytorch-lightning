@@ -100,17 +100,19 @@ class _LiteModule(nn.Module):
         return output
 
 
-class _LiteDataLoader(DataLoader):
-    def __init__(self, device: Optional[torch.device] = None, **dl_kwargs: Any) -> None:
-        """The LiteDataLoader is an extension of the PyTorch :class:`~torch.utils.data.DataLoader` that adds
-        additional features such as moving the data to the device automatically.
+class _LiteDataLoader(Iterator):
+    def __init__(self, iterator: Union[Iterator, DataLoader], device: Optional[torch.device] = None) -> None:
+        """The LiteDataLoader is an extension of Iterator.
+        It would move move the data to the device automatically if the device is specified
 
         Args:
+            iterator: The current iterator.
             device: The device to which the data should be moved. By default the device is `None` and no data
                 transfers will be made (identical behavior as :class:`~torch.utils.data.DataLoader`).
-            **dl_kwargs: Accepts all arguments that the PyTorch :class:`~torch.utils.data.DataLoader` accepts.
         """
-        super().__init__(**dl_kwargs)
+        super().__init__()
+        self.__dict__.update(getattr(iterator, "__dict__", {}))
+        self._iterator = iterator
         self._device = device
 
     @property
@@ -118,9 +120,11 @@ class _LiteDataLoader(DataLoader):
         return self._device
 
     def __iter__(self) -> Union[Iterator[Any], Generator[Any, None, None]]:
-        iterator = super().__iter__()
-        if self._device is None:
-            return iterator
+        self._iterator_iter = iter(self._iterator)
+        return self
 
-        for item in iterator:
-            yield move_data_to_device(item, self._device)
+    def __next__(self) -> Any:
+        item = next(self._iterator_iter)
+        if self._device:
+            item = move_data_to_device(item, self._device)
+        return item

@@ -15,7 +15,7 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
-
+from torch.utils.data.dataloader import DataLoader
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from tests.helpers.runif import RunIf
@@ -73,8 +73,8 @@ def test_lite_dataloader_device_placement(src_device, dest_device):
     sample1 = torch.tensor(1, device=src_device)
     sample2 = {"data": torch.tensor(2, device=src_device)}
     sample3 = {"data": torch.tensor(3, device=src_device)}
-    data = [sample0, sample1, sample2, sample3]
-    lite_dataloader = _LiteDataLoader(device=dest_device, dataset=data, batch_size=2)
+    data = DataLoader([sample0, sample1, sample2, sample3], batch_size=2)
+    lite_dataloader = _LiteDataLoader(iterator=data, device=dest_device)
     iterator = iter(lite_dataloader)
 
     batch0 = next(iterator)
