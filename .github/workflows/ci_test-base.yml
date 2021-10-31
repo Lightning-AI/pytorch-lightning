@@ -19,6 +19,7 @@ jobs:
         os: [ubuntu-20.04]
         # this will install stable torch
         python-version: [3.9]
+        requires: ['base', 'default']
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 20
@@ -57,6 +58,12 @@ jobs:
         pip install --requirement requirements/test.txt
         pip list
       shell: bash
+
+    - name: Install default dependencies
+      if: matrix.requires == 'default'
+      run: |
+        pip install --requirement requirements/default.txt
+        pip list
 
     - name: Test Package [only]
       run: |
