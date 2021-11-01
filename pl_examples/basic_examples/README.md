@@ -13,7 +13,7 @@ The transition through [LightningLite](https://pytorch-lightning.readthedocs.io/
 Trains a simple CNN over MNIST using vanilla PyTorch.
 
 ```bash
-# cpu
+# CPU
 python image_classifier_1_pytorch.py
 ```
 
