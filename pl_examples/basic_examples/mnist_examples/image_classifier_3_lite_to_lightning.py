@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Here are the steps to convert from LightningLite to a LightningModule
+"""Here are the steps to convert from LightningLite to a LightningModule.
 
 1. Start implementing the ``training_step``, ``forward``, ``train_dataloader`` and ``configure_optimizers``
 methods on the LightningLite class.
