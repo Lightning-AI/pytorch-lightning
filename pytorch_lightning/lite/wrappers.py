@@ -105,8 +105,8 @@ class _LiteModule(nn.Module):
 
 class _LiteDataLoader:
     def __init__(self, dataloader: DataLoader, device: Optional[torch.device] = None) -> None:
-        """The LiteDataLoader is a wrapper for the :class:`~torch.utils.data.DataLoader`. It moves the data to
-        the device automatically if the device is specified.
+        """The LiteDataLoader is a wrapper for the :class:`~torch.utils.data.DataLoader`. It moves the data to the
+        device automatically if the device is specified.
 
         Args:
             dataloader: The dataloader to wrap
