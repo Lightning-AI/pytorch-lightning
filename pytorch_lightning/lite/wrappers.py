@@ -164,6 +164,9 @@ class _LiteDataLoader:
         self._dataloader = dataloader
         self._device = device
 
+    def __len__(self) -> int:
+        return len(self._dataloader)
+
     @property
     def device(self) -> Optional[torch.device]:
         return self._device
