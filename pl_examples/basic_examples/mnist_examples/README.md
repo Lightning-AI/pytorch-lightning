@@ -56,12 +56,12 @@ ______________________________________________________________________
 This script shows you how to extract the data related components into a `LightningDataModule`.
 
 ```bash
-# cpu
+# CPU
 python image_classifier_5_lightning_datamodule.py
 
-# gpus (any number)
+# GPUs (any number)
 python image_classifier_5_lightning_datamodule.py --trainer.gpus 2
 
-# dataparallel
-python image_classifier_5_lightning_datamodule.py --trainer.gpus 2 --trainer.accelerator 'dp'
+# Distributed Data parallel
+python image_classifier_5_lightning_datamodule.py --trainer.gpus 2 --trainer.strategy 'ddp'
 ```
