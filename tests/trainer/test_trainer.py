@@ -2083,6 +2083,10 @@ def test_detect_anomaly_nan(tmpdir):
     "trainer_kwargs,expected",
     [
         (
+            dict(strategy=None, gpus=[]),
+            dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+        ),
+        (
             dict(strategy=None, gpus=None),
             dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
