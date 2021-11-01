@@ -49,6 +49,7 @@ class Lite(LightningLite):
         seed_everything(hparams.seed)  # instead of torch.manual_seed(...)
 
         transform = T.Compose([T.ToTensor(), T.Normalize((0.1307,), (0.3081,))])
+        # This is meant to ensure the data are download only by 1 process.
         if self.is_global_zero:
             MNIST("./data", download=True)
         self.barrier()
