@@ -104,7 +104,7 @@ class _LiteModule(nn.Module):
 
 
 class _LiteDataLoader:
-    def __init__(self, dataloader: Iterable, device: Optional[torch.device] = None) -> None:
+    def __init__(self, dataloader: DataLoader, device: Optional[torch.device] = None) -> None:
         """The LiteDataLoader is a wrapper around a data loading iterator. It moves the data to the device automatically
         if the device is specified.
 
