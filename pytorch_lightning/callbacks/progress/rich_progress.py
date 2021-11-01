@@ -427,7 +427,7 @@ class RichProgressBar(ProgressBarBase):
     def test_progress_bar(self) -> Task:
         return self.progress.tasks[self.test_progress_bar_id]
 
-    def configure_columns(self, trainer, pl_module):
+    def configure_columns(self, trainer, pl_module) -> list:
         return [
             TextColumn("[progress.description]{task.description}"),
             CustomBarColumn(
