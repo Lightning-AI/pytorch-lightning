@@ -9,6 +9,8 @@ args="
   --trainer.limit_val_batches=2
   --trainer.limit_test_batches=2
   --trainer.limit_predict_batches=2
+  --optimizer=Adam
+  --lr_scheduler=ConstantLR
 "
 
 python "${dir_path}/basic_examples/backbone_image_classifier.py" ${args} "$@"
@@ -28,6 +30,8 @@ args="
   --trainer.limit_val_batches=2
   --trainer.limit_test_batches=2
   --trainer.limit_predict_batches=2
+  --optimizer=Adam
+  --lr_scheduler=ConstantLR
 "
 
 python "${dir_path}/basic_examples/mnist_examples/image_classifier_4_lightning_module.py" ${args} "$@"
