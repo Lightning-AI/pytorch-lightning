@@ -151,8 +151,8 @@ def _replace_dataloader_init_method() -> Generator:
 
 class _LiteDataLoader:
     def __init__(self, dataloader: Iterable, device: Optional[torch.device] = None) -> None:
-        """The LiteDataLoader is an extension of an Iterator. It would move the data to the device
-        automatically if the device is specified.
+        """The LiteDataLoader is an extension of an Iterator. It would move the data to the device automatically if
+        the device is specified.
 
         Args:
             dataloader: The current dataloader to be used.
