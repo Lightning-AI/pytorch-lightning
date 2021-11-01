@@ -360,7 +360,7 @@ def tpu_distributed() -> bool:
     return _TPU_AVAILABLE and xm.xrt_world_size() > 1
 
 
-def init_distributed_connection(
+def init_dist_connection(
     cluster_environment: "pl.plugins.environments.ClusterEnvironment",
     torch_distributed_backend: str,
     global_rank: Optional[int] = None,

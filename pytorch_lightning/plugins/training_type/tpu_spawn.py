@@ -147,7 +147,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def configure_ddp(self) -> None:
         pass
 
-    def init_distributed_connection(self, global_rank: int, world_size: int) -> None:
+    def init_dist_connection(self, global_rank: int, world_size: int) -> None:
         pass
 
     def set_world_ranks(self, process_idx: int = 0) -> None:
