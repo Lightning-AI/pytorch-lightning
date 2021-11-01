@@ -2,7 +2,7 @@
 
 Here are 5 MNIST examples showing you how to gradually convert from pure PyTorch to PyTorch Lightning.
 
-The transition through [LightningLite](https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.rst) from pure PyTorch is optional but it might be helpful to learn about it.
+The transition through [LightningLite](https://pytorch-lightning.readthedocs.io/en/latest/stable/lightning_lite.rst) from pure PyTorch is optional but it might be helpful to learn about it.
 
 #### 1. Image Classifier with Vanilla PyTorch
 
@@ -17,7 +17,7 @@ ______________________________________________________________________
 
 #### 2. Image Classifier with LightningLite
 
-This script shows you how to scale the previous script to enable GPU and multi-GPU training using [LightningLite](https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.html).
+This script shows you how to scale the previous script to enable GPU and multi-GPU training using [LightningLite](https://pytorch-lightning.readthedocs.io/en/stable/starter/lightning_lite.html).
 
 ```bash
 # CPU / multiple GPUs if available
@@ -28,7 +28,7 @@ ______________________________________________________________________
 
 #### 3. Image Classifier - Conversion from Lite to Lightning
 
-This script shows you how to prepare your conversion from [LightningLite](https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.html) to `LightningModule`.
+This script shows you how to prepare your conversion from [LightningLite](https://pytorch-lightning.readthedocs.io/en/stable/starter/lightning_lite.html) to `LightningModule`.
 
 ```bash
 # CPU / multiple GPUs if available
