@@ -25,37 +25,19 @@ BType = Union[torch.Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
 warning_cache = WarningCache()
 
 
-def _extract_batch_size(batch: BType, batch_sizes) -> bool:
-    current_batch_size = None
-
+def _extract_batch_size(batch: BType) -> int:
     if isinstance(batch, torch.Tensor):
-        current_batch_size = batch.size(0)
+        yield batch.size(0)
     elif isinstance(batch, str):
-        current_batch_size = len(batch)
-    elif not isinstance(batch, (Iterable, Mapping)):
-        current_batch_size = 1
+        yield len(batch)
+    elif isinstance(batch, (Iterable, Mapping)):
+        if isinstance(batch, Mapping):
+            batch = batch.values()
 
-    if current_batch_size is not None:
-        if batch_sizes and batch_sizes[0] != current_batch_size:
-            warning_cache.warn(
-                f"Trying to infer the `batch_size` from an ambiguous collection. The batch size we"
-                f" found is {batch_sizes[0]}. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`."
-            )
-            return True
-        elif not batch_sizes:
-            batch_sizes.append(current_batch_size)
-
-        return False
-
-    if isinstance(batch, Mapping):
-        batch = batch.values()
-
-    for sample in batch:
-        should_exit = _extract_batch_size(sample, batch_sizes)
-        if should_exit:
-            return True
-
-    return False
+        for sample in batch:
+            yield from _extract_batch_size(sample)
+    else:
+        yield 1
 
 
 def extract_batch_size(batch: BType) -> int:
@@ -64,9 +46,18 @@ def extract_batch_size(batch: BType) -> int:
     Returns:
         ``len(tensor)`` when found, or ``1`` when it hits an empty or non iterable.
     """
-    batch_sizes = []
-    _extract_batch_size(batch, batch_sizes)
-    return batch_sizes[0]
+    batch_size = None
+    for bs in _extract_batch_size(batch):
+        if batch_size is None:
+            batch_size = bs
+        elif batch_size != bs:
+            warning_cache.warn(
+                f"Trying to infer the `batch_size` from an ambiguous collection. The batch size we"
+                f" found is {batch_size}. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`."
+            )
+            break
+
+    return batch_size
 
 
 def has_iterable_dataset(dataloader: DataLoader) -> bool:
