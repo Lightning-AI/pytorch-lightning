@@ -1100,8 +1100,8 @@ class Trainer(
         # restore modules after setup
         self.checkpoint_connector.resume_start(checkpoint_path)
         self.checkpoint_connector.restore_model()
+        self.checkpoint_connector.restore_datamodule()
         if self.state.fn == TrainerFn.FITTING:
-            self.checkpoint_connector.restore_datamodule()
             # restore callback states
             self.checkpoint_connector.restore_callbacks()
 
