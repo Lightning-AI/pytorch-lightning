@@ -568,6 +568,9 @@ based on the accelerator type (``"cpu", "gpu", "tpu", "ipu", "auto"``).
     # If your machine has GPUs, it will use all the available GPUs for training
     trainer = Trainer(devices="auto", accelerator="auto")
 
+    # Training with CPU Accelerator using 1 process
+    trainer = Trainer(devices="auto", accelerator="cpu")
+
     # Training with TPU Accelerator using 8 tpu cores
     trainer = Trainer(devices="auto", accelerator="tpu")
 
