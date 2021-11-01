@@ -30,7 +30,7 @@ The two hooks :class:`~pytorch_lightning.loops.base.Loop.on_save_checkpoint` and
     def on_load_checkpoint(self, state_dict):
         self.iteration = state_dict["iteration"]
 
-When the Trainer is restarting from a checkpoint (e.g., through :code:`Trainer(resume_from_checkpoint=...)`), the loop exposes a boolean attribute :attr:`~pytorch_lightning.loops.base.Loop.restarting`.
+When the Trainer is restarting from a checkpoint (e.g., through :code:`trainer.fit(ckpt_path=...)`), the loop exposes a boolean attribute :attr:`~pytorch_lightning.loops.base.Loop.restarting`.
 Based around the value of this variable, the user can write the loop in such a way that it can restart from an arbitrary point given the state loaded from the checkpoint.
 For example, the implementation of the :meth:`~pytorch_lightning.loops.base.Loop.reset` method could look like this given our previous example:
 

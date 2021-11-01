@@ -39,7 +39,7 @@ from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import (
     _IS_WINDOWS,
-    _TORCH_GREATER_EQUAL_DEV_1_10,
+    _TORCH_GREATER_EQUAL_1_10,
     GradClipAlgorithmType,
     rank_zero_deprecation,
     rank_zero_warn,
@@ -128,6 +128,12 @@ class LightningModule(
 
     @overload
     def optimizers(self, use_pl_optimizer: Literal[False]) -> Union[Optimizer, List[Optimizer]]:
+        ...
+
+    @overload
+    def optimizers(
+        self, use_pl_optimizer: bool
+    ) -> Union[Optimizer, LightningOptimizer, List[Optimizer], List[LightningOptimizer]]:
         ...
 
     def optimizers(
@@ -361,7 +367,8 @@ class LightningModule(
             on_epoch: if True logs epoch accumulated metrics. None auto-logs at the val/test step but not training_step
             reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
             enable_graph: if True, will not auto detach the graph
-            sync_dist: if True, reduces the metric across GPUs/TPUs
+            sync_dist: if True, reduces the metric across GPUs/TPUs. Use with care as this may lead to a significant
+                communication overhead.
             sync_dist_group: the ddp group to sync across
             add_dataloader_idx: if True, appends the index of the current dataloader to
                 the name (when using multiple). If False, user needs to give unique names for
@@ -523,7 +530,8 @@ class LightningModule(
             on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
             reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
             enable_graph: if True, will not auto detach the graph
-            sync_dist: if True, reduces the metric across GPUs/TPUs
+            sync_dist: if True, reduces the metric across GPUs/TPUs. Use with care as this may lead to a significant
+                communication overhead.
             sync_dist_group: the ddp group sync across
             add_dataloader_idx: if True, appends the index of the current dataloader to
                 the name (when using multiple). If False, user needs to give unique names for
@@ -569,6 +577,8 @@ class LightningModule(
 
     def log_grad_norm(self, grad_norm_dict: Dict[str, float]) -> None:
         """Override this method to change the default behaviour of ``log_grad_norm``.
+
+        If clipping gradients, the gradients will not have been clipped yet.
 
         Args:
             grad_norm_dict: Dictionary containing current grad norm metrics
@@ -1411,10 +1421,7 @@ class LightningModule(
             *args: Additional positional arguments to be forwarded to :meth:`~torch.Tensor.backward`
             **kwargs: Additional keyword arguments to be forwarded to :meth:`~torch.Tensor.backward`
         """
-        # make sure we're using manual opt
         self._verify_is_manual_optimization("manual_backward")
-
-        # backward
         self.trainer.accelerator.backward(loss, None, None, *args, **kwargs)
 
     def backward(
@@ -1487,7 +1494,7 @@ class LightningModule(
         self,
         optimizer: Optimizer,
         gradient_clip_val: Optional[Union[int, float]] = None,
-        gradient_clip_algorithm: Optional[Union[str, GradClipAlgorithmType]] = None,
+        gradient_clip_algorithm: Optional[str] = None,
     ):
         """Handles gradient clipping internally.
 
@@ -1505,8 +1512,9 @@ class LightningModule(
             gradient_clip_val = self.trainer.gradient_clip_val or 0.0
         elif self.trainer.gradient_clip_val is not None and self.trainer.gradient_clip_val != gradient_clip_val:
             raise MisconfigurationException(
-                "You have set `Trainer(gradient_clip_val)` and have passed"
-                " `gradient_clip_val` inside `clip_gradients`. Please use only one of them."
+                f"You have set `Trainer(gradient_clip_val={self.trainer.gradient_clip_val!r})`"
+                f" and have passed `clip_gradients(gradient_clip_val={gradient_clip_val!r})`."
+                " Please use only one of them."
             )
 
         if gradient_clip_algorithm is None:
@@ -1518,8 +1526,9 @@ class LightningModule(
                 and self.trainer.gradient_clip_algorithm != gradient_clip_algorithm
             ):
                 raise MisconfigurationException(
-                    "You have set `Trainer(gradient_clip_algorithm)` and have passed"
-                    " `gradient_clip_algorithm` inside `clip_gradients`. Please use only one of them."
+                    f"You have set `Trainer(gradient_clip_algorithm={self.trainer.gradient_clip_algorithm.value!r})`"
+                    f" and have passed `clip_gradients(gradient_clip_algorithm={gradient_clip_algorithm!r})"
+                    " Please use only one of them."
                 )
 
         if not isinstance(gradient_clip_val, (int, float)):
@@ -1532,7 +1541,7 @@ class LightningModule(
             )
 
         gradient_clip_algorithm = GradClipAlgorithmType(gradient_clip_algorithm)
-        self.trainer.accelerator.clip_gradients(optimizer, gradient_clip_val, gradient_clip_algorithm)
+        self.trainer.precision_plugin.clip_gradients(optimizer, gradient_clip_val, gradient_clip_algorithm)
 
     def configure_gradient_clipping(
         self,
@@ -1542,10 +1551,6 @@ class LightningModule(
         gradient_clip_algorithm: Optional[str] = None,
     ):
         """Perform gradient clipping for the optimizer parameters. Called before :meth:`optimizer_step`.
-
-        Note:
-            This hook won't be called when using deepspeed since it handles gradient clipping internally.
-            Consider setting ``gradient_clip_val`` and ``gradient_clip_algorithm`` inside ``Trainer``."
 
         Args:
             optimizer: Current optimizer being used.
@@ -2042,7 +2047,7 @@ class LightningModule(
 
         These hooks ensure that ShardedTensors are included when saving, and are loaded the LightningModule correctly.
         """
-        if not _TORCH_GREATER_EQUAL_DEV_1_10 or _IS_WINDOWS:
+        if not _TORCH_GREATER_EQUAL_1_10 or _IS_WINDOWS:
             return
 
         from torch.distributed._sharded_tensor import pre_load_state_dict_hook, state_dict_hook

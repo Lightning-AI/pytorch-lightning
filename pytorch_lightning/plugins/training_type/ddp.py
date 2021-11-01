@@ -53,6 +53,7 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import init_ddp_connection, rank_zero_only, ReduceOp, sync_ddp_if_available
+from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -83,7 +84,7 @@ class DDPPlugin(ParallelPlugin):
     devices (e.g. GPU) per node. It is very similar to how :mod:`torch.distributed.launch` launches processes.
     """
 
-    distributed_backend = "ddp"
+    distributed_backend = DistributedType.DDP
 
     def __init__(
         self,
@@ -177,7 +178,7 @@ class DDPPlugin(ParallelPlugin):
 
     def setup_environment(self) -> None:
         # start the other scripts
-        if not self.cluster_environment.creates_children():
+        if not self.cluster_environment.creates_processes_externally:
             self._call_children_scripts()
 
         # set the task idx
@@ -277,7 +278,7 @@ class DDPPlugin(ParallelPlugin):
             raise RuntimeError(
                 "Lightning attempted to launch new distributed processes with `local_rank > 0`. This should not happen."
                 " Possible reasons: 1) LOCAL_RANK environment variable was incorrectly modified by the user,"
-                " 2) `ClusterEnvironment.creates_children()` incorrectly implemented."
+                " 2) `ClusterEnvironment.creates_processes_externally` incorrectly implemented."
             )
 
     def set_world_ranks(self) -> None:
