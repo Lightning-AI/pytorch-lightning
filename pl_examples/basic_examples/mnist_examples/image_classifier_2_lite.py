@@ -14,7 +14,7 @@
 
 """Here are 5 required steps to convert to LightningLite.
 
-1. Subclass LightningLite and override its run method.
+1. Subclass LightningLite and override its ``run`` method.
 
 2. Move the body of your existing ``run`` function into the ``run`` method.
 
@@ -23,7 +23,7 @@
 4. Apply ``setup`` over each model and optimizers pair, ``setup_dataloaders`` on all your dataloaders,
 and replace ``loss.backward()`` with ``self.backward(loss)``.
 
-5. Instantiate your LightningLite and call its `run` method.
+5. Instantiate your LightningLite and call its ``run`` method.
 
 Learn more from the documentation: https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.html.
 """
