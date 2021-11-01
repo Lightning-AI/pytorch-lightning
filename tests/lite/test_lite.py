@@ -203,6 +203,8 @@ def test_setup_custom_dataloaders():
 
     class LiteWithCustomDataLoader(LightningLite):
         def run(self):
+            # This doesn't fail as the context manager would save all the arguments provided
+            # to the dataloaders.
             dataloader = CustomDataLoader(2, batch_size=2)
             self.setup_dataloaders(dataloader)
 
