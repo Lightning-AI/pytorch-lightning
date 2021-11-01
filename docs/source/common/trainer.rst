@@ -633,6 +633,9 @@ Under the hood the pseudocode looks like this when running *fast_dev_run* with a
 flush_logs_every_n_steps
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. warning:: ``flush_logs_every_n_steps`` has been deprecated in v1.5 and will be removed in v1.7.
+    Please configure flushing directly in the logger instead.
+
 .. raw:: html
 
     <video width="50%" max-width="400px" controls
@@ -1192,6 +1195,10 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
 process_position
 ^^^^^^^^^^^^^^^^
 
+.. warning:: ``process_position`` has been deprecated in v1.5 and will be removed in v1.7.
+    Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``process_position``
+    directly to the Trainer's ``callbacks`` argument instead.
+
 .. raw:: html
 
     <video width="50%" max-width="400px" controls
@@ -1239,10 +1246,11 @@ See the :doc:`profiler documentation <../advanced/profiler>`. for more details.
 
 progress_bar_refresh_rate
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
-Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``refresh_rate``
-directly to the Trainer's ``callbacks`` argument instead. To disable the progress bar,
-pass ``enable_progress_bar = False`` to the Trainer.
+
+.. warning:: ``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
+    Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``refresh_rate``
+    directly to the Trainer's ``callbacks`` argument instead. To disable the progress bar,
+    pass ``enable_progress_bar = False`` to the Trainer.
 
 .. raw:: html
 
