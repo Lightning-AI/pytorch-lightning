@@ -13,7 +13,7 @@
 # limitations under the License.
 """Simple MNIST image classifier example with LightningModule.
 
-To run: python image_classifier_4_lightning.py --trainer.max_epochs=50
+To run: python image_classifier_4_lightning_module.py --trainer.max_epochs=50
 """
 import torch
 import torchvision.transforms as T

@@ -32,7 +32,7 @@ This script shows you how to prepare your conversion from [LightningLite](https:
 
 ```bash
 # CPU / multiple GPUs if available
-python image_classifier_3_lite_to_lightning.py
+python image_classifier_3_lite_to_lightning_module.py
 ```
 
 ______________________________________________________________________
@@ -43,10 +43,10 @@ This script shows you the result of the conversion to the `LightningModule` and 
 
 ```bash
 # CPU
-python image_classifier_4_lightning.py
+python image_classifier_4_lightning_module.py
 
 # GPUs (any number)
-python image_classifier_4_lightning.py --trainer.gpus 2
+python image_classifier_4_lightning_module.py --trainer.gpus 2
 ```
 
 ______________________________________________________________________

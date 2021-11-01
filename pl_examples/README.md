@@ -13,8 +13,8 @@ The transition through [LightningLite](https://pytorch-lightning.readthedocs.io/
 
 - [MNIST with vanilla PyTorch](./basic_examples/mnist_examples/image_classifier_1_pytorch.py)
 - [MNIST with LightningLite](./basic_examples/mnist_examples/image_classifier_2_lite.py)
-- [MNIST LightningLite to LightningModule](./basic_examples/mnist_examples/image_classifier_3_lite_to_lightning.py)
-- [MNIST with LightningModule](./basic_examples/mnist_examples/image_classifier_4_lightning.py)
+- [MNIST LightningLite to LightningModule](./basic_examples/mnist_examples/image_classifier_3_lite_to_lightning_module.py)
+- [MNIST with LightningModule](./basic_examples/mnist_examples/image_classifier_4_lightning_module.py)
 - [MNIST with LightningModule + LightningDataModule](./basic_examples/mnist_examples/image_classifier_5_lightning_datamodule.py)
 
 ______________________________________________________________________

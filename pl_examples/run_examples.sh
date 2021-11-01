@@ -18,7 +18,7 @@ python "${dir_path}/basic_examples/autoencoder.py" ${args} "$@"
 args="--dry-run"
 python "${dir_path}/basic_examples/mnist_examples/image_classifier_1_pytorch.py" ${args}
 python "${dir_path}/basic_examples/mnist_examples/image_classifier_2_lite.py" ${args}
-python "${dir_path}/basic_examples/mnist_examples/image_classifier_3_lite_to_lightning.py" ${args}
+python "${dir_path}/basic_examples/mnist_examples/image_classifier_3_lite_to_lightning_module.py" ${args}
 python "${dir_path}/loop_examples/mnist_lite.py" ${args}
 
 
@@ -30,5 +30,5 @@ args="
   --trainer.limit_predict_batches=2
 "
 
-python "${dir_path}/basic_examples/mnist_examples/image_classifier_4_lightning.py" ${args} "$@"
+python "${dir_path}/basic_examples/mnist_examples/image_classifier_4_lightning_module.py" ${args} "$@"
 python "${dir_path}/basic_examples/mnist_examples/image_classifier_5_lightning_datamodule.py" ${args} "$@"
