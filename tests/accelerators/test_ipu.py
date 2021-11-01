@@ -597,3 +597,10 @@ def test_poptorch_models_at_different_stages(tmpdir):
         trainer.state.stage = stage
         trainer.training_type_plugin.pre_dispatch()
         assert list(trainer.training_type_plugin.poptorch_models) == [stage]
+
+
+@RunIf(ipu=True)
+def test_devices_auto_choice_ipu():
+    trainer = Trainer(accelerator="auto", devices="auto")
+    assert trainer.devices == 4
+    assert trainer.ipus == 4

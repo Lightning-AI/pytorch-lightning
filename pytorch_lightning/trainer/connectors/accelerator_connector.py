@@ -475,16 +475,24 @@ class AcceleratorConnector:
         if self.devices is None:
             return False
         if accelerator == DeviceType.TPU and _TPU_AVAILABLE:
+            if self.devices == "auto":
+                self.devices = TPUAccelerator.auto_device_count()
             self.tpu_cores = device_parser.parse_tpu_cores(self.devices)
             return True
         if accelerator == DeviceType.IPU and _IPU_AVAILABLE:
+            if self.devices == "auto":
+                self.devices = IPUAccelerator.auto_device_count()
             self.ipus = self.devices
             return True
         if accelerator == DeviceType.GPU and torch.cuda.is_available():
+            if self.devices == "auto":
+                self.devices = GPUAccelerator.auto_device_count()
             self.gpus = self.devices
             self.parallel_device_ids = device_parser.parse_gpu_ids(self.devices)
             return True
         if accelerator == DeviceType.CPU:
+            if self.devices == "auto":
+                self.devices = CPUAccelerator.auto_device_count()
             if not isinstance(self.devices, int):
                 raise MisconfigurationException(
                     "The flag `devices` must be an int with `accelerator='cpu'`,"
