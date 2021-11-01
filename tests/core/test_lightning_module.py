@@ -21,7 +21,6 @@ from torch.optim import Adam, SGD
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_DEV_1_10
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -312,10 +311,7 @@ class BoringModelWithShardedTensor(BoringModel):
         self.sharded_tensor.local_shards()[0].tensor.fill_(0)
 
 
-@pytest.mark.skipif(
-    not _TORCH_GREATER_EQUAL_DEV_1_10, reason="Test requires the torch version to support `ShardedTensor`"
-)
-@pytest.mark.skipif(_IS_WINDOWS, reason="Not supported on Windows")
+@RunIf(min_torch="1.10", skip_windows=True)
 def test_sharded_tensor_state_dict(tmpdir, single_process_pg):
     spec = dist._sharding_spec.ChunkShardingSpec(
         dim=0,
@@ -353,23 +349,20 @@ def test_lightning_module_configure_gradient_clipping(tmpdir):
 
             for pg in optimizer.param_groups:
                 for p in pg["params"]:
-                    p.grad[p.grad > self.custom_gradient_clip_val] = self.custom_gradient_clip_val
-                    p.grad[p.grad <= 0] = 0
-
-        def on_before_optimizer_step(self, optimizer, optimizer_idx):
-            for pg in optimizer.param_groups:
-                for p in pg["params"]:
-                    if p.grad is not None and p.grad.abs().sum() > 0:
-                        self.has_validated_gradients = True
-                        assert p.grad.min() >= 0
-                        assert p.grad.max() <= self.custom_gradient_clip_val
+                    p.grad.clamp_(min=0, max=self.custom_gradient_clip_val)
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, limit_val_batches=0, gradient_clip_val=1e-4
+        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=0, gradient_clip_val=1e-4
     )
     trainer.fit(model)
-    assert model.has_validated_gradients
+
+    optimizer = model.optimizers()
+    for pg in optimizer.param_groups:
+        for p in pg["params"]:
+            if p.grad is not None:
+                assert p.grad.min() >= 0
+                assert p.grad.max() <= model.custom_gradient_clip_val
 
 
 def test_lightning_module_configure_gradient_clipping_different_argument_values(tmpdir):

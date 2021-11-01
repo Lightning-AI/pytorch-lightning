@@ -23,7 +23,7 @@ jobs:
     # how much time to give 'run always even if cancelled tasks' before stopping them
     cancelTimeoutInMinutes: "2"
 
-    pool: gridai-spot-pool
+    pool: azure-gpus-spot
 
     # ToDo: this need to have installed docker in the base image...
     container:
@@ -50,7 +50,7 @@ jobs:
 
     - bash: |
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
-        pip install fairscale>=0.3.4
+        pip install fairscale==0.4.0
         pip install deepspeed==0.5.4
         pip install . --requirement requirements/devel.txt
         pip list

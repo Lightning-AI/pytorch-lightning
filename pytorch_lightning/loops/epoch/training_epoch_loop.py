@@ -306,8 +306,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if self._num_ready_batches_reached():
             self.update_lr_schedulers("epoch", update_plateau_schedulers=True)
 
-        self._dataloader_iter = None
-
         # if fault tolerant is enabled and process has been notified, exit.
         self.trainer._exit_gracefully_on_signal()
 
