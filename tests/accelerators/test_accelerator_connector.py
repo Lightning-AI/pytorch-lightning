@@ -1042,17 +1042,17 @@ def test_accelerator_auto_choice_and_devices_gpu(is_gpu_available_mock, device_c
     assert trainer.devices == 1
     assert trainer.gpus == 1
 
-    
+
 @mock.patch("torch.cuda.is_available", return_value=False)
 @mock.patch("pytorch_lightning.utilities.imports._TPU_AVAILABLE", return_value=False)
-@mock.patch("pytorch_lightning.utilities.imports._IPU_AVAILABLE", return_value=False)   
+@mock.patch("pytorch_lightning.utilities.imports._IPU_AVAILABLE", return_value=False)
 def test_devices_auto_choice_cpu(is_ipu_available_mock, is_tpu_available_mock, is_gpu_available_mock):
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.devices == 1
     assert trainer.num_processes == 1
 
-    
-@mock.patch("torch.cuda.is_available", return_value=True)   
+
+@mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=2)
 def test_devices_auto_choice_gpu(is_gpu_available_mock, device_count_mock):
     trainer = Trainer(accelerator="auto", devices="auto")

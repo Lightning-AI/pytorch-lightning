@@ -605,7 +605,7 @@ def test_devices_auto_choice_ipu():
     assert trainer.devices == 4
     assert trainer.ipus == 4
 
-    
+
 @RunIf(ipu=True)
 def test_accelerator_auto_choice_and_devices_ipu():
     trainer = Trainer(accelerator="auto")
