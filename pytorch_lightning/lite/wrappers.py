@@ -14,7 +14,7 @@
 import functools
 import inspect
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Generator, Iterable, Iterator, Optional, Set, Type
+from typing import Any, Callable, Dict, Generator, Iterable, Iterator, Optional, Set, Type, Union
 
 import torch
 from torch import nn as nn
@@ -148,7 +148,7 @@ def _replace_dataloader_init_function() -> Generator:
         _disable_class(subclass)
 
 
-class _LiteDataLoader(Iterator):
+class _LiteDataLoader:
     def __init__(self, dataloader: Iterable, device: Optional[torch.device] = None) -> None:
         """The LiteDataLoader is an extension of an Iterator. It would move move the data to the device
         automatically if the device is specified.
@@ -168,18 +168,10 @@ class _LiteDataLoader(Iterator):
     def device(self) -> Optional[torch.device]:
         return self._device
 
-    def __iter__(self) -> "_LiteDataLoader":
-        self._dataloader_iter = iter(self._dataloader)
-        return self
+    def __iter__(self) -> Union[Iterator[Any], Generator[Any, None, None]]:
+        dataloader_iter = iter(self._dataloader)
+        if self._device is None:
+            return dataloader_iter
 
-    def __next__(self) -> Any:
-        try:
-            assert self._dataloader_iter
-            item = next(self._dataloader_iter)
-            if self._device:
-                item = move_data_to_device(item, self._device)
-            return item
-        except StopIteration as e:
-            # drop the reference to the dataloader iterator.
-            self._dataloader_iter = None
-            raise e
+        for item in dataloader_iter:
+            yield move_data_to_device(item, self._device)

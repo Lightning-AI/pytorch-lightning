@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import suppress
 from unittest.mock import ANY, Mock
 
 import pytest
@@ -85,10 +84,8 @@ def test_lite_dataloader_device_placement(src_device, dest_device):
     batch1 = next(iterator)
     assert torch.equal(batch1["data"], torch.tensor([2, 3], device=dest_device))
 
-    assert lite_dataloader._dataloader_iter
-    with suppress(StopIteration):
+    with pytest.raises(StopIteration):
         batch1 = next(iterator)
-    assert lite_dataloader._dataloader_iter is None
 
     lite_dataloader = _LiteDataLoader(dataloader=[sample0, sample1, sample2, sample3], device=dest_device)
     iterator = iter(lite_dataloader)
