@@ -561,7 +561,7 @@ based on the accelerator type (``"cpu", "gpu", "tpu", "ipu", "auto"``).
     # Training with TPU Accelerator using 8 tpu cores
     trainer = Trainer(devices=8, accelerator="tpu")
 
-.. note:: The ``"auto"`` option recognizes the devices to train on, depending on the ``Accelerator`` being used.
+.. tip:: The ``"auto"`` option recognizes the devices to train on, depending on the ``Accelerator`` being used.
 
 .. code-block:: python
 
