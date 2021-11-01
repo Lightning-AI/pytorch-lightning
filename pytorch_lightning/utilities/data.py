@@ -52,7 +52,7 @@ def extract_batch_size(batch: BType) -> int:
             batch_size = bs
         elif batch_size != bs:
             warning_cache.warn(
-                f"Trying to infer the `batch_size` from an ambiguous collection. The batch size we"
+                "Trying to infer the `batch_size` from an ambiguous collection. The batch size we"
                 f" found is {batch_size}. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`."
             )
             break
