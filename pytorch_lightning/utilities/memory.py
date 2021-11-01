@@ -25,10 +25,15 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
 class ByteCounter:
+    r"""
+    Accumulate and stores the total bytes of an object.
+    """
+
     def __init__(self) -> None:
         self.nbytes: int = 0
 
     def write(self, data: bytes) -> None:
+        """Stores the total bytes of the data."""
         self.nbytes += len(data)
 
     def flush(self) -> None:
