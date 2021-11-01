@@ -52,7 +52,7 @@ class TrainLoop(Loop):
         output = self.model(data)
         loss = F.nll_loss(output, target)
         self.lite.backward(loss)
-        self.optimizer.zero_grad()
+        self.optimizer.step()
 
         if (batch_idx == 0) or ((batch_idx + 1) % self.args.log_interval == 0):
             print(
@@ -81,7 +81,7 @@ class TestLoop(Loop):
         self.model = model
         self.dataloader = dataloader
         self.dataloader_iter = None
-        self.accuracy = Accuracy()
+        self.accuracy = Accuracy().to(model.device)
         self.test_loss = 0
 
     @property
@@ -133,13 +133,15 @@ class MainLoop(Loop):
             raise StopIteration
 
         self.epoch += 1
-        self.lite.val_acc.reset()
 
 
 class Lite(LightningLite):
     def run(self, hparams):
         transform = T.Compose([T.ToTensor(), T.Normalize((0.1307,), (0.3081,))])
-        train_dataset = MNIST("./data", train=True, download=True, transform=transform)
+        if self.is_global_zero:
+            MNIST("./data", download=True)
+        self.barrier()
+        train_dataset = MNIST("./data", train=True, transform=transform)
         test_dataset = MNIST("./data", train=False, transform=transform)
         train_loader = torch.utils.data.DataLoader(train_dataset, hparams.batch_size)
         test_loader = torch.utils.data.DataLoader(test_dataset, hparams.test_batch_size)
@@ -166,7 +168,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--test-batch-size", type=int, default=1000, metavar="N", help="input batch size for testing (default: 1000)"
     )
-    parser.add_argument("--epochs", type=int, default=14, metavar="N", help="number of epochs to train (default: 14)")
+    parser.add_argument("--epochs", type=int, default=2, metavar="N", help="number of epochs to train (default: 14)")
     parser.add_argument("--lr", type=float, default=1.0, metavar="LR", help="learning rate (default: 1.0)")
     parser.add_argument("--gamma", type=float, default=0.7, metavar="M", help="Learning rate step gamma (default: 0.7)")
     parser.add_argument("--dry-run", action="store_true", default=False, help="quickly check a single pass")
