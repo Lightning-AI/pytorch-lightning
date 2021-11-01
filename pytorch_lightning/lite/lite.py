@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -183,7 +183,7 @@ class LightningLite(ABC):
 
     def setup_dataloaders(
         self, *dataloaders: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
-    ) -> Union[DataLoader, List[DataLoader], Iterable]:
+    ) -> Union[_LiteDataLoader, List[_LiteDataLoader]]:
         """Setup one or multiple dataloaders for accelerated training. If you need different settings for each
         dataloader, call this method individually for each one.
 
@@ -208,7 +208,7 @@ class LightningLite(ABC):
 
     def _setup_dataloader(
         self, dataloader: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
-    ) -> Union[Iterable, DataLoader]:
+    ) -> _LiteDataLoader:
         """Setup a single dataloader for accelerated training.
 
         Args:
@@ -238,7 +238,8 @@ class LightningLite(ABC):
         # add worker_init_fn for correct seeding in worker processes
         TrainerDataLoadingMixin._auto_add_worker_init_fn(dataloader, self.global_rank)
         return _LiteDataLoader(
-            iterator=self._strategy.process_dataloader(dataloader), device=self.device if move_to_device else None
+            dataloader=self._strategy.process_dataloader(dataloader),
+            device=self.device if move_to_device and not isinstance(self._strategy, TPUSpawnPlugin) else None,
         )
 
     def backward(self, tensor: Tensor, *args: Any, model: Optional[_LiteModule] = None, **kwargs: Any) -> None:

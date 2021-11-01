@@ -164,6 +164,27 @@ def test_setup_dataloaders_return_type():
     assert lite_dataloader1.dataset is dataset1
 
 
+def test_setup_custom_dataloaders():
+    """Test that the setup_dataloaders method returns the dataloaders wrapped as LiteDataLoader."""
+    lite = EmptyLite()
+
+    class CustomDataLoader(DataLoader):
+        def __init__(self, value: int = 2, *args, **kwargs):
+            self.value = value
+            kwargs["dataset"] = range(value)
+            super().__init__(*args, **kwargs)
+
+    dataloader = CustomDataLoader(2, batch_size=2)
+
+    # single dataloader
+    lite_dataloader = lite.setup_dataloaders(dataloader)
+    assert lite_dataloader._dataloader
+    assert lite_dataloader._dataloader_iter is None
+    assert lite_dataloader.value == 2
+    batch0 = next(iter(lite_dataloader))
+    assert torch.equal(batch0, torch.tensor([0, 1]))
+
+
 def test_setup_dataloaders_twice_fails():
     """Test that calling setup_dataloaders with a dataloader that is already wrapped fails."""
     lite = EmptyLite()

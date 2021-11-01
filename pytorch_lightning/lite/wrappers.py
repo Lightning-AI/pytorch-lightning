@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Iterable, Iterator, Optional, Union
+from typing import Any, Callable, Iterator, Optional
 
 import torch
 from torch import nn as nn
@@ -101,36 +101,37 @@ class _LiteModule(nn.Module):
 
 
 class _LiteDataLoader(Iterator):
-    def __init__(self, iterator: Union[Iterable[Any], DataLoader], device: Optional[torch.device] = None) -> None:
+    def __init__(self, dataloader: DataLoader, device: Optional[torch.device] = None) -> None:
         """The LiteDataLoader is an extension of an Iterator. It would move move the data to the device
         automatically if the device is specified.
 
         Args:
-            iterator: The current iterator to be used.
+            dataloader: The current dataloader to be used.
             device: The device to which the data should be moved. By default the device is `None` and no data
                 transfers will be made (identical behavior as :class:`~torch.utils.data.DataLoader`).
         """
         super().__init__()
-        self.__dict__.update(getattr(iterator, "__dict__", {}))
-        self._iterator = iterator
+        self.__dict__.update(getattr(dataloader, "__dict__", {}))
+        self._dataloader = dataloader
         self._device = device
-        self._iterator_iter: Optional[Iterator] = None
+        self._dataloader_iter: Optional[Iterator] = None
 
     @property
     def device(self) -> Optional[torch.device]:
         return self._device
 
     def __iter__(self) -> "_LiteDataLoader":
-        self._iterator_iter = iter(self._iterator)
+        self._dataloader_iter = iter(self._dataloader)
         return self
 
     def __next__(self) -> Any:
         try:
-            assert self._iterator_iter
-            item = next(self._iterator_iter)
+            assert self._dataloader_iter
+            item = next(self._dataloader_iter)
             if self._device:
                 item = move_data_to_device(item, self._device)
             return item
         except StopIteration as e:
-            self._iterator_iter = None
+            # drop the reference to the dataloader iterator.
+            self._dataloader_iter = None
             raise e
