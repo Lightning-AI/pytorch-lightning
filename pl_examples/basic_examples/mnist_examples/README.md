@@ -26,9 +26,9 @@ python image_classifier_2_lite.py
 
 ______________________________________________________________________
 
-#### 3. Image Classifier - Converting Lite to Lightning
+#### 3. Image Classifier - Conversion from Lite to Lightning
 
-This script shows you to prepare your conversion from [LightningLite](https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.html) to `LightningModule`.
+This script shows you how to prepare your conversion from [LightningLite](https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.html) to `LightningModule`.
 
 ```bash
 # CPU / multiple GPUs if available
