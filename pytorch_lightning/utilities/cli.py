@@ -155,7 +155,11 @@ class LightningArgumentParser(ArgumentParser):
             if subclass_mode:
                 return self.add_subclass_arguments(lightning_class, nested_key, fail_untyped=False, required=required)
             return self.add_class_arguments(
-                lightning_class, nested_key, fail_untyped=False, instantiate=not issubclass(lightning_class, Trainer), sub_configs=True
+                lightning_class,
+                nested_key,
+                fail_untyped=False,
+                instantiate=not issubclass(lightning_class, Trainer),
+                sub_configs=True,
             )
         raise MisconfigurationException(
             f"Cannot add arguments from: {lightning_class}. You should provide either a callable or a subclass of: "
