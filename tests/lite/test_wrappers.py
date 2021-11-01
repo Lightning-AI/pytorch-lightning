@@ -93,6 +93,8 @@ def test_lite_dataloader_device_placement(src_device, dest_device):
     batch0 = next(iterator)
     assert batch0 == 0
 
+    assert len(lite_dataloader) == 4
+
 
 def test_lite_optimizer_wraps():
     """Test that the LiteOptimizer fully wraps the optimizer."""
