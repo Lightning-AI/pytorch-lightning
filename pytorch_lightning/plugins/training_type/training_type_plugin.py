@@ -86,19 +86,16 @@ class TrainingTypePlugin(ABC):
     @abstractmethod
     def on_gpu(self) -> bool:
         """Returns whether the current process is done on GPU."""
-        raise NotImplementedError
 
     @property
     @abstractmethod
     def on_tpu(self) -> bool:
         """Returns whether the current process is done on TPU."""
-        raise NotImplementedError
 
     @property
     @abstractmethod
     def root_device(self) -> torch.device:
         """Returns the root device."""
-        raise NotImplementedError
 
     @abstractmethod
     def model_to_device(self) -> None:
@@ -321,7 +318,6 @@ class TrainingTypePlugin(ABC):
 
         It is the right place to release memory and free other resources.
         """
-        raise NotImplementedError
 
     @classmethod
     def register_plugins(cls, plugin_registry) -> None:
