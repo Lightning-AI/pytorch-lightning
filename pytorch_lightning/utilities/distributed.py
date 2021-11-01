@@ -360,14 +360,14 @@ def tpu_distributed() -> bool:
     return _TPU_AVAILABLE and xm.xrt_world_size() > 1
 
 
-def init_ddp_connection(
+def init_distributed_connection(
     cluster_environment: "pl.plugins.environments.ClusterEnvironment",
     torch_distributed_backend: str,
     global_rank: Optional[int] = None,
     world_size: Optional[int] = None,
     **kwargs: Any,
 ) -> None:
-    """Utility function to initialize DDP connection by setting env variables and initiliazing the distributed
+    """Utility function to initialize distributed connection by setting env variables and initiliazing the distributed
     process group.
 
     Args:
@@ -382,7 +382,7 @@ def init_ddp_connection(
     os.environ["MASTER_ADDR"] = cluster_environment.master_address()
     os.environ["MASTER_PORT"] = str(cluster_environment.master_port())
     if torch.distributed.is_available() and not torch.distributed.is_initialized():
-        log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
+        log.info(f"initializing distributed: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
         torch.distributed.init_process_group(
             torch_distributed_backend, rank=global_rank, world_size=world_size, **kwargs
         )
@@ -391,6 +391,6 @@ def init_ddp_connection(
         rank_zero_info(
             f"{'-' * 100}\n"
             f"distributed_backend={torch_distributed_backend}\n"
-            f"All DDP processes registered. Starting ddp with {world_size} processes\n"
+            f"All distributed processes registered. Starting with {world_size} processes\n"
             f"{'-' * 100}\n"
         )
