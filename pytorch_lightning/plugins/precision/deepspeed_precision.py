@@ -55,16 +55,15 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Callable[[], Any],
+        closure: Callable[[], Any],
         **kwargs: Any,
     ) -> None:
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"DeepSpeed and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
-        closure_result = lambda_closure()
-        if isinstance(model, pl.LightningModule):
-            model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
+        closure_result = closure()
+        self._after_closure(model, optimizer, optimizer_idx)
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if isinstance(model, pl.LightningModule) and model.automatic_optimization and skipped_backward:
@@ -82,3 +81,12 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
         """DeepSpeed handles gradient clipping internally."""
+
+    def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
+        if trainer.track_grad_norm == -1:
+            return
+        # the gradients are not available in the model due to gradient partitioning in zero stage >= 2
+        warning_cache.warn(
+            f"You set `Trainer(track_grad_norm={trainer.track_grad_norm!r})' but this is not supported for DeepSpeed."
+            " The setting will be ignored."
+        )

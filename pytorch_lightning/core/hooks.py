@@ -258,9 +258,12 @@ class ModelHooks:
 
         The hook is only called if gradients do not need to be accumulated.
         See: :paramref:`~pytorch_lightning.trainer.Trainer.accumulate_grad_batches`.
+
         If using native AMP, the loss will be unscaled before calling this hook.
         See these `docs <https://pytorch.org/docs/stable/notes/amp_examples.html#working-with-unscaled-gradients>`__
         for more information on the scaling of gradients.
+
+        If clipping gradients, the gradients will not have been clipped yet.
 
         Args:
             optimizer: Current optimizer being used.

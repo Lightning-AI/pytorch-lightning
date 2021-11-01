@@ -229,7 +229,7 @@ def test_ddp_cpu_not_supported_on_tpus():
 
 
 @RunIf(tpu=True)
-@pytest.mark.parametrize("strategy", ["tpu_spawn", "tpu_spawn_debug"])
+@pytest.mark.parametrize("strategy", ["ddp_spawn", "tpu_spawn_debug"])
 def test_strategy_choice_tpu_str(tmpdir, strategy):
     trainer = Trainer(strategy=strategy, accelerator="tpu", devices=8)
     assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
@@ -313,3 +313,10 @@ def test_mp_device_dataloader_attribute(_):
     dataloader = trainer.training_type_plugin.process_dataloader(DataLoader(dataset))
 
     assert dataloader.dataset == dataset
+
+
+@RunIf(tpu=True)
+def test_devices_auto_choice_tpu():
+    trainer = Trainer(accelerator="auto", devices="auto")
+    assert trainer.devices == 8
+    assert trainer.tpu_cores == 8

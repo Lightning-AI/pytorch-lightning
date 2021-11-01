@@ -20,7 +20,6 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
-from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -47,7 +46,7 @@ class MyApexPlugin(ApexMixedPrecisionPlugin):
     },
 )
 @mock.patch("torch.cuda.device_count", return_value=2)
-@pytest.mark.parametrize("ddp_backend,gpus", [("ddp", 2), ("ddp2", 2), ("ddp_spawn", 2)])
+@pytest.mark.parametrize("strategy,gpus", [("ddp", 2), ("ddp2", 2), ("ddp_spawn", 2)])
 @pytest.mark.parametrize(
     "amp,custom_plugin,plugin_cls",
     [
@@ -57,48 +56,104 @@ class MyApexPlugin(ApexMixedPrecisionPlugin):
         pytest.param("apex", True, MyApexPlugin, marks=RunIf(amp_apex=True)),
     ],
 )
-def test_amp_apex_ddp(
-    mocked_device_count, ddp_backend: str, gpus: int, amp: str, custom_plugin: bool, plugin_cls: MixedPrecisionPlugin
-):
-
+def test_amp_apex_ddp(mocked_device_count, strategy, gpus, amp, custom_plugin, plugin_cls):
+    plugin = None
+    if custom_plugin:
+        plugin = plugin_cls(16, "cpu") if amp == "native" else plugin_cls()
     trainer = Trainer(
         fast_dev_run=True,
         precision=16,
         amp_backend=amp,
         gpus=gpus,
-        strategy=ddp_backend,
-        plugins=[plugin_cls()] if custom_plugin else None,
+        strategy=strategy,
+        plugins=plugin,
     )
     assert isinstance(trainer.precision_plugin, plugin_cls)
-    if amp == "native":
-        assert not trainer.precision_plugin.is_bfloat16
 
 
-class GradientUnscaleBoringModel(BoringModel):
-    def on_before_optimizer_step(self, *_):
-        norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
-        if not (torch.isinf(norm) or torch.isnan(norm)):
-            assert norm.item() < 15.0
+class TestClippingOptimizer(torch.optim.SGD):
+    def step(self, *args, pl_module=None):
+        pl_module.check_grads_clipped()
+        return super().step(*args)
+
+
+class TestPrecisionModel(BoringModel):
+    # sister test: tests/trainer/optimization/test_manual_optimization.py::test_multiple_optimizers_step
+    def on_after_backward(self) -> None:
+        # check grads are scaled
+        scale = self.trainer.precision_plugin.scaler.get_scale()
+        assert scale != 1.0  # the return value if not enabled
+        grads = [p.grad for p in self.parameters()]
+        inv_scale = 1 / scale
+        self.original_grads = [p * inv_scale for p in grads]
+
+    def check_grads_unscaled(self, optimizer=None):
+        if optimizer is not None:
+            scaler = self.trainer.precision_plugin.scaler
+            state = scaler._per_optimizer_states[id(optimizer)]
+            assert state["stage"].name == "UNSCALED"
+
+        grads = [p.grad for p in self.parameters()]
+        assert len(grads) == len(self.original_grads)
+        for actual, expected in zip(grads, self.original_grads):
+            torch.testing.assert_allclose(actual, expected)
+
+    def check_grads_clipped(self):
+        parameters = list(self.parameters())
+        assert len(parameters) == len(self.clipped_parameters)
+        for actual, expected in zip(parameters, self.clipped_parameters):
+            torch.testing.assert_allclose(actual.grad, expected.grad)
+
+    def on_before_optimizer_step(self, optimizer, *_):
+        self.check_grads_unscaled(optimizer)
+        # manually clip
+        self.clipped_parameters = []
+        for p in self.parameters():
+            copy = p.detach().clone()
+            copy.grad = p.grad.clone()
+            self.clipped_parameters.append(copy)
+        clip_val = self.trainer.gradient_clip_val
+        torch.nn.utils.clip_grad_value_(self.clipped_parameters, clip_val)
+
+    def log_grad_norm(self, grad_norm_dict):
+        self.check_grads_unscaled()
+        assert len(grad_norm_dict)
+
+    def configure_gradient_clipping(self, *args, **kwargs):
+        # let lightning clip
+        super().configure_gradient_clipping(*args, **kwargs)
+        # check clipping worked as expected
+        self.check_grads_clipped()
+
+    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, closure, **_):
+        # pass self as a kwarg
+        optimizer.step(closure, pl_module=self)
+
+    def configure_optimizers(self):
+        return TestClippingOptimizer(self.layer.parameters(), lr=0.1)
 
 
 @RunIf(min_gpus=2)
 @pytest.mark.parametrize("accum", [1, 2])
 def test_amp_gradient_unscale(tmpdir, accum: int):
-    model = GradientUnscaleBoringModel()
+    model = TestPrecisionModel()
 
     trainer = Trainer(
         max_epochs=2,
         default_root_dir=tmpdir,
         limit_train_batches=2,
-        limit_test_batches=2,
-        limit_val_batches=2,
+        limit_val_batches=0,
         amp_backend="native",
         strategy="ddp_spawn",
         gpus=2,
         precision=16,
         track_grad_norm=2,
+        # use a tiny value to make sure it works
+        gradient_clip_val=1e-3,
+        gradient_clip_algorithm="value",
         log_every_n_steps=1,
         accumulate_grad_batches=accum,
+        enable_progress_bar=False,
     )
     trainer.fit(model)
 
@@ -162,7 +217,6 @@ def test_amp_apex_ddp_fit(amp_level, tmpdir):
 @RunIf(min_gpus=2, amp_apex=True)
 @pytest.mark.parametrize("amp_level", ["O2"])
 def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
@@ -179,13 +233,14 @@ def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
 
 @RunIf(min_torch="1.10")
 def test_cpu_amp_precision_context_manager(tmpdir):
-    """Test to ensure that the context manager correctly is set to CPU + bfloat16, and a scaler isn't set."""
-    plugin = NativeMixedPrecisionPlugin(precision="bf16", use_cpu=True)
-    assert plugin.use_cpu
-    assert not hasattr(plugin, "scaler")
+    """Test to ensure that the context manager correctly is set to CPU + bfloat16."""
+    plugin = NativeMixedPrecisionPlugin("bf16", "cpu")
+    assert plugin.device == "cpu"
+    assert plugin.scaler is None
     context_manager = plugin.autocast_context_manager()
     assert isinstance(context_manager, torch.autocast)
-    assert context_manager.fast_dtype == torch.bfloat16
+    # check with str due to a bug upstream: https://github.com/pytorch/pytorch/issues/65786
+    assert str(context_manager.fast_dtype) == str(torch.bfloat16)
 
 
 def test_precision_selection_raises(monkeypatch):

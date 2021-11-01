@@ -36,6 +36,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import AMPType, GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import log, rank_zero_info, rank_zero_only
+from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -81,7 +82,7 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
 
 
 class DeepSpeedPlugin(DDPPlugin):
-    distributed_backend = "deepspeed"
+    distributed_backend = DistributedType.DEEPSPEED
     DEEPSPEED_ENV_VAR = "PL_DEEPSPEED_CONFIG_PATH"
 
     def __init__(
@@ -336,7 +337,8 @@ class DeepSpeedPlugin(DDPPlugin):
 
     @property
     def amp_level(self) -> Optional[str]:
-        return self._amp_level or self.lightning_module.trainer._accelerator_connector.amp_level
+        if self._amp_type == AMPType.APEX:
+            return self._amp_level or self.lightning_module.trainer._accelerator_connector.amp_level
 
     @property
     def amp_type(self) -> Optional[str]:
@@ -441,8 +443,10 @@ class DeepSpeedPlugin(DDPPlugin):
         # deepspeed handles gradient clipping internally
         if is_overridden("configure_gradient_clipping", self.lightning_module, pl.LightningModule):
             rank_zero_warn(
-                "Since deepspeed handles gradient clipping internally, `LightningModule.configure_gradient_clipping`"
-                " will be ignored. Consider setting `Trainer(gradient_clip_val=..., gradient_clip_algorithm='norm')`"
+                "Since DeepSpeed handles gradient clipping internally, the default"
+                " `LightningModule.configure_gradient_clipping` implementation will not actually clip gradients."
+                " The hook will still be called. Consider setting"
+                " `Trainer(gradient_clip_val=..., gradient_clip_algorithm='norm')`"
                 " which will use the internal mechanism."
             )
 
