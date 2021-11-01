@@ -136,6 +136,7 @@ def _enable_class(cls: Type[Any]) -> None:
 
 def _disable_class(cls: Type[Any]) -> None:
     cls.__init__ = cls._old_init
+    del cls._old_init
 
 
 @contextmanager
