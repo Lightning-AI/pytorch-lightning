@@ -67,6 +67,7 @@ module = [
     "pytorch_lightning.callbacks.gradient_accumulation_scheduler",
     "pytorch_lightning.callbacks.lr_monitor",
     "pytorch_lightning.callbacks.model_summary",
+    "pytorch_lightning.callbacks.progress",
     "pytorch_lightning.callbacks.pruning",
     "pytorch_lightning.callbacks.rich_model_summary",
     "pytorch_lightning.core.optimizer",
