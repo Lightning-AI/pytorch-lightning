@@ -105,8 +105,8 @@ class _LiteModule(nn.Module):
 
 class _LiteDataLoader:
     def __init__(self, dataloader: Iterable, device: Optional[torch.device] = None) -> None:
-        """The LiteDataLoader is an extension of an Iterator. It would move the data to the device automatically if
-        the device is specified.
+        """The LiteDataLoader is a wrapper around a data loading iterator. It moves the data to the device automatically
+        if the device is specified.
 
         Args:
             dataloader: The current dataloader to be used.
@@ -169,7 +169,8 @@ def _disable_class(cls: Type[Any]) -> None:
 
 @contextmanager
 def _replace_dataloader_init_method() -> Generator:
-    """This context manager is used to support custom :class:`~torch.utils.data.DataLoader."""
+    """This context manager is used to add support for re-instantiation of custom (subclasses) of
+    :class:`~torch.utils.data.DataLoader`. It patches the ``__init__`` method."""
     for subclass in _get_all_subclasses(DataLoader):
         _enable_class(subclass)
     yield
