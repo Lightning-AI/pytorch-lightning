@@ -23,7 +23,7 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBarBase, TQDMProgressBar, RichProgressBar
+from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBarBase, RichProgressBar, TQDMProgressBar
 from pytorch_lightning.callbacks.progress.tqdm_progress import Tqdm
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import _RICH_AVAILABLE
