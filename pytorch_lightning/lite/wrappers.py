@@ -139,7 +139,7 @@ def _disable_class(cls: Type[Any]) -> None:
 
 
 @contextmanager
-def _replace_dataloader_init_function() -> Generator:
+def _replace_dataloader_init_method() -> Generator:
     """This context manager is used to support custom :class:`~torch.utils.data.DataLoader."""
     for subclass in _get_all_subclasses(DataLoader):
         _enable_class(subclass)
@@ -162,7 +162,6 @@ class _LiteDataLoader:
         self.__dict__.update(getattr(dataloader, "__dict__", {}))
         self._dataloader = dataloader
         self._device = device
-        self._dataloader_iter: Optional[Iterator] = None
 
     @property
     def device(self) -> Optional[torch.device]:

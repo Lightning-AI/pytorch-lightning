@@ -178,7 +178,6 @@ def test_setup_custom_dataloaders():
     # single dataloader
     lite_dataloader = lite.setup_dataloaders(dataloader)
     assert lite_dataloader._dataloader
-    assert lite_dataloader._dataloader_iter is None
     assert lite_dataloader.value == 2
     batch0 = next(iter(lite_dataloader))
     assert torch.equal(batch0, torch.tensor([0, 1]))
@@ -193,7 +192,6 @@ def test_setup_custom_dataloaders():
     # single dataloader
     lite_dataloader = lite.setup_dataloaders(dataloader)
     assert lite_dataloader._dataloader
-    assert lite_dataloader._dataloader_iter is None
     batch0 = next(iter(lite_dataloader))
     assert torch.equal(batch0, torch.tensor([0, 1]))
 

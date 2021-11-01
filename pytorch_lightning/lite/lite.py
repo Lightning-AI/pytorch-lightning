@@ -29,7 +29,7 @@ from pytorch_lightning.lite.wrappers import (
     _LiteDataLoader,
     _LiteModule,
     _LiteOptimizer,
-    _replace_dataloader_init_function,
+    _replace_dataloader_init_method,
 )
 from pytorch_lightning.plugins import (
     DDPShardedPlugin,
@@ -406,7 +406,7 @@ class LightningLite(ABC):
             return run_method(*args, **kwargs)
 
     def _run_with_sharded_context(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        with self._strategy.model_sharded_context(), _replace_dataloader_init_function():
+        with self._strategy.model_sharded_context(), _replace_dataloader_init_method():
             return run_method(*args, **kwargs)
 
     def _set_plugin_specific_precision_variables(self) -> None:
