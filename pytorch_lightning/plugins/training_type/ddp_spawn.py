@@ -43,7 +43,12 @@ from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
-from pytorch_lightning.utilities.distributed import init_ddp_connection, rank_zero_only, ReduceOp, sync_ddp_if_available
+from pytorch_lightning.utilities.distributed import (
+    init_dist_connection,
+    rank_zero_only,
+    ReduceOp,
+    sync_ddp_if_available,
+)
 from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
@@ -208,7 +213,9 @@ class DDPSpawnPlugin(ParallelPlugin):
         reset_seed()
         self.set_world_ranks(process_idx)
         rank_zero_only.rank = self.global_rank
-        init_ddp_connection(self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size)
+        init_dist_connection(
+            self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size
+        )
 
     def new_process(self, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
         self.mp_queue = mp_queue
