@@ -43,7 +43,7 @@ ______________________________________________________________________
 
 #### 4. Image Classifier with LightningModule
 
-This script shows you the result of the conversion to the `LightningModule` and finally all the benefits you get from Lightning.
+This script shows you the result of the conversion to the `LightningModule` and finally all the benefits you get from the Lightning ecosystem.
 
 ```bash
 # CPU
