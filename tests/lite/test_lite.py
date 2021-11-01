@@ -171,8 +171,7 @@ def test_setup_custom_dataloaders():
     class CustomDataLoader(DataLoader):
         def __init__(self, value: int = 2, *args, **kwargs):
             self.value = value
-            kwargs["dataset"] = range(value)
-            super().__init__(*args, **kwargs)
+            super().__init__(range(value), *args, **kwargs)
 
     dataloader = CustomDataLoader(2, batch_size=2)
 
@@ -181,6 +180,20 @@ def test_setup_custom_dataloaders():
     assert lite_dataloader._dataloader
     assert lite_dataloader._dataloader_iter is None
     assert lite_dataloader.value == 2
+    batch0 = next(iter(lite_dataloader))
+    assert torch.equal(batch0, torch.tensor([0, 1]))
+
+    class CustomDataLoader(DataLoader):
+        def __init__(self, range, *args, **kwargs):
+            self.range = range
+            super().__init__(range, *args, **kwargs)
+
+    dataloader = CustomDataLoader(range(2), batch_size=2)
+
+    # single dataloader
+    lite_dataloader = lite.setup_dataloaders(dataloader)
+    assert lite_dataloader._dataloader
+    assert lite_dataloader._dataloader_iter is None
     batch0 = next(iter(lite_dataloader))
     assert torch.equal(batch0, torch.tensor([0, 1]))
 
