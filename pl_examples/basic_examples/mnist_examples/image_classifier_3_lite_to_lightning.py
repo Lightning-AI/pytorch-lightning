@@ -44,13 +44,14 @@ class Lite(LightningLite):
 
     def run(self, hparams):
         self.hparams = hparams
-        seed_everything(hparams.seed)
+        seed_everything(hparams.seed)  # instead of torch.manual_seed(...)
 
         self.model = Net()
         [optimizer], [scheduler] = self.configure_optimizers()
         model, optimizer = self.setup(self.model, optimizer)
 
         if self.is_global_zero:
+            # In multi-device training, this code will only run on the first process / GPU
             self.prepare_data()
 
         train_loader, test_loader = self.setup_dataloaders(self.train_dataloader(), self.train_dataloader())
@@ -102,7 +103,7 @@ class Lite(LightningLite):
         if hparams.save_model:
             self.save(model.state_dict(), "mnist_cnn.pt")
 
-    # Functions for the `LightningModule` conversion
+    # Methods for the `LightningModule` conversion
 
     def forward(self, x):
         return self.model(x)
