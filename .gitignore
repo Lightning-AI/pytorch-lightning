@@ -139,8 +139,6 @@ mnist/
 legacy/checkpoints/
 *.gz
 *ubyte
-grid_generated*
-grid_ori*
 
 
 # pl tests
