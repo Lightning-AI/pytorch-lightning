@@ -55,7 +55,8 @@ class Lite(LightningLite):
             self.prepare_data()
 
         train_loader, test_loader = self.setup_dataloaders(self.train_dataloader(), self.train_dataloader())
-        self.test_acc = Accuracy()
+
+        self.test_acc = Accuracy().to(self.device)
 
         # EPOCH LOOP
         for epoch in range(1, hparams.epochs + 1):

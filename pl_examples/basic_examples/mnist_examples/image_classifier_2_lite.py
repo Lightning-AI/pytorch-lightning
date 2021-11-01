@@ -70,7 +70,7 @@ class Lite(LightningLite):
         scheduler = StepLR(optimizer, step_size=1, gamma=hparams.gamma)
 
         # use torchmetrics instead of manually computing the accuracy
-        test_acc = Accuracy()
+        test_acc = Accuracy().to(self.device)
 
         # EPOCH LOOP
         for epoch in range(1, hparams.epochs + 1):
