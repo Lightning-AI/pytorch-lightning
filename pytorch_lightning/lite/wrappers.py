@@ -168,7 +168,7 @@ def _disable_class(cls: Type[Any]) -> None:
 
 
 @contextmanager
-def _replace_dataloader_init_method() -> Generator:
+def _replace_dataloader_init_method() -> Generator[None, None, None]:
     """This context manager is used to add support for re-instantiation of custom (subclasses) of
     :class:`~torch.utils.data.DataLoader`. It patches the ``__init__`` method."""
     for subclass in _get_all_subclasses(DataLoader):
