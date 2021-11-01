@@ -265,16 +265,7 @@ class RichProgressBar(ProgressBarBase):
             self._reset_progress_bar_ids()
             self._console.clear_live()
             self.progress = CustomProgress(
-                TextColumn("[progress.description]{task.description}"),
-                CustomBarColumn(
-                    complete_style=self.theme.progress_bar_complete,
-                    finished_style=self.theme.progress_bar_finished,
-                    pulse_style=self.theme.progress_bar_pulse,
-                ),
-                BatchesProcessedColumn(style=self.theme.batch_process),
-                CustomTimeColumn(style=self.theme.time),
-                ProcessingSpeedColumn(style=self.theme.processing_speed),
-                MetricsTextColumn(trainer, pl_module),
+                *self.configure_columns(trainer, pl_module),
                 refresh_per_second=self.refresh_rate_per_second,
                 disable=self.is_disabled,
                 console=self._console,
@@ -435,3 +426,17 @@ class RichProgressBar(ProgressBarBase):
     @property
     def test_progress_bar(self) -> Task:
         return self.progress.tasks[self.test_progress_bar_id]
+
+    def configure_columns(self, trainer, pl_module) -> list:
+        return [
+            TextColumn("[progress.description]{task.description}"),
+            CustomBarColumn(
+                complete_style=self.theme.progress_bar_complete,
+                finished_style=self.theme.progress_bar_finished,
+                pulse_style=self.theme.progress_bar_pulse,
+            ),
+            BatchesProcessedColumn(style=self.theme.batch_process),
+            CustomTimeColumn(style=self.theme.time),
+            ProcessingSpeedColumn(style=self.theme.processing_speed),
+            MetricsTextColumn(trainer, pl_module),
+        ]

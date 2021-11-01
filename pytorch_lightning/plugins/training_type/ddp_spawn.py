@@ -44,6 +44,7 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import init_ddp_connection, rank_zero_only, ReduceOp, sync_ddp_if_available
+from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -58,7 +59,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     """Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training
     finishes."""
 
-    distributed_backend = "ddp_spawn"
+    distributed_backend = DistributedType.DDP_SPAWN
 
     def __init__(
         self,

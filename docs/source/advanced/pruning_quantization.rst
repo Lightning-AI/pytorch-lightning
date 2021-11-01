@@ -35,7 +35,7 @@ This callback supports multiple pruning functions: pass any `torch.nn.utils.prun
     # set the amount to be the fraction of parameters to prune
     trainer = Trainer(callbacks=[ModelPruning("l1_unstructured", amount=0.5)])
 
-You can also perform iterative pruning, apply the `lottery ticket hypothesis <https://arxiv.org/pdf/1803.03635.pdf>`__, and more!
+You can also perform iterative pruning, apply the `lottery ticket hypothesis <https://arxiv.org/abs/1803.03635>`__, and more!
 
 .. code-block:: python
 

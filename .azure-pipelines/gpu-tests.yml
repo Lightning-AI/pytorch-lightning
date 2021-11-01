@@ -23,7 +23,7 @@ jobs:
     # how much time to give 'run always even if cancelled tasks' before stopping them
     cancelTimeoutInMinutes: "2"
 
-    pool: gridai-spot-pool
+    pool: azure-gpus-spot
 
     # ToDo: this need to have installed docker in the base image...
     container:
