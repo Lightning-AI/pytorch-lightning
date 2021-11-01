@@ -131,15 +131,17 @@ class _LiteDataLoader:
             yield move_data_to_device(item, self._device)
 
 
-def _wrap_init(f: Callable) -> Callable:
-    @functools.wraps(f)
-    def wrapper(module: Any, *args: Any, **kwargs: Dict[str, Any]) -> None:
-        params = dict(inspect.signature(module._old_init).parameters)
+def _wrap_init(init: Callable) -> Callable:
+    @functools.wraps(init)
+    def wrapper(obj: Any, *args: Any, **kwargs: Any) -> None:
+        params = dict(
+            inspect.signature(obj._old_init).parameters
+        )  # TODO: this assumes the existence of an old_init attribute
         params.pop("args")
         params.pop("kwargs")
-        for init_name, init_arg in zip(params, args):
-            setattr(module, init_name, init_arg)
-        f(module, *args, **kwargs)
+        for arg_name, arg_value in zip(params, args):
+            setattr(obj, arg_name, arg_value)
+        init(obj, *args, **kwargs)
 
     return wrapper
 
