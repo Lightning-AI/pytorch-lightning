@@ -237,7 +237,7 @@ class CallbackConnector:
             rank_zero_warn(
                 "`RichProgressBar` does not support setting the refresh rate via the Trainer."
                 " If you'd like to change the refresh rate and continue using the `RichProgressBar`,"
-                " please pass `callbacks=RichProgressBar(refresh_rate=4)`."
+                " please pass `callbacks=RichProgressBar(refresh_rate=X)`."
                 " Setting to the `TQDM ProgressBar`."
             )
             # else return new TQDMProgressBar

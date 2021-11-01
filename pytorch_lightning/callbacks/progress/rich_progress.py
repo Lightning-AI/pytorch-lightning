@@ -194,7 +194,11 @@ class RichProgressBar(ProgressBarBase):
         trainer = Trainer(callbacks=RichProgressBar())
 
     Args:
-        refresh_rate_per_second: the number of updates per second. If refresh_rate is 0, progress bar is disabled.
+        refresh_rate: Determines at which rate (in number of batches) the progress bars get updated.
+            Set it to ``0`` to disable the display. By default, the :class:`~pytorch_lightning.trainer.trainer.Trainer`
+            uses this implementation of the progress bar and sets the refresh rate to the value provided to the
+            :paramref:`~pytorch_lightning.trainer.trainer.Trainer.progress_bar_refresh_rate` argument in the
+            :class:`~pytorch_lightning.trainer.trainer.Trainer`.
         theme: Contains styles used to stylize the progress bar.
 
     Raises:
@@ -204,7 +208,7 @@ class RichProgressBar(ProgressBarBase):
 
     def __init__(
         self,
-        refresh_rate_per_second: int = 10,
+        refresh_rate: int = 1,
         theme: RichProgressBarTheme = RichProgressBarTheme(),
     ) -> None:
         if not _RICH_AVAILABLE:
@@ -212,7 +216,7 @@ class RichProgressBar(ProgressBarBase):
                 "`RichProgressBar` requires `rich` to be installed. Install it by running `pip install -U rich`."
             )
         super().__init__()
-        self._refresh_rate_per_second: int = refresh_rate_per_second
+        self._refresh_rate: int = refresh_rate
         self._enabled: bool = True
         self.progress: Optional[Progress] = None
         self.val_sanity_progress_bar_id: Optional[int] = None
@@ -222,17 +226,12 @@ class RichProgressBar(ProgressBarBase):
         self.theme = theme
 
     @property
-    def refresh_rate_per_second(self) -> float:
-        """Refresh rate for Rich Progress.
-
-        Returns: Refresh rate for Progress Bar.
-            Return 1 if not enabled, as a positive integer is required (ignored by Rich Progress).
-        """
-        return self._refresh_rate_per_second if self._refresh_rate_per_second > 0 else 1
+    def refresh_rate(self) -> float:
+        return self._refresh_rate
 
     @property
     def is_enabled(self) -> bool:
-        return self._enabled and self._refresh_rate_per_second > 0
+        return self._enabled and self.refresh_rate > 0
 
     @property
     def is_disabled(self) -> bool:
@@ -278,7 +277,6 @@ class RichProgressBar(ProgressBarBase):
                 ProcessingSpeedColumn(style=self.theme.processing_speed),
                 self._metric_component,
                 auto_refresh=False,
-                refresh_per_second=self.refresh_rate_per_second,
                 disable=self.is_disabled,
                 console=self._console,
             )
@@ -363,15 +361,18 @@ class RichProgressBar(ProgressBarBase):
                 f"[{self.theme.text_color}]{description}", total=total_batches, visible=visible
             )
 
-    def _update(self, progress_bar_id: int, visible: bool = True) -> None:
-        if self.progress is not None:
+    def _update(self, progress_bar_id: int, current: int, total: int, visible: bool = True) -> None:
+        if self.progress is not None and self._should_update(current, total):
             self.progress.update(progress_bar_id, advance=1.0, visible=visible)
             self.refresh()
+
+    def _should_update(self, current, total) -> bool:
+        return self.is_enabled and (current % self.refresh_rate == 0 or current == total)
 
     def on_validation_epoch_end(self, trainer, pl_module):
         super().on_validation_epoch_end(trainer, pl_module)
         if self.val_progress_bar_id is not None:
-            self._update(self.val_progress_bar_id, visible=False)
+            self._update(self.val_progress_bar_id, self.val_batch_idx, self.total_val_batches, visible=False)
 
     def on_validation_end(self, trainer, pl_module) -> None:
         super().on_validation_end(trainer, pl_module)
@@ -389,29 +390,29 @@ class RichProgressBar(ProgressBarBase):
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
-        self._update(self.main_progress_bar_id)
+        self._update(self.main_progress_bar_id, self.train_batch_idx, self.total_train_batches)
         self._update_metrics(trainer, pl_module)
         self.refresh()
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         if trainer.sanity_checking:
-            self._update(self.val_sanity_progress_bar_id)
+            self._update(self.val_sanity_progress_bar_id, self.val_batch_idx, self.total_val_batches)
         elif self.val_progress_bar_id is not None:
             # check to see if we should update the main training progress bar
             if self.main_progress_bar_id is not None:
-                self._update(self.main_progress_bar_id)
-            self._update(self.val_progress_bar_id)
+                self._update(self.main_progress_bar_id, self.val_batch_idx, self.total_val_batches)
+            self._update(self.val_progress_bar_id, self.val_batch_idx, self.total_val_batches)
         self.refresh()
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_test_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-        self._update(self.test_progress_bar_id)
+        self._update(self.test_progress_bar_id, self.test_batch_idx, self.total_test_batches)
         self.refresh()
 
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_predict_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-        self._update(self.predict_progress_bar_id)
+        self._update(self.predict_progress_bar_id, self.predict_batch_idx, self.total_predict_batches)
         self.refresh()
 
     def _get_train_description(self, current_epoch: int) -> str:

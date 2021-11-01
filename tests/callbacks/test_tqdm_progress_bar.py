@@ -91,7 +91,7 @@ def test_tqdm_progress_bar_totals(tmpdir):
 
     model = BoringModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, progress_bar_refresh_rate=1, max_epochs=1, callbacks=ProgressBar())
+    trainer = Trainer(default_root_dir=tmpdir, progress_bar_refresh_rate=1, max_epochs=1, callbacks=TQDMProgressBar())
     bar = trainer.progress_bar_callback
     assert float("inf") == bar.total_train_batches
     assert 0 == bar.total_val_batches
@@ -376,7 +376,7 @@ def test_test_progress_bar_update_amount(tmpdir, test_batches: int, refresh_rate
     progress_bar.test_progress_bar.update.assert_has_calls([call(delta) for delta in test_deltas])
 
 
-@pytest.mark.parametrize("progress_bar_cls", (ProgressBar, pytest.param(RichProgressBar, marks=RunIf(rich=True))))
+@pytest.mark.parametrize("progress_bar_cls", (TQDMProgressBar, pytest.param(RichProgressBar, marks=RunIf(rich=True))))
 def test_tensor_to_float_conversion(progress_bar_cls, tmpdir):
     """Check tensor gets converted to float."""
 
