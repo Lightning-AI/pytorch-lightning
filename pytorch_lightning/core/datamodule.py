@@ -22,10 +22,7 @@ from torch.utils.data import DataLoader, Dataset, IterableDataset
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
 from pytorch_lightning.core.mixins import HyperparametersMixin
 from pytorch_lightning.utilities import rank_zero_deprecation
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.argparse import add_argparse_args, from_argparse_args, get_init_arguments_and_types
-from pytorch_lightning.utilities.data import has_len
-from pytorch_lightning.utilities.warnings import rank_zero_warn
 
 
 class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
@@ -484,40 +481,3 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         for fn in ("prepare_data", "setup", "teardown"):
             del d[fn]
         return d
-
-    def __len__(self) -> int:
-        """Returns the total number of batches in all dataloaders defined in the datamodule."""
-
-        from pytorch_lightning.trainer.supporters import CombinedLoader
-
-        num_batches = 0
-        not_implemented_count = 0
-
-        def get_num_batches(dataloader: DataLoader, name: str) -> None:
-            nonlocal num_batches
-            if not has_len(dataloader):
-                rank_zero_warn(
-                    f"The number of batches for a dataloader in `{name}` is counted as 0 "
-                    "because it does not have `__len__` defined."
-                )
-            else:
-                num_batches += len(dataloader)
-
-        for method_name in ("train_dataloader", "val_dataloader", "test_dataloader", "predict_dataloader"):
-            dataloader_method = getattr(self, method_name)
-            if not callable(dataloader_method):
-                not_implemented_count += 1
-                continue
-            try:
-                dataloader = dataloader_method()
-            except NotImplementedError:
-                not_implemented_count += 1
-                continue
-            if isinstance(dataloader, CombinedLoader):
-                dataloader = dataloader.loaders
-            apply_to_collection(dataloader, DataLoader, get_num_batches, method_name)
-
-        if not_implemented_count == 4:
-            rank_zero_warn("You datamodule does not have any valid dataloader so `__len__` will be returned as 0.")
-
-        return num_batches

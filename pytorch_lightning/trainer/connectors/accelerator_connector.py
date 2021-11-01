@@ -277,7 +277,8 @@ class AcceleratorConnector:
             self.devices = self.num_processes
 
     def _handle_accelerator_and_strategy(self) -> None:
-        if self.distributed_backend is not None and self.distributed_backend in list(DistributedType):
+        deprecated_types = [t for t in DistributedType if t not in (DistributedType.TPU_SPAWN, DistributedType.DDP_CPU)]
+        if self.distributed_backend is not None and self.distributed_backend in deprecated_types:
             rank_zero_deprecation(
                 f"Passing `Trainer(accelerator={self.distributed_backend!r})` has been deprecated"
                 f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={self.distributed_backend!r})` instead."
@@ -288,6 +289,16 @@ class AcceleratorConnector:
                     f" also passed `Trainer(accelerator={self.distributed_backend!r})`."
                     f" HINT: Use just `Trainer(strategy={self.strategy!r})` instead."
                 )
+        if self.strategy == DistributedType.TPU_SPAWN:
+            raise MisconfigurationException(
+                "`Trainer(strategy='tpu_spawn')` is not a valid strategy,"
+                " you can use `Trainer(strategy='ddp_spawn', accelerator='tpu')` instead."
+            )
+        if self.strategy == DistributedType.DDP_CPU:
+            raise MisconfigurationException(
+                "`Trainer(strategy='ddp_cpu')` is not a valid strategy,"
+                " you can use `Trainer(strategy='ddp'|'ddp_spawn', accelerator='cpu')` instead."
+            )
 
     def _set_training_type_plugin(self) -> None:
         if isinstance(self.strategy, str) and self.strategy in TrainingTypePluginsRegistry:
@@ -464,16 +475,24 @@ class AcceleratorConnector:
         if self.devices is None:
             return False
         if accelerator == DeviceType.TPU and _TPU_AVAILABLE:
+            if self.devices == "auto":
+                self.devices = TPUAccelerator.auto_device_count()
             self.tpu_cores = device_parser.parse_tpu_cores(self.devices)
             return True
         if accelerator == DeviceType.IPU and _IPU_AVAILABLE:
+            if self.devices == "auto":
+                self.devices = IPUAccelerator.auto_device_count()
             self.ipus = self.devices
             return True
         if accelerator == DeviceType.GPU and torch.cuda.is_available():
+            if self.devices == "auto":
+                self.devices = GPUAccelerator.auto_device_count()
             self.gpus = self.devices
             self.parallel_device_ids = device_parser.parse_gpu_ids(self.devices)
             return True
         if accelerator == DeviceType.CPU:
+            if self.devices == "auto":
+                self.devices = CPUAccelerator.auto_device_count()
             if not isinstance(self.devices, int):
                 raise MisconfigurationException(
                     "The flag `devices` must be an int with `accelerator='cpu'`,"
