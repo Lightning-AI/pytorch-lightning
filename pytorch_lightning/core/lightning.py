@@ -1994,7 +1994,7 @@ class LightningModule(
         """Returns the model size in MegaBytes (MB)
 
         Note:
-            This property will not work correctly for deepspeed (stage 3) and fully-sharded training.
+            This property will not return correct value for Deepspeed (stage 3) and fully-sharded training.
         """
         rank_zero_deprecation(
             "The `LightningModule.model_size` property was deprecated in v1.5 and will be removed in v1.7."
