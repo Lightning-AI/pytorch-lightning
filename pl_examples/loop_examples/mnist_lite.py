@@ -37,6 +37,7 @@ class TrainLoop(Loop):
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.dataloader = dataloader
+        self.dataloader_iter = None
 
     @property
     def done(self) -> bool:
@@ -79,7 +80,9 @@ class TestLoop(Loop):
         self.args = args
         self.model = model
         self.dataloader = dataloader
+        self.dataloader_iter = None
         self.accuracy = Accuracy()
+        self.test_loss = 0
 
     @property
     def done(self) -> bool:
@@ -166,7 +169,6 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=14, metavar="N", help="number of epochs to train (default: 14)")
     parser.add_argument("--lr", type=float, default=1.0, metavar="LR", help="learning rate (default: 1.0)")
     parser.add_argument("--gamma", type=float, default=0.7, metavar="M", help="Learning rate step gamma (default: 0.7)")
-    parser.add_argument("--no-cuda", action="store_true", default=False, help="disables CUDA training")
     parser.add_argument("--dry-run", action="store_true", default=False, help="quickly check a single pass")
     parser.add_argument("--seed", type=int, default=1, metavar="S", help="random seed (default: 1)")
     parser.add_argument(
