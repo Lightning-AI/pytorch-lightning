@@ -141,3 +141,24 @@ def test_rich_progress_bar_keyboard_interrupt(tmpdir):
 
         trainer.fit(model)
     mock_progress_stop.assert_called_once()
+
+
+@RunIf(rich=True)
+def test_rich_progress_bar_configure_columns(tmpdir):
+    from rich.progress import TextColumn
+
+    custom_column = TextColumn("[progress.description]Testing Rich!")
+
+    class CustomRichProgressBar(RichProgressBar):
+        def configure_columns(self, trainer, pl_module):
+            return [custom_column]
+
+    progress_bar = CustomRichProgressBar()
+
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, callbacks=progress_bar)
+
+    trainer.fit(model)
+
+    assert progress_bar.progress.columns[0] == custom_column
+    assert len(progress_bar.progress.columns) == 1
