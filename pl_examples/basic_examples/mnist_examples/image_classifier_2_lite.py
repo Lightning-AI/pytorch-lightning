@@ -49,7 +49,7 @@ class Lite(LightningLite):
         seed_everything(hparams.seed)  # instead of torch.manual_seed(...)
 
         transform = T.Compose([T.ToTensor(), T.Normalize((0.1307,), (0.3081,))])
-        train_dataset = MNIST("./data", train=True, download=True, transform=transform)
+        train_dataset = MNIST("./data", train=True, download=self.is_global_zero, transform=transform)
         test_dataset = MNIST("./data", train=False, transform=transform)
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
