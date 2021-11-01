@@ -183,4 +183,4 @@ if __name__ == "__main__":
 
     seed_everything(hparams.seed)
 
-    Lite(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=torch.cuda.device_count()).run(hparams)
+    Lite(accelerator="auto", devices="auto").run(hparams)

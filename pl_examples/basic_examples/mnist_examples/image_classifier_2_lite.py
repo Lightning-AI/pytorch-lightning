@@ -154,4 +154,4 @@ if __name__ == "__main__":
     parser.add_argument("--save-model", action="store_true", default=False, help="For Saving the current Model")
     hparams = parser.parse_args()
 
-    Lite(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=torch.cuda.device_count()).run(hparams)
+    Lite(accelerator="auto", devices="auto").run(hparams)
