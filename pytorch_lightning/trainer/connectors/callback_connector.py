@@ -20,9 +20,9 @@ from pytorch_lightning.callbacks import (
     GradientAccumulationScheduler,
     ModelCheckpoint,
     ModelSummary,
-    ProgressBar,
     ProgressBarBase,
     RichProgressBar,
+    TQDMProgressBar,
 )
 from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.timer import Timer
@@ -82,14 +82,14 @@ class CallbackConnector:
         if process_position != 0:
             rank_zero_deprecation(
                 f"Setting `Trainer(process_position={process_position})` is deprecated in v1.5 and will be removed"
-                " in v1.7. Please pass `pytorch_lightning.callbacks.progress.ProgressBar` with"
+                " in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with"
                 " `process_position` directly to the Trainer's `callbacks` argument instead."
             )
 
         if progress_bar_refresh_rate is not None:
             rank_zero_deprecation(
                 f"Setting `Trainer(progress_bar_refresh_rate={progress_bar_refresh_rate})` is deprecated in v1.5 and"
-                " will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.ProgressBar` with"
+                " will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with"
                 " `refresh_rate` directly to the Trainer's `callbacks` argument instead. Or, to disable the progress"
                 " bar pass `enable_progress_bar = False` to the Trainer."
             )
@@ -230,7 +230,7 @@ class CallbackConnector:
         if len(progress_bars) == 1:
             progress_bar_callback = progress_bars[0]
         elif refresh_rate > 0:
-            progress_bar_callback = ProgressBar(refresh_rate=refresh_rate, process_position=process_position)
+            progress_bar_callback = TQDMProgressBar(refresh_rate=refresh_rate, process_position=process_position)
             self.trainer.callbacks.append(progress_bar_callback)
         else:
             progress_bar_callback = None

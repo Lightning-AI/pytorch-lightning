@@ -11,14 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Progress Bars
-=============
 
-Use or override one of the progress bar callbacks.
+from pytorch_lightning.lite.lite import LightningLite
 
-"""
-from pytorch_lightning.callbacks.progress.base import ProgressBarBase  # noqa: F401
-from pytorch_lightning.callbacks.progress.progress import ProgressBar  # noqa: F401
-from pytorch_lightning.callbacks.progress.rich_progress import RichProgressBar  # noqa: F401
-from pytorch_lightning.callbacks.progress.tqdm_progress import TQDMProgressBar  # noqa: F401
+__all__ = ["LightningLite"]
