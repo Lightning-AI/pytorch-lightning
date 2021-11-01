@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
-from unittest.mock import DEFAULT
+from unittest.mock import DEFAULT, Mock
 
 import pytest
 from torch.utils.data import DataLoader
@@ -153,10 +153,9 @@ def test_rich_progress_bar_configure_columns(tmpdir):
         def configure_columns(self, trainer, pl_module):
             return [custom_column]
 
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, callbacks=CustomRichProgressBar())
+    progress_bar = CustomRichProgressBar()
 
-    trainer.fit(model)
+    progress_bar._init_progress(Mock(), Mock())
 
-    assert trainer.progress_bar_callback.progress.columns[0] == custom_column
-    assert len(trainer.progress_bar_callback.progress.columns) == 1
+    assert progress_bar.progress.columns[0] == custom_column
+    assert len(progress_bar.progress.columns) == 1
