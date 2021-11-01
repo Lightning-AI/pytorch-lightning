@@ -103,6 +103,34 @@ class _LiteModule(nn.Module):
         return output
 
 
+class _LiteDataLoader:
+    def __init__(self, dataloader: Iterable, device: Optional[torch.device] = None) -> None:
+        """The LiteDataLoader is an extension of an Iterator. It would move the data to the device automatically if
+        the device is specified.
+
+        Args:
+            dataloader: The current dataloader to be used.
+            device: The device to which the data should be moved. By default the device is `None` and no data
+                transfers will be made (identical behavior as :class:`~torch.utils.data.DataLoader`).
+        """
+        super().__init__()
+        self.__dict__.update(getattr(dataloader, "__dict__", {}))
+        self._dataloader = dataloader
+        self._device = device
+
+    @property
+    def device(self) -> Optional[torch.device]:
+        return self._device
+
+    def __iter__(self) -> Union[Iterator[Any], Generator[Any, None, None]]:
+        dataloader_iter = iter(self._dataloader)
+        if self._device is None:
+            return dataloader_iter
+
+        for item in dataloader_iter:
+            yield move_data_to_device(item, self._device)
+
+
 def _wrap_init(f: Callable) -> Callable:
     @functools.wraps(f)
     def wrapper(module: Any, *args: Any, **kwargs: Dict[str, Any]) -> None:
@@ -147,31 +175,3 @@ def _replace_dataloader_init_method() -> Generator:
     yield
     for subclass in _get_all_subclasses(DataLoader):
         _disable_class(subclass)
-
-
-class _LiteDataLoader:
-    def __init__(self, dataloader: Iterable, device: Optional[torch.device] = None) -> None:
-        """The LiteDataLoader is an extension of an Iterator. It would move the data to the device automatically if
-        the device is specified.
-
-        Args:
-            dataloader: The current dataloader to be used.
-            device: The device to which the data should be moved. By default the device is `None` and no data
-                transfers will be made (identical behavior as :class:`~torch.utils.data.DataLoader`).
-        """
-        super().__init__()
-        self.__dict__.update(getattr(dataloader, "__dict__", {}))
-        self._dataloader = dataloader
-        self._device = device
-
-    @property
-    def device(self) -> Optional[torch.device]:
-        return self._device
-
-    def __iter__(self) -> Union[Iterator[Any], Generator[Any, None, None]]:
-        dataloader_iter = iter(self._dataloader)
-        if self._device is None:
-            return dataloader_iter
-
-        for item in dataloader_iter:
-            yield move_data_to_device(item, self._device)
