@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Iterable, Mapping, Union
+from typing import Any, Generator, Iterable, Mapping, Union
 
 import torch
 from torch.utils.data import DataLoader, IterableDataset
@@ -25,7 +25,7 @@ BType = Union[torch.Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
 warning_cache = WarningCache()
 
 
-def _extract_batch_size(batch: BType) -> int:
+def _extract_batch_size(batch: BType) -> Generator[int, None, None]:
     if isinstance(batch, torch.Tensor):
         yield batch.size(0)
     elif isinstance(batch, str):
