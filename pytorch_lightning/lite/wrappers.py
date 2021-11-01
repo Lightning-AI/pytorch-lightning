@@ -79,10 +79,6 @@ class _LiteModule(nn.Module):
         self._precision_plugin = precision_plugin
 
     @property
-    def device(self) -> torch.device:
-        return self._module.device
-
-    @property
     def module(self) -> nn.Module:
         return self._module
 

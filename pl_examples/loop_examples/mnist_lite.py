@@ -81,7 +81,7 @@ class TestLoop(Loop):
         self.model = model
         self.dataloader = dataloader
         self.dataloader_iter = None
-        self.accuracy = Accuracy().to(model.device)
+        self.accuracy = Accuracy().to(lite.device)
         self.test_loss = 0
 
     @property
@@ -156,7 +156,7 @@ class Lite(LightningLite):
 
         MainLoop(self, hparams, model, optimizer, scheduler, train_loader, test_loader).run()
 
-        if hparams.save_model:
+        if hparams.save_model and self.is_global_zero:
             self.save(model.state_dict(), "mnist_cnn.pt")
 
 
@@ -185,4 +185,4 @@ if __name__ == "__main__":
 
     seed_everything(hparams.seed)
 
-    Lite(accelerator="auto", devices="auto").run(hparams)
+    Lite(accelerator="cpu", devices=1).run(hparams)
