@@ -114,7 +114,7 @@ class _LiteDataLoader:
                 transfers will be made (identical behavior as :class:`~torch.utils.data.DataLoader`).
         """
         super().__init__()
-        self.__dict__.update(getattr(dataloader, "__dict__", {}))
+        self.__dict__.update(dataloader.__dict__)
         self._dataloader = dataloader
         self._device = device
 
