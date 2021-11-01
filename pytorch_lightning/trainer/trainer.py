@@ -294,7 +294,7 @@ class Trainer(
 
                 .. deprecated:: v1.5
                     ``process_position`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please pass :class:`~pytorch_lightning.callbacks.progress.ProgressBar` with ``process_position``
+                    Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``process_position``
                     directly to the Trainer's ``callbacks`` argument instead.
 
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
@@ -303,7 +303,7 @@ class Trainer(
 
                 .. deprecated:: v1.5
                     ``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please pass :class:`~pytorch_lightning.callbacks.progress.ProgressBar` with ``refresh_rate``
+                    Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``refresh_rate``
                     directly to the Trainer's ``callbacks`` argument instead. To disable the progress bar,
                     pass ``enable_progress_bar = False`` to the Trainer.
 
