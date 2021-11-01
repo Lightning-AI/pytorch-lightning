@@ -32,7 +32,7 @@ def _extract_batch_size(batch: BType, batch_sizes) -> bool:
         current_batch_size = batch.size(0)
     elif isinstance(batch, str):
         current_batch_size = len(batch)
-    elif not isinstance(batch, (Iterable, dict)):
+    elif not isinstance(batch, (Iterable, Mapping)):
         current_batch_size = 1
 
     if current_batch_size is not None:
@@ -47,7 +47,7 @@ def _extract_batch_size(batch: BType, batch_sizes) -> bool:
 
         return False
 
-    if isinstance(batch, dict):
+    if isinstance(batch, Mapping):
         batch = batch.values()
 
     for sample in batch:
