@@ -38,7 +38,15 @@ from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
-from pytorch_lightning.plugins import DDPSpawnPlugin
+from pytorch_lightning.plugins import (
+    DataParallelPlugin,
+    DDP2Plugin,
+    DDPFullyShardedPlugin,
+    DDPPlugin,
+    DDPShardedPlugin,
+    DDPSpawnPlugin,
+    DDPSpawnShardedPlugin,
+)
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import DeviceType, DistributedType
 from pytorch_lightning.utilities.cloud_io import load as pl_load
@@ -2149,6 +2157,52 @@ def test_detect_anomaly_nan(tmpdir):
         (
             dict(strategy="ddp_spawn", num_processes=1, gpus=None),
             dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+        ),
+        (
+            dict(strategy=DDPSpawnPlugin(), num_processes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
+        (
+            dict(strategy=DDPSpawnPlugin(), gpus=2),
+            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+        ),
+        (
+            dict(strategy=DDPPlugin(), num_processes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
+        (
+            dict(strategy=DDPPlugin(), gpus=2),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+        ),
+        (
+            dict(strategy=DDP2Plugin(), gpus=2),
+            dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+        ),
+        (
+            dict(strategy=DataParallelPlugin(), gpus=2),
+            dict(_distrib_type=DistributedType.DP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+        ),
+        (
+            dict(strategy=DDPFullyShardedPlugin(), gpus=2),
+            dict(
+                _distrib_type=DistributedType.DDP_FULLY_SHARDED,
+                _device_type=DeviceType.GPU,
+                num_gpus=2,
+                num_processes=1,
+            ),
+        ),
+        (
+            dict(strategy=DDPSpawnShardedPlugin(), gpus=2),
+            dict(
+                _distrib_type=DistributedType.DDP_SHARDED_SPAWN,
+                _device_type=DeviceType.GPU,
+                num_gpus=2,
+                num_processes=1,
+            ),
+        ),
+        (
+            dict(strategy=DDPShardedPlugin(), gpus=2),
+            dict(_distrib_type=DistributedType.DDP_SHARDED, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
     ],
 )

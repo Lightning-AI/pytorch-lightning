@@ -164,9 +164,13 @@ class AcceleratorConnector:
             self._set_training_type_plugin()
         else:
             self.set_distributed_mode()
-        self._configure_slurm_ddp()
 
         self.handle_given_plugins()
+        self._set_distrib_type_if_training_type_plugin_passed()
+
+        self._configure_slurm_ddp()
+        self._cluster_environment = self.select_cluster_environment()
+
         self.update_device_type_if_ipu_plugin()
         self.update_device_type_if_training_type_plugin_passed()
 
@@ -383,7 +387,7 @@ class AcceleratorConnector:
         self._training_type_plugin = training_type
         self._precision_plugin = precision
         self._checkpoint_io = checkpoint
-        self._cluster_environment = cluster_environment or self.select_cluster_environment()
+        self._cluster_environment = cluster_environment
 
     @property
     def accelerator_types(self) -> List[str]:
@@ -1036,3 +1040,12 @@ class AcceleratorConnector:
         # notify user the that slurm is managing tasks
         if self._is_slurm_managing_tasks:
             rank_zero_info("Multi-processing is handled by Slurm.")
+
+    def _set_distrib_type_if_training_type_plugin_passed(self):
+        # This is required as when `TrainingTypePlugin` instance is passed to either `strategy`
+        # or `plugins` flag, `AcceleratorConnector.set_distributed_mode` is not required to be
+        # called and `_distrib_type` is not set.
+        if self._distrib_type is not None:
+            return
+        if self._training_type_plugin is not None:
+            self._distrib_type = getattr(self._training_type_plugin, "distributed_backend", None)
