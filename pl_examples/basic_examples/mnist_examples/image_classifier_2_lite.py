@@ -12,18 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Here are 5 required steps to convert to `LightningLite`.
+"""Here are 5 required steps to convert to LightningLite.
 
-1. Subclass `LightningLite` and override its `run` method.
+1. Subclass LightningLite and override its run method.
 
-2. Move the body of your existing `run` function into `run` method.
+2. Move the body of your existing ``run`` function into the ``run`` method.
 
-3. Remove all `.to`, `.cuda` etc calls since `LightningLite` will take care of it.
+3. Remove all ``.to``, ``.cuda`` etc calls since LightningLite will take care of it.
 
-4. Apply `setup` over each model and optimizers pair and `setup_dataloaders` on all your dataloaders
-and replace ``loss.backward()`` by ``self.backward(loss)``.
+4. Apply ``setup`` over each model and optimizers pair, ``setup_dataloaders`` on all your dataloaders,
+and replace ``loss.backward()`` with ``self.backward(loss)``.
 
-5. Instantiate your `LightningLite` and call its `run` method.
+5. Instantiate your LightningLite and call its `run` method.
 
 Learn more from the documentation: https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.html.
 """
@@ -46,7 +46,7 @@ from pytorch_lightning.lite import LightningLite  # import LightningLite
 class Lite(LightningLite):
     def run(self, hparams):
         self.hparams = hparams
-        seed_everything(hparams.seed)
+        seed_everything(hparams.seed)  # instead of torch.manual_seed(...)
 
         transform = T.Compose([T.ToTensor(), T.Normalize((0.1307,), (0.3081,))])
         train_dataset = MNIST("./data", train=True, download=True, transform=transform)
@@ -135,7 +135,6 @@ class Lite(LightningLite):
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(description="LightningLite MNIST Example")
     parser.add_argument(
         "--batch-size", type=int, default=64, metavar="N", help="input batch size for training (default: 64)"
@@ -143,7 +142,6 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=14, metavar="N", help="number of epochs to train (default: 14)")
     parser.add_argument("--lr", type=float, default=1.0, metavar="LR", help="learning rate (default: 1.0)")
     parser.add_argument("--gamma", type=float, default=0.7, metavar="M", help="Learning rate step gamma (default: 0.7)")
-    parser.add_argument("--no-cuda", action="store_true", default=False, help="disables CUDA training")
     parser.add_argument("--dry-run", action="store_true", default=False, help="quickly check a single pass")
     parser.add_argument("--seed", type=int, default=1, metavar="S", help="random seed (default: 1)")
     parser.add_argument(

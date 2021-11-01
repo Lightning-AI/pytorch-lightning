@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""MNIST simple image classifier example with LightningModule and DataModule.
+"""Simple MNIST image classifier example with LightningModule and LightningDataModule.
 
 To run: python image_classifier_5_lightning_datamodule.py --trainer.max_epochs=50
 """
@@ -80,7 +80,7 @@ class MNISTDataModule(LightningDataModule):
 
 
 def cli_main():
-    # The LightningCLI removes all the boilerplate associate to arguments parsing. This is purely optional.
+    # The LightningCLI removes all the boilerplate associated with arguments parsing. This is purely optional.
     cli = LightningCLI(
         ImageClassifier, MNISTDataModule, seed_everything_default=42, save_config_overwrite=True, run=False
     )

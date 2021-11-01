@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""MNIST simple image classifier example with LightningModule.
+"""Simple MNIST image classifier example with LightningModule.
 
 To run: python image_classifier_4_lightning.py --trainer.max_epochs=50
 """
@@ -55,7 +55,7 @@ class ImageClassifier(LightningModule):
         optimizer = torch.optim.Adadelta(self.model.parameters(), lr=self.hparams.lr)
         return [optimizer], [torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=self.hparams.gamma)]
 
-    # Functions for the `LightningDataModule` conversion
+    # Methods for the `LightningDataModule` conversion
 
     @property
     def transform(self):
@@ -74,7 +74,7 @@ class ImageClassifier(LightningModule):
 
 
 def cli_main():
-    # The LightningCLI removes all the boilerplate associate to arguments parsing. This is purely optional.
+    # The LightningCLI removes all the boilerplate associated with arguments parsing. This is purely optional.
     cli = LightningCLI(ImageClassifier, seed_everything_default=42, save_config_overwrite=True, run=False)
     cli.trainer.fit(cli.model, datamodule=cli.datamodule)
     cli.trainer.test(ckpt_path="best", datamodule=cli.datamodule)

@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Here are the steps to convert from `LightningLite` to a `LightningModule`
+"""Here are the steps to convert from LightningLite to a LightningModule
 
-1. Start implementing the `training_step`, `forward`, `train_dataloader` and `configure_optimizers`
-functions on the `LightningLite` class.
+1. Start implementing the ``training_step``, ``forward``, ``train_dataloader`` and ``configure_optimizers``
+methods on the LightningLite class.
 
-2. Utilize those functions within its `run` function.
+2. Utilize those methods within the ``run`` method.
 
-3. Finally, switch to `LightningModule` and validate your results are still reproducible (next script).
+3. Finally, switch to LightningModule and validate that your results are still reproducible (next script).
 
 Learn more from the documentation: https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.html.
 """
@@ -40,8 +40,7 @@ from pytorch_lightning.lite import LightningLite
 
 
 class Lite(LightningLite):
-
-    """`Lite` is starting to look like a `LightningModule`."""
+    """Lite is starting to look like a LightningModule."""
 
     def run(self, hparams):
         self.hparams = hparams
@@ -109,14 +108,14 @@ class Lite(LightningLite):
         return self.model(x)
 
     def training_step(self, batch, batch_idx):
-        """Here you compute and return the training loss+ compute extra training metrics."""
+        """Here you compute and return the training loss and compute extra training metrics."""
         x, y = batch
         logits = self.forward(x)
         loss = F.nll_loss(logits, y.long())
         return loss
 
     def test_step(self, batch, batch_idx):
-        """Here you compute and return the testing loss+ compute extra testing metrics."""
+        """Here you compute and return the testing loss and compute extra testing metrics."""
         x, y = batch
         logits = self.forward(x)
         loss = F.nll_loss(logits, y.long())
@@ -127,7 +126,7 @@ class Lite(LightningLite):
         optimizer = optim.Adadelta(self.model.parameters(), lr=self.hparams.lr)
         return [optimizer], [StepLR(optimizer, step_size=1, gamma=self.hparams.gamma)]
 
-    # Functions for the `LightningDataModule` conversion
+    # Methods for the `LightningDataModule` conversion
 
     @property
     def transform(self):
@@ -146,7 +145,6 @@ class Lite(LightningLite):
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(description="LightningLite to LightningModule MNIST Example")
     parser.add_argument(
         "--batch-size", type=int, default=64, metavar="N", help="input batch size for training (default: 64)"
