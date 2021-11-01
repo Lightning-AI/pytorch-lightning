@@ -1,6 +1,6 @@
 ## MNIST Examples
 
-5 MNIST examples showing how to gradually convert from pure PyTorch to PyTorch Lightning.
+Here are 5 MNIST examples showing you how to gradually convert from pure PyTorch to PyTorch Lightning.
 
 The transition through [LightningLite](https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.rst) from pure PyTorch is optional but it might be helpful to learn about it.
 
