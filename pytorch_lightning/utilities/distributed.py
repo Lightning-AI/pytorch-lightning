@@ -367,8 +367,8 @@ def init_dist_connection(
     world_size: Optional[int] = None,
     **kwargs: Any,
 ) -> None:
-    """Utility function to initialize distributed connection by setting env variables and initiliazing the distributed
-    process group.
+    """Utility function to initialize distributed connection by setting env variables and initiliazing the
+    distributed process group.
 
     Args:
         cluster_environment: ``ClusterEnvironment`` instance

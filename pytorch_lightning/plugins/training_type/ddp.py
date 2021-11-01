@@ -52,7 +52,12 @@ from pytorch_lightning.utilities import (
 )
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
-from pytorch_lightning.utilities.distributed import init_dist_connection, rank_zero_only, ReduceOp, sync_ddp_if_available
+from pytorch_lightning.utilities.distributed import (
+    init_dist_connection,
+    rank_zero_only,
+    ReduceOp,
+    sync_ddp_if_available,
+)
 from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
