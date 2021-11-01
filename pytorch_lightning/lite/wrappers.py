@@ -109,7 +109,7 @@ class _LiteDataLoader:
         if the device is specified.
 
         Args:
-            dataloader: The current dataloader to be used.
+            dataloader: A dataloader iterable (e.g., :class:`~torch.utils.data.DataLoader`)
             device: The device to which the data should be moved. By default the device is `None` and no data
                 transfers will be made (identical behavior as :class:`~torch.utils.data.DataLoader`).
         """
