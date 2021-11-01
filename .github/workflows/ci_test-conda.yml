@@ -3,7 +3,7 @@ name: PyTorch & Conda
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches: [ master, "release/*" ]
+    branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
 
@@ -14,7 +14,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # os: [ubuntu-20.04]
         python-version: ["3.7"]
         pytorch-version: ["1.6", "1.7", "1.8", "1.9", "1.10"]
 

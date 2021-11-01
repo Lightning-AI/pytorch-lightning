@@ -59,7 +59,7 @@ def test_multi_gpu_early_stop_dp(tmpdir):
 
     with early stopping
     """
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
 
     dm = ClassifDataModule()
     model = CustomClassificationModelDP()
@@ -79,7 +79,7 @@ def test_multi_gpu_early_stop_dp(tmpdir):
 
 @RunIf(min_gpus=2)
 def test_multi_gpu_model_dp(tmpdir):
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
 
     trainer_options = dict(
         default_root_dir=tmpdir,

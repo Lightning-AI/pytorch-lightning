@@ -9,6 +9,14 @@ Note that some of the extreme memory saving configurations will affect the speed
 
 Some of these memory-efficient plugins rely on offloading onto other forms of memory, such as CPU RAM or NVMe. This means you can even see memory benefits on a **single GPU**, using a plugin such as :ref:`deepspeed-zero-stage-3-offload`.
 
+Check out this amazing video explaining model parallelism and how it works behind the scenes:
+
+.. raw:: html
+
+    <iframe width="540" height="300" src="https://www.youtube.com/embed/w_CKzh5C1K4" frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+
 Choosing an Advanced Distributed GPU Plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -622,7 +630,7 @@ After training using ZeRO Stage 3, you'll notice that your checkpoints are a dir
 
 .. warning::
 
-    This single file checkpoint does not include the optimizer/lr-scheduler states. This means we cannot restore training via the `resume_from_checkpoint` Trainer argument. Ensure to keep the sharded checkpoint directory if this is required.
+    This single file checkpoint does not include the optimizer/lr-scheduler states. This means we cannot restore training via the ``trainer.fit(ckpt_path=)`` call. Ensure to keep the sharded checkpoint directory if this is required.
 
 Custom DeepSpeed Config
 """""""""""""""""""""""

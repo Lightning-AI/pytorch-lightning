@@ -1,6 +1,9 @@
 Community Examples
 ==================
 
+
+- `Lightning Bolts: Deep Learning components for extending PyTorch Lightning <https://pytorch-lightning.readthedocs.io/en/latest/ecosystem/bolts.html>`_.
+- `Lightning Flash: Your PyTorch AI Factory - Flash enables you to easily configure and run complex AI recipes <https://github.com/PyTorchLightning/lightning-flash>`_.
 - `Cotatron: Transcription-Guided Speech Encoder <https://github.com/mindslab-ai/cotatron>`_
 - `Image Inpainting using Partial Convolutions <https://github.com/ryanwongsa/Image-Inpainting>`_
 - `MNIST on TPU <https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3#scrollTo=BHBz1_AnamN_>`_

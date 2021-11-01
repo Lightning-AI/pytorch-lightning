@@ -1240,7 +1240,7 @@ See the :doc:`profiler documentation <../advanced/profiler>`. for more details.
 progress_bar_refresh_rate
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 ``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
-Please pass :class:`~pytorch_lightning.callbacks.progress.ProgressBar` with ``refresh_rate``
+Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``refresh_rate``
 directly to the Trainer's ``callbacks`` argument instead. To disable the progress bar,
 pass ``enable_progress_bar = False`` to the Trainer.
 
@@ -1348,6 +1348,10 @@ By setting to False, you have to add your own distributed sampler:
 
 resume_from_checkpoint
 ^^^^^^^^^^^^^^^^^^^^^^
+
+.. warning:: ``resume_from_checkpoint`` is deprecated in v1.5 and will be removed in v1.7.
+    Please pass ``trainer.fit(ckpt_path="some/path/to/my_checkpoint.ckpt")`` instead.
+
 
 .. raw:: html
 

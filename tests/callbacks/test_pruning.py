@@ -30,8 +30,6 @@ from tests.helpers.runif import RunIf
 
 
 class TestModel(BoringModel):
-    test_step = None
-
     def __init__(self):
         super().__init__()
         self.layer = Sequential(

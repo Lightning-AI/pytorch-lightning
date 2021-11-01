@@ -24,7 +24,7 @@ from tests.helpers.simple_models import ClassificationModel
 
 @RunIf(min_gpus=2)
 def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
 
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -43,7 +43,7 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
 
 @RunIf(min_gpus=2)
 def test_multi_gpu_model_ddp_spawn(tmpdir):
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
 
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -66,7 +66,7 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
 @RunIf(min_gpus=2)
 def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     """Make sure DDP works with dataloaders passed to fit()"""
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
 
     model = BoringModel()
     fit_options = dict(train_dataloader=model.train_dataloader(), val_dataloaders=model.val_dataloader())
