@@ -14,7 +14,7 @@
 import functools
 import inspect
 from contextlib import contextmanager
-from typing import Any, Callable, Generator, Iterator, Optional
+from typing import Any, Callable, Dict, Generator, Iterable, Iterator, Optional, Set, Type
 
 import torch
 from torch import nn as nn
@@ -103,9 +103,9 @@ class _LiteModule(nn.Module):
         return output
 
 
-def _wrap_init(f):
+def _wrap_init(f: Callable) -> Callable:
     @functools.wraps(f)
-    def wrapper(module, *args, **kwargs):
+    def wrapper(module: Any, *args: Any, **kwargs: Dict[str, Any]) -> None:
         params = dict(inspect.signature(module._old_init).parameters)
         params.pop("args")
         params.pop("kwargs")
@@ -117,10 +117,10 @@ def _wrap_init(f):
 
 
 # https://stackoverflow.com/a/63851681/9201239
-def _get_all_subclasses(cls):
+def _get_all_subclasses(cls: Type[Any]) -> Set[Type[Any]]:
     subclass_list = []
 
-    def recurse(cl):
+    def recurse(cl: Type[Any]) -> None:
         for subclass in cl.__subclasses__():
             subclass_list.append(subclass)
             recurse(subclass)
@@ -129,12 +129,12 @@ def _get_all_subclasses(cls):
     return set(subclass_list)
 
 
-def _enable_class(cls):
+def _enable_class(cls: Type[Any]) -> None:
     cls._old_init = cls.__init__
     cls.__init__ = _wrap_init(cls.__init__)
 
 
-def _disable_class(cls):
+def _disable_class(cls: Type[Any]) -> None:
     cls.__init__ = cls._old_init
 
 
@@ -149,7 +149,7 @@ def _replace_dataloader_init_function() -> Generator:
 
 
 class _LiteDataLoader(Iterator):
-    def __init__(self, dataloader: DataLoader, device: Optional[torch.device] = None) -> None:
+    def __init__(self, dataloader: Iterable, device: Optional[torch.device] = None) -> None:
         """The LiteDataLoader is an extension of an Iterator. It would move move the data to the device
         automatically if the device is specified.
 
