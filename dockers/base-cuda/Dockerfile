@@ -108,15 +108,15 @@ RUN \
 
 RUN \
     # install FairScale
-    pip install fairscale>=0.3.4
+    pip install fairscale==0.4.0
 
 RUN \
     # install DeepSpeed
-    pip install deepspeed==0.4.0
+    pip install deepspeed==0.5.4
 
 RUN \
     # Show what we have
     pip --version && \
     pip list && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
-    python -c "import torch; assert torch.__version__[:3] == '$PYTORCH_VERSION', torch.__version__"
+    python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__"

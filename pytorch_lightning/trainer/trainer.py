@@ -33,7 +33,7 @@ from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.loggers.base import LoggerCollection
+from pytorch_lightning.loggers.base import DummyLogger, LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop, TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
@@ -53,12 +53,10 @@ from pytorch_lightning.trainer.connectors.accelerator_connector import Accelerat
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
-from pytorch_lightning.trainer.connectors.debugging_connector import DebuggingConnector
 from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_from_env_vars
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
-from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
@@ -72,6 +70,7 @@ from pytorch_lightning.utilities import (
     device_parser,
     DeviceType,
     DistributedType,
+    GradClipAlgorithmType,
     parsing,
     rank_zero_deprecation,
     rank_zero_info,
@@ -449,9 +448,7 @@ class Trainer(
             plugins,
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
-        self.callback_connector = CallbackConnector(self)
-        self.debugging_connector = DebuggingConnector(self)
-        self.training_tricks_connector = TrainingTricksConnector(self)
+        self._callback_connector = CallbackConnector(self)
         self.checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
         self.signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
@@ -492,8 +489,8 @@ class Trainer(
         self._weights_summary: Optional[str] = None
 
         # init callbacks
-        # Declare attributes to be set in callback_connector on_trainer_init
-        self.callback_connector.on_trainer_init(
+        # Declare attributes to be set in _callback_connector on_trainer_init
+        self._callback_connector.on_trainer_init(
             callbacks,
             checkpoint_callback,
             enable_checkpointing,
@@ -525,13 +522,43 @@ class Trainer(
             prepare_data_per_node,
         )
 
-        # init training tricks
-        self.training_tricks_connector.on_trainer_init(
-            gradient_clip_val,
-            gradient_clip_algorithm,
-            track_grad_norm,
-            terminate_on_nan,
+        if terminate_on_nan is not None:
+            rank_zero_deprecation(
+                "Trainer argument `terminate_on_nan` was deprecated in v1.5 and will be removed in 1.7."
+                " Please use `Trainer(detect_anomaly=True)` instead."
+            )
+            if not isinstance(terminate_on_nan, bool):
+                raise TypeError(f"`terminate_on_nan` should be a bool, got {terminate_on_nan}.")
+
+        # gradient clipping
+        if gradient_clip_val is not None and not isinstance(gradient_clip_val, (int, float)):
+            raise TypeError(f"`gradient_clip_val` should be an int or a float. Got {gradient_clip_val}.")
+
+        if gradient_clip_algorithm is not None and not GradClipAlgorithmType.supported_type(
+            gradient_clip_algorithm.lower()
+        ):
+            raise MisconfigurationException(
+                f"`gradient_clip_algorithm` {gradient_clip_algorithm} is invalid. "
+                f"Allowed algorithms: {GradClipAlgorithmType.supported_types()}."
+            )
+
+        # gradient norm tracking
+        if track_grad_norm != -1 and not (
+            (isinstance(track_grad_norm, (int, float)) or track_grad_norm == "inf") and float(track_grad_norm) > 0
+        ):
+            raise MisconfigurationException(
+                f"`track_grad_norm` must be a positive number or 'inf' (infinity norm). Got {track_grad_norm}."
+            )
+
+        self._terminate_on_nan = terminate_on_nan
+        self.gradient_clip_val = gradient_clip_val
+        self.gradient_clip_algorithm = (
+            GradClipAlgorithmType(gradient_clip_algorithm.lower())
+            if gradient_clip_algorithm is not None
+            else gradient_clip_algorithm
         )
+        self.track_grad_norm: float = float(track_grad_norm)
+
         self._detect_anomaly: bool = detect_anomaly
         self._setup_on_init(num_sanity_val_steps)
 
@@ -545,7 +572,7 @@ class Trainer(
         self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
-        self.debugging_connector.on_init_start(
+        self._init_debugging_flags(
             limit_train_batches,
             limit_val_batches,
             limit_test_batches,
@@ -557,6 +584,65 @@ class Trainer(
 
         # Callback system
         self.on_init_end()
+
+    def _init_debugging_flags(
+        self,
+        limit_train_batches,
+        limit_val_batches,
+        limit_test_batches,
+        limit_predict_batches,
+        val_check_interval,
+        overfit_batches,
+        fast_dev_run,
+    ):
+        if not isinstance(fast_dev_run, (bool, int)):
+            raise MisconfigurationException(
+                f"fast_dev_run={fast_dev_run} is not a valid configuration. It should be either a bool or an int >= 0"
+            )
+
+        if isinstance(fast_dev_run, int) and (fast_dev_run < 0):
+            raise MisconfigurationException(
+                f"fast_dev_run={fast_dev_run} is not a valid configuration. It should be >= 0."
+            )
+
+        self.fast_dev_run = fast_dev_run
+        fast_dev_run = int(fast_dev_run)
+
+        # set fast_dev_run=True when it is 1, used while logging
+        if fast_dev_run == 1:
+            self.fast_dev_run = True
+
+        if fast_dev_run:
+            limit_train_batches = fast_dev_run
+            limit_val_batches = fast_dev_run
+            limit_test_batches = fast_dev_run
+            limit_predict_batches = fast_dev_run
+            self.fit_loop.max_steps = fast_dev_run
+            self.num_sanity_val_steps = 0
+            self.fit_loop.max_epochs = 1
+            val_check_interval = 1.0
+            self.check_val_every_n_epoch = 1
+            self.logger = DummyLogger() if self.logger is not None else None
+
+            rank_zero_info(
+                "Running in fast_dev_run mode: will run a full train,"
+                f" val, test and prediction loop using {fast_dev_run} batch(es)."
+            )
+
+        self.limit_train_batches = _determine_batch_limits(limit_train_batches, "limit_train_batches")
+        self.limit_val_batches = _determine_batch_limits(limit_val_batches, "limit_val_batches")
+        self.limit_test_batches = _determine_batch_limits(limit_test_batches, "limit_test_batches")
+        self.limit_predict_batches = _determine_batch_limits(limit_predict_batches, "limit_predict_batches")
+        self.val_check_interval = _determine_batch_limits(val_check_interval, "val_check_interval")
+        self.overfit_batches = _determine_batch_limits(overfit_batches, "overfit_batches")
+        self.determine_data_use_amount(self.overfit_batches)
+
+    def determine_data_use_amount(self, overfit_batches: float) -> None:
+        """Use less data for debugging purposes."""
+        if overfit_batches > 0:
+            self.limit_train_batches = overfit_batches
+            self.limit_val_batches = overfit_batches
+            self.limit_test_batches = overfit_batches
 
     def _setup_on_init(self, num_sanity_val_steps: int) -> None:
         self._log_device_info()
@@ -1029,14 +1115,14 @@ class Trainer(
         verify_loop_configurations(self, model)
 
         # attach model log function to callback
-        self.callback_connector.attach_model_logging_functions(model)
+        self._callback_connector.attach_model_logging_functions(model)
 
         # attach model to the training type plugin
         self.training_type_plugin.connect(model)
 
         # hook
         self._data_connector.prepare_data()
-        self.callback_connector._attach_model_callbacks()
+        self._callback_connector._attach_model_callbacks()
 
         # ----------------------------
         # SET UP TRAINING
@@ -2104,3 +2190,13 @@ class Trainer(
             f" Please set `Trainer(detect_anomaly={val})` instead."
         )
         self._terminate_on_nan = val  # : 212
+
+
+def _determine_batch_limits(batches: Union[int, float], name: str) -> Union[int, float]:
+    if 0 <= batches <= 1:
+        return batches
+    if batches > 1 and batches % 1.0 == 0:
+        return int(batches)
+    raise MisconfigurationException(
+        f"You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int."
+    )

@@ -37,3 +37,10 @@ class IPUAccelerator(Accelerator):
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """IPU device stats aren't supported yet."""
         return {}
+
+    @staticmethod
+    def auto_device_count() -> int:
+        """Get the devices when set to auto."""
+        # TODO (@kaushikb11): 4 is the minimal unit they are shipped in.
+        # Update this when api is exposed by the Graphcore team.
+        return 4
