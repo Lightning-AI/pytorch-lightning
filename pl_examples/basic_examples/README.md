@@ -66,6 +66,6 @@ python image_classifier_5_lightning_datamodule.py
 # GPUs (any number)
 python image_classifier_5_lightning_datamodule.py --trainer.gpus 2
 
-# Distributed Data parallel
+# Distributed Data Parallel (DDP)
 python image_classifier_5_lightning_datamodule.py --trainer.gpus 2 --trainer.strategy 'ddp'
 ```
