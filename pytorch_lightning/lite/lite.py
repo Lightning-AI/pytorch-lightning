@@ -25,7 +25,12 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
+from pytorch_lightning.lite.wrappers import (
+    _LiteDataLoader,
+    _LiteModule,
+    _LiteOptimizer,
+    _replace_dataloader_init_function,
+)
 from pytorch_lightning.plugins import (
     DDPShardedPlugin,
     DDPSpawnPlugin,
@@ -401,7 +406,7 @@ class LightningLite(ABC):
             return run_method(*args, **kwargs)
 
     def _run_with_sharded_context(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        with self._strategy.model_sharded_context():
+        with self._strategy.model_sharded_context(), _replace_dataloader_init_function():
             return run_method(*args, **kwargs)
 
     def _set_plugin_specific_precision_variables(self) -> None:

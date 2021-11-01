@@ -11,7 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Iterator, Optional
+import functools
+import inspect
+from contextlib import contextmanager
+from typing import Any, Callable, Generator, Iterator, Optional
 
 import torch
 from torch import nn as nn
@@ -98,6 +101,51 @@ class _LiteModule(nn.Module):
 
         output = apply_to_collection(output, function=lambda t: t.to(torch.get_default_dtype()), dtype=Tensor)
         return output
+
+
+def _wrap_init(f):
+    @functools.wraps(f)
+    def wrapper(module, *args, **kwargs):
+        params = dict(inspect.signature(module._old_init).parameters)
+        params.pop("args")
+        params.pop("kwargs")
+        for init_name, init_arg in zip(params, args):
+            setattr(module, init_name, init_arg)
+        f(module, *args, **kwargs)
+
+    return wrapper
+
+
+# https://stackoverflow.com/a/63851681/9201239
+def _get_all_subclasses(cls):
+    subclass_list = []
+
+    def recurse(cl):
+        for subclass in cl.__subclasses__():
+            subclass_list.append(subclass)
+            recurse(subclass)
+
+    recurse(cls)
+    return set(subclass_list)
+
+
+def _enable_class(cls):
+    cls._old_init = cls.__init__
+    cls.__init__ = _wrap_init(cls.__init__)
+
+
+def _disable_class(cls):
+    cls.__init__ = cls._old_init
+
+
+@contextmanager
+def _replace_dataloader_init_function() -> Generator:
+    """This context manager is used to support custom :class:`~torch.utils.data.DataLoader."""
+    for subclass in _get_all_subclasses(DataLoader):
+        _enable_class(subclass)
+    yield
+    for subclass in _get_all_subclasses(DataLoader):
+        _disable_class(subclass)
 
 
 class _LiteDataLoader(Iterator):
