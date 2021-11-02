@@ -304,10 +304,9 @@ def test_xla_checkpoint_plugin_being_default():
 
 
 @RunIf(tpu=True)
-@patch("pytorch_lightning.plugins.training_type.tpu_spawn.xm")
 def test_mp_device_dataloader_attribute(_):
     dataset = RandomDataset(32, 64)
-    trainer = Trainer(strategy=TPUSpawnPlugin(), accelerator="tpu", devices=8)
+    trainer = Trainer(strategy=TPUSpawnPlugin(), accelerator="tpu", devices=8, fast_dev_run=True)
     model = BoringModel()
     trainer.fit(model)
     dataloader = trainer.training_type_plugin.process_dataloader(DataLoader(dataset))
