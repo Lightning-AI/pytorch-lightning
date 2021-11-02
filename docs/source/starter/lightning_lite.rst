@@ -3,15 +3,14 @@ LightningLite - Stepping Stone to Lightning
 ###########################################
 
 
-.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/lite/lightning_lite.gif
-    :alt: Animation showing how to convert a standard training loop to a Lightning loop
-    :width: 600px
-    :align: center
-
-|
-
 :class:`~pytorch_lightning.lite.LightningLite` enables pure PyTorch users to scale their existing code
 on any kind of device while retaining full control over their own loops and optimization logic.
+
+.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/lite/lightning_lite.gif
+    :alt: Animation showing how to convert your PyTorch code to LightningLite.
+    :width: 500
+    :align: center
+
 
 :class:`~pytorch_lightning.lite.LightningLite` is the right tool for you if you match one of the two following descriptions:
 
@@ -246,6 +245,9 @@ from its hundreds of features.
 
 You can see our :class:`~pytorch_lightning.lite.LightningLite` as a
 future :class:`~pytorch_lightning.core.lightning.LightningModule` and slowly refactor your code into its API.
+Below, the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`, :meth:`~pytorch_lightning.core.lightning.LightningModule.forward`,
+:meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers`, :meth:`~pytorch_lightning.core.lightning.LightningModule.train_dataloader`
+are being implemented.
 
 
 .. code-block:: python
@@ -300,7 +302,7 @@ future :class:`~pytorch_lightning.core.lightning.LightningModule` and slowly ref
 
 
 Finally, change the :meth:`~pytorch_lightning.lite.LightningLite.run` into a
-:meth:`~pytorch_lightning.core.lightning.LightningModule.__init__` and drop the inner code for setting up the components.
+:meth:`~pytorch_lightning.core.lightning.LightningModule.__init__` and drop the fit method.
 
 .. code-block:: python
 
