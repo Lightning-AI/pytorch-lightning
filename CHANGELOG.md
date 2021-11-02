@@ -182,7 +182,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Raised `MisconfigurationException` when total length of `dataloader` across ranks is zero, and give warning when total length is non-zero, but only local rank length is zero. ([#9827](https://github.com/PyTorchLightning/pytorch-lightning/pull/9827))
 - Changed the model size calculation using `ByteCounter` ([#10123](https://github.com/PyTorchLightning/pytorch-lightning/pull/10123))
 - Enabled `on_load_checkpoint` for `LightningDataModule` for all `trainer_fn` ([#10238](https://github.com/PyTorchLightning/pytorch-lightning/pull/10238))
-- Allow separate config files for parameters with class type when LightningCLI is in subclass_mode=False ([#10286](https://github.com/PyTorchLightning/pytorch-lightning/pull/10286))
+- Allowed separate config files for parameters with class type when LightningCLI is in `subclass_mode=False` ([#10286](https://github.com/PyTorchLightning/pytorch-lightning/pull/10286))
 
 
 ### Deprecated
