@@ -14,7 +14,7 @@ Trains a simple CNN over MNIST using vanilla PyTorch.
 
 ```bash
 # CPU
-python image_classifier_1_pytorch.py
+python mnist_examples/image_classifier_1_pytorch.py
 ```
 
 ______________________________________________________________________
@@ -25,7 +25,7 @@ This script shows you how to scale the previous script to enable GPU and multi-G
 
 ```bash
 # CPU / multiple GPUs if available
-python image_classifier_2_lite.py
+python mnist_examples/image_classifier_2_lite.py
 ```
 
 ______________________________________________________________________
@@ -36,7 +36,7 @@ This script shows you how to prepare your conversion from [LightningLite](https:
 
 ```bash
 # CPU / multiple GPUs if available
-python image_classifier_3_lite_to_lightning_module.py
+python mnist_examples/image_classifier_3_lite_to_lightning_module.py
 ```
 
 ______________________________________________________________________
@@ -47,10 +47,10 @@ This script shows you the result of the conversion to the `LightningModule` and 
 
 ```bash
 # CPU
-python image_classifier_4_lightning_module.py
+python mnist_examples/image_classifier_4_lightning_module.py
 
 # GPUs (any number)
-python image_classifier_4_lightning_module.py --trainer.gpus 2
+python mnist_examples/image_classifier_4_lightning_module.py --trainer.gpus 2
 ```
 
 ______________________________________________________________________
@@ -61,11 +61,57 @@ This script shows you how to extract the data related components into a `Lightni
 
 ```bash
 # CPU
-python image_classifier_5_lightning_datamodule.py
+python mnist_examples/image_classifier_5_lightning_datamodule.py
 
 # GPUs (any number)
-python image_classifier_5_lightning_datamodule.py --trainer.gpus 2
+python mnist_examples/image_classifier_5_lightning_datamodule.py --trainer.gpus 2
 
 # Distributed Data Parallel (DDP)
-python image_classifier_5_lightning_datamodule.py --trainer.gpus 2 --trainer.strategy 'ddp'
+python mnist_examples/image_classifier_5_lightning_datamodule.py --trainer.gpus 2 --trainer.strategy 'ddp'
+```
+
+______________________________________________________________________
+
+#### AutoEncoder
+
+This script shows you to implement an CNN auto-encoder.
+
+```bash
+# CPU
+python autoencoder.py
+
+# GPUs (any number)
+python autoencoder.py --trainer.gpus 2
+
+# Distributed Data Parallel (DDP)
+python autoencoder.py --trainer.gpus 2 --trainer.strategy 'ddp'
+```
+
+______________________________________________________________________
+
+#### Backbone Image Classifier
+
+This script shows you to implement a `LightningModule` as a `System`.
+A System describes a `LightningModule` which takes a single a `torch.nn.Module` which makes
+exporting to producion simpler.
+
+```bash
+# CPU
+python backbone_image_classifier.py
+
+# GPUs (any number)
+python backbone_image_classifier.py --trainer.gpus 2
+
+# Distributed Data Parallel (DDP)
+python backbone_image_classifier.py --trainer.gpus 2 --trainer.strategy 'ddp'
+```
+
+______________________________________________________________________
+
+#### PyTorch Profiler
+
+This script shows you to activate the [PyTorch Profiler](https://github.com/pytorch/kineto) with Lightning.
+
+```bash
+python profiler_example.py
 ```
