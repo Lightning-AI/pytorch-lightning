@@ -74,7 +74,7 @@ ______________________________________________________________________
 
 #### AutoEncoder
 
-This script shows you to implement an CNN auto-encoder.
+This script shows you how to implement a CNN auto-encoder.
 
 ```bash
 # CPU
@@ -91,9 +91,8 @@ ______________________________________________________________________
 
 #### Backbone Image Classifier
 
-This script shows you to implement a `LightningModule` as a `System`.
-A System describes a `LightningModule` which takes a single a `torch.nn.Module` which makes
-exporting to producion simpler.
+This script shows you how to implement a `LightningModule` as a system.
+A system describes a `LightningModule` which takes a single `torch.nn.Module` which makes exporting to producion simpler.
 
 ```bash
 # CPU
