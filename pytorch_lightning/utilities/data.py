@@ -110,28 +110,29 @@ def has_len_all_ranks(
     try:
         total_length = training_type.reduce(torch.tensor(len(dataloader)).to(model.device), reduce_op="sum")
         local_length = len(dataloader)
-
-        if total_length == 0:
-            raise MisconfigurationException(
-                "Total length of `Dataloader` across ranks is zero. Please make sure that it returns at least 1 batch."
-            )
-        if total_length > 0 and local_length == 0:
-            if model.allow_zero_length_dataloader_with_multiple_devices:
-                rank_zero_warn(
-                    "Total length of `Dataloader` across ranks is zero, but local rank has zero length."
-                    " Please be cautious of uneven batch length."
-                )
-                has_len = False
-            else:
-                raise MisconfigurationException(
-                    "`Dataloader` within local rank has zero length. Please make sure that it returns at least 1 batch."
-                )
-        else:
-            has_len = True
     except TypeError:
-        has_len = False
+        return False
     except NotImplementedError:  # e.g. raised by torchtext if a batch_size_fn is used
-        has_len = False
+        return False
+
+    if total_length == 0:
+        raise MisconfigurationException(
+            "Total length of `Dataloader` across ranks is zero. Please make sure that it returns at least 1 batch."
+        )
+    if total_length > 0 and local_length == 0:
+        if model.allow_zero_length_dataloader_with_multiple_devices:
+            rank_zero_warn(
+                "Total length of `Dataloader` across ranks is zero, but local rank has zero length."
+                " Please be cautious of uneven batch length."
+            )
+            has_len = False
+        else:
+            raise MisconfigurationException(
+                "`Dataloader` within local rank has zero length. Please make sure that it returns at least 1 batch."
+            )
+    else:
+        has_len = True
+
 
     if has_len and has_iterable_dataset(dataloader):
         rank_zero_warn(
