@@ -61,8 +61,8 @@ def test_lite_module_forward_conversion(precision, input_type, expected_type):
 
 
 def test_lite_dataloader_iterator():
-    """Test that the iteration over a LiteDataLoader wraps the iterator of the underlying dataloader
-    (no automatic device placement)."""
+    """Test that the iteration over a LiteDataLoader wraps the iterator of the underlying dataloader (no automatic
+    device placement)."""
     dataloader = DataLoader(range(5), batch_size=2)
     dataloader2 = DataLoader(range(5), batch_size=2)
     lite_dataloader = _LiteDataLoader(dataloader2)
