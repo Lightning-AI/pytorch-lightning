@@ -314,9 +314,13 @@ class DataHooks:
             prepare_data_per_node:
                 If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data.
+            allow_zero_length_dataloader_with_multiple_devices:
+                If True, dataloader with zero length within local rank is allowed.
+                Default value is False.
         """
         super().__init__()
         self.prepare_data_per_node: bool = True
+        self.allow_zero_length_dataloader_with_multiple_devices: bool = False
 
     def prepare_data(self) -> None:
         """Use this to download and prepare data.
