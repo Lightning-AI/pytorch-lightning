@@ -9,11 +9,10 @@ from pytorch_lightning.utilities.data import (
     has_iterable_dataset,
     has_len,
     has_len_all_ranks,
+    warning_cache,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
-from pytorch_lightning.utilities.data import extract_batch_size, get_len, has_iterable_dataset, has_len, warning_cache
-from tests.helpers.boring_model import RandomDataset, RandomIterableDataset
 
 
 def test_extract_batch_size():
