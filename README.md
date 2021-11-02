@@ -140,7 +140,7 @@ Install future release from the source
 pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@release/1.4.x --upgrade
 ```
 
-#### Install bleeding-edge - future 1.5
+#### Install bleeding-edge - future 1.6
 
 Install nightly from the source (no guarantees)
 
