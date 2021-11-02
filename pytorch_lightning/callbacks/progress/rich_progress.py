@@ -201,6 +201,11 @@ class RichProgressBar(ProgressBarBase):
     Raises:
         ModuleNotFoundError:
             If required `rich` package is not installed on the device.
+
+    Note:
+        PyCharm users will need to enable “emulate terminal” in output console option in
+        run/debug configuration to see styled output.
+        Reference: https://rich.readthedocs.io/en/latest/introduction.html#requirements
     """
 
     def __init__(
