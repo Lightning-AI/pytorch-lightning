@@ -64,7 +64,7 @@ def has_iterable_dataset(dataloader: DataLoader) -> bool:
     return hasattr(dataloader, "dataset") and isinstance(dataloader.dataset, IterableDataset)
 
 
-def has_len(dataloader: DataLoader) -> bool:
+def has_len(dataloader: Union[DataLoader, Iterable]) -> bool:
     """Checks if a given Dataloader has ``__len__`` method implemented i.e. if it is a finite dataloader or
     infinite dataloader.
 
