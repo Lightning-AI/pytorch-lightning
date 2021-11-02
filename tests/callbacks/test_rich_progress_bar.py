@@ -163,14 +163,15 @@ def test_rich_progress_bar_configure_columns():
 
 
 @RunIf(rich=True)
-def test_rich_progress_bar_display_every_n_epochs(tmpdir):
+@pytest.mark.parametrize(("display_every_n_epochs", "reset_call_count"), ([(None, 5), (1, 0), (2, 3), (3, 4)]))
+def test_rich_progress_bar_display_every_n_epochs(tmpdir, display_every_n_epochs, reset_call_count):
 
     model = BoringModel()
 
     with mock.patch(
-        "pytorch_lightning.callbacks.progress.rich_progress.Progress.stop", autospec=True
-    ) as mock_progress_stop:
-        progress_bar = RichProgressBar(display_every_n_epochs=2)
+        "pytorch_lightning.callbacks.progress.rich_progress.Progress.reset", autospec=True
+    ) as mock_progress_reset:
+        progress_bar = RichProgressBar(display_every_n_epochs=display_every_n_epochs)
         trainer = Trainer(
             default_root_dir=tmpdir,
             num_sanity_val_steps=0,
@@ -179,7 +180,7 @@ def test_rich_progress_bar_display_every_n_epochs(tmpdir):
             callbacks=progress_bar,
         )
         trainer.fit(model)
-    assert mock_progress_stop.call_count == 3
+    assert mock_progress_reset.call_count == reset_call_count
 
 
 @RunIf(rich=True)
