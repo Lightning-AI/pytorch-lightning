@@ -7,7 +7,7 @@ LightningLite - Stepping Stone to Lightning
 on any kind of device while retaining full control over their own loops and optimization logic.
 
 .. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/lite/lightning_lite.gif
-    :alt: Animation showing how to your PyTorch code to convert to LightningLite.
+    :alt: Animation showing how to convert your PyTorch code to LightningLite.
     :width: 400
     :align: center
 
