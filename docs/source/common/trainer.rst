@@ -543,6 +543,40 @@ will need to be set up to use remote filepaths.
     # default used by the Trainer
     trainer = Trainer(default_root_dir=os.getcwd())
 
+devices
+^^^^^^^
+
+Number of devices to train on (``int``), which devices to train on (``list`` or ``str``), or ``"auto"``.
+It will be mapped to either ``gpus``, ``tpu_cores``, ``num_processes`` or ``ipus``,
+based on the accelerator type (``"cpu", "gpu", "tpu", "ipu", "auto"``).
+
+.. code-block:: python
+
+    # Training with CPU Accelerator using 2 processes
+    trainer = Trainer(devices=2, accelerator="cpu")
+
+    # Training with GPU Accelerator using GPUs 1 and 3
+    trainer = Trainer(devices=[1, 3], accelerator="gpu")
+
+    # Training with TPU Accelerator using 8 tpu cores
+    trainer = Trainer(devices=8, accelerator="tpu")
+
+.. tip:: The ``"auto"`` option recognizes the devices to train on, depending on the ``Accelerator`` being used.
+
+.. code-block:: python
+
+    # If your machine has GPUs, it will use all the available GPUs for training
+    trainer = Trainer(devices="auto", accelerator="auto")
+
+    # Training with CPU Accelerator using 1 process
+    trainer = Trainer(devices="auto", accelerator="cpu")
+
+    # Training with TPU Accelerator using 8 tpu cores
+    trainer = Trainer(devices="auto", accelerator="tpu")
+
+    # Training with IPU Accelerator using 4 ipus
+    trainer = Trainer(devices="auto", accelerator="ipu")
+
 enable_checkpointing
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -632,6 +666,9 @@ Under the hood the pseudocode looks like this when running *fast_dev_run* with a
 
 flush_logs_every_n_steps
 ^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. warning:: ``flush_logs_every_n_steps`` has been deprecated in v1.5 and will be removed in v1.7.
+    Please configure flushing directly in the logger instead.
 
 .. raw:: html
 
@@ -1176,7 +1213,7 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
 
         pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" https://github.com/NVIDIA/apex
 
-    2. Set the `precision` trainer flag to 16. You can customize the `Apex optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`_ by setting the `amp_level` flag.
+    2. Set the ``precision`` trainer flag to 16. You can customize the `Apex optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`_ by setting the `amp_level` flag.
 
     .. testcode::
         :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
@@ -1191,6 +1228,10 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
 
 process_position
 ^^^^^^^^^^^^^^^^
+
+.. warning:: ``process_position`` has been deprecated in v1.5 and will be removed in v1.7.
+    Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``process_position``
+    directly to the Trainer's ``callbacks`` argument instead.
 
 .. raw:: html
 
@@ -1239,10 +1280,11 @@ See the :doc:`profiler documentation <../advanced/profiler>`. for more details.
 
 progress_bar_refresh_rate
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
-Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``refresh_rate``
-directly to the Trainer's ``callbacks`` argument instead. To disable the progress bar,
-pass ``enable_progress_bar = False`` to the Trainer.
+
+.. warning:: ``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
+    Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``refresh_rate``
+    directly to the Trainer's ``callbacks`` argument instead. To disable the progress bar,
+    pass ``enable_progress_bar = False`` to the Trainer.
 
 .. raw:: html
 

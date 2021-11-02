@@ -1,12 +1,8 @@
-## Basic Examples
-
-Use these examples to test how Lightning works.
-
 ## MNIST Examples
 
 Here are 5 MNIST examples showing you how to gradually convert from pure PyTorch to PyTorch Lightning.
 
-The transition through [LightningLite](https://pytorch-lightning.readthedocs.io/en/stable/starter/lightning_lite.rst) from pure PyTorch is optional but it might be helpful to learn about it.
+The transition through [LightningLite](https://pytorch-lightning.readthedocs.io/en/latest/stable/lightning_lite.rst) from pure PyTorch is optional but it might be helpful to learn about it.
 
 #### 1. Image Classifier with Vanilla PyTorch
 
@@ -43,7 +39,7 @@ ______________________________________________________________________
 
 #### 4. Image Classifier with LightningModule
 
-This script shows you the result of the conversion to the `LightningModule` and finally all the benefits you get from the Lightning ecosystem.
+This script shows you the result of the conversion to the `LightningModule` and finally all the benefits you get from Lightning.
 
 ```bash
 # CPU
@@ -66,6 +62,6 @@ python image_classifier_5_lightning_datamodule.py
 # GPUs (any number)
 python image_classifier_5_lightning_datamodule.py --trainer.gpus 2
 
-# Distributed Data Parallel (DDP)
+# Distributed Data parallel
 python image_classifier_5_lightning_datamodule.py --trainer.gpus 2 --trainer.strategy 'ddp'
 ```

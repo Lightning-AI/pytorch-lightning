@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Iterable, Mapping, Union
+from typing import Any, Generator, Iterable, Mapping, Union
 
 import torch
 from torch.utils.data import DataLoader, IterableDataset
@@ -20,35 +20,53 @@ from torch.utils.data import DataLoader, IterableDataset
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.warnings import WarningCache
 
 BType = Union[torch.Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
 
+warning_cache = WarningCache()
+
+
+def _extract_batch_size(batch: BType) -> Generator[int, None, None]:
+    if isinstance(batch, torch.Tensor):
+        yield batch.size(0)
+    elif isinstance(batch, str):
+        yield len(batch)
+    elif isinstance(batch, (Iterable, Mapping)):
+        if isinstance(batch, Mapping):
+            batch = batch.values()
+
+        for sample in batch:
+            yield from _extract_batch_size(sample)
+    else:
+        yield 1
+
 
 def extract_batch_size(batch: BType) -> int:
-    """Recursively unpack a batch to find a torch.Tensor.
+    """Unpack a batch to find a ``torch.Tensor``.
 
     Returns:
         ``len(tensor)`` when found, or ``1`` when it hits an empty or non iterable.
     """
-    if isinstance(batch, torch.Tensor):
-        return batch.size(0)
-    if isinstance(batch, str):
-        return len(batch)
-    if isinstance(batch, dict):
-        sample = next(iter(batch.values()), 1)
-        return extract_batch_size(sample)
-    if isinstance(batch, Iterable):
-        sample = next(iter(batch), 1)
-        return extract_batch_size(sample)
+    batch_size = None
+    for bs in _extract_batch_size(batch):
+        if batch_size is None:
+            batch_size = bs
+        elif batch_size != bs:
+            warning_cache.warn(
+                "Trying to infer the `batch_size` from an ambiguous collection. The batch size we"
+                f" found is {batch_size}. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`."
+            )
+            break
 
-    return 1
+    return batch_size
 
 
 def has_iterable_dataset(dataloader: DataLoader) -> bool:
     return hasattr(dataloader, "dataset") and isinstance(dataloader.dataset, IterableDataset)
 
 
-def has_len(dataloader: DataLoader) -> bool:
+def has_len(dataloader: Union[DataLoader, Iterable]) -> bool:
     """Checks if a given Dataloader has ``__len__`` method implemented i.e. if it is a finite dataloader or
     infinite dataloader.
 
