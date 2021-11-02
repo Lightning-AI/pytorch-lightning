@@ -106,9 +106,7 @@ class _LiteModule(nn.Module):
 def _wrap_init(init: Callable) -> Callable:
     @functools.wraps(init)
     def wrapper(obj: Any, *args: Any, **kwargs: Any) -> None:
-        params = dict(
-            inspect.signature(obj._old_init).parameters
-        )  # TODO: this assumes the existence of an old_init attribute
+        params = dict(inspect.signature(init).parameters)
         params.pop("args")
         params.pop("kwargs")
         for arg_name, arg_value in zip(params, args):
