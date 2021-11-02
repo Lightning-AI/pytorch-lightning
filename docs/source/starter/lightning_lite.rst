@@ -8,7 +8,7 @@ on any kind of device while retaining full control over their own loops and opti
 
 .. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/lite/lightning_lite.gif
     :alt: Animation showing how to convert your PyTorch code to LightningLite.
-    :width: 400
+    :width: 500
     :align: center
 
 
