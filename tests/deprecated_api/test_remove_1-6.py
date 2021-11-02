@@ -36,17 +36,6 @@ from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringDataModule, BoringModel
 
 
-def test_v1_6_0_trainer_model_hook_mixin(tmpdir):
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_checkpointing=False, logger=False)
-    trainer.fit(model)
-    with pytest.deprecated_call(match="is deprecated in v1.4 and will be removed in v1.6"):
-        trainer.is_function_implemented("training_step", model)
-
-    with pytest.deprecated_call(match="is deprecated in v1.4 and will be removed in v1.6"):
-        trainer.has_arg("training_step", "batch")
-
-
 def test_v1_6_0_dataloader_renaming(tmpdir):
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
