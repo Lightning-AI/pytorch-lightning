@@ -52,7 +52,13 @@ from pytorch_lightning.utilities import (
 )
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
-from pytorch_lightning.utilities.distributed import init_ddp_connection, rank_zero_only, ReduceOp, sync_ddp_if_available
+from pytorch_lightning.utilities.distributed import (
+    init_dist_connection,
+    rank_zero_only,
+    ReduceOp,
+    sync_ddp_if_available,
+)
+from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -83,7 +89,7 @@ class DDPPlugin(ParallelPlugin):
     devices (e.g. GPU) per node. It is very similar to how :mod:`torch.distributed.launch` launches processes.
     """
 
-    distributed_backend = "ddp"
+    distributed_backend = DistributedType.DDP
 
     def __init__(
         self,
@@ -270,7 +276,7 @@ class DDPPlugin(ParallelPlugin):
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
-        init_ddp_connection(self.cluster_environment, self.torch_distributed_backend)
+        init_dist_connection(self.cluster_environment, self.torch_distributed_backend)
 
     def _check_can_spawn_children(self):
         if self.local_rank != 0:
