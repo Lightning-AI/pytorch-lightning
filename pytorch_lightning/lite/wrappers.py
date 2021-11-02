@@ -103,37 +103,6 @@ class _LiteModule(nn.Module):
         return output
 
 
-class _LiteDataLoader:
-    def __init__(self, dataloader: DataLoader, device: Optional[torch.device] = None) -> None:
-        """The LiteDataLoader is a wrapper for the :class:`~torch.utils.data.DataLoader`. It moves the data to the
-        device automatically if the device is specified.
-
-        Args:
-            dataloader: The dataloader to wrap
-            device: The device to which the data should be moved. By default the device is `None` and no data
-                transfers will be made (identical behavior as :class:`~torch.utils.data.DataLoader`).
-        """
-        super().__init__()
-        self.__dict__.update(dataloader.__dict__)
-        self._dataloader = dataloader
-        self._device = device
-
-    @property
-    def device(self) -> Optional[torch.device]:
-        return self._device
-
-    def __len__(self) -> int:
-        return len(self._dataloader)
-
-    def __iter__(self) -> Union[Iterator[Any], Generator[Any, None, None]]:
-        iterator = iter(self._dataloader)
-        if self._device is None:
-            return iterator
-
-        for item in iterator:
-            yield move_data_to_device(item, self._device)
-
-
 def _wrap_init(init: Callable) -> Callable:
     @functools.wraps(init)
     def wrapper(obj: Any, *args: Any, **kwargs: Any) -> None:
@@ -181,3 +150,34 @@ def _replace_dataloader_init_method() -> Generator[None, None, None]:
     yield
     for subclass in _get_all_subclasses(DataLoader):
         _disable_class(subclass)
+
+
+class _LiteDataLoader:
+    def __init__(self, dataloader: DataLoader, device: Optional[torch.device] = None) -> None:
+        """The LiteDataLoader is a wrapper for the :class:`~torch.utils.data.DataLoader`. It moves the data to the
+        device automatically if the device is specified.
+
+        Args:
+            dataloader: The dataloader to wrap
+            device: The device to which the data should be moved. By default the device is `None` and no data
+                transfers will be made (identical behavior as :class:`~torch.utils.data.DataLoader`).
+        """
+        super().__init__()
+        self.__dict__.update(dataloader.__dict__)
+        self._dataloader = dataloader
+        self._device = device
+
+    @property
+    def device(self) -> Optional[torch.device]:
+        return self._device
+
+    def __len__(self) -> int:
+        return len(self._dataloader)
+
+    def __iter__(self) -> Union[Iterator[Any], Generator[Any, None, None]]:
+        iterator = iter(self._dataloader)
+        if self._device is None:
+            return iterator
+
+        for item in iterator:
+            yield move_data_to_device(item, self._device)
