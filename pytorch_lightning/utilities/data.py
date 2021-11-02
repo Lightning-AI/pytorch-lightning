@@ -110,7 +110,7 @@ def has_len_all_ranks(
     try:
         total_length = training_type.reduce(torch.tensor(len(dataloader)).to(model.device), reduce_op="sum")
         local_length = len(dataloader)
-    
+
         if total_length == 0:
             raise MisconfigurationException(
                 "Total length of `Dataloader` across ranks is zero. Please make sure that it returns at least 1 batch."
@@ -133,7 +133,7 @@ def has_len_all_ranks(
         has_len = False
     except NotImplementedError:  # e.g. raised by torchtext if a batch_size_fn is used
         has_len = False
-    
+
     if has_len and has_iterable_dataset(dataloader):
         rank_zero_warn(
             "Your `IterableDataset` has `__len__` defined."
