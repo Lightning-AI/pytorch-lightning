@@ -20,7 +20,6 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ProgressBarBase, RichProgressBar
 from pytorch_lightning.callbacks.progress.rich_progress import RichProgressBarTheme
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.runif import RunIf
@@ -163,15 +162,15 @@ def test_rich_progress_bar_configure_columns():
 
 
 @RunIf(rich=True)
-@pytest.mark.parametrize(("display_every_n_epochs", "reset_call_count"), ([(None, 5), (1, 0), (2, 3), (3, 4)]))
-def test_rich_progress_bar_display_every_n_epochs(tmpdir, display_every_n_epochs, reset_call_count):
+@pytest.mark.parametrize(("leave", "reset_call_count"), ([(True, 0), (False, 5)]))
+def test_rich_progress_bar_leave(tmpdir, leave, reset_call_count):
     # Calling `reset` means continuing on the same progress bar.
     model = BoringModel()
 
     with mock.patch(
         "pytorch_lightning.callbacks.progress.rich_progress.Progress.reset", autospec=True
     ) as mock_progress_reset:
-        progress_bar = RichProgressBar(display_every_n_epochs=display_every_n_epochs)
+        progress_bar = RichProgressBar(leave=leave)
         trainer = Trainer(
             default_root_dir=tmpdir,
             num_sanity_val_steps=0,
@@ -181,9 +180,3 @@ def test_rich_progress_bar_display_every_n_epochs(tmpdir, display_every_n_epochs
         )
         trainer.fit(model)
     assert mock_progress_reset.call_count == reset_call_count
-
-
-@RunIf(rich=True)
-def test_rich_progress_bar_display_every_n_steps_misconfiguration():
-    with pytest.raises(MisconfigurationException, match=r"`display_every_n_epochs` should be an int >= 0"):
-        Trainer(callbacks=RichProgressBar(display_every_n_epochs="test"))
