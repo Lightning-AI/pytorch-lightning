@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import inspect
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generic, Optional, TypeVar
+from typing import Any, Dict, Generic, Optional, Type, TypeVar
 
 from deprecate import void
 from torchmetrics import Metric
@@ -98,6 +98,35 @@ class Loop(ABC, Generic[T]):
 
         Linked loops should form a tree.
         """
+
+    def replace(self, loop_cls: Type["Loop"]) -> "Loop":
+        # find the target
+        for name, old_loop in self.__dict__.items():
+            if issubclass(loop_cls, type(old_loop)):
+                break
+        else:
+            raise MisconfigurationException(
+                f"Did not find an attribute with the same parent class as `{loop_cls.__name__}`"
+            )
+        # compare the signatures
+        old_parameters = inspect.signature(old_loop.__class__.__init__).parameters
+        current_parameters = inspect.signature(loop_cls.__init__).parameters
+        if old_parameters != current_parameters:
+            raise MisconfigurationException(
+                f"`{self.__class__.__name__}.replace({loop_cls.__name__})` can only be used if the `__init__`"
+                f" signatures match but `{old_loop.__class__.__name__}` does not."
+            )
+        # instantiate the loop
+        kwargs = {p: getattr(old_loop, p) for p in old_parameters if p != "self"}
+        loop = loop_cls(**kwargs)
+        # connect subloops
+        kwargs = {n: l for n, l in old_loop.__dict__.items() if isinstance(l, Loop)}
+        loop.connect(**kwargs)
+        # set the trainer reference
+        loop.trainer = self.trainer
+        # connect to self
+        self.connect(**{name: loop})
+        return loop
 
     def on_skip(self) -> Optional[Any]:
         """The function to run when :meth:`run` should be skipped, determined by the condition in :attr:`skip`.

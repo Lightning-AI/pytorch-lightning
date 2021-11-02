@@ -267,17 +267,25 @@ run (optional)
 Subloops
 --------
 
-When you want to customize nested loops within loops, use the :meth:`~pytorch_lightning.loops.base.Loop.connect` method:
+When you want to customize nested loops within loops, use the :meth:`~pytorch_lightning.loops.base.Loop.replace` method:
 
 .. code-block:: python
 
-    # Step 1: create your loop
-    my_epoch_loop = MyEpochLoop()
-
-    # Step 2: use connect()
-    trainer.fit_loop.connect(epoch_loop=my_epoch_loop)
-
+    # This takes care of properly instantiating the new Loop and setting all references
+    trainer.fit_loop.replace(MyEpochLoop)
     # Trainer runs the fit loop with your new epoch loop!
+    trainer.fit(model)
+
+Alternatively, for more fine-grained control, use the :meth:`~pytorch_lightning.loops.base.Loop.connect` method:
+
+.. code-block:: python
+
+    # Optional: stitch back the trainer arguments
+    epoch_loop = MyEpochLoop(trainer.fit_loop.epoch_loop.min_steps, trainer.fit_loop.epoch_loop.max_steps)
+    # Optional: connect children loops as they might have existing state
+    epoch_loop.connect(trainer.fit_loop.epoch_loop.batch_loop, trainer.fit_loop.epoch_loop.val_loop)
+    # Instantiate and connect the loop.
+    trainer.fit_loop.connect(epoch_loop=epoch_loop)
     trainer.fit(model)
 
 More about the built-in loops and how they are composed is explained in the next section.

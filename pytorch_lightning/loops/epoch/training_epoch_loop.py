@@ -61,8 +61,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.batch_progress = BatchProgress()
         self.scheduler_progress = SchedulerProgress()
 
-        self.batch_loop: Optional[TrainingBatchLoop] = None
-        self.val_loop: Optional["loops.EvaluationLoop"] = None
+        self.batch_loop = TrainingBatchLoop()
+        self.val_loop = loops.EvaluationLoop()
 
         self._results = ResultCollection(training=True)
         self._outputs: _OUTPUTS_TYPE = []
@@ -106,7 +106,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def connect(
         self,
-        batch_loop: TrainingBatchLoop = None,
+        batch_loop: Optional[TrainingBatchLoop] = None,
         val_loop: Optional["loops.EvaluationLoop"] = None,
     ) -> None:
         """Optionally connect a custom batch or validation loop to this training epoch loop."""
@@ -117,8 +117,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run."""
-        assert self.batch_loop is not None
-        assert self.batch_loop.optimizer_loop is not None
         if self.restarting:
             self.batch_progress.reset_on_restart()
             self.scheduler_progress.reset_on_restart()

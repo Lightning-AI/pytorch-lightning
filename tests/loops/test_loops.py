@@ -23,9 +23,11 @@ import torch
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import Callback, ModelCheckpoint
-from pytorch_lightning.loops import Loop, TrainingBatchLoop
+from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.loops import Loop, PredictionEpochLoop, TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.trainer.progress import BaseProgress
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -61,7 +63,7 @@ def test_connect_loops_direct(loop_name):
 
     trainer = Trainer()
 
-    # trainer.loop = loop
+    # trainer.loop_name = loop
     setattr(trainer, loop_name, loop)
     assert loop.trainer is trainer
 
@@ -100,6 +102,36 @@ def test_connect_subloops(tmpdir):
 
     trainer.fit(model)
     assert new_batch_loop.trainer is trainer
+
+
+def test_replace_loops():
+    class TestLoop(TrainingEpochLoop):
+        def __init__(self, foo):
+            super().__init__()
+
+    trainer = Trainer(min_steps=123, max_steps=321)
+
+    with pytest.raises(
+        MisconfigurationException, match=r"FitLoop.replace\(TestLoop\)`.*`__init__`.*`TrainingEpochLoop`"
+    ):
+        trainer.fit_loop.replace(TestLoop)
+
+    with pytest.raises(MisconfigurationException, match="Did not find.*same parent class as `PredictionEpochLoop`"):
+        trainer.fit_loop.replace(PredictionEpochLoop)
+
+    class TestLoop(TrainingEpochLoop):
+        ...
+
+    old_loop = trainer.fit_loop.epoch_loop
+    new_loop = trainer.fit_loop.replace(TestLoop)
+
+    assert isinstance(new_loop, TestLoop)
+    assert trainer.fit_loop.epoch_loop is new_loop
+    assert new_loop.min_steps == 123
+    assert new_loop.max_steps == 321
+    assert new_loop.batch_loop is old_loop.batch_loop
+    assert new_loop.val_loop is old_loop.val_loop
+    assert new_loop.trainer is trainer
 
 
 class CustomException(Exception):
