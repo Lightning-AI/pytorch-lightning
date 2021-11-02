@@ -144,7 +144,7 @@ def test_rich_progress_bar_keyboard_interrupt(tmpdir):
 
 
 @RunIf(rich=True)
-def test_rich_progress_bar_configure_columns(tmpdir):
+def test_rich_progress_bar_configure_columns():
     from rich.progress import TextColumn
 
     custom_column = TextColumn("[progress.description]Testing Rich!")
@@ -159,3 +159,24 @@ def test_rich_progress_bar_configure_columns(tmpdir):
 
     assert progress_bar.progress.columns[0] == custom_column
     assert len(progress_bar.progress.columns) == 1
+
+
+@RunIf(rich=True)
+@pytest.mark.parametrize(("leave", "reset_call_count"), ([(True, 0), (False, 5)]))
+def test_rich_progress_bar_leave(tmpdir, leave, reset_call_count):
+    # Calling `reset` means continuing on the same progress bar.
+    model = BoringModel()
+
+    with mock.patch(
+        "pytorch_lightning.callbacks.progress.rich_progress.Progress.reset", autospec=True
+    ) as mock_progress_reset:
+        progress_bar = RichProgressBar(leave=leave)
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            num_sanity_val_steps=0,
+            limit_train_batches=1,
+            max_epochs=6,
+            callbacks=progress_bar,
+        )
+        trainer.fit(model)
+    assert mock_progress_reset.call_count == reset_call_count

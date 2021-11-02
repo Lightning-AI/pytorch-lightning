@@ -195,6 +195,7 @@ class RichProgressBar(ProgressBarBase):
 
     Args:
         refresh_rate_per_second: the number of updates per second. If refresh_rate is 0, progress bar is disabled.
+        leave: Leaves the finished progress bar in the terminal at the end of the epoch. Default: False
         theme: Contains styles used to stylize the progress bar.
 
     Raises:
@@ -205,6 +206,7 @@ class RichProgressBar(ProgressBarBase):
     def __init__(
         self,
         refresh_rate_per_second: int = 10,
+        leave: bool = False,
         theme: RichProgressBarTheme = RichProgressBarTheme(),
     ) -> None:
         if not _RICH_AVAILABLE:
@@ -213,6 +215,7 @@ class RichProgressBar(ProgressBarBase):
             )
         super().__init__()
         self._refresh_rate_per_second: int = refresh_rate_per_second
+        self._leave: bool = leave
         self._enabled: bool = True
         self.progress: Optional[Progress] = None
         self.val_sanity_progress_bar_id: Optional[int] = None
@@ -323,9 +326,15 @@ class RichProgressBar(ProgressBarBase):
         total_batches = total_train_batches + total_val_batches
 
         train_description = self._get_train_description(trainer.current_epoch)
+        if self.main_progress_bar_id is not None and self._leave:
+            self._stop_progress()
+            self._init_progress(trainer, pl_module)
         if self.main_progress_bar_id is None:
             self.main_progress_bar_id = self._add_task(total_batches, train_description)
-        self.progress.reset(self.main_progress_bar_id, total=total_batches, description=train_description)
+        else:
+            self.progress.reset(
+                self.main_progress_bar_id, total=total_batches, description=train_description, visible=True
+            )
 
     def on_validation_epoch_start(self, trainer, pl_module):
         super().on_validation_epoch_start(trainer, pl_module)
