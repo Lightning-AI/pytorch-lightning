@@ -195,7 +195,7 @@ class RichProgressBar(ProgressBarBase):
 
     Args:
         refresh_rate_per_second: the number of updates per second. If refresh_rate is 0, progress bar is disabled.
-        leave: Displays progress bar per epoch. Default: False
+        leave: Leaves the finished progress bar in the terminal at the end of the epoch. Default: False
         theme: Contains styles used to stylize the progress bar.
 
     Raises:
