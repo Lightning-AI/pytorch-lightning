@@ -104,6 +104,8 @@ class _LiteModule(nn.Module):
 
 
 def _wrap_init(init: Callable) -> Callable:
+    """Wraps the ``__init__`` method of the dataloader in order to enable re-instantiation of custom (subclasses)."""
+
     @functools.wraps(init)
     def wrapper(obj: Any, *args: Any, **kwargs: Any) -> None:
         params = dict(inspect.signature(init).parameters)
@@ -118,6 +120,7 @@ def _wrap_init(init: Callable) -> Callable:
 
 # https://stackoverflow.com/a/63851681/9201239
 def _get_all_subclasses(cls: Type[Any]) -> Set[Type[Any]]:
+    """Returns a list of all classes that inherit directly or indirectly from the given class."""
     subclass_list = []
 
     def recurse(cl: Type[Any]) -> None:
