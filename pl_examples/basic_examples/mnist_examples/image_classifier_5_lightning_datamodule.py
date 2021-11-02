@@ -18,7 +18,6 @@ To run: python image_classifier_5_lightning_datamodule.py --trainer.max_epochs=5
 import torch
 import torchvision.transforms as T
 from torch.nn import functional as F
-from torchmetrics.classification import Accuracy
 
 from pl_examples import cli_lightning_logo
 from pl_examples.basic_examples.mnist_datamodule import MNIST
@@ -32,7 +31,6 @@ class ImageClassifier(LightningModule):
         super().__init__()
         self.save_hyperparameters()
         self.model = model or Net()
-        self.test_acc = Accuracy()
 
     def forward(self, x):
         return self.model(x)
@@ -47,11 +45,7 @@ class ImageClassifier(LightningModule):
         x, y = batch
         logits = self.forward(x)
         loss = F.nll_loss(logits, y.long())
-        self.test_acc(logits, y.long())
         return loss
-
-    def test_epoch_end(self, *_) -> None:
-        self.log("test_acc", self.test_acc.compute())
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adadelta(self.model.parameters(), lr=self.hparams.lr)
