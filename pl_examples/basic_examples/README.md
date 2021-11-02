@@ -110,7 +110,7 @@ ______________________________________________________________________
 
 #### PyTorch Profiler
 
-This script shows you to activate the [PyTorch Profiler](https://github.com/pytorch/kineto) with Lightning.
+This script shows you how to activate the [PyTorch Profiler](https://github.com/pytorch/kineto) with Lightning.
 
 ```bash
 python profiler_example.py
