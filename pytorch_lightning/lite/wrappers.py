@@ -174,9 +174,9 @@ class _LiteDataLoader:
         return self._device
 
     def __iter__(self) -> Union[Iterator[Any], Generator[Any, None, None]]:
-        dataloader_iter = iter(self._dataloader)
+        iterator = iter(self._dataloader)
         if self._device is None:
-            return dataloader_iter
+            yield from iterator
 
-        for item in dataloader_iter:
+        for item in iterator:
             yield move_data_to_device(item, self._device)

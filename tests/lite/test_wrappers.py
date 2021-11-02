@@ -60,6 +60,27 @@ def test_lite_module_forward_conversion(precision, input_type, expected_type):
     assert out.dtype == torch.get_default_dtype()
 
 
+def test_lite_dataloader_iterator():
+    """Test that the iteration over a LiteDataLoader wraps the iterator of the underlying dataloader (no automatic
+    device placement)."""
+    dataloader = DataLoader(range(5), batch_size=2)
+    lite_dataloader = _LiteDataLoader(dataloader)
+    assert len(lite_dataloader) == len(dataloader) == 3
+
+    iterator = iter(dataloader)
+    lite_iterator = iter(lite_dataloader)
+
+    assert torch.equal(next(iterator), next(lite_iterator))
+    assert torch.equal(next(iterator), next(lite_iterator))
+    assert torch.equal(next(iterator), next(lite_iterator))
+
+    with pytest.raises(StopIteration):
+        next(iterator)
+
+    with pytest.raises(StopIteration):
+        next(lite_iterator)
+
+
 @pytest.mark.parametrize(
     "src_device, dest_device",
     [
@@ -83,17 +104,6 @@ def test_lite_dataloader_device_placement(src_device, dest_device):
 
     batch1 = next(iterator)
     assert torch.equal(batch1["data"], torch.tensor([2, 3], device=dest_device))
-
-    with pytest.raises(StopIteration):
-        batch1 = next(iterator)
-
-    lite_dataloader = _LiteDataLoader(dataloader=[sample0, sample1, sample2, sample3], device=dest_device)
-    iterator = iter(lite_dataloader)
-
-    batch0 = next(iterator)
-    assert batch0 == 0
-
-    assert len(lite_dataloader) == 4
 
 
 def test_lite_optimizer_wraps():
