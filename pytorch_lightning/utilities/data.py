@@ -133,7 +133,6 @@ def has_len_all_ranks(
     else:
         has_len = True
 
-
     if has_len and has_iterable_dataset(dataloader):
         rank_zero_warn(
             "Your `IterableDataset` has `__len__` defined."
