@@ -32,7 +32,7 @@ from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, rank_zero_warn, set_shared_parameters
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.data import has_len_all_ranks
+from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -82,22 +82,20 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def root_device(self) -> torch.device:
         return xm.xla_device()
 
-    def _validate_dataloader(
-        self,
-        dataloaders: Union[List[DataLoader], DataLoader],
-        module: Union["pl.LightningModule", "pl.LightningDataModule"],
-    ) -> None:
+    @staticmethod
+    def _validate_dataloader(dataloaders: Union[List[DataLoader], DataLoader]) -> None:
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]
 
         for dataloader in dataloaders:
-            if not has_len_all_ranks(dataloader, self, module):
+            if not has_len(dataloader):
                 raise MisconfigurationException(
                     "TPUs do not currently support IterableDataset objects, the dataset must implement `__len__`."
                     " HINT: You can mock the length on your dataset to bypass this MisconfigurationException."
                 )
 
-    def _validate_patched_dataloaders(self, model: "pl.LightningModule") -> None:
+    @staticmethod
+    def _validate_patched_dataloaders(model: "pl.LightningModule") -> None:
         """Validate and fail fast if the dataloaders were passed directly to fit."""
         connector: DataConnector = model.trainer._data_connector
         sources = (
@@ -108,10 +106,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         )
         for source in sources:
             if not source.is_module():
-                self._validate_dataloader(source.instance, model)
+                TPUSpawnPlugin._validate_dataloader(source.instance)
 
     def connect(self, model: "pl.LightningModule") -> None:
-        self._validate_patched_dataloaders(model)
+        TPUSpawnPlugin._validate_patched_dataloaders(model)
         self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
 
@@ -140,7 +138,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         return os.getenv(xenv.HOST_WORLD_SIZE, None) and self.world_size != 1
 
     def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
-        self._validate_dataloader(dataloader, self.lightning_module)
+        TPUSpawnPlugin._validate_dataloader(dataloader)
         dataloader = MpDeviceLoader(dataloader, self.root_device)
         # Mimic interface to torch.utils.data.DataLoader
         dataloader.dataset = dataloader._loader.dataset
