@@ -165,7 +165,7 @@ def test_rich_progress_bar_configure_columns():
 @RunIf(rich=True)
 @pytest.mark.parametrize(("display_every_n_epochs", "reset_call_count"), ([(None, 5), (1, 0), (2, 3), (3, 4)]))
 def test_rich_progress_bar_display_every_n_epochs(tmpdir, display_every_n_epochs, reset_call_count):
-
+    # Calling `reset` means continuing on the same progress bar.
     model = BoringModel()
 
     with mock.patch(
