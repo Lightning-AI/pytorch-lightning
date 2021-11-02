@@ -20,6 +20,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ProgressBarBase, RichProgressBar
 from pytorch_lightning.callbacks.progress.rich_progress import RichProgressBarTheme
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.runif import RunIf
@@ -144,7 +145,7 @@ def test_rich_progress_bar_keyboard_interrupt(tmpdir):
 
 
 @RunIf(rich=True)
-def test_rich_progress_bar_configure_columns(tmpdir):
+def test_rich_progress_bar_configure_columns():
     from rich.progress import TextColumn
 
     custom_column = TextColumn("[progress.description]Testing Rich!")
@@ -159,3 +160,29 @@ def test_rich_progress_bar_configure_columns(tmpdir):
 
     assert progress_bar.progress.columns[0] == custom_column
     assert len(progress_bar.progress.columns) == 1
+
+
+@RunIf(rich=True)
+def test_rich_progress_bar_display_every_n_epochs(tmpdir):
+
+    model = BoringModel()
+
+    with mock.patch(
+        "pytorch_lightning.callbacks.progress.rich_progress.Progress.stop", autospec=True
+    ) as mock_progress_stop:
+        progress_bar = RichProgressBar(display_every_n_epochs=2)
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            num_sanity_val_steps=0,
+            limit_train_batches=1,
+            max_epochs=6,
+            callbacks=progress_bar,
+        )
+        trainer.fit(model)
+    assert mock_progress_stop.call_count == 3
+
+
+@RunIf(rich=True)
+def test_rich_progress_bar_display_every_n_steps_misconfiguration():
+    with pytest.raises(MisconfigurationException, match=r"`display_every_n_epochs` should be an int >= 0"):
+        Trainer(callbacks=RichProgressBar(display_every_n_epochs="test"))
