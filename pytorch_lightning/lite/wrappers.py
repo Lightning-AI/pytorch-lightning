@@ -14,7 +14,7 @@
 import functools
 import inspect
 from contextlib import contextmanager
-from typing import Any, Callable, Generator, Iterator, Optional, Set, Type, Union, Sized
+from typing import Any, Callable, Generator, Iterator, Optional, Set, Sized, Type, Union
 
 import torch
 from torch import nn as nn
