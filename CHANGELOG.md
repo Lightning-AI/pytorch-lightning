@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [1.5.0] - 2021-MM-DD
+## [1.5.0] - 2021-11-02
 
 ### Added
 
@@ -305,9 +305,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue with `pl.utilities.seed.reset_seed` converting the `PL_SEED_WORKERS` environment variable to `bool` ([#10099](https://github.com/PyTorchLightning/pytorch-lightning/pull/10099))
 - Fixed iterating over a logger collection when `fast_dev_run > 0` ([#10232](https://github.com/PyTorchLightning/pytorch-lightning/pull/10232))
 - Fixed `batch_size` in `ResultCollection` not being reset to 1 on epoch end ([#10242](https://github.com/PyTorchLightning/pytorch-lightning/pull/10242))
-
-
-- Fixed `distrib_type` not being set when Training Plugin instances being passed to Trainer ([#10251](https://github.com/PyTorchLightning/pytorch-lightning/pull/10251))
+- Fixed `distrib_type` not being set when training plugin instances are being passed to the Trainer ([#10251](https://github.com/PyTorchLightning/pytorch-lightning/pull/10251))
 
 
 ## [1.4.9] - 2021-09-30
