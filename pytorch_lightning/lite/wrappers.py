@@ -14,7 +14,7 @@
 import functools
 import inspect
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Generator, Iterable, Iterator, Optional, Set, Sized, Type, Union
+from typing import Any, Callable, Generator, Iterator, Optional, Set, Type, Union
 
 import torch
 from torch import nn as nn
@@ -121,6 +121,9 @@ class _LiteDataLoader:
     @property
     def device(self) -> Optional[torch.device]:
         return self._device
+
+    def __len__(self) -> int:
+        return len(self._dataloader)
 
     def __iter__(self) -> Union[Iterator[Any], Generator[Any, None, None]]:
         iterator = iter(self._dataloader)
