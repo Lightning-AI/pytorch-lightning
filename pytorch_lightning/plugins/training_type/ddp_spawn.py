@@ -81,7 +81,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
         )
-        
+
         self._ddp_kwargs = kwargs
         self.num_processes = len(parallel_devices) if parallel_devices is not None else 0
         self.mp_queue = None
