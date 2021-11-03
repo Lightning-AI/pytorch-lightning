@@ -58,7 +58,6 @@ from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnecto
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
@@ -107,7 +106,6 @@ warnings.filterwarnings(
 
 class Trainer(
     TrainerCallbackHookMixin,
-    TrainerModelHooksMixin,
     TrainerOptimizersMixin,
     TrainerDataLoadingMixin,
 ):

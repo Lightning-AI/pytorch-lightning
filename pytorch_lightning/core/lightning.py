@@ -703,7 +703,7 @@ class LightningModule(
         """
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
-    def training_step_end(self, *args, **kwargs) -> STEP_OUTPUT:
+    def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
         """Use this when training with dp or ddp2 because :meth:`training_step` will operate on only part of the
         batch. However, this is still optional and only needed for things like softmax or NCE loss.
 
@@ -715,11 +715,11 @@ class LightningModule(
 
             # pseudocode
             sub_batches = split_batches_for_dp(batch)
-            batch_parts_outputs = [training_step(sub_batch) for sub_batch in sub_batches]
-            training_step_end(batch_parts_outputs)
+            step_output = [training_step(sub_batch) for sub_batch in sub_batches]
+            training_step_end(step_output)
 
         Args:
-            batch_parts_outputs: What you return in `training_step` for each batch part.
+            step_output: What you return in `training_step` for each batch part.
 
         Return:
             Anything
@@ -898,12 +898,11 @@ class LightningModule(
 
             # pseudocode
             sub_batches = split_batches_for_dp(batch)
-            batch_parts_outputs = [validation_step(sub_batch) for sub_batch in sub_batches]
-            validation_step_end(batch_parts_outputs)
+            step_output = [validation_step(sub_batch) for sub_batch in sub_batches]
+            validation_step_end(step_output)
 
         Args:
-            batch_parts_outputs: What you return in :meth:`validation_step`
-                for each batch part.
+            step_output: What you return in :meth:`validation_step` for each batch part.
 
         Return:
             None or anything
@@ -1076,11 +1075,11 @@ class LightningModule(
 
             # pseudocode
             sub_batches = split_batches_for_dp(batch)
-            batch_parts_outputs = [test_step(sub_batch) for sub_batch in sub_batches]
-            test_step_end(batch_parts_outputs)
+            step_output = [test_step(sub_batch) for sub_batch in sub_batches]
+            test_step_end(step_output)
 
         Args:
-            batch_parts_outputs: What you return in :meth:`test_step` for each batch part.
+            step_output: What you return in :meth:`test_step` for each batch part.
 
         Return:
             None or anything
