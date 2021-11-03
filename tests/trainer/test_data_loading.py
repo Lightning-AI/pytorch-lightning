@@ -344,7 +344,7 @@ def test_loader_detaching():
 
 
 def test_pre_made_batches():
-    """ Check that loader works with pre-made batches """
+    """Check that loader works with pre-made batches."""
 
     # set up model
     model = LoaderTestModel()
