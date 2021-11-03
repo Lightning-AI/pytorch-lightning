@@ -164,44 +164,38 @@ def test_setup_dataloaders_return_type():
     assert lite_dataloader1.dataset is dataset1
 
 
-def test_setup_custom_dataloaders_new():
-    """Test that the setup_dataloaders method returns the dataloaders wrapped as LiteDataLoader."""
+def test_setup_dataloaders_raises_for_unknown_custom_args():
+    """Test that an error raises when custom dataloaders with unknown arguments are created from outside Lite's
+    run method."""
+    lite = EmptyLite()
 
     class CustomDataLoader(DataLoader):
-        def __init__(self, attribute1, *args, **kwargs):
-            self.attribute1 = attribute1
-            super().__init__(*args, **kwargs)
+        def __init__(self, new_arg, *args, **kwargs):
+            super().__init__(range(5), *args, **kwargs)
 
-    class CustomDataLoader2(CustomDataLoader):
-        def __init__(self, attribute1, attribute2, *args, **kwargs):
-            self.attribute2 = attribute2
-            super().__init__(attribute1, *args, **kwargs)
-
-    class LiteWithCustomDataLoader(LightningLite):
-        def run(self):
-            dataloader = CustomDataLoader2("attribute1", "attribute2", dataset=range(4), batch_size=2)
-            lite_dataloader = self.setup_dataloaders(dataloader)
-            assert lite_dataloader._dataloader.attribute1 == "attribute1"
-            assert lite_dataloader._dataloader.attribute2 == "attribute2"
-
-    LiteWithCustomDataLoader().run()
+    with pytest.raises(
+        MisconfigurationException, match="Trying to inject `DistributedSampler` into the `CustomDataLoader` instance"
+    ):
+        # The dataloader was not created within the run function, and therefore init args were not intercepted
+        dataloader = CustomDataLoader(2, batch_size=2)
+        lite.setup_dataloaders(dataloader)
 
 
-def test_setup_custom_dataloaders():
-    """Test that the setup_dataloaders method returns the dataloaders wrapped as LiteDataLoader."""
-
-    class CustomDataLoader(DataLoader):
-        def __init__(self, anything: int, *args, **kwargs):
-            super().__init__([0, 1, 2, 3], *args, **kwargs)
-
-    class LiteWithCustomDataLoader(LightningLite):
-        def run(self):
-            # This doesn't fail as the context manager would save all the arguments provided to the dataloaders.
-            dataloader = CustomDataLoader(2, batch_size=2)
-            lite_dataloader = self.setup_dataloaders(dataloader)
-            assert len(lite_dataloader) == 4
-
-    LiteWithCustomDataLoader().run()
+# def test_setup_custom_dataloaders():
+#     """Test that the setup_dataloaders method returns the dataloaders wrapped as LiteDataLoader."""
+#
+#     class CustomDataLoader(DataLoader):
+#         def __init__(self, anything: int, *args, **kwargs):
+#             super().__init__([0, 1, 2, 3], *args, **kwargs)
+#
+#     class LiteWithCustomDataLoader(LightningLite):
+#         def run(self):
+#             # This doesn't fail as the context manager would save all the arguments provided to the dataloaders.
+#             dataloader = CustomDataLoader(2, batch_size=2)
+#             lite_dataloader = self.setup_dataloaders(dataloader)
+#             assert len(lite_dataloader) == 4
+#
+#     LiteWithCustomDataLoader().run()
 
 
 def test_setup_dataloaders_twice_fails():
