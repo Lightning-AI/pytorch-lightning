@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
-from typing import Type, Any
+from typing import Any, Type
 
 from pytorch_lightning.utilities import rank_zero_deprecation
 
@@ -22,7 +22,7 @@ class ClusterEnvironment(ABC):
 
     def __new__(cls, *args: Any, **kwargs: Any) -> "ClusterEnvironment":
         _check_for_deprecated_methods(cls)
-        return super(ClusterEnvironment, cls).__new__(cls, *args, **kwargs)
+        return super().__new__(cls, *args, **kwargs)
 
     @property
     @abstractmethod
