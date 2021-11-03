@@ -187,7 +187,7 @@ def test_setup_dataloaders_with_custom_type():
     LiteWithCustomDataLoader().run()
 
 
-def test_setup_dataloaders_raises_for_unknown_custom_args():
+def test_setup_custom_dataloaders():
     """Test that the setup_dataloaders method returns the dataloaders wrapped as LiteDataLoader."""
     lite = EmptyLite()
 
