@@ -12,12 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
+from typing import Type, Any
 
 from pytorch_lightning.utilities import rank_zero_deprecation
 
 
 class ClusterEnvironment(ABC):
     """Specification of a cluster environment."""
+
+    def __new__(cls, *args: Any, **kwargs: Any) -> "ClusterEnvironment":
+        _check_for_deprecated_methods(cls)
+        return super(ClusterEnvironment, cls).__new__(cls, *args, **kwargs)
 
     @property
     @abstractmethod
@@ -74,3 +79,16 @@ class ClusterEnvironment(ABC):
     def teardown(self) -> None:
         """Clean up any state set after execution finishes."""
         pass
+
+
+def _check_for_deprecated_methods(cls: Type[ClusterEnvironment]) -> None:
+    if hasattr(cls, "master_address") and callable(cls.master_address):
+        rank_zero_deprecation(
+            f"`{cls.__name__}.master_address` has been deprecated in v1.6 and will be removed in 1.7."
+            " Implement the property `main_address` instead (do not forget to add the `@property` decorator."
+        )
+    if hasattr(cls, "master_port") and callable(cls.master_port):
+        rank_zero_deprecation(
+            f"`{cls.__name__}.master_port` has been deprecated in v1.6 and will be removed in 1.7."
+            " Implement the property `main_port` instead (do not forget to add the `@property` decorator."
+        )
