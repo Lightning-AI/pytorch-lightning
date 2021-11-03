@@ -183,9 +183,11 @@ def test_setup_dataloaders_with_custom_type():
     class LiteWithCustomDataLoader(LightningLite):
         def run(self):
             dataloader = DataLoaderSubclass2("attribute1", "attribute2", dataset=range(4), batch_size=2)
+            assert dataloader.attribute1 == "attribute1"
+            assert dataloader.attribute2 == "attribute2"
             lite_dataloader = self.setup_dataloaders(dataloader)
-            assert lite_dataloader._dataloader.attribute1 == "attribute1"
-            assert lite_dataloader._dataloader.attribute2 == "attribute2"
+            assert lite_dataloader.attribute1 == "attribute1"
+            assert lite_dataloader.attribute2 == "attribute2"
 
     LiteWithCustomDataLoader().run()
 
