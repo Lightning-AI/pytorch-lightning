@@ -14,6 +14,7 @@
 import functools
 import inspect
 from contextlib import contextmanager
+from itertools import chain
 from typing import Any, Callable, Dict, Generator, Iterable, Iterator, Optional, Set, Sized, Type, Union
 
 import torch
@@ -109,7 +110,7 @@ def _wrap_init(f: Callable) -> Callable:
         params = dict(inspect.signature(module._old_init).parameters)
         params.pop("args")
         params.pop("kwargs")
-        for init_name, init_arg in zip(params, args):
+        for init_name, init_arg in chain(zip(params, args), kwargs.items()):
             setattr(module, init_name, init_arg)
         f(module, *args, **kwargs)
 
