@@ -283,25 +283,26 @@ def test_dataloader_reinit_for_subclass():
         trainer.prepare_dataloader(dataloader, shuffle=True)
 
 
+class LoaderTestModel(BoringModel):
+    def training_step(self, batch, batch_idx):
+        assert len(self.trainer.train_dataloader.loaders) == 10
+        return super().training_step(batch, batch_idx)
+
+    def validation_step(self, batch, batch_idx):
+        assert len(self.trainer.val_dataloaders[0]) == 10
+        return super().validation_step(batch, batch_idx)
+
+    def test_step(self, batch, batch_idx):
+        assert len(self.trainer.test_dataloaders[0]) == 10
+        return super().test_step(batch, batch_idx)
+
+    def predict_step(self, batch, batch_idx, dataloader_idx=None):
+        assert len(self.trainer.predict_dataloaders[0]) == 10
+        return super().predict_step(batch, batch_idx, dataloader_idx=dataloader_idx)
+
+
 def test_loader_detaching():
     """Checks that the loader has been resetted after the entrypoint."""
-
-    class LoaderTestModel(BoringModel):
-        def training_step(self, batch, batch_idx):
-            assert len(self.trainer.train_dataloader.loaders) == 10
-            return super().training_step(batch, batch_idx)
-
-        def validation_step(self, batch, batch_idx):
-            assert len(self.trainer.val_dataloaders[0]) == 10
-            return super().validation_step(batch, batch_idx)
-
-        def test_step(self, batch, batch_idx):
-            assert len(self.trainer.test_dataloaders[0]) == 10
-            return super().test_step(batch, batch_idx)
-
-        def predict_step(self, batch, batch_idx, dataloader_idx=None):
-            assert len(self.trainer.predict_dataloaders[0]) == 10
-            return super().predict_step(batch, batch_idx, dataloader_idx=dataloader_idx)
 
     loader = DataLoader(RandomDataset(32, 10), batch_size=1)
 
@@ -340,3 +341,19 @@ def test_loader_detaching():
     assert len(model.val_dataloader()) == 64
     assert len(model.predict_dataloader()) == 64
     assert len(model.test_dataloader()) == 64
+
+
+def test_pre_made_batches():
+    """ Check that loader works with pre-made batches """
+
+    # set up model
+    model = LoaderTestModel()
+
+    # set up dataloader, with premade batches
+    loader = DataLoader(RandomDataset(32, 10), batch_size=None)
+
+    # set up trainer
+    trainer = Trainer(gpus=0, max_epochs=1)
+
+    # predict over training set
+    _ = trainer.predict(model, loader)
