@@ -22,12 +22,6 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.plugins import PrecisionPlugin
-from pytorch_lightning.plugins.environments import (
-    KubeflowEnvironment,
-    LightningEnvironment,
-    SLURMEnvironment,
-    TorchElasticEnvironment,
-)
 from pytorch_lightning.plugins.training_type import DDPPlugin, DDPSpawnPlugin
 from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.model_helpers import is_overridden
