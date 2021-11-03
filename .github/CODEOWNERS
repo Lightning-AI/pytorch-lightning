@@ -23,6 +23,7 @@
 /pytorch_lightning/callbacks            @williamfalcon @tchaton @carmocca @borda @kaushikb11
 /pytorch_lightning/core                 @tchaton @SeanNaren @borda @carmocca @justusschock @kaushikb11
 /pytorch_lightning/distributed          @williamfalcon @tchaton @awaelchli @kaushikb11
+/pytorch_lightning/lite                 @tchaton @awaelchli @carmocca
 /pytorch_lightning/loggers              @tchaton @awaelchli @borda
 /pytorch_lightning/loggers/wandb.py     @borisdayma
 /pytorch_lightning/loggers/neptune.py   @shnela @HubertJaworski @pkasprzyk @pitercl @Raalsky @aniezurawski @kamil-kaczmarek
