@@ -25,7 +25,12 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
+from pytorch_lightning.lite.wrappers import (
+    _LiteDataLoader,
+    _LiteModule,
+    _LiteOptimizer,
+    _replace_dataloader_init_method,
+)
 from pytorch_lightning.plugins import (
     DDPShardedPlugin,
     DDPSpawnPlugin,
@@ -183,7 +188,7 @@ class LightningLite(ABC):
 
     def setup_dataloaders(
         self, *dataloaders: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
-    ) -> Union[DataLoader, List[DataLoader], Iterable]:
+    ) -> Union[Iterable, List[Iterable]]:
         """Setup one or multiple dataloaders for accelerated training. If you need different settings for each
         dataloader, call this method individually for each one.
 
@@ -208,7 +213,7 @@ class LightningLite(ABC):
 
     def _setup_dataloader(
         self, dataloader: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
-    ) -> Union[Iterable, DataLoader]:
+    ) -> Iterable:
         """Setup a single dataloader for accelerated training.
 
         Args:
@@ -233,17 +238,18 @@ class LightningLite(ABC):
                 )
             sampler = self._get_distributed_sampler(dataloader, **self._strategy.distributed_sampler_kwargs)
 
-        kwargs = TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler)
-        device = self.device if move_to_device else None
-        if isinstance(self._strategy, TPUSpawnPlugin):
-            dataloader = DataLoader(**kwargs)
-        else:
-            dataloader = _LiteDataLoader(device=device, **kwargs)
-
+        dataloader_kwargs = TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler)
+        try:
+            dataloader = type(dataloader)(**dataloader_kwargs)
+        except TypeError:
+            dataloader_kwargs.pop("dataset")
+            dataloader = type(dataloader)(**dataloader_kwargs)
         # add worker_init_fn for correct seeding in worker processes
         TrainerDataLoadingMixin._auto_add_worker_init_fn(dataloader, self.global_rank)
-
-        return self._strategy.process_dataloader(dataloader)
+        return _LiteDataLoader(
+            dataloader=self._strategy.process_dataloader(dataloader),
+            device=self.device if move_to_device and not isinstance(self._strategy, TPUSpawnPlugin) else None,
+        )
 
     def backward(self, tensor: Tensor, *args: Any, model: Optional[_LiteModule] = None, **kwargs: Any) -> None:
         """Replaces ``loss.backward()`` in your training loop. Handles precision and automatically for you.
@@ -400,7 +406,7 @@ class LightningLite(ABC):
             return run_method(*args, **kwargs)
 
     def _run_with_sharded_context(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        with self._strategy.model_sharded_context():
+        with self._strategy.model_sharded_context(), _replace_dataloader_init_method():
             return run_method(*args, **kwargs)
 
     def _set_plugin_specific_precision_variables(self) -> None:

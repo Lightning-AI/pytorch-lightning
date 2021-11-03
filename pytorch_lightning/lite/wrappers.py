@@ -11,7 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Generator, Iterator, Optional, Union
+import functools
+import inspect
+from contextlib import contextmanager
+from typing import Any, Callable, Dict, Generator, Iterable, Iterator, Optional, Set, Sized, Type, Union
 
 import torch
 from torch import nn as nn
@@ -100,27 +103,80 @@ class _LiteModule(nn.Module):
         return output
 
 
-class _LiteDataLoader(DataLoader):
-    def __init__(self, device: Optional[torch.device] = None, **dl_kwargs: Any) -> None:
-        """The LiteDataLoader is an extension of the PyTorch :class:`~torch.utils.data.DataLoader` that adds
-        additional features such as moving the data to the device automatically.
+def _wrap_init(f: Callable) -> Callable:
+    @functools.wraps(f)
+    def wrapper(module: Any, *args: Any, **kwargs: Dict[str, Any]) -> None:
+        params = dict(inspect.signature(module._old_init).parameters)
+        params.pop("args")
+        params.pop("kwargs")
+        for init_name, init_arg in zip(params, args):
+            setattr(module, init_name, init_arg)
+        f(module, *args, **kwargs)
+
+    return wrapper
+
+
+# https://stackoverflow.com/a/63851681/9201239
+def _get_all_subclasses(cls: Type[Any]) -> Set[Type[Any]]:
+    subclass_list = []
+
+    def recurse(cl: Type[Any]) -> None:
+        for subclass in cl.__subclasses__():
+            subclass_list.append(subclass)
+            recurse(subclass)
+
+    recurse(cls)
+    return set(subclass_list)
+
+
+def _enable_class(cls: Type[Any]) -> None:
+    cls._old_init = cls.__init__
+    cls.__init__ = _wrap_init(cls.__init__)
+
+
+def _disable_class(cls: Type[Any]) -> None:
+    cls.__init__ = cls._old_init
+    del cls._old_init
+
+
+@contextmanager
+def _replace_dataloader_init_method() -> Generator:
+    """This context manager is used to support custom :class:`~torch.utils.data.DataLoader."""
+    for subclass in _get_all_subclasses(DataLoader):
+        _enable_class(subclass)
+    yield
+    for subclass in _get_all_subclasses(DataLoader):
+        _disable_class(subclass)
+
+
+class _LiteDataLoader:
+    def __init__(self, dataloader: Union[Iterable, DataLoader], device: Optional[torch.device] = None) -> None:
+        """The LiteDataLoader is an extension of an Iterator. It would move the data to the device automatically if
+        the device is specified.
 
         Args:
+            dataloader: The current dataloader to be used.
             device: The device to which the data should be moved. By default the device is `None` and no data
                 transfers will be made (identical behavior as :class:`~torch.utils.data.DataLoader`).
-            **dl_kwargs: Accepts all arguments that the PyTorch :class:`~torch.utils.data.DataLoader` accepts.
         """
-        super().__init__(**dl_kwargs)
+        super().__init__()
+        self.__dict__.update(getattr(dataloader, "__dict__", {}))
+        self._dataloader = dataloader
         self._device = device
+
+    def __len__(self) -> Union[int, float]:
+        if isinstance(self._dataloader, Sized):
+            return len(self._dataloader)
+        return float("inf")
 
     @property
     def device(self) -> Optional[torch.device]:
         return self._device
 
     def __iter__(self) -> Union[Iterator[Any], Generator[Any, None, None]]:
-        iterator = super().__iter__()
+        iterator = iter(self._dataloader)
         if self._device is None:
-            return iterator
+            yield from iterator
 
         for item in iterator:
             yield move_data_to_device(item, self._device)

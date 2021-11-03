@@ -15,6 +15,7 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
+from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
@@ -59,6 +60,27 @@ def test_lite_module_forward_conversion(precision, input_type, expected_type):
     assert out.dtype == torch.get_default_dtype()
 
 
+def test_lite_dataloader_iterator():
+    """Test that the iteration over a LiteDataLoader wraps the iterator of the underlying dataloader (no automatic
+    device placement)."""
+    dataloader = DataLoader(range(5), batch_size=2)
+    lite_dataloader = _LiteDataLoader(dataloader)
+    assert len(lite_dataloader) == len(dataloader) == 3
+
+    iterator = iter(dataloader)
+    lite_iterator = iter(lite_dataloader)
+
+    assert torch.equal(next(iterator), next(lite_iterator))
+    assert torch.equal(next(iterator), next(lite_iterator))
+    assert torch.equal(next(iterator), next(lite_iterator))
+
+    with pytest.raises(StopIteration):
+        next(iterator)
+
+    with pytest.raises(StopIteration):
+        next(lite_iterator)
+
+
 @pytest.mark.parametrize(
     "src_device, dest_device",
     [
@@ -73,8 +95,8 @@ def test_lite_dataloader_device_placement(src_device, dest_device):
     sample1 = torch.tensor(1, device=src_device)
     sample2 = {"data": torch.tensor(2, device=src_device)}
     sample3 = {"data": torch.tensor(3, device=src_device)}
-    data = [sample0, sample1, sample2, sample3]
-    lite_dataloader = _LiteDataLoader(device=dest_device, dataset=data, batch_size=2)
+    dataloader = DataLoader([sample0, sample1, sample2, sample3], batch_size=2)
+    lite_dataloader = _LiteDataLoader(dataloader=dataloader, device=dest_device)
     iterator = iter(lite_dataloader)
 
     batch0 = next(iterator)

@@ -24,6 +24,7 @@ from omegaconf import OmegaConf
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -306,7 +307,7 @@ def test_train_val_loop_only(tmpdir):
     assert trainer.callback_metrics["train_loss"] < 1.0
 
 
-def test_dm_checkpoint_save(tmpdir):
+def test_dm_checkpoint_save_and_load(tmpdir):
     class CustomBoringModel(BoringModel):
         def validation_step(self, batch, batch_idx):
             out = super().validation_step(batch, batch_idx)
@@ -334,12 +335,18 @@ def test_dm_checkpoint_save(tmpdir):
     )
 
     # fit model
-    trainer.fit(model, dm)
+    trainer.fit(model, datamodule=dm)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
     checkpoint = torch.load(checkpoint_path)
     assert dm.__class__.__name__ in checkpoint
     assert checkpoint[dm.__class__.__name__] == dm.__class__.__name__
+
+    for trainer_fn in TrainerFn:
+        trainer.state.fn = trainer_fn
+        with mock.patch.object(dm, "on_load_checkpoint") as dm_mock:
+            trainer._restore_modules_and_callbacks(checkpoint_path)
+            dm_mock.assert_called_once()
 
 
 def test_full_loop(tmpdir):

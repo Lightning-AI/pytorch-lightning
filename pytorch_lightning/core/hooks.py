@@ -258,9 +258,12 @@ class ModelHooks:
 
         The hook is only called if gradients do not need to be accumulated.
         See: :paramref:`~pytorch_lightning.trainer.Trainer.accumulate_grad_batches`.
+
         If using native AMP, the loss will be unscaled before calling this hook.
         See these `docs <https://pytorch.org/docs/stable/notes/amp_examples.html#working-with-unscaled-gradients>`__
         for more information on the scaling of gradients.
+
+        If clipping gradients, the gradients will not have been clipped yet.
 
         Args:
             optimizer: Current optimizer being used.
@@ -311,9 +314,13 @@ class DataHooks:
             prepare_data_per_node:
                 If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data.
+            allow_zero_length_dataloader_with_multiple_devices:
+                If True, dataloader with zero length within local rank is allowed.
+                Default value is False.
         """
         super().__init__()
         self.prepare_data_per_node: bool = True
+        self.allow_zero_length_dataloader_with_multiple_devices: bool = False
 
     def prepare_data(self) -> None:
         """Use this to download and prepare data.
