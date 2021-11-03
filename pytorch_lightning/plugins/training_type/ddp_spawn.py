@@ -81,17 +81,8 @@ class DDPSpawnPlugin(ParallelPlugin):
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
         )
-        if num_nodes is not None:
-            rank_zero_deprecation(
-                "Argument `num_nodes` in `DDPSpawnPlugin` is deprecated in v1.4, and will be removed in v1.6. "
-                "Notice that it will be overriden by the trainer setting."
-            )
+
         self._num_nodes = 1
-        if sync_batchnorm is not None:
-            rank_zero_deprecation(
-                "Argument `sync_batchnorm` in `DDPSpawnPlugin` is deprecated in v1.4, and will be removed in v1.6. "
-                "Notice that it will be overriden by the trainer setting."
-            )
         self._sync_batchnorm = False
         self._ddp_kwargs = kwargs
         self.num_processes = len(parallel_devices) if parallel_devices is not None else 0
