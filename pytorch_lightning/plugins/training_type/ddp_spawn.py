@@ -69,10 +69,8 @@ class DDPSpawnPlugin(ParallelPlugin):
     def __init__(
         self,
         parallel_devices: Optional[List[torch.device]] = None,
-        num_nodes: Optional[int] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        sync_batchnorm: Optional[bool] = None,
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
@@ -83,18 +81,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
         )
-        if num_nodes is not None:
-            rank_zero_deprecation(
-                "Argument `num_nodes` in `DDPSpawnPlugin` is deprecated in v1.4, and will be removed in v1.6. "
-                "Notice that it will be overriden by the trainer setting."
-            )
-        self._num_nodes = num_nodes or 1
-        if sync_batchnorm is not None:
-            rank_zero_deprecation(
-                "Argument `sync_batchnorm` in `DDPSpawnPlugin` is deprecated in v1.4, and will be removed in v1.6. "
-                "Notice that it will be overriden by the trainer setting."
-            )
-        self._sync_batchnorm = sync_batchnorm or False
+        
         self._ddp_kwargs = kwargs
         self.num_processes = len(parallel_devices) if parallel_devices is not None else 0
         self.mp_queue = None
