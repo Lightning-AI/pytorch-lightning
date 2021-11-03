@@ -20,7 +20,6 @@ from torch.optim import Optimizer
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.plugins import PrecisionPlugin
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
@@ -240,14 +239,6 @@ def test_v1_6_0_is_overridden_model():
         assert is_overridden("validation_step", model=model)
     with pytest.deprecated_call(match="and will be removed in v1.6"):
         assert not is_overridden("foo", model=model)
-
-
-def test_v1_6_0_early_stopping_monitor(tmpdir):
-    with pytest.deprecated_call(
-        match=r"The `EarlyStopping\(monitor\)` argument will be required starting in v1.6."
-        " For backward compatibility, setting this to `early_stop_on`."
-    ):
-        EarlyStopping()
 
 
 def test_v1_6_0_extras_with_gradients(tmpdir):
