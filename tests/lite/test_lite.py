@@ -179,8 +179,6 @@ def test_setup_custom_dataloaders():
     lite_dataloader = lite.setup_dataloaders(dataloader)
     assert lite_dataloader._dataloader
     assert lite_dataloader.value == 2
-    batch0 = next(iter(lite_dataloader))
-    assert torch.equal(batch0, torch.tensor([0, 1]))
 
     class CustomDataLoader2(DataLoader):
         def __init__(self, range, *args, **kwargs):
@@ -189,22 +187,16 @@ def test_setup_custom_dataloaders():
 
     dataloader = CustomDataLoader2(range(2), batch_size=2)
 
-    # single dataloader
-    lite_dataloader = lite.setup_dataloaders(dataloader)
-    assert lite_dataloader._dataloader
-    batch0 = next(iter(lite_dataloader))
-    assert torch.equal(batch0, torch.tensor([0, 1]))
-
     class CustomDataLoader(DataLoader):
-        def __init__(self, value: int, *args, **kwargs):
-            super().__init__(range(value), *args, **kwargs)
+        def __init__(self, anything: int, *args, **kwargs):
+            super().__init__([0, 1, 2, 3], *args, **kwargs)
 
     class LiteWithCustomDataLoader(LightningLite):
         def run(self):
-            # This doesn't fail as the context manager would save all the arguments provided
-            # to the dataloaders.
+            # This doesn't fail as the context manager would save all the arguments provided to the dataloaders.
             dataloader = CustomDataLoader(2, batch_size=2)
-            self.setup_dataloaders(dataloader)
+            lite_dataloader = self.setup_dataloaders(dataloader)
+            assert len(lite_dataloader) == 4
 
     LiteWithCustomDataLoader().run()
 
@@ -212,7 +204,7 @@ def test_setup_custom_dataloaders():
         MisconfigurationException, match="Trying to inject `DistributedSampler` into the `CustomDataLoader` instance"
     ):
         dataloader = CustomDataLoader(2, batch_size=2)
-        lite_dataloader = lite.setup_dataloaders(dataloader)
+        lite.setup_dataloaders(dataloader)
 
 
 def test_setup_dataloaders_twice_fails():
