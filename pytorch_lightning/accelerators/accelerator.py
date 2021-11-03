@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+from abc import abstractmethod
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
 
 import torch
@@ -27,7 +28,7 @@ from pytorch_lightning.plugins.training_type import DataParallelPlugin, Training
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
-from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
+from pytorch_lightning.utilities.enums import AMPType, LightningEnum
 from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
 
 
@@ -318,7 +319,7 @@ class Accelerator:
         self,
         optimizer: Optimizer,
         opt_idx: int,
-        lambda_closure: Callable[[], Any],
+        closure: Callable[[], Any],
         model: Optional[Union["pl.LightningModule", Module]] = None,
         **kwargs: Any
     ) -> None:
@@ -327,31 +328,17 @@ class Accelerator:
         Args:
             optimizer: the optimizer performing the step
             opt_idx: index of the current optimizer
-            lambda_closure: closure calculating the loss value
+            closure: closure calculating the loss value
             model: reference to the model, optionally defining optimizer step related hooks
+            **kwargs: Any extra arguments to ``optimizer.step``
         """
         model = model or self.lightning_module
-        make_optimizer_step = self.precision_plugin.pre_optimizer_step(
-            model, optimizer, opt_idx, lambda_closure, **kwargs
-        )
-        if make_optimizer_step:
-            self.training_type_plugin.optimizer_step(optimizer, lambda_closure=lambda_closure, **kwargs)
+        self.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
 
     def optimizer_zero_grad(self, current_epoch: int, batch_idx: int, optimizer: Optimizer, opt_idx: int) -> None:
         """Zeros all model parameter's gradients."""
         model_ref = self.lightning_module
         model_ref.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
-
-    def clip_gradients(
-        self,
-        optimizer: Optimizer,
-        clip_val: Union[int, float],
-        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
-    ) -> None:
-        """clips all the optimizer parameters to the given value."""
-        self.precision_plugin.clip_gradients(
-            optimizer, clip_val, gradient_clip_algorithm=gradient_clip_algorithm, model=self.model
-        )
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         """Creates optimizers and schedulers.
@@ -562,8 +549,8 @@ class Accelerator:
             If true, restore checkpoint after pre_dispatch.
         """
         rank_zero_deprecation(
-            "`Accelerator.restore_checkpoint_after_pre_dispatch` is deprecated in v1.5 and will be removed in v1.6. "
-            "Accesse `restore_checkpoint_after_pre_dispatch` directly from the `TrainingTypePlugin`."
+            "`Accelerator.restore_checkpoint_after_pre_dispatch` is deprecated in v1.5 and will be removed in v1.6."
+            " Access `restore_checkpoint_after_pre_dispatch` directly from the `TrainingTypePlugin`."
         )
         return self.training_type_plugin.restore_checkpoint_after_pre_dispatch
 
@@ -702,3 +689,8 @@ class Accelerator:
             "`on_train_batch_start` logic is implemented directly in the `TrainingTypePlugin` implementations."
         )
         return self.training_type_plugin.on_train_batch_start(batch, batch_idx)
+
+    @staticmethod
+    @abstractmethod
+    def auto_device_count() -> int:
+        """Get the devices when set to auto."""

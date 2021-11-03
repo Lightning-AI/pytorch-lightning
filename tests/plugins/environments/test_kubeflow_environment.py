@@ -24,7 +24,7 @@ from pytorch_lightning.plugins.environments import KubeflowEnvironment
 def test_default_attributes():
     """Test the default attributes when no environment variables are set."""
     env = KubeflowEnvironment()
-    assert env.creates_children()
+    assert env.creates_processes_externally
 
     with pytest.raises(KeyError):
         # MASTER_ADDR is required

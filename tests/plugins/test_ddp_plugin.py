@@ -80,7 +80,8 @@ def test_incorrect_ddp_script_spawning(tmpdir):
     """Test an error message when user accidentally instructs Lightning to spawn children processes on rank > 0."""
 
     class WronglyImplementedEnvironment(LightningEnvironment):
-        def creates_children(self):
+        @property
+        def creates_processes_externally(self):
             # returning false no matter what means Lightning would spawn also on ranks > 0 new processes
             return False
 

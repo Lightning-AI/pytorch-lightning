@@ -55,7 +55,7 @@ def test_manual_main_port_and_address():
 def test_attributes_from_environment_variables():
     """Test that the LSF environment takes the attributes from the environment variables."""
     env = LSFEnvironment()
-    assert env.creates_children()
+    assert env.creates_processes_externally
     assert env.main_address == "10.10.10.0"
     assert env.main_port == 10234
     assert env.world_size() == 4

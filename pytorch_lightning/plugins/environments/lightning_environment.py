@@ -40,7 +40,8 @@ class LightningEnvironment(ClusterEnvironment):
         self._global_rank: int = 0
         self._world_size: int = 1
 
-    def creates_children(self) -> bool:
+    @property
+    def creates_processes_externally(self) -> bool:
         """Returns whether the cluster creates the processes or not.
 
         If at least :code:`LOCAL_RANK` is available as environment variable, Lightning assumes the user acts as the

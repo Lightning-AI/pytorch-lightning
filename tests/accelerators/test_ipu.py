@@ -22,7 +22,7 @@ from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, IPUAccelerator
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins import IPUPlugin, IPUPrecisionPlugin
-from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import _IPU_AVAILABLE, DeviceType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -422,6 +422,36 @@ def test_replication_factor(tmpdir):
     plugin = IPUPlugin()
     trainer = Trainer(ipus=2, default_root_dir=tmpdir, fast_dev_run=True, strategy=plugin)
     assert trainer.ipus == 2
+    assert trainer.training_type_plugin.replication_factor == 2
+
+    model = BoringModel()
+    training_opts = poptorch.Options()
+    inference_opts = poptorch.Options()
+    training_opts.replicationFactor(8)
+    inference_opts.replicationFactor(7)
+    plugin = IPUPlugin(inference_opts=inference_opts, training_opts=training_opts)
+
+    trainer = Trainer(default_root_dir=tmpdir, ipus=1, strategy=plugin)
+    trainer.optimizers = model.configure_optimizers()[0]
+    plugin.model = model
+    model.trainer = trainer
+    trainer.state.fn = TrainerFn.FITTING
+    trainer.training_type_plugin.pre_dispatch()
+
+    trainer.state.stage = RunningStage.TRAINING
+    assert trainer.training_type_plugin.replication_factor == 8
+    trainer.state.stage = RunningStage.VALIDATING
+    assert trainer.training_type_plugin.replication_factor == 7
+
+    for fn, stage in (
+        (TrainerFn.VALIDATING, RunningStage.VALIDATING),
+        (TrainerFn.TESTING, RunningStage.TESTING),
+        (TrainerFn.PREDICTING, RunningStage.PREDICTING),
+    ):
+        trainer.state.fn = fn
+        trainer.state.stage = stage
+        trainer.training_type_plugin.pre_dispatch()
+        assert trainer.training_type_plugin.replication_factor == 7
 
 
 @RunIf(ipu=True)
@@ -543,3 +573,34 @@ def test_device_type_when_training_plugin_ipu_passed(tmpdir):
     assert isinstance(trainer.training_type_plugin, IPUPlugin)
     assert trainer._device_type == DeviceType.IPU
     assert isinstance(trainer.accelerator, IPUAccelerator)
+
+
+@RunIf(ipu=True)
+def test_poptorch_models_at_different_stages(tmpdir):
+    plugin = IPUPlugin()
+    trainer = Trainer(default_root_dir=tmpdir, strategy=plugin, ipus=8)
+    model = BoringModel()
+    model.trainer = trainer
+    plugin.model = model
+
+    trainer.optimizers = model.configure_optimizers()[0]
+    trainer.state.fn = TrainerFn.FITTING
+    trainer.training_type_plugin.pre_dispatch()
+    assert list(trainer.training_type_plugin.poptorch_models) == [RunningStage.TRAINING, RunningStage.VALIDATING]
+
+    for fn, stage in (
+        (TrainerFn.VALIDATING, RunningStage.VALIDATING),
+        (TrainerFn.TESTING, RunningStage.TESTING),
+        (TrainerFn.PREDICTING, RunningStage.PREDICTING),
+    ):
+        trainer.state.fn = fn
+        trainer.state.stage = stage
+        trainer.training_type_plugin.pre_dispatch()
+        assert list(trainer.training_type_plugin.poptorch_models) == [stage]
+
+
+@RunIf(ipu=True)
+def test_devices_auto_choice_ipu():
+    trainer = Trainer(accelerator="auto", devices="auto")
+    assert trainer.devices == 4
+    assert trainer.ipus == 4
