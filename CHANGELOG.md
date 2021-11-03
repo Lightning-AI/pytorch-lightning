@@ -5,9 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [1.6.0] - 2022-??-??
+## [1.6.0] - 2022-MM-DD
 
 ### Added
+
+-
+
+
+-
+
+
+-
+
+
+-
+
 
 -
 
@@ -15,7 +27,31 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 -
 
+
+-
+
+
+-
+
+
+-
+
+
+-
+
 ### Deprecated
+
+-
+
+
+-
+
+
+-
+
+
+-
+
 
 -
 
@@ -23,7 +59,31 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 -
 
+
+-
+
+
+-
+
+
+-
+
+
+-
+
 ### Fixed
+
+- Fixed `apply_to_collection(defaultdict)` ([#10316](https://github.com/PyTorchLightning/pytorch-lightning/issues/10316))
+
+
+-
+
+
+-
+
+
+-
+
 
 -
 
@@ -155,7 +215,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for empty `gpus` list to run on CPU ([#10246](https://github.com/PyTorchLightning/pytorch-lightning/pull/10246))
 - Added a warning if multiple batch sizes are found from ambiguous batch ([#10247](https://github.com/PyTorchLightning/pytorch-lightning/pull/10247))
 
-
 ### Changed
 
 - Trainer now raises a `MisconfigurationException` when its methods are called with `ckpt_path="best"` but a checkpoint callback isn't configured ([#9841](https://github.com/PyTorchLightning/pytorch-lightning/pull/9841))
@@ -207,7 +266,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Enabled `on_load_checkpoint` for `LightningDataModule` for all `trainer_fn` ([#10238](https://github.com/PyTorchLightning/pytorch-lightning/pull/10238))
 - Allowed separate config files for parameters with class type when LightningCLI is in `subclass_mode=False` ([#10286](https://github.com/PyTorchLightning/pytorch-lightning/pull/10286))
 
-
 ### Deprecated
 
 - Deprecated Trainer argument `terminate_on_nan` in favor of `detect_anomaly`([#9175](https://github.com/PyTorchLightning/pytorch-lightning/pull/9175))
@@ -242,7 +300,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `PrecisionPlugin.master_params()` in favor of `PrecisionPlugin.main_params()` ([#10105](https://github.com/PyTorchLightning/pytorch-lightning/pull/10105))
 - Deprecated `lr_sch_names` from `LearningRateMonitor` ([#10066](https://github.com/PyTorchLightning/pytorch-lightning/pull/10066))
 - Deprecated `ProgressBar` callback in favor of `TQDMProgressBar` ([#10134](https://github.com/PyTorchLightning/pytorch-lightning/pull/10134))
-
 
 ### Removed
 
@@ -286,7 +343,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed `process_idx` from the `{DDPSpawnPlugin,TPUSpawnPlugin}.new_process` methods ([#10022](https://github.com/PyTorchLightning/pytorch-lightning/pull/10022))
 - Removed automatic patching of `{train,val,test,predict}_dataloader()` on the `LightningModule` ([#9764](https://github.com/PyTorchLightning/pytorch-lightning/pull/9764))
 - Removed `pytorch_lightning.trainer.connectors.OptimizerConnector` ([#10120](https://github.com/PyTorchLightning/pytorch-lightning/pull/10120))
-
 
 ### Fixed
 
@@ -495,7 +551,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for `devices` flag to Trainer ([#8440](https://github.com/PyTorchLightning/pytorch-lightning/pull/8440))
 - Added private `prevent_trainer_and_dataloaders_deepcopy` context manager on the `LightningModule` ([#8472](https://github.com/PyTorchLightning/pytorch-lightning/pull/8472))
 - Added support for providing callables to the Lightning CLI instead of types ([#8400](https://github.com/PyTorchLightning/pytorch-lightning/pull/8400))
-
 
 ### Changed
 
