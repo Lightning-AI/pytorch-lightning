@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
+## [1.6.0] - 2022-??-??
+
+### Added
+
+-
+
+### Changed
+
+- 
+
+### Deprecated
+
+- 
+
+### Removed
+
+- 
+
+### Fixed
+
+- 
+
+
 ## [1.5.0] - 2021-11-02
 
 ### Added
