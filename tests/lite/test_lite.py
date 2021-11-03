@@ -165,6 +165,9 @@ def test_setup_dataloaders_return_type():
 
 
 def test_setup_dataloaders_with_custom_type():
+    """Test that Lite intercepts arguments passed to custom subclasses of torch.utils.DataLoader and sets them as
+    attributes."""
+
     class DataLoaderSubclass1(DataLoader):
         def __init__(self, attribute1, *args, **kwargs):
             # intentionally not setting this attribute, calling super with different args
