@@ -164,28 +164,31 @@ def test_setup_dataloaders_return_type():
     assert lite_dataloader1.dataset is dataset1
 
 
-def test_setup_custom_dataloaders():
+def test_setup_custom_dataloaders_new():
     """Test that the setup_dataloaders method returns the dataloaders wrapped as LiteDataLoader."""
-    lite = EmptyLite()
 
     class CustomDataLoader(DataLoader):
-        def __init__(self, value: int = 2, *args, **kwargs):
-            self.value = value
-            super().__init__(range(value), *args, **kwargs)
+        def __init__(self, attribute1, *args, **kwargs):
+            self.attribute1 = attribute1
+            super().__init__(*args, **kwargs)
 
-    dataloader = CustomDataLoader(2, batch_size=2)
+    class CustomDataLoader2(CustomDataLoader):
+        def __init__(self, attribute1, attribute2, *args, **kwargs):
+            self.attribute2 = attribute2
+            super().__init__(attribute1, *args, **kwargs)
 
-    # single dataloader
-    lite_dataloader = lite.setup_dataloaders(dataloader)
-    assert lite_dataloader._dataloader
-    assert lite_dataloader.value == 2
+    class LiteWithCustomDataLoader(LightningLite):
+        def run(self):
+            dataloader = CustomDataLoader2("attribute1", "attribute2", dataset=range(4), batch_size=2)
+            lite_dataloader = self.setup_dataloaders(dataloader)
+            assert lite_dataloader._dataloader.attribute1 == "attribute1"
+            assert lite_dataloader._dataloader.attribute2 == "attribute2"
 
-    class CustomDataLoader2(DataLoader):
-        def __init__(self, range, *args, **kwargs):
-            self.range = range
-            super().__init__(range, *args, **kwargs)
+    LiteWithCustomDataLoader().run()
 
-    dataloader = CustomDataLoader2(range(2), batch_size=2)
+
+def test_setup_custom_dataloaders():
+    """Test that the setup_dataloaders method returns the dataloaders wrapped as LiteDataLoader."""
 
     class CustomDataLoader(DataLoader):
         def __init__(self, anything: int, *args, **kwargs):
@@ -199,12 +202,6 @@ def test_setup_custom_dataloaders():
             assert len(lite_dataloader) == 4
 
     LiteWithCustomDataLoader().run()
-
-    with pytest.raises(
-        MisconfigurationException, match="Trying to inject `DistributedSampler` into the `CustomDataLoader` instance"
-    ):
-        dataloader = CustomDataLoader(2, batch_size=2)
-        lite.setup_dataloaders(dataloader)
 
 
 def test_setup_dataloaders_twice_fails():

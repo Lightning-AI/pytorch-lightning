@@ -112,6 +112,7 @@ def _wrap_init(init: Callable) -> Callable:
         params = dict(inspect.signature(obj._old_init).parameters)
         params.pop("args")
         params.pop("kwargs")
+        params.pop("self", None)
         for arg_name, arg_value in zip(params, args):
             setattr(obj, arg_name, arg_value)
         init(obj, *args, **kwargs)
