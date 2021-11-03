@@ -63,7 +63,7 @@ class LSFEnvironment(ClusterEnvironment):
 
     @property
     def main_port(self):
-        """THe main port gets calculated from the LSF job ID."""
+        """The main port gets calculated from the LSF job ID."""
         return self._main_port
 
     def world_size(self):
