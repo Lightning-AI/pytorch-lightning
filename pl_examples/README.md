@@ -25,7 +25,7 @@ In this folder, we have 2 simple examples:
 
 - [Image Classifier](./basic_examples/backbone_image_classifier.py) (trains arbitrary datasets with arbitrary backbones).
 - [Image Classifier + DALI](./basic_examples/mnist_examples/image_classifier_4_dali.py) (defines the model inside the `LightningModule`).
-- [Autoencoder](./basic_examples/autoencoder.py) (shows how the `LightningModule` can be used as a system)
+- [Autoencoder](./basic_examples/autoencoder.py)
 
 ______________________________________________________________________
 
@@ -34,6 +34,14 @@ ______________________________________________________________________
 This folder contains older examples. You should instead use the examples
 in [Lightning Bolts](https://pytorch-lightning.readthedocs.io/en/latest/ecosystem/bolts.html)
 for advanced use cases.
+
+______________________________________________________________________
+
+## Basic Examples
+
+In this folder, we have 1 simple example:
+
+- [Image Classifier + DALI](./integration_examples/dali_image_classifier.py) (defines the model inside the `LightningModule`).
 
 ______________________________________________________________________
 
