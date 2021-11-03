@@ -24,19 +24,6 @@ class ClusterEnvironment(ABC):
     def creates_processes_externally(self) -> bool:
         """Whether the environment creates the subprocesses or not."""
 
-    def creates_children(self) -> bool:
-        """Whether the environment creates the subprocesses or not.
-
-        .. deprecated:: v1.5
-            This method was deprecated in v1.5 and will be removed in v1.6. Use the property
-            :attr:`creates_processes_externally` instead.
-        """
-        rank_zero_deprecation(
-            f"`{self.__class__.__name__}.creates_children()` was deprecated in v1.5 and will be removed in v1.6."
-            " Use the property :attr:`creates_processes_externally` instead."
-        )
-        return self.creates_processes_externally
-
     @abstractmethod
     def master_address(self) -> str:
         """The master address through which all processes connect and communicate."""

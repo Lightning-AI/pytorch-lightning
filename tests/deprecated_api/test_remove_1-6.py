@@ -431,20 +431,6 @@ def test_v1_6_0_is_slurm_managing_tasks():
         trainer._accelerator_connector.is_slurm_managing_tasks = False
 
 
-@pytest.mark.parametrize(
-    "cluster_environment",
-    [
-        KubeflowEnvironment(),
-        LightningEnvironment(),
-        SLURMEnvironment(),
-        TorchElasticEnvironment(),
-    ],
-)
-def test_v1_6_0_cluster_environment_creates_children(cluster_environment):
-    with pytest.deprecated_call(match="was deprecated in v1.5 and will be removed in v1.6"):
-        cluster_environment.creates_children()
-
-
 def test_v1_6_0_master_params():
     with pytest.deprecated_call(match="`PrecisionPlugin.master_params` was deprecated in v1.5"):
         PrecisionPlugin().master_params(Mock(spec=Optimizer))
