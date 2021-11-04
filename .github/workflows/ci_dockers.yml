@@ -92,7 +92,7 @@ jobs:
       fail-fast: false
       matrix:
         # the config used in '.github/workflows/ci_test-conda.yml'
-        python_version: ["3.7"]
+        python_version: ["3.8"]
         pytorch_version: ["1.6", "1.7", "1.8", "1.9", "1.10"]
     steps:
       - name: Checkout
@@ -119,7 +119,7 @@ jobs:
       fail-fast: false
       matrix:
         # the config used in 'dockers/ipu-ci-runner/Dockerfile'
-        python_version: ["3.8"]  # latest
+        python_version: ["3.9"]  # latest
         # TODO: upgrade - PopTorch 2.2 uses torch 1.9, see:
         # https://docs.graphcore.ai/projects/poptorch-user-guide/en/latest/installation.html#version-compatibility
         pytorch_version: ["1.7"]
