@@ -165,7 +165,6 @@ class AcceleratorConnector:
             self.set_distributed_mode()
 
         self.handle_given_plugins()
-        self._set_distrib_type_if_training_type_plugin_passed()
 
         self._cluster_environment = self.select_cluster_environment()
 
