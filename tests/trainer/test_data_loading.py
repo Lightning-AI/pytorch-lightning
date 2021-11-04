@@ -345,15 +345,6 @@ def test_loader_detaching():
 
 def test_pre_made_batches():
     """Check that loader works with pre-made batches."""
-
-    # set up model
-    model = LoaderTestModel()
-
-    # set up dataloader, with premade batches
     loader = DataLoader(RandomDataset(32, 10), batch_size=None)
-
-    # set up trainer
-    trainer = Trainer(gpus=0, max_epochs=1)
-
-    # predict over training set
-    _ = trainer.predict(model, loader)
+    trainer = Trainer(fast_dev_run=1)
+    trainer.predict(LoaderTestModel(), loader)

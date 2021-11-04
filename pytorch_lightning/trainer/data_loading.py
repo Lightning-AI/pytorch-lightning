@@ -184,10 +184,7 @@ class TrainerDataLoadingMixin(ABC):
         batch_sampler = getattr(dataloader, "batch_sampler")
         is_predicting = mode == RunningStage.PREDICTING
         # checking the batch sampler type is different than PyTorch default.
-        if (batch_sampler is not None and type(batch_sampler) is not BatchSampler) or (
-            is_predicting and batch_sampler is not None
-        ):
-
+        if batch_sampler is not None and (type(batch_sampler) is not BatchSampler or is_predicting):
             batch_sampler = type(batch_sampler)(
                 sampler,
                 batch_size=batch_sampler.batch_size,
