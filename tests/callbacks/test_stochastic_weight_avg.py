@@ -233,7 +233,7 @@ def test_swa_deepcopy(tmpdir):
     model = BoringModel()
     swa = TestSWA()
     trainer = Trainer(default_root_dir=tmpdir, callbacks=swa, fast_dev_run=True)
-    trainer.fit(model, train_dataloader=DataLoader(RandomDataset(32, 2)))
+    trainer.fit(model, train_dataloaders=DataLoader(RandomDataset(32, 2)))
     assert swa.on_before_accelerator_backend_setup_called
 
 

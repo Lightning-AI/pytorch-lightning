@@ -578,11 +578,11 @@ class LightningCLI:
     def subcommands() -> Dict[str, Set[str]]:
         """Defines the list of available subcommands and the arguments to skip."""
         return {
-            "fit": {"model", "train_dataloaders", "train_dataloader", "val_dataloaders", "datamodule"},
-            "validate": {"model", "dataloaders", "val_dataloaders", "datamodule"},
-            "test": {"model", "dataloaders", "test_dataloaders", "datamodule"},
+            "fit": {"model", "train_dataloaders", "val_dataloaders", "datamodule"},
+            "validate": {"model", "dataloaders", "datamodule"},
+            "test": {"model", "dataloaders", "datamodule"},
             "predict": {"model", "dataloaders", "datamodule"},
-            "tune": {"model", "train_dataloaders", "train_dataloader", "val_dataloaders", "datamodule"},
+            "tune": {"model", "train_dataloaders", "val_dataloaders", "datamodule"},
         }
 
     def _add_subcommands(self, parser: LightningArgumentParser, **kwargs: Any) -> None:

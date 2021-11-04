@@ -916,7 +916,7 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1, ckpt_
     model = TestModel(fail_on_step=fail_on_step)
     trainer = Trainer(**trainer_kwargs)
     with suppress(CustomException):
-        trainer.fit(model, train_dataloader=train_dataloader, ckpt_path=ckpt_path)
+        trainer.fit(model, train_dataloaders=train_dataloader, ckpt_path=ckpt_path)
     return model.seen_batches, model.parameters()
 
 

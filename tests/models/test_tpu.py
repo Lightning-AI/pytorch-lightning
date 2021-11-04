@@ -190,7 +190,7 @@ def test_model_tpu_early_stop(tmpdir):
         tpu_cores=8,
     )
     trainer.fit(model)
-    trainer.test(test_dataloaders=DataLoader(RandomDataset(32, 2000), batch_size=32))
+    trainer.test(dataloaders=DataLoader(RandomDataset(32, 2000), batch_size=32))
 
 
 @RunIf(tpu=True)
@@ -240,7 +240,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
     model = BoringModel()
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, tpu_cores=8)
-    trainer.fit(model, train_dataloader=model.train_dataloader(), val_dataloaders=model.val_dataloader())
+    trainer.fit(model, train_dataloaders=model.train_dataloader(), val_dataloaders=model.val_dataloader())
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
