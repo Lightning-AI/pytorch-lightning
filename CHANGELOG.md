@@ -65,8 +65,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed deprecated `Trainer.fit(train_dataloader=)`, `Trainer.validate(val_dataloaders=)`, and `Trainer.test(test_dataloader=)` ([#10325](https://github.com/PyTorchLightning/pytorch-lightning/pull/10325))
 
+<<<<<<< HEAD
 
 - Removed deprecated property `is_slurm_managing_tasks` from AcceleratorConnector ([#10353](https://github.com/PyTorchLightning/pytorch-lightning/pull/10353))
+=======
+- Remove deprecated property _slurm_managing_tasks from accelerator connector ([#10353](https://github.com/PyTorchLightning/pytorch-lightning/pull/10353))
+>>>>>>> efda8a4c81f849883f8bd3d75940f7dfc4816c64
 
 
 -
