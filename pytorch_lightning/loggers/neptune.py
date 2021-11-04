@@ -523,6 +523,17 @@ class NeptuneLogger(LightningLoggerBase):
             file_names.add(model_name)
             self.experiment[f"{checkpoints_namespace}/{model_name}"].upload(key)
 
+        # log best model path
+        if checkpoint_callback.best_model_path:
+            self.experiment[
+                self._construct_path_with_prefix("model/best_model_path")
+            ] = checkpoint_callback.best_model_path
+
+            model_name = self._get_full_model_name(checkpoint_callback.best_model_path, checkpoint_callback)
+            file_names.add(model_name)
+            self.experiment[f"{checkpoints_namespace}/{model_name}"].upload(
+                checkpoint_callback.best_model_path)
+
         # remove old models logged to experiment if they are not part of best k models at this point
         if self.experiment.exists(checkpoints_namespace):
             exp_structure = self.experiment.get_structure()
@@ -531,11 +542,7 @@ class NeptuneLogger(LightningLoggerBase):
             for file_to_drop in list(uploaded_model_names - file_names):
                 del self.experiment[f"{checkpoints_namespace}/{file_to_drop}"]
 
-        # log best model path and best model score
-        if checkpoint_callback.best_model_path:
-            self.experiment[
-                self._construct_path_with_prefix("model/best_model_path")
-            ] = checkpoint_callback.best_model_path
+        # log best model score
         if checkpoint_callback.best_model_score:
             self.experiment[self._construct_path_with_prefix("model/best_model_score")] = (
                 checkpoint_callback.best_model_score.cpu().detach().numpy()
