@@ -165,6 +165,7 @@ class AcceleratorConnector:
             self.set_distributed_mode()
 
         self.handle_given_plugins()
+        self._set_distrib_type_if_training_type_plugin_passed()
 
         self._cluster_environment = self.select_cluster_environment()
 
@@ -990,6 +991,15 @@ class AcceleratorConnector:
                     self._device_type = DeviceType.TPU
                 elif self.has_gpu:
                     self._device_type = DeviceType.GPU
+
+    def _set_distrib_type_if_training_type_plugin_passed(self):
+        # This is required as when `TrainingTypePlugin` instance is passed to either `strategy`
+        # or `plugins` flag, `AcceleratorConnector.set_distributed_mode` is not required to be
+        # called and `_distrib_type` is not set.
+        if self._distrib_type is not None:
+            return
+        if self._training_type_plugin is not None:
+            self._distrib_type = getattr(self._training_type_plugin, "distributed_backend", None)
 
     @property
     def _is_slurm_managing_tasks(self) -> bool:
