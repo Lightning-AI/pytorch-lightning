@@ -166,7 +166,7 @@ In this case, exclude them explicitly:
 load_from_checkpoint
 """"""""""""""""""""
 
-LightningModule's that have hyperparameters automatically saved with :meth:`~pytorch_lightning.core.lightning.LightningModule.save_hyperparameters`
+LightningModules that have hyperparameters automatically saved with :meth:`~pytorch_lightning.core.lightning.LightningModule.save_hyperparameters`
 can conveniently be loaded and instantiated directly from a checkpoint with :meth:`~pytorch_lightning.core.lightning.LightningModule.load_from_checkpoint`:
 
 .. code-block:: python
