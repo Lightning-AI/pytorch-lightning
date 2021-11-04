@@ -44,7 +44,7 @@ def _module_available(module_path: str) -> bool:
         return False
 
 
-def _compare_version(package: str, op: Callable, version: str, use_base_version: bool = True) -> bool:
+def _compare_version(package: str, op: Callable, version: str, use_base_version: bool = False) -> bool:
     """Compare package version with some requirements.
 
     >>> _compare_version("torch", operator.ge, "0.1")
@@ -75,7 +75,7 @@ _TORCH_GREATER_EQUAL_1_8 = _compare_version("torch", operator.ge, "1.8.0")
 _TORCH_GREATER_EQUAL_1_8_1 = _compare_version("torch", operator.ge, "1.8.1")
 _TORCH_GREATER_EQUAL_1_9 = _compare_version("torch", operator.ge, "1.9.0")
 _TORCH_GREATER_EQUAL_1_10 = _compare_version("torch", operator.ge, "1.10.0")
-_TORCH_GREATER_EQUAL_DEV_1_10 = _compare_version("torch", operator.ge, "1.10.0", use_base_version=True)
+# _TORCH_GREATER_EQUAL_DEV_1_11 = _compare_version("torch", operator.ge, "1.11.0", use_base_version=True)
 
 _APEX_AVAILABLE = _module_available("apex.amp")
 _DEEPSPEED_AVAILABLE = _module_available("deepspeed")
@@ -93,7 +93,6 @@ _NEPTUNE_GREATER_EQUAL_0_9 = _NEPTUNE_AVAILABLE and _compare_version("neptune", 
 _OMEGACONF_AVAILABLE = _module_available("omegaconf")
 _POPTORCH_AVAILABLE = _module_available("poptorch")
 _RICH_AVAILABLE = _module_available("rich") and _compare_version("rich", operator.ge, "10.2.2")
-_TORCH_META_AVAILABLE = _compare_version("torch", operator.ge, "1.10.0.dev20210922")
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
 _TORCHTEXT_AVAILABLE = _module_available("torchtext")
 _TORCHVISION_AVAILABLE = _module_available("torchvision")

@@ -185,9 +185,9 @@ def test_trainer_num_prefetch_batches(tmpdir):
 
         def on_train_epoch_end(self, trainer, lightning_module):
             if self._check_inter_batch:
-                assert isinstance(trainer.data_connector.train_data_fetcher, InterBatchParallelDataFetcher)
+                assert isinstance(trainer._data_connector.train_data_fetcher, InterBatchParallelDataFetcher)
             else:
-                assert isinstance(trainer.data_connector.train_data_fetcher, DataFetcher)
+                assert isinstance(trainer._data_connector.train_data_fetcher, DataFetcher)
 
     trainer_kwargs = dict(
         default_root_dir=tmpdir,
@@ -232,7 +232,7 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
 
         def training_step(self, dataloader_iter, batch_idx):
             assert self.count == batch_idx
-            assert isinstance(self.trainer.data_connector.train_data_fetcher, DataLoaderIterDataFetcher)
+            assert isinstance(self.trainer._data_connector.train_data_fetcher, DataLoaderIterDataFetcher)
             # fetch 2 batches
             self.batches.append(next(dataloader_iter))
             self.batches.append(next(dataloader_iter))
@@ -255,7 +255,7 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
 
         def training_epoch_end(self, *_):
             assert self.trainer.fit_loop.epoch_loop.batch_progress.current.ready == 33
-            assert self.trainer.data_connector.train_data_fetcher.fetched == 64
+            assert self.trainer._data_connector.train_data_fetcher.fetched == 64
             assert self.count == 64
 
     model = TestModel(automatic_optimization=automatic_optimization)

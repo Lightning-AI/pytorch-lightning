@@ -16,49 +16,24 @@ from unittest.mock import call, Mock
 
 import pytest
 import torch
+from torch.optim import Optimizer
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.plugins import PrecisionPlugin
+from pytorch_lightning.plugins.environments import (
+    KubeflowEnvironment,
+    LightningEnvironment,
+    SLURMEnvironment,
+    TorchElasticEnvironment,
+)
 from pytorch_lightning.plugins.training_type import DDPPlugin, DDPSpawnPlugin
 from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.model_summary import ModelSummary
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringDataModule, BoringModel
-
-
-def test_v1_6_0_trainer_model_hook_mixin(tmpdir):
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_checkpointing=False, logger=False)
-    trainer.fit(model)
-    with pytest.deprecated_call(match="is deprecated in v1.4 and will be removed in v1.6"):
-        trainer.is_function_implemented("training_step", model)
-
-    with pytest.deprecated_call(match="is deprecated in v1.4 and will be removed in v1.6"):
-        trainer.has_arg("training_step", "batch")
-
-
-def test_v1_6_0_dataloader_renaming(tmpdir):
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    dl = model.train_dataloader()
-
-    with pytest.deprecated_call(match=r"fit\(train_dataloader\)` is deprecated in v1.4"):
-        trainer.fit(model, train_dataloader=dl)
-
-    with pytest.deprecated_call(match=r"validate\(val_dataloaders\)` is deprecated in v1.4"):
-        trainer.validate(model, val_dataloaders=dl)
-
-    with pytest.deprecated_call(match=r"test\(test_dataloaders\)` is deprecated in v1.4"):
-        trainer.test(model, test_dataloaders=dl)
-
-    with pytest.deprecated_call(match=r"tune\(train_dataloader\)` is deprecated in v1.4"):
-        trainer.tune(model, train_dataloader=dl)
-    with pytest.deprecated_call(match=r"tune\(train_dataloader\)` is deprecated in v1.4"):
-        trainer.tuner.scale_batch_size(model, train_dataloader=dl)
-    with pytest.deprecated_call(match=r"tune\(train_dataloader\)` is deprecated in v1.4"):
-        trainer.tuner.lr_find(model, train_dataloader=dl)
 
 
 def test_old_transfer_batch_to_device_hook(tmpdir):
@@ -276,23 +251,6 @@ def test_v1_6_0_ddp_plugin_task_idx():
         _ = plugin.task_idx
 
 
-def test_v1_6_0_lightning_module_loaded_optimizer_states_dict():
-    from pytorch_lightning.core.lightning import warning_cache
-
-    model = BoringModel()
-    _ = model.loaded_optimizer_states_dict
-    assert any(
-        "The `LightningModule.loaded_optimizer_states_dict` property is deprecated in v1.4" in w for w in warning_cache
-    )
-    warning_cache.clear()
-
-    model.loaded_optimizer_states_dict = {}
-    assert any(
-        "The `LightningModule.loaded_optimizer_states_dict` property is deprecated in v1.4" in w for w in warning_cache
-    )
-    warning_cache.clear()
-
-
 def test_v1_6_0_deprecated_model_summary_mode(tmpdir):
     model = BoringModel()
     with pytest.deprecated_call(match="Argument `mode` in `ModelSummary` is deprecated in v1.4"):
@@ -406,3 +364,37 @@ def test_v1_6_0_deprecated_accelerator_pass_through_functions():
 
     with pytest.deprecated_call(match="will be removed in v1.6"):
         accelerator.on_train_batch_start(batch=None, batch_idx=0)
+
+
+def test_v1_6_0_configure_slurm_ddp():
+    trainer = Trainer()
+    with pytest.deprecated_call(match=r"`AcceleratorConnector.configure_slurm_ddp\(\)` was deprecated in v1.5"):
+        trainer._accelerator_connector.configure_slurm_ddp()
+
+
+def test_v1_6_0_is_slurm_managing_tasks():
+    trainer = Trainer()
+    with pytest.deprecated_call(match=r"`AcceleratorConnector.is_slurm_managing_tasks` was deprecated in v1.5"):
+        _ = trainer._accelerator_connector.is_slurm_managing_tasks
+
+    with pytest.deprecated_call(match=r"`AcceleratorConnector.is_slurm_managing_tasks` was deprecated in v1.5"):
+        trainer._accelerator_connector.is_slurm_managing_tasks = False
+
+
+@pytest.mark.parametrize(
+    "cluster_environment",
+    [
+        KubeflowEnvironment(),
+        LightningEnvironment(),
+        SLURMEnvironment(),
+        TorchElasticEnvironment(),
+    ],
+)
+def test_v1_6_0_cluster_environment_creates_children(cluster_environment):
+    with pytest.deprecated_call(match="was deprecated in v1.5 and will be removed in v1.6"):
+        cluster_environment.creates_children()
+
+
+def test_v1_6_0_master_params():
+    with pytest.deprecated_call(match="`PrecisionPlugin.master_params` was deprecated in v1.5"):
+        PrecisionPlugin().master_params(Mock(spec=Optimizer))

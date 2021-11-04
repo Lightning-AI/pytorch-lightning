@@ -40,7 +40,7 @@ PRETEND_N_OF_GPUS = 16
 @RunIf(min_gpus=2)
 def test_multi_gpu_none_backend(tmpdir):
     """Make sure when using multiple GPUs the user can't use `accelerator = None`."""
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
@@ -182,6 +182,7 @@ def test_determine_root_gpu_device(gpus, expected_root_gpu):
     [
         (None, None),
         (0, None),
+        ([], None),
         (1, [0]),
         (3, [0, 1, 2]),
         pytest.param(-1, list(range(PRETEND_N_OF_GPUS)), id="-1 - use all gpus"),
@@ -199,7 +200,7 @@ def test_parse_gpu_ids(mocked_device_count, gpus, expected_gpu_ids):
     assert device_parser.parse_gpu_ids(gpus) == expected_gpu_ids
 
 
-@pytest.mark.parametrize("gpus", [0.1, -2, False, [], [-1], [None], ["0"], [0, 0]])
+@pytest.mark.parametrize("gpus", [0.1, -2, False, [-1], [None], ["0"], [0, 0]])
 def test_parse_gpu_fail_on_unsupported_inputs(mocked_device_count, gpus):
     with pytest.raises(MisconfigurationException):
         device_parser.parse_gpu_ids(gpus)
@@ -239,8 +240,8 @@ def test_torchelastic_gpu_parsing(mocked_device_count, gpus):
     """Ensure when using torchelastic and nproc_per_node is set to the default of 1 per GPU device That we omit
     sanitizing the gpus as only one of the GPUs is visible."""
     trainer = Trainer(gpus=gpus)
-    assert isinstance(trainer.accelerator_connector.cluster_environment, TorchElasticEnvironment)
-    assert trainer.accelerator_connector.parallel_device_ids == device_parser.parse_gpu_ids(gpus)
+    assert isinstance(trainer._accelerator_connector.cluster_environment, TorchElasticEnvironment)
+    assert trainer._accelerator_connector.parallel_device_ids == device_parser.parse_gpu_ids(gpus)
     assert trainer.gpus == gpus
 
 

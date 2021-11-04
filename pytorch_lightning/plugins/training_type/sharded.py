@@ -23,6 +23,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE, rank_zero_only
+from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_AVAILABLE:
@@ -35,6 +36,7 @@ if _FAIRSCALE_AVAILABLE:
 class DDPShardedPlugin(DDPPlugin):
     """Optimizer and gradient sharded training provided by FairScale."""
 
+    distributed_backend = DistributedType.DDP_SHARDED
     _REDUCE_BUFFER_SIZE_DEFAULT: int = 2 ** 23  # 8M
 
     def __init__(self, *args, **kwargs):
@@ -47,33 +49,23 @@ class DDPShardedPlugin(DDPPlugin):
             # For multi-node training, enabling bucketing will improve performance.
             self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
 
-        [self._model], optimizers = self._setup_models_and_optimizers(
-            models=[LightningShardedDataParallel(self.model)],
+        self._model, optimizers = self._setup_model_and_optimizers(
+            model=LightningShardedDataParallel(self.model),
             optimizers=trainer.optimizers,
         )
         trainer.optimizers = optimizers
         trainer.convert_to_lightning_optimizers()
 
-    def _setup_models_and_optimizers(
-        self, models: List[Module], optimizers: List[Optimizer]
-    ) -> Tuple[List[Module], List[Optimizer]]:
+    def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Wraps the model and optimizers with fairscale components.
 
-        Currently only one model can be setup at once.
-
         Return:
-            A list with one model wrapped into a :class:`~fairscale.nn.data_parallel.ShardedDataParallel` module
+            The model wrapped into a :class:`~fairscale.nn.data_parallel.ShardedDataParallel` module
             and a list of optimizer wrapped in :class:~`fairscale.optim.OSS`.
         """
-        if len(models) > 1:
-            raise ValueError(
-                "DDPSharded only supports setting up a single model with one or several optimizers."
-                f" Got {len(models)} models."
-            )
-
         optimizers = self._wrap_optimizers(optimizers)
-        model = ShardedDataParallel(models[0], sharded_optimizer=optimizers, **self._ddp_kwargs)
-        return [model], optimizers
+        model = ShardedDataParallel(model, sharded_optimizer=optimizers, **self._ddp_kwargs)
+        return model, optimizers
 
     def _reinit_optimizers_with_oss(self, optimizers: List[Union[Optimizer, LightningOptimizer]]) -> List["OSS"]:
         for x, optimizer in enumerate(optimizers):

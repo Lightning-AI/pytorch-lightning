@@ -24,13 +24,15 @@ log = logging.getLogger(__name__)
 class SLURMEnvironment(ClusterEnvironment):
     """Cluster environment for training on a cluster managed by SLURM."""
 
+    @property
+    def creates_processes_externally(self) -> bool:
+        return True
+
     @staticmethod
     def is_using_slurm() -> bool:
         """Returns ``True`` if the current process was launched on a SLURM cluster."""
         return "SLURM_NTASKS" in os.environ
 
-    def creates_children(self) -> bool:
-        return True
 
     def master_address(self) -> str:
         # figure out the root node addr

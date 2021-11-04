@@ -6,10 +6,10 @@ from typing import Dict, Optional
 # IMPORTANT: this list needs to be sorted in reverse
 VERSIONS = [
     dict(torch="1.11.0", torchvision="0.11.*", torchtext=""),  # nightly
-    dict(torch="1.10.0", torchvision="0.11.*", torchtext=""),
+    dict(torch="1.10.0", torchvision="0.11.1", torchtext="0.11.0"),  # stable
     dict(torch="1.9.1", torchvision="0.10.1", torchtext="0.10.1"),
     dict(torch="1.9.0", torchvision="0.10.0", torchtext="0.10.0"),
-    dict(torch="1.8.2", torchvision="0.9.1", torchtext="0.9.1"),
+    # dict(torch="1.8.2", torchvision="0.9.1", torchtext="0.9.1"), # LTS # Not on PyPI, commented so 1.8.1 is used
     dict(torch="1.8.1", torchvision="0.9.1", torchtext="0.9.1"),
     dict(torch="1.8.0", torchvision="0.9.0", torchtext="0.9.0"),
     dict(torch="1.7.1", torchvision="0.8.2", torchtext="0.8.1"),

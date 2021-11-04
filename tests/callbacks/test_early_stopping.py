@@ -90,12 +90,11 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     new_trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        resume_from_checkpoint=checkpoint_filepath,
         callbacks=[early_stop_callback],
     )
 
     with pytest.raises(MisconfigurationException, match=r"You restored a checkpoint with current_epoch"):
-        new_trainer.fit(model, datamodule=dm)
+        new_trainer.fit(model, datamodule=dm, ckpt_path=checkpoint_filepath)
 
 
 def test_early_stopping_no_extraneous_invocations(tmpdir):
@@ -390,15 +389,25 @@ _NO_WIN = dict(marks=RunIf(skip_windows=True))
     [
         ([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, None, 1),
         ([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, None, 1),
-        pytest.param([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, "ddp_cpu", 2, **_NO_WIN),
-        pytest.param([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, "ddp_cpu", 2, **_NO_WIN),
+        pytest.param([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, "ddp_spawn", 2, **_NO_WIN),
+        pytest.param([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, "ddp_spawn", 2, **_NO_WIN),
         ([EarlyStopping("abc", **_ES_CHECK), EarlyStopping("cba", **_ES_CHECK_P3)], 3, True, None, 1),
         ([EarlyStopping("cba", **_ES_CHECK_P3), EarlyStopping("abc", **_ES_CHECK)], 3, True, None, 1),
         pytest.param(
-            [EarlyStopping("abc", **_ES_CHECK), EarlyStopping("cba", **_ES_CHECK_P3)], 3, True, "ddp_cpu", 2, **_NO_WIN
+            [EarlyStopping("abc", **_ES_CHECK), EarlyStopping("cba", **_ES_CHECK_P3)],
+            3,
+            True,
+            "ddp_spawn",
+            2,
+            **_NO_WIN,
         ),
         pytest.param(
-            [EarlyStopping("cba", **_ES_CHECK_P3), EarlyStopping("abc", **_ES_CHECK)], 3, True, "ddp_cpu", 2, **_NO_WIN
+            [EarlyStopping("cba", **_ES_CHECK_P3), EarlyStopping("abc", **_ES_CHECK)],
+            3,
+            True,
+            "ddp_spawn",
+            2,
+            **_NO_WIN,
         ),
     ],
 )
@@ -420,6 +429,7 @@ def test_multiple_early_stopping_callbacks(
         overfit_batches=0.20,
         max_epochs=20,
         strategy=strategy,
+        accelerator="cpu",
         num_processes=num_processes,
     )
     trainer.fit(model)

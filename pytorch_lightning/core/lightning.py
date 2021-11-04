@@ -39,7 +39,7 @@ from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import (
     _IS_WINDOWS,
-    _TORCH_GREATER_EQUAL_DEV_1_10,
+    _TORCH_GREATER_EQUAL_1_10,
     GradClipAlgorithmType,
     rank_zero_deprecation,
     rank_zero_warn,
@@ -82,7 +82,6 @@ class LightningModule(
             "model_size",
             "automatic_optimization",
             "truncated_bptt_steps",
-            "loaded_optimizer_states_dict",
         ]
         + DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
@@ -119,15 +118,18 @@ class LightningModule(
 
         self._register_sharded_tensor_state_dict_hooks_if_available()
 
-        # deprecated, will be removed in 1.6
-        self._loaded_optimizer_states_dict = {}
-
     @overload
     def optimizers(self, use_pl_optimizer: Literal[True] = True) -> Union[LightningOptimizer, List[LightningOptimizer]]:
         ...
 
     @overload
     def optimizers(self, use_pl_optimizer: Literal[False]) -> Union[Optimizer, List[Optimizer]]:
+        ...
+
+    @overload
+    def optimizers(
+        self, use_pl_optimizer: bool
+    ) -> Union[Optimizer, LightningOptimizer, List[Optimizer], List[LightningOptimizer]]:
         ...
 
     def optimizers(
@@ -218,24 +220,6 @@ class LightningModule(
     def local_rank(self) -> int:
         """The index of the current process within a single node."""
         return self.trainer.local_rank if self.trainer else 0
-
-    @property
-    def loaded_optimizer_states_dict(self) -> dict:
-        warning_cache.deprecation(
-            "The `LightningModule.loaded_optimizer_states_dict` property is deprecated in v1.4"
-            " and will be removed in v1.6.",
-            stacklevel=6,
-        )
-        return self._loaded_optimizer_states_dict
-
-    @loaded_optimizer_states_dict.setter
-    def loaded_optimizer_states_dict(self, val: dict) -> None:
-        warning_cache.deprecation(
-            "The `LightningModule.loaded_optimizer_states_dict` property is deprecated in v1.4"
-            " and will be removed in v1.6.",
-            stacklevel=6,
-        )
-        self._loaded_optimizer_states_dict = val
 
     @property
     def on_gpu(self):
@@ -361,7 +345,8 @@ class LightningModule(
             on_epoch: if True logs epoch accumulated metrics. None auto-logs at the val/test step but not training_step
             reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
             enable_graph: if True, will not auto detach the graph
-            sync_dist: if True, reduces the metric across GPUs/TPUs
+            sync_dist: if True, reduces the metric across GPUs/TPUs. Use with care as this may lead to a significant
+                communication overhead.
             sync_dist_group: the ddp group to sync across
             add_dataloader_idx: if True, appends the index of the current dataloader to
                 the name (when using multiple). If False, user needs to give unique names for
@@ -523,7 +508,8 @@ class LightningModule(
             on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
             reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
             enable_graph: if True, will not auto detach the graph
-            sync_dist: if True, reduces the metric across GPUs/TPUs
+            sync_dist: if True, reduces the metric across GPUs/TPUs. Use with care as this may lead to a significant
+                communication overhead.
             sync_dist_group: the ddp group sync across
             add_dataloader_idx: if True, appends the index of the current dataloader to
                 the name (when using multiple). If False, user needs to give unique names for
@@ -569,6 +555,8 @@ class LightningModule(
 
     def log_grad_norm(self, grad_norm_dict: Dict[str, float]) -> None:
         """Override this method to change the default behaviour of ``log_grad_norm``.
+
+        If clipping gradients, the gradients will not have been clipped yet.
 
         Args:
             grad_norm_dict: Dictionary containing current grad norm metrics
@@ -693,7 +681,7 @@ class LightningModule(
         """
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
-    def training_step_end(self, *args, **kwargs) -> STEP_OUTPUT:
+    def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
         """Use this when training with dp or ddp2 because :meth:`training_step` will operate on only part of the
         batch. However, this is still optional and only needed for things like softmax or NCE loss.
 
@@ -705,11 +693,11 @@ class LightningModule(
 
             # pseudocode
             sub_batches = split_batches_for_dp(batch)
-            batch_parts_outputs = [training_step(sub_batch) for sub_batch in sub_batches]
-            training_step_end(batch_parts_outputs)
+            step_output = [training_step(sub_batch) for sub_batch in sub_batches]
+            training_step_end(step_output)
 
         Args:
-            batch_parts_outputs: What you return in `training_step` for each batch part.
+            step_output: What you return in `training_step` for each batch part.
 
         Return:
             Anything
@@ -802,10 +790,9 @@ class LightningModule(
             validation_epoch_end(val_outs)
 
         Args:
-            batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-                The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-            batch_idx (int): The index of this batch
-            dataloader_idx (int): The index of the dataloader that produced this batch
+            batch: The output of your :class:`~torch.utils.data.DataLoader`.
+            batch_idx: The index of this batch.
+            dataloader_idx: The index of the dataloader that produced this batch.
                 (only if multiple val dataloaders used)
 
         Return:
@@ -832,7 +819,7 @@ class LightningModule(
 
 
             # if you have multiple val dataloaders:
-            def validation_step(self, batch, batch_idx, dataloader_idx):
+            def validation_step(self, batch, batch_idx, dataloader_idx=0):
                 ...
 
         Examples::
@@ -858,12 +845,13 @@ class LightningModule(
                 # log the outputs!
                 self.log_dict({'val_loss': loss, 'val_acc': val_acc})
 
-        If you pass in multiple val dataloaders, :meth:`validation_step` will have an additional argument.
+        If you pass in multiple val dataloaders, :meth:`validation_step` will have an additional argument. We recommend
+        setting the default value of 0 so that you can quickly switch between single and multiple dataloaders.
 
         .. code-block:: python
 
             # CASE 2: multiple validation dataloaders
-            def validation_step(self, batch, batch_idx, dataloader_idx):
+            def validation_step(self, batch, batch_idx, dataloader_idx=0):
                 # dataloader_idx tells you which dataset this is.
                 ...
 
@@ -888,12 +876,11 @@ class LightningModule(
 
             # pseudocode
             sub_batches = split_batches_for_dp(batch)
-            batch_parts_outputs = [validation_step(sub_batch) for sub_batch in sub_batches]
-            validation_step_end(batch_parts_outputs)
+            step_output = [validation_step(sub_batch) for sub_batch in sub_batches]
+            validation_step_end(step_output)
 
         Args:
-            batch_parts_outputs: What you return in :meth:`validation_step`
-                for each batch part.
+            step_output: What you return in :meth:`validation_step` for each batch part.
 
         Return:
             None or anything
@@ -990,10 +977,9 @@ class LightningModule(
             test_epoch_end(test_outs)
 
         Args:
-            batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-                The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-            batch_idx (int): The index of this batch.
-            dataloader_idx (int): The index of the dataloader that produced this batch
+            batch: The output of your :class:`~torch.utils.data.DataLoader`.
+            batch_idx: The index of this batch.
+            dataloader_id: The index of the dataloader that produced this batch.
                 (only if multiple test dataloaders used).
 
         Return:
@@ -1010,7 +996,7 @@ class LightningModule(
 
 
             # if you have multiple test dataloaders:
-            def test_step(self, batch, batch_idx, dataloader_idx):
+            def test_step(self, batch, batch_idx, dataloader_idx=0):
                 ...
 
         Examples::
@@ -1036,12 +1022,13 @@ class LightningModule(
                 # log the outputs!
                 self.log_dict({'test_loss': loss, 'test_acc': test_acc})
 
-        If you pass in multiple test dataloaders, :meth:`test_step` will have an additional argument.
+        If you pass in multiple test dataloaders, :meth:`test_step` will have an additional argument. We recommend
+        setting the default value of 0 so that you can quickly switch between single and multiple dataloaders.
 
         .. code-block:: python
 
             # CASE 2: multiple test dataloaders
-            def test_step(self, batch, batch_idx, dataloader_idx):
+            def test_step(self, batch, batch_idx, dataloader_idx=0):
                 # dataloader_idx tells you which dataset this is.
                 ...
 
@@ -1066,11 +1053,11 @@ class LightningModule(
 
             # pseudocode
             sub_batches = split_batches_for_dp(batch)
-            batch_parts_outputs = [test_step(sub_batch) for sub_batch in sub_batches]
-            test_step_end(batch_parts_outputs)
+            step_output = [test_step(sub_batch) for sub_batch in sub_batches]
+            test_step_end(step_output)
 
         Args:
-            batch_parts_outputs: What you return in :meth:`test_step` for each batch part.
+            step_output: What you return in :meth:`test_step` for each batch part.
 
         Return:
             None or anything
@@ -1158,7 +1145,7 @@ class LightningModule(
                     self.log("final_metric", final_value)
         """
 
-    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int] = None) -> Any:
+    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Any:
         """Step function called during :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`. By default, it
         calls :meth:`~pytorch_lightning.core.lightning.LightningModule.forward`. Override to add any processing
         logic.
@@ -1177,7 +1164,7 @@ class LightningModule(
 
             class MyModel(LightningModule):
 
-                def predicts_step(self, batch, batch_idx, dataloader_idx):
+                def predicts_step(self, batch, batch_idx, dataloader_idx=0):
                     return self(batch)
 
             dm = ...
@@ -1187,9 +1174,9 @@ class LightningModule(
 
 
         Args:
-            batch: Current batch
-            batch_idx: Index of current batch
-            dataloader_idx: Index of the current dataloader
+            batch: Current batch.
+            batch_idx: Index of current batch.
+            dataloader_idx: Index of the current dataloader.
 
         Return:
             Predicted output
@@ -1411,10 +1398,7 @@ class LightningModule(
             *args: Additional positional arguments to be forwarded to :meth:`~torch.Tensor.backward`
             **kwargs: Additional keyword arguments to be forwarded to :meth:`~torch.Tensor.backward`
         """
-        # make sure we're using manual opt
         self._verify_is_manual_optimization("manual_backward")
-
-        # backward
         self.trainer.accelerator.backward(loss, None, None, *args, **kwargs)
 
     def backward(
@@ -1487,7 +1471,7 @@ class LightningModule(
         self,
         optimizer: Optimizer,
         gradient_clip_val: Optional[Union[int, float]] = None,
-        gradient_clip_algorithm: Optional[Union[str, GradClipAlgorithmType]] = None,
+        gradient_clip_algorithm: Optional[str] = None,
     ):
         """Handles gradient clipping internally.
 
@@ -1505,8 +1489,9 @@ class LightningModule(
             gradient_clip_val = self.trainer.gradient_clip_val or 0.0
         elif self.trainer.gradient_clip_val is not None and self.trainer.gradient_clip_val != gradient_clip_val:
             raise MisconfigurationException(
-                "You have set `Trainer(gradient_clip_val)` and have passed"
-                " `gradient_clip_val` inside `clip_gradients`. Please use only one of them."
+                f"You have set `Trainer(gradient_clip_val={self.trainer.gradient_clip_val!r})`"
+                f" and have passed `clip_gradients(gradient_clip_val={gradient_clip_val!r})`."
+                " Please use only one of them."
             )
 
         if gradient_clip_algorithm is None:
@@ -1518,8 +1503,9 @@ class LightningModule(
                 and self.trainer.gradient_clip_algorithm != gradient_clip_algorithm
             ):
                 raise MisconfigurationException(
-                    "You have set `Trainer(gradient_clip_algorithm)` and have passed"
-                    " `gradient_clip_algorithm` inside `clip_gradients`. Please use only one of them."
+                    f"You have set `Trainer(gradient_clip_algorithm={self.trainer.gradient_clip_algorithm.value!r})`"
+                    f" and have passed `clip_gradients(gradient_clip_algorithm={gradient_clip_algorithm!r})"
+                    " Please use only one of them."
                 )
 
         if not isinstance(gradient_clip_val, (int, float)):
@@ -1532,7 +1518,7 @@ class LightningModule(
             )
 
         gradient_clip_algorithm = GradClipAlgorithmType(gradient_clip_algorithm)
-        self.trainer.accelerator.clip_gradients(optimizer, gradient_clip_val, gradient_clip_algorithm)
+        self.trainer.precision_plugin.clip_gradients(optimizer, gradient_clip_val, gradient_clip_algorithm)
 
     def configure_gradient_clipping(
         self,
@@ -1542,10 +1528,6 @@ class LightningModule(
         gradient_clip_algorithm: Optional[str] = None,
     ):
         """Perform gradient clipping for the optimizer parameters. Called before :meth:`optimizer_step`.
-
-        Note:
-            This hook won't be called when using deepspeed since it handles gradient clipping internally.
-            Consider setting ``gradient_clip_val`` and ``gradient_clip_algorithm`` inside ``Trainer``."
 
         Args:
             optimizer: Current optimizer being used.
@@ -1986,6 +1968,11 @@ class LightningModule(
 
     @property
     def model_size(self) -> float:
+        """Returns the model size in MegaBytes (MB)
+
+        Note:
+            This property will not return correct value for Deepspeed (stage 3) and fully-sharded training.
+        """
         rank_zero_deprecation(
             "The `LightningModule.model_size` property was deprecated in v1.5 and will be removed in v1.7."
             " Please use the `pytorch_lightning.utilities.memory.get_model_size_mb`.",
@@ -2042,7 +2029,7 @@ class LightningModule(
 
         These hooks ensure that ShardedTensors are included when saving, and are loaded the LightningModule correctly.
         """
-        if not _TORCH_GREATER_EQUAL_DEV_1_10 or _IS_WINDOWS:
+        if not _TORCH_GREATER_EQUAL_1_10 or _IS_WINDOWS:
             return
 
         from torch.distributed._sharded_tensor import pre_load_state_dict_hook, state_dict_hook

@@ -26,7 +26,7 @@ One to handle differences from the training routine and one to handle different 
     from pytorch_lightning.plugins import NativeMixedPrecisionPlugin, DDPPlugin
 
     accelerator = GPUAccelerator(
-        precision_plugin=NativeMixedPrecisionPlugin(),
+        precision_plugin=NativeMixedPrecisionPlugin(16, "cuda"),
         training_type_plugin=DDPPlugin(),
     )
     trainer = Trainer(accelerator=accelerator)
