@@ -51,7 +51,7 @@ def test_replace_distributed_sampler(tmpdir, mode):
             self._numbers_test_dataloaders = numbers_test_dataloaders
             self._mode = mode
 
-        def test_step(self, batch, batch_idx, dataloader_idx=None):
+        def test_step(self, batch, batch_idx, dataloader_idx=0):
             return super().test_step(batch, batch_idx)
 
         def on_test_start(self) -> None:
@@ -296,7 +296,7 @@ class LoaderTestModel(BoringModel):
         assert len(self.trainer.test_dataloaders[0]) == 10
         return super().test_step(batch, batch_idx)
 
-    def predict_step(self, batch, batch_idx, dataloader_idx=None):
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
         assert len(self.trainer.predict_dataloaders[0]) == 10
         return super().predict_step(batch, batch_idx, dataloader_idx=dataloader_idx)
 

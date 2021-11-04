@@ -1424,7 +1424,7 @@ def test_trainer_predict_no_return(tmpdir):
     """Test trainer.predict warns when nothing is returned."""
 
     class CustomBoringModel(BoringModel):
-        def predict_step(self, batch, batch_idx, dataloader_idx=None):
+        def predict_step(self, batch, batch_idx, dataloader_idx=0):
             if (batch_idx + 1) % 2 == 0:
                 return
 
@@ -1436,7 +1436,7 @@ def test_trainer_predict_no_return(tmpdir):
 
 def test_trainer_predict_grad(tmpdir):
     class CustomBoringModel(BoringModel):
-        def predict_step(self, batch, batch_idx, dataloader_idx=None):
+        def predict_step(self, batch, batch_idx, dataloader_idx=0):
             assert batch.expand_as(batch).grad_fn is None
             return super().predict_step(batch, batch_idx, dataloader_idx)
 
