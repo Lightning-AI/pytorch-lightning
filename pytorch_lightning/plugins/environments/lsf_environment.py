@@ -30,14 +30,18 @@ class LSFEnvironment(ClusterEnvironment):
     LSB_JOBID:
         The LSF assigned job ID
 
-    LSB_HOSTS:
-        The hosts used in the job. This string is expected to have the format "batch <rank_0_host> ...."
+    LSB_MCPU_HOSTS:
+        The hosts used in the job. This string is expected to have the format
+        "<node0_name> <node0_num_procs> <node1_name> ..."
 
     JSM_NAMESPACE_LOCAL_RANK:
         The node local rank for the task. This environment variable is set by jsrun
 
     JSM_NAMESPACE_SIZE:
         The world size for the task. This environment variable is set by jsrun
+
+    More information about environment variables for LSF can be found
+    `here <https://www.ibm.com/docs/en/spectrum-lsf/10.1.0?topic=variables-environment-variable-reference>`_.
     """
 
     def __init__(self):
@@ -49,7 +53,7 @@ class LSFEnvironment(ClusterEnvironment):
     @staticmethod
     def is_using_lsf() -> bool:
         """Returns ``True`` if the current process was launched using the jsrun command."""
-        required_env_vars = ("LSB_JOBID", "LSB_HOSTS", "JSM_NAMESPACE_LOCAL_RANK", "JSM_NAMESPACE_SIZE")
+        required_env_vars = ("LSB_JOBID", "LSB_MCPU_HOSTS", "JSM_NAMESPACE_LOCAL_RANK", "JSM_NAMESPACE_SIZE")
         return all(v in os.environ for v in required_env_vars)
 
     @property
@@ -57,7 +61,7 @@ class LSFEnvironment(ClusterEnvironment):
         return True
 
     def master_address(self):
-        """The master address is read from a list of hosts contained in the environment variable `LSB_HOSTS`."""
+        """The master address is read from a list of hosts contained in the environment variable `LSB_MCPU_HOSTS`."""
         return self._master_address
 
     def master_port(self):
@@ -105,7 +109,7 @@ class LSFEnvironment(ClusterEnvironment):
 
     def node_rank(self):
         """The node rank is determined by the position of the current hostname in the list of hosts stored in the
-        environment variable `LSB_HOSTS`."""
+        environment variable `LSB_MCPU_HOSTS`."""
         hosts = self._read_hosts()
         count = {}
         for host in hosts:
@@ -117,19 +121,20 @@ class LSFEnvironment(ClusterEnvironment):
 
     @staticmethod
     def _read_hosts():
-        hosts = os.environ.get("LSB_HOSTS")
-        if not hosts:
-            raise ValueError("Could not find hosts in environment variable LSB_HOSTS")
-        hosts = hosts.split()
-        if len(hosts) < 2:
+        hosts_config = os.environ.get("LSB_MCPU_HOSTS", "")
+        if not hosts_config:
+            raise ValueError("Could not find hosts in environment variable LSB_MCPU_HOSTS")
+        host_config = hosts_config.split()
+
+        if len(host_config) % 2 != 0:
             raise ValueError(
-                'Cannot parse hosts from LSB_HOSTS environment variable. Expected format: "batch <rank_0_host> ..."'
+                "Cannot parse hosts from LSB_MCPU_HOSTS environment variable. Expected format:"
+                ' "<node0_name> <node0_num_procs> <node1_name> ..."'
             )
-        return hosts
+        return host_config[::2]
 
     def _get_master_address(self):
-        hosts = self._read_hosts()
-        return hosts[1]
+        return self._read_hosts()[0]
 
     @staticmethod
     def _get_master_port():

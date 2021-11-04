@@ -19,15 +19,15 @@ import pytest
 from pytorch_lightning.plugins.environments import LSFEnvironment
 
 
-@mock.patch.dict(os.environ, {"LSB_HOSTS": "batch 10.10.10.0 10.10.10.1", "LSB_JOBID": "1234"})
+@mock.patch.dict(os.environ, {"LSB_MCPU_HOSTS": "10.10.10.0 1 10.10.10.1 1", "LSB_JOBID": "1234"})
 def test_missing_lsb_hosts():
     """Test an error when the lsb hosts list cannot be found."""
-    del os.environ["LSB_HOSTS"]
-    with pytest.raises(ValueError, match="Could not find hosts in environment variable LSB_HOSTS"):
+    del os.environ["LSB_MCPU_HOSTS"]
+    with pytest.raises(ValueError, match="Could not find hosts in environment variable LSB_MCPU_HOSTS"):
         LSFEnvironment()
 
 
-@mock.patch.dict(os.environ, {"LSB_HOSTS": "batch 10.10.10.0 10.10.10.1", "LSB_JOBID": "1234"})
+@mock.patch.dict(os.environ, {"LSB_MCPU_HOSTS": "10.10.10.0 1 10.10.10.1 1", "LSB_JOBID": "1234"})
 def test_missing_lsb_job_id():
     """Test an error when the job id cannot be found."""
     del os.environ["LSB_JOBID"]
@@ -35,7 +35,9 @@ def test_missing_lsb_job_id():
         LSFEnvironment()
 
 
-@mock.patch.dict(os.environ, {"MASTER_PORT": "4321", "LSB_JOBID": "1234", "LSB_HOSTS": "batch 10.10.10.0 10.10.10.1"})
+@mock.patch.dict(
+    os.environ, {"MASTER_PORT": "4321", "LSB_JOBID": "1234", "LSB_MCPU_HOSTS": "10.10.10.0 1 10.10.10.1 1"}
+)
 def test_manual_master_port_and_address():
     """Test a user can set the port manually through the MASTER_PORT env variable."""
     env = LSFEnvironment()
@@ -45,7 +47,7 @@ def test_manual_master_port_and_address():
 @mock.patch.dict(
     os.environ,
     {
-        "LSB_HOSTS": "batch 10.10.10.0 10.10.10.1 10.10.10.2 10.10.10.3",
+        "LSB_MCPU_HOSTS": "10.10.10.0 1 10.10.10.1 1 10.10.10.2 1 10.10.10.3 1",
         "LSB_JOBID": "1234",
         "JSM_NAMESPACE_SIZE": "4",
         "JSM_NAMESPACE_RANK": "3",
@@ -69,7 +71,7 @@ def test_attributes_from_environment_variables():
 
 
 @mock.patch("socket.gethostname", return_value="host2")
-@mock.patch.dict(os.environ, {"LSB_HOSTS": "batch host0 host1 host2 host3", "LSB_JOBID": "1234"})
+@mock.patch.dict(os.environ, {"LSB_MCPU_HOSTS": "host0 1 host1 1 host2 1 host3 1", "LSB_JOBID": "1234"})
 def test_node_rank(_):
     env = LSFEnvironment()
     assert env.node_rank() == 2
