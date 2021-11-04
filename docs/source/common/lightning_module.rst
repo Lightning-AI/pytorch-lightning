@@ -507,7 +507,7 @@ For research, LightningModules are best structured as systems.
             reconstruction_loss = nn.functional.mse_loss(recons, x)
             self.log("val_reconstruction", reconstruction_loss)
 
-        def predict_step(self, batch, batch_idx, dataloader_idx):
+        def predict_step(self, batch, batch_idx, dataloader_idx=0):
             x, _ = batch
 
             # encode
@@ -617,7 +617,7 @@ In the case where you want to scale your inference, you should be using
         def forward(self, x):
             return self.decoder(x)
 
-        def predict_step(self, batch, batch_idx, dataloader_idx=None):
+        def predict_step(self, batch, batch_idx, dataloader_idx=0):
             # this calls forward
             return self(batch)
 
@@ -667,7 +667,7 @@ For cases like production, you might want to iterate different models inside a L
             acc = FM.accuracy(y_hat, y)
             return loss, acc
 
-        def predict_step(self, batch, batch_idx, dataloader_idx):
+        def predict_step(self, batch, batch_idx, dataloader_idx=0):
             x, y = batch
             y_hat = self.model(x)
 

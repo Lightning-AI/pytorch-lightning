@@ -35,17 +35,6 @@ from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringDataModule, BoringModel
 
 
-def test_v1_6_0_trainer_model_hook_mixin(tmpdir):
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_checkpointing=False, logger=False)
-    trainer.fit(model)
-    with pytest.deprecated_call(match="is deprecated in v1.4 and will be removed in v1.6"):
-        trainer.is_function_implemented("training_step", model)
-
-    with pytest.deprecated_call(match="is deprecated in v1.4 and will be removed in v1.6"):
-        trainer.has_arg("training_step", "batch")
-
-
 def test_v1_6_0_dataloader_renaming(tmpdir):
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
@@ -273,23 +262,6 @@ def test_v1_6_0_ddp_plugin_task_idx():
     plugin = DDPPlugin()
     with pytest.deprecated_call(match="Use `DDPPlugin.local_rank` instead"):
         _ = plugin.task_idx
-
-
-def test_v1_6_0_lightning_module_loaded_optimizer_states_dict():
-    from pytorch_lightning.core.lightning import warning_cache
-
-    model = BoringModel()
-    _ = model.loaded_optimizer_states_dict
-    assert any(
-        "The `LightningModule.loaded_optimizer_states_dict` property is deprecated in v1.4" in w for w in warning_cache
-    )
-    warning_cache.clear()
-
-    model.loaded_optimizer_states_dict = {}
-    assert any(
-        "The `LightningModule.loaded_optimizer_states_dict` property is deprecated in v1.4" in w for w in warning_cache
-    )
-    warning_cache.clear()
 
 
 def test_v1_6_0_deprecated_model_summary_mode(tmpdir):
