@@ -50,9 +50,8 @@ class TorchElasticEnvironment(ClusterEnvironment):
 
         return int(os.environ["MASTER_PORT"])
 
-    def world_size(self) -> Optional[int]:
-        world_size = os.environ.get("WORLD_SIZE")
-        return int(world_size) if world_size is not None else world_size
+    def world_size(self) -> int:
+        return int(os.environ["WORLD_SIZE"])
 
     def set_world_size(self, size: int) -> None:
         log.debug("TorchElasticEnvironment.set_world_size was called, but setting world size is not allowed. Ignored.")
