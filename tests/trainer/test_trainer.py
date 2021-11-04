@@ -2139,10 +2139,6 @@ def test_detect_anomaly_nan(tmpdir):
             dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
         ),
         (
-            dict(strategy="ddp_find_unused_parameters_false", gpus=2),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
-        ),
-        (
             dict(strategy="ddp2", gpus=2),
             dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
