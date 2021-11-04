@@ -46,16 +46,6 @@ def test_old_transfer_batch_to_device_hook(tmpdir):
         trainer.fit(OldModel())
 
 
-def test_v1_6_0_ddp_num_nodes():
-    with pytest.deprecated_call(match="Argument `num_nodes` in `DDPPlugin` is deprecated in v1.4"):
-        DDPPlugin(num_nodes=1)
-
-
-def test_v1_6_0_ddp_sync_batchnorm():
-    with pytest.deprecated_call(match="Argument `sync_batchnorm` in `DDPPlugin` is deprecated in v1.4"):
-        DDPPlugin(sync_batchnorm=False)
-
-
 def test_v1_6_0_ddp_spawn_num_nodes():
     with pytest.deprecated_call(match="Argument `num_nodes` in `DDPSpawnPlugin` is deprecated in v1.4"):
         DDPSpawnPlugin(num_nodes=1)
