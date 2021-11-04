@@ -20,7 +20,7 @@ import warnings
 from argparse import ArgumentParser, Namespace
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Union, Tuple
+from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
 
 import torch
