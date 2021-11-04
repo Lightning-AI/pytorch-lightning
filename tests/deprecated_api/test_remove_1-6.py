@@ -260,11 +260,6 @@ def test_v1_6_0_deprecated_disable_validation():
         _ = trainer.disable_validation
 
 
-def test_v1_6_0_every_n_val_epochs():
-    with pytest.deprecated_call(match="use `every_n_epochs` instead"):
-        _ = ModelCheckpoint(every_n_val_epochs=1)
-
-
 def test_v1_6_0_deprecated_hpc_load(tmpdir):
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1)
