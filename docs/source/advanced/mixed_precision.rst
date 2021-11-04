@@ -47,7 +47,7 @@ BFloat16 Mixed Precision
 
 BFloat16 Mixed precision is similar to FP16 mixed precision, however we maintain more of the "dynamic range" that FP32 has to offer. This means we are able to improve numerical stability, compared to FP16 mixed precision. For more information see `this TPU performance blog post <https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus>`__.
 
-Under the hood we use `torch.cuda.amp <https://pytorch.org/docs/stable/amp.html>`__ with the the dtype set to `bfloat16`, with no gradient scaling.
+Under the hood we use `torch.autocast <https://pytorch.org/docs/stable/amp.html>`__ with the the dtype set to `bfloat16`, with no gradient scaling.
 
 .. testcode::
     :skipif: not _TORCH_GREATER_EQUAL_1_10 or not torch.cuda.is_available()
