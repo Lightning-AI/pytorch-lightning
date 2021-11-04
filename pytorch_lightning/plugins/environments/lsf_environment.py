@@ -57,12 +57,12 @@ class LSFEnvironment(ClusterEnvironment):
         return True
 
     @property
-    def main_address(self):
+    def main_address(self) -> str:
         """The main address is read from a list of hosts contained in the environment variable `LSB_HOSTS`."""
         return self._main_address
 
     @property
-    def main_port(self):
+    def main_port(self) -> int:
         """The main port gets calculated from the LSF job ID."""
         return self._main_port
 
@@ -129,12 +129,12 @@ class LSFEnvironment(ClusterEnvironment):
             )
         return hosts
 
-    def _get_main_address(self):
+    def _get_main_address(self) -> str:
         hosts = self._read_hosts()
         return hosts[1]
 
     @staticmethod
-    def _get_main_port():
+    def _get_main_port() -> int:
         """A helper function for accessing the main port.
 
         Uses the LSF job ID so all ranks can compute the main port.
