@@ -63,11 +63,6 @@ from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, Mi
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
-if _TORCH_GREATER_EQUAL_1_10:
-    if not _IS_WINDOWS:
-        from torch.distributed.optim import DistributedOptimizer
-    from torch.distributed.optim import PostLocalSGDOptimizer, ZeroRedundancyOptimizer
-
 if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
 if _HYDRA_AVAILABLE:
@@ -75,9 +70,7 @@ if _HYDRA_AVAILABLE:
     from hydra.utils import get_original_cwd, to_absolute_path
 if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
-if _TORCH_GREATER_EQUAL_1_10:
-    import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
-    import torch.distributed.algorithms.model_averaging.averagers as averagers
+
 
 log = logging.getLogger(__name__)
 
@@ -323,7 +316,8 @@ class DDPPlugin(ParallelPlugin):
                 ddp_comm_hook=self._ddp_comm_hook,
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
-
+            if _TORCH_GREATER_EQUAL_1_10:
+                import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
             if (
                 _TORCH_GREATER_EQUAL_1_10
                 and isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState)
@@ -337,6 +331,12 @@ class DDPPlugin(ParallelPlugin):
             raise ValueError(
                 "Post-localSGD algorithm is used, but model averaging period is not provided to DDP plugin."
             )
+        if _TORCH_GREATER_EQUAL_1_10:
+            if not _IS_WINDOWS:
+                from torch.distributed.optim import DistributedOptimizer
+            import torch.distributed.algorithms.model_averaging.averagers as averagers
+            from torch.distributed.optim import PostLocalSGDOptimizer, ZeroRedundancyOptimizer
+
         averager = averagers.PeriodicModelAverager(period=self._model_averaging_period, warmup_steps=warmup_steps)
         for x, optimizer in enumerate(optimizers):
             if isinstance(optimizer, LightningOptimizer):
