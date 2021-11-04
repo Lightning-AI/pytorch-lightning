@@ -20,7 +20,7 @@ import warnings
 from argparse import ArgumentParser, Namespace
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Union, Tuple
 from weakref import proxy
 
 import torch
@@ -422,7 +422,7 @@ class Trainer(
         Trainer._log_api_event("init")
         self.state = TrainerState()
 
-        gpu_ids, tpu_cores = device_parser._parse_devices(gpus, auto_select_gpus, tpu_cores)
+        gpu_ids, tpu_cores = self._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
         # init connectors
         self._data_connector = DataConnector(self, multiple_trainloader_mode)
@@ -1510,6 +1510,14 @@ class Trainer(
             pl_module._current_fx_name = prev_fx_name
 
         return output
+
+    @staticmethod
+    def _parse_devices(
+        gpus: Optional[Union[List[int], str, int]],
+        auto_select_gpus: bool,
+        tpu_cores: Optional[Union[List[int], str, int]],
+    ) -> Tuple[Optional[List[int]], Optional[Union[List[int], int]]]:
+        return device_parser._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
     @staticmethod
     def _log_api_event(event: str) -> None:
