@@ -167,7 +167,6 @@ class AcceleratorConnector:
         self.handle_given_plugins()
         self._set_distrib_type_if_training_type_plugin_passed()
 
-        self._configure_slurm_ddp()
         self._cluster_environment = self.select_cluster_environment()
 
         self.update_device_type_if_ipu_plugin()
@@ -992,13 +991,6 @@ class AcceleratorConnector:
                     self._device_type = DeviceType.TPU
                 elif self.has_gpu:
                     self._device_type = DeviceType.GPU
-
-    @property
-    def is_slurm_managing_tasks(self) -> bool:
-        rank_zero_deprecation(
-            "`AcceleratorConnector.is_slurm_managing_tasks` was deprecated in v1.5 and will be removed in v1.6."
-        )
-        return self._is_slurm_managing_tasks
 
     def configure_slurm_ddp(self):
         rank_zero_deprecation(

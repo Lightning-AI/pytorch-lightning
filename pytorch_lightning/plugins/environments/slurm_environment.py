@@ -33,7 +33,6 @@ class SLURMEnvironment(ClusterEnvironment):
         """Returns ``True`` if the current process was launched on a SLURM cluster."""
         return "SLURM_NTASKS" in os.environ
 
-
     def master_address(self) -> str:
         # figure out the root node addr
         slurm_nodelist = os.environ.get("SLURM_NODELIST")
