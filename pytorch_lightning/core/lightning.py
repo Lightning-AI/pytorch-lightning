@@ -82,7 +82,6 @@ class LightningModule(
             "model_size",
             "automatic_optimization",
             "truncated_bptt_steps",
-            "loaded_optimizer_states_dict",
         ]
         + DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
@@ -118,9 +117,6 @@ class LightningModule(
         self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
 
         self._register_sharded_tensor_state_dict_hooks_if_available()
-
-        # deprecated, will be removed in 1.6
-        self._loaded_optimizer_states_dict = {}
 
     @overload
     def optimizers(self, use_pl_optimizer: Literal[True] = True) -> Union[LightningOptimizer, List[LightningOptimizer]]:
@@ -224,24 +220,6 @@ class LightningModule(
     def local_rank(self) -> int:
         """The index of the current process within a single node."""
         return self.trainer.local_rank if self.trainer else 0
-
-    @property
-    def loaded_optimizer_states_dict(self) -> dict:
-        warning_cache.deprecation(
-            "The `LightningModule.loaded_optimizer_states_dict` property is deprecated in v1.4"
-            " and will be removed in v1.6.",
-            stacklevel=6,
-        )
-        return self._loaded_optimizer_states_dict
-
-    @loaded_optimizer_states_dict.setter
-    def loaded_optimizer_states_dict(self, val: dict) -> None:
-        warning_cache.deprecation(
-            "The `LightningModule.loaded_optimizer_states_dict` property is deprecated in v1.4"
-            " and will be removed in v1.6.",
-            stacklevel=6,
-        )
-        self._loaded_optimizer_states_dict = val
 
     @property
     def on_gpu(self):
