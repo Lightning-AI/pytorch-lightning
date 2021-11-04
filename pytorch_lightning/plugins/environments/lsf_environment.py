@@ -61,7 +61,8 @@ class LSFEnvironment(ClusterEnvironment):
         return True
 
     def master_address(self):
-        """The master address is read from a list of hosts contained in the environment variable `LSB_MCPU_HOSTS`."""
+        """The master address is read from a list of hosts contained in the environment variable
+        `LSB_MCPU_HOSTS`."""
         return self._master_address
 
     def master_port(self):
