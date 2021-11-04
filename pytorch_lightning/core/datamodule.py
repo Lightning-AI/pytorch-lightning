@@ -91,19 +91,6 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         # Pointer to the trainer object
         self.trainer = None
 
-        # Private attrs to keep track of whether or not data hooks have been called yet
-        self._has_prepared_data = False
-
-        self._has_setup_fit = False
-        self._has_setup_validate = False
-        self._has_setup_test = False
-        self._has_setup_predict = False
-
-        self._has_teardown_fit = False
-        self._has_teardown_validate = False
-        self._has_teardown_test = False
-        self._has_teardown_predict = False
-
     @property
     def train_transforms(self):
         """Optional transforms (or collection of transforms) you can apply to train dataset.
@@ -272,79 +259,3 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         if test_dataset is not None:
             datamodule.test_dataloader = test_dataloader
         return datamodule
-
-    def __new__(cls, *args: Any, **kwargs: Any) -> "LightningDataModule":
-        obj = super().__new__(cls)
-        # track `DataHooks` calls
-        obj.prepare_data = cls._track_data_hook_calls(obj, obj.prepare_data)
-        obj.setup = cls._track_data_hook_calls(obj, obj.setup)
-        obj.teardown = cls._track_data_hook_calls(obj, obj.teardown)
-
-        # calling this to ensure the `LightningDataModule` is initialized for all cases of inheritance,
-        # even if `super().__init__` hasn't been explicitly called in the class
-        LightningDataModule.__init__(obj)
-        return obj
-
-    @staticmethod
-    def _track_data_hook_calls(obj: "LightningDataModule", fn: callable) -> callable:
-        """A decorator that checks if prepare_data/setup/teardown has been called.
-
-        - When ``dm.prepare_data()`` is called, ``dm._has_prepared_data`` gets set to True
-        - When ``dm.setup()``, ``dm._has_setup_{fit,validate,test}`` get set to True
-        - When ``dm.setup(stage)`` is called, where stage is any of ``{fit,validate,test,predict}``.
-          Its corresponding `dm_has_setup_{stage}` attribute gets set to True
-        - ``dm.teardown()`` and ``dm.teardown(stage)`` act exactly like ``dm.setup``
-
-        Args:
-            obj: Object whose function will be tracked
-            fn: Function that will be tracked to see if it has been called.
-
-        Returns:
-            Decorated function that tracks its call status and saves it to private attrs in its obj instance.
-        """
-
-        @functools.wraps(fn)
-        def wrapped_fn(*args: str, **kwargs: Optional[str]) -> Any:
-            name = fn.__name__
-            has_run = False
-
-            # If calling setup, we check the stage and assign stage-specific bool args
-            if name in ("setup", "teardown"):
-
-                # Get stage either by grabbing from args or checking kwargs.
-                # If not provided, set call status of 'fit', 'validate', and 'test' to True.
-                # We do this so __attach_datamodule in trainer.py doesn't mistakenly call
-                # setup('test') on trainer.test()
-                stage = args[0] if len(args) else kwargs.get("stage", None)
-
-                if stage is None:
-                    has_run = True
-                    for s in ("fit", "validate", "test"):
-                        attr = f"_has_{name}_{s}"
-                        has_run &= getattr(obj, attr)
-                        setattr(obj, attr, True)
-                else:
-                    attr = f"_has_{name}_{stage}"
-                    has_run = getattr(obj, attr)
-                    setattr(obj, attr, True)
-
-            elif name == "prepare_data":
-                has_run = obj._has_prepared_data
-                obj._has_prepared_data = True
-
-            if has_run:
-                rank_zero_deprecation(
-                    f"DataModule.{name} has already been called, so it will not be called again. "
-                    f"In v1.6 this behavior will change to always call DataModule.{name}."
-                )
-            else:
-                fn(*args, **kwargs)
-
-        return wrapped_fn
-
-    def __getstate__(self) -> dict:
-        # avoids _pickle.PicklingError: Can't pickle <...>: it's not the same object as <...>
-        d = self.__dict__.copy()
-        for fn in ("prepare_data", "setup", "teardown"):
-            del d[fn]
-        return d
