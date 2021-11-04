@@ -58,7 +58,6 @@ from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnecto
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
@@ -107,7 +106,6 @@ warnings.filterwarnings(
 
 class Trainer(
     TrainerCallbackHookMixin,
-    TrainerModelHooksMixin,
     TrainerOptimizersMixin,
     TrainerDataLoadingMixin,
 ):
@@ -293,7 +291,7 @@ class Trainer(
 
                 .. deprecated:: v1.5
                     ``process_position`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please pass :class:`~pytorch_lightning.callbacks.progress.ProgressBar` with ``process_position``
+                    Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``process_position``
                     directly to the Trainer's ``callbacks`` argument instead.
 
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
@@ -302,7 +300,7 @@ class Trainer(
 
                 .. deprecated:: v1.5
                     ``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please pass :class:`~pytorch_lightning.callbacks.progress.ProgressBar` with ``refresh_rate``
+                    Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``refresh_rate``
                     directly to the Trainer's ``callbacks`` argument instead. To disable the progress bar,
                     pass ``enable_progress_bar = False`` to the Trainer.
 
@@ -705,7 +703,6 @@ class Trainer(
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
-        train_dataloader=None,  # TODO: remove with 1.6
         ckpt_path: Optional[str] = None,
     ) -> None:
         r"""
@@ -726,12 +723,6 @@ class Trainer(
 
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
         """
-        if train_dataloader is not None:
-            rank_zero_deprecation(
-                "`trainer.fit(train_dataloader)` is deprecated in v1.4 and will be removed in v1.6."
-                " Use `trainer.fit(train_dataloaders)` instead. HINT: added 's'"
-            )
-            train_dataloaders = train_dataloader
         self._call_and_handle_interrupt(
             self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path
         )
@@ -779,7 +770,6 @@ class Trainer(
         ckpt_path: Optional[str] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
-        val_dataloaders=None,  # TODO: remove with 1.6
     ) -> _EVALUATE_OUTPUT:
         r"""
         Perform one evaluation epoch over the validation set.
@@ -805,12 +795,6 @@ class Trainer(
             :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`, etc.
             The length of the list corresponds to the number of validation dataloaders used.
         """
-        if val_dataloaders is not None:
-            rank_zero_deprecation(
-                "`trainer.validate(val_dataloaders)` is deprecated in v1.4 and will be removed in v1.6."
-                " Use `trainer.validate(dataloaders)` instead."
-            )
-            dataloaders = val_dataloaders
         return self._call_and_handle_interrupt(self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule)
 
     def _validate_impl(
@@ -868,7 +852,6 @@ class Trainer(
         ckpt_path: Optional[str] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
-        test_dataloaders=None,  # TODO: remove with 1.6
     ) -> _EVALUATE_OUTPUT:
         r"""
         Perform one evaluation epoch over the test set.
@@ -895,12 +878,6 @@ class Trainer(
             :meth:`~pytorch_lightning.core.lightning.LightningModule.test_epoch_end`, etc.
             The length of the list corresponds to the number of test dataloaders used.
         """
-        if test_dataloaders is not None:
-            rank_zero_deprecation(
-                "`trainer.test(test_dataloaders)` is deprecated in v1.4 and will be removed in v1.6."
-                " Use `trainer.test(dataloaders)` instead."
-            )
-            dataloaders = test_dataloaders
         return self._call_and_handle_interrupt(self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule)
 
     def _test_impl(
@@ -1042,7 +1019,6 @@ class Trainer(
         datamodule: Optional[LightningDataModule] = None,
         scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
         lr_find_kwargs: Optional[Dict[str, Any]] = None,
-        train_dataloader=None,  # TODO: remove with 1.6
     ) -> Dict[str, Optional[Union[int, _LRFinder]]]:
         r"""
         Runs routines to tune hyperparameters before training.
@@ -1068,12 +1044,6 @@ class Trainer(
         self.state.status = TrainerStatus.RUNNING
         self.tuning = True
 
-        if train_dataloader is not None:
-            rank_zero_deprecation(
-                "`trainer.tune(train_dataloader)` is deprecated in v1.4 and will be removed in v1.6."
-                " Use `trainer.tune(train_dataloaders)` instead. HINT: added 's'"
-            )
-            train_dataloaders = train_dataloader
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(train_dataloaders, LightningDataModule):
             datamodule = train_dataloaders
@@ -1100,8 +1070,8 @@ class Trainer(
         # restore modules after setup
         self.checkpoint_connector.resume_start(checkpoint_path)
         self.checkpoint_connector.restore_model()
+        self.checkpoint_connector.restore_datamodule()
         if self.state.fn == TrainerFn.FITTING:
-            self.checkpoint_connector.restore_datamodule()
             # restore callback states
             self.checkpoint_connector.restore_callbacks()
 

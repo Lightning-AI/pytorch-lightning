@@ -37,7 +37,7 @@ from pytorch_lightning.utilities.auto_restart import (
     CaptureMapDataset,
     FastForwardSampler,
 )
-from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
+from pytorch_lightning.utilities.data import has_iterable_dataset, has_len_all_ranks
 from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
@@ -346,7 +346,12 @@ class TrainerDataLoadingMixin(ABC):
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
         self.train_dataloader = CombinedLoader(self.train_dataloader, self._data_connector.multiple_trainloader_mode)
 
-        self.num_training_batches = len(self.train_dataloader) if has_len(self.train_dataloader) else float("inf")
+        module = model or self.lightning_module or self.datamodule
+        self.num_training_batches = (
+            len(self.train_dataloader)
+            if has_len_all_ranks(self.train_dataloader, self.training_type_plugin, module)
+            else float("inf")
+        )
 
         if isinstance(self.limit_train_batches, int) or self.limit_train_batches == 0.0:
             self.num_training_batches = min(self.num_training_batches, int(self.limit_train_batches))
@@ -371,7 +376,7 @@ class TrainerDataLoadingMixin(ABC):
                     "If you want to disable validation set `limit_val_batches` to 0.0 instead."
                 )
         else:
-            if not has_len(self.train_dataloader):
+            if not has_len_all_ranks(self.train_dataloader, self.training_type_plugin, module):
                 if self.val_check_interval == 1.0:
                     self.val_check_batch = float("inf")
                 else:
@@ -452,9 +457,14 @@ class TrainerDataLoadingMixin(ABC):
 
         # determine number of batches
         # datasets could be none, 1 or 2+
+        module = model or self.lightning_module or self.datamodule
         if len(dataloaders) != 0:
             for i, dataloader in enumerate(dataloaders):
-                num_batches = len(dataloader) if has_len(dataloader) else float("inf")
+                num_batches = (
+                    len(dataloader)
+                    if has_len_all_ranks(dataloader, self.training_type_plugin, module)
+                    else float("inf")
+                )
                 self._worker_check(dataloader, f"{mode.dataloader_prefix}_dataloader {i}")
 
                 # percent or num_steps

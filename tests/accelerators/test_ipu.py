@@ -282,12 +282,12 @@ def test_stages_correct(tmpdir):
             loss = super().validation_step(batch, batch_idx)
             return (loss - loss) + torch.tensor(3)
 
-        def predict_step(self, batch, batch_idx, dataloader_idx=None):
+        def predict_step(self, batch, batch_idx, dataloader_idx=0):
             output = super().predict_step(batch, batch_idx)
             return (output - output) + torch.tensor(4)
 
     class TestCallback(Callback):
-        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx) -> None:
             assert outputs["loss"].item() == 1
 
         def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:

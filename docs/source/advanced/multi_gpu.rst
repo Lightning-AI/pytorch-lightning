@@ -544,8 +544,8 @@ To illustrate why this is needed, let's look at DataParallel
         return y_hat
 
 
-    def training_step_end(self, batch_parts_outputs):
-        # batch_parts_outputs has outputs of each part of the batch
+    def training_step_end(self, step_output):
+        # step_output has outputs of each part of the batch
 
         # do softmax here
         outputs = torch.cat(outputs, dim=1)
@@ -561,11 +561,11 @@ Validation and test step have the same option when using DP.
 
 .. testcode::
 
-    def validation_step_end(self, batch_parts_outputs):
+    def validation_step_end(self, step_output):
         ...
 
 
-    def test_step_end(self, batch_parts_outputs):
+    def test_step_end(self, step_output):
         ...
 
 
@@ -594,7 +594,7 @@ Below are the possible configurations we support.
 
 Implement Your Own Distributed (DDP) training
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.plugins.training_type.ddp.DDPPlugin.init_ddp_connection`.
+If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.plugins.training_type.ddp.DDPPlugin.init_dist_connection`.
 
 If you also need to use your own DDP implementation, override :meth:`pytorch_lightning.plugins.training_type.ddp.DDPPlugin.configure_ddp`.
 

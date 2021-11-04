@@ -79,7 +79,7 @@ class ModelHooks:
         - training_start
         """
 
-    def on_train_batch_start(self, batch: Any, batch_idx: int, unused: Optional[int] = 0) -> None:
+    def on_train_batch_start(self, batch: Any, batch_idx: int, unused: int = 0) -> None:
         """Called in the training loop before anything happens for that batch.
 
         If you return -1 here, you will skip training for the rest of the current epoch.
@@ -90,7 +90,7 @@ class ModelHooks:
             unused: Deprecated argument. Will be removed in v1.7.
         """
 
-    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, unused: Optional[int] = 0) -> None:
+    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, unused: int = 0) -> None:
         """Called in the training loop after the batch.
 
         Args:
@@ -314,9 +314,13 @@ class DataHooks:
             prepare_data_per_node:
                 If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data.
+            allow_zero_length_dataloader_with_multiple_devices:
+                If True, dataloader with zero length within local rank is allowed.
+                Default value is False.
         """
         super().__init__()
         self.prepare_data_per_node: bool = True
+        self.allow_zero_length_dataloader_with_multiple_devices: bool = False
 
     def prepare_data(self) -> None:
         """Use this to download and prepare data.
