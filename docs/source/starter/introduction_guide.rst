@@ -883,7 +883,7 @@ but it can be overridden to add any processing logic.
             imgs = self.decoder(z)
             return imgs
 
-        def predict_step(self, batch, batch_idx: int, dataloader_idx: int = None):
+        def predict_step(self, batch, batch_idx, dataloader_idx=0):
             return self(batch)
 
 

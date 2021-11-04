@@ -33,7 +33,7 @@ from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.loggers.base import LoggerCollection
+from pytorch_lightning.loggers.base import DummyLogger, LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop, TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
@@ -53,13 +53,11 @@ from pytorch_lightning.trainer.connectors.accelerator_connector import Accelerat
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
-from pytorch_lightning.trainer.connectors.debugging_connector import DebuggingConnector
 from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_from_env_vars
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
@@ -108,7 +106,6 @@ warnings.filterwarnings(
 
 class Trainer(
     TrainerCallbackHookMixin,
-    TrainerModelHooksMixin,
     TrainerOptimizersMixin,
     TrainerDataLoadingMixin,
 ):
@@ -294,7 +291,7 @@ class Trainer(
 
                 .. deprecated:: v1.5
                     ``process_position`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please pass :class:`~pytorch_lightning.callbacks.progress.ProgressBar` with ``process_position``
+                    Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``process_position``
                     directly to the Trainer's ``callbacks`` argument instead.
 
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
@@ -303,7 +300,7 @@ class Trainer(
 
                 .. deprecated:: v1.5
                     ``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please pass :class:`~pytorch_lightning.callbacks.progress.ProgressBar` with ``refresh_rate``
+                    Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``refresh_rate``
                     directly to the Trainer's ``callbacks`` argument instead. To disable the progress bar,
                     pass ``enable_progress_bar = False`` to the Trainer.
 
@@ -450,7 +447,6 @@ class Trainer(
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self._callback_connector = CallbackConnector(self)
-        self.debugging_connector = DebuggingConnector(self)
         self.checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
         self.signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
@@ -574,7 +570,7 @@ class Trainer(
         self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
-        self.debugging_connector.on_init_start(
+        self._init_debugging_flags(
             limit_train_batches,
             limit_val_batches,
             limit_test_batches,
@@ -586,6 +582,65 @@ class Trainer(
 
         # Callback system
         self.on_init_end()
+
+    def _init_debugging_flags(
+        self,
+        limit_train_batches,
+        limit_val_batches,
+        limit_test_batches,
+        limit_predict_batches,
+        val_check_interval,
+        overfit_batches,
+        fast_dev_run,
+    ):
+        if not isinstance(fast_dev_run, (bool, int)):
+            raise MisconfigurationException(
+                f"fast_dev_run={fast_dev_run} is not a valid configuration. It should be either a bool or an int >= 0"
+            )
+
+        if isinstance(fast_dev_run, int) and (fast_dev_run < 0):
+            raise MisconfigurationException(
+                f"fast_dev_run={fast_dev_run} is not a valid configuration. It should be >= 0."
+            )
+
+        self.fast_dev_run = fast_dev_run
+        fast_dev_run = int(fast_dev_run)
+
+        # set fast_dev_run=True when it is 1, used while logging
+        if fast_dev_run == 1:
+            self.fast_dev_run = True
+
+        if fast_dev_run:
+            limit_train_batches = fast_dev_run
+            limit_val_batches = fast_dev_run
+            limit_test_batches = fast_dev_run
+            limit_predict_batches = fast_dev_run
+            self.fit_loop.max_steps = fast_dev_run
+            self.num_sanity_val_steps = 0
+            self.fit_loop.max_epochs = 1
+            val_check_interval = 1.0
+            self.check_val_every_n_epoch = 1
+            self.logger = DummyLogger() if self.logger is not None else None
+
+            rank_zero_info(
+                "Running in fast_dev_run mode: will run a full train,"
+                f" val, test and prediction loop using {fast_dev_run} batch(es)."
+            )
+
+        self.limit_train_batches = _determine_batch_limits(limit_train_batches, "limit_train_batches")
+        self.limit_val_batches = _determine_batch_limits(limit_val_batches, "limit_val_batches")
+        self.limit_test_batches = _determine_batch_limits(limit_test_batches, "limit_test_batches")
+        self.limit_predict_batches = _determine_batch_limits(limit_predict_batches, "limit_predict_batches")
+        self.val_check_interval = _determine_batch_limits(val_check_interval, "val_check_interval")
+        self.overfit_batches = _determine_batch_limits(overfit_batches, "overfit_batches")
+        self.determine_data_use_amount(self.overfit_batches)
+
+    def determine_data_use_amount(self, overfit_batches: float) -> None:
+        """Use less data for debugging purposes."""
+        if overfit_batches > 0:
+            self.limit_train_batches = overfit_batches
+            self.limit_val_batches = overfit_batches
+            self.limit_test_batches = overfit_batches
 
     def _setup_on_init(self, num_sanity_val_steps: int) -> None:
         self._log_device_info()
@@ -648,7 +703,6 @@ class Trainer(
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
-        train_dataloader=None,  # TODO: remove with 1.6
         ckpt_path: Optional[str] = None,
     ) -> None:
         r"""
@@ -669,12 +723,6 @@ class Trainer(
 
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
         """
-        if train_dataloader is not None:
-            rank_zero_deprecation(
-                "`trainer.fit(train_dataloader)` is deprecated in v1.4 and will be removed in v1.6."
-                " Use `trainer.fit(train_dataloaders)` instead. HINT: added 's'"
-            )
-            train_dataloaders = train_dataloader
         self._call_and_handle_interrupt(
             self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path
         )
@@ -722,7 +770,6 @@ class Trainer(
         ckpt_path: Optional[str] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
-        val_dataloaders=None,  # TODO: remove with 1.6
     ) -> _EVALUATE_OUTPUT:
         r"""
         Perform one evaluation epoch over the validation set.
@@ -748,12 +795,6 @@ class Trainer(
             :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`, etc.
             The length of the list corresponds to the number of validation dataloaders used.
         """
-        if val_dataloaders is not None:
-            rank_zero_deprecation(
-                "`trainer.validate(val_dataloaders)` is deprecated in v1.4 and will be removed in v1.6."
-                " Use `trainer.validate(dataloaders)` instead."
-            )
-            dataloaders = val_dataloaders
         return self._call_and_handle_interrupt(self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule)
 
     def _validate_impl(
@@ -811,7 +852,6 @@ class Trainer(
         ckpt_path: Optional[str] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
-        test_dataloaders=None,  # TODO: remove with 1.6
     ) -> _EVALUATE_OUTPUT:
         r"""
         Perform one evaluation epoch over the test set.
@@ -838,12 +878,6 @@ class Trainer(
             :meth:`~pytorch_lightning.core.lightning.LightningModule.test_epoch_end`, etc.
             The length of the list corresponds to the number of test dataloaders used.
         """
-        if test_dataloaders is not None:
-            rank_zero_deprecation(
-                "`trainer.test(test_dataloaders)` is deprecated in v1.4 and will be removed in v1.6."
-                " Use `trainer.test(dataloaders)` instead."
-            )
-            dataloaders = test_dataloaders
         return self._call_and_handle_interrupt(self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule)
 
     def _test_impl(
@@ -985,7 +1019,6 @@ class Trainer(
         datamodule: Optional[LightningDataModule] = None,
         scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
         lr_find_kwargs: Optional[Dict[str, Any]] = None,
-        train_dataloader=None,  # TODO: remove with 1.6
     ) -> Dict[str, Optional[Union[int, _LRFinder]]]:
         r"""
         Runs routines to tune hyperparameters before training.
@@ -1011,12 +1044,6 @@ class Trainer(
         self.state.status = TrainerStatus.RUNNING
         self.tuning = True
 
-        if train_dataloader is not None:
-            rank_zero_deprecation(
-                "`trainer.tune(train_dataloader)` is deprecated in v1.4 and will be removed in v1.6."
-                " Use `trainer.tune(train_dataloaders)` instead. HINT: added 's'"
-            )
-            train_dataloaders = train_dataloader
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(train_dataloaders, LightningDataModule):
             datamodule = train_dataloaders
@@ -1043,8 +1070,8 @@ class Trainer(
         # restore modules after setup
         self.checkpoint_connector.resume_start(checkpoint_path)
         self.checkpoint_connector.restore_model()
+        self.checkpoint_connector.restore_datamodule()
         if self.state.fn == TrainerFn.FITTING:
-            self.checkpoint_connector.restore_datamodule()
             # restore callback states
             self.checkpoint_connector.restore_callbacks()
 
@@ -2133,3 +2160,13 @@ class Trainer(
             f" Please set `Trainer(detect_anomaly={val})` instead."
         )
         self._terminate_on_nan = val  # : 212
+
+
+def _determine_batch_limits(batches: Union[int, float], name: str) -> Union[int, float]:
+    if 0 <= batches <= 1:
+        return batches
+    if batches > 1 and batches % 1.0 == 0:
+        return int(batches)
+    raise MisconfigurationException(
+        f"You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int."
+    )

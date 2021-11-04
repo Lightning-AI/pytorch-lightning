@@ -24,6 +24,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 timit_data/
+grid_generated*
+grid_ori*
+
 
 
 # C extensions
@@ -137,6 +140,9 @@ ENV/
 Datasets/
 mnist/
 legacy/checkpoints/
+*.gz
+*ubyte
+
 
 # pl tests
 ml-runs/
