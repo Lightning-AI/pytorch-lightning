@@ -85,7 +85,7 @@ log = logging.getLogger(__name__)
 class DDPPlugin(ParallelPlugin):
     """Plugin for multi-process single-device training on one or multiple nodes.
 
-    The master process in each node spawns N-1 child processes via :func:`subprocess.Popen`, where N is the number of
+    The main process in each node spawns N-1 child processes via :func:`subprocess.Popen`, where N is the number of
     devices (e.g. GPU) per node. It is very similar to how :mod:`torch.distributed.launch` launches processes.
     """
 

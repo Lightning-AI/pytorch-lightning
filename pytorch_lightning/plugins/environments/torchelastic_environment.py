@@ -41,8 +41,8 @@ class TorchElasticEnvironment(ClusterEnvironment):
             rank_zero_warn("MASTER_ADDR environment variable is not defined. Set as localhost")
             os.environ["MASTER_ADDR"] = "127.0.0.1"
         log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
-        master_address = os.environ.get("MASTER_ADDR")
-        return master_address
+        main_address = os.environ.get("MASTER_ADDR")
+        return main_address
 
     @property
     def main_port(self) -> int:
