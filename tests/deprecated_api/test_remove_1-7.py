@@ -455,15 +455,3 @@ def test_v1_7_0_deprecate_lr_sch_names(tmpdir):
 
     with pytest.deprecated_call(match="`LearningRateMonitor.lr_sch_names` has been deprecated in v1.5"):
         assert lr_monitor.lr_sch_names == ["lr-SGD"]
-
-
-def test_v1_7_0_configure_slurm_ddp():
-    trainer = Trainer()
-    with pytest.deprecated_call(match=r"`AcceleratorConnector.configure_slurm_ddp\(\)` was deprecated in v1.5"):
-        trainer.accelerator_connector.configure_slurm_ddp()
-
-
-def test_v1_7_0_is_slurm_managing_tasks():
-    trainer = Trainer()
-    with pytest.deprecated_call(match=r"`AcceleratorConnector.is_slurm_managing_tasks` was deprecated in v1.5"):
-        _ = trainer.accelerator_connector.is_slurm_managing_tasks
