@@ -265,6 +265,3 @@ def test_v1_6_0_deprecated_accelerator_pass_through_functions():
 
     with pytest.deprecated_call(match="will be removed in v1.6"):
         accelerator.on_train_batch_start(batch=None, batch_idx=0)
-
-
-
