@@ -239,9 +239,7 @@ class LightningLite(ABC):
             sampler = self._get_distributed_sampler(dataloader, **self._strategy.distributed_sampler_kwargs)
 
         # the dataloader needs to be re-instantiated because we want to update the input arguments (e.g., sampler)
-        dataloader_kwargs = TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler)
-        dataloader_cls = type(dataloader)
-        dataloader = dataloader_cls(**dataloader_kwargs)
+        dataloader = TrainerDataLoadingMixin._update_dataloader(dataloader, sampler)
 
         # add worker_init_fn for correct seeding in worker processes
         TrainerDataLoadingMixin._auto_add_worker_init_fn(dataloader, self.global_rank)
