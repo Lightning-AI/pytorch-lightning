@@ -165,8 +165,8 @@ def test_setup_dataloaders_return_type():
 
 
 def test_setup_dataloaders_raises_for_unknown_custom_args():
-    """Test that an error raises when custom dataloaders with unknown arguments are created from outside Lite's
-    run method."""
+    """Test that an error raises when custom dataloaders with unknown arguments are created from outside Lite's run
+    method."""
     lite = EmptyLite()
 
     class CustomDataLoader(DataLoader):
