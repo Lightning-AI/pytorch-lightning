@@ -123,7 +123,7 @@ jobs:
       matrix:
         # the config used in '.github/workflows/ci_test-conda.yml'
         python_version: ["3.8"]
-        pytorch_version: ["1.7.1", "1.8", "1.9", "1.10"]
+        pytorch_version: ["1.7", "1.8", "1.9", "1.10"]
 
     steps:
       - name: Checkout
@@ -138,7 +138,7 @@ jobs:
 
       # see: https://pytorch.org/get-started/previous-versions/
       - run: |
-          cuda=$(python -c "from distutils.version import LooseVersion as LVer ; print(11.1 if LVer('${{matrix.pytorch_version}}') > LVer('1.7.1') else 10.2)" 2>&1)
+          cuda=$(python -c "from distutils.version import LooseVersion as LVer ; print(11.1 if LVer('${{matrix.pytorch_version}}') > LVer('1.7') else 10.2)" 2>&1)
           echo "::set-output name=CUDA::$cuda"
         id: extend
 
@@ -164,7 +164,7 @@ jobs:
         # the config used in 'dockers/ipu-ci-runner/Dockerfile'
         include:
           - python_version: "3.9"
-            pytorch_version: "1.7.1"
+            pytorch_version: "1.7"
 
     steps:
       - name: Checkout
