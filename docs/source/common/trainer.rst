@@ -1198,7 +1198,7 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
         :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
 
         # turn on 16-bit
-        trainer = Trainer(amp_backend="apex", amp_level="O2", precision=16)
+        trainer = Trainer(amp_backend="apex", amp_level="O2", precision=16, gpus=1)
 
 
 process_position
