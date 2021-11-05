@@ -164,57 +164,6 @@ def test_setup_dataloaders_return_type():
     assert lite_dataloader1.dataset is dataset1
 
 
-def test_setup_custom_dataloaders():
-    """Test that the setup_dataloaders method returns the dataloaders wrapped as LiteDataLoader."""
-    lite = EmptyLite()
-
-    class CustomDataLoader(DataLoader):
-        def __init__(self, value: int = 2, *args, **kwargs):
-            self.value = value
-            super().__init__(range(value), *args, **kwargs)
-
-    dataloader = CustomDataLoader(2, batch_size=2)
-
-    # single dataloader
-    lite_dataloader = lite.setup_dataloaders(dataloader)
-    assert lite_dataloader._dataloader
-    assert lite_dataloader.value == 2
-    batch0 = next(iter(lite_dataloader))
-    assert torch.equal(batch0, torch.tensor([0, 1]))
-
-    class CustomDataLoader2(DataLoader):
-        def __init__(self, range, *args, **kwargs):
-            self.range = range
-            super().__init__(range, *args, **kwargs)
-
-    dataloader = CustomDataLoader2(range(2), batch_size=2)
-
-    # single dataloader
-    lite_dataloader = lite.setup_dataloaders(dataloader)
-    assert lite_dataloader._dataloader
-    batch0 = next(iter(lite_dataloader))
-    assert torch.equal(batch0, torch.tensor([0, 1]))
-
-    class CustomDataLoader(DataLoader):
-        def __init__(self, value: int, *args, **kwargs):
-            super().__init__(range(value), *args, **kwargs)
-
-    class LiteWithCustomDataLoader(LightningLite):
-        def run(self):
-            # This doesn't fail as the context manager would save all the arguments provided
-            # to the dataloaders.
-            dataloader = CustomDataLoader(2, batch_size=2)
-            self.setup_dataloaders(dataloader)
-
-    LiteWithCustomDataLoader().run()
-
-    with pytest.raises(
-        MisconfigurationException, match="Trying to inject `DistributedSampler` into the `CustomDataLoader` instance"
-    ):
-        dataloader = CustomDataLoader(2, batch_size=2)
-        lite_dataloader = lite.setup_dataloaders(dataloader)
-
-
 def test_setup_dataloaders_twice_fails():
     """Test that calling setup_dataloaders with a dataloader that is already wrapped fails."""
     lite = EmptyLite()
