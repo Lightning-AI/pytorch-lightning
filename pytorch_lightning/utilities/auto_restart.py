@@ -318,19 +318,11 @@ class CaptureIterableDataset(IterableDataset):
             if isinstance(generator, Sampler):
                 continue
 
-            # used to handle a weird behaviour from PyTorch 1.6
-            # where the sampler is converted to a list_iterator
-            is_legacy = False
-
-            if isinstance(generator, Generator):
-                # Generator name have the  the form `SamplerName.__iter__`
-                generator_name = generator.__qualname__.split(".")[0]
-            else:
-                # assume the retrieved iterator is coming from sampler.
-                is_legacy = True
+            # Generator name have the  the form `SamplerName.__iter__`
+            generator_name = generator.__qualname__.split(".")[0]
 
             # validate the base generator name matches a sampler name.
-            if is_legacy or any(sampler_name == generator_name for sampler_name in samplers_names):
+            if any(sampler_name == generator_name for sampler_name in samplers_names):
 
                 # wrap the generator into a `FastForwardSampler`
                 sampler = FastForwardSampler(generator, attr_name=generator_attr_name)

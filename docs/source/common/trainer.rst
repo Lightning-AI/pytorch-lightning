@@ -282,7 +282,7 @@ amp_backend
 
 |
 
-Use PyTorch AMP ('native') (available PyTorch 1.6+), or NVIDIA apex ('apex').
+Use PyTorch AMP ('native'), or NVIDIA apex ('apex').
 
 .. testcode::
 
@@ -1183,35 +1183,13 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
 
 .. note:: 16-bit precision is not supported on CPUs.
 
+.. admonition::  If you are interested in using Apex 16-bit training
+   :class: dropdown
 
-.. admonition::  When using PyTorch 1.6+, Lightning uses the native AMP implementation to support 16-bit precision. 16-bit precision with PyTorch < 1.6 is supported by NVIDIA Apex library.
-   :class: dropdown, warning
-
-    NVIDIA Apex and DDP have instability problems. We recommend upgrading to PyTorch 1.6+ in order to use the native AMP 16-bit precision with multiple GPUs.
-
-    If you are using an earlier version of PyTorch (before 1.6), Lightning uses `Apex <https://github.com/NVIDIA/apex>`_ to support 16-bit training.
-
+    NVIDIA Apex and DDP have instability problems. We recommend using the native AMP for 16-bit precision with multiple GPUs.
     To use Apex 16-bit training:
 
-    1. Install Apex
-
-    .. code-block:: bash
-
-        # ------------------------
-        # OPTIONAL: on your cluster you might need to load CUDA 10 or 9
-        # depending on how you installed PyTorch
-
-        # see available modules
-        module avail
-
-        # load correct CUDA before install
-        module load cuda-10.0
-        # ------------------------
-
-        # make sure you've loaded a GCC version > 4.0 and < 7.0
-        module load gcc-6.1.0
-
-        pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" https://github.com/NVIDIA/apex
+    1. `Install apex. <https://github.com/NVIDIA/apex#quick-start>`__
 
     2. Set the ``precision`` trainer flag to 16. You can customize the `Apex optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`_ by setting the `amp_level` flag.
 
@@ -1220,10 +1198,6 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
 
         # turn on 16-bit
         trainer = Trainer(amp_backend="apex", amp_level="O2", precision=16)
-
-    If you need to configure the apex init for your particular use case, or want to customize the
-    16-bit training behaviour, override :meth:`pytorch_lightning.core.LightningModule.configure_apex`.
-
 
 
 process_position
