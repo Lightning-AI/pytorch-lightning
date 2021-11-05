@@ -1162,7 +1162,7 @@ precision
 
 |
 
-Lightning supports either double precision (64), full precision (32), or half precision (16) training.
+Lightning supports either double (64), float (32), bfloat16 (bf16), or half (16) precision training.
 
 Half precision, or mixed precision, is the combined use of 32 and 16 bit floating points to reduce memory footprint during model training. This can result in improved performance, achieving +3X speedups on modern GPUs.
 
@@ -1170,20 +1170,21 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
     :skipif: not torch.cuda.is_available()
 
     # default used by the Trainer
-    trainer = Trainer(precision=32, gpus=1)
+    trainer = Trainer(precision=32)
 
     # 16-bit precision
-    trainer = Trainer(precision=16, gpus=1)
+    trainer = Trainer(precision=16, gpus=1)  # works only on CUDA
+
+    # bfloat16 precision
+    trainer = Trainer(precision="bf16")
 
     # 64-bit precision
-    trainer = Trainer(precision=64, gpus=1)
+    trainer = Trainer(precision=64)
 
 
-.. note:: When running on TPUs, torch.float16 will be used but tensor printing will still show torch.float32.
+.. note:: When running on TPUs, torch.bfloat16 will be used but tensor printing will still show torch.float32.
 
-.. note:: 16-bit precision is not supported on CPUs.
-
-.. admonition::  If you are interested in using Apex 16-bit training
+.. admonition::  If you are interested in using Apex 16-bit training:
    :class: dropdown
 
     NVIDIA Apex and DDP have instability problems. We recommend using the native AMP for 16-bit precision with multiple GPUs.
