@@ -240,7 +240,8 @@ class LightningLite(ABC):
 
         # the dataloader needs to be re-instantiated because we want to update the input arguments (e.g., sampler)
         dataloader_kwargs = TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler)
-        dataloader = type(dataloader)(**dataloader_kwargs)
+        dataloader_cls = type(dataloader)
+        dataloader = dataloader_cls(**dataloader_kwargs)
 
         # add worker_init_fn for correct seeding in worker processes
         TrainerDataLoadingMixin._auto_add_worker_init_fn(dataloader, self.global_rank)
