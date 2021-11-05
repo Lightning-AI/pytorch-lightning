@@ -92,13 +92,6 @@ def test_can_prepare_data(local_rank, node_rank):
 
     with mock.patch.object(trainer.datamodule, "prepare_data") as dm_mock:
         # is_overridden prepare data = True
-        # has been called
-        # False
-        trainer._data_connector.prepare_data()
-        dm_mock.assert_not_called()
-
-        # has not been called
-        # True
         trainer._data_connector.prepare_data()
         dm_mock.assert_called_once()
 
