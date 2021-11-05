@@ -14,7 +14,8 @@
 import functools
 import inspect
 from contextlib import contextmanager
-from typing import Any, Callable, Generator, Iterator, Optional, Set, Sized, Type, Union
+from itertools import chain
+from typing import Any, Callable, Dict, Generator, Iterable, Iterator, Optional, Set, Sized, Type, Union
 
 import torch
 from torch import nn as nn
@@ -112,10 +113,9 @@ def _wrap_init(init: Callable) -> Callable:
         params = dict(inspect.signature(obj._old_init).parameters)
         params.pop("args")
         params.pop("kwargs")
-        params.pop("self", None)
-        for arg_name, arg_value in zip(params, args):
+        for arg_name, arg_value in chain(zip(params, args), kwargs.items()):
             setattr(obj, arg_name, arg_value)
-        init(obj, *args, **kwargs)
+        init(module, *args, **kwargs)
 
     return wrapper
 
@@ -123,15 +123,15 @@ def _wrap_init(init: Callable) -> Callable:
 # https://stackoverflow.com/a/63851681/9201239
 def _get_all_subclasses(cls: Type[Any]) -> Set[Type[Any]]:
     """Returns a list of all classes that inherit directly or indirectly from the given class."""
-    subclass_list = []
+    subclasses = set()
 
     def recurse(cl: Type[Any]) -> None:
         for subclass in cl.__subclasses__():
-            subclass_list.append(subclass)
+            subclasses.add(subclass)
             recurse(subclass)
 
     recurse(cls)
-    return set(subclass_list)
+    return subclasses
 
 
 @contextmanager

@@ -490,7 +490,6 @@ class WandbLogger(LightningLoggerBase):
                             "save_top_k",
                             "save_weights_only",
                             "_every_n_train_steps",
-                            "_every_n_val_epochs",
                         ]
                         # ensure it does not break if `ModelCheckpoint` args change
                         if hasattr(checkpoint_callback, k)
