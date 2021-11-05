@@ -16,12 +16,10 @@ from unittest.mock import call, Mock
 
 import pytest
 import torch
-from torch.optim import Optimizer
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.plugins import PrecisionPlugin
 from pytorch_lightning.plugins.training_type import DDPPlugin
 from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.model_helpers import is_overridden
