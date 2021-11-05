@@ -60,7 +60,6 @@ from pytorch_lightning.trainer.connectors.signal_connector import SignalConnecto
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
-from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
@@ -1488,13 +1487,7 @@ class Trainer(
         auto_select_gpus: bool,
         tpu_cores: Optional[Union[List[int], str, int]],
     ) -> Tuple[Optional[List[int]], Optional[Union[List[int], int]]]:
-        if auto_select_gpus and isinstance(gpus, int):
-            gpus = pick_multiple_gpus(gpus)
-
-        # TODO (@seannaren, @kaushikb11): Include IPU parsing logic here
-        gpu_ids = device_parser.parse_gpu_ids(gpus)
-        tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
-        return gpu_ids, tpu_cores
+        return device_parser._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
     @staticmethod
     def _log_api_event(event: str) -> None:
