@@ -33,7 +33,7 @@ import yaml
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _METRIC, _PATH, STEP_OUTPUT
