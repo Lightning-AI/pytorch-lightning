@@ -82,7 +82,6 @@ class LightningModule(
             "model_size",
             "automatic_optimization",
             "truncated_bptt_steps",
-            "loaded_optimizer_states_dict",
         ]
         + DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
@@ -118,9 +117,6 @@ class LightningModule(
         self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
 
         self._register_sharded_tensor_state_dict_hooks_if_available()
-
-        # deprecated, will be removed in 1.6
-        self._loaded_optimizer_states_dict = {}
 
     @overload
     def optimizers(self, use_pl_optimizer: Literal[True] = True) -> Union[LightningOptimizer, List[LightningOptimizer]]:
@@ -224,24 +220,6 @@ class LightningModule(
     def local_rank(self) -> int:
         """The index of the current process within a single node."""
         return self.trainer.local_rank if self.trainer else 0
-
-    @property
-    def loaded_optimizer_states_dict(self) -> dict:
-        warning_cache.deprecation(
-            "The `LightningModule.loaded_optimizer_states_dict` property is deprecated in v1.4"
-            " and will be removed in v1.6.",
-            stacklevel=6,
-        )
-        return self._loaded_optimizer_states_dict
-
-    @loaded_optimizer_states_dict.setter
-    def loaded_optimizer_states_dict(self, val: dict) -> None:
-        warning_cache.deprecation(
-            "The `LightningModule.loaded_optimizer_states_dict` property is deprecated in v1.4"
-            " and will be removed in v1.6.",
-            stacklevel=6,
-        )
-        self._loaded_optimizer_states_dict = val
 
     @property
     def on_gpu(self):
@@ -703,7 +681,7 @@ class LightningModule(
         """
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
-    def training_step_end(self, *args, **kwargs) -> STEP_OUTPUT:
+    def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
         """Use this when training with dp or ddp2 because :meth:`training_step` will operate on only part of the
         batch. However, this is still optional and only needed for things like softmax or NCE loss.
 
@@ -715,11 +693,11 @@ class LightningModule(
 
             # pseudocode
             sub_batches = split_batches_for_dp(batch)
-            batch_parts_outputs = [training_step(sub_batch) for sub_batch in sub_batches]
-            training_step_end(batch_parts_outputs)
+            step_output = [training_step(sub_batch) for sub_batch in sub_batches]
+            training_step_end(step_output)
 
         Args:
-            batch_parts_outputs: What you return in `training_step` for each batch part.
+            step_output: What you return in `training_step` for each batch part.
 
         Return:
             Anything
@@ -812,10 +790,9 @@ class LightningModule(
             validation_epoch_end(val_outs)
 
         Args:
-            batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-                The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-            batch_idx (int): The index of this batch
-            dataloader_idx (int): The index of the dataloader that produced this batch
+            batch: The output of your :class:`~torch.utils.data.DataLoader`.
+            batch_idx: The index of this batch.
+            dataloader_idx: The index of the dataloader that produced this batch.
                 (only if multiple val dataloaders used)
 
         Return:
@@ -842,7 +819,7 @@ class LightningModule(
 
 
             # if you have multiple val dataloaders:
-            def validation_step(self, batch, batch_idx, dataloader_idx):
+            def validation_step(self, batch, batch_idx, dataloader_idx=0):
                 ...
 
         Examples::
@@ -868,12 +845,13 @@ class LightningModule(
                 # log the outputs!
                 self.log_dict({'val_loss': loss, 'val_acc': val_acc})
 
-        If you pass in multiple val dataloaders, :meth:`validation_step` will have an additional argument.
+        If you pass in multiple val dataloaders, :meth:`validation_step` will have an additional argument. We recommend
+        setting the default value of 0 so that you can quickly switch between single and multiple dataloaders.
 
         .. code-block:: python
 
             # CASE 2: multiple validation dataloaders
-            def validation_step(self, batch, batch_idx, dataloader_idx):
+            def validation_step(self, batch, batch_idx, dataloader_idx=0):
                 # dataloader_idx tells you which dataset this is.
                 ...
 
@@ -898,12 +876,11 @@ class LightningModule(
 
             # pseudocode
             sub_batches = split_batches_for_dp(batch)
-            batch_parts_outputs = [validation_step(sub_batch) for sub_batch in sub_batches]
-            validation_step_end(batch_parts_outputs)
+            step_output = [validation_step(sub_batch) for sub_batch in sub_batches]
+            validation_step_end(step_output)
 
         Args:
-            batch_parts_outputs: What you return in :meth:`validation_step`
-                for each batch part.
+            step_output: What you return in :meth:`validation_step` for each batch part.
 
         Return:
             None or anything
@@ -1000,10 +977,9 @@ class LightningModule(
             test_epoch_end(test_outs)
 
         Args:
-            batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-                The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-            batch_idx (int): The index of this batch.
-            dataloader_idx (int): The index of the dataloader that produced this batch
+            batch: The output of your :class:`~torch.utils.data.DataLoader`.
+            batch_idx: The index of this batch.
+            dataloader_id: The index of the dataloader that produced this batch.
                 (only if multiple test dataloaders used).
 
         Return:
@@ -1020,7 +996,7 @@ class LightningModule(
 
 
             # if you have multiple test dataloaders:
-            def test_step(self, batch, batch_idx, dataloader_idx):
+            def test_step(self, batch, batch_idx, dataloader_idx=0):
                 ...
 
         Examples::
@@ -1046,12 +1022,13 @@ class LightningModule(
                 # log the outputs!
                 self.log_dict({'test_loss': loss, 'test_acc': test_acc})
 
-        If you pass in multiple test dataloaders, :meth:`test_step` will have an additional argument.
+        If you pass in multiple test dataloaders, :meth:`test_step` will have an additional argument. We recommend
+        setting the default value of 0 so that you can quickly switch between single and multiple dataloaders.
 
         .. code-block:: python
 
             # CASE 2: multiple test dataloaders
-            def test_step(self, batch, batch_idx, dataloader_idx):
+            def test_step(self, batch, batch_idx, dataloader_idx=0):
                 # dataloader_idx tells you which dataset this is.
                 ...
 
@@ -1076,11 +1053,11 @@ class LightningModule(
 
             # pseudocode
             sub_batches = split_batches_for_dp(batch)
-            batch_parts_outputs = [test_step(sub_batch) for sub_batch in sub_batches]
-            test_step_end(batch_parts_outputs)
+            step_output = [test_step(sub_batch) for sub_batch in sub_batches]
+            test_step_end(step_output)
 
         Args:
-            batch_parts_outputs: What you return in :meth:`test_step` for each batch part.
+            step_output: What you return in :meth:`test_step` for each batch part.
 
         Return:
             None or anything
@@ -1168,7 +1145,7 @@ class LightningModule(
                     self.log("final_metric", final_value)
         """
 
-    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int] = None) -> Any:
+    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Any:
         """Step function called during :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`. By default, it
         calls :meth:`~pytorch_lightning.core.lightning.LightningModule.forward`. Override to add any processing
         logic.
@@ -1187,7 +1164,7 @@ class LightningModule(
 
             class MyModel(LightningModule):
 
-                def predicts_step(self, batch, batch_idx, dataloader_idx):
+                def predicts_step(self, batch, batch_idx, dataloader_idx=0):
                     return self(batch)
 
             dm = ...
@@ -1197,9 +1174,9 @@ class LightningModule(
 
 
         Args:
-            batch: Current batch
-            batch_idx: Index of current batch
-            dataloader_idx: Index of the current dataloader
+            batch: Current batch.
+            batch_idx: Index of current batch.
+            dataloader_idx: Index of the current dataloader.
 
         Return:
             Predicted output
