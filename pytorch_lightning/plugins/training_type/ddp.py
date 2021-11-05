@@ -316,13 +316,11 @@ class DDPPlugin(ParallelPlugin):
                 ddp_comm_hook=self._ddp_comm_hook,
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
-            if _TORCH_GREATER_EQUAL_1_10:
+
+            if _TORCH_GREATER_EQUAL_1_10 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
                 import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
 
-                if (
-                    isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState)
-                    and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
-                ):
+                if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
                     self._reinit_optimizers_with_post_localSGD(self._ddp_comm_state.start_localSGD_iter)
 
     def _reinit_optimizers_with_post_localSGD(self, warmup_steps: int):
