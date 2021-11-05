@@ -164,6 +164,34 @@ def test_setup_dataloaders_return_type():
     assert lite_dataloader1.dataset is dataset1
 
 
+def test_setup_dataloaders_with_custom_type():
+    """Test that Lite intercepts arguments passed to custom subclasses of torch.utils.DataLoader and sets them as
+    attributes."""
+
+    class DataLoaderSubclass1(DataLoader):
+        def __init__(self, attribute1, *args, **kwargs):
+            # intentionally not setting this attribute, calling super with different args
+            # self.attribute1 = attribute1
+            super().__init__(*args, **kwargs)
+
+    class DataLoaderSubclass2(DataLoaderSubclass1):
+        def __init__(self, attribute1, attribute2, *args, **kwargs):
+            # intentionally not setting this attribute, calling super with different args
+            # self.attribute2 = attribute2
+            super().__init__(attribute1, *args, **kwargs)
+
+    class LiteWithCustomDataLoader(LightningLite):
+        def run(self):
+            dataloader = DataLoaderSubclass2("attribute1", "attribute2", dataset=range(4), batch_size=2)
+            assert dataloader.attribute1 == "attribute1"
+            assert dataloader.attribute2 == "attribute2"
+            lite_dataloader = self.setup_dataloaders(dataloader)
+            assert lite_dataloader.attribute1 == "attribute1"
+            assert lite_dataloader.attribute2 == "attribute2"
+
+    LiteWithCustomDataLoader().run()
+
+
 def test_setup_dataloaders_twice_fails():
     """Test that calling setup_dataloaders with a dataloader that is already wrapped fails."""
     lite = EmptyLite()
