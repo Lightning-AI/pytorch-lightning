@@ -35,7 +35,6 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
     _TORCH_GREATER_EQUAL_1_7,
     _TORCH_GREATER_EQUAL_1_8,
-    rank_zero_deprecation,
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
