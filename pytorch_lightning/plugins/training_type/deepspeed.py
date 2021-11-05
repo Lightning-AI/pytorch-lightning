@@ -116,7 +116,6 @@ class DeepSpeedPlugin(DDPPlugin):
         logging_batch_size_per_gpu: Union[str, int] = "auto",
         config: Optional[Union[Path, str, dict]] = None,
         logging_level: int = logging.WARN,
-        num_nodes: Optional[int] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         loss_scale: float = 0,
@@ -273,7 +272,6 @@ class DeepSpeedPlugin(DDPPlugin):
 
         super().__init__(
             parallel_devices=parallel_devices,
-            num_nodes=num_nodes,
             cluster_environment=cluster_environment,
         )
 
