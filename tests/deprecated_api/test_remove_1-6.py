@@ -40,7 +40,6 @@ def test_old_transfer_batch_to_device_hook(tmpdir):
         trainer.fit(OldModel())
 
 
-
 def test_v1_6_0_reload_dataloaders_every_epoch(tmpdir):
     model = BoringModel()
 
