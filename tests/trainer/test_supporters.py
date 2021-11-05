@@ -35,6 +35,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7
+from tests.helpers.boring_model import RandomDataset
 
 
 def test_tensor_running_accum_reset():
@@ -379,3 +380,26 @@ def test_combined_data_loader_validation_test(
             assert isinstance(d, CustomDataset)
 
     apply_to_collection(dataloader.loaders, DataLoader, _assert_dataset)
+
+    dataloader = CombinedLoader(
+        {"a": DataLoader(RandomDataset(32, 8), batch_size=1), "b": DataLoader(RandomDataset(32, 8), batch_size=1)},
+    )
+
+    trainer = Trainer(strategy="ddp", gpus=2, replace_sampler_ddp=replace_sampler_ddp)
+    dataloader = trainer.prepare_dataloader(dataloader, shuffle=False)
+    assert len(dataloader) == 4 if replace_sampler_ddp else 8
+
+    for length in [6, 8, 10]:
+        dataloader = CombinedLoader(
+            {
+                "a": DataLoader(RandomDataset(32, length), batch_size=1),
+                "b": DataLoader(RandomDataset(32, 8), batch_size=1),
+            },
+            mode="max_size_cycle",
+        )
+
+        length = max(length, 8)
+        assert len(dataloader) == length
+        trainer = Trainer(strategy="ddp", gpus=2, replace_sampler_ddp=replace_sampler_ddp)
+        dataloader = trainer.prepare_dataloader(dataloader, shuffle=False)
+        assert len(dataloader) == length // 2 if replace_sampler_ddp else length
