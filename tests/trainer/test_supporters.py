@@ -389,17 +389,25 @@ def test_combined_data_loader_validation_test(
     dataloader = trainer.prepare_dataloader(dataloader, shuffle=False)
     assert len(dataloader) == 4 if replace_sampler_ddp else 8
 
-    for length in [6, 8, 10]:
+    for a_length in [6, 8, 10]:
         dataloader = CombinedLoader(
             {
-                "a": DataLoader(RandomDataset(32, length), batch_size=1),
-                "b": DataLoader(RandomDataset(32, 8), batch_size=1),
+                "a": DataLoader(range(a_length), batch_size=1),
+                "b": DataLoader(range(8), batch_size=1),
             },
             mode="max_size_cycle",
         )
 
-        length = max(length, 8)
+        length = max(a_length, 8)
         assert len(dataloader) == length
         trainer = Trainer(strategy="ddp", gpus=2, replace_sampler_ddp=replace_sampler_ddp)
         dataloader = trainer.prepare_dataloader(dataloader, shuffle=False)
         assert len(dataloader) == length // 2 if replace_sampler_ddp else length
+        if replace_sampler_ddp:
+            batches = [batch for batch in dataloader]
+            if a_length == 6:
+                assert batches[-1] == {"a": torch.tensor([0]), "b": torch.tensor([6])}
+            elif a_length == 8:
+                assert batches[-1] == {"a": torch.tensor([6]), "b": torch.tensor([6])}
+            elif a_length == 10:
+                assert batches[-1] == {"a": torch.tensor([8]), "b": torch.tensor([0])}
