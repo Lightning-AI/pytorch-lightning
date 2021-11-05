@@ -23,7 +23,7 @@ FP16 Mixed Precision
 
 In most cases, mixed precision uses FP16. Supported torch operations are automatically run in FP16, saving memory and improving throughput on GPU and TPU accelerators.
 
-Since computation happens in FP16, there is a chance of numerical instability. This is handled internally by a dynamic grad scaler which skips steps that are invalid, and adjusts the scaler to ensure subsequent steps fall within a finite range. For more information `see the autocast docs <https://pytorch.org/docs/stable/amp.html#gradient-scaling>`__.
+Since computation happens in FP16, there is a chance of numerical instability during training. This is handled internally by a dynamic grad scaler which skips steps that are invalid, and adjusts the scaler to ensure subsequent steps fall within a finite range. For more information `see the autocast docs <https://pytorch.org/docs/stable/amp.html#gradient-scaling>`__.
 
 .. note::
 
@@ -39,7 +39,7 @@ BFloat16 Mixed Precision
 
 .. warning::
 
-    BFloat16 requires PyTorch 1.10 or later. Currently this requires installing `PyTorch Nightly <https://pytorch.org/get-started/locally/>`__.
+    BFloat16 requires PyTorch 1.10 or later.
 
     BFloat16 is also experimental and may not provide large speedups or memory improvements, but offer better numerical stability.
 
@@ -47,7 +47,7 @@ BFloat16 Mixed Precision
 
 BFloat16 Mixed precision is similar to FP16 mixed precision, however we maintain more of the "dynamic range" that FP32 has to offer. This means we are able to improve numerical stability, compared to FP16 mixed precision. For more information see `this TPU performance blog post <https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus>`__.
 
-Since BFloat16 is more stable than FP16 during training, we do not need to worry about any gradient scaling or nan gradient values that comes with using FP16 mixed precision.
+Under the hood we use `torch.autocast <https://pytorch.org/docs/stable/amp.html>`__ with the the dtype set to `bfloat16`, with no gradient scaling.
 
 .. testcode::
     :skipif: not _TORCH_GREATER_EQUAL_1_10 or not torch.cuda.is_available()
