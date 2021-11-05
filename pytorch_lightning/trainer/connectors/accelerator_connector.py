@@ -57,8 +57,8 @@ from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
     LSFEnvironment,
-    TorchElasticEnvironment,
     SLURMEnvironment,
+    TorchElasticEnvironment,
 )
 from pytorch_lightning.utilities import (
     AMPType,
