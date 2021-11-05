@@ -993,20 +993,6 @@ class AcceleratorConnector:
                 elif self.has_gpu:
                     self._device_type = DeviceType.GPU
 
-    @property
-    def is_slurm_managing_tasks(self) -> bool:
-        rank_zero_deprecation(
-            "`AcceleratorConnector.is_slurm_managing_tasks` was deprecated in v1.5 and will be removed in v1.6."
-        )
-        return self._is_slurm_managing_tasks
-
-    @is_slurm_managing_tasks.setter
-    def is_slurm_managing_tasks(self, value: bool) -> bool:
-        rank_zero_deprecation(
-            "`AcceleratorConnector.is_slurm_managing_tasks` was deprecated in v1.5 and will be removed in v1.6."
-        )
-        self._is_slurm_managing_tasks = value
-
     def _configure_slurm_ddp(self):
         # extract SLURM flag vars
         # whenever we have the correct number of tasks, we let slurm manage processes
