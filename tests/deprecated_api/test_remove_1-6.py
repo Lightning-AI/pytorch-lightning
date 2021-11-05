@@ -271,4 +271,3 @@ def test_v1_6_0_configure_slurm_ddp():
     trainer = Trainer()
     with pytest.deprecated_call(match=r"`AcceleratorConnector.configure_slurm_ddp\(\)` was deprecated in v1.5"):
         trainer._accelerator_connector.configure_slurm_ddp()
-
