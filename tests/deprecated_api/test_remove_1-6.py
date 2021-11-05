@@ -21,7 +21,7 @@ from torch.optim import Optimizer
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.plugins import PrecisionPlugin
-from pytorch_lightning.plugins.training_type import DDPPlugin, DDPSpawnPlugin
+from pytorch_lightning.plugins.training_type import DDPPlugin
 from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.model_summary import ModelSummary
@@ -37,26 +37,6 @@ def test_old_transfer_batch_to_device_hook(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=0, max_epochs=1)
     with pytest.deprecated_call(match="old signature will be removed in v1.6"):
         trainer.fit(OldModel())
-
-
-def test_v1_6_0_ddp_num_nodes():
-    with pytest.deprecated_call(match="Argument `num_nodes` in `DDPPlugin` is deprecated in v1.4"):
-        DDPPlugin(num_nodes=1)
-
-
-def test_v1_6_0_ddp_sync_batchnorm():
-    with pytest.deprecated_call(match="Argument `sync_batchnorm` in `DDPPlugin` is deprecated in v1.4"):
-        DDPPlugin(sync_batchnorm=False)
-
-
-def test_v1_6_0_ddp_spawn_num_nodes():
-    with pytest.deprecated_call(match="Argument `num_nodes` in `DDPSpawnPlugin` is deprecated in v1.4"):
-        DDPSpawnPlugin(num_nodes=1)
-
-
-def test_v1_6_0_ddp_spawn_sync_batchnorm():
-    with pytest.deprecated_call(match="Argument `sync_batchnorm` in `DDPSpawnPlugin` is deprecated in v1.4"):
-        DDPSpawnPlugin(sync_batchnorm=False)
 
 
 def test_v1_6_0_reload_dataloaders_every_epoch(tmpdir):
@@ -285,15 +265,6 @@ def test_v1_6_0_configure_slurm_ddp():
     trainer = Trainer()
     with pytest.deprecated_call(match=r"`AcceleratorConnector.configure_slurm_ddp\(\)` was deprecated in v1.5"):
         trainer._accelerator_connector.configure_slurm_ddp()
-
-
-def test_v1_6_0_is_slurm_managing_tasks():
-    trainer = Trainer()
-    with pytest.deprecated_call(match=r"`AcceleratorConnector.is_slurm_managing_tasks` was deprecated in v1.5"):
-        _ = trainer._accelerator_connector.is_slurm_managing_tasks
-
-    with pytest.deprecated_call(match=r"`AcceleratorConnector.is_slurm_managing_tasks` was deprecated in v1.5"):
-        trainer._accelerator_connector.is_slurm_managing_tasks = False
 
 
 def test_v1_6_0_master_params():

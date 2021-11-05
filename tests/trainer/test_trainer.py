@@ -2159,6 +2159,15 @@ def test_detect_anomaly_nan(tmpdir):
             dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
+            dict(strategy="ddp_fully_sharded", gpus=1),
+            dict(
+                _distrib_type=DistributedType.DDP_FULLY_SHARDED,
+                _device_type=DeviceType.GPU,
+                num_gpus=1,
+                num_processes=1,
+            ),
+        ),
+        (
             dict(strategy=DDPSpawnPlugin(), num_processes=2, gpus=None),
             dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
