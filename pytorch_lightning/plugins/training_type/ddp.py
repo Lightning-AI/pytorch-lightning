@@ -108,17 +108,7 @@ class DDPPlugin(ParallelPlugin):
             checkpoint_io=checkpoint_io,
         )
         self.interactive_ddp_procs = []
-        if num_nodes is not None:
-            rank_zero_deprecation(
-                "Argument `num_nodes` in `DDPPlugin` is deprecated in v1.4, and will be removed in v1.6."
-                " Notice that it will be overriden by the trainer setting."
-            )
         self._num_nodes = 1
-        if sync_batchnorm is not None:
-            rank_zero_deprecation(
-                "Argument `sync_batchnorm` in `DDPPlugin` is deprecated in v1.4, and will be removed in v1.6."
-                " Notice that it will be overriden by the trainer setting."
-            )
         self._sync_batchnorm = False
         self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
         self._ddp_kwargs = kwargs
