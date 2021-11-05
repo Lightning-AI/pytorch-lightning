@@ -79,7 +79,7 @@ Here are 5 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
 
 1. Subclass :class:`~pytorch_lightning.lite.LightningLite` and override its :meth:`~pytorch_lightning.lite.LightningLite.run` method.
 2. Move the body of your existing ``run`` function into :class:`~pytorch_lightning.lite.LightningLite` ``run`` method.
-3. Remove all ``.to()``, ``.cuda()`` etc calls since :class:`~pytorch_lightning.lite.LightningLite` will take care of it.
+3. Remove all ``.to(...)``, ``.cuda()`` etc calls since :class:`~pytorch_lightning.lite.LightningLite` will take care of it.
 4. Apply :meth:`~pytorch_lightning.lite.LightningLite.setup` over each model and optimizers pair and :meth:`~pytorch_lightning.lite.LightningLite.setup_dataloaders` on all your dataloaders and replace ``loss.backward()`` by ``self.backward(loss)``.
 5. Instantiate your :class:`~pytorch_lightning.lite.LightningLite` subclass and call its :meth:`~pytorch_lightning.lite.LightningLite.run` method.
 
@@ -210,7 +210,7 @@ utility to move an object to the current device.
 Distributed Training Pitfalls
 =============================
 
-The :class:`~pytorch_lightning.lite.LightningLite` provides you the tools to scale your training,
+The :class:`~pytorch_lightning.lite.LightningLite` provides you with the tools to scale your training,
 but there are several major challenges ahead of you now:
 
 
@@ -265,7 +265,7 @@ are implemented.
         # 2. This can be fully removed as Lightning creates its own fitting loop,
         # and sets up the model, optimizer, dataloader, etc for you.
         def fit(self):
-            # set everything
+            # setup everything
             optimizer = self.configure_optimizers()
             self.model, optimizer = self.setup(self.model, optimizer)
             dataloader = self.setup_dataloaders(self.train_dataloader())
