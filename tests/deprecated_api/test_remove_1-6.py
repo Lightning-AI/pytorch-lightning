@@ -27,7 +27,7 @@ from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.model_summary import ModelSummary
 from tests.deprecated_api import _soft_unimport_module
-from tests.helpers import BoringDataModule, BoringModel
+from tests.helpers import BoringModel
 
 
 def test_old_transfer_batch_to_device_hook(tmpdir):
@@ -120,79 +120,6 @@ def test_v1_6_0_sync_dist_op(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.deprecated_call(match=r"`self.log\(sync_dist_op='sum'\)` is deprecated"):
         trainer.fit(TestModel())
-
-
-def test_v1_6_0_datamodule_lifecycle_properties(tmpdir):
-    dm = BoringDataModule()
-    with pytest.deprecated_call(match=r"DataModule property `has_prepared_data` was deprecated in v1.4"):
-        dm.has_prepared_data
-    with pytest.deprecated_call(match=r"DataModule property `has_setup_fit` was deprecated in v1.4"):
-        dm.has_setup_fit
-    with pytest.deprecated_call(match=r"DataModule property `has_setup_validate` was deprecated in v1.4"):
-        dm.has_setup_validate
-    with pytest.deprecated_call(match=r"DataModule property `has_setup_test` was deprecated in v1.4"):
-        dm.has_setup_test
-    with pytest.deprecated_call(match=r"DataModule property `has_setup_predict` was deprecated in v1.4"):
-        dm.has_setup_predict
-    with pytest.deprecated_call(match=r"DataModule property `has_teardown_fit` was deprecated in v1.4"):
-        dm.has_teardown_fit
-    with pytest.deprecated_call(match=r"DataModule property `has_teardown_validate` was deprecated in v1.4"):
-        dm.has_teardown_validate
-    with pytest.deprecated_call(match=r"DataModule property `has_teardown_test` was deprecated in v1.4"):
-        dm.has_teardown_test
-    with pytest.deprecated_call(match=r"DataModule property `has_teardown_predict` was deprecated in v1.4"):
-        dm.has_teardown_predict
-
-
-def test_v1_6_0_datamodule_hooks_calls(tmpdir):
-    """Test that repeated calls to DataHooks' hooks show a warning about the coming API change."""
-
-    class TestDataModule(BoringDataModule):
-        setup_calls = []
-        teardown_calls = []
-        prepare_data_calls = 0
-
-        def setup(self, stage=None):
-            super().setup(stage=stage)
-            self.setup_calls.append(stage)
-
-        def teardown(self, stage=None):
-            super().teardown(stage=stage)
-            self.teardown_calls.append(stage)
-
-        def prepare_data(self):
-            super().prepare_data()
-            self.prepare_data_calls += 1
-
-    dm = TestDataModule()
-    dm.prepare_data()
-    dm.prepare_data()
-    dm.setup("fit")
-    with pytest.deprecated_call(
-        match=r"DataModule.setup has already been called, so it will not be called again. "
-        "In v1.6 this behavior will change to always call DataModule.setup"
-    ):
-        dm.setup("fit")
-    dm.setup()
-    dm.setup()
-    dm.teardown("validate")
-    with pytest.deprecated_call(
-        match=r"DataModule.teardown has already been called, so it will not be called again. "
-        "In v1.6 this behavior will change to always call DataModule.teardown"
-    ):
-        dm.teardown("validate")
-
-    assert dm.prepare_data_calls == 1
-    assert dm.setup_calls == ["fit", None]
-    assert dm.teardown_calls == ["validate"]
-
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
-    trainer.test(BoringModel(), datamodule=dm)
-
-    # same number of calls
-    assert dm.prepare_data_calls == 1
-    assert dm.setup_calls == ["fit", None]
-    assert dm.teardown_calls == ["validate", "test"]
 
 
 def test_v1_6_0_is_overridden_model():
