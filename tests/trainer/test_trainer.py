@@ -1424,7 +1424,7 @@ def test_trainer_predict_no_return(tmpdir):
     """Test trainer.predict warns when nothing is returned."""
 
     class CustomBoringModel(BoringModel):
-        def predict_step(self, batch, batch_idx, dataloader_idx=None):
+        def predict_step(self, batch, batch_idx, dataloader_idx=0):
             if (batch_idx + 1) % 2 == 0:
                 return
 
@@ -1436,7 +1436,7 @@ def test_trainer_predict_no_return(tmpdir):
 
 def test_trainer_predict_grad(tmpdir):
     class CustomBoringModel(BoringModel):
-        def predict_step(self, batch, batch_idx, dataloader_idx=None):
+        def predict_step(self, batch, batch_idx, dataloader_idx=0):
             assert batch.expand_as(batch).grad_fn is None
             return super().predict_step(batch, batch_idx, dataloader_idx)
 
@@ -2157,6 +2157,15 @@ def test_detect_anomaly_nan(tmpdir):
         (
             dict(strategy="ddp_spawn", num_processes=1, gpus=None),
             dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+        ),
+        (
+            dict(strategy="ddp_fully_sharded", gpus=1),
+            dict(
+                _distrib_type=DistributedType.DDP_FULLY_SHARDED,
+                _device_type=DeviceType.GPU,
+                num_gpus=1,
+                num_processes=1,
+            ),
         ),
         (
             dict(strategy=DDPSpawnPlugin(), num_processes=2, gpus=None),

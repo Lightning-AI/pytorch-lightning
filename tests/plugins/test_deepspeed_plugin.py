@@ -503,7 +503,7 @@ class ModelParallelClassificationModel(LightningModule):
         self.log("test_loss", F.cross_entropy(logits, y), prog_bar=False, sync_dist=True)
         self.log("test_acc", self.test_acc(logits, y), prog_bar=True, sync_dist=True)
 
-    def predict_step(self, batch, batch_idx, dataloader_idx=None):
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
         x, y = batch
         logits = self.forward(x)
         self.test_acc(logits, y)
