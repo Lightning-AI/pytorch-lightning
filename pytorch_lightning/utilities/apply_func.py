@@ -16,7 +16,7 @@ import operator
 from abc import ABC
 from collections import defaultdict, OrderedDict
 from collections.abc import Mapping, Sequence
-from copy import copy
+from copy import copy, deepcopy
 from functools import partial
 from typing import Any, Callable, List, Optional, Tuple, Union
 
@@ -119,10 +119,20 @@ def apply_to_collection(
         return elem_type(*out) if is_namedtuple else elem_type(out)
 
     if _is_dataclass_instance(data):
-        result = object.__new__(elem_type)
+        # make a deepcopy of the data,
+        # but do not deepcopy mapped fields since the computation would
+        # be wasted on values that likely get immediately overwritten
+        fields = {}
+        memo = {}
         for field in dataclasses.fields(data):
+            field_value = getattr(data, field.name)
+            fields[field.name] = field_value
+            memo[id(field_value)] = field_value
+        result = deepcopy(data, memo=memo)
+        # apply function to each field
+        for field_name, field_value in fields.items():
             v = apply_to_collection(
-                getattr(data, field.name),
+                field_value,
                 dtype,
                 function,
                 *args,
@@ -131,9 +141,9 @@ def apply_to_collection(
                 **kwargs,
             )
             if include_none or v is not None:
-                setattr(result, field.name, v)
-            else:
-                setattr(result, field.name, getattr(data, field.name))
+                setattr(result, field_name, v)
+            else:  # retain old value
+                setattr(result, field_name, getattr(data, field_name))
         return result
 
     # data is neither of dtype, nor a collection
