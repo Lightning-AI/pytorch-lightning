@@ -20,6 +20,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DoublePrecisionPlugin
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -136,7 +137,10 @@ class DoublePrecisionBoringModelComplexBuffer(BoringModel):
     [
         DoublePrecisionBoringModel,
         DoublePrecisionBoringModelNoForward,
-        DoublePrecisionBoringModelComplexBuffer,
+        pytest.param(
+            DoublePrecisionBoringModelComplexBuffer,
+            marks=pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_7, reason="torch.complex not available"),
+        ),
     ],
 )
 def test_double_precision(tmpdir, boring_model):

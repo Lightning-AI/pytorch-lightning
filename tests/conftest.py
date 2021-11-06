@@ -22,7 +22,7 @@ import pytest
 import torch.distributed
 
 from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7, _TORCH_GREATER_EQUAL_1_8
 from tests import _PATH_DATASETS
 
 
@@ -95,8 +95,10 @@ def reset_deterministic_algorithm():
     yield
     if _TORCH_GREATER_EQUAL_1_8:
         torch.use_deterministic_algorithms(False)
-    else:
+    elif _TORCH_GREATER_EQUAL_1_7:
         torch.set_deterministic(False)
+    else:  # the minimum version Lightning supports is PyTorch 1.6
+        torch._set_deterministic(False)
 
 
 @pytest.fixture
