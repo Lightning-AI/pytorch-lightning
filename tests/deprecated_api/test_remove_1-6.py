@@ -19,7 +19,6 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.plugins import PrecisionPlugin
 from pytorch_lightning.plugins.training_type import DDPPlugin
@@ -167,11 +166,6 @@ def test_v1_6_0_deprecated_disable_validation():
         _ = trainer.disable_validation
 
 
-def test_v1_6_0_every_n_val_epochs():
-    with pytest.deprecated_call(match="use `every_n_epochs` instead"):
-        _ = ModelCheckpoint(every_n_val_epochs=1)
-
-
 def test_v1_6_0_deprecated_hpc_load(tmpdir):
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1)
@@ -265,12 +259,6 @@ def test_v1_6_0_deprecated_accelerator_pass_through_functions():
 
     with pytest.deprecated_call(match="will be removed in v1.6"):
         accelerator.on_train_batch_start(batch=None, batch_idx=0)
-
-
-def test_v1_6_0_configure_slurm_ddp():
-    trainer = Trainer()
-    with pytest.deprecated_call(match=r"`AcceleratorConnector.configure_slurm_ddp\(\)` was deprecated in v1.5"):
-        trainer._accelerator_connector.configure_slurm_ddp()
 
 
 def test_v1_6_0_master_params():
