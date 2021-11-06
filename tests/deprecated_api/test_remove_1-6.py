@@ -15,49 +15,18 @@
 from unittest.mock import call, Mock
 
 import pytest
+import torch
+from torch.optim import Optimizer
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.plugins.training_type import DDPPlugin, DDPSpawnPlugin
+from pytorch_lightning.plugins import PrecisionPlugin
+from pytorch_lightning.plugins.training_type import DDPPlugin
 from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.model_summary import ModelSummary
 from tests.deprecated_api import _soft_unimport_module
-from tests.helpers import BoringDataModule, BoringModel
-
-
-def test_v1_6_0_trainer_model_hook_mixin(tmpdir):
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, logger=False)
-    trainer.fit(model)
-    with pytest.deprecated_call(match="is deprecated in v1.4 and will be removed in v1.6"):
-        trainer.is_function_implemented("training_step", model)
-
-    with pytest.deprecated_call(match="is deprecated in v1.4 and will be removed in v1.6"):
-        trainer.has_arg("training_step", "batch")
-
-
-def test_v1_6_0_dataloader_renaming(tmpdir):
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    dl = model.train_dataloader()
-
-    with pytest.deprecated_call(match=r"fit\(train_dataloader\)` is deprecated in v1.4"):
-        trainer.fit(model, train_dataloader=dl)
-
-    with pytest.deprecated_call(match=r"validate\(val_dataloaders\)` is deprecated in v1.4"):
-        trainer.validate(model, val_dataloaders=dl)
-
-    with pytest.deprecated_call(match=r"test\(test_dataloaders\)` is deprecated in v1.4"):
-        trainer.test(model, test_dataloaders=dl)
-
-    with pytest.deprecated_call(match=r"tune\(train_dataloader\)` is deprecated in v1.4"):
-        trainer.tune(model, train_dataloader=dl)
-    with pytest.deprecated_call(match=r"tune\(train_dataloader\)` is deprecated in v1.4"):
-        trainer.tuner.scale_batch_size(model, train_dataloader=dl)
-    with pytest.deprecated_call(match=r"tune\(train_dataloader\)` is deprecated in v1.4"):
-        trainer.tuner.lr_find(model, train_dataloader=dl)
+from tests.helpers import BoringModel
 
 
 def test_old_transfer_batch_to_device_hook(tmpdir):
@@ -68,26 +37,6 @@ def test_old_transfer_batch_to_device_hook(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=0, max_epochs=1)
     with pytest.deprecated_call(match="old signature will be removed in v1.6"):
         trainer.fit(OldModel())
-
-
-def test_v1_6_0_ddp_num_nodes():
-    with pytest.deprecated_call(match="Argument `num_nodes` in `DDPPlugin` is deprecated in v1.4"):
-        DDPPlugin(num_nodes=1)
-
-
-def test_v1_6_0_ddp_sync_batchnorm():
-    with pytest.deprecated_call(match="Argument `sync_batchnorm` in `DDPPlugin` is deprecated in v1.4"):
-        DDPPlugin(sync_batchnorm=False)
-
-
-def test_v1_6_0_ddp_spawn_num_nodes():
-    with pytest.deprecated_call(match="Argument `num_nodes` in `DDPSpawnPlugin` is deprecated in v1.4"):
-        DDPSpawnPlugin(num_nodes=1)
-
-
-def test_v1_6_0_ddp_spawn_sync_batchnorm():
-    with pytest.deprecated_call(match="Argument `sync_batchnorm` in `DDPSpawnPlugin` is deprecated in v1.4"):
-        DDPSpawnPlugin(sync_batchnorm=False)
 
 
 def test_v1_6_0_reload_dataloaders_every_epoch(tmpdir):
@@ -152,79 +101,6 @@ def test_v1_6_0_sync_dist_op(tmpdir):
         trainer.fit(TestModel())
 
 
-def test_v1_6_0_datamodule_lifecycle_properties(tmpdir):
-    dm = BoringDataModule()
-    with pytest.deprecated_call(match=r"DataModule property `has_prepared_data` was deprecated in v1.4"):
-        dm.has_prepared_data
-    with pytest.deprecated_call(match=r"DataModule property `has_setup_fit` was deprecated in v1.4"):
-        dm.has_setup_fit
-    with pytest.deprecated_call(match=r"DataModule property `has_setup_validate` was deprecated in v1.4"):
-        dm.has_setup_validate
-    with pytest.deprecated_call(match=r"DataModule property `has_setup_test` was deprecated in v1.4"):
-        dm.has_setup_test
-    with pytest.deprecated_call(match=r"DataModule property `has_setup_predict` was deprecated in v1.4"):
-        dm.has_setup_predict
-    with pytest.deprecated_call(match=r"DataModule property `has_teardown_fit` was deprecated in v1.4"):
-        dm.has_teardown_fit
-    with pytest.deprecated_call(match=r"DataModule property `has_teardown_validate` was deprecated in v1.4"):
-        dm.has_teardown_validate
-    with pytest.deprecated_call(match=r"DataModule property `has_teardown_test` was deprecated in v1.4"):
-        dm.has_teardown_test
-    with pytest.deprecated_call(match=r"DataModule property `has_teardown_predict` was deprecated in v1.4"):
-        dm.has_teardown_predict
-
-
-def test_v1_6_0_datamodule_hooks_calls(tmpdir):
-    """Test that repeated calls to DataHooks' hooks show a warning about the coming API change."""
-
-    class TestDataModule(BoringDataModule):
-        setup_calls = []
-        teardown_calls = []
-        prepare_data_calls = 0
-
-        def setup(self, stage=None):
-            super().setup(stage=stage)
-            self.setup_calls.append(stage)
-
-        def teardown(self, stage=None):
-            super().teardown(stage=stage)
-            self.teardown_calls.append(stage)
-
-        def prepare_data(self):
-            super().prepare_data()
-            self.prepare_data_calls += 1
-
-    dm = TestDataModule()
-    dm.prepare_data()
-    dm.prepare_data()
-    dm.setup("fit")
-    with pytest.deprecated_call(
-        match=r"DataModule.setup has already been called, so it will not be called again. "
-        "In v1.6 this behavior will change to always call DataModule.setup"
-    ):
-        dm.setup("fit")
-    dm.setup()
-    dm.setup()
-    dm.teardown("validate")
-    with pytest.deprecated_call(
-        match=r"DataModule.teardown has already been called, so it will not be called again. "
-        "In v1.6 this behavior will change to always call DataModule.teardown"
-    ):
-        dm.teardown("validate")
-
-    assert dm.prepare_data_calls == 1
-    assert dm.setup_calls == ["fit", None]
-    assert dm.teardown_calls == ["validate"]
-
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
-    trainer.test(BoringModel(), datamodule=dm)
-
-    # same number of calls
-    assert dm.prepare_data_calls == 1
-    assert dm.setup_calls == ["fit", None]
-    assert dm.teardown_calls == ["validate", "test"]
-
-
 def test_v1_6_0_is_overridden_model():
     model = BoringModel()
     with pytest.deprecated_call(match="and will be removed in v1.6"):
@@ -275,23 +151,6 @@ def test_v1_6_0_ddp_plugin_task_idx():
         _ = plugin.task_idx
 
 
-def test_v1_6_0_lightning_module_loaded_optimizer_states_dict():
-    from pytorch_lightning.core.lightning import warning_cache
-
-    model = BoringModel()
-    _ = model.loaded_optimizer_states_dict
-    assert any(
-        "The `LightningModule.loaded_optimizer_states_dict` property is deprecated in v1.4" in w for w in warning_cache
-    )
-    warning_cache.clear()
-
-    model.loaded_optimizer_states_dict = {}
-    assert any(
-        "The `LightningModule.loaded_optimizer_states_dict` property is deprecated in v1.4" in w for w in warning_cache
-    )
-    warning_cache.clear()
-
-
 def test_v1_6_0_deprecated_model_summary_mode(tmpdir):
     model = BoringModel()
     with pytest.deprecated_call(match="Argument `mode` in `ModelSummary` is deprecated in v1.4"):
@@ -305,11 +164,6 @@ def test_v1_6_0_deprecated_disable_validation():
     trainer = Trainer()
     with pytest.deprecated_call(match="disable_validation` is deprecated in v1.4"):
         _ = trainer.disable_validation
-
-
-def test_v1_6_0_every_n_val_epochs():
-    with pytest.deprecated_call(match="use `every_n_epochs` instead"):
-        _ = ModelCheckpoint(every_n_val_epochs=1)
 
 
 def test_v1_6_0_deprecated_hpc_load(tmpdir):
@@ -327,3 +181,86 @@ def test_v1_6_0_deprecated_device_dtype_mixin_import():
     _soft_unimport_module("pytorch_lightning.utilities.device_dtype_mixin")
     with pytest.deprecated_call(match="will be removed in v1.6"):
         from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin  # noqa: F401
+
+
+def test_v1_6_0_deprecated_accelerator_pass_through_functions():
+    from pytorch_lightning.plugins.precision import PrecisionPlugin
+    from pytorch_lightning.plugins.training_type import SingleDevicePlugin
+
+    plugin = SingleDevicePlugin(torch.device("cpu"))
+    from pytorch_lightning.accelerators.accelerator import Accelerator
+
+    accelerator = Accelerator(training_type_plugin=plugin, precision_plugin=PrecisionPlugin())
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        accelerator.barrier()
+
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        accelerator.broadcast(1)
+
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        tensor = torch.rand(2, 2, requires_grad=True)
+        accelerator.all_gather(tensor)
+
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        model = BoringModel()
+        accelerator.connect(model)
+
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        accelerator.post_training_step()
+
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        tensor = torch.rand(2, 2, requires_grad=True)
+        accelerator.training_step_end(tensor)
+
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        tensor = torch.rand(2, 2, requires_grad=True)
+        accelerator.test_step_end(tensor)
+
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        tensor = torch.rand(2, 2, requires_grad=True)
+        accelerator.validation_step_end(tensor)
+
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        accelerator.lightning_module_state_dict()
+
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        dl = model.train_dataloader()
+        accelerator.process_dataloader(dl)
+
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        accelerator.results
+
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        accelerator.setup_optimizers_in_pre_dispatch
+
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        accelerator.restore_checkpoint_after_pre_dispatch
+
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        accelerator.on_validation_start()
+
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        accelerator.on_test_start()
+
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        accelerator.on_predict_start()
+
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        accelerator.on_validation_end()
+
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        accelerator.on_test_end()
+
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        accelerator.on_predict_end()
+
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        accelerator.on_train_end()
+
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        accelerator.on_train_batch_start(batch=None, batch_idx=0)
+
+
+def test_v1_6_0_master_params():
+    with pytest.deprecated_call(match="`PrecisionPlugin.master_params` was deprecated in v1.5"):
+        PrecisionPlugin().master_params(Mock(spec=Optimizer))

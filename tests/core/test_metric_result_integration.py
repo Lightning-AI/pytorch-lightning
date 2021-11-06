@@ -103,7 +103,7 @@ def _ddp_test_fn(rank, worldsize):
 @RunIf(skip_windows=True, min_gpus=2)
 def test_result_reduce_ddp():
     """Make sure result logging works with DDP."""
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
 
     worldsize = 2
     mp.spawn(_ddp_test_fn, args=(worldsize,), nprocs=worldsize)
@@ -463,10 +463,9 @@ def result_collection_reload(**kwargs):
         else trainer_kwargs["default_root_dir"]
     )
     ckpt_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
-    trainer_kwargs["resume_from_checkpoint"] = ckpt_path
 
     trainer = Trainer(**trainer_kwargs)
-    trainer.fit(model)
+    trainer.fit(model, ckpt_path=ckpt_path)
     assert model.has_validated_sum
 
 
@@ -480,14 +479,14 @@ def test_result_collection_reload(tmpdir):
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_7, reason="Requires at least PyTorch 1.7")
 def test_result_collection_reload_1_gpu_ddp(tmpdir):
-    result_collection_reload(default_root_dir=tmpdir, accelerator="ddp", gpus=1)
+    result_collection_reload(default_root_dir=tmpdir, strategy="ddp", gpus=1)
 
 
 @RunIf(min_gpus=2, special=True)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_7, reason="Requires at least PyTorch 1.7")
 def test_result_collection_reload_2_gpus(tmpdir):
-    result_collection_reload(default_root_dir=tmpdir, accelerator="ddp", gpus=2)
+    result_collection_reload(default_root_dir=tmpdir, strategy="ddp", gpus=2)
 
 
 def test_metric_collections(tmpdir):

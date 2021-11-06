@@ -14,12 +14,13 @@
 from typing import List, Optional
 
 import torch
-from torch.nn import DataParallel
+from torch.nn import DataParallel, Module
 
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION
 
@@ -28,9 +29,11 @@ class DataParallelPlugin(ParallelPlugin):
     """Implements data-parallel training in a single process, i.e., the model gets replicated to each device and
     each gets a split of the data."""
 
+    distributed_backend = DistributedType.DP
+
     def __init__(
         self,
-        parallel_devices: Optional[List[torch.device]],
+        parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
     ):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=None, checkpoint_io=checkpoint_io)
@@ -54,7 +57,11 @@ class DataParallelPlugin(ParallelPlugin):
     def setup(self) -> None:
         # model needs to be moved to the device before it is wrapped
         self.model_to_device()
-        self._model = DataParallel(LightningParallelModule(self._model), self.parallel_devices)
+        self._model = self._setup_model(LightningParallelModule(self._model))
+
+    def _setup_model(self, model: Module) -> DataParallel:
+        """Wraps the given model into a :class:`~torch.nn.parallel.DataParallel` module."""
+        return DataParallel(module=model, device_ids=self.parallel_devices)
 
     def reduce(self, collection: _METRIC_COLLECTION, *args, **kwargs) -> _METRIC_COLLECTION:
         """Reduces a collection of tensors from all processes. It can be applied to just a single tensor.

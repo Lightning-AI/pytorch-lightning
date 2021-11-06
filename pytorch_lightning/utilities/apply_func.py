@@ -14,7 +14,7 @@
 import dataclasses
 import operator
 from abc import ABC
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 from collections.abc import Mapping, Sequence
 from copy import copy
 from functools import partial
@@ -102,6 +102,8 @@ def apply_to_collection(
             )
             if include_none or v is not None:
                 out.append((k, v))
+        if isinstance(data, defaultdict):
+            return elem_type(data.default_factory, OrderedDict(out))
         return elem_type(OrderedDict(out))
 
     is_namedtuple = _is_namedtuple(data)

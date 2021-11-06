@@ -90,12 +90,11 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     new_trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        resume_from_checkpoint=checkpoint_filepath,
         callbacks=[early_stop_callback],
     )
 
     with pytest.raises(MisconfigurationException, match=r"You restored a checkpoint with current_epoch"):
-        new_trainer.fit(model)
+        new_trainer.fit(model, datamodule=dm, ckpt_path=checkpoint_filepath)
 
 
 def test_early_stopping_no_extraneous_invocations(tmpdir):
@@ -111,7 +110,7 @@ def test_early_stopping_no_extraneous_invocations(tmpdir):
         limit_train_batches=4,
         limit_val_batches=4,
         max_epochs=expected_count,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model, datamodule=dm)
 
@@ -386,19 +385,29 @@ _NO_WIN = dict(marks=RunIf(skip_windows=True))
 
 
 @pytest.mark.parametrize(
-    "callbacks, expected_stop_epoch, check_on_train_epoch_end, accelerator, num_processes",
+    "callbacks, expected_stop_epoch, check_on_train_epoch_end, strategy, num_processes",
     [
         ([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, None, 1),
         ([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, None, 1),
-        pytest.param([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, "ddp_cpu", 2, **_NO_WIN),
-        pytest.param([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, "ddp_cpu", 2, **_NO_WIN),
+        pytest.param([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, "ddp_spawn", 2, **_NO_WIN),
+        pytest.param([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, "ddp_spawn", 2, **_NO_WIN),
         ([EarlyStopping("abc", **_ES_CHECK), EarlyStopping("cba", **_ES_CHECK_P3)], 3, True, None, 1),
         ([EarlyStopping("cba", **_ES_CHECK_P3), EarlyStopping("abc", **_ES_CHECK)], 3, True, None, 1),
         pytest.param(
-            [EarlyStopping("abc", **_ES_CHECK), EarlyStopping("cba", **_ES_CHECK_P3)], 3, True, "ddp_cpu", 2, **_NO_WIN
+            [EarlyStopping("abc", **_ES_CHECK), EarlyStopping("cba", **_ES_CHECK_P3)],
+            3,
+            True,
+            "ddp_spawn",
+            2,
+            **_NO_WIN,
         ),
         pytest.param(
-            [EarlyStopping("cba", **_ES_CHECK_P3), EarlyStopping("abc", **_ES_CHECK)], 3, True, "ddp_cpu", 2, **_NO_WIN
+            [EarlyStopping("cba", **_ES_CHECK_P3), EarlyStopping("abc", **_ES_CHECK)],
+            3,
+            True,
+            "ddp_spawn",
+            2,
+            **_NO_WIN,
         ),
     ],
 )
@@ -407,7 +416,7 @@ def test_multiple_early_stopping_callbacks(
     callbacks: List[EarlyStopping],
     expected_stop_epoch: int,
     check_on_train_epoch_end: bool,
-    accelerator: Optional[str],
+    strategy: Optional[str],
     num_processes: int,
 ):
     """Ensure when using multiple early stopping callbacks we stop if any signals we should stop."""
@@ -419,7 +428,8 @@ def test_multiple_early_stopping_callbacks(
         callbacks=callbacks,
         overfit_batches=0.20,
         max_epochs=20,
-        accelerator=accelerator,
+        strategy=strategy,
+        accelerator="cpu",
         num_processes=num_processes,
     )
     trainer.fit(model)

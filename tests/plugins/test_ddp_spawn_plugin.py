@@ -66,7 +66,7 @@ def test_ddp_cpu():
 def test_ddp_spawn_extra_parameters(tmpdir):
     """Tests if device is set correctly when training for DDPSpawnPlugin and tests add_to_queue/get_from_queue with
     Lightning Module (deprecated way)."""
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, accelerator="ddp_spawn")
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, strategy="ddp_spawn")
 
     assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
     assert trainer.training_type_plugin.on_gpu
@@ -96,9 +96,7 @@ def test_ddp_spawn_add_get_queue(tmpdir):
     """Tests add_to_queue/get_from_queue with DDPSpawnPlugin."""
 
     ddp_spawn_plugin = TestDDPSpawnPlugin()
-    trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=True, num_processes=2, accelerator="ddp_cpu", plugins=[ddp_spawn_plugin]
-    )
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, num_processes=2, strategy=ddp_spawn_plugin)
 
     val: float = 1.0
     val_name: str = "val_acc"
@@ -133,7 +131,7 @@ class BoringModelDDP(BoringModel):
 @RunIf(skip_windows=True)
 def test_ddp_spawn_configure_ddp(tmpdir):
     """Tests with ddp spawn plugin."""
-    trainer = Trainer(default_root_dir=tmpdir, num_processes=2, accelerator="ddp_spawn", fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmpdir, num_processes=2, strategy="ddp_spawn", fast_dev_run=True)
 
     model = BoringModelDDP()
 

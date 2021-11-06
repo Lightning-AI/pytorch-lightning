@@ -13,7 +13,7 @@
 # limitations under the License.
 import dataclasses
 import numbers
-from collections import namedtuple, OrderedDict
+from collections import defaultdict, namedtuple, OrderedDict
 from dataclasses import InitVar
 from typing import Any, ClassVar, List, Optional
 
@@ -43,6 +43,10 @@ def test_recursive_application_to_collection():
         example_ids: List[str]
         feature: Feature
         label: torch.Tensor
+        some_constant: int = dataclasses.field(init=False)
+
+        def __post_init__(self):
+            self.some_constant = 7
 
         def __eq__(self, o: object) -> bool:
             if not isinstance(o, ModelExample):
@@ -217,6 +221,11 @@ def test_recursive_application_to_collection():
     to_reduce = _CustomCollection({"a": 1, "b": 2, "c": 3})
     reduced = apply_to_collection(to_reduce, int, lambda x: str(x))
     assert reduced == _CustomCollection({"a": "1", "b": "2", "c": "3"})
+
+    # defaultdict
+    to_reduce = defaultdict(int, {"a": 1, "b": 2, "c": 3})
+    reduced = apply_to_collection(to_reduce, int, lambda x: str(x))
+    assert reduced == defaultdict(int, {"a": "1", "b": "2", "c": "3"})
 
 
 def test_apply_to_collection_include_none():

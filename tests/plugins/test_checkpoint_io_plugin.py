@@ -49,7 +49,7 @@ def test_checkpoint_plugin_called(tmpdir):
     device = torch.device("cpu")
     trainer = Trainer(
         default_root_dir=tmpdir,
-        plugins=SingleDevicePlugin(device, checkpoint_io=checkpoint_plugin),
+        strategy=SingleDevicePlugin(device, checkpoint_io=checkpoint_plugin),
         callbacks=ck,
         max_epochs=2,
     )
@@ -68,7 +68,8 @@ def test_checkpoint_plugin_called(tmpdir):
     device = torch.device("cpu")
     trainer = Trainer(
         default_root_dir=tmpdir,
-        plugins=[SingleDevicePlugin(device), checkpoint_plugin],
+        strategy=SingleDevicePlugin(device),
+        plugins=[checkpoint_plugin],
         callbacks=ck,
         max_epochs=2,
     )

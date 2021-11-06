@@ -1,8 +1,6 @@
-import operator
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 
-from pytorch_lightning.utilities.imports import _compare_version
-
-if _compare_version("torchtext", operator.ge, "0.9.0"):
+if _TORCH_GREATER_EQUAL_1_8:
     from torchtext.legacy.data import Batch, Dataset, Example, Field, Iterator, LabelField
 else:
     from torchtext.data import Batch, Dataset, Example, Field, Iterator, LabelField  # noqa: F401

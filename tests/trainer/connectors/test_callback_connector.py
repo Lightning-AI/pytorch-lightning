@@ -22,7 +22,7 @@ from pytorch_lightning.callbacks import (
     LearningRateMonitor,
     ModelCheckpoint,
     ModelSummary,
-    ProgressBar,
+    TQDMProgressBar,
 )
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from tests.helpers import BoringModel
@@ -35,7 +35,7 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     model_summary = ModelSummary()
     early_stopping = EarlyStopping()
     lr_monitor = LearningRateMonitor()
-    progress_bar = ProgressBar()
+    progress_bar = TQDMProgressBar()
 
     # no model reference
     trainer = Trainer(callbacks=[checkpoint1, progress_bar, lr_monitor, model_summary, checkpoint2])
@@ -144,7 +144,10 @@ def test_attach_model_callbacks():
         model = LightningModule()
         model.configure_callbacks = lambda: model_callbacks
         trainer = Trainer(
-            checkpoint_callback=False, enable_progress_bar=False, weights_summary=None, callbacks=trainer_callbacks
+            enable_checkpointing=False,
+            enable_progress_bar=False,
+            enable_model_summary=None,
+            callbacks=trainer_callbacks,
         )
         trainer.model = model
         cb_connector = CallbackConnector(trainer)
@@ -152,7 +155,7 @@ def test_attach_model_callbacks():
         return trainer
 
     early_stopping = EarlyStopping()
-    progress_bar = ProgressBar()
+    progress_bar = TQDMProgressBar()
     lr_monitor = LearningRateMonitor()
     grad_accumulation = GradientAccumulationScheduler({1: 1})
 
@@ -196,7 +199,7 @@ def test_attach_model_callbacks_override_info(caplog):
     """Test that the logs contain the info about overriding callbacks returned by configure_callbacks."""
     model = LightningModule()
     model.configure_callbacks = lambda: [LearningRateMonitor(), EarlyStopping()]
-    trainer = Trainer(checkpoint_callback=False, callbacks=[EarlyStopping(), LearningRateMonitor(), ProgressBar()])
+    trainer = Trainer(enable_checkpointing=False, callbacks=[EarlyStopping(), LearningRateMonitor(), TQDMProgressBar()])
     trainer.model = model
     cb_connector = CallbackConnector(trainer)
     with caplog.at_level(logging.INFO):

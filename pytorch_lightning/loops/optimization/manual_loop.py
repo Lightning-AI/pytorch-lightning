@@ -40,9 +40,7 @@ class ManualResult(OutputResult):
         self.extra = self._check_extra_detach_deprecation(self.extra)
 
     @classmethod
-    def from_training_step_output(
-        cls, training_step_output: Optional[STEP_OUTPUT], normalize: int = 1
-    ) -> "ManualResult":
+    def from_training_step_output(cls, training_step_output: Optional[STEP_OUTPUT]) -> "ManualResult":
         extra = {}
         if isinstance(training_step_output, dict):
             extra = {k: v for k, v in training_step_output.items() if k != "hiddens"}
@@ -55,9 +53,8 @@ class ManualResult(OutputResult):
             )
 
         if "loss" in extra:
-            # accumulate the loss. If `accumulate_grad_batches == 1`, no effect.
             # we detach manually as it's expected that it will have a `grad_fn`
-            extra["loss"] = extra["loss"].detach().div(normalize)
+            extra["loss"] = extra["loss"].detach()
 
         return cls(extra=extra)
 
@@ -76,6 +73,8 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
     This loop is a trivial case because it performs only a single iteration (calling directly into the module's
     :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`) and passing through the output(s).
     """
+
+    output_result_cls = ManualResult
 
     def __init__(self) -> None:
         super().__init__()
@@ -110,7 +109,7 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
             lightning_module._current_fx_name = "training_step"
             with self.trainer.profiler.profile("training_step"):
                 training_step_output = self.trainer.accelerator.training_step(step_kwargs)
-                self.trainer.accelerator.post_training_step()
+                self.trainer.training_type_plugin.post_training_step()
 
             del step_kwargs
 
@@ -118,7 +117,7 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
 
             self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
 
-            result = ManualResult.from_training_step_output(training_step_output, self.trainer.accumulate_grad_batches)
+            result = self.output_result_cls.from_training_step_output(training_step_output)
 
             if self.trainer.move_metrics_to_cpu:
                 # hiddens and the training step output are not moved as they are not considered "metrics"
@@ -132,6 +131,4 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
     def on_run_end(self) -> _OUTPUTS_TYPE:
         """Returns the result of this loop, i.e., the post-processed outputs from the training step."""
         output, self._output = self._output, {}  # free memory
-        # #9052 added support for raising `StopIteration` in the `training_step`. If that happens, then `advance`
-        # doesn't finish and `self._output` stays as `None`. If #9415 happens then this would always return a result
         return output

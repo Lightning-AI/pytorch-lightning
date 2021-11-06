@@ -227,8 +227,8 @@ needs to wrap the DataLoaders with `CombinedLoader`.
 
 
     def val_dataloader(self):
-        loader_1 = DataLoader()
-        loader_2 = DataLoader()
+        loader_a = DataLoader()
+        loader_b = DataLoader()
         loaders = {"a": loader_a, "b": loader_b}
         combined_loaders = CombinedLoader(loaders, "max_size_cycle")
         return combined_loaders
@@ -246,7 +246,7 @@ set is not available at the time your model was declared. Simply pass the test s
     test = DataLoader(...)
 
     # test (pass in the loader)
-    trainer.test(test_dataloaders=test)
+    trainer.test(dataloaders=test)
 
 --------------
 

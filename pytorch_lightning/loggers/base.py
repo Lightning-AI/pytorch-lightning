@@ -298,6 +298,20 @@ class LightningLoggerBase(ABC):
         """
         pass
 
+    def log_text(self, *args, **kwargs) -> None:
+        """Log text.
+
+        Arguments are directly passed to the logger.
+        """
+        raise NotImplementedError
+
+    def log_image(self, *args, **kwargs) -> None:
+        """Log image.
+
+        Arguments are directly passed to the logger.
+        """
+        raise NotImplementedError
+
     def save(self) -> None:
         """Save log data."""
         self._finalize_agg_metrics()
@@ -330,6 +344,11 @@ class LightningLoggerBase(ABC):
         """Return the root directory where experiment logs get saved, or `None` if the logger does not save data
         locally."""
         return None
+
+    @property
+    def group_separator(self):
+        """Return the default separator used by the logger to group the data into subfolders."""
+        return "/"
 
     @property
     @abstractmethod
@@ -394,6 +413,14 @@ class LoggerCollection(LightningLoggerBase):
     def log_graph(self, model: "pl.LightningModule", input_array=None) -> None:
         for logger in self._logger_iterable:
             logger.log_graph(model, input_array)
+
+    def log_text(self, *args, **kwargs) -> None:
+        for logger in self._logger_iterable:
+            logger.log_text(*args, **kwargs)
+
+    def log_image(self, *args, **kwargs) -> None:
+        for logger in self._logger_iterable:
+            logger.log_image(*args, **kwargs)
 
     def save(self) -> None:
         for logger in self._logger_iterable:
@@ -482,6 +509,10 @@ class DummyLogger(LightningLoggerBase):
     def __getitem__(self, idx) -> "DummyLogger":
         # enables self.logger[0].experiment.add_image(...)
         return self
+
+    def __iter__(self):
+        # if DummyLogger is substituting a logger collection, pretend it is empty
+        yield from ()
 
 
 def merge_dicts(

@@ -20,7 +20,7 @@ from unittest.mock import ANY
 
 import pytest
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader
 
 from pl_examples.bug_report_model import RandomDataset
 from pytorch_lightning import LightningModule, Trainer
@@ -318,6 +318,7 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
             "processed": stop_batch,
             "completed": stop_batch,
         },
+        "is_last_batch": False,
     }
     assert trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.state_dict() == expected
 
@@ -366,7 +367,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         accumulate_grad_batches=accumulate_grad_batches,
         enable_progress_bar=False,
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
 
     # simulate a failure
@@ -492,7 +493,8 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
 
     # need to remove these elements for comparison; comparing with `fit_loop.state_dict()` would require the
     # fit loop to have an iterator, which is only available during training
-    checkpoint["loops"]["fit_loop"]["state_dict"]["dataloader_state_dict"] = ANY
+    state_dict["epoch_loop.state_dict"]["dataloader_state_dict"] = ANY
+    checkpoint["loops"]["fit_loop"]["epoch_loop.state_dict"]["dataloader_state_dict"] = ANY
     assert state_dict == checkpoint["loops"]["fit_loop"]
 
     trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"])
@@ -565,7 +567,6 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
         accumulate_grad_batches=accumulate_grad_batches,
         enable_progress_bar=False,
         logger=False,
-        checkpoint_callback=True,
     )
     trainer.fit(model)
 
@@ -681,7 +682,7 @@ def test_fit_loop_reset(tmpdir):
         max_epochs=2,
         callbacks=[checkpoint_callback],
         logger=False,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -824,6 +825,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
             "completed": n_val_dataloaders * val_per_epoch * n_batches,
         },
         "current": {"ready": n_batches, "completed": n_batches, "started": n_batches, "processed": n_batches},
+        "is_last_batch": True,
     }
 
     model = TestModel(True)
@@ -874,6 +876,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
             "processed": stop_batch,
             "completed": stop_batch,
         },
+        "is_last_batch": False,
     }
 
     model = TestModel(False)
@@ -882,10 +885,9 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         max_epochs=1,
         val_check_interval=val_check_interval,
         num_sanity_val_steps=0,
-        resume_from_checkpoint=ckpt_path,
         progress_bar_refresh_rate=0,
     )
-    trainer.fit(model)
+    trainer.fit(model, ckpt_path=ckpt_path)
 
     # TODO: -1 because there's a bug where global step is off by one on reload
     assert trainer.global_step - 1 == expected_global_step
@@ -907,3 +909,38 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
     expected[val_batch_progress]["total"]["ready"] += 1
     expected[val_batch_progress]["total"]["started"] += 1
     assert state_dict_after_restart[val_batch_progress] == expected[val_batch_progress]
+
+
+@RunIf(min_torch="1.8.0")
+@pytest.mark.parametrize("persistent_workers", (True, False))
+def test_workers_are_shutdown(tmpdir, persistent_workers):
+    # `num_workers == 1` uses `_MultiProcessingDataLoaderIter`
+    # `persistent_workers` makes sure `self._iterator` gets set on the `DataLoader` instance
+
+    class _TestMultiProcessingDataLoaderIter(_MultiProcessingDataLoaderIter):
+        def __init__(self, *args, dataloader: DataLoader, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.dataloader = dataloader
+
+        def _shutdown_workers(self):
+            setattr(self.dataloader, "has_shutdown_workers", True)
+            super()._shutdown_workers()
+
+    class TestDataLoader(DataLoader):
+        def _get_iterator(self):
+            if self.num_workers == 0:
+                return super()._get_iterator()
+            else:
+                self.check_worker_number_rationality()
+                return _TestMultiProcessingDataLoaderIter(self, dataloader=self)
+
+    train_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
+    val_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
+
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=2)
+    trainer.fit(model, train_dataloader, val_dataloader)
+    assert train_dataloader.has_shutdown_workers
+    assert val_dataloader.has_shutdown_workers
+    assert train_dataloader._iterator is None
+    assert val_dataloader._iterator is None

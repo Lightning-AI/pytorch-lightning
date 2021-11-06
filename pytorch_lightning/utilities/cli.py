@@ -91,6 +91,8 @@ CALLBACK_REGISTRY.register_classes(pl.callbacks, pl.callbacks.Callback)
 
 MODEL_REGISTRY = _Registry()
 
+DATAMODULE_REGISTRY = _Registry()
+
 
 class LightningArgumentParser(ArgumentParser):
     """Extension of jsonargparse's ArgumentParser for pytorch-lightning."""
@@ -129,6 +131,7 @@ class LightningArgumentParser(ArgumentParser):
         ],
         nested_key: str,
         subclass_mode: bool = False,
+        required: bool = True,
     ) -> List[str]:
         """Adds arguments from a lightning class to a nested key of the parser.
 
@@ -136,6 +139,7 @@ class LightningArgumentParser(ArgumentParser):
             lightning_class: A callable or any subclass of {Trainer, LightningModule, LightningDataModule, Callback}.
             nested_key: Name of the nested namespace to store arguments.
             subclass_mode: Whether allow any subclass of the given class.
+            required: Whether the argument group is required.
 
         Returns:
             A list with the names of the class arguments added.
@@ -149,9 +153,13 @@ class LightningArgumentParser(ArgumentParser):
             if issubclass(lightning_class, Callback):
                 self.callback_keys.append(nested_key)
             if subclass_mode:
-                return self.add_subclass_arguments(lightning_class, nested_key, fail_untyped=False, required=True)
+                return self.add_subclass_arguments(lightning_class, nested_key, fail_untyped=False, required=required)
             return self.add_class_arguments(
-                lightning_class, nested_key, fail_untyped=False, instantiate=not issubclass(lightning_class, Trainer)
+                lightning_class,
+                nested_key,
+                fail_untyped=False,
+                instantiate=not issubclass(lightning_class, Trainer),
+                sub_configs=True,
             )
         raise MisconfigurationException(
             f"Cannot add arguments from: {lightning_class}. You should provide either a callable or a subclass of: "
@@ -180,7 +188,7 @@ class LightningArgumentParser(ArgumentParser):
             self.add_subclass_arguments(optimizer_class, nested_key, **kwargs)
             self.set_choices(nested_key, optimizer_class)
         else:
-            self.add_class_arguments(optimizer_class, nested_key, **kwargs)
+            self.add_class_arguments(optimizer_class, nested_key, sub_configs=True, **kwargs)
         self._optimizers[nested_key] = (optimizer_class, link_to)
 
     def add_lr_scheduler_args(
@@ -205,7 +213,7 @@ class LightningArgumentParser(ArgumentParser):
             self.add_subclass_arguments(lr_scheduler_class, nested_key, **kwargs)
             self.set_choices(nested_key, lr_scheduler_class)
         else:
-            self.add_class_arguments(lr_scheduler_class, nested_key, **kwargs)
+            self.add_class_arguments(lr_scheduler_class, nested_key, sub_configs=True, **kwargs)
         self._lr_schedulers[nested_key] = (lr_scheduler_class, link_to)
 
     def parse_args(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
@@ -432,7 +440,7 @@ class LightningCLI:
                 called. If ``None``, you can pass a registered model with ``--model=MyModel``.
             datamodule_class: An optional :class:`~pytorch_lightning.core.datamodule.LightningDataModule` class or a
                 callable which returns a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` instance when
-                called.
+                called. If ``None``, you can pass a registered datamodule with ``--data=MyDataModule``.
             save_config_callback: A callback class to save the training config.
             save_config_filename: Filename for the config file.
             save_config_overwrite: Whether to overwrite an existing config file.
@@ -455,7 +463,6 @@ class LightningCLI:
             run: Whether subcommands should be added to run a :class:`~pytorch_lightning.trainer.trainer.Trainer`
                 method. If set to ``False``, the trainer and model classes will be instantiated only.
         """
-        self.datamodule_class = datamodule_class
         self.save_config_callback = save_config_callback
         self.save_config_filename = save_config_filename
         self.save_config_overwrite = save_config_overwrite
@@ -463,12 +470,16 @@ class LightningCLI:
         self.trainer_class = trainer_class
         self.trainer_defaults = trainer_defaults or {}
         self.seed_everything_default = seed_everything_default
-        self.subclass_mode_data = subclass_mode_data
 
         self.model_class = model_class
         # used to differentiate between the original value and the processed value
         self._model_class = model_class or LightningModule
         self.subclass_mode_model = (model_class is None) or subclass_mode_model
+
+        self.datamodule_class = datamodule_class
+        # used to differentiate between the original value and the processed value
+        self._datamodule_class = datamodule_class or LightningDataModule
+        self.subclass_mode_data = (datamodule_class is None) or subclass_mode_data
 
         main_kwargs, subparser_kwargs = self._setup_parser_kwargs(
             parser_kwargs or {},  # type: ignore  # github.com/python/mypy/issues/6463
@@ -531,12 +542,18 @@ class LightningCLI:
         parser.set_defaults(trainer_defaults)
 
         parser.add_lightning_class_args(self._model_class, "model", subclass_mode=self.subclass_mode_model)
-        if self.model_class is None and MODEL_REGISTRY:
+        if self.model_class is None and len(MODEL_REGISTRY):
             # did not pass a model and there are models registered
             parser.set_choices("model", MODEL_REGISTRY.classes)
 
         if self.datamodule_class is not None:
-            parser.add_lightning_class_args(self.datamodule_class, "data", subclass_mode=self.subclass_mode_data)
+            parser.add_lightning_class_args(self._datamodule_class, "data", subclass_mode=self.subclass_mode_data)
+        elif len(DATAMODULE_REGISTRY):
+            # this should not be required because the user might want to use the `LightningModule` dataloaders
+            parser.add_lightning_class_args(
+                self._datamodule_class, "data", subclass_mode=self.subclass_mode_data, required=False
+            )
+            parser.set_choices("data", DATAMODULE_REGISTRY.classes)
 
     def _add_arguments(self, parser: LightningArgumentParser) -> None:
         # default + core + custom arguments
@@ -561,11 +578,11 @@ class LightningCLI:
     def subcommands() -> Dict[str, Set[str]]:
         """Defines the list of available subcommands and the arguments to skip."""
         return {
-            "fit": {"model", "train_dataloaders", "train_dataloader", "val_dataloaders", "datamodule"},
-            "validate": {"model", "dataloaders", "val_dataloaders", "datamodule"},
-            "test": {"model", "dataloaders", "test_dataloaders", "datamodule"},
+            "fit": {"model", "train_dataloaders", "val_dataloaders", "datamodule"},
+            "validate": {"model", "dataloaders", "datamodule"},
+            "test": {"model", "dataloaders", "datamodule"},
             "predict": {"model", "dataloaders", "datamodule"},
-            "tune": {"model", "train_dataloaders", "train_dataloader", "val_dataloaders", "datamodule"},
+            "tune": {"model", "train_dataloaders", "val_dataloaders", "datamodule"},
         }
 
     def _add_subcommands(self, parser: LightningArgumentParser, **kwargs: Any) -> None:

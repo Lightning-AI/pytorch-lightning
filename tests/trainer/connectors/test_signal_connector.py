@@ -19,6 +19,7 @@ from unittest import mock
 import pytest
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.utilities.exceptions import ExitGracefullyException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -38,16 +39,21 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
 
         signal.signal(signal.SIGUSR1, handler)
 
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            if terminate_gracefully or register_handler:
+                os.kill(os.getpid(), signal.SIGUSR1)
+                sleep(0.1)
+            return super().training_step(batch, batch_idx)
+
+    model = TestModel()
+
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": str(int(terminate_gracefully))}):
 
-        class TestModel(BoringModel):
-            def training_step(self, batch, batch_idx):
-                if terminate_gracefully or register_handler:
-                    os.kill(os.getpid(), signal.SIGUSR1)
-                    sleep(0.1)
-                return super().training_step(batch, batch_idx)
-
-        model = TestModel()
         trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, limit_val_batches=0)
-        trainer.fit(model)
+        if terminate_gracefully and not register_handler:
+            with pytest.raises(ExitGracefullyException):
+                trainer.fit(model)
+        else:
+            trainer.fit(model)
         assert trainer._terminate_gracefully == (False if register_handler else terminate_gracefully)

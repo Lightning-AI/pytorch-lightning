@@ -52,50 +52,63 @@ def test_fit_val_loop_config(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     # no val data has val loop
-    with pytest.warns(UserWarning, match=r"you passed in a val_dataloader but have no validation_step"):
+    with pytest.warns(UserWarning, match=r"You passed in a `val_dataloader` but have no `validation_step`"):
         model = BoringModel()
         model.validation_step = None
         trainer.fit(model)
 
     # has val loop but no val data
-    with pytest.warns(UserWarning, match=r"you defined a validation_step but have no val_dataloader"):
+    with pytest.warns(UserWarning, match=r"You defined a `validation_step` but have no `val_dataloader`"):
         model = BoringModel()
         model.val_dataloader = None
         trainer.fit(model)
 
 
-def test_test_loop_config(tmpdir):
-    """When either test loop or test data are missing."""
+def test_eval_loop_config(tmpdir):
+    """When either eval step or eval data is missing."""
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+
+    # has val step but no val data
+    model = BoringModel()
+    model.val_dataloader = None
+    with pytest.raises(MisconfigurationException, match=r"No `val_dataloader\(\)` method defined"):
+        trainer.validate(model)
+
+    # has test data but no val step
+    model = BoringModel()
+    model.validation_step = None
+    with pytest.raises(MisconfigurationException, match=r"No `validation_step\(\)` method defined"):
+        trainer.validate(model)
 
     # has test loop but no test data
-    with pytest.warns(UserWarning, match=r"you defined a test_step but have no test_dataloader"):
-        model = BoringModel()
-        model.test_dataloader = None
+    model = BoringModel()
+    model.test_dataloader = None
+    with pytest.raises(MisconfigurationException, match=r"No `test_dataloader\(\)` method defined"):
         trainer.test(model)
 
-    # has test data but no test loop
-    with pytest.warns(UserWarning, match=r"you passed in a test_dataloader but have no test_step"):
-        model = BoringModel()
-        model.test_step = None
+    # has test data but no test step
+    model = BoringModel()
+    model.test_step = None
+    with pytest.raises(MisconfigurationException, match=r"No `test_step\(\)` method defined"):
         trainer.test(model)
 
+    # has predict step but no predict data
+    model = BoringModel()
+    model.predict_dataloader = None
+    with pytest.raises(MisconfigurationException, match=r"No `predict_dataloader\(\)` method defined"):
+        trainer.predict(model)
 
-def test_val_loop_config(tmpdir):
-    """When either validation loop or validation data are missing."""
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    # has predict data but no predict_step
+    model = BoringModel()
+    model.predict_step = None
+    with pytest.raises(MisconfigurationException, match=r"`predict_step` cannot be None."):
+        trainer.predict(model)
 
-    # has val loop but no val data
-    with pytest.warns(UserWarning, match=r"you defined a validation_step but have no val_dataloader"):
-        model = BoringModel()
-        model.val_dataloader = None
-        trainer.validate(model)
-
-    # has val data but no val loop
-    with pytest.warns(UserWarning, match=r"you passed in a val_dataloader but have no validation_step"):
-        model = BoringModel()
-        model.validation_step = None
-        trainer.validate(model)
+    # has predict data but no forward
+    model = BoringModel()
+    model.forward = None
+    with pytest.raises(MisconfigurationException, match=r"requires `forward` method to run."):
+        trainer.predict(model)
 
 
 @pytest.mark.parametrize("datamodule", [False, True])
@@ -129,11 +142,6 @@ def test_trainer_predict_verify_config(tmpdir, datamodule):
 
     assert len(results) == 2
     assert results[0][0].shape == torch.Size([1, 2])
-
-    model.predict_dataloader = None
-
-    with pytest.raises(MisconfigurationException, match="Dataloader not found for `Trainer.predict`"):
-        trainer.predict(model)
 
 
 def test_trainer_manual_optimization_config(tmpdir):

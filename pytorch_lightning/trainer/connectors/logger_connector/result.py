@@ -98,6 +98,8 @@ class _Metadata:
     _sync: Optional[_Sync] = None
 
     def __post_init__(self) -> None:
+        if not self.on_step and not self.on_epoch:
+            raise MisconfigurationException("`self.log(on_step=False, on_epoch=False)` is not useful.")
         self._parse_reduce_fx()
 
     def _parse_reduce_fx(self) -> None:
@@ -192,11 +194,14 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
     def update(self, value: _IN_METRIC, batch_size: torch.Tensor) -> None:
         if self.is_tensor:
             value = value.float()
+            if self.meta.on_step:
+                self._forward_cache = self.meta.sync(value.clone())  # `clone` because `sync` is in-place
+
             # performance: no need to accumulate on values only logged on_step
-            if self.meta.on_step and not self.meta.on_epoch:
-                self._forward_cache = self.value = self.meta.sync(value)
+            if not self.meta.on_epoch:
+                self.value = self._forward_cache
                 return
-            self._forward_cache = value
+
             # perform accumulation with reduction
             if self.meta.is_mean_reduction:
                 self.value += value.mean() * batch_size
@@ -204,7 +209,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             elif self.meta.is_max_reduction or self.meta.is_min_reduction:
                 self.value = self.meta.reduce_fx(self.value, value.mean())
             elif self.meta.is_sum_reduction:
-                self.value += value.mean() * batch_size
+                self.value += value.mean()
         else:
             self.value = value
             self._forward_cache = value._forward_cache
@@ -550,11 +555,13 @@ class ResultCollection(dict):
 
         apply_to_collection(self, ResultMetric, fn)
 
-    def extract_batch_size(self, batch: Any) -> None:
+    def extract_batch_size(self, batch: Any) -> int:
         try:
-            self.batch_size = extract_batch_size(batch)
+            batch_size = extract_batch_size(batch)
         except RecursionError:
-            self.batch_size = 1
+            batch_size = 1
+        self.batch_size = batch_size  # the setter converts it to `Tensor`
+        return batch_size
 
     def to(self, *args: Any, **kwargs: Any) -> "ResultCollection":
         """Move all data to the given device."""

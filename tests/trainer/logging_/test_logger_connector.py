@@ -237,7 +237,7 @@ def test_fx_validator_integration(tmpdir):
     }
     model = HookedModel(not_supported)
 
-    with pytest.raises(MisconfigurationException, match=not_supported[None]):
+    with pytest.warns(UserWarning, match=not_supported[None]):
         model.log("foo", 1)
 
     callback = HookedCallback(not_supported)
@@ -330,7 +330,7 @@ def test_epoch_results_cache_dp(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, accelerator="dp", gpus=2, limit_train_batches=2, limit_val_batches=2, max_epochs=1
+        default_root_dir=tmpdir, strategy="dp", gpus=2, limit_train_batches=2, limit_val_batches=2, max_epochs=1
     )
     trainer.fit(model)
     trainer.test(model)
@@ -512,7 +512,7 @@ def test_metrics_reset(tmpdir):
         max_epochs=1,
         enable_progress_bar=False,
         num_sanity_val_steps=2,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
 
     trainer.fit(model)
@@ -545,16 +545,21 @@ def test_result_collection_on_tensor_with_mean_reduction():
                         name += "_prog_bar"
                     if logger:
                         name += "_logger"
-                    result_collection.log(
-                        "training_step",
-                        name,
-                        v,
+                    log_kwargs = dict(
+                        fx="training_step",
+                        name=name,
+                        value=v,
                         on_step=on_step,
                         on_epoch=on_epoch,
                         batch_size=batches[i],
                         prog_bar=prog_bar,
                         logger=logger,
                     )
+                    if not on_step and not on_epoch:
+                        with pytest.raises(MisconfigurationException, match="on_step=False, on_epoch=False"):
+                            result_collection.log(**log_kwargs)
+                    else:
+                        result_collection.log(**log_kwargs)
 
     total_value = sum(values * batches)
     total_batches = sum(batches)

@@ -54,8 +54,8 @@ def test_logging_sync_dist_true_ddp(tmpdir):
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=2,
-        weights_summary=None,
-        accelerator="ddp",
+        enable_model_summary=False,
+        strategy="ddp",
         gpus=1,
         num_nodes=2,
     )
@@ -101,15 +101,15 @@ def test__validation_step__log(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
-        accelerator="ddp",
+        enable_model_summary=False,
+        strategy="ddp",
         gpus=1,
         num_nodes=2,
     )
     trainer.fit(model)
 
     # make sure all the metrics are available for callbacks
-    assert set(trainer.logged_metrics) == {"a2", "a_step", "a_epoch", "b_step", "b_epoch", "epoch"}
+    assert set(trainer.logged_metrics) == {"a2", "a_step", "a_epoch", "b_step", "b_epoch"}
 
     # we don't want to enable val metrics during steps because it is not something that users should do
     # on purpose DO NOT allow b_step... it's silly to monitor val step metrics
