@@ -1,13 +1,14 @@
-name: Milestone Check
+name: Milestone
 on: [issues, pull_request]
 
 jobs:
-  milestone-check:
+  check:
     runs-on: ubuntu-latest
-    name: Milestone Check
     steps:
     - name: Check if milestone is set
       id: milestone-check
       uses: scholzj/milestone-check-action@v1
       with:
         status_context: 'Milestone Check'
+      env:
+        INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
