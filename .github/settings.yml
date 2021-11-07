@@ -46,6 +46,9 @@ repository:
   # rebase-merging.
   allow_rebase_merge: true
 
+  # Either `true` to allow auto-merge on pull requests, or `false` to disallow auto-merge
+  allow_auto_merge: false
+
   # Either `true` to enable automatic deletion of branches on merge, or `false` to disable
   delete_branch_on_merge: true
 
@@ -56,6 +59,15 @@ repository:
   # Either `true` to enable vulnerability alerts, or `false` to disable
   # vulnerability alerts.
   enable_vulnerability_alerts: true
+
+  # Either `true` to make this repo available as a template repository or `false` to prevent it.
+  is_template: false
+
+  # Note: You cannot unarchive repositories through the API. `true` to archive this repository.
+  archived: false
+
+  # Can be `public` or `private`. If your organization is associated with an enterprise account using GitHub Enterprise Cloud or GitHub Enterprise Server 2.20+, visibility can also be `internal`. The visibility parameter overrides the private parameter when you use both along with the nebula-preview preview header
+  visibility: public
 
 # Labels: define labels for Issues and Pull Requests
 labels:
@@ -140,3 +152,9 @@ branches:
         apps: []
         users: []
         teams: []
+      # Permits force pushes for all users with push access. Set to null to disable.
+      allow_force_pushes:
+      # Allows users with push access to delete matching branches. Set to `false` to disable.
+      allow_deletions: false
+      # Ensure all review conversations are seen and addressed prior to merging
+      required_conversation_resolution: true
