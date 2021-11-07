@@ -53,7 +53,10 @@ def test_recursive_application_to_collection():
                 return NotImplemented
             else:
                 return (
-                    self.example_ids == o.example_ids and self.feature == o.feature and torch.equal(self.label, o.label)
+                    self.example_ids == o.example_ids
+                    and self.feature == o.feature
+                    and torch.equal(self.label, o.label)
+                    and self.some_constant == o.some_constant
                 )
 
     @dataclasses.dataclass

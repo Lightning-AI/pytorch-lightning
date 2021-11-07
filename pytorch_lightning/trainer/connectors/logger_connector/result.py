@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections.abc import Generator
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, fields, replace
 from functools import partial, wraps
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
@@ -73,6 +73,11 @@ class _Sync:
         # save the function as `_fn` as the meta are being re-created and the object references need to match.
         # ignore typing, bad support for `partial`: mypy/issues/1484
         self._fn: Callable = partial(fn, reduce_op=self.op, group=self.group)  # type: ignore [arg-type]
+
+    def __deepcopy__(self, memo: dict) -> "_Sync":
+        result = _Sync(**{field.name: getattr(self, field.name) for field in fields(self) if field.init})
+        memo[id(self)] = result
+        return result
 
     @property
     def __call__(self) -> Any:
