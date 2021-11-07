@@ -10,5 +10,4 @@ jobs:
       uses: scholzj/milestone-check-action@v1
       with:
         status_context: 'Milestone Check'
-      env:
-        INPUT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.GITHUB_TOKEN }}
