@@ -374,7 +374,7 @@ class DDPPlugin(ParallelPlugin):
         self._register_ddp_hooks()
 
     def determine_ddp_device_ids(self):
-        if self.root_device.type == "cpu":
+        if self.root_device.type == "cpu" or self.root_device.type == "hpu" :
             return None
         return [self.root_device.index]
 
@@ -533,6 +533,13 @@ class DDPPlugin(ParallelPlugin):
                 os.kill(pid, signal.SIGKILL)
         shutil.rmtree(sync_dir)
         raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
+
+    def on_save(self, checkpoint: Dict[str, Union[Any, torch.Tensor]]) -> Dict[str, Union[Any, torch.Tensor]]:
+        if self.root_device.type == "hpu" and self.cluster_environment.global_rank() == 0:
+            from pytorch_lightning.utilities.apply_func import move_data_to_device
+            return move_data_to_device(checkpoint, torch.device("cpu"))
+        else:
+            return checkpoint
 
     def teardown(self) -> None:
         if isinstance(self.model, DistributedDataParallel):

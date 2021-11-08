@@ -109,6 +109,8 @@ if _POPTORCH_AVAILABLE:
 else:
     _IPU_AVAILABLE = False
 
+from habana_frameworks.torch.utils.library_loader import is_habana_avaialble
+_HPU_AVAILABLE = is_habana_avaialble()
 
 # experimental feature within PyTorch Lightning.
 def _fault_tolerant_training() -> bool:

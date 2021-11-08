@@ -4,6 +4,7 @@ import pickle
 import torch
 
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities import _HPU_AVAILABLE
 
 log = logging.getLogger(__name__)
 
@@ -53,6 +54,9 @@ def _broadcast_object_list(object_list, src=0, group=None):
 
     group_backend = get_backend(group)
     is_nccl_backend = group_backend == Backend.NCCL
+    import os
+    dist_backend = os.environ.get("PL_TORCH_DISTRIBUTED_BACKEND")
+    is_hcl_backend = group_backend == torch.distributed.Backend(str(dist_backend))
     current_device = torch.device("cpu")
     if is_nccl_backend:
         # See note about using torch.cuda.current_device() here in docstring.
@@ -60,6 +64,10 @@ def _broadcast_object_list(object_list, src=0, group=None):
         # true.
         current_device = torch.device("cuda", torch.cuda.current_device())
         object_sizes_tensor = object_sizes_tensor.to(current_device)
+    elif is_hcl_backend:
+        current_device = torch.device("hpu")
+        #Workaround: HPU doesn't not support long tensors for collectives
+        object_sizes_tensor = object_sizes_tensor.int()
         object_sizes_tensor = object_sizes_tensor.to(current_device)
 
     # Broadcast object sizes
@@ -72,6 +80,8 @@ def _broadcast_object_list(object_list, src=0, group=None):
         object_tensor = torch.ByteTensor(torch.sum(object_sizes_tensor).item())
 
     if is_nccl_backend:
+        object_tensor = object_tensor.to(current_device)
+    elif is_hcl_backend:
         object_tensor = object_tensor.to(current_device)
 
     broadcast(object_tensor, src=src, group=group)
@@ -93,7 +103,7 @@ if not torch.distributed.is_available():
         return obj
 
     broadcast_object_list = _broadcast_noop
-elif _TORCH_GREATER_EQUAL_1_8:
+elif _TORCH_GREATER_EQUAL_1_8 and not _HPU_AVAILABLE:
     from torch.distributed.distributed_c10d import broadcast_object_list
 else:
     broadcast_object_list = _broadcast_object_list

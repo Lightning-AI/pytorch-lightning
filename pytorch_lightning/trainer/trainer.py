@@ -27,7 +27,7 @@ import torch
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
+from pytorch_lightning.accelerators import Accelerator, IPUAccelerator, HPUAccelerator
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -67,6 +67,7 @@ from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
     _IPU_AVAILABLE,
     _TPU_AVAILABLE,
+    _HPU_AVAILABLE,
     device_parser,
     DeviceType,
     DistributedType,
@@ -130,6 +131,7 @@ class Trainer(
         devices: Optional[Union[List[int], str, int]] = None,
         gpus: Optional[Union[List[int], str, int]] = None,
         auto_select_gpus: bool = False,
+        hpus: Optional[int] = None,
         tpu_cores: Optional[Union[List[int], str, int]] = None,
         ipus: Optional[int] = None,
         log_gpu_memory: Optional[str] = None,  # TODO: Remove in 1.7
@@ -174,6 +176,7 @@ class Trainer(
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         amp_backend: str = "native",
         amp_level: Optional[str] = None,
+        hmp_params:["level", "verbose", "bf16_ops", "fp32_ops"] = None,
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         stochastic_weight_avg: bool = False,
@@ -184,7 +187,7 @@ class Trainer(
 
         Args:
 
-            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "auto")
+            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "hpu", "auto")
                 as well as custom accelerator instances.
 
                 .. deprecated:: v1.5
@@ -239,7 +242,7 @@ class Trainer(
             deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
                 Default: ``False``.
 
-            devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,
+            devices: Will be mapped to either `gpus`, `tpu_cores`, `hpus`, `num_processes` or `ipus`,
                 based on the accelerator type.
 
             fast_dev_run: Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
@@ -381,6 +384,10 @@ class Trainer(
 
             ipus: How many IPUs to train on.
 
+            hpus: How many HPUs to train on.
+
+            hmp_params: list of habana mixed precision parameters
+
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm. If using
                 Automatic Mixed Precision (AMP), the gradients will be unscaled before logging them.
 
@@ -437,6 +444,7 @@ class Trainer(
             strategy,
             gpus,
             gpu_ids,
+            hpus,
             num_nodes,
             sync_batchnorm,
             benchmark,
@@ -445,6 +453,7 @@ class Trainer(
             precision,
             amp_backend,
             amp_level,
+            hmp_params,
             plugins,
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
@@ -826,6 +835,12 @@ class Trainer(
         # --------------------
         Trainer._log_api_event("validate")
         self.verbose_evaluate = verbose
+        # log hyper-parameters
+        if self.logger is not None:
+            # save exp to get started (this is where the first experiment logs are written)
+            # self.logger.log_hyperparams(self.lightning_module.hparams_initial)
+            self.logger.log_graph(self.lightning_module)
+            self.logger.save()
 
         self.state.fn = TrainerFn.VALIDATING
         self.state.status = TrainerStatus.RUNNING
@@ -1562,6 +1577,9 @@ class Trainer(
         num_ipus = self.ipus if self.ipus is not None else 0
         rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
 
+        num_hpus = self.hpus if self.hpus is not None else 0
+        rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
+
         if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
             rank_zero_warn(
                 "GPU available but not used. Set the gpus flag in your trainer `Trainer(gpus=1)` or script `--gpus=1`."
@@ -1577,6 +1595,12 @@ class Trainer(
             rank_zero_warn(
                 "IPU available but not used. Set the `ipus` flag in your trainer"
                 " `Trainer(ipus=8)` or script `--ipus=8`."
+            )
+
+        if _HPU_AVAILABLE and self._device_type != DeviceType.HPU and not isinstance(self.accelerator, HPUAccelerator):
+            rank_zero_warn(
+                "HPU available but not used. Set the `hpus` flag in your trainer"
+                " `Trainer(hpus=8)` or script `--hpus=8`."
             )
 
     def _on_exception(self):
@@ -1656,6 +1680,10 @@ class Trainer(
     @property
     def num_gpus(self) -> int:
         return self._accelerator_connector.num_gpus
+
+    @property
+    def hpus(self) -> int:
+        return self._accelerator_connector.num_hpus
 
     @property
     def devices(self) -> Optional[Union[List[int], str, int]]:

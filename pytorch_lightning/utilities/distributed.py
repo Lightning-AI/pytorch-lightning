@@ -22,7 +22,7 @@ import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE, _HPU_AVAILABLE
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -208,6 +208,9 @@ class AllGatherGrad(torch.autograd.Function):
 
         gathered_tensor = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())]
 
+        if _HPU_AVAILABLE:
+            # HPU distributed backend doesn't support int64 tensors
+            tensor = tensor.int()
         torch.distributed.all_gather(gathered_tensor, tensor, group=group)
         gathered_tensor = torch.stack(gathered_tensor, dim=0)
 
@@ -381,6 +384,18 @@ def init_dist_connection(
     world_size = world_size if world_size is not None else cluster_environment.world_size()
     os.environ["MASTER_ADDR"] = cluster_environment.master_address()
     os.environ["MASTER_PORT"] = str(cluster_environment.master_port())
+
+    #local rank mapping for device open is needed for hpu devices
+    if torch_distributed_backend == 'hcl' or torch_distributed_backend == 'hccl':
+        try:
+            import habana_frameworks.torch.core.hccl
+        except Exception:
+            print("hccl backend is not supported, using hcl backend")
+            torch_distributed_backend = 'hcl'
+            os.environ["PL_TORCH_DISTRIBUTED_BACKEND"] = "hcl"
+
+        os.environ["ID"] = str(cluster_environment.local_rank())
+
     if torch.distributed.is_available() and not torch.distributed.is_initialized():
         log.info(f"initializing distributed: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
         torch.distributed.init_process_group(

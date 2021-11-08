@@ -39,6 +39,10 @@ class SingleDevicePlugin(TrainingTypePlugin):
         return self.root_device.type == "xla" and _XLA_AVAILABLE
 
     @property
+    def on_hpu(self) -> bool:
+        return self.device.type == "hpu"
+
+    @property
     def on_gpu(self) -> bool:
         return self.root_device.type == "cuda" and torch.cuda.is_available()
 

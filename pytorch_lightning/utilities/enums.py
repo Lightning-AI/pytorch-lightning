@@ -128,6 +128,7 @@ class DeviceType(LightningEnum):
     GPU = "GPU"
     IPU = "IPU"
     TPU = "TPU"
+    HPU = 'HPU'
 
 
 class GradClipAlgorithmType(LightningEnum):

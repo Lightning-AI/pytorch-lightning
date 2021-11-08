@@ -41,6 +41,7 @@ class Accelerator:
     - GPU
     - TPU
     - IPU
+    - HPU
 
     Each Accelerator gets two plugins upon initialization:
     One to handle differences from the training routine and one to handle different precisions.

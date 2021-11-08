@@ -252,6 +252,14 @@ class LightningModule(
         return self.device.type == "cuda"
 
     @property
+    def on_hpu(self):
+        """
+        True if your model is currently running on HPUs.
+        Useful to set flags around the LightningModule for different CPU vs GPU vs HPU behavior.
+        """
+        return self.device.type == "hpu"
+
+    @property
     def automatic_optimization(self) -> bool:
         """If set to ``False`` you are responsible for calling ``.backward()``, ``.step()``, ``.zero_grad()``."""
         return self._automatic_optimization
@@ -1586,6 +1594,7 @@ class LightningModule(
         optimizer_idx: int = 0,
         optimizer_closure: Optional[Callable[[], Any]] = None,
         on_tpu: bool = False,
+        on_hpu: bool = None,
         using_native_amp: bool = False,
         using_lbfgs: bool = False,
     ) -> None:
@@ -1604,6 +1613,7 @@ class LightningModule(
             optimizer_closure: Closure for all optimizers. This closure must be executed as it includes the
                 calls to ``training_step()``, ``optimizer.zero_grad()``, and ``backward()``.
             on_tpu: ``True`` if TPU backward is required
+            on_hpu: ``True`` if HPU backward is required
             using_native_amp: ``True`` if using native amp
             using_lbfgs: True if the matching optimizer is :class:`torch.optim.LBFGS`
 
