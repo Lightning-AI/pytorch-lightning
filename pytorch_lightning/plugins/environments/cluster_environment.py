@@ -30,6 +30,7 @@ class ClusterEnvironment(ABC):
     def creates_processes_externally(self) -> bool:
         """Whether the environment creates the subprocesses or not."""
 
+    @property
     @abstractmethod
     def main_address(self) -> str:
         """The main address through which all processes connect and communicate."""
