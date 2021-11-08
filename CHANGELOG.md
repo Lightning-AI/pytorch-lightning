@@ -87,7 +87,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated method `master_params` from PrecisionPlugin ([#10372](https://github.com/PyTorchLightning/pytorch-lightning/pull/10372))
 
 
-- Removed deprecated method and property of `accelerator_pass_through_functions` from Accelerator ([#TBD](https://github.com/PyTorchLightning/pytorch-lightning/pull/tbd))
+- Removed deprecated method and property of `accelerator_pass_through_functions` from Accelerator ([#10403](https://github.com/PyTorchLightning/pytorch-lightning/pull/10403))
 
 
 ### Fixed
