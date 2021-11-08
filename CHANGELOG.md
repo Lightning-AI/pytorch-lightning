@@ -106,13 +106,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed issue with pickling `CSVLogger` after a call to `CSVLogger.save` ([#10388](https://github.com/PyTorchLightning/pytorch-lightning/pull/10388))
 
--
 
+- Fixed `extract_batch_size` call only when its required ([#10408](https://github.com/PyTorchLightning/pytorch-lightning/pull/10408))
 
--
-
-
--
 
 
 ## [1.5.0] - 2021-11-02
