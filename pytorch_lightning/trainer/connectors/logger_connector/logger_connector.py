@@ -210,7 +210,6 @@ class LoggerConnector:
 
     def on_train_split_start(self, split_idx: int, split_batch: Any) -> None:
         self._split_idx = split_idx
-        self.on_new_batch(split_batch)
 
     def update_train_step_metrics(self) -> None:
         if self.trainer.fit_loop._should_accumulate() and self.trainer.lightning_module.automatic_optimization:
@@ -259,7 +258,7 @@ class LoggerConnector:
     def on_batch_start(self, batch_idx: int, batch: Any) -> int:
         self._batch_idx = batch_idx
         self._epoch_end_reached = False
-        return self.on_new_batch(batch)
+        self.trainer._results.current_batch = batch
 
     def epoch_end_reached(self) -> None:
         self._epoch_end_reached = True

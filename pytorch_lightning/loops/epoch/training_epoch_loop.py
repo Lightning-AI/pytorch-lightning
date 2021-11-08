@@ -161,7 +161,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         self.batch_progress.increment_ready()
 
-        self.trainer._results.current_batch = batch
+        self.trainer.logger_connector.on_batch_start(batch_idx, batch)
 
         if batch is None:
             self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")

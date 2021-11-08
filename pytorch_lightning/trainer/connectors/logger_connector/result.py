@@ -436,7 +436,7 @@ class ResultCollection(dict):
                 f"You called `self.log({name}, ...)` twice in `{fx}` with different arguments. This is not allowed"
             )
 
-        batch_size = torch.tensor(batch_size, device=torch.device)
+        batch_size = torch.tensor(batch_size, device=self.device)
         self.update_metrics(key, value, batch_size)
 
     def register_key(self, key: str, meta: _Metadata, value: _METRIC_COLLECTION) -> None:
