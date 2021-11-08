@@ -479,7 +479,7 @@ class Accelerator:
             This property is deprecated in v1.5 and will be removed in v1.6.
             Please call `training_type_plugin.results` directly.
 
-        In distributed training, we make sure to transfer the results to the appropriate master process.
+        In distributed training, we make sure to transfer the results to the appropriate main process.
         """
         rank_zero_deprecation(
             "`Accelerator.results` is deprecated in v1.5 and will be removed in v1.6. "

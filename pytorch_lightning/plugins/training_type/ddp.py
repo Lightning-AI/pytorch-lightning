@@ -78,7 +78,7 @@ log = logging.getLogger(__name__)
 class DDPPlugin(ParallelPlugin):
     """Plugin for multi-process single-device training on one or multiple nodes.
 
-    The master process in each node spawns N-1 child processes via :func:`subprocess.Popen`, where N is the number of
+    The main process in each node spawns N-1 child processes via :func:`subprocess.Popen`, where N is the number of
     devices (e.g. GPU) per node. It is very similar to how :mod:`torch.distributed.launch` launches processes.
     """
 
@@ -181,8 +181,8 @@ class DDPPlugin(ParallelPlugin):
         self._check_can_spawn_children()
 
         # DDP Environment variables
-        os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
+        os.environ["MASTER_ADDR"] = self.cluster_environment.main_address
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
 
         # allow the user to pass the node rank
         os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
