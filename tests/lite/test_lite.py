@@ -460,7 +460,9 @@ def test_replace_dataloader_init_method():
 
     with _replace_dataloader_init_method():
         dataloader = CustomDataLoader(extra_argument=1, dataset=range(1))
+        assert dataloader.extra_argument == 1
         dataloader = lite.setup_dataloaders(dataloader)
 
         dataloader = CustomDataLoader(1, range(1))
+        assert dataloader.extra_argument == 1
         dataloader = lite.setup_dataloaders(dataloader)
