@@ -583,6 +583,7 @@ class ResultCollection(dict):
 
     def __getstate__(self, drop_value: bool = True) -> dict:
         d = self.__dict__.copy()
+        del d["_current_batch"]
         # all the items should be either `ResultMetric`s or `ResultMetricCollection`s
         items = {k: v.__getstate__(drop_value=drop_value) for k, v in self.items()}
         return {**d, "items": items}
