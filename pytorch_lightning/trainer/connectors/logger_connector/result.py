@@ -357,6 +357,7 @@ class ResultCollection(dict):
         super().__init__()
         self.training = training
         self._batch_size = torch.tensor(1, device=device)
+        self._current_batch = None
         self.device: Optional[Union[str, torch.device]] = device
 
     @property
@@ -371,13 +372,12 @@ class ResultCollection(dict):
         return o
 
     @property
-    def batch_size(self) -> torch.Tensor:
-        # performance: cache the `batch_size` tensor instead of re-creating it
-        return self._batch_size
+    def current_batch(self) -> Any:
+        return self._current_batch
 
-    @batch_size.setter
-    def batch_size(self, value: int) -> None:
-        self._batch_size = torch.tensor(value, device=self.device)
+    @current_batch.setter
+    def current_batch(self, data: Any) -> None:
+        self._current_batch = data
 
     def log(
         self,
@@ -438,9 +438,10 @@ class ResultCollection(dict):
                 f"You called `self.log({name}, ...)` twice in `{fx}` with different arguments. This is not allowed"
             )
 
-        if batch_size is not None:
-            self.batch_size = batch_size
+        if batch_size is None and on_epoch:
+            batch_size = extract_batch_size(self._current_batch)
 
+        self.batch_size = batch_size
         self.update_metrics(key, value)
 
     def register_key(self, key: str, meta: _Metadata, value: _METRIC_COLLECTION) -> None:
@@ -554,14 +555,6 @@ class ResultCollection(dict):
                 item.reset()
 
         apply_to_collection(self, ResultMetric, fn)
-
-    def extract_batch_size(self, batch: Any) -> int:
-        try:
-            batch_size = extract_batch_size(batch)
-        except RecursionError:
-            batch_size = 1
-        self.batch_size = batch_size  # the setter converts it to `Tensor`
-        return batch_size
 
     def to(self, *args: Any, **kwargs: Any) -> "ResultCollection":
         """Move all data to the given device."""

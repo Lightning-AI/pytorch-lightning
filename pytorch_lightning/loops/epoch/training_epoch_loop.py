@@ -194,6 +194,10 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             with self.trainer.profiler.profile("run_training_batch"):
                 batch_output = self.batch_loop.run(batch, batch_idx)
 
+        import pdb
+
+        pdb.set_trace()
+
         self.trainer._results.batch_size = batch_size
 
         self.batch_progress.increment_processed()

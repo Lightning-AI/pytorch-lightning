@@ -1633,7 +1633,7 @@ class LightningModule(
                         pg["lr"] = lr_scale * self.learning_rate
 
                 # update params
-                optimizer.step(closure=optimizer_closure)
+                optimizer.step(clo, batch_sizesure=optimizer_closure)
 
         """
         optimizer.step(closure=optimizer_closure)
