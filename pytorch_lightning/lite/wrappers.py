@@ -14,6 +14,7 @@
 import functools
 import inspect
 from contextlib import contextmanager
+from itertools import chain
 from typing import Any, Callable, Dict, Generator, Iterable, Iterator, Optional, Set, Sized, Type, Union
 
 import torch
@@ -109,7 +110,7 @@ def _wrap_init(f: Callable) -> Callable:
         params = dict(inspect.signature(module._old_init).parameters)
         params.pop("args")
         params.pop("kwargs")
-        for init_name, init_arg in zip(params, args):
+        for init_name, init_arg in chain(zip(params, args), kwargs.items()):
             setattr(module, init_name, init_arg)
         f(module, *args, **kwargs)
 
@@ -118,15 +119,15 @@ def _wrap_init(f: Callable) -> Callable:
 
 # https://stackoverflow.com/a/63851681/9201239
 def _get_all_subclasses(cls: Type[Any]) -> Set[Type[Any]]:
-    subclass_list = []
+    subclasses = set()
 
     def recurse(cl: Type[Any]) -> None:
         for subclass in cl.__subclasses__():
-            subclass_list.append(subclass)
+            subclasses.add(subclass)
             recurse(subclass)
 
     recurse(cls)
-    return set(subclass_list)
+    return subclasses
 
 
 def _enable_class(cls: Type[Any]) -> None:
