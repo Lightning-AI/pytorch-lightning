@@ -1,7 +1,7 @@
 name: Milestone Check
 on:
   pull_request:
-    types: [opened, edited, reopened, ready_for_review]
+    types: [opened, edited, reopened]
 
 jobs:
   milestone-check:
