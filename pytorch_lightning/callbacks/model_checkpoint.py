@@ -33,7 +33,7 @@ import yaml
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _METRIC, _PATH, STEP_OUTPUT
@@ -123,12 +123,6 @@ class ModelCheckpoint(Callback):
             where both values for ``every_n_epochs`` and ``check_val_every_n_epoch`` evenly divide E.
         save_on_train_epoch_end: Whether to run checkpointing at the end of the training epoch.
             If this is ``False``, then the check runs at the end of the validation.
-        every_n_val_epochs: Number of epochs between checkpoints.
-
-            .. warning::
-               This argument has been deprecated in v1.4 and will be removed in v1.6.
-
-            Use ``every_n_epochs`` instead.
 
     Note:
         For extra customization, ModelCheckpoint includes the following attributes:
@@ -214,7 +208,6 @@ class ModelCheckpoint(Callback):
         train_time_interval: Optional[timedelta] = None,
         every_n_epochs: Optional[int] = None,
         save_on_train_epoch_end: Optional[bool] = None,
-        every_n_val_epochs: Optional[int] = None,
     ):
         super().__init__()
         self.monitor = monitor
@@ -232,13 +225,6 @@ class ModelCheckpoint(Callback):
         self.best_model_score = None
         self.best_model_path = ""
         self.last_model_path = ""
-
-        if every_n_val_epochs is not None:
-            rank_zero_deprecation(
-                "`ModelCheckpoint(every_n_val_epochs)` is deprecated in v1.4 and will be removed in v1.6."
-                " Please use `every_n_epochs` instead."
-            )
-            every_n_epochs = every_n_val_epochs
 
         self.__init_monitor_mode(mode)
         self.__init_ckpt_dir(dirpath, filename)
@@ -700,7 +686,7 @@ class ModelCheckpoint(Callback):
 
         # do not save nan, replace with +/- inf
         if isinstance(current, torch.Tensor) and torch.isnan(current):
-            current = torch.tensor(float("inf" if self.mode == "min" else "-inf"))
+            current = torch.tensor(float("inf" if self.mode == "min" else "-inf"), device=current.device)
 
         filepath = self._get_metric_interpolated_filepath_name(monitor_candidates, trainer, del_filepath)
 

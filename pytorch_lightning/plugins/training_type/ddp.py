@@ -53,20 +53,16 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.distributed import _info, distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import (
-    init_ddp_connection,
+    init_dist_connection,
     rank_zero_info,
     rank_zero_only,
     ReduceOp,
     sync_ddp_if_available,
 )
+from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
-
-if _TORCH_GREATER_EQUAL_1_10:
-    if not _IS_WINDOWS:
-        from torch.distributed.optim import DistributedOptimizer
-    from torch.distributed.optim import PostLocalSGDOptimizer, ZeroRedundancyOptimizer
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
@@ -75,9 +71,7 @@ if _HYDRA_AVAILABLE:
     from hydra.utils import get_original_cwd, to_absolute_path
 if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
-if _TORCH_GREATER_EQUAL_1_10:
-    import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
-    import torch.distributed.algorithms.model_averaging.averagers as averagers
+
 
 log = logging.getLogger(__name__)
 
@@ -89,15 +83,13 @@ class DDPPlugin(ParallelPlugin):
     devices (e.g. GPU) per node. It is very similar to how :mod:`torch.distributed.launch` launches processes.
     """
 
-    distributed_backend = "ddp"
+    distributed_backend = DistributedType.DDP
 
     def __init__(
         self,
         parallel_devices: Optional[List[torch.device]] = None,
-        num_nodes: Optional[int] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        sync_batchnorm: Optional[bool] = None,
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
@@ -110,18 +102,8 @@ class DDPPlugin(ParallelPlugin):
             checkpoint_io=checkpoint_io,
         )
         self.interactive_ddp_procs = []
-        if num_nodes is not None:
-            rank_zero_deprecation(
-                "Argument `num_nodes` in `DDPPlugin` is deprecated in v1.4, and will be removed in v1.6."
-                " Notice that it will be overriden by the trainer setting."
-            )
-        self._num_nodes = num_nodes or 1
-        if sync_batchnorm is not None:
-            rank_zero_deprecation(
-                "Argument `sync_batchnorm` in `DDPPlugin` is deprecated in v1.4, and will be removed in v1.6."
-                " Notice that it will be overriden by the trainer setting."
-            )
-        self._sync_batchnorm = sync_batchnorm or False
+        self._num_nodes = 1
+        self._sync_batchnorm = False
         self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
         self._ddp_kwargs = kwargs
         self._task_idx = None
@@ -184,7 +166,7 @@ class DDPPlugin(ParallelPlugin):
 
     def setup_environment(self) -> None:
         # start the other scripts
-        if not self.cluster_environment.creates_children():
+        if not self.cluster_environment.creates_processes_externally:
             self._call_children_scripts()
 
         # set the task idx
@@ -277,14 +259,14 @@ class DDPPlugin(ParallelPlugin):
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
-        init_ddp_connection(self.cluster_environment, self.torch_distributed_backend)
+        init_dist_connection(self.cluster_environment, self.torch_distributed_backend)
 
     def _check_can_spawn_children(self):
         if self.local_rank != 0:
             raise RuntimeError(
                 "Lightning attempted to launch new distributed processes with `local_rank > 0`. This should not happen."
                 " Possible reasons: 1) LOCAL_RANK environment variable was incorrectly modified by the user,"
-                " 2) `ClusterEnvironment.creates_children()` incorrectly implemented."
+                " 2) `ClusterEnvironment.creates_processes_externally` incorrectly implemented."
             )
 
     def set_world_ranks(self) -> None:
@@ -325,12 +307,11 @@ class DDPPlugin(ParallelPlugin):
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
 
-            if (
-                _TORCH_GREATER_EQUAL_1_10
-                and isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState)
-                and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
-            ):
-                self._reinit_optimizers_with_post_localSGD(self._ddp_comm_state.start_localSGD_iter)
+            if _TORCH_GREATER_EQUAL_1_10 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
+                import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
+
+                if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
+                    self._reinit_optimizers_with_post_localSGD(self._ddp_comm_state.start_localSGD_iter)
 
     def _reinit_optimizers_with_post_localSGD(self, warmup_steps: int):
         optimizers = self.lightning_module.trainer.optimizers
@@ -338,6 +319,12 @@ class DDPPlugin(ParallelPlugin):
             raise ValueError(
                 "Post-localSGD algorithm is used, but model averaging period is not provided to DDP plugin."
             )
+        if _TORCH_GREATER_EQUAL_1_10:
+            if not _IS_WINDOWS:
+                from torch.distributed.optim import DistributedOptimizer
+            import torch.distributed.algorithms.model_averaging.averagers as averagers
+            from torch.distributed.optim import PostLocalSGDOptimizer, ZeroRedundancyOptimizer
+
         averager = averagers.PeriodicModelAverager(period=self._model_averaging_period, warmup_steps=warmup_steps)
         for x, optimizer in enumerate(optimizers):
             if isinstance(optimizer, LightningOptimizer):

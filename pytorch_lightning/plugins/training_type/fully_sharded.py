@@ -20,6 +20,7 @@ from pytorch_lightning.plugins.environments.cluster_environment import ClusterEn
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
+from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
@@ -28,6 +29,9 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
 
 
 class DDPFullyShardedPlugin(DDPPlugin):
+
+    distributed_backend = DistributedType.DDP_FULLY_SHARDED
+
     def __init__(
         self,
         cpu_offload: bool = False,

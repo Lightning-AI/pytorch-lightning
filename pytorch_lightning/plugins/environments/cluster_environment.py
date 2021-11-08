@@ -17,8 +17,9 @@ from abc import ABC, abstractmethod
 class ClusterEnvironment(ABC):
     """Specification of a cluster environment."""
 
+    @property
     @abstractmethod
-    def creates_children(self) -> bool:
+    def creates_processes_externally(self) -> bool:
         """Whether the environment creates the subprocesses or not."""
 
     @abstractmethod

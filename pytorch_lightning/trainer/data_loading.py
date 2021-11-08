@@ -37,7 +37,7 @@ from pytorch_lightning.utilities.auto_restart import (
     CaptureMapDataset,
     FastForwardSampler,
 )
-from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
+from pytorch_lightning.utilities.data import has_iterable_dataset, has_len_all_ranks
 from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
@@ -114,9 +114,10 @@ class TrainerDataLoadingMixin(ABC):
                 " in the `DataLoader` init to improve performance."
             )
 
-    def auto_add_worker_init_fn(self, dataloader: DataLoader) -> None:
+    @staticmethod
+    def _auto_add_worker_init_fn(dataloader: DataLoader, rank: int) -> None:
         if int(os.environ.get("PL_SEED_WORKERS", 0)) and dataloader.worker_init_fn is None:
-            dataloader.worker_init_fn = partial(pl_worker_init_function, rank=self.global_rank)
+            dataloader.worker_init_fn = partial(pl_worker_init_function, rank=rank)
 
     def _requires_distributed_sampler(self, dataloader) -> bool:
         return (
@@ -183,7 +184,7 @@ class TrainerDataLoadingMixin(ABC):
         batch_sampler = getattr(dataloader, "batch_sampler")
         is_predicting = mode == RunningStage.PREDICTING
         # checking the batch sampler type is different than PyTorch default.
-        if (batch_sampler is not None and type(batch_sampler) is not BatchSampler) or is_predicting:
+        if batch_sampler is not None and (type(batch_sampler) is not BatchSampler or is_predicting):
             batch_sampler = type(batch_sampler)(
                 sampler,
                 batch_size=batch_sampler.batch_size,
@@ -336,7 +337,7 @@ class TrainerDataLoadingMixin(ABC):
         apply_to_collection(self.train_dataloader, DataLoader, self._worker_check, "train_dataloader")
 
         # add worker_init_fn for correct seeding in worker processes
-        apply_to_collection(self.train_dataloader, DataLoader, self.auto_add_worker_init_fn)
+        apply_to_collection(self.train_dataloader, DataLoader, self._auto_add_worker_init_fn, rank=self.global_rank)
 
         # add collate_fn to collect metadata for fault tolerant training
         if _fault_tolerant_training():
@@ -345,7 +346,12 @@ class TrainerDataLoadingMixin(ABC):
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
         self.train_dataloader = CombinedLoader(self.train_dataloader, self._data_connector.multiple_trainloader_mode)
 
-        self.num_training_batches = len(self.train_dataloader) if has_len(self.train_dataloader) else float("inf")
+        module = model or self.lightning_module or self.datamodule
+        self.num_training_batches = (
+            len(self.train_dataloader)
+            if has_len_all_ranks(self.train_dataloader, self.training_type_plugin, module)
+            else float("inf")
+        )
 
         if isinstance(self.limit_train_batches, int) or self.limit_train_batches == 0.0:
             self.num_training_batches = min(self.num_training_batches, int(self.limit_train_batches))
@@ -370,7 +376,7 @@ class TrainerDataLoadingMixin(ABC):
                     "If you want to disable validation set `limit_val_batches` to 0.0 instead."
                 )
         else:
-            if not has_len(self.train_dataloader):
+            if not has_len_all_ranks(self.train_dataloader, self.training_type_plugin, module):
                 if self.val_check_interval == 1.0:
                     self.val_check_batch = float("inf")
                 else:
@@ -443,15 +449,22 @@ class TrainerDataLoadingMixin(ABC):
         dataloaders = [self.prepare_dataloader(dl, False, mode=mode) for dl in dataloaders if dl is not None]
 
         # add worker_init_fn for correct seeding in worker processes
-        apply_to_collection(dataloaders, dtype=DataLoader, function=self.auto_add_worker_init_fn)
+        apply_to_collection(
+            dataloaders, dtype=DataLoader, function=self._auto_add_worker_init_fn, rank=self.global_rank
+        )
 
         loader_num_batches = []
 
         # determine number of batches
         # datasets could be none, 1 or 2+
+        module = model or self.lightning_module or self.datamodule
         if len(dataloaders) != 0:
             for i, dataloader in enumerate(dataloaders):
-                num_batches = len(dataloader) if has_len(dataloader) else float("inf")
+                num_batches = (
+                    len(dataloader)
+                    if has_len_all_ranks(dataloader, self.training_type_plugin, module)
+                    else float("inf")
+                )
                 self._worker_check(dataloader, f"{mode.dataloader_prefix}_dataloader {i}")
 
                 # percent or num_steps

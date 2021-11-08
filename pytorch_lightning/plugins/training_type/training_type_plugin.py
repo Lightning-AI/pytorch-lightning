@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -86,19 +86,16 @@ class TrainingTypePlugin(ABC):
     @abstractmethod
     def on_gpu(self) -> bool:
         """Returns whether the current process is done on GPU."""
-        raise NotImplementedError
 
     @property
     @abstractmethod
     def on_tpu(self) -> bool:
         """Returns whether the current process is done on TPU."""
-        raise NotImplementedError
 
     @property
     @abstractmethod
     def root_device(self) -> torch.device:
         """Returns the root device."""
-        raise NotImplementedError
 
     @abstractmethod
     def model_to_device(self) -> None:
@@ -251,9 +248,6 @@ class TrainingTypePlugin(ABC):
     def init_optimizers(self, trainer: "pl.Trainer", model: "pl.LightningModule"):
         return trainer.init_optimizers(model)
 
-    def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs: Any) -> None:
-        optimizer.step(closure=lambda_closure, **kwargs)
-
     @property
     def setup_optimizers_in_pre_dispatch(self) -> bool:
         """Override to delay setting optimizers and schedulers till after dispatch. This is useful when the
@@ -328,7 +322,6 @@ class TrainingTypePlugin(ABC):
 
         It is the right place to release memory and free other resources.
         """
-        raise NotImplementedError
 
     @classmethod
     def register_plugins(cls, plugin_registry) -> None:

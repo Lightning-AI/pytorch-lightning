@@ -102,7 +102,7 @@ class Callback(abc.ABC):
         pl_module: "pl.LightningModule",
         batch: Any,
         batch_idx: int,
-        unused: Optional[int] = 0,
+        unused: int = 0,
     ) -> None:
         """Called when the train batch begins."""
         pass
@@ -114,7 +114,7 @@ class Callback(abc.ABC):
         outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
-        unused: Optional[int] = 0,
+        unused: int = 0,
     ) -> None:
         """Called when the train batch ends."""
         pass

@@ -18,9 +18,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class FullyShardedNativeMixedPrecisionPlugin(ShardedNativeMixedPrecisionPlugin):
-    """Mixed Precision for Full Sharded Training."""
-
-    precision = "mixed"
+    """Native AMP for Fully Sharded Training."""
 
     def clip_grad_by_norm(self, *_: Any, **__: Any) -> None:
         # see https://fairscale.readthedocs.io/en/latest/api/nn/fsdp_tips.html

@@ -3,7 +3,7 @@ myst-parser
 nbsphinx>=0.8.5
 ipython[notebook]
 pandoc>=1.0
-docutils>=0.16
+docutils>=0.16,<0.18  # Sphinx not yet compatible with docutils >= 0.18
 sphinxcontrib-fulltoc>=1.0
 sphinxcontrib-mockautodoc
 https://github.com/PyTorchLightning/lightning_sphinx_theme/archive/master.zip#egg=pt-lightning-sphinx-theme
@@ -11,5 +11,6 @@ sphinx-autodoc-typehints>=1.0
 sphinx-paramlinks>=0.5.1
 sphinx-togglebutton>=0.2
 sphinx-copybutton>=0.3
+typing-extensions  # already in `requirements.txt` but the docs CI job does not install it
 
 -r ../_notebooks/.actions/requirements.txt
