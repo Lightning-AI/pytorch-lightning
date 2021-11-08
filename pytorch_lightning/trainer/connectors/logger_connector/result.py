@@ -23,7 +23,6 @@ from typing_extensions import TypedDict
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
-from pytorch_lightning.utilities.data import extract_batch_size
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
@@ -356,7 +355,6 @@ class ResultCollection(dict):
     def __init__(self, training: bool, device: Optional[Union[str, torch.device]] = None) -> None:
         super().__init__()
         self.training = training
-        self._batch_size = torch.tensor(1, device=device)
         self._current_batch = None
         self.device: Optional[Union[str, torch.device]] = device
 
@@ -394,7 +392,7 @@ class ResultCollection(dict):
         sync_dist_fn: Callable = _Sync.no_op,
         sync_dist_group: Optional[Any] = None,
         dataloader_idx: Optional[int] = None,
-        batch_size: Optional[int] = None,
+        batch_size: int = 1,
         metric_attribute: Optional[str] = None,
         rank_zero_only: bool = False,
     ) -> None:
@@ -438,11 +436,8 @@ class ResultCollection(dict):
                 f"You called `self.log({name}, ...)` twice in `{fx}` with different arguments. This is not allowed"
             )
 
-        if batch_size is None and on_epoch:
-            batch_size = extract_batch_size(self._current_batch)
-
-        self.batch_size = batch_size
-        self.update_metrics(key, value)
+        batch_size = torch.tensor(batch_size, device=torch.device)
+        self.update_metrics(key, value, batch_size)
 
     def register_key(self, key: str, meta: _Metadata, value: _METRIC_COLLECTION) -> None:
         """Create one ResultMetric object per value.
@@ -459,10 +454,10 @@ class ResultCollection(dict):
             value = ResultMetricCollection(value)
         self[key] = value
 
-    def update_metrics(self, key: str, value: _METRIC_COLLECTION) -> None:
+    def update_metrics(self, key: str, value: _METRIC_COLLECTION, batch_size: torch.Tensor) -> None:
         def fn(result_metric: ResultMetric, v: ResultMetric) -> None:
             # performance: avoid calling `__call__` to avoid the checks in `torch.nn.Module._call_impl`
-            result_metric.forward(v.to(self.device), self.batch_size)
+            result_metric.forward(v.to(self.device), batch_size)
             result_metric.has_reset = False
 
         apply_to_collections(self[key], value, ResultMetric, fn)
@@ -560,7 +555,6 @@ class ResultCollection(dict):
         """Move all data to the given device."""
         self.update(apply_to_collection(dict(self), (torch.Tensor, Metric), move_data_to_device, *args, **kwargs))
 
-        self._batch_size = self._batch_size.to(*args, **kwargs)
         if "device" in kwargs:
             self.device = kwargs["device"]
         return self
