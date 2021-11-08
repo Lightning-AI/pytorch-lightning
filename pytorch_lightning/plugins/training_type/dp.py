@@ -126,7 +126,5 @@ class DataParallelPlugin(ParallelPlugin):
 
     def teardown(self) -> None:
         if self.on_gpu:
-            # GPU teardown
-            self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()
