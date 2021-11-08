@@ -454,6 +454,10 @@ class LightningModule(
             raise MisconfigurationException(
                 "You are trying to `self.log()` but it is not managed by the `Trainer` control flow"
             )
+
+        # set the default depending on the fx_name
+        on_step = self.__auto_choose_log_on_step(on_step)
+        on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
         _FxValidator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
 
         if isinstance(reduce_fx, str):
@@ -480,10 +484,6 @@ class LightningModule(
                 reduce_fx = sync_dist_op
         elif reduce_fx == "default":
             reduce_fx = "mean"
-
-        # set the default depending on the fx_name
-        on_step = self.__auto_choose_log_on_step(on_step)
-        on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
         if self.trainer.logger_connector.should_reset_tensors(self._current_fx_name):
             # if we started a new epoch (running it's first batch) the hook name has changed
