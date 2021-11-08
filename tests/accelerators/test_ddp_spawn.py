@@ -69,7 +69,6 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     tutils.set_random_main_port()
 
     model = BoringModel()
-    fit_options = dict(train_dataloader=model.train_dataloader(), val_dataloaders=model.val_dataloader())
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -80,5 +79,5 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
         gpus=[0, 1],
         strategy="ddp_spawn",
     )
-    trainer.fit(model, **fit_options)
+    trainer.fit(model, train_dataloaders=model.train_dataloader(), val_dataloaders=model.val_dataloader())
     assert trainer.state.finished, "DDP doesn't work with dataloaders passed to fit()."

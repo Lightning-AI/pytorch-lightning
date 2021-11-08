@@ -531,7 +531,7 @@ def test_model_nohparams_train_test(tmpdir, cls):
     trainer.fit(model, train_loader)
 
     test_loader = DataLoader(RandomDataset(32, 64), batch_size=32)
-    trainer.test(test_dataloaders=test_loader)
+    trainer.test(dataloaders=test_loader)
 
 
 def test_model_ignores_non_exist_kwargument(tmpdir):

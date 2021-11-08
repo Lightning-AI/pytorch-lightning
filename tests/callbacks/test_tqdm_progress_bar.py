@@ -552,7 +552,7 @@ def _test_progress_bar_max_val_check_interval(
         gpus=world_size,
         strategy="ddp",
     )
-    trainer.fit(model, train_dataloader=train_data, val_dataloaders=val_data)
+    trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
 
     total_train_batches = total_train_samples // (train_batch_size * world_size)
     val_check_batch = max(1, int(total_train_batches * val_check_interval))
