@@ -1,0 +1,17 @@
+name: Milestone Check
+on:
+  pull_request:
+    types: [opened, edited, reopened, ready_for_review]
+
+jobs:
+  milestone-check:
+    runs-on: ubuntu-latest
+    name: Milestone Check
+    steps:
+    - name: Checking if milestone is set
+      id: milestone-check
+      uses: scholzj/milestone-check-action@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        status_context: "Milestone Check"
