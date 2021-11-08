@@ -113,7 +113,7 @@ LightningModule hyperparameters
 Often times we train many versions of a model. You might share that model or come back to it a few months later
 at which point it is very useful to know how that model was trained (i.e.: what learning rate, neural network, etc...).
 
-Lightning has a standardized way of saving that information for you in checkpoints and YAML files. The goal here is to
+Lightning has a standardized way of saving the information for you in checkpoints and YAML files. The goal here is to
 improve readability and reproducibility.
 
 save_hyperparameters
@@ -146,6 +146,7 @@ Excluding hyperparameters
 
 By default, every parameter of the ``__init__`` method will be considered a hyperparameter to the LightningModule.
 However, sometimes some parameters need to be excluded from saving, for example when they are not serializable.
+Those parameters should be provided back when reloading the LightningModule.
 In this case, exclude them explicitly:
 
 .. code-block:: python
@@ -160,7 +161,7 @@ In this case, exclude them explicitly:
             self.save_hyperparameters("layer_1_dim")
 
             # equivalent
-            self.save_hyperparameters(exclude=["loss_fx", "generator_network"])
+            self.save_hyperparameters(ignore=["loss_fx", "generator_network"])
 
 
 load_from_checkpoint
