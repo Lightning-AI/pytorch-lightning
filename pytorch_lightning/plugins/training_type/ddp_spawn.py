@@ -419,5 +419,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.model = self.lightning_module
 
         if self.on_gpu:
+            # GPU teardown
+            self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()
