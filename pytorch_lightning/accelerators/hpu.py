@@ -20,17 +20,16 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.plugins import DataParallelPlugin
-from pytorch_lightning.plugins.training_type.hpu import HPUPlugin
 from pytorch_lightning.plugins.precision.hpu_precision import HPUPrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
+from pytorch_lightning.plugins.training_type.hpu import HPUPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 _log = logging.getLogger(__name__)
 
 
-
 class HPUAccelerator(Accelerator):
-    """ Accelerator for HPU devices. """
+    """Accelerator for HPU devices."""
 
     def setup(self, trainer: "pl.Trainer") -> None:
         """
@@ -49,4 +48,3 @@ class HPUAccelerator(Accelerator):
                 f" found {self.training_type_plugin}."
             )
         return super().setup(trainer)
-        

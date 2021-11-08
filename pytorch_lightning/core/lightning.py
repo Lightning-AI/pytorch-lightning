@@ -253,8 +253,8 @@ class LightningModule(
 
     @property
     def on_hpu(self):
-        """
-        True if your model is currently running on HPUs.
+        """True if your model is currently running on HPUs.
+
         Useful to set flags around the LightningModule for different CPU vs GPU vs HPU behavior.
         """
         return self.device.type == "hpu"

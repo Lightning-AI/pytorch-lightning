@@ -25,16 +25,16 @@ import os
 from typing import Any, List, Tuple
 
 import torch.nn as nn
+from habana_frameworks.torch.hpex import hmp
 from torch.optim import Optimizer
 
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 
-from habana_frameworks.torch.hpex import hmp
 
 class HPUPrecisionPlugin(PrecisionPlugin):
-    """Plugin that enables bfloats/floats on HPUs"""
+    """Plugin that enables bfloats/floats on HPUs."""
 
-    def __init__(self, precision: int, hmp_params :[]) -> None:
+    def __init__(self, precision: int, hmp_params: []) -> None:
         super().__init__()
         self.precision = precision
         if hmp_params is not None:
@@ -42,8 +42,9 @@ class HPUPrecisionPlugin(PrecisionPlugin):
             hmp_bf16 = hmp_params["bf16_ops"]
             hmp_fp32 = hmp_params["fp32_ops"]
             hmp_verbose = hmp_params["verbose"]
-            hmp.convert(opt_level=hmp_opt_level, bf16_file_path=hmp_bf16,
-                fp32_file_path=hmp_fp32, isVerbose=hmp_verbose)
+            hmp.convert(
+                opt_level=hmp_opt_level, bf16_file_path=hmp_bf16, fp32_file_path=hmp_fp32, isVerbose=hmp_verbose
+            )
 
     def connect(
         self, model: nn.Module, optimizers: List[Optimizer], lr_schedulers: List[Any]

@@ -13,8 +13,8 @@ from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugi
 from pytorch_lightning.plugins.precision.deepspeed_precision import DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.precision.double import DoublePrecisionPlugin
 from pytorch_lightning.plugins.precision.fully_sharded_native_amp import FullyShardedNativeMixedPrecisionPlugin
-from pytorch_lightning.plugins.precision.ipu_precision import IPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.hpu_precision import HPUPrecisionPlugin
+from pytorch_lightning.plugins.precision.ipu_precision import IPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
@@ -27,8 +27,8 @@ from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedPlugin
 from pytorch_lightning.plugins.training_type.dp import DataParallelPlugin
 from pytorch_lightning.plugins.training_type.fully_sharded import DDPFullyShardedPlugin
 from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin
-from pytorch_lightning.plugins.training_type.ipu import IPUPlugin
 from pytorch_lightning.plugins.training_type.hpu import HPUPlugin
+from pytorch_lightning.plugins.training_type.ipu import IPUPlugin
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.plugins.training_type.sharded import DDPShardedPlugin
 from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnShardedPlugin

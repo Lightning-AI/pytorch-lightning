@@ -27,7 +27,7 @@ import torch
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import Accelerator, IPUAccelerator, HPUAccelerator
+from pytorch_lightning.accelerators import Accelerator, HPUAccelerator, IPUAccelerator
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -65,9 +65,9 @@ from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
+    _HPU_AVAILABLE,
     _IPU_AVAILABLE,
     _TPU_AVAILABLE,
-    _HPU_AVAILABLE,
     device_parser,
     DeviceType,
     DistributedType,
@@ -176,7 +176,7 @@ class Trainer(
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         amp_backend: str = "native",
         amp_level: Optional[str] = None,
-        hmp_params:["level", "verbose", "bf16_ops", "fp32_ops"] = None,
+        hmp_params: ["level", "verbose", "bf16_ops", "fp32_ops"] = None,
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         stochastic_weight_avg: bool = False,

@@ -22,9 +22,9 @@ import torch
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
+from pytorch_lightning.accelerators.hpu import HPUAccelerator
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
-from pytorch_lightning.accelerators.hpu import HPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
     CheckpointIO,
@@ -40,6 +40,8 @@ from pytorch_lightning.plugins import (
     DoublePrecisionPlugin,
     FullyShardedNativeMixedPrecisionPlugin,
     HorovodPlugin,
+    HPUPlugin,
+    HPUPrecisionPlugin,
     IPUPlugin,
     IPUPrecisionPlugin,
     NativeMixedPrecisionPlugin,
@@ -52,8 +54,6 @@ from pytorch_lightning.plugins import (
     TPUSpawnPlugin,
     TrainingTypePlugin,
     TrainingTypePluginsRegistry,
-    HPUPlugin,
-    HPUPrecisionPlugin,
 )
 from pytorch_lightning.plugins.environments import (
     ClusterEnvironment,
@@ -76,11 +76,11 @@ from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,
+    _HPU_AVAILABLE,
     _IPU_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_7,
     _TORCH_GREATER_EQUAL_1_8,
     _TPU_AVAILABLE,
-    _HPU_AVAILABLE,
 )
 
 if _HOROVOD_AVAILABLE:
@@ -893,7 +893,7 @@ class AcceleratorConnector:
         if self.distributed_backend is None:
             if self.has_horovodrun():
                 self._set_horovod_backend()
-            elif self.num_hpus  > 1 and not _use_cpu:
+            elif self.num_hpus > 1 and not _use_cpu:
                 self._distrib_type = DistributedType.DDP
             elif self.num_gpus == 0 and self.num_nodes > 1:
                 self._distrib_type = DistributedType.DDP

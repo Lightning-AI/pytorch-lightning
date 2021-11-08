@@ -80,13 +80,14 @@ def test_warning_if_hpus_not_used(tmpdir):
     with pytest.warns(UserWarning, match="HPU available but not used. Set the `hpus` flag in your trainer"):
         Trainer(default_root_dir=tmpdir)
 
+
 ## TBD
 @pytest.mark.skipif(_HPU_AVAILABLE, reason="PyTorch is not linked with support for hpu devices")
 @RunIf(hpu=True)
 @pytest.mark.parametrize("hpus", [1, 8])
 def test_all_stages(tmpdir, hpus):
     if hpus > 1:
-        os.environ["PL_TORCH_DISTRIBUTED_BACKEND"] = "hcl"    
+        os.environ["PL_TORCH_DISTRIBUTED_BACKEND"] = "hcl"
     model = HPUModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, hpus=hpus)
     trainer.fit(model)
@@ -110,7 +111,14 @@ def test_mixed_precision(tmpdir):
     hmp_params["fp32_ops"] = "./pytorch-lightning-fork/pl_examples/hpu_examples/simple_mnist/ops_fp32_mnist.txt"
 
     model = HPUModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, hpus=1, precision=16, hmp_params=hmp_params, callbacks=TestCallback())
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        hpus=1,
+        precision=16,
+        hmp_params=hmp_params,
+        callbacks=TestCallback(),
+    )
     assert isinstance(trainer.accelerator.precision_plugin, HPUPrecisionPlugin)
     assert trainer.accelerator.precision_plugin.precision == 16
     with pytest.raises(SystemExit):

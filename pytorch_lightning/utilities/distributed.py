@@ -22,7 +22,12 @@ import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE, _HPU_AVAILABLE
+from pytorch_lightning.utilities.imports import (
+    _HPU_AVAILABLE,
+    _TORCH_GREATER_EQUAL_1_8,
+    _TORCH_GREATER_EQUAL_1_9,
+    _TPU_AVAILABLE,
+)
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -385,13 +390,13 @@ def init_dist_connection(
     os.environ["MASTER_ADDR"] = cluster_environment.master_address()
     os.environ["MASTER_PORT"] = str(cluster_environment.master_port())
 
-    #local rank mapping for device open is needed for hpu devices
-    if torch_distributed_backend == 'hcl' or torch_distributed_backend == 'hccl':
+    # local rank mapping for device open is needed for hpu devices
+    if torch_distributed_backend == "hcl" or torch_distributed_backend == "hccl":
         try:
             import habana_frameworks.torch.core.hccl
         except Exception:
             print("hccl backend is not supported, using hcl backend")
-            torch_distributed_backend = 'hcl'
+            torch_distributed_backend = "hcl"
             os.environ["PL_TORCH_DISTRIBUTED_BACKEND"] = "hcl"
 
         os.environ["ID"] = str(cluster_environment.local_rank())

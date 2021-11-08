@@ -8,6 +8,9 @@
 # was provided.
 #
 
+import os
+from typing import Any, Dict, Optional
+
 # Copyright The PyTorch Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,19 +25,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
-import os
-from typing import Any, Dict, Optional
 
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
-from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities import _HPU_AVAILABLE, find_shared_parameters, set_shared_parameters
+from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import _PATH
 
-class HPUPlugin(SingleDevicePlugin):
 
+class HPUPlugin(SingleDevicePlugin):
     def __init__(
         self,
         device: int,

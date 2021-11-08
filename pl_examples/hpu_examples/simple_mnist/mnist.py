@@ -1,20 +1,20 @@
 import os
+import sys
 
+import habana_frameworks.torch.core as htcore
 import torch
 from torch import nn
 from torch.nn import functional as F
 from torch.utils.data import DataLoader, random_split
-from torchvision.datasets import MNIST
 from torchvision import transforms
-import pytorch_lightning as pl
-import sys
+from torchvision.datasets import MNIST
 
-import habana_frameworks.torch.core as htcore
+import pytorch_lightning as pl
+
 
 class MNISTModel(pl.LightningModule):
-
     def __init__(self):
-        super(MNISTModel, self).__init__()
+        super().__init__()
         self.l1 = torch.nn.Linear(28 * 28, 10)
 
     def forward(self, x):
@@ -27,6 +27,7 @@ class MNISTModel(pl.LightningModule):
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.02)
+
 
 # Init our model
 mnist_model = MNISTModel()
