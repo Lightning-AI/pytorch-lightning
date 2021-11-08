@@ -131,7 +131,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         return True
 
     def setup(self) -> None:
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         # pass in a state q
         smp = mp.get_context("spawn")
         self.mp_queue = smp.SimpleQueue()
@@ -177,7 +177,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         Return:
             The output of the function of process 0.
         """
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         context = mp.get_context("spawn")
         return_queue = context.SimpleQueue() if return_result else None
         mp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), nprocs=self.num_processes)

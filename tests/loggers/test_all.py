@@ -263,6 +263,10 @@ def _test_loggers_pickle(tmpdir, monkeypatch, logger_class):
     # the logger needs to remove it from the state before pickle
     _ = logger.experiment
 
+    # logger also has to avoid adding un-picklable attributes to self in .save
+    logger.log_metrics({"a": 1})
+    logger.save()
+
     # test pickling loggers
     pickle.dumps(logger)
 

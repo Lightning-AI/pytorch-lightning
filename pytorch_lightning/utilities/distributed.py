@@ -162,7 +162,7 @@ def sync_ddp_if_available(
 def sync_ddp(
     result: torch.Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
 ) -> torch.Tensor:
-    """Function to reduce the tensors from several ddp processes to one master process.
+    """Function to reduce the tensors from several ddp processes to one main process.
 
     Args:
         result: the value to sync and reduce (typically tensor or number)
@@ -379,8 +379,8 @@ def init_dist_connection(
     """
     global_rank = global_rank if global_rank is not None else cluster_environment.global_rank()
     world_size = world_size if world_size is not None else cluster_environment.world_size()
-    os.environ["MASTER_ADDR"] = cluster_environment.master_address()
-    os.environ["MASTER_PORT"] = str(cluster_environment.master_port())
+    os.environ["MASTER_ADDR"] = cluster_environment.main_address
+    os.environ["MASTER_PORT"] = str(cluster_environment.main_port)
     if torch.distributed.is_available() and not torch.distributed.is_initialized():
         log.info(f"initializing distributed: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
         torch.distributed.init_process_group(
