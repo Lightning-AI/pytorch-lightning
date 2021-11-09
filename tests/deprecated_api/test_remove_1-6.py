@@ -15,13 +15,9 @@
 from unittest.mock import call, Mock
 
 import pytest
-import torch
-from torch.optim import Optimizer
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.plugins import PrecisionPlugin
 from pytorch_lightning.plugins.training_type import DDPPlugin
 from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -167,11 +163,6 @@ def test_v1_6_0_deprecated_disable_validation():
         _ = trainer.disable_validation
 
 
-def test_v1_6_0_every_n_val_epochs():
-    with pytest.deprecated_call(match="use `every_n_epochs` instead"):
-        _ = ModelCheckpoint(every_n_val_epochs=1)
-
-
 def test_v1_6_0_deprecated_hpc_load(tmpdir):
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1)
@@ -187,92 +178,3 @@ def test_v1_6_0_deprecated_device_dtype_mixin_import():
     _soft_unimport_module("pytorch_lightning.utilities.device_dtype_mixin")
     with pytest.deprecated_call(match="will be removed in v1.6"):
         from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin  # noqa: F401
-
-
-def test_v1_6_0_deprecated_accelerator_pass_through_functions():
-    from pytorch_lightning.plugins.precision import PrecisionPlugin
-    from pytorch_lightning.plugins.training_type import SingleDevicePlugin
-
-    plugin = SingleDevicePlugin(torch.device("cpu"))
-    from pytorch_lightning.accelerators.accelerator import Accelerator
-
-    accelerator = Accelerator(training_type_plugin=plugin, precision_plugin=PrecisionPlugin())
-    with pytest.deprecated_call(match="will be removed in v1.6"):
-        accelerator.barrier()
-
-    with pytest.deprecated_call(match="will be removed in v1.6"):
-        accelerator.broadcast(1)
-
-    with pytest.deprecated_call(match="will be removed in v1.6"):
-        tensor = torch.rand(2, 2, requires_grad=True)
-        accelerator.all_gather(tensor)
-
-    with pytest.deprecated_call(match="will be removed in v1.6"):
-        model = BoringModel()
-        accelerator.connect(model)
-
-    with pytest.deprecated_call(match="will be removed in v1.6"):
-        accelerator.post_training_step()
-
-    with pytest.deprecated_call(match="will be removed in v1.6"):
-        tensor = torch.rand(2, 2, requires_grad=True)
-        accelerator.training_step_end(tensor)
-
-    with pytest.deprecated_call(match="will be removed in v1.6"):
-        tensor = torch.rand(2, 2, requires_grad=True)
-        accelerator.test_step_end(tensor)
-
-    with pytest.deprecated_call(match="will be removed in v1.6"):
-        tensor = torch.rand(2, 2, requires_grad=True)
-        accelerator.validation_step_end(tensor)
-
-    with pytest.deprecated_call(match="will be removed in v1.6"):
-        accelerator.lightning_module_state_dict()
-
-    with pytest.deprecated_call(match="will be removed in v1.6"):
-        dl = model.train_dataloader()
-        accelerator.process_dataloader(dl)
-
-    with pytest.deprecated_call(match="will be removed in v1.6"):
-        accelerator.results
-
-    with pytest.deprecated_call(match="will be removed in v1.6"):
-        accelerator.setup_optimizers_in_pre_dispatch
-
-    with pytest.deprecated_call(match="will be removed in v1.6"):
-        accelerator.restore_checkpoint_after_pre_dispatch
-
-    with pytest.deprecated_call(match="will be removed in v1.6"):
-        accelerator.on_validation_start()
-
-    with pytest.deprecated_call(match="will be removed in v1.6"):
-        accelerator.on_test_start()
-
-    with pytest.deprecated_call(match="will be removed in v1.6"):
-        accelerator.on_predict_start()
-
-    with pytest.deprecated_call(match="will be removed in v1.6"):
-        accelerator.on_validation_end()
-
-    with pytest.deprecated_call(match="will be removed in v1.6"):
-        accelerator.on_test_end()
-
-    with pytest.deprecated_call(match="will be removed in v1.6"):
-        accelerator.on_predict_end()
-
-    with pytest.deprecated_call(match="will be removed in v1.6"):
-        accelerator.on_train_end()
-
-    with pytest.deprecated_call(match="will be removed in v1.6"):
-        accelerator.on_train_batch_start(batch=None, batch_idx=0)
-
-
-def test_v1_6_0_configure_slurm_ddp():
-    trainer = Trainer()
-    with pytest.deprecated_call(match=r"`AcceleratorConnector.configure_slurm_ddp\(\)` was deprecated in v1.5"):
-        trainer._accelerator_connector.configure_slurm_ddp()
-
-
-def test_v1_6_0_master_params():
-    with pytest.deprecated_call(match="`PrecisionPlugin.master_params` was deprecated in v1.5"):
-        PrecisionPlugin().master_params(Mock(spec=Optimizer))

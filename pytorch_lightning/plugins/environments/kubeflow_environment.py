@@ -39,10 +39,12 @@ class KubeflowEnvironment(ClusterEnvironment):
     def creates_processes_externally(self) -> bool:
         return True
 
-    def master_address(self) -> str:
+    @property
+    def main_address(self) -> str:
         return os.environ["MASTER_ADDR"]
 
-    def master_port(self) -> int:
+    @property
+    def main_port(self) -> int:
         return int(os.environ["MASTER_PORT"])
 
     def world_size(self) -> int:
