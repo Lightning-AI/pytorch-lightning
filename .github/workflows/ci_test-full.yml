@@ -1,4 +1,4 @@
-name: Tests
+name: CI complete testing
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
@@ -10,7 +10,7 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
 
 jobs:
 
-  cpu:
+  pytest:
 
     runs-on: ${{ matrix.os }}
     if: github.event.pull_request.draft == false

@@ -6,8 +6,6 @@ on:
   schedule:
     # At the end of every day
     - cron: "0 0 * * *"
-  # FIXME: HACK HACK HACK
-  push: {}
 
 env:
   PUSH_TO_HUB: true
@@ -57,7 +55,7 @@ jobs:
       matrix:
         # the config used in '.circleci/config.yml`'
         python_version: ["3.7"]
-        xla_version: ["1.8.1"]
+        xla_version: ["1.8"]
 
     steps:
       - name: Checkout
@@ -92,7 +90,7 @@ jobs:
       matrix:
         # the config used in '.azure-pipelines/gpu-tests.yml'
         python_version: ["3.7"]
-        pytorch_version: ["1.8.1"]
+        pytorch_version: ["1.8"]
 
     steps:
       - name: Checkout
@@ -166,7 +164,7 @@ jobs:
         # the config used in 'dockers/ipu-ci-runner/Dockerfile'
         include:
           - python_version: "3.9"
-            pytorch_version: "1.7.1"
+            pytorch_version: "1.7"
 
     steps:
       - name: Checkout
