@@ -468,9 +468,8 @@ class CombinedLoader:
         def _apply_fn(cycle_iterator: CycleIterator, length) -> None:
             cycle_iterator.length = length
 
-        apply_to_collection(
-            self.loaders, CycleIterator, partial(_apply_fn, length=_nested_calc_num_data(all_lengths, max))
-        )
+        length = _nested_calc_num_data(all_lengths, max)
+        apply_to_collection(self.loaders, CycleIterator, partial(_apply_fn, length=length))
 
     def __iter__(self) -> Any:
         """Create and return an iterator, `CombinedLoaderIterator`, for the combined loader."""
