@@ -65,39 +65,6 @@ def test_v1_6_0_reload_dataloaders_every_epoch(tmpdir):
     assert tracker.mock_calls == expected_sequence
 
 
-def test_v1_6_0_tbptt_reduce_fx(tmpdir):
-    class TestModel(BoringModel):
-        def training_step(self, *args):
-            self.log("foo", 1, tbptt_reduce_fx=lambda x: x)
-            return super().training_step(*args)
-
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    with pytest.deprecated_call(match=r"tbptt_reduce_fx=...\)` is no longer supported"):
-        trainer.fit(TestModel())
-
-
-def test_v1_6_0_tbptt_pad_token(tmpdir):
-    class TestModel(BoringModel):
-        def training_step(self, *args):
-            self.log("foo", 1, tbptt_pad_token=0)
-            return super().training_step(*args)
-
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    with pytest.deprecated_call(match=r"tbptt_pad_token=...\)` is no longer supported"):
-        trainer.fit(TestModel())
-
-
-def test_v1_6_0_sync_dist_op(tmpdir):
-    class TestModel(BoringModel):
-        def training_step(self, *args):
-            self.log("foo", 1, sync_dist_op="sum")
-            return super().training_step(*args)
-
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    with pytest.deprecated_call(match=r"`self.log\(sync_dist_op='sum'\)` is deprecated"):
-        trainer.fit(TestModel())
-
-
 def test_v1_6_0_is_overridden_model():
     model = BoringModel()
     with pytest.deprecated_call(match="and will be removed in v1.6"):
