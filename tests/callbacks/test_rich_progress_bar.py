@@ -150,15 +150,15 @@ def test_rich_progress_bar_configure_columns():
     custom_column = TextColumn("[progress.description]Testing Rich!")
 
     class CustomRichProgressBar(RichProgressBar):
-        def configure_columns(self, trainer, pl_module):
+        def configure_columns(self, trainer):
             return [custom_column]
 
     progress_bar = CustomRichProgressBar()
 
-    progress_bar._init_progress(Mock(), Mock())
+    progress_bar._init_progress(Mock())
 
     assert progress_bar.progress.columns[0] == custom_column
-    assert len(progress_bar.progress.columns) == 1
+    assert len(progress_bar.progress.columns) == 2
 
 
 @RunIf(rich=True)
