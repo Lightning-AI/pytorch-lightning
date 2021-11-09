@@ -1,5 +1,6 @@
 import contextlib
 import json
+import logging
 import os
 from typing import Any, Dict, Optional
 from unittest import mock
@@ -887,9 +888,9 @@ def test_deepspeed_warn_train_dataloader_called(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=1, deepspeed=True, special=True)
+@RunIf(min_gpus=1, deepspeed=True, special=False)
 def test_deepspeed_setup_train_dataloader(tmpdir):
-    """Test DeepSpeed works when setup is required to call, and the user passes the batch size manually."""
+    """Test DeepSpeed works when setup is required to call in the DataModule."""
 
     class TestSetupIsCalledDataModule(LightningDataModule):
         def __init__(self):
@@ -914,12 +915,13 @@ def test_deepspeed_setup_train_dataloader(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        strategy=DeepSpeedPlugin(logging_batch_size_per_gpu=32),
+        strategy=DeepSpeedPlugin(logging_level=logging.INFO),
         gpus=1,
         fast_dev_run=True,
     )
     dm = TestSetupIsCalledDataModule()
-    trainer.fit(model, datamodule=dm)
+    with pytest.warns(UserWarning, match="Tried to Infer the batch size for internal deepspeed logging"):
+        trainer.fit(model, datamodule=dm)
     trainer.test(model, datamodule=dm)
 
 
