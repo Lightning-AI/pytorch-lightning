@@ -102,7 +102,7 @@ class DDPPlugin(ParallelPlugin):
         )
         self.interactive_ddp_procs = []
         self._num_nodes = 1
-        self._sync_batchnorm = False
+        self.sync_batchnorm = False
         self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
         self._ddp_kwargs = kwargs
         self._task_idx = None
@@ -132,14 +132,6 @@ class DDPPlugin(ParallelPlugin):
         # note that world ranks is related to num_nodes, when resetting it, need to reset world ranks
         self._num_nodes = num_nodes
         self.set_world_ranks()
-
-    @property
-    def sync_batchnorm(self) -> bool:
-        return self._sync_batchnorm
-
-    @sync_batchnorm.setter
-    def sync_batchnorm(self, sync_batchnorm: bool) -> None:
-        self._sync_batchnorm = sync_batchnorm
 
     @property
     def task_idx(self) -> Optional[int]:
