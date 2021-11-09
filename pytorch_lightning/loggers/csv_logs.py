@@ -95,7 +95,7 @@ class ExperimentWriter:
         metrics_keys = list(last_m.keys())
 
         with open(self.metrics_file_path, "w", newline="") as f:
-            # Don't assign the writer to self. 
+            # Don't assign the writer to self.
             # Keeps an open reference and prevents pickling otherwise
             writer = csv.DictWriter(f, fieldnames=metrics_keys)
             writer.writeheader()
