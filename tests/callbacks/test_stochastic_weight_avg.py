@@ -305,9 +305,10 @@ def test_swa_multiple_lrs(tmpdir):
     assert model.on_train_epoch_start_called
 
 
-def test_swa_resume_training_from_checkpoint(tmpdir):
-    model = SwaTestModel(crash_after_epoch=3)
-    swa_start = 2
+@pytest.mark.parametrize("crash_after_epoch", [2, 4])
+def test_swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch):
+    model = SwaTestModel(crash_after_epoch=crash_after_epoch)
+    swa_start = 3
     max_epochs = 5
     swa_callback = SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1)
 
@@ -331,7 +332,8 @@ def test_swa_resume_training_from_checkpoint(tmpdir):
     checkpoint_path = checkpoint_dir / checkpoint_files[0]
 
     model = SwaTestModel()
-    swa_callback = SwaTestCallback(resuming_from_epoch=2, swa_epoch_start=swa_start, swa_lrs=0.1)
+    restart_epoch = crash_after_epoch - 1
+    swa_callback = SwaTestCallback(resuming_from_epoch=restart_epoch, swa_epoch_start=swa_start, swa_lrs=0.1)
     trainer = Trainer(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
