@@ -255,7 +255,7 @@ class LoggerConnector:
     def on_epoch_start(self) -> None:
         self._epoch_end_reached = False
 
-    def on_batch_start(self, batch_idx: int, batch: Any) -> int:
+    def on_batch_start(self, batch_idx: int, batch: Any) -> None:
         self._batch_idx = batch_idx
         self._epoch_end_reached = False
         self.trainer._results.current_batch = batch
