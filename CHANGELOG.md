@@ -28,7 +28,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 -
 
 
--
+- Updated jsonargparse to version 4.0.0 ([#TODO](https://github.com/PyTorchLightning/pytorch-lightning/issues/TODO))
 
 
 -
