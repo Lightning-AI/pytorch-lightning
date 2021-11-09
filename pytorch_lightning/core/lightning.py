@@ -356,24 +356,116 @@ class LightningModule(
             rank_zero_only: Whether the value will be logged only on rank 0. This will prevent synchronization which
                 would produce a deadlock as not all processes would perform this log call.
         """
-        self.log_dict(
-            dictionary={name: value},
+        # check for invalid values
+        apply_to_collection(value, dict, self.__check_not_nested, name)
+        apply_to_collection(
+            value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Metric, Tensor, dict)
+        )
+
+        # set the default depending on the fx_name
+        on_step = self.__auto_choose_log_on_step(on_step)
+        on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
+
+        if self.trainer is None:
+            # not an error to support testing the `*_step` methods without a `Trainer` reference
+            rank_zero_warn(
+                "You are trying to `self.log()` but the `self.trainer` reference is not registered on the model yet."
+                " This is most likely because the model hasn't been passed to the `Trainer`"
+            )
+            return
+        results = self.trainer._results
+        if results is None:
+            raise MisconfigurationException(
+                "You are trying to `self.log()` but the loop `ResultCollection` is not registered"
+                " yet. This is most likely because you are trying to log in a `predict` hook,"
+                " but it doesn't support logging"
+            )
+        if self._current_fx_name is None:
+            raise MisconfigurationException(
+                "You are trying to `self.log()` but it is not managed by the `Trainer` control flow"
+            )
+        _FxValidator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
+
+        # make sure user doesn't introduce logic for multi-dataloaders
+        if "/dataloader_idx_" in name:
+            raise MisconfigurationException(
+                f"You called `self.log` with the key `{name}`"
+                " but it should not contain information about `dataloader_idx`"
+            )
+
+        value = apply_to_collection(value, numbers.Number, self.__to_tensor)
+
+        if self.trainer.logger_connector.should_reset_tensors(self._current_fx_name):
+            # if we started a new epoch (running it's first batch) the hook name has changed
+            # reset any tensors for the new hook name
+            results.reset(metrics=False, fx=self._current_fx_name)
+
+        if metric_attribute is None and isinstance(value, Metric):
+            if self._metric_attributes is None:
+                # compute once
+                self._metric_attributes = {
+                    id(module): name for name, module in self.named_modules() if isinstance(module, Metric)
+                }
+                if not self._metric_attributes:
+                    raise MisconfigurationException(
+                        "Could not find the `LightningModule` attribute for the `torchmetrics.Metric` logged."
+                        " You can fix this by setting an attribute for the metric in your `LightningModule`."
+                    )
+            # try to find the passed metric in the LightningModule
+            metric_attribute = self._metric_attributes.get(id(value), None)
+            if metric_attribute is None:
+                raise MisconfigurationException(
+                    "Could not find the `LightningModule` attribute for the `torchmetrics.Metric` logged."
+                    f" You can fix this by calling `self.log({name}, ..., metric_attribute=name)` where `name` is one"
+                    f" of {list(self._metric_attributes.values())}"
+                )
+
+        if (
+            self.trainer.training
+            and is_param_in_hook_signature(self.training_step, "dataloader_iter", explicit=True)
+            and batch_size is None
+        ):
+            raise MisconfigurationException(
+                "With `def training_step(self, dataloader_iter)`, `self.log(..., batch_size=...)` should be provided."
+            )
+
+        if isinstance(reduce_fx, str):
+            reduce_fx = reduce_fx.lower()
+
+        # extract batch size if it is None and whenever it is required
+        if batch_size is None:
+            if (
+                on_epoch
+                and True in _FxValidator.functions[self._current_fx_name]["on_step"]
+                and reduce_fx in ("mean", "avg")
+            ):
+                try:
+                    batch_size = extract_batch_size(self.trainer._results.current_batch)
+                except RecursionError:
+                    batch_size = 1
+            else:
+                batch_size = 1
+
+        results.log(
+            self._current_fx_name,
+            name,
+            value,
             prog_bar=prog_bar,
             logger=logger,
             on_step=on_step,
             on_epoch=on_epoch,
             reduce_fx=reduce_fx,
             enable_graph=enable_graph,
-            sync_dist=sync_dist,
-            sync_dist_group=sync_dist_group,
-            sync_dist_op=sync_dist_op,
-            tbptt_pad_token=tbptt_pad_token,
-            tbptt_reduce_fx=tbptt_reduce_fx,
-            add_dataloader_idx=add_dataloader_idx,
+            dataloader_idx=(self._current_dataloader_idx if add_dataloader_idx else None),
             batch_size=batch_size,
+            sync_dist=sync_dist and distributed_available(),
+            sync_dist_fn=self.trainer.training_type_plugin.reduce or sync_ddp,
+            sync_dist_group=sync_dist_group,
             metric_attribute=metric_attribute,
             rank_zero_only=rank_zero_only,
         )
+
+        self.trainer.logger_connector._current_fx = self._current_fx_name
 
     def log_dict(
         self,
@@ -388,7 +480,6 @@ class LightningModule(
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
         batch_size: Optional[int] = None,
-        metric_attribute: Optional[str] = None,
         rank_zero_only: Optional[bool] = None,
     ) -> None:
         """Log a dictionary of values at once.
@@ -415,119 +506,25 @@ class LightningModule(
                 each dataloader to not mix values
             batch_size: Current batch_size. This will be directly inferred from the loaded batch,
                 but some data structures might need to explicitly provide it.
-            metric_attribute: To restore the metric state, Lightning requires the reference of the
-                :class:`torchmetrics.Metric` in your model. This is found automatically if it is a model attribute.
             rank_zero_only: Whether the value will be logged only on rank 0. This will prevent synchronization which
                 would produce a deadlock as not all processes would perform this log call.
         """
-        if self.trainer is None:
-            # not an error to support testing the `*_step` methods without a `Trainer` reference
-            rank_zero_warn(
-                "You are trying to `self.log()` but the `self.trainer` reference is not registered on the model yet."
-                " This is most likely because the model hasn't been passed to the `Trainer`"
-            )
-            return
-
-        if (
-            self.trainer.training
-            and is_param_in_hook_signature(self.training_step, "dataloader_iter", explicit=True)
-            and batch_size is None
-        ):
-            raise MisconfigurationException(
-                "With `def training_step(self, dataloader_iter)`, `self.log(..., batch_size=...)` should be provided."
-            )
-
-        results = self.trainer._results
-        if results is None:
-            raise MisconfigurationException(
-                "You are trying to `self.log()` but the loop `ResultCollection` is not registered"
-                " yet. This is most likely because you are trying to log in a `predict` hook,"
-                " but it doesn't support logging"
-            )
-        if self._current_fx_name is None:
-            raise MisconfigurationException(
-                "You are trying to `self.log()` but it is not managed by the `Trainer` control flow"
-            )
-
-        # set the default depending on the fx_name
-        on_step = self.__auto_choose_log_on_step(on_step)
-        on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
-        _FxValidator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
-
-        if isinstance(reduce_fx, str):
-            reduce_fx = reduce_fx.lower()
-
-        if self.trainer.logger_connector.should_reset_tensors(self._current_fx_name):
-            # if we started a new epoch (running it's first batch) the hook name has changed
-            # reset any tensors for the new hook name
-            results.reset(metrics=False, fx=self._current_fx_name)
-
-        # extract batch size if it's None whenever it's required
-        if batch_size is None:
-            if (
-                on_epoch
-                and True in _FxValidator.functions[self._current_fx_name]["on_step"]
-                and reduce_fx in ("mean", "avg")
-            ):
-                batch_size = extract_batch_size(self.trainer._results.current_batch)
-            else:
-                batch_size = 1
-
-        for name, value in dictionary.items():
-            # make sure user doesn't introduce logic for multi-dataloaders
-            if "/dataloader_idx_" in name:
-                raise MisconfigurationException(
-                    f"You called `self.log` with the key `{name!r}`"
-                    " but it should not contain information about `dataloader_idx`"
-                )
-
-            # check for invalid values
-            apply_to_collection(value, dict, self.__check_not_nested, name)
-            apply_to_collection(
-                value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Metric, Tensor, dict)
-            )
-            value = apply_to_collection(value, numbers.Number, self.__to_tensor)
-
-            if metric_attribute is None and isinstance(value, Metric):
-                if self._metric_attributes is None:
-                    # compute once
-                    self._metric_attributes = {
-                        id(module): name for name, module in self.named_modules() if isinstance(module, Metric)
-                    }
-                    if not self._metric_attributes:
-                        raise MisconfigurationException(
-                            "Could not find the `LightningModule` attribute for the `torchmetrics.Metric` logged."
-                            " You can fix this by setting an attribute for the metric in your `LightningModule`."
-                        )
-                # try to find the passed metric in the LightningModule
-                metric_attribute = self._metric_attributes.get(id(value), None)
-                if metric_attribute is None:
-                    raise MisconfigurationException(
-                        "Could not find the `LightningModule` attribute for the `torchmetrics.Metric` logged."
-                        f" You can fix this by calling `self.log({name}, ..., metric_attribute=name)` where `name`"
-                        f" is one of {list(self._metric_attributes.values())}."
-                    )
-
-            results.log(
-                self._current_fx_name,
-                name,
-                value,
+        for k, v in dictionary.items():
+            self.log(
+                name=k,
+                value=v,
                 prog_bar=prog_bar,
                 logger=logger,
                 on_step=on_step,
                 on_epoch=on_epoch,
                 reduce_fx=reduce_fx,
                 enable_graph=enable_graph,
-                dataloader_idx=(self._current_dataloader_idx if add_dataloader_idx else None),
-                batch_size=batch_size,
-                sync_dist=sync_dist and distributed_available(),
-                sync_dist_fn=self.trainer.training_type_plugin.reduce or sync_ddp,
+                sync_dist=sync_dist,
                 sync_dist_group=sync_dist_group,
-                metric_attribute=metric_attribute,
+                add_dataloader_idx=add_dataloader_idx,
+                batch_size=batch_size,
                 rank_zero_only=rank_zero_only,
             )
-
-        self.trainer.logger_connector._current_fx = self._current_fx_name
 
     @staticmethod
     def __check_not_nested(value: dict, name: str) -> dict:

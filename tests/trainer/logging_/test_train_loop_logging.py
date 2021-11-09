@@ -614,7 +614,7 @@ def test_logging_raises(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir)
     model = TestModel()
-    with pytest.raises(MisconfigurationException, match="`self.log` with the key `'foo/dataloader_idx_0'`"):
+    with pytest.raises(MisconfigurationException, match="`self.log` with the key `foo/dataloader_idx_0`"):
         trainer.fit(model)
 
     class TestModel(BoringModel):
