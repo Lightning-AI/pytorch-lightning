@@ -33,6 +33,7 @@ from pytorch_lightning.trainer.supporters import (
 )
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import CaptureMapDataset, FastForwardSampler
+from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7
 from tests.helpers.boring_model import RandomDataset
@@ -423,3 +424,22 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(
                 assert batches[-1] == {"a": torch.tensor([6]), "b": torch.tensor([6])}
             elif a_length == 10:
                 assert batches[-1] == {"a": torch.tensor([8]), "b": torch.tensor([0])}
+
+    class InfiniteDataset(IterableDataset):
+        def __iter__(self):
+            while True:
+                yield 1
+
+    dataloader = CombinedLoader(
+        {
+            "a": DataLoader(InfiniteDataset(), batch_size=1),
+            "b": DataLoader(range(8), batch_size=1),
+        },
+        mode="max_size_cycle",
+    )
+    assert get_len(dataloader) == float("inf")
+    assert len(dataloader.loaders["b"].loader) == 8
+    trainer = Trainer(strategy="ddp", gpus=2, replace_sampler_ddp=replace_sampler_ddp)
+    dataloader = trainer.prepare_dataloader(dataloader, shuffle=False)
+    assert len(dataloader.loaders["b"].loader) == 4 if replace_sampler_ddp else 8
+    assert get_len(dataloader) == float("inf")

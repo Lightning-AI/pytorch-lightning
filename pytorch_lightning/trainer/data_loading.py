@@ -161,7 +161,7 @@ class TrainerDataLoadingMixin(ABC):
             sampler = self._resolve_sampler(dataloader, shuffle=shuffle, mode=mode)
             dataloader = self._update_dataloader(dataloader, sampler, mode=mode)
 
-        if cycle_iterator:
+        if cycle_iterator is not None:
             cycle_iterator.loader = dataloader
             return cycle_iterator
 
