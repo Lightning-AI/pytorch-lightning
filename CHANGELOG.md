@@ -25,7 +25,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
--
+- Raise exception in `init_dist_connection()` when torch distibuted is not available ([#10418](https://github.com/PyTorchLightning/pytorch-lightning/issues/10418))
 
 
 -
@@ -41,7 +41,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Deprecated
 
--
+- Deprecated `ClusterEnvironment.master_{address,port}` in favor of `ClusterEnvironment.main_{address,port}` ([#10103](https://github.com/PyTorchLightning/pytorch-lightning/issues/10103))
 
 
 -
@@ -72,10 +72,25 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated `has_prepared_data`, `has_setup_fit`, `has_setup_validate`, `has_setup_test`, `has_setup_predict`, `has_teardown_fit`, `has_teardown_validate`, `has_teardown_test` and `has_teardown_predict` datamodule lifecycle properties  ([#10350](https://github.com/PyTorchLightning/pytorch-lightning/pull/10350))
 
 
+- Removed deprecated `every_n_val_epochs` parameter of ModelCheckpoint ([#10366](https://github.com/PyTorchLightning/pytorch-lightning/pull/10366))
+
+
+- Removed deprecated property `configure_slurm_dpp` from accelerator connector ([#10370](https://github.com/PyTorchLightning/pytorch-lightning/pull/10370))
+
+
 - Removed deprecated arguments `num_nodes` and `sync_batchnorm` from `DDPPlugin`, `DDPSpawnPlugin`, `DeepSpeedPlugin` ([#10357](https://github.com/PyTorchLightning/pytorch-lightning/pull/10357))
 
 
 - Removed deprecated property `is_slurm_managing_tasks` from AcceleratorConnector ([#10353](https://github.com/PyTorchLightning/pytorch-lightning/pull/10353))
+
+
+- Removed PyTorch 1.6 support ([#10367](https://github.com/PyTorchLightning/pytorch-lightning/pull/10367))
+
+
+- Removed deprecated method `master_params` from PrecisionPlugin ([#10372](https://github.com/PyTorchLightning/pytorch-lightning/pull/10372))
+
+
+- Removed deprecated passthrough methods and properties from `Accelerator` base class ([#10403](https://github.com/PyTorchLightning/pytorch-lightning/pull/10403))
 
 
 ### Fixed
@@ -83,10 +98,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `apply_to_collection(defaultdict)` ([#10316](https://github.com/PyTorchLightning/pytorch-lightning/issues/10316))
 
 
+- Fixed interception of `__init__` arguments for sub-classed DataLoader re-instantiation in Lite ([#10334](https://github.com/PyTorchLightning/pytorch-lightning/issues/10334))
+
+
 - Fixed failure when `DataLoader(batch_size=None)` is passed ([#10345](https://github.com/PyTorchLightning/pytorch-lightning/issues/10345))
 
 
 - Fixed `CombinedLoader` and `max_size_cycle` didn't receive a `DistributedSampler` ([#10374](https://github.com/PyTorchLightning/pytorch-lightning/issues/10374))
+
+
+- Fixed issue with pickling `CSVLogger` after a call to `CSVLogger.save` ([#10388](https://github.com/PyTorchLightning/pytorch-lightning/pull/10388))
 
 
 -

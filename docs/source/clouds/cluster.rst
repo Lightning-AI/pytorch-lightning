@@ -82,7 +82,7 @@ Once the script is setup like described in :ref:`training_script_setup`, you can
 
 Like a custom cluster, you have to ensure that there is network connectivity between the nodes with firewall rules that allow traffic flow on a specified *MASTER_PORT*.
 
-Finally, you'll need to decide which node you'd like to be the master node (*MASTER_ADDR*), and the ranks of each node (*NODE_RANK*).
+Finally, you'll need to decide which node you'd like to be the main node (*MASTER_ADDR*), and the ranks of each node (*NODE_RANK*).
 
 For example:
 
@@ -248,7 +248,7 @@ See also the multi-node examples
     # NCCL is how the nodes talk to each other
     cluster.add_command("export NCCL_DEBUG=INFO")
 
-    # setting a master port here is a good idea.
+    # setting a main port here is a good idea.
     cluster.add_command("export MASTER_PORT=%r" % PORT)
 
     # ************** DON'T FORGET THIS ***************
@@ -307,10 +307,10 @@ and node rank (node id). Here is an example of a custom
         def node_rank(self) -> int:
             return int(os.environ["NODE_RANK"])
 
-        def master_address(self) -> str:
+        def main_address(self) -> str:
             return os.environ["MASTER_ADDRESS"]
 
-        def master_port(self) -> int:
+        def main_port(self) -> int:
             return int(os.environ["MASTER_PORT"])
 
 

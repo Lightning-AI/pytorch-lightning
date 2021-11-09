@@ -36,10 +36,10 @@ def test_missing_lsb_job_id():
 
 
 @mock.patch.dict(os.environ, {"MASTER_PORT": "4321", "LSB_JOBID": "1234", "LSB_HOSTS": "batch 10.10.10.0 10.10.10.1"})
-def test_manual_master_port_and_address():
+def test_manual_main_port_and_address():
     """Test a user can set the port manually through the MASTER_PORT env variable."""
     env = LSFEnvironment()
-    assert env.master_port() == 4321
+    assert env.main_port == 4321
 
 
 @mock.patch.dict(
@@ -56,8 +56,8 @@ def test_attributes_from_environment_variables():
     """Test that the LSF environment takes the attributes from the environment variables."""
     env = LSFEnvironment()
     assert env.creates_processes_externally
-    assert env.master_address() == "10.10.10.0"
-    assert env.master_port() == 10234
+    assert env.main_address == "10.10.10.0"
+    assert env.main_port == 10234
     assert env.world_size() == 4
     assert env.global_rank() == 3
     assert env.local_rank() == 1

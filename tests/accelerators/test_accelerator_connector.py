@@ -368,7 +368,8 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
     """Test that we choose the custom cluster even when SLURM or TE flags are around."""
 
     class CustomCluster(LightningEnvironment):
-        def master_address(self):
+        @property
+        def main_address(self):
             return "asdf"
 
         @property
