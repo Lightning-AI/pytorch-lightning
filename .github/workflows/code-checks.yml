@@ -8,7 +8,6 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
 
 jobs:
   mypy:
-    name: Python typing Mypy
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@master
