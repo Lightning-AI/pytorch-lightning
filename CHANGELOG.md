@@ -75,6 +75,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated `every_n_val_epochs` parameter of ModelCheckpoint ([#10366](https://github.com/PyTorchLightning/pytorch-lightning/pull/10366))
 
 
+- Removed deprecated `import pytorch_lightning.profiler.profilers` in favor of `import pytorch_lightning.profiler` ([#10443](https://github.com/PyTorchLightning/pytorch-lightning/pull/10443))
+
+
 - Removed deprecated property `configure_slurm_dpp` from accelerator connector ([#10370](https://github.com/PyTorchLightning/pytorch-lightning/pull/10370))
 
 
