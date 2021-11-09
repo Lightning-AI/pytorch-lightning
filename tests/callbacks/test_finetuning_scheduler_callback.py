@@ -14,6 +14,7 @@
 import os
 import re
 from collections import OrderedDict
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -30,6 +31,12 @@ from tests.callbacks.test_finetuning_callback import ConvBlock, ConvBlockParam
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import ParityModuleRNN
 from tests.helpers.runif import RunIf
+
+# NEXT:
+# cleanup long init_fts_sched func and verify no additional cleanup needed
+# add documentation for new funcs
+# after all tests passing, rerun coverage and verify
+# proceed with doc update
 
 
 class FinetuningSchedulerBoringModel(BoringModel):
@@ -134,10 +141,15 @@ def boring_ft_schedule(tmpdir_factory) -> Tuple[Path, Dict]:
     with pytest.raises(SystemExit):
         trainer.fit(model)
     mod_sched_dict = trainer.finetuning_scheduler_callback.load_yaml_schedule(unmod_schedule_file)
-    mod_sched_dict[0].extend(mod_sched_dict.pop(1))
+    mod_sched_dict[0]["params"].extend(mod_sched_dict.pop(1)["params"])
+    mod_sched_dict[0]["max_transition_epoch"] = 3
     mod_sched_dict[1] = mod_sched_dict.pop(2)
     mod_sched_dict[2] = mod_sched_dict.pop(3)
-    return unmod_schedule_file, mod_sched_dict
+    mod_sched_dict[2]["params"] = ["layer.0.*"]
+    epoch_only_sched = deepcopy(mod_sched_dict)
+    epoch_only_sched[1]["max_transition_epoch"] = 2
+    epoch_only_sched[2]["max_transition_epoch"] = 2
+    return unmod_schedule_file, mod_sched_dict, epoch_only_sched
 
 
 class ComplexNestedModel(LightningModule):
@@ -193,18 +205,18 @@ def test_gen_ft_schedule(tmpdir, model: "LightningModule", expected: Tuple):
         test_schedule = yaml.safe_load(f.read())
     assert isinstance(test_schedule, Dict)
     assert len(test_schedule) == expected[0]
-    assert test_schedule[1] == expected[1]
-    assert test_schedule[next(reversed(list(test_schedule.keys())))] == expected[2]
+    assert test_schedule[1]["params"] == expected[1]
+    assert test_schedule[next(reversed(list(test_schedule.keys())))]["params"] == expected[2]
 
 
 EXPECTED_EXPIMP_RESULTS = {
-    (True, -1): (6, 0, 2, 6, 8, 3, 3),
+    (True, -1): (5, 0, 2, 5, 8, 3, 3),
     (False, -1): (7, 0, 3, 7, 8, 4, 4),
     (True, 0): (4, 0, 0, 4, 4, 1, 1),
     (False, 0): (4, 0, 0, 4, 2, 1, 1),
-    (True, 2): (6, 0, 2, 6, 8, 3, 3),
+    (True, 2): (5, 0, 2, 5, 8, 3, 3),
     (False, 2): (6, 0, 2, 6, 6, 3, 3),
-    (True, 999): (6, 0, 2, 6, 8, 3, 3),
+    (True, 999): (5, 0, 2, 5, 8, 3, 3),
     (False, 999): (7, 0, 3, 7, 8, 4, 4),
 }
 
@@ -238,7 +250,7 @@ def test_finetuningscheduling_explicit_implicit(tmpdir, boring_ft_schedule, expl
         p
         for i, d in enumerate(trainer.finetuning_scheduler_callback.ft_schedule)
         if i > trainer.finetuning_scheduler_callback.max_depth
-        for p in trainer.finetuning_scheduler_callback.ft_schedule[d]
+        for p in trainer.finetuning_scheduler_callback.ft_schedule[d]["params"]
     ]
     assert not any([p.requires_grad for n, p in trainer.model.named_parameters() if n in still_frozen])
     assert trainer.finetuning_scheduler_callback.curr_depth == trainer.finetuning_scheduler_callback.max_depth
@@ -246,8 +258,8 @@ def test_finetuningscheduling_explicit_implicit(tmpdir, boring_ft_schedule, expl
 
 
 EXPECTED_DECAY_RESULTS = {
-    (True, False): (6, 0, 2, 6, 8, 3, 3, 1e-6),
-    (True, True): (6, 0, 2, 6, 8, 5, 5, 0.0),
+    (True, False): (5, 0, 2, 5, 8, 3, 3, 1e-6),
+    (True, True): (5, 0, 2, 5, 8, 5, 5, 0.0),
     (False, False): (7, 0, 3, 7, 8, 4, 4, 1e-6),
     (False, True): (7, 0, 3, 7, 8, 7, 7, 0.0),
 }
@@ -288,7 +300,7 @@ def test_finetuningscheduling_decay(tmpdir, boring_ft_schedule, explicit_mode: b
         p
         for i, d in enumerate(trainer.finetuning_scheduler_callback.ft_schedule)
         if i > trainer.finetuning_scheduler_callback.max_depth
-        for p in trainer.finetuning_scheduler_callback.ft_schedule[d]
+        for p in trainer.finetuning_scheduler_callback.ft_schedule[d]["params"]
     ]
     assert not any([p.requires_grad for n, p in trainer.model.named_parameters() if n in still_frozen])
     assert trainer.finetuning_scheduler_callback.curr_depth == trainer.finetuning_scheduler_callback.max_depth
@@ -443,6 +455,59 @@ def test_finetuningscheduling_optimizer_compat(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, callbacks=callbacks)
     with pytest.raises(MisconfigurationException, match="single-optimizer configuration"):
         trainer.fit(model)
+
+
+@pytest.mark.parametrize(
+    "epoch_only_cfg, es_included, expected",
+    [
+        (True, False, ((0, 2, 5, 8, 3, 3), "maximum phase-specified")),
+        (True, True, (None, "extraneous Early")),
+        (False, False, (None, "missing a max_")),
+    ],
+    ids=["eponly_noes", "eponly_es", "noeponly"],
+)
+def test_finetuningscheduling_epoch_trans_only(
+    tmpdir, boring_ft_schedule, epoch_only_cfg: bool, es_included: bool, expected: Tuple
+):
+    """Validate scheduled finetuning works as expected in 'epoch_transitions_only' mode while raising the
+    appropriate exception/warning with respect to epoch_transitions_only scheduling and early stopping
+    respectively."""
+    seed_everything(42)
+    # use appropriately configured epoch_transitions_only schedule if epoch_only_cfg, else validate config error thrown
+    # expected_state = EXPECTED_EPOCH_ONLY_RESULTS[(epoch_only_cfg, es_included)]
+    ft_schedule = boring_ft_schedule[2] if epoch_only_cfg else boring_ft_schedule[1]
+    callbacks = [
+        FTSCheckpoint(monitor="val_loss", verbose=True),
+        FinetuningScheduler(ft_schedule=ft_schedule, epoch_transitions_only=True),
+    ]
+    if es_included:
+        callbacks.append(EarlyStopping(monitor="val_loss", patience=1))
+    model = FinetuningSchedulerBoringModel()
+    if es_included:
+        with pytest.warns(UserWarning, match=expected[1]):
+            trainer = Trainer(default_root_dir=tmpdir, callbacks=callbacks)
+        return
+    else:
+        trainer = Trainer(default_root_dir=tmpdir, callbacks=callbacks, max_epochs=6)
+    if not epoch_only_cfg:
+        with pytest.raises(MisconfigurationException, match=expected[1]):
+            trainer.fit(model)
+        return
+    else:
+        # we're testing an epoch_transitions_only schedule that should trigger the specified warning
+        with pytest.warns(UserWarning, match=expected[1]):
+            trainer.fit(model)
+    # for the valid epoch_only_transitions schedule, verify expected state
+    assert trainer.finetuning_scheduler_callback.depth_remaining == expected[0][0]
+    assert trainer.finetuning_scheduler_callback.curr_depth == expected[0][1]
+    assert trainer.finetuning_scheduler_callback._fts_state._ft_epoch == expected[0][2]
+    assert len(trainer.finetuning_scheduler_callback._fts_state._curr_thawed_params) == expected[0][3]
+    assert len(trainer.finetuning_scheduler_callback._internal_optimizer_metadata[0]) == expected[0][4]
+    assert len(trainer.optimizers[0].param_groups) == expected[0][5]
+    for pg in range(expected[0][5]):
+        assert trainer.optimizers[0].param_groups[pg]["params"][0].requires_grad
+    assert trainer.finetuning_scheduler_callback.curr_depth == trainer.finetuning_scheduler_callback.max_depth
+    assert trainer.finetuning_scheduler_callback._fts_state._ft_epoch == trainer._fit_loop.current_epoch
 
 
 @RunIf(special=True, min_gpus=2)

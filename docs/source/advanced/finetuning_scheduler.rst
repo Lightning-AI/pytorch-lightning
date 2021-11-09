@@ -16,10 +16,11 @@ transfer learning [#]_ [#]_ [#]_ .
 
 :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler` orchestrates the gradual unfreezing
 of models via a finetuning schedule that is either implicitly generated (the default) or explicitly provided by the user
-(more computationally efficient). Each finetuning phase proceeds until the configured
-:class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callback observes the early stopping criteria are
-met. A :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler` training session completes
-when the final phase of the schedule has its early stopping criteria met. See
+(more computationally efficient). Finetuning phase transitions are driven by
+:class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` criteria, user-specified epoch transitions or a
+composition of the two (the default mode). A
+:class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler` training session completes when the
+final phase of the schedule has its stopping criteria met. See
 :ref:`Early Stopping<common/early_stopping:Early stopping>` for more details on that callback's configuration.
 
 .. warning:: The :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler` callback is in beta
@@ -80,30 +81,33 @@ and executed in ascending order.
 
     .. rst-class:: sbs-hdr1
 
-        This boring model has four finetuning phases:
+        Changing the generated schedule for this boring model...
 
     .. rst-class:: sbs-blk1
 
     .. code-block:: yaml
       :linenos:
-      :emphasize-lines: 10
 
-            0:
+        0:
+            params:
             - layer.3.bias
             - layer.3.weight
-            1:
+        1:
+            params:
             - layer.2.bias
             - layer.2.weight
-            2:
+        2:
+            params:
             - layer.1.bias
             - layer.1.weight
-            3:
+        3:
+            params:
             - layer.0.bias
             - layer.0.weight
 
     .. rst-class:: sbs-hdr2
 
-        After removing line 10, three finetuning phases are scheduled:
+        ... to have three finetuning phases instead of four:
 
     .. rst-class:: sbs-blk2
 
@@ -111,17 +115,17 @@ and executed in ascending order.
       :linenos:
 
         0:
-        - layer.3.bias
-        - layer.3.weight
+            params:
+            - layer.3.bias
+            - layer.3.weight
         1:
-        - layer.2.bias
-        - layer.2.weight
+            params:
+            - layer.2.*
+            - layer.1.bias
+            - layer.1.weight
         2:
-        - layer.1.bias
-        - layer.1.weight
-        - layer.0.bias
-        - layer.0.weight
-
+            params:
+            - layer.0.*
 
 3. Once the finetuning schedule has been altered as desired, pass it to
    :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler` to commence scheduled training:
@@ -133,6 +137,42 @@ and executed in ascending order.
 
     trainer = Trainer(callbacks=[FinetuningScheduler(ft_schedule="/path/to/my/schedule/my_schedule.yaml")])
 
+EarlyStopping and Epoch-Driven Phase Transition Criteria
+========================================================
+
+By default, :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` and epoch-driven transition criteria are
+composed. If a ``max_transition_epoch`` is specified for a given phase, the next finetuning phase will begin at that
+epoch unless :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` criteria are met first.
+If :paramref:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler.epoch_transitions_only` is
+``True``, :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` will not be used and transitions will be
+exclusively epoch-driven.
+
+.. tip::
+
+    Use of regex expressions can be convenient for specifying more complex schedules:
+
+    .. code-block:: yaml
+      :linenos:
+      :emphasize-lines: 2, 7, 14
+
+       0:
+         params: # the parameters for each phase definition can be fully specified
+         - model.classifier.bias
+         - model.classifier.weight
+         max_transition_epoch: 3
+       1:
+         params: # or specified via a regex
+         - model.albert.pooler.*
+       2:
+         params:
+         - model.albert.encoder.*.ffn_output.*
+         max_transition_epoch: 9
+       3:
+         params: # both approaches to parameter specification can be used in the same phase
+         - model.albert.encoder.*.(ffn\.|attention|full*).*
+         - model.albert.encoder.embedding_hidden_mapping_in.bias
+         - model.albert.encoder.embedding_hidden_mapping_in.weight
+         - model.albert.embeddings.*
 
 For a practical end-to-end example of using
 :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler` in implicit versus explicit modes,

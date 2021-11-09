@@ -41,10 +41,12 @@ class FinetuningScheduler(BaseFinetuning, SchedulingMixin, CallbackDepMixin):
     adapt to new tasks during transfer learning.
     :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler` orchestrates the gradual
     unfreezing of models via a finetuning schedule that is either implicitly generated (the default) or explicitly
-    provided by the user (more computationally efficient). Each finetuning phase proceeds until the configured
-    :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callback observes the early stopping criteria are
-    met. A :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler` training session completes
-    when the final phase of the schedule has its early stopping criteria met. See
+    provided by the user (more computationally efficient).
+
+    Finetuning phase transitions are driven by :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`
+    criteria, user-specified epoch transitions or a composition of the two (the default mode). A
+    :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler` training session completes
+    when the final phase of the schedule has its stopping criteria met. See
     :ref:`Early Stopping<common/early_stopping:Early stopping>` for more details on that callback's configuration.
 
     Schedule definition is facilitated via
@@ -70,6 +72,7 @@ class FinetuningScheduler(BaseFinetuning, SchedulingMixin, CallbackDepMixin):
         restore_best: bool = True,
         new_incarnation_mode: bool = False,
         gen_ft_sched_only: bool = False,
+        epoch_transitions_only: bool = False,
     ):
         r"""
         Define and configure a scheduled finetuning training session.
@@ -99,6 +102,13 @@ class FinetuningScheduler(BaseFinetuning, SchedulingMixin, CallbackDepMixin):
                 (:paramref:`~pytorch_lightning.trainer.trainer.lightning_module`.__class__.__name__)_ft_schedule.yaml
                 and exit without training. Typically used to generate a default schedule that will be adjusted by the
                 user before training. Defaults to ``False``.
+            epoch_transitions_only: If ``True``, Use epoch-driven stopping criteria exclusively (rather than composing
+                :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` and epoch-driven criteria which is
+                the default). If using this mode, an epoch-driven transition (``max_transition_epoch`` >= 0) must be
+                specified for each phase. If unspecified, ``max_transition_epoch`` defaults to -1 for each phase which
+                signals the application of :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` criteria
+                only. epoch_transitions_only defaults to ``False``.
+
         Attributes:
             _fts_state: The internal finetuning scheduler state.
         """
@@ -110,6 +120,7 @@ class FinetuningScheduler(BaseFinetuning, SchedulingMixin, CallbackDepMixin):
         self.ft_schedule = ft_schedule
         self.base_max_lr = base_max_lr
         self.gen_ft_sched_only = gen_ft_sched_only
+        self.epoch_transitions_only = epoch_transitions_only
         self.pl_module = None
         self.supported_plugins = [
             "DDPPlugin",
@@ -168,7 +179,7 @@ class FinetuningScheduler(BaseFinetuning, SchedulingMixin, CallbackDepMixin):
                 self.step_pg(depth=self.curr_depth, optimizer=self.pl_module.trainer.optimizers[0], depth_sync=False)
         else:
             self.thaw_to_depth()
-        if self.depth_remaining == 0:
+        if self.depth_remaining == 0 and not self.epoch_transitions_only:
             self.pl_module.trainer.early_stopping_callback.final_phase = True
         FinetuningScheduler.sync(self._fts_state._ft_sync_objects, self._fts_state._ft_sync_props)
         rank_zero_info(f"Multi-phase fine-tuned training continuing at level {self.curr_depth}.")
@@ -195,12 +206,12 @@ class FinetuningScheduler(BaseFinetuning, SchedulingMixin, CallbackDepMixin):
         for i, next_tl in thaw_layers:
             if i <= depth:
                 _, self._fts_state._curr_thawed_params = FinetuningScheduler.exec_ft_phase(
-                    self.pl_module, thaw_pl=next_tl
+                    self.pl_module, thaw_pl=next_tl["params"]
                 )
                 FinetuningScheduler.add_optimizer_groups(
                     module=self.pl_module,
                     optimizer=optimizer,
-                    thawed_pl=next_tl,
+                    thawed_pl=next_tl["params"],
                     lr=self.base_max_lr,
                     no_decay=getattr(self.pl_module, "no_decay", None),
                 )
@@ -250,14 +261,14 @@ class FinetuningScheduler(BaseFinetuning, SchedulingMixin, CallbackDepMixin):
                 "FTS is currently experimental and has not yet been adapted for the"
                 " specified distributed trainingtypeplugin please select from currently"
                 " compatible distributed training types (e.g."
-                " accelerator='dp|ddp|ddp_spawn|ddp_sharded|ddp_sharded_spawn')"
+                " strategy='dp|ddp|ddp_spawn|ddp_sharded|ddp_sharded_spawn')"
             )
 
     def on_before_accelerator_backend_setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
         """Before setting up the accelerator environment:
         Dump the default finetuning schedule
         OR
-        1. configure the :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callback
+        1. configure the :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callback (if relevant)
         2. initialize the :attr:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler._fts_state`
         3. freeze the target :class:`~pytorch_lightning.core.lightning.LightningModule` parameters
 
@@ -276,8 +287,9 @@ class FinetuningScheduler(BaseFinetuning, SchedulingMixin, CallbackDepMixin):
                 log.info("Bypassing training, generating finetuning schedule for review and subsequent finetuning")
                 raise SystemExit()
         else:
-            trainer.early_stopping_callback.final_phase = False
-            trainer.early_stopping_callback.es_phase_complete = False
+            if not self.epoch_transitions_only:
+                trainer.early_stopping_callback.final_phase = False
+                trainer.early_stopping_callback.es_phase_complete = False
             self._fts_state._ft_sync_objects = pl_module.trainer.fit_loop, self._fts_state
             if trainer.fit_ckpt_path:
                 self._fts_state._resume_fit_from_ckpt = True
@@ -372,6 +384,36 @@ class FinetuningScheduler(BaseFinetuning, SchedulingMixin, CallbackDepMixin):
             raise MisconfigurationException("fts currently only supports a single-optimizer configuration")
         super().on_fit_start(trainer, pl_module)
 
+    def should_transition(self, trainer: "pl.Trainer") -> bool:
+        """Phase transition logic is contingent on whether we are composing
+        :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` criteria with epoch-driven transition
+        constraints or exclusively using epoch-driven transition scheduling. (i.e.,
+        :attr:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler.epoch_transitions_only` is
+        ``True``)
+
+        Args:
+            trainer (:class:`~pytorch_lightning.trainer.trainer.Trainer`): The
+                :class:`~pytorch_lightning.trainer.trainer.Trainer` object
+        """
+        curr_max_epoch = (
+            self.ft_schedule[self.curr_depth]["max_transition_epoch"]
+            if self.depth_remaining > 0
+            else self.pl_module.trainer.fit_loop.max_epochs
+        )
+        if not self.epoch_transitions_only:  # if we're considering EarlyStopping criteria
+            epoch_driven_transition = (
+                True
+                if not self.pl_module.trainer.early_stopping_callback.final_phase
+                and (0 <= curr_max_epoch <= self.pl_module.trainer.current_epoch)
+                else False
+            )
+            phase_transition = (
+                True if trainer.early_stopping_callback.es_phase_complete or epoch_driven_transition else False
+            )
+        else:  # we're only considering epoch-driven transition constraints
+            phase_transition = True if 0 <= curr_max_epoch <= self.pl_module.trainer.current_epoch else False
+        return phase_transition
+
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Before beginning a training epoch, configure the internal
         :attr:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler._fts_state`, prepare the next
@@ -390,16 +432,19 @@ class FinetuningScheduler(BaseFinetuning, SchedulingMixin, CallbackDepMixin):
         # increment ft_epoch on each train epoch
         if trainer.current_epoch > 0:
             self.sync(self._fts_state._ft_sync_objects, self._fts_state._ft_sync_props)
-        if trainer.early_stopping_callback.es_phase_complete:
+        if self.should_transition(trainer):
             self._fts_state._curr_depth += 1  # increment depth
             self.step()
             rank_zero_debug(
                 f"Current parameters thawed by the finetuning scheduler: {self._fts_state._curr_thawed_params}. "
                 f"Current depth is {self.curr_depth}."
             )
-            trainer.early_stopping_callback.es_phase_complete = False
+            if not self.epoch_transitions_only:
+                trainer.early_stopping_callback.es_phase_complete = False
+                trainer.early_stopping_callback.wait_count = 0
         if self.depth_remaining == 0:
-            trainer.early_stopping_callback.final_phase = True
+            if not self.epoch_transitions_only:
+                trainer.early_stopping_callback.final_phase = True
         # capture optimizer config for all optimizers (though initially we'll only support a single optimizer)
         for opt_idx, optimizer in enumerate(trainer.optimizers):
             num_saved_groups = (

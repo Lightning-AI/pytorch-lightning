@@ -1,31 +1,16 @@
 0:
-- model.classifier.bias
-- model.classifier.weight
+  params: # the parameters for each phase definition can be fully specified
+  - model.classifier.bias
+  - model.classifier.weight
 1:
-- model.albert.pooler.bias
-- model.albert.pooler.weight
+  params: # or specified via a regex
+  - model.albert.pooler.*
 2:
-- model.albert.encoder.albert_layer_groups.0.albert_layers.0.ffn_output.bias
-- model.albert.encoder.albert_layer_groups.0.albert_layers.0.ffn_output.weight
+  params:
+  - model.albert.encoder.*.ffn_output.*
 3:
-- model.albert.encoder.albert_layer_groups.0.albert_layers.0.ffn.bias
-- model.albert.encoder.albert_layer_groups.0.albert_layers.0.ffn.weight
-- model.albert.encoder.albert_layer_groups.0.albert_layers.0.attention.LayerNorm.bias
-- model.albert.encoder.albert_layer_groups.0.albert_layers.0.attention.LayerNorm.weight
-- model.albert.encoder.albert_layer_groups.0.albert_layers.0.attention.dense.bias
-- model.albert.encoder.albert_layer_groups.0.albert_layers.0.attention.dense.weight
-- model.albert.encoder.albert_layer_groups.0.albert_layers.0.attention.value.bias
-- model.albert.encoder.albert_layer_groups.0.albert_layers.0.attention.value.weight
-- model.albert.encoder.albert_layer_groups.0.albert_layers.0.attention.key.bias
-- model.albert.encoder.albert_layer_groups.0.albert_layers.0.attention.key.weight
-- model.albert.encoder.albert_layer_groups.0.albert_layers.0.attention.query.bias
-- model.albert.encoder.albert_layer_groups.0.albert_layers.0.attention.query.weight
-- model.albert.encoder.albert_layer_groups.0.albert_layers.0.full_layer_layer_norm.bias
-- model.albert.encoder.albert_layer_groups.0.albert_layers.0.full_layer_layer_norm.weight
-- model.albert.encoder.embedding_hidden_mapping_in.bias
-- model.albert.encoder.embedding_hidden_mapping_in.weight
-- model.albert.embeddings.LayerNorm.bias
-- model.albert.embeddings.LayerNorm.weight
-- model.albert.embeddings.token_type_embeddings.weight
-- model.albert.embeddings.position_embeddings.weight
-- model.albert.embeddings.word_embeddings.weight
+  params: # both approaches to parameter specification can be used in the same phase
+  - model.albert.encoder.*.(ffn\.|attention|full*).*
+  - model.albert.encoder.embedding_hidden_mapping_in.bias
+  - model.albert.encoder.embedding_hidden_mapping_in.weight
+  - model.albert.embeddings.*

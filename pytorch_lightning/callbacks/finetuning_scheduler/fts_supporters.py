@@ -19,10 +19,14 @@ Classes composed to support scheduled finetuning
 
 """
 import functools
+import itertools
 import logging
 import os
 import pathlib
+import re
 from abc import ABC
+from collections import Counter
+from collections.abc import KeysView
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
@@ -186,7 +190,8 @@ class FTSCheckpoint(ModelCheckpoint):
         # if we're starting a new level from another checkpoint depth, wait_count could be > 0 contingent on the
         # min_delta
         if trainer.finetuning_scheduler_callback.curr_depth > self.best_ckpt_depth:
-            trainer.early_stopping_callback.wait_count = 0
+            if not trainer.finetuning_scheduler_callback.epoch_transitions_only:
+                trainer.early_stopping_callback.wait_count = 0
         if trainer.finetuning_scheduler_callback._fts_state._resume_fit_from_ckpt:
             if trainer.finetuning_scheduler_callback.new_incarnation_mode:
                 # reset state for new training incarnation at resumption depth
@@ -221,13 +226,11 @@ class SchedulingMixin(ABC):
         2. Prepare the first scheduled finetuning level, unfreezing the relevant parameters."""
         self.init_ft_sched()
         _, self._fts_state._curr_thawed_params = self.exec_ft_phase(
-            self.pl_module, thaw_pl=self.ft_schedule[0], init_thaw=True
+            self.pl_module, thaw_pl=self.ft_schedule[0]["params"], init_thaw=True
         )
 
-    def init_ft_sched(self) -> None:
-        """Generate the default finetuning schedule and/or load it into
-        :paramref:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler.ft_schedule`. Broadcast the
-        schedule to ensure it is available for use in a distributed context."""
+    def gen_or_load_sched(self) -> None:
+        """Load an explicitly specified finetuning schedule if one provided, otherwise generate a default one."""
         if not self.ft_schedule and self.max_depth == -1:
             rank_zero_info("No finetuning schedule provided, max_depth set to -1 so iteratively thawing entire model")
         if self.ft_schedule:  # thaw according to an explicit schedule
@@ -238,11 +241,75 @@ class SchedulingMixin(ABC):
             )
         else:
             self.gen_implicit_schedule(self.pl_module.trainer.log_dir)
-            self.ft_schedule = self.pl_module.trainer.accelerator.broadcast(self.ft_schedule)
+            self.ft_schedule = self.pl_module.trainer.training_type_plugin.broadcast(self.ft_schedule)
+
+    def validate_ft_sched(self) -> Tuple[int, int]:
+        """Ensure the explicitly specified finetuning schedule has a valid configuration.
+
+        Returns:
+            Tuple[int, int]: A tuple of ints specifying:
+                1. The depth of the final scheduled phase
+                2. The maximum epoch watermark explicitly specified in the schedule
+        """
+        max_epoch_wm = -1
+        max_phase = 0
+        named_params = dict(self.pl_module.named_parameters()).keys()
+        for depth in self.ft_schedule.keys():
+            max_phase = max(max_phase, depth)
+            self.parse_phase(depth, named_params)
+            if depth > 0:
+                curr_max_epoch = self.ft_schedule[depth]["max_transition_epoch"]
+                if 0 <= curr_max_epoch <= max_epoch_wm:
+                    es_addendum = " depending upon EarlyStopping criteria."
+                    rank_zero_info(
+                        f"Specified max_transition_epoch of depth {depth}"
+                        f"({self.ft_schedule[depth]['max_transition_epoch']}) is less than or equal to a "
+                        f"previous max_transition_epoch ({max_epoch_wm}), depth may execute only a single "
+                        f"epoch{'.' if self.epoch_transitions_only else es_addendum}"
+                    )
+                max_epoch_wm = max(max_epoch_wm, curr_max_epoch)
+        self.validate_phases_disjoint()
+        if self.epoch_transitions_only:
+            self.validate_epoch_transitions()
+        return max_phase, max_epoch_wm
+
+    def init_ft_sched(self) -> None:
+        """Generate the default finetuning schedule and/or load it into
+        :paramref:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler.ft_schedule`. Broadcast the
+        schedule to ensure it is available for use in a distributed context."""
+        self.gen_or_load_sched()
         if self.max_depth == -1:
             self.max_depth = len(self.ft_schedule) - 1
         else:
             self.max_depth = min(self.max_depth, len(self.ft_schedule) - 1)
+        max_phase, max_epoch_wm = self.validate_ft_sched()
+        # if the final phase is not using EarlyStopping, apply the maximum phase-specified epoch to global max_epochs
+        if self.ft_schedule[max_phase]["max_transition_epoch"] >= 0:
+            rank_zero_warn(
+                f"Final phase max_transition_epoch ({self.ft_schedule[max_phase]['max_transition_epoch']}) "
+                f"will be overidden by the greater of max_epochs ({self.pl_module.trainer.max_epochs}) and "
+                f"the maximum phase-specified epoch ({max_epoch_wm})."
+            )
+            self.pl_module.trainer.fit_loop.max_epochs = max(max_epoch_wm, self.pl_module.trainer.max_epochs)
+
+    def validate_epoch_transitions(self) -> None:
+        """If not composing :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` and epoch-driven
+        stopping criteria (the default behavior) but instead specifying exclusively epoch-driven transitions (:para
+        mref:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler.epoch_transitions_only` is
+        ``True``), ensure the specified schedule specifies transitions for every phase.
+
+        Raises:
+            MisconfigurationException: If the specified schedule does not include epoch-driven transitions for all
+                phases.
+        """
+        missing_transitions = [d for d in self.ft_schedule.keys() if self.ft_schedule[d]["max_transition_epoch"] < 0]
+        if missing_transitions:
+            raise MisconfigurationException(
+                f"epoch_transitions_only specified but some phases "
+                f"({', '.join(str(d) for d in missing_transitions)}) are missing a "
+                "max_transition_epoch. Please unset epoch_transitions_only or "
+                "specify a max_transition_epoch for each phase."
+            )
 
     @rank_zero_only
     def gen_implicit_schedule(self, sched_dir: str) -> None:
@@ -265,7 +332,6 @@ class SchedulingMixin(ABC):
             module (:class:`~torch.nn.Module`): The :class:`~torch.nn.Module` for which a finetuning schedule will be
                 generated
             dump_loc: The directory to which the generated schedule (.yaml) should be written
-
         Returns:
             os.PathLike: The path to the generated schedule, by default
             :paramref:`~pytorch_lightning.trainer.trainer.Trainer.log_dir` with the name
@@ -276,25 +342,26 @@ class SchedulingMixin(ABC):
         # generate default schedules that better accommodate more complex structures and specific architectures if the
         # callback proves sufficiently useful.
         log.info(f"Proceeding with dumping default finetuning schedule for {module.__class__.__name__}")
-        layer_lists = []
-        cur_layer = []
+        param_lists = []
+        cur_group = []
         model_params = list(module.named_parameters())[::-1]
         for i, (n, _) in enumerate(model_params):
             if i % 2 == 0:
-                cur_layer = []
-                cur_layer.append(n)
+                cur_group = []
+                cur_group.append(n)
             else:
-                cur_layer.append(n)
-                layer_lists.append(cur_layer)
+                cur_group.append(n)
+                param_lists.append(cur_group)
         if len(model_params) % 2 == 1:
-            layer_lists.append([model_params[-1][0]])
+            param_lists.append([model_params[-1][0]])
         layer_config = {}
         dump_path = pathlib.Path(dump_loc)
         dump_path.mkdir(exist_ok=True, parents=True)
         ft_schedule_yaml = dump_path / f"{module.__class__.__name__}_ft_schedule.yaml"
         fs = get_filesystem(ft_schedule_yaml)
-        for i, l in enumerate(layer_lists):
-            layer_config[i] = l
+        layer_config = {}
+        for i, l in enumerate(param_lists):
+            layer_config[i] = {"params": l}
         with fs.open(ft_schedule_yaml, "w", newline="") as fp:
             yaml.dump(layer_config, fp)
         assert os.access(ft_schedule_yaml, os.F_OK)
@@ -326,6 +393,54 @@ class SchedulingMixin(ABC):
             raise MisconfigurationException(error_msg)
         return schedule_dict
 
+    def parse_phase(self, depth: int, named_params: KeysView) -> None:
+        """Expand any regex expressions specified in an ft_schedule phase to fully qualified parameter names.
+
+        Args:
+            depth (int): Schedule depth/phase to parse
+            named_params (KeysView): The named parameters of the model
+
+        Raises:
+            MisconfigurationException: If a specified parameter or regex does not resolve to at least one parameter.
+        """
+        self.ft_schedule[depth].setdefault("max_transition_epoch", -1)
+        orig_params = self.ft_schedule[depth].get("params", [])
+        resolved_params = []
+        for p in orig_params:
+            regex_params = []
+            explicit_params = False
+            if p in named_params:
+                explicit_params = True
+                resolved_params.append(p)
+            else:
+                ppat = re.compile(p)
+                regex_params = [n for n in named_params if ppat.match(n)]
+                resolved_params.extend(regex_params)
+            if not (regex_params or explicit_params):
+                raise MisconfigurationException(
+                    f"The parameter or regex '{p}' specified in phase {depth} of the "
+                    "provided explicit schedule did not match any named parameter in the "
+                    "model."
+                )
+        self.ft_schedule[depth]["params"] = resolved_params
+
+    def validate_phases_disjoint(self) -> None:
+        """Validate that the defined schedule does not specify any parameter in multiple phases.
+
+        Raises:
+            MisconfigurationException: Provides a list of the parameters specified in more than one phase.
+        """
+        phase_lists = [self.ft_schedule[d]["params"] for d in self.ft_schedule.keys()]
+        params = Counter(list(itertools.chain(*phase_lists)))
+        unique_params = Counter(list(set().union(*phase_lists)))
+        params.subtract(unique_params)
+        dup_params = list(params.elements())
+        if dup_params:
+            raise MisconfigurationException(
+                f"Phases are not disjoint. The following parameters are specified in "
+                f"multiple phases: {', '.join(dup_params)}"
+            )
+
     def thaw_to_depth(self, depth: int = None) -> None:
         """Thaw/unfreeze the current
         :paramref:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler.pl_module` to the specified
@@ -344,7 +459,7 @@ class SchedulingMixin(ABC):
         depth = depth or self.curr_depth
         for i, next_tl in self.ft_schedule.items():
             if i <= depth:
-                _, self._fts_state._curr_thawed_params = self.exec_ft_phase(self.pl_module, thaw_pl=next_tl)
+                _, self._fts_state._curr_thawed_params = self.exec_ft_phase(self.pl_module, thaw_pl=next_tl["params"])
 
     @staticmethod
     def add_optimizer_groups(
@@ -516,7 +631,8 @@ class CallbackDepMixin(ABC):
         return has_earlystopping, has_fts_ckpt, has_other_ckpt
 
     def _configure_callback_deps(self, trainer: "pl.Trainer") -> List[Callback]:
-        """Ensures FTSCheckpoint and EarlyStopping callbacks are present and configured, removing any
+        """Ensures FTSCheckpoint and :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callbacks
+        are present and configured, removing any
         :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`s if present.
 
         Args:
@@ -528,17 +644,23 @@ class CallbackDepMixin(ABC):
                 ensuring the FTSCheckpoint is at the end of list.
         """
         has_earlystopping, has_fts_ckpt, has_other_ckpt = self._inspect_callback_deps(trainer)
-        if not has_earlystopping:
+        if not any([has_earlystopping, self.epoch_transitions_only, self.gen_ft_sched_only]):
             rank_zero_warn(
                 f"{self.__class__.__name__} currently depends upon an EarlyStopping callback. Adding an"
                 "EarlyStopping callback with default configuration"
             )
             trainer.callbacks.append(EarlyStopping(monitor="val_loss"))
+        if has_earlystopping and self.epoch_transitions_only:
+            rank_zero_warn(
+                "You have specified an EarlyStopping callback along with epoch_transitions_only. Pruning the "
+                "extraneous EarlyStopping callback"
+            )
+            trainer.callbacks = [c for c in trainer.callbacks if not isinstance(c, EarlyStopping)]
         if not has_fts_ckpt:
             if has_other_ckpt:
                 rank_zero_warn(
-                    f"{self.__class__.__name__} currently depends upon a finetuning schedule"
-                    "capable ModelCheckpoint callback such as FTSCheckpoint. Substituting current"
+                    f"{self.__class__.__name__} currently depends upon a finetuning schedule "
+                    "capable ModelCheckpoint callback such as FTSCheckpoint. Substituting current "
                     "ModelCheckpoint for FTSCheckpoint"
                 )
                 # filter out non-fts capable ModelCheckpoint callbacks

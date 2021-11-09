@@ -31,7 +31,6 @@ model:
       frequency: 1
       name: CosineAnnealingWithWarmRestartsLR
 trainer:
-  #plugins: ddp_find_unused_parameters_false  # use registered version of DDP with find_unused_parameters set to false
   max_epochs: 100
   gpus: 2
   strategy: ddp_find_unused_parameters_false
