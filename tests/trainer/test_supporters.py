@@ -391,8 +391,8 @@ def test_combined_data_loader_validation_test(
 def test_combined_data_loader_with_max_size_cycle_and_ddp(
     cuda_available_mock, device_count_mock, replace_sampler_ddp, tmpdir
 ):
-    """This test makes sure distributed sampler has been properly injected in dataloaders when using
-    CombinedLoader."""
+    """This test makes sure distributed sampler has been properly injected in dataloaders when using CombinedLoader
+    with ddp and `max_size_cycle` mode."""
 
     dataloader = CombinedLoader(
         {"a": DataLoader(RandomDataset(32, 8), batch_size=1), "b": DataLoader(RandomDataset(32, 8), batch_size=1)},
