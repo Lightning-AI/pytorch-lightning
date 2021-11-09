@@ -938,10 +938,12 @@ def test_workers_are_shutdown(tmpdir, persistent_workers):
     train_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
     val_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
 
+    max_epochs = 3
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=3)
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=max_epochs)
     trainer.fit(model, train_dataloader, val_dataloader)
-    assert train_dataloader.has_shutdown_workers == (2 if persistent_workers else 3)
-    assert val_dataloader.has_shutdown_workers == (2 if persistent_workers else 4)
+    assert train_dataloader.has_shutdown_workers == (2 if persistent_workers else max_epochs)
+    # on sanity checking end, the workers are being deleted too.
+    assert val_dataloader.has_shutdown_workers == (2 if persistent_workers else max_epochs + 1)
     assert train_dataloader._iterator is None
     assert val_dataloader._iterator is None
