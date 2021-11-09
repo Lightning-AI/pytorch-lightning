@@ -151,13 +151,13 @@ labels:
 
 # Milestones: define milestones for Issues and Pull Requests
 milestones:
-  - title: 1.5.x
+  - title: "1.5.x"
     # description: milestone-description
     # The state of the milestone. Either `open` or `closed`
     state: open
-  - title: 1.6
+  - title: "1.6"
     state: open
-  - title: 1.7
+  - title: "1.7"
     state: open
 
 # Collaborators: give specific users access to this repository.
