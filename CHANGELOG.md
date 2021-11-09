@@ -90,7 +90,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated method `master_params` from PrecisionPlugin ([#10372](https://github.com/PyTorchLightning/pytorch-lightning/pull/10372))
 
 
-- Removed the automatic detachment of "extras" returned from `training_step`. For example, `return {'loss': ..., 'something': something.detach()}` will now be necessary if something has gradients which you do not want to store ([#10424](https://github.com/PyTorchLightning/pytorch-lightning/pull/10424))
+- Removed the automatic detachment of "extras" returned from `training_step`. For example, `return {'loss': ..., 'foo': foo.detach()}` will now be necessary if `foo` has gradients which you do not want to store ([#10424](https://github.com/PyTorchLightning/pytorch-lightning/pull/10424))
 
 
 - Removed deprecated passthrough methods and properties from `Accelerator` base class ([#10403](https://github.com/PyTorchLightning/pytorch-lightning/pull/10403))
