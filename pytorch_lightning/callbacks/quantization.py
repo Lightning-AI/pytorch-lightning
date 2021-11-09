@@ -33,10 +33,10 @@ else:
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_DEV_1_10
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if _TORCH_GREATER_EQUAL_DEV_1_10:
+if _TORCH_GREATER_EQUAL_1_10:
     from torch.ao.quantization.qconfig import QConfig
 else:
     from torch.quantization import QConfig
@@ -245,7 +245,7 @@ class QuantizationAwareTraining(Callback):
                 # version=None corresponds to using FakeQuantize rather than
                 # FusedMovingAvgObsFakeQuantize which was introduced in PT1.10
                 # details in https://github.com/pytorch/pytorch/issues/64564
-                extra_kwargs = dict(version=None) if _TORCH_GREATER_EQUAL_DEV_1_10 else {}
+                extra_kwargs = dict(version=None) if _TORCH_GREATER_EQUAL_1_10 else {}
                 pl_module.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig, **extra_kwargs)
 
         elif isinstance(self._qconfig, QConfig):

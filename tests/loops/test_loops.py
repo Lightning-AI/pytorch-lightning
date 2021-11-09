@@ -20,7 +20,7 @@ from unittest.mock import ANY
 
 import pytest
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader
 
 from pl_examples.bug_report_model import RandomDataset
 from pytorch_lightning import LightningModule, Trainer
@@ -909,3 +909,44 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
     expected[val_batch_progress]["total"]["ready"] += 1
     expected[val_batch_progress]["total"]["started"] += 1
     assert state_dict_after_restart[val_batch_progress] == expected[val_batch_progress]
+
+
+@RunIf(min_torch="1.8.0")
+@pytest.mark.parametrize("persistent_workers", (False, True))
+def test_workers_are_shutdown(tmpdir, persistent_workers):
+    # `num_workers == 1` uses `_MultiProcessingDataLoaderIter`
+    # `persistent_workers` makes sure `self._iterator` gets set on the `DataLoader` instance
+
+    class _TestMultiProcessingDataLoaderIter(_MultiProcessingDataLoaderIter):
+        def __init__(self, *args, dataloader, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.dataloader = dataloader
+
+        def _shutdown_workers(self):
+            self.dataloader.count_shutdown_workers += 1
+            super()._shutdown_workers()
+
+    class TestDataLoader(DataLoader):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.count_shutdown_workers = 0
+
+        def _get_iterator(self):
+            if self.num_workers == 0:
+                return super()._get_iterator()
+            else:
+                self.check_worker_number_rationality()
+                return _TestMultiProcessingDataLoaderIter(self, dataloader=self)
+
+    train_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
+    val_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
+
+    max_epochs = 3
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=max_epochs)
+    trainer.fit(model, train_dataloader, val_dataloader)
+    assert train_dataloader.count_shutdown_workers == (2 if persistent_workers else max_epochs)
+    # on sanity checking end, the workers are being deleted too.
+    assert val_dataloader.count_shutdown_workers == (2 if persistent_workers else max_epochs + 1)
+    assert train_dataloader._iterator is None
+    assert val_dataloader._iterator is None

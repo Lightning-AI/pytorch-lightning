@@ -16,8 +16,8 @@ FROM google/cloud-sdk:slim
 
 LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
 
-# CALL: docker image build -t pytorch-lightning:XLA-extras-py3.6 -f dockers/base-xla/Dockerfile . --build-arg PYTHON_VERSION=3.6
-ARG PYTHON_VERSION=3.7
+# CALL: docker image build -t pytorch-lightning:XLA-extras-py3.6 -f dockers/base-xla/Dockerfile . --build-arg PYTHON_VERSION=3.8
+ARG PYTHON_VERSION=3.9
 ARG CONDA_VERSION=4.9.2
 ARG XLA_VERSION=1.6
 
@@ -42,7 +42,7 @@ RUN apt-get update -qq && \
     && \
     # Install conda and python.
     # NOTE new Conda does not forward the exit status... https://github.com/conda/conda/issues/8385
-    curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py38_${CONDA_VERSION}-Linux-x86_64.sh && \
+    curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py39_${CONDA_VERSION}-Linux-x86_64.sh && \
     chmod +x ~/miniconda.sh && \
     ~/miniconda.sh -b && \
     rm ~/miniconda.sh && \
@@ -109,4 +109,4 @@ RUN \
     conda info && \
     pip list && \
     python -c "import sys; assert sys.version[:3] == '$PYTHON_VERSION', sys.version" && \
-    python -c "import torch; ver = '$XLA_VERSION' ; assert torch.__version__.startswith(ver), torch.__version__"
+    python -c "import torch; assert torch.__version__.startswith('$XLA_VERSION'), torch.__version__"

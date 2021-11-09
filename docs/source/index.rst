@@ -21,6 +21,7 @@ PyTorch Lightning
    starter/new-project
    starter/converting
    starter/rapid_prototyping_templates
+   starter/lightning_lite
 
 .. toctree::
    :maxdepth: 1
@@ -32,7 +33,6 @@ PyTorch Lightning
    starter/style_guide
    Lightning project template<https://github.com/PyTorchLightning/pytorch-lightning-conference-seed>
    benchmarking/benchmarks
-
 
 .. toctree::
    :maxdepth: 2
@@ -66,6 +66,7 @@ PyTorch Lightning
    advanced/checkpoint_io
    common/optimizers
    advanced/profiler
+   advanced/plugins_registry
    advanced/sequences
    common/single_gpu
    advanced/training_tricks

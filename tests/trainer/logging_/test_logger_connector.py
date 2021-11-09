@@ -545,16 +545,21 @@ def test_result_collection_on_tensor_with_mean_reduction():
                         name += "_prog_bar"
                     if logger:
                         name += "_logger"
-                    result_collection.log(
-                        "training_step",
-                        name,
-                        v,
+                    log_kwargs = dict(
+                        fx="training_step",
+                        name=name,
+                        value=v,
                         on_step=on_step,
                         on_epoch=on_epoch,
                         batch_size=batches[i],
                         prog_bar=prog_bar,
                         logger=logger,
                     )
+                    if not on_step and not on_epoch:
+                        with pytest.raises(MisconfigurationException, match="on_step=False, on_epoch=False"):
+                            result_collection.log(**log_kwargs)
+                    else:
+                        result_collection.log(**log_kwargs)
 
     total_value = sum(values * batches)
     total_batches = sum(batches)

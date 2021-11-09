@@ -164,9 +164,13 @@ class AcceleratorConnector:
             self._set_training_type_plugin()
         else:
             self.set_distributed_mode()
-        self._configure_slurm_ddp()
 
         self.handle_given_plugins()
+        self._set_distrib_type_if_training_type_plugin_passed()
+
+        self._configure_slurm_ddp()
+        self._cluster_environment = self.select_cluster_environment()
+
         self.update_device_type_if_ipu_plugin()
         self.update_device_type_if_training_type_plugin_passed()
 
@@ -289,6 +293,16 @@ class AcceleratorConnector:
                     f" also passed `Trainer(accelerator={self.distributed_backend!r})`."
                     f" HINT: Use just `Trainer(strategy={self.strategy!r})` instead."
                 )
+        if self.strategy == DistributedType.TPU_SPAWN:
+            raise MisconfigurationException(
+                "`Trainer(strategy='tpu_spawn')` is not a valid strategy,"
+                " you can use `Trainer(strategy='ddp_spawn', accelerator='tpu')` instead."
+            )
+        if self.strategy == DistributedType.DDP_CPU:
+            raise MisconfigurationException(
+                "`Trainer(strategy='ddp_cpu')` is not a valid strategy,"
+                " you can use `Trainer(strategy='ddp'|'ddp_spawn', accelerator='cpu')` instead."
+            )
 
     def _set_training_type_plugin(self) -> None:
         if isinstance(self.strategy, str) and self.strategy in TrainingTypePluginsRegistry:
@@ -373,7 +387,7 @@ class AcceleratorConnector:
         self._training_type_plugin = training_type
         self._precision_plugin = precision
         self._checkpoint_io = checkpoint
-        self._cluster_environment = cluster_environment or self.select_cluster_environment()
+        self._cluster_environment = cluster_environment
 
     @property
     def accelerator_types(self) -> List[str]:
@@ -465,16 +479,24 @@ class AcceleratorConnector:
         if self.devices is None:
             return False
         if accelerator == DeviceType.TPU and _TPU_AVAILABLE:
+            if self.devices == "auto":
+                self.devices = TPUAccelerator.auto_device_count()
             self.tpu_cores = device_parser.parse_tpu_cores(self.devices)
             return True
         if accelerator == DeviceType.IPU and _IPU_AVAILABLE:
+            if self.devices == "auto":
+                self.devices = IPUAccelerator.auto_device_count()
             self.ipus = self.devices
             return True
         if accelerator == DeviceType.GPU and torch.cuda.is_available():
+            if self.devices == "auto":
+                self.devices = GPUAccelerator.auto_device_count()
             self.gpus = self.devices
             self.parallel_device_ids = device_parser.parse_gpu_ids(self.devices)
             return True
         if accelerator == DeviceType.CPU:
+            if self.devices == "auto":
+                self.devices = CPUAccelerator.auto_device_count()
             if not isinstance(self.devices, int):
                 raise MisconfigurationException(
                     "The flag `devices` must be an int with `accelerator='cpu'`,"
@@ -639,16 +661,27 @@ class AcceleratorConnector:
             )
             self.precision = "bf16"
 
-        if self.precision == 16:
-            rank_zero_info(f"Using 16bit {self.amp_type.value} Automatic Mixed Precision (AMP)")
+        if self.precision in (16, "bf16"):
+            if self.precision == "bf16" and self.amp_type != AMPType.NATIVE:
+                raise MisconfigurationException(
+                    f"You passed `Trainer(amp_type={self.amp_type.value!r}, precision='bf16')` but it's not supported."
+                    " Try using `amp_type='native'` instead."
+                )
+
+            rank_zero_info(
+                f"Using 16bit {self.amp_type.value} Automatic Mixed Precision (AMP)"
+                if self.precision == 16
+                else "Using bfloat16 Automatic Mixed Precision (AMP)"
+            )
 
             if self.amp_type == AMPType.NATIVE:
-                if self._is_sharded_training_type:
-                    return ShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
-                if self._is_fully_sharded_training_type:
-                    return FullyShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+                device = "cpu" if self.use_cpu else "cuda"
 
-                return NativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+                if self._is_sharded_training_type:
+                    return ShardedNativeMixedPrecisionPlugin(self.precision, device)
+                if self._is_fully_sharded_training_type:
+                    return FullyShardedNativeMixedPrecisionPlugin(self.precision, device)
+                return NativeMixedPrecisionPlugin(self.precision, device)
 
             if self.amp_type == AMPType.APEX:
                 if self._is_sharded_training_type or self._is_fully_sharded_training_type:
@@ -657,19 +690,6 @@ class AcceleratorConnector:
                     )
                 self.amp_level = self.amp_level or "O2"
                 return ApexMixedPrecisionPlugin(self.amp_level)
-
-        if self.precision == "bf16":
-            if self.amp_type != AMPType.NATIVE:
-                raise MisconfigurationException(
-                    "You passed `Trainer(amp_type='apex', precision='bf16')` but it's not supported."
-                    " Try using `amp_type='native'` instead."
-                )
-            rank_zero_info("Using bfloat16 Automatic Mixed Precision (AMP)")
-            if self._is_sharded_training_type:
-                return ShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
-            if self._is_fully_sharded_training_type:
-                return FullyShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
-            return NativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
 
         raise RuntimeError("No precision set")
 
@@ -973,26 +993,6 @@ class AcceleratorConnector:
                 elif self.has_gpu:
                     self._device_type = DeviceType.GPU
 
-    @property
-    def is_slurm_managing_tasks(self) -> bool:
-        rank_zero_deprecation(
-            "`AcceleratorConnector.is_slurm_managing_tasks` was deprecated in v1.5 and will be removed in v1.6."
-        )
-        return self._is_slurm_managing_tasks
-
-    @is_slurm_managing_tasks.setter
-    def is_slurm_managing_tasks(self, value: bool) -> bool:
-        rank_zero_deprecation(
-            "`AcceleratorConnector.is_slurm_managing_tasks` was deprecated in v1.5 and will be removed in v1.6."
-        )
-        self._is_slurm_managing_tasks = value
-
-    def configure_slurm_ddp(self) -> None:
-        rank_zero_deprecation(
-            "`AcceleratorConnector.configure_slurm_ddp()` was deprecated in v1.5 and will be removed in v1.6."
-        )
-        self._configure_slurm_ddp()
-
     def _configure_slurm_ddp(self):
         # extract SLURM flag vars
         # whenever we have the correct number of tasks, we let slurm manage processes
@@ -1020,3 +1020,12 @@ class AcceleratorConnector:
         # notify user the that slurm is managing tasks
         if self._is_slurm_managing_tasks:
             rank_zero_info("Multi-processing is handled by Slurm.")
+
+    def _set_distrib_type_if_training_type_plugin_passed(self):
+        # This is required as when `TrainingTypePlugin` instance is passed to either `strategy`
+        # or `plugins` flag, `AcceleratorConnector.set_distributed_mode` is not required to be
+        # called and `_distrib_type` is not set.
+        if self._distrib_type is not None:
+            return
+        if self._training_type_plugin is not None:
+            self._distrib_type = getattr(self._training_type_plugin, "distributed_backend", None)
