@@ -28,10 +28,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Raise exception in `init_dist_connection()` when torch distibuted is not available ([#10418](https://github.com/PyTorchLightning/pytorch-lightning/issues/10418))
 
 
+- The `monitor` argument in the `EarlyStopping` callback is no longer optional ([#10328](https://github.com/PyTorchLightning/pytorch-lightning/pull/10328))
+
+
 - Do not fail if batch size could not be inferred for logging when using DeepSpeed ([#10438](https://github.com/PyTorchLightning/pytorch-lightning/issues/10438))
-
-
--
 
 
 -
@@ -63,6 +63,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated `TrainerModelHooksMixin.is_function_implemented` and `TrainerModelHooksMixin.has_arg` ([#10322](https://github.com/PyTorchLightning/pytorch-lightning/pull/10322))
 
 
+- Removed deprecated `pytorch_lightning.utilities.device_dtype_mixin.DeviceDtypeModuleMixin` in favor of `pytorch_lightning.core.mixins.device_dtype_mixin.DeviceDtypeModuleMixin` ([#10442](https://github.com/PyTorchLightning/pytorch-lightning/pull/10442))
+
+
 - Removed deprecated `LightningModule.loaded_optimizer_states_dict` property ([#10346](https://github.com/PyTorchLightning/pytorch-lightning/pull/10346))
 
 
@@ -87,10 +90,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated `LightningModule.log(tbptt_reduce_fx, tbptt_reduce_token, sync_dist_op)` ([#10423](https://github.com/PyTorchLightning/pytorch-lightning/pull/10423))
 
 
+- Removed deprecated `Plugin.task_idx` ([#10441](https://github.com/PyTorchLightning/pytorch-lightning/pull/10441))
+
+
 - Removed PyTorch 1.6 support ([#10367](https://github.com/PyTorchLightning/pytorch-lightning/pull/10367))
 
 
 - Removed deprecated method `master_params` from PrecisionPlugin ([#10372](https://github.com/PyTorchLightning/pytorch-lightning/pull/10372))
+
+
+- Removed the automatic detachment of "extras" returned from `training_step`. For example, `return {'loss': ..., 'foo': foo.detach()}` will now be necessary if `foo` has gradients which you do not want to store ([#10424](https://github.com/PyTorchLightning/pytorch-lightning/pull/10424))
 
 
 - Removed deprecated passthrough methods and properties from `Accelerator` base class ([#10403](https://github.com/PyTorchLightning/pytorch-lightning/pull/10403))
@@ -98,34 +107,30 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+
+- Fixed `CombinedLoader` and `max_size_cycle` didn't receive a `DistributedSampler` ([#10374](https://github.com/PyTorchLightning/pytorch-lightning/issues/10374))
+
+
+-
+
+
+-
+
+
+## [1.5.1] - 2021-11-09
+
+### Fixed
+
 - Fixed `apply_to_collection(defaultdict)` ([#10316](https://github.com/PyTorchLightning/pytorch-lightning/issues/10316))
-
-
-- Fixed interception of `__init__` arguments for sub-classed DataLoader re-instantiation in Lite ([#10334](https://github.com/PyTorchLightning/pytorch-lightning/issues/10334))
-
-
 - Fixed failure when `DataLoader(batch_size=None)` is passed ([#10345](https://github.com/PyTorchLightning/pytorch-lightning/issues/10345))
-
-
+- Fixed interception of `__init__` arguments for sub-classed DataLoader re-instantiation in Lite ([#10334](https://github.com/PyTorchLightning/pytorch-lightning/issues/10334))
 - Fixed issue with pickling `CSVLogger` after a call to `CSVLogger.save` ([#10388](https://github.com/PyTorchLightning/pytorch-lightning/pull/10388))
-
-
-- Fixed deadlocks for distributed training with `RichProgressBar` ([#10428](https://github.com/PyTorchLightning/pytorch-lightning/pull/10428))
-
-
+- Fixed an import error being caused by `PostLocalSGD` when `torch.distributed` not available ([#10359](https://github.com/PyTorchLightning/pytorch-lightning/pull/10359))
 - Fixed the logging with `on_step=True` in epoch-level hooks causing unintended side-effects. Logging with `on_step=True` in epoch-level hooks will now correctly raise an error ([#10409](https://github.com/PyTorchLightning/pytorch-lightning/pull/10409))
-
-
-- Fixed dataloader workers with `persistent_workers` being deleted on every iteration ([#10434](https://github.com/PyTorchLightning/pytorch-lightning/pull/10434))
-
-
+- Fixed deadlocks for distributed training with `RichProgressBar` ([#10428](https://github.com/PyTorchLightning/pytorch-lightning/pull/10428))
 - Fixed an issue where the model wrapper in Lite converted non-floating point tensors to float ([#10429](https://github.com/PyTorchLightning/pytorch-lightning/pull/10429))
-
-
--
-
-
--
+- Fixed an issue with inferring the dataset type in fault-tolerant training ([#10432](https://github.com/PyTorchLightning/pytorch-lightning/pull/10432))
+- Fixed dataloader workers with `persistent_workers` being deleted on every iteration ([#10434](https://github.com/PyTorchLightning/pytorch-lightning/pull/10434))
 
 
 ## [1.5.0] - 2021-11-02
