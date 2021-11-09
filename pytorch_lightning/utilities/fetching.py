@@ -206,14 +206,14 @@ class AbstractDataFetcher(ABC):
         self.batches: List = []
         self.fetched: int = 0
         self.done: bool = False
+
+    def teardown(self) -> None:
+        self.reset()
         if isinstance(self.dataloader, CombinedLoader):
             self.dataloader.reset()
         if isinstance(self.dataloader, DataLoader):
             CombinedLoader._shutdown_workers_and_reset_iterator(self.dataloader)
         self.dataloader_iter = None
-
-    def teardown(self) -> None:
-        self.reset()
 
 
 class DataFetcher(AbstractDataFetcher):
