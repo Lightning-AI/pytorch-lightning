@@ -382,7 +382,7 @@ def init_dist_connection(
     os.environ["MASTER_ADDR"] = cluster_environment.main_address
     os.environ["MASTER_PORT"] = str(cluster_environment.main_port)
     if not torch.distributed.is_available():
-        raise RuntimeError("Torch distributed is not avalible, can not initialized distributed process group")
+        raise RuntimeError("torch.distributed is not available. Cannot initialize distributed process group")
     if not torch.distributed.is_initialized():
         log.info(f"initializing distributed: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
         torch.distributed.init_process_group(
