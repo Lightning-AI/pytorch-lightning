@@ -18,7 +18,6 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.plugins.training_type import DDPPlugin
 from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.model_summary import ModelSummary
@@ -94,12 +93,6 @@ def test_v1_6_0_rank_zero_warnings_moved():
         rank_zero_warn("test")
     with pytest.deprecated_call(match="in v1.3.7 and will be removed in v1.6"):
         rank_zero_deprecation("test")
-
-
-def test_v1_6_0_ddp_plugin_task_idx():
-    plugin = DDPPlugin()
-    with pytest.deprecated_call(match="Use `DDPPlugin.local_rank` instead"):
-        _ = plugin.task_idx
 
 
 def test_v1_6_0_deprecated_model_summary_mode(tmpdir):

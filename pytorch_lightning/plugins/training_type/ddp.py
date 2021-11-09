@@ -47,7 +47,6 @@ from pytorch_lightning.utilities import (
     _TORCH_GREATER_EQUAL_1_8,
     _TORCH_GREATER_EQUAL_1_9,
     _TORCH_GREATER_EQUAL_1_10,
-    rank_zero_deprecation,
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.distributed import distributed_available
@@ -105,7 +104,6 @@ class DDPPlugin(ParallelPlugin):
         self.sync_batchnorm = False
         self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
         self._ddp_kwargs = kwargs
-        self._task_idx = None
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
@@ -134,18 +132,6 @@ class DDPPlugin(ParallelPlugin):
         self.set_world_ranks()
 
     @property
-    def task_idx(self) -> Optional[int]:
-        rank_zero_deprecation(
-            f"`{self.__class__.__name__}.task_idx` is deprecated in v1.4 and will be removed in v1.6. Use "
-            f"`{self.__class__.__name__}.local_rank` instead."
-        )
-        return self._task_idx
-
-    @task_idx.setter
-    def task_idx(self, task_idx: int) -> None:
-        self._task_idx = task_idx
-
-    @property
     def distributed_sampler_kwargs(self):
         distributed_sampler_kwargs = dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
         return distributed_sampler_kwargs
@@ -158,9 +144,6 @@ class DDPPlugin(ParallelPlugin):
         # start the other scripts
         if not self.cluster_environment.creates_processes_externally:
             self._call_children_scripts()
-
-        # set the task idx
-        self.task_idx = self.cluster_environment.local_rank()
 
         self.setup_distributed()
 
