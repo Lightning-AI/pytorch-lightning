@@ -70,20 +70,84 @@ repository:
   visibility: public
 
 # Labels: define labels for Issues and Pull Requests
-# FIXME
 labels:
-  - name: bug
-    color: CC0000
-    description: An issue with the system 🐛.
-
-  - name: feature
-    # If including a `#`, make sure to wrap it with quotes!
-    color: '#336699'
-    description: New functionality.
-
-  - name: Help Wanted
-    # Provide a new name to rename an existing label
-    new_name: first-timers-only
+  - name: "_admin"
+    color: "#C94E63"
+    description: "Requires admin privileges to merge"
+  - name: "0:] Ready-To-Go"
+    color: "#66ff00"
+    description: "issues/PRs prepared for final check"
+  - name: "3rd-party"
+    color: "#d2c4ff"
+    description: "integration / issue of 3rd-party lib"
+  - name: "API / design"
+    color: "#7b6bd3"
+  - name: "breaking change"
+    color: "#F01A04"
+  - name: "bug / fix"
+    color: "#d73a4a"
+    description: "Something isn't working"
+  - name: "callbacks"
+    color: "#006b75"
+  - name: "checkpoint"
+    color: "#80c0ce"
+    description: "checkpointing infrastructure"
+  - name: "CLI"
+    color: "#5319e7"
+    description: "argument parsing related (LightningCLI, argparse, Hydra, ...)"
+  - name: "data / DataModule"
+    color: "#d38a45"
+  - name: "DDP"
+    color: "#33cc77"
+    description: "distributed communication"
+  - name: "deepspeed"
+    color: "#F26D6F"
+  - name: "deprecation"
+    color: "#c2e0c6"
+  - name: "discussion"
+    color: "#f29579"
+    description: "Open discussion -> towards a conclusion"
+  - name: "documentation"
+    color: "#0075ca"
+    description: "Improvements or additions to documentation"
+  - name: "DP"
+    color: "#edfcab"
+    description: "data parallel plugin"
+  - name: "duplicate"
+    color: "#cfd3d7"
+    description: "This issue or pull request already exists"
+  - name: "enhancement"
+    color: "#a2eeef"
+    description: "New feature or request"
+  - name: "Epic"
+    color: "#DE46A5"
+  - name: "fault tolerance"
+    color: "#288CA7"
+  - name: "good first issue"
+    color: "#9108E7"
+    description: "Good for newcomers"
+  - name: "Hacktoberfest"
+    color: "#8604f7"
+  - name: "has conflicts"
+    color: "#42205D"
+  - name: "help wanted"
+    color: "#008672"
+    description: "Open to be worked on"
+  - name: "horovod"
+    color: "#EF5F08"
+  - name: "Important"
+    color: "#FFD700"
+    description: "High important task, global impact"
+  - name: "information needed"
+    color: "#730042"
+    description: "need more information about this"
+  - name: "IPU"
+    color: "#5971E5"
+  - name: "let's do it!"
+    color: "#12d1b1"
+    description: "approved to implement"
+  - name: "lite"
+    color: "#D73128"
 
 # Milestones: define milestones for Issues and Pull Requests
 milestones:
