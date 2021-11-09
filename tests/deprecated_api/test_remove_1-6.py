@@ -72,19 +72,6 @@ def test_v1_6_0_is_overridden_model():
         assert not is_overridden("foo", model=model)
 
 
-def test_v1_6_0_extras_with_gradients(tmpdir):
-    class TestModel(BoringModel):
-        def training_step(self, *args):
-            loss = super().training_step(*args)["loss"]
-            return {"loss": loss, "foo": loss}
-
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
-    model = TestModel()
-    match = r"\{'foo'\} has a `grad_fn`.*behaviour will change in v1\.6"
-    with pytest.deprecated_call(match=match):
-        trainer.fit(model)
-
-
 def test_v1_6_0_train_loop(tmpdir):
     trainer = Trainer()
     with pytest.deprecated_call(
