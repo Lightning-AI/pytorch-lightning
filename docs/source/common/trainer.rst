@@ -282,7 +282,7 @@ amp_backend
 
 |
 
-Use PyTorch AMP ('native') (available PyTorch 1.6+), or NVIDIA apex ('apex').
+Use PyTorch AMP ('native'), or NVIDIA apex ('apex').
 
 .. testcode::
 
@@ -1116,11 +1116,11 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 
 
     class MyCluster(ClusterEnvironment):
-        def master_address(self):
-            return your_master_address
+        def main_address(self):
+            return your_main_address
 
-        def master_port(self):
-            return your_master_port
+        def main_port(self):
+            return your_main_port
 
         def world_size(self):
             return the_world_size
@@ -1162,7 +1162,7 @@ precision
 
 |
 
-Lightning supports either double precision (64), full precision (32), or half precision (16) training.
+Lightning supports either double (64), float (32), bfloat16 (bf16), or half (16) precision training.
 
 Half precision, or mixed precision, is the combined use of 32 and 16 bit floating points to reduce memory footprint during model training. This can result in improved performance, achieving +3X speedups on modern GPUs.
 
@@ -1170,48 +1170,27 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
     :skipif: not torch.cuda.is_available()
 
     # default used by the Trainer
-    trainer = Trainer(precision=32, gpus=1)
+    trainer = Trainer(precision=32)
 
     # 16-bit precision
-    trainer = Trainer(precision=16, gpus=1)
+    trainer = Trainer(precision=16, gpus=1)  # works only on CUDA
+
+    # bfloat16 precision
+    trainer = Trainer(precision="bf16")
 
     # 64-bit precision
-    trainer = Trainer(precision=64, gpus=1)
+    trainer = Trainer(precision=64)
 
 
-.. note:: When running on TPUs, torch.float16 will be used but tensor printing will still show torch.float32.
+.. note:: When running on TPUs, torch.bfloat16 will be used but tensor printing will still show torch.float32.
 
-.. note:: 16-bit precision is not supported on CPUs.
+.. admonition::  If you are interested in using Apex 16-bit training:
+   :class: dropdown
 
-
-.. admonition::  When using PyTorch 1.6+, Lightning uses the native AMP implementation to support 16-bit precision. 16-bit precision with PyTorch < 1.6 is supported by NVIDIA Apex library.
-   :class: dropdown, warning
-
-    NVIDIA Apex and DDP have instability problems. We recommend upgrading to PyTorch 1.6+ in order to use the native AMP 16-bit precision with multiple GPUs.
-
-    If you are using an earlier version of PyTorch (before 1.6), Lightning uses `Apex <https://github.com/NVIDIA/apex>`_ to support 16-bit training.
-
+    NVIDIA Apex and DDP have instability problems. We recommend using the native AMP for 16-bit precision with multiple GPUs.
     To use Apex 16-bit training:
 
-    1. Install Apex
-
-    .. code-block:: bash
-
-        # ------------------------
-        # OPTIONAL: on your cluster you might need to load CUDA 10 or 9
-        # depending on how you installed PyTorch
-
-        # see available modules
-        module avail
-
-        # load correct CUDA before install
-        module load cuda-10.0
-        # ------------------------
-
-        # make sure you've loaded a GCC version > 4.0 and < 7.0
-        module load gcc-6.1.0
-
-        pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" https://github.com/NVIDIA/apex
+    1. `Install apex. <https://github.com/NVIDIA/apex#quick-start>`__
 
     2. Set the ``precision`` trainer flag to 16. You can customize the `Apex optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`_ by setting the `amp_level` flag.
 
@@ -1219,11 +1198,7 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
         :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
 
         # turn on 16-bit
-        trainer = Trainer(amp_backend="apex", amp_level="O2", precision=16)
-
-    If you need to configure the apex init for your particular use case, or want to customize the
-    16-bit training behaviour, override :meth:`pytorch_lightning.core.LightningModule.configure_apex`.
-
+        trainer = Trainer(amp_backend="apex", amp_level="O2", precision=16, gpus=1)
 
 
 process_position

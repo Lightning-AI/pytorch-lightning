@@ -32,12 +32,7 @@ from pytorch_lightning.plugins.environments.cluster_environment import ClusterEn
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import (
-    _TORCH_GREATER_EQUAL_1_7,
-    _TORCH_GREATER_EQUAL_1_8,
-    rank_zero_deprecation,
-    rank_zero_warn,
-)
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7, _TORCH_GREATER_EQUAL_1_8, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
@@ -69,10 +64,8 @@ class DDPSpawnPlugin(ParallelPlugin):
     def __init__(
         self,
         parallel_devices: Optional[List[torch.device]] = None,
-        num_nodes: Optional[int] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        sync_batchnorm: Optional[bool] = None,
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
@@ -83,18 +76,8 @@ class DDPSpawnPlugin(ParallelPlugin):
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
         )
-        if num_nodes is not None:
-            rank_zero_deprecation(
-                "Argument `num_nodes` in `DDPSpawnPlugin` is deprecated in v1.4, and will be removed in v1.6. "
-                "Notice that it will be overriden by the trainer setting."
-            )
-        self._num_nodes = num_nodes or 1
-        if sync_batchnorm is not None:
-            rank_zero_deprecation(
-                "Argument `sync_batchnorm` in `DDPSpawnPlugin` is deprecated in v1.4, and will be removed in v1.6. "
-                "Notice that it will be overriden by the trainer setting."
-            )
-        self._sync_batchnorm = sync_batchnorm or False
+        self._num_nodes = 1
+        self._sync_batchnorm = False
         self._ddp_kwargs = kwargs
         self.num_processes = len(parallel_devices) if parallel_devices is not None else 0
         self.mp_queue = None
@@ -149,7 +132,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         return True
 
     def setup(self) -> None:
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         # pass in a state q
         smp = mp.get_context("spawn")
         self.mp_queue = smp.SimpleQueue()
@@ -195,7 +178,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         Return:
             The output of the function of process 0.
         """
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         context = mp.get_context("spawn")
         return_queue = context.SimpleQueue() if return_result else None
         mp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), nprocs=self.num_processes)

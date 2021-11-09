@@ -41,10 +41,10 @@ from pytorch_lightning.plugins import (
 )
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities import DeviceType, DistributedType, move_data_to_device
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.data import has_iterable_dataset
+from pytorch_lightning.utilities.device_parser import _parse_devices
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
 
@@ -86,7 +86,7 @@ class LightningLite(ABC):
     ) -> None:
         self._check_accelerator_support(accelerator)
         self._check_strategy_support(strategy)
-        gpu_ids, tpu_cores = Trainer._parse_devices(gpus=gpus, auto_select_gpus=False, tpu_cores=tpu_cores)
+        gpu_ids, tpu_cores = _parse_devices(gpus=gpus, auto_select_gpus=False, tpu_cores=tpu_cores)
         self._accelerator_connector = AcceleratorConnector(
             num_processes=1,
             devices=devices,
@@ -238,18 +238,15 @@ class LightningLite(ABC):
                 )
             sampler = self._get_distributed_sampler(dataloader, **self._strategy.distributed_sampler_kwargs)
 
-        dataloader_kwargs = TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler)
-        try:
-            dataloader = type(dataloader)(**dataloader_kwargs)
-        except TypeError:
-            dataloader_kwargs.pop("dataset")
-            dataloader = type(dataloader)(**dataloader_kwargs)
+        # the dataloader needs to be re-instantiated because we want to update the input arguments (e.g., sampler)
+        dataloader = TrainerDataLoadingMixin._update_dataloader(dataloader, sampler)
+
         # add worker_init_fn for correct seeding in worker processes
         TrainerDataLoadingMixin._auto_add_worker_init_fn(dataloader, self.global_rank)
-        return _LiteDataLoader(
-            dataloader=self._strategy.process_dataloader(dataloader),
-            device=self.device if move_to_device and not isinstance(self._strategy, TPUSpawnPlugin) else None,
-        )
+
+        dataloader = self._strategy.process_dataloader(dataloader)
+        device = self.device if move_to_device and not isinstance(self._strategy, TPUSpawnPlugin) else None
+        return _LiteDataLoader(dataloader=dataloader, device=device)
 
     def backward(self, tensor: Tensor, *args: Any, model: Optional[_LiteModule] = None, **kwargs: Any) -> None:
         """Replaces ``loss.backward()`` in your training loop. Handles precision and automatically for you.

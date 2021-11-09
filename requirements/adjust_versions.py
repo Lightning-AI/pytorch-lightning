@@ -32,28 +32,59 @@ def find_latest(ver: str) -> Dict[str, str]:
     raise ValueError(f"Missing {ver} in {VERSIONS}")
 
 
-def main(path_req: str, torch_version: Optional[str] = None) -> None:
+def main(req: str, torch_version: Optional[str] = None) -> str:
     if not torch_version:
         import torch
 
         torch_version = torch.__version__
     assert torch_version, f"invalid torch: {torch_version}"
 
-    with open(path_req) as fp:
-        req = fp.read()
-    # remove comments
-    req = re.sub(rf"\s*#.*{os.linesep}", os.linesep, req)
+    # remove comments and strip whitespace
+    req = re.sub(rf"\s*#.*{os.linesep}", os.linesep, req).strip()
 
     latest = find_latest(torch_version)
     for lib, version in latest.items():
-        replace = f"{lib}=={version}" if version else lib
-        replace += os.linesep
-        req = re.sub(rf"{lib}[>=]*[\d\.]*{os.linesep}", replace, req)
+        replace = f"{lib}=={version}" if version else ""
+        req = re.sub(rf"\b{lib}(?!\w).*", replace, req)
 
-    print(req)  # on purpose - to debug
-    with open(path_req, "w") as fp:
-        fp.write(req)
+    return req
+
+
+def test():
+    requirements = """
+    torch>=1.2.*
+    torch==1.2.3
+    torch==1.4
+    torch
+    future>=0.17.1
+    pytorch==1.5.6+123dev0
+    torchvision
+    torchmetrics>=0.4.1
+    """
+    expected = """
+    torch==1.9.1
+    torch==1.9.1
+    torch==1.9.1
+    torch==1.9.1
+    future>=0.17.1
+    pytorch==1.5.6+123dev0
+    torchvision==0.10.1
+    torchmetrics>=0.4.1
+    """.strip()
+    actual = main(requirements, "1.9")
+    assert actual == expected, (actual, expected)
 
 
 if __name__ == "__main__":
-    main(*sys.argv[1:])
+    test()  # sanity check
+
+    if len(sys.argv) == 3:
+        requirements_path, torch_version = sys.argv[1:]
+    else:
+        requirements_path, torch_version = sys.argv[1], None
+
+    with open(requirements_path, "r+") as fp:
+        requirements = fp.read()
+        requirements = main(requirements, torch_version)
+        print(requirements)  # on purpose - to debug
+        fp.write(requirements)

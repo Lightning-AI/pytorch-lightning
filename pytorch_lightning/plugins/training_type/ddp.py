@@ -63,11 +63,6 @@ from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, Mi
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
-if _TORCH_GREATER_EQUAL_1_10:
-    if not _IS_WINDOWS:
-        from torch.distributed.optim import DistributedOptimizer
-    from torch.distributed.optim import PostLocalSGDOptimizer, ZeroRedundancyOptimizer
-
 if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
 if _HYDRA_AVAILABLE:
@@ -75,9 +70,7 @@ if _HYDRA_AVAILABLE:
     from hydra.utils import get_original_cwd, to_absolute_path
 if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
-if _TORCH_GREATER_EQUAL_1_10:
-    import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
-    import torch.distributed.algorithms.model_averaging.averagers as averagers
+
 
 log = logging.getLogger(__name__)
 
@@ -85,7 +78,7 @@ log = logging.getLogger(__name__)
 class DDPPlugin(ParallelPlugin):
     """Plugin for multi-process single-device training on one or multiple nodes.
 
-    The master process in each node spawns N-1 child processes via :func:`subprocess.Popen`, where N is the number of
+    The main process in each node spawns N-1 child processes via :func:`subprocess.Popen`, where N is the number of
     devices (e.g. GPU) per node. It is very similar to how :mod:`torch.distributed.launch` launches processes.
     """
 
@@ -94,10 +87,8 @@ class DDPPlugin(ParallelPlugin):
     def __init__(
         self,
         parallel_devices: Optional[List[torch.device]] = None,
-        num_nodes: Optional[int] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        sync_batchnorm: Optional[bool] = None,
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
@@ -110,18 +101,8 @@ class DDPPlugin(ParallelPlugin):
             checkpoint_io=checkpoint_io,
         )
         self.interactive_ddp_procs = []
-        if num_nodes is not None:
-            rank_zero_deprecation(
-                "Argument `num_nodes` in `DDPPlugin` is deprecated in v1.4, and will be removed in v1.6."
-                " Notice that it will be overriden by the trainer setting."
-            )
-        self._num_nodes = num_nodes or 1
-        if sync_batchnorm is not None:
-            rank_zero_deprecation(
-                "Argument `sync_batchnorm` in `DDPPlugin` is deprecated in v1.4, and will be removed in v1.6."
-                " Notice that it will be overriden by the trainer setting."
-            )
-        self._sync_batchnorm = sync_batchnorm or False
+        self._num_nodes = 1
+        self._sync_batchnorm = False
         self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
         self._ddp_kwargs = kwargs
         self._task_idx = None
@@ -200,8 +181,8 @@ class DDPPlugin(ParallelPlugin):
         self._check_can_spawn_children()
 
         # DDP Environment variables
-        os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
+        os.environ["MASTER_ADDR"] = self.cluster_environment.main_address
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
 
         # allow the user to pass the node rank
         os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
@@ -324,12 +305,11 @@ class DDPPlugin(ParallelPlugin):
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
 
-            if (
-                _TORCH_GREATER_EQUAL_1_10
-                and isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState)
-                and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
-            ):
-                self._reinit_optimizers_with_post_localSGD(self._ddp_comm_state.start_localSGD_iter)
+            if _TORCH_GREATER_EQUAL_1_10 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
+                import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
+
+                if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
+                    self._reinit_optimizers_with_post_localSGD(self._ddp_comm_state.start_localSGD_iter)
 
     def _reinit_optimizers_with_post_localSGD(self, warmup_steps: int):
         optimizers = self.lightning_module.trainer.optimizers
@@ -337,6 +317,12 @@ class DDPPlugin(ParallelPlugin):
             raise ValueError(
                 "Post-localSGD algorithm is used, but model averaging period is not provided to DDP plugin."
             )
+        if _TORCH_GREATER_EQUAL_1_10:
+            if not _IS_WINDOWS:
+                from torch.distributed.optim import DistributedOptimizer
+            import torch.distributed.algorithms.model_averaging.averagers as averagers
+            from torch.distributed.optim import PostLocalSGDOptimizer, ZeroRedundancyOptimizer
+
         averager = averagers.PeriodicModelAverager(period=self._model_averaging_period, warmup_steps=warmup_steps)
         for x, optimizer in enumerate(optimizers):
             if isinstance(optimizer, LightningOptimizer):

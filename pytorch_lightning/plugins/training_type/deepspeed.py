@@ -116,7 +116,6 @@ class DeepSpeedPlugin(DDPPlugin):
         logging_batch_size_per_gpu: Union[str, int] = "auto",
         config: Optional[Union[Path, str, dict]] = None,
         logging_level: int = logging.WARN,
-        num_nodes: Optional[int] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         loss_scale: float = 0,
@@ -273,7 +272,6 @@ class DeepSpeedPlugin(DDPPlugin):
 
         super().__init__(
             parallel_devices=parallel_devices,
-            num_nodes=num_nodes,
             cluster_environment=cluster_environment,
         )
 
@@ -378,13 +376,11 @@ class DeepSpeedPlugin(DDPPlugin):
                 f"GLOBAL_RANK: {self.global_rank}, "
                 f"MEMBER: {self.global_rank + 1}/{self.world_size}"
             )
-        deepspeed.init_distributed(
-            self.torch_distributed_backend, distributed_port=self.cluster_environment.master_port()
-        )
+        deepspeed.init_distributed(self.torch_distributed_backend, distributed_port=self.cluster_environment.main_port)
 
     def _set_node_environment_variables(self) -> None:
-        os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
+        os.environ["MASTER_ADDR"] = self.cluster_environment.main_address
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         os.environ["RANK"] = str(self.global_rank)
         os.environ["WORLD_SIZE"] = str(self.world_size)
         os.environ["LOCAL_RANK"] = str(self.local_rank)
