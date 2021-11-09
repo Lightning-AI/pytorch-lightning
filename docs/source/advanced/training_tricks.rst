@@ -70,28 +70,6 @@ read `this post <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-we
     # alternatively, if you need to pass custom arguments
     trainer = Trainer(callbacks=[StochasticWeightAveraging(...)])
 
-By default, the averaged weights are not used during validation.
-If you wish to use SWA in conjunction with the :class:`~pytorch_lightning.callbacks.ModelCheckpoint` callback
-for selecting the best performing model during validation,
-you will need to set the ``swa_validation`` parameter.
-When loading the model checkpoint, the model weights are initially the non-averaged weights,
-but can be replaced with the SWA weights using the
-:meth:`~pytorch_lightning.callbacks.StochasticWeightAveraging.restore_average_parameters_from_checkpoint` method.
-
-.. code-block:: python
-
-    swa_callback = StochasticWeightAveraging(swa_validation=True)
-    checkpoint_callback = ModelCheckpoint(monitor="val_loss")
-
-    trainer = Trainer(callbacks=[swa_callback, checkpoint_callback])
-    trainer.fit(model)
-
-    checkpoint_path = checkpoint_callback.best_model_path
-    best_model = MyModel.load_from_checkpoint(checkpoint_path=checkpoint_path)
-    StochasticWeightAveraging.restore_average_parameters_from_checkpoint(best_model, checkpoint_path)
-
-.. seealso:: The :doc:`Saving and Loading Weights <../common/weights_loading>` documentation
-
 ----------
 
 Auto scaling of batch size

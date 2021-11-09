@@ -193,7 +193,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added `strategy` argument to Trainer ([#8597](https://github.com/PyTorchLightning/pytorch-lightning/pull/8597))
 
-- Added support for using the Stochastic Weight Averaging (SWA) weights during validation and resuming from a checkpoint when using SWA ([#9938](https://github.com/PyTorchLightning/pytorch-lightning/pull/9938))
+- Added support for resuming from a checkpoint when using Stochastic Weight Averaging (SWA) ([#9938](https://github.com/PyTorchLightning/pytorch-lightning/pull/9938))
 
 
 ### Changed

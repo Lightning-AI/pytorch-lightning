@@ -24,8 +24,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.accelerators import Accelerator
-from pytorch_lightning.callbacks import ModelCheckpoint, StochasticWeightAveraging
-from pytorch_lightning.core.datamodule import LightningDataModule
+from pytorch_lightning.callbacks import StochasticWeightAveraging
 from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -54,21 +53,12 @@ class SwaTestModel(BoringModel):
         loss = self.loss(batch, output)
         return {"loss": loss}
 
-    def validation_step(self, batch, batch_idx):
-        output = self.forward(batch)
-        loss = self.loss(batch, output)
-        self.log("val_loss", loss)
-        return {"x": loss}
-
     def train_dataloader(self):
 
         dset_cls = RandomIterableDataset if self.iterable_dataset else RandomDataset
         dset = dset_cls(32, 64)
 
         return DataLoader(dset, batch_size=2)
-
-    def val_dataloader(self):
-        return self.train_dataloader()
 
     def configure_optimizers(self):
         optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -97,7 +87,6 @@ class SwaTestCallback(StochasticWeightAveraging):
             self.resuming_from_epoch = 0
         super().__init__(*args, **kwargs)
 
-    validation_calls: int = 0
     update_parameters_calls: int = 0
     transfer_weights_calls: int = 0
 
@@ -105,16 +94,13 @@ class SwaTestCallback(StochasticWeightAveraging):
         self.update_parameters_calls += 1
         return StochasticWeightAveraging.update_parameters(*args, **kwargs)
 
-    def on_validation_start(self, *args, **kwargs):
-        self.validation_calls += 1
-        return super().on_validation_start(*args, **kwargs)
-
     def transfer_weights(self, *args, **kwargs):
         self.transfer_weights_calls += 1
         return StochasticWeightAveraging.transfer_weights(*args, **kwargs)
 
     def on_train_epoch_start(self, trainer, *args):
         super().on_train_epoch_start(trainer, *args)
+        assert trainer.fit_loop._skip_backward == (trainer.current_epoch > self.swa_end)
         if self.swa_start <= trainer.current_epoch:
             assert isinstance(trainer.lr_schedulers[0]["scheduler"], SWALR)
             assert trainer.lr_schedulers[0]["interval"] == "epoch"
@@ -134,6 +120,11 @@ class SwaTestCallback(StochasticWeightAveraging):
     def on_train_end(self, trainer, pl_module):
         super().on_train_end(trainer, pl_module)
 
+        # make sure these are correctly set again
+        assert not trainer.fit_loop._skip_backward
+        assert trainer.accumulate_grad_batches == 2
+        assert trainer.num_training_batches == 5
+
         if not isinstance(trainer.training_type_plugin, DDPSpawnPlugin):
             # check backward call count. the batchnorm update epoch should not backward
             assert trainer.accelerator.backward.call_count == (
@@ -146,47 +137,16 @@ class SwaTestCallback(StochasticWeightAveraging):
         else:
             expected_update_calls = trainer.max_epochs - (self._swa_epoch_start - 1)
         assert self.update_parameters_calls == expected_update_calls
-        if self._swa_validation:
-            # 3 weight transfers are needed per SWA validation step
-            assert self.transfer_weights_calls == (self.validation_calls - self.swa_start) * 3 + 1
-        else:
-            assert self.transfer_weights_calls == 1
-
-
-class SwaTestDataModule(LightningDataModule):
-    """Shim data module that just wraps a model."""
-
-    def __init__(self, model: LightningModule):
-        super().__init__()
-        self._model = model
-
-    def train_dataloader(self):
-        return self._model.train_dataloader()
-
-    def test_dataloader(self):
-        return self._model.test_dataloader()
-
-    def predict_dataloader(self):
-        return self._model.predict_dataloader()
-
-    def val_dataloader(self):
-        return self._model.val_dataloader()
+        assert self.transfer_weights_calls == 1
 
 
 def train_with_swa(
-    tmpdir,
-    batchnorm=True,
-    strategy=None,
-    gpus=None,
-    num_processes=1,
-    interval="epoch",
-    iterable_dataset=False,
-    validation=False,
+    tmpdir, batchnorm=True, strategy=None, gpus=None, num_processes=1, interval="epoch", iterable_dataset=False
 ):
     model = SwaTestModel(batchnorm=batchnorm, interval=interval, iterable_dataset=iterable_dataset)
     swa_start = 2
     max_epochs = 5
-    swa_callback = SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1, swa_validation=validation)
+    swa_callback = SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1)
     assert swa_callback.update_parameters_calls == 0
     assert swa_callback.transfer_weights_calls == 0
 
@@ -195,8 +155,7 @@ def train_with_swa(
         enable_progress_bar=False,
         max_epochs=max_epochs,
         limit_train_batches=5,
-        limit_val_batches=5 if validation else 0,
-        num_sanity_val_steps=0,
+        limit_val_batches=0,
         callbacks=[swa_callback],
         accumulate_grad_batches=2,
         strategy=strategy,
@@ -233,9 +192,8 @@ def test_swa_callback_1_gpu(tmpdir):
 
 @pytest.mark.parametrize("batchnorm", (True, False))
 @pytest.mark.parametrize("iterable_dataset", (True, False))
-@pytest.mark.parametrize("validation", (True, False))
-def test_swa_callback(tmpdir, batchnorm: bool, iterable_dataset: bool, validation: bool):
-    train_with_swa(tmpdir, batchnorm=batchnorm, iterable_dataset=iterable_dataset, validation=validation)
+def test_swa_callback(tmpdir, batchnorm: bool, iterable_dataset: bool):
+    train_with_swa(tmpdir, batchnorm=batchnorm, iterable_dataset=iterable_dataset)
 
 
 @pytest.mark.parametrize("interval", ("epoch", "step"))
@@ -390,45 +348,3 @@ def test_swa_resume_training_from_checkpoint(tmpdir):
 
     with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward):
         trainer.fit(model)
-
-
-@pytest.mark.parametrize("batchnorm", (True, False))
-@pytest.mark.parametrize("within_swa_epochs", (True, False))
-@pytest.mark.parametrize("use_datamodule", (True, False))
-def test_swa_load_best_checkpoint(tmpdir, batchnorm: bool, within_swa_epochs: bool, use_datamodule: bool):
-    model = SwaTestModel(batchnorm=batchnorm)
-    if within_swa_epochs:
-        # Start at epoch 1 so we can guarantee the best checkpoint should be saved with SWA weights
-        swa_start = 1
-    else:
-        # Start after the last epoch, so we never save a checkpoint with SWA parameters
-        swa_start = 6
-    max_epochs = 5
-
-    swa_callback = SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1, swa_validation=True)
-    checkpoint_callback = ModelCheckpoint(monitor="val_loss", save_top_k=3, mode="min")
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=max_epochs,
-        limit_train_batches=5,
-        limit_val_batches=5,
-        num_sanity_val_steps=0,
-        callbacks=[swa_callback, checkpoint_callback],
-        accumulate_grad_batches=2,
-        num_processes=1,
-    )
-
-    with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward):
-        trainer.fit(model)
-
-    datamodule = SwaTestDataModule(model) if use_datamodule else None
-
-    checkpoint_path = checkpoint_callback.best_model_path
-    new_model = SwaTestModel.load_from_checkpoint(checkpoint_path)
-    parameters_loaded = SwaTestCallback.restore_average_parameters_from_checkpoint(
-        new_model, checkpoint_path, datamodule=datamodule
-    )
-
-    assert parameters_loaded == within_swa_epochs

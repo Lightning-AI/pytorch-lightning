@@ -16,20 +16,16 @@ Stochastic Weight Averaging Callback
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 """
 from copy import deepcopy
-from typing import Any, Callable, Dict, IO, List, Optional, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 from torch import nn
 from torch.optim.swa_utils import SWALR
-from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
-from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
-from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 _AVG_FN = Callable[[torch.Tensor, torch.Tensor, torch.LongTensor], torch.FloatTensor]
@@ -44,7 +40,6 @@ class StochasticWeightAveraging(Callback):
         annealing_strategy: str = "cos",
         avg_fn: Optional[_AVG_FN] = None,
         device: Optional[Union[torch.device, str]] = torch.device("cpu"),
-        swa_validation: bool = False,
     ):
         r"""
 
@@ -98,9 +93,6 @@ class StochasticWeightAveraging(Callback):
                 When None is provided, it will infer the `device` from ``pl_module``.
                 (default: ``"cpu"``)
 
-            swa_validation: if True, then the averaged model weights are used during validation
-                (default: ``False``)
-
         """
 
         err_msg = "swa_epoch_start should be a >0 integer or a float between 0 and 1."
@@ -129,15 +121,13 @@ class StochasticWeightAveraging(Callback):
         self._annealing_epochs = annealing_epochs
         self._annealing_strategy = annealing_strategy
         self._avg_fn = avg_fn or self.avg_fn
-        self._swa_validation = swa_validation
         self._device = device
         self._model_contains_batch_norm = None
         self._average_model = None
-        self._temp_model = None
         self._initialized = False
         self._swa_scheduler = None
-        self._batch_norm_moments = None
         self._scheduler_step_count = None
+        self.momenta = None
 
     @property
     def swa_start(self) -> int:
@@ -155,9 +145,6 @@ class StochasticWeightAveraging(Callback):
         # copy the model before moving it to accelerator device.
         with pl_module._prevent_trainer_and_dataloaders_deepcopy():
             self._average_model = deepcopy(pl_module)
-            if self._swa_validation:
-                # Also create a model for temporarily copying weights to during validation
-                self._temp_model = deepcopy(pl_module)
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
         optimizers = trainer.optimizers
@@ -175,6 +162,9 @@ class StochasticWeightAveraging(Callback):
         self._model_contains_batch_norm = self.pl_module_contains_batch_norm(pl_module)
 
         self._max_epochs = trainer.max_epochs
+        if self._model_contains_batch_norm:
+            # virtually increase max_epochs to perform batch norm update on latest epoch.
+            trainer.fit_loop.max_epochs += 1
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
         resuming_after_start = (not self._initialized) and (self.swa_start < trainer.current_epoch <= self.swa_end)
@@ -183,8 +173,6 @@ class StochasticWeightAveraging(Callback):
 
             # move average model to request device.
             self._average_model = self._average_model.to(self._device or pl_module.device)
-            if self._temp_model:
-                self._temp_model = self._temp_model.to(self._device or pl_module.device)
 
             optimizer = trainer.optimizers[0]
             if self._swa_lrs is None:
@@ -227,91 +215,62 @@ class StochasticWeightAveraging(Callback):
         if self.swa_start <= trainer.current_epoch <= self.swa_end:
             self.update_parameters(self._average_model, pl_module, self.n_averaged, self.avg_fn)
 
+        # Note: No > here in case the callback is saved with the model and training continues
+        if trainer.current_epoch == self.swa_end + 1:
+            # Transfer weights from average model to pl_module
+            self.transfer_weights(self._average_model, pl_module)
+
+            # Reset BatchNorm for update
+            self.reset_batch_norm_and_save_state(pl_module)
+
+            # There is no need to perform either backward or optimizer.step as we are
+            # performing only one pass over the train data-loader to compute activation statistics
+            # Therefore, we will virtually increase `num_training_batches` by 1 and skip backward.
+            trainer.num_training_batches += 1
+            trainer.fit_loop._skip_backward = True
+            self._accumulate_grad_batches = trainer.accumulate_grad_batches
+
+            trainer.accumulate_grad_batches = trainer.num_training_batches
+
+    def on_train_epoch_end(self, trainer: "pl.Trainer", *args):
+        trainer.fit_loop._skip_backward = False
+
     def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
-        if trainer.current_epoch == self.swa_end:
+        if self._model_contains_batch_norm and trainer.current_epoch == self.swa_end + 1:
+            # BatchNorm epoch update. Reset state
+            trainer.accumulate_grad_batches = self._accumulate_grad_batches
+            trainer.num_training_batches -= 1
+            trainer.fit_loop.max_epochs -= 1
+            self.reset_momenta()
+        elif trainer.current_epoch == self.swa_end:
             # Last SWA epoch. Transfer weights from average model to pl_module
             self.transfer_weights(self._average_model, pl_module)
-            if self._model_contains_batch_norm:
-                self._update_batch_norm_moments(trainer, pl_module, store_moments=False)
-
-    def on_validation_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if self._swa_validation and (self.swa_start <= trainer.current_epoch <= self.swa_end):
-            # Take a temporary copy of the model parameters
-            self.transfer_weights(pl_module, self._temp_model)
-            # Update the model with the averaged parameters
-            self.transfer_weights(self._average_model, pl_module)
-            if self._model_contains_batch_norm:
-                self._update_batch_norm_moments(trainer, pl_module)
-
-    def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if self._swa_validation and (self.swa_start <= trainer.current_epoch <= self.swa_end):
-            # Copy original model parameters back
-            self.transfer_weights(self._temp_model, pl_module)
-            if self._model_contains_batch_norm:
-                self._restore_batch_norm_moments()
 
     @staticmethod
     def transfer_weights(src_pl_module: "pl.LightningModule", dst_pl_module: "pl.LightningModule"):
         for src_param, dst_param in zip(src_pl_module.parameters(), dst_pl_module.parameters()):
             dst_param.detach().copy_(src_param.to(dst_param.device))
 
-    def _update_batch_norm_moments(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", store_moments: bool = True
-    ):
-        self._batch_norm_moments = {}
-
-        train_dataloader = trainer.train_dataloader
-        if train_dataloader is None:
-            # Training data not yet connected, could be in a validation sanity check
-            return
-
-        self._update_module_batch_norm_moments(
-            train_dataloader, pl_module, self._batch_norm_moments if store_moments else None
-        )
-
-    @staticmethod
-    def _update_module_batch_norm_moments(
-        data_loader: Union[DataLoader, CombinedLoader],
-        pl_module: "pl.LightningModule",
-        moment_cache: Optional[Dict[nn.Module, Any]] = None,
-    ):
-        """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L140-L166."""
-        prev_momenta = {}
-
-        was_training = pl_module.training
-        pl_module.train()
-
+    def reset_batch_norm_and_save_state(self, pl_module: "pl.LightningModule"):
+        """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L140-L154."""
+        self.momenta = {}
         for module in pl_module.modules():
             if not isinstance(module, nn.modules.batchnorm._BatchNorm):
                 continue
-            prev_momenta[module] = module.momentum
-            if moment_cache is not None:
-                moment_cache[module] = (module.running_mean, module.running_var)
             module.running_mean = torch.zeros_like(
                 module.running_mean, device=pl_module.device, dtype=module.running_mean.dtype
             )
             module.running_var = torch.ones_like(
                 module.running_var, device=pl_module.device, dtype=module.running_var.dtype
             )
+            self.momenta[module] = module.momentum
             module.momentum = None
             module.num_batches_tracked *= 0
 
-        # Recompute mean and variance for all batch norm layers by doing a full pass over the training data
-        for batch in data_loader:
-            if isinstance(batch, (list, tuple)):
-                batch = batch[0]
-            batch = batch.to(pl_module.device)
-            pl_module(batch)
-
-        # Reset model state
-        for bn_module, momenta in prev_momenta.items():
-            bn_module.momentum = momenta
-        pl_module.train(was_training)
-
-    def _restore_batch_norm_moments(self):
-        for bn_module, (mean, variance) in self._batch_norm_moments.items():
-            bn_module.running_mean = mean
-            bn_module.running_var = variance
+    def reset_momenta(self):
+        """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L164-L165."""
+        for bn_module in self.momenta:
+            bn_module.momentum = self.momenta[bn_module]
 
     @staticmethod
     def update_parameters(
@@ -360,72 +319,6 @@ class StochasticWeightAveraging(Callback):
             rank_zero_warn(
                 f"Checkpoint has no data for the {self.state_key} callback, not initializing the callback state."
             )
-
-    @classmethod
-    def restore_average_parameters_from_checkpoint(
-        cls,
-        pl_module: "pl.LightningModule",
-        checkpoint_path: Union[str, IO],
-        map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
-        datamodule: Optional[LightningDataModule] = None,
-    ) -> bool:
-        r"""
-        Set model weights to the SWA averaged weights saved in a checkpoint.
-
-        When loading a model that was trained using SWA from a checkpoint,
-        the loaded weights will not be the SWA averaged weights, so this method is required if you
-        wish to use SWA in conjunction with the :class:`~pytorch_lightning.callbacks.ModelCheckpoint`
-        callback to select the best performing model during validation for example.
-
-        Arguments:
-            pl_module: The module to set weights on
-
-            checkpoint_path: Path to checkpoint. This can also be a URL, or file-like object
-
-            map_location: If your checkpoint saved a GPU model and you now load on CPUs
-                or a different number of GPUs, use this to map to the new setup.
-                The behaviour is the same as in :func:`torch.load`.
-
-            datamodule: If the module uses batch normalization and does not implement the ``train_dataloder`` method,
-                a data module must be provided in order to allow recomputing the batch normalization parameters after
-                loading the SWA weights.
-
-        Return:
-            Whether averaged weights were loaded. If ``False``, this means the checkpoint is
-            from an epoch before the SWA epoch start.
-        """
-        if map_location is not None:
-            checkpoint = pl_load(checkpoint_path, map_location=map_location)
-        else:
-            checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
-        callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
-        if not callback_states:
-            raise ValueError("callback states are not present in the checkpoint")
-
-        state_key = cls.__qualname__  # Default state key defined in Callback base class
-        state = callback_states.get(state_key)
-        if not state:
-            raise ValueError(f"no {state_key} state found in the checkpoint")
-        state = deepcopy(state)
-        average_model_parameters = state["average_model_parameters"]
-
-        if not average_model_parameters:
-            return False
-
-        for p_model, p_swa in zip(pl_module.parameters(), average_model_parameters):
-            device = p_model.device
-            p_swa_ = p_swa.detach().to(device)
-            p_model.detach().copy_(p_swa_)
-
-        if cls.pl_module_contains_batch_norm(pl_module):
-            if datamodule is not None:
-                train_dataloaders = datamodule.train_dataloader()
-            else:
-                train_dataloaders = pl_module.train_dataloader()
-            train_dataloaders = CombinedLoader(train_dataloaders, mode="max_size_cycle")
-            cls._update_module_batch_norm_moments(train_dataloaders, pl_module)
-
-        return True
 
     def _get_average_model_parameters(self, trainer: "pl.Trainer") -> Any:
         if self._average_model is None or not (self.swa_start <= trainer.current_epoch <= self.swa_end):
