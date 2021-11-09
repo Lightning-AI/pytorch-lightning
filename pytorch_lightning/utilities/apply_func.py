@@ -131,18 +131,17 @@ def apply_to_collection(
         result = deepcopy(data, memo=memo)
         # apply function to each field
         for field_name, (field_value, field_init) in fields.items():
-            if not field_init:
-                continue
-            v = apply_to_collection(
-                field_value,
-                dtype,
-                function,
-                *args,
-                wrong_dtype=wrong_dtype,
-                include_none=include_none,
-                **kwargs,
-            )
-            if not include_none and v is None:  # retain old value
+            if field_init:
+                v = apply_to_collection(
+                    field_value,
+                    dtype,
+                    function,
+                    *args,
+                    wrong_dtype=wrong_dtype,
+                    include_none=include_none,
+                    **kwargs,
+                )
+            if not field_init or (not include_none and v is None):  # retain old value
                 v = getattr(data, field_name)
             setattr(result, field_name, v)
         return result
