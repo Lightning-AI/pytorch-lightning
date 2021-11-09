@@ -462,7 +462,9 @@ class DeepSpeedPlugin(DDPPlugin):
         if self.zero_stage_3 and self.partition_module:
             # Ensure the entire model has been moved to the appropriate device
             dtype = torch.float16 if self.precision in (16, "mixed") else torch.float32
-            deepspeed.zero.Init(module=model, pin_memory=True, config=self.config, dtype=dtype)
+            deepspeed.zero.Init(
+                module=model, remote_device=self.remote_device, pin_memory=True, config=self.config, dtype=dtype
+            )
 
         if self.lightning_module.trainer and self.lightning_module.trainer.training:
             self._initialize_deepspeed_train(model)
