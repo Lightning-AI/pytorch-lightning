@@ -305,12 +305,9 @@ class LightningModule(
         logger: bool = True,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
-        reduce_fx: Union[str, Callable] = "default",  # TODO: change to 'mean' when `sync_dist_op` is removed in 1.6
-        tbptt_reduce_fx: Optional = None,  # todo: Remove in 1.6
-        tbptt_pad_token: Optional = None,  # todo: Remove in 1.6
+        reduce_fx: Union[str, Callable] = "mean",
         enable_graph: bool = False,
         sync_dist: bool = False,
-        sync_dist_op: Optional = None,  # todo: Remove in 1.6
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
         batch_size: Optional[int] = None,
@@ -358,28 +355,6 @@ class LightningModule(
             rank_zero_only: Whether the value will be logged only on rank 0. This will prevent synchronization which
                 would produce a deadlock as not all processes would perform this log call.
         """
-        if tbptt_reduce_fx is not None:
-            rank_zero_deprecation(
-                "`self.log(tbptt_reduce_fx=...)` is no longer supported. The flag will be removed in v1.6."
-                " Please, open a discussion explaining your use-case in"
-                " `https://github.com/PyTorchLightning/pytorch-lightning/discussions`"
-            )
-        if tbptt_pad_token is not None:
-            rank_zero_deprecation(
-                "`self.log(tbptt_pad_token=...)` is no longer supported. The flag will be removed in v1.6."
-                " Please, open a discussion explaining your use-case in"
-                " `https://github.com/PyTorchLightning/pytorch-lightning/discussions`"
-            )
-        if sync_dist_op is not None:
-            rank_zero_deprecation(
-                f"`self.log(sync_dist_op='{sync_dist_op}')` is deprecated and will be removed in v.1.6."
-                f" Use `self.log(reduce_fx={sync_dist_op})` instead."
-            )
-            if reduce_fx == "default":
-                reduce_fx = sync_dist_op
-        elif reduce_fx == "default":
-            reduce_fx = "mean"
-
         # check for invalid values
         apply_to_collection(value, dict, self.__check_not_nested, name)
         apply_to_collection(
@@ -481,12 +456,9 @@ class LightningModule(
         logger: bool = True,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
-        reduce_fx: Union[str, Callable] = "default",  # TODO: change to 'mean' when `sync_dist_op` is removed in 1.6
-        tbptt_reduce_fx: Optional[Any] = None,  # todo: Remove in 1.6
-        tbptt_pad_token: Optional[Any] = None,  # todo: Remove in 1.6
+        reduce_fx: Union[str, Callable] = "mean",
         enable_graph: bool = False,
         sync_dist: bool = False,
-        sync_dist_op: Optional[Any] = None,  # todo: Remove in 1.6
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
         batch_size: Optional[int] = None,
@@ -531,9 +503,6 @@ class LightningModule(
                 enable_graph=enable_graph,
                 sync_dist=sync_dist,
                 sync_dist_group=sync_dist_group,
-                sync_dist_op=sync_dist_op,
-                tbptt_pad_token=tbptt_pad_token,
-                tbptt_reduce_fx=tbptt_reduce_fx,
                 add_dataloader_idx=add_dataloader_idx,
                 batch_size=batch_size,
                 rank_zero_only=rank_zero_only,
