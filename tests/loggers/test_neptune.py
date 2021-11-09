@@ -292,19 +292,21 @@ class TestNeptuneLogger(unittest.TestCase):
 
             # then:
             self.assertEqual(run_instance_mock.__setitem__.call_count, 1)
-            self.assertEqual(run_instance_mock.__getitem__.call_count, 3)
-            self.assertEqual(run_attr_mock.upload.call_count, 3)
+            self.assertEqual(run_instance_mock.__getitem__.call_count, 4)
+            self.assertEqual(run_attr_mock.upload.call_count, 4)
             run_instance_mock.__setitem__.assert_called_once_with(
                 f"{model_key_prefix}/best_model_path", "path/to/models/best_model"
             )
             run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/last")
             run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model1")
             run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model2/with/slashes")
+            run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/best_model")
             run_attr_mock.upload.assert_has_calls(
                 [
                     call("path/to/models/last"),
                     call("path/to/models/model1"),
                     call("path/to/models/model2/with/slashes"),
+                    call("path/to/models/best_model"),
                 ]
             )
 
