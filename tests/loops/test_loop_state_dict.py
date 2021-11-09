@@ -79,11 +79,13 @@ def test_loops_state_dict_structure():
                 "is_last_batch": False,
             },
             "epoch_loop.val_loop._results": {
+                "_current_batch": None,
                 "training": False,
                 "device": None,
                 "items": {},
             },
             "epoch_loop._results": {
+                "_current_batch": None,
                 "training": True,
                 "device": None,
                 "items": {},
@@ -103,6 +105,7 @@ def test_loops_state_dict_structure():
                 "is_last_batch": False,
             },
             "_results": {
+                "_current_batch": None,
                 "training": False,
                 "device": None,
                 "items": {},
@@ -118,6 +121,7 @@ def test_loops_state_dict_structure():
                 "is_last_batch": False,
             },
             "_results": {
+                "_current_batch": None,
                 "training": False,
                 "device": None,
                 "items": {},

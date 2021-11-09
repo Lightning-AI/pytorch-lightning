@@ -281,6 +281,7 @@ class LoggerConnector:
         self._progress_bar_metrics.update(metrics["pbar"])
         self._callback_metrics.update(metrics["callback"])
         self._logged_metrics.update(metrics["log"])
+        self.trainer._results.current_batch = None
 
     def should_reset_tensors(self, fx: str) -> bool:
         is_different_fx = self._current_fx != fx
