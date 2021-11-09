@@ -353,34 +353,34 @@ ______________________________________________________________________
 
 ###### Hello world
 
-- [MNIST hello world](https://pytorch-lightning.readthedocs.io/en/latest/notebooks/lightning_examples/mnist-hello-world.html)
+- [MNIST hello world](https://pytorch-lightning.readthedocs.io/en/0.4.0/notebooks/lightning_examples/mnist-hello-world.html)
 
 ###### Contrastive Learning
 
-- [BYOL](https://lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#byol)
-- [CPC v2](https://lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#cpc-v2)
-- [Moco v2](https://lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#moco-v2)
-- [SIMCLR](https://lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#simclr)
+- [BYOL](https://lightning-bolts.readthedocs.io/en/0.4.0/self_supervised_models.html#byol)
+- [CPC v2](https://lightning-bolts.readthedocs.io/en/0.4.0/self_supervised_models.html#cpc-v2)
+- [Moco v2](https://lightning-bolts.readthedocs.io/en/0.4.0/self_supervised_models.html#moco-v2)
+- [SIMCLR](https://lightning-bolts.readthedocs.io/en/0.4.0/self_supervised_models.html#simclr)
 
 ###### NLP
 
-- [GPT-2](https://lightning-bolts.readthedocs.io/en/latest/convolutional.html#gpt-2)
-- [BERT](https://pytorch-lightning.readthedocs.io/en/latest/notebooks/lightning_examples/text-transformers.html)
+- [GPT-2](https://lightning-bolts.readthedocs.io/en/0.4.0/convolutional.html#gpt-2)
+- [BERT](https://pytorch-lightning.readthedocs.io/en/0.4.0/notebooks/lightning_examples/text-transformers.html)
 
 ###### Reinforcement Learning
 
-- [DQN](https://lightning-bolts.readthedocs.io/en/latest/reinforce_learn.html#dqn-models)
-- [Dueling-DQN](https://lightning-bolts.readthedocs.io/en/latest/reinforce_learn.html#dueling-dqn)
-- [Reinforce](https://lightning-bolts.readthedocs.io/en/latest/reinforce_learn.html#reinforce)
+- [DQN](https://lightning-bolts.readthedocs.io/en/0.4.0/reinforce_learn.html#dqn-models)
+- [Dueling-DQN](https://lightning-bolts.readthedocs.io/en/0.4.0/reinforce_learn.html#dueling-dqn)
+- [Reinforce](https://lightning-bolts.readthedocs.io/en/0.4.0/reinforce_learn.html#reinforce)
 
 ###### Vision
 
-- [GAN](https://pytorch-lightning.readthedocs.io/en/latest/notebooks/lightning_examples/basic-gan.html)
+- [GAN](https://pytorch-lightning.readthedocs.io/en/0.4.0/notebooks/lightning_examples/basic-gan.html)
 
 ###### Classic ML
 
-- [Logistic Regression](https://lightning-bolts.readthedocs.io/en/latest/classic_ml.html#logistic-regression)
-- [Linear Regression](https://lightning-bolts.readthedocs.io/en/latest/classic_ml.html#linear-regression)
+- [Logistic Regression](https://lightning-bolts.readthedocs.io/en/0.4.0/classic_ml.html#logistic-regression)
+- [Linear Regression](https://lightning-bolts.readthedocs.io/en/0.4.0/classic_ml.html#linear-regression)
 
 ______________________________________________________________________
 
