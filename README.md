@@ -353,7 +353,7 @@ ______________________________________________________________________
 
 ###### Hello world
 
-- [MNIST hello world](https://pytorch-lightning.readthedocs.io/en/0.4.0/notebooks/lightning_examples/mnist-hello-world.html)
+- [MNIST hello world](https://pytorch-lightning.readthedocs.io/en/latest/notebooks/lightning_examples/mnist-hello-world.html)
 
 ###### Contrastive Learning
 
@@ -365,7 +365,7 @@ ______________________________________________________________________
 ###### NLP
 
 - [GPT-2](https://lightning-bolts.readthedocs.io/en/0.4.0/convolutional.html#gpt-2)
-- [BERT](https://pytorch-lightning.readthedocs.io/en/0.4.0/notebooks/lightning_examples/text-transformers.html)
+- [BERT](https://pytorch-lightning.readthedocs.io/en/latest/notebooks/lightning_examples/text-transformers.html)
 
 ###### Reinforcement Learning
 
@@ -375,7 +375,7 @@ ______________________________________________________________________
 
 ###### Vision
 
-- [GAN](https://pytorch-lightning.readthedocs.io/en/0.4.0/notebooks/lightning_examples/basic-gan.html)
+- [GAN](https://pytorch-lightning.readthedocs.io/en/latest/notebooks/lightning_examples/basic-gan.html)
 
 ###### Classic ML
 
