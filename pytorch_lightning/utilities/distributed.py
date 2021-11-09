@@ -381,7 +381,9 @@ def init_dist_connection(
     world_size = world_size if world_size is not None else cluster_environment.world_size()
     os.environ["MASTER_ADDR"] = cluster_environment.main_address
     os.environ["MASTER_PORT"] = str(cluster_environment.main_port)
-    if torch.distributed.is_available() and not torch.distributed.is_initialized():
+    if not torch.distributed.is_available():
+        raise RuntimeError("torch.distributed is not available. Cannot initialize distributed process group")
+    if not torch.distributed.is_initialized():
         log.info(f"initializing distributed: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
         torch.distributed.init_process_group(
             torch_distributed_backend, rank=global_rank, world_size=world_size, **kwargs

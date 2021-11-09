@@ -272,13 +272,11 @@ def test_log_works_in_train_callback(tmpdir):
             self.make_logging(pl_module, "on_train_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices)
 
         def on_epoch_start(self, _, pl_module):
-            self.make_logging(
-                pl_module, "on_epoch_start", on_steps=self.choices, on_epochs=[True], prob_bars=self.choices
-            )
+            self.make_logging(pl_module, "on_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices)
 
         def on_train_epoch_start(self, _, pl_module):
             self.make_logging(
-                pl_module, "on_train_epoch_start", on_steps=self.choices, on_epochs=[True], prob_bars=self.choices
+                pl_module, "on_train_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
         def on_batch_start(self, _, pl_module, *__):
