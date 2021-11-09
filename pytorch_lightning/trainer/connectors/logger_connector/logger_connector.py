@@ -281,6 +281,7 @@ class LoggerConnector:
         self._progress_bar_metrics.update(metrics["pbar"])
         self._callback_metrics.update(metrics["callback"])
         self._logged_metrics.update(metrics["log"])
+        assert self.trainer._results is not None
         self.trainer._results.current_batch = None
 
     def should_reset_tensors(self, fx: str) -> bool:
