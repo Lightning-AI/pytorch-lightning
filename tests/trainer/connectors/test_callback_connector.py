@@ -176,7 +176,12 @@ def test_attach_model_callbacks():
 
     # multiple callbacks of the same type in trainer
     trainer = _attach_callbacks(
-        trainer_callbacks=[LearningRateMonitor(), EarlyStopping(monitor="foo"), LearningRateMonitor(), EarlyStopping(monitor="foo")],
+        trainer_callbacks=[
+            LearningRateMonitor(),
+            EarlyStopping(monitor="foo"),
+            LearningRateMonitor(),
+            EarlyStopping(monitor="foo"),
+        ],
         model_callbacks=[early_stopping, lr_monitor],
     )
     assert trainer.callbacks == [trainer.accumulation_scheduler, early_stopping, lr_monitor]
