@@ -133,14 +133,14 @@ if _RICH_AVAILABLE:
             self._trainer = trainer
             self._tasks = {}
             self._current_task_id = 0
-            self.metrics = {}
+            self._metrics = {}
             super().__init__()
 
         def update(self, metrics):
-            # called when metrics are ready to be rendered.
-            # this is due to preventing render from causing deadlock issues by requesting metrics
-            # in separate thread.
-            self.metrics = metrics
+            # Called when metrics are ready to be rendered.
+            # This is to prevent render from causing deadlock issues by requesting metrics
+            # in separate threads.
+            self._metrics = metrics
 
         def render(self, task) -> Text:
             from pytorch_lightning.trainer.states import TrainerFn
@@ -156,7 +156,7 @@ if _RICH_AVAILABLE:
                 return self._tasks[task.id]
             _text = ""
 
-            for k, v in self.metrics.items():
+            for k, v in self._metrics.items():
                 _text += f"{k}: {round(v, 3) if isinstance(v, float) else v} "
             return Text(_text, justify="left")
 
