@@ -423,6 +423,12 @@ def test_log_works_in_test_callback(tmpdir):
         def on_test_start(self, _, pl_module):
             self.make_logging(pl_module, "on_test_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices)
 
+        def on_epoch_start(self, trainer, pl_module):
+            if trainer.testing:
+                self.make_logging(
+                    pl_module, "on_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
+                )
+
         def on_test_epoch_start(self, _, pl_module):
             self.make_logging(
                 pl_module, "on_test_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
