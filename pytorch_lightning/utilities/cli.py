@@ -100,7 +100,7 @@ class LightningArgumentParser(ArgumentParser):
     # use class attribute because `parse_args` is only called on the main parser
     _choices: Dict[str, Tuple[Tuple[Type, ...], bool]] = {}
 
-    def __init__(self, *args: Any, parse_as_dict: bool = True, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize argument parser that supports configuration file input.
 
         For full details of accepted arguments see `ArgumentParser.__init__
@@ -109,9 +109,9 @@ class LightningArgumentParser(ArgumentParser):
         if not _JSONARGPARSE_AVAILABLE:
             raise ModuleNotFoundError(
                 "`jsonargparse` is not installed but it is required for the CLI."
-                " Install it with `pip install jsonargparse[signatures]`."
+                " Install it with `pip install -U jsonargparse[signatures]`."
             )
-        super().__init__(*args, parse_as_dict=parse_as_dict, **kwargs)
+        super().__init__(*args, **kwargs)
         self.add_argument(
             "--config", action=ActionConfigFile, help="Path to a configuration file in json or yaml format."
         )
