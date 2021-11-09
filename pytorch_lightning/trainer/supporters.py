@@ -28,7 +28,7 @@ from pytorch_lightning.utilities.auto_restart import (
     patch_dataloader_iterator,
     reload_dataloader_state_dict,
 )
-from pytorch_lightning.utilities.data import get_len, has_len
+from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
@@ -216,13 +216,6 @@ class CycleIterator:
 
     def __len__(self) -> Union[int, float]:
         return self.length
-
-    @staticmethod
-    def get_len(cycle_iterator: "CycleIterator") -> Union[int, float]:
-        if has_len(cycle_iterator.loader):
-            return len(cycle_iterator.loader)
-
-        return float("inf")
 
 
 class CombinedDataset:
@@ -464,18 +457,23 @@ class CombinedLoader:
             )
             state.reset()
 
-    def _apply_cycle_iterator_length(self):
-        if self.mode == "max_size_cycle":
-            all_lengths = apply_to_collection(
-                self.loaders, CycleIterator, CycleIterator.get_len, wrong_dtype=(Sequence, Mapping)
-            )
-            length = _nested_calc_num_data(all_lengths, max)
+    def _apply_cycle_iterator_length(self) -> None:
+        """When the model is `max_size_cycle`, compute the length across all ``CycleIterator`` and re-assign it to
+        all dataloaders."""
+        if self.mode != "max_size_cycle":
+            return
 
-            def _apply_fn(cycle_iterator: CycleIterator) -> None:
-                nonlocal length
-                cycle_iterator.length = length
+        def get_len(cycle_iterator: CycleIterator) -> Union[float, int]:
+            return len(cycle_iterator.loader)
 
-            apply_to_collection(self.loaders, CycleIterator, _apply_fn)
+        all_lengths = apply_to_collection(self.loaders, CycleIterator, get_len, wrong_dtype=(Sequence, Mapping))
+        length = _nested_calc_num_data(all_lengths, max)
+
+        def _apply_fn(cycle_iterator: CycleIterator) -> None:
+            nonlocal length
+            cycle_iterator.length = length
+
+        apply_to_collection(self.loaders, CycleIterator, _apply_fn)
 
     def __iter__(self) -> Any:
         """Create and return an iterator, `CombinedLoaderIterator`, for the combined loader."""

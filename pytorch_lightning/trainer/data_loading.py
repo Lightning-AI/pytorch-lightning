@@ -138,7 +138,7 @@ class TrainerDataLoadingMixin(ABC):
             dataloader.loaders = apply_to_collection(
                 dataloader.loaders, (DataLoader, CycleIterator), self.prepare_dataloader, shuffle, mode=mode
             )
-            # the length need to recomputed across all dataloaders in case of special behaviour.
+            # the length need to recomputed across all dataloaders in case of special behavior.
             dataloader._apply_cycle_iterator_length()
             return dataloader
 
