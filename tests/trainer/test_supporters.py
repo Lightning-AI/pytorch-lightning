@@ -383,21 +383,15 @@ def test_combined_data_loader_validation_test(
     apply_to_collection(dataloader.loaders, DataLoader, _assert_dataset)
 
 
-@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "PL_TRAINER_GPUS": "2"})
-@mock.patch("torch.cuda.device_count", return_value=2)
-@mock.patch("torch.cuda.is_available", return_value=True)
 @pytest.mark.parametrize("replace_sampler_ddp", [False, True])
-def test_combined_data_loader_with_max_size_cycle_and_ddp(
-    cuda_available_mock, device_count_mock, replace_sampler_ddp, tmpdir
-):
+def test_combined_data_loader_with_max_size_cycle_and_ddp(replace_sampler_ddp, tmpdir):
     """This test makes sure distributed sampler has been properly injected in dataloaders when using CombinedLoader
     with ddp and `max_size_cycle` mode."""
+    trainer = Trainer(strategy="ddp", accelerator="auto", devices=2, replace_sampler_ddp=replace_sampler_ddp)
 
     dataloader = CombinedLoader(
         {"a": DataLoader(RandomDataset(32, 8), batch_size=1), "b": DataLoader(RandomDataset(32, 8), batch_size=1)},
     )
-
-    trainer = Trainer(strategy="ddp", gpus=2, replace_sampler_ddp=replace_sampler_ddp)
     dataloader = trainer.prepare_dataloader(dataloader, shuffle=False)
     assert len(dataloader) == 4 if replace_sampler_ddp else 8
 
@@ -412,17 +406,16 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(
 
         length = max(a_length, 8)
         assert len(dataloader) == length
-        trainer = Trainer(strategy="ddp", gpus=2, replace_sampler_ddp=replace_sampler_ddp)
         dataloader = trainer.prepare_dataloader(dataloader, shuffle=False)
         assert len(dataloader) == length // 2 if replace_sampler_ddp else length
         if replace_sampler_ddp:
-            batches = [batch for batch in dataloader]
+            last_batch = list(dataloader)[-1]
             if a_length == 6:
-                assert batches[-1] == {"a": torch.tensor([0]), "b": torch.tensor([6])}
+                assert last_batch == {"a": torch.tensor([0]), "b": torch.tensor([6])}
             elif a_length == 8:
-                assert batches[-1] == {"a": torch.tensor([6]), "b": torch.tensor([6])}
+                assert last_batch == {"a": torch.tensor([6]), "b": torch.tensor([6])}
             elif a_length == 10:
-                assert batches[-1] == {"a": torch.tensor([8]), "b": torch.tensor([0])}
+                assert last_batch == {"a": torch.tensor([8]), "b": torch.tensor([0])}
 
     class InfiniteDataset(IterableDataset):
         def __iter__(self):
@@ -438,7 +431,6 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(
     )
     assert get_len(dataloader) == float("inf")
     assert len(dataloader.loaders["b"].loader) == 8
-    trainer = Trainer(strategy="ddp", gpus=2, replace_sampler_ddp=replace_sampler_ddp)
     dataloader = trainer.prepare_dataloader(dataloader, shuffle=False)
     assert len(dataloader.loaders["b"].loader) == 4 if replace_sampler_ddp else 8
     assert get_len(dataloader) == float("inf")
