@@ -463,16 +463,14 @@ class CombinedLoader:
         if self.mode != "max_size_cycle":
             return
 
-        all_lengths = apply_to_collection(
-            self.loaders, CycleIterator, lambda c: get_len(c.loader), wrong_dtype=(Sequence, Mapping)
-        )
-        length = _nested_calc_num_data(all_lengths, max)
+        all_lengths = apply_to_collection(self.loaders, CycleIterator, lambda c: get_len(c.loader))
 
-        def _apply_fn(cycle_iterator: CycleIterator) -> None:
-            nonlocal length
+        def _apply_fn(cycle_iterator: CycleIterator, length) -> None:
             cycle_iterator.length = length
 
-        apply_to_collection(self.loaders, CycleIterator, _apply_fn)
+        apply_to_collection(
+            self.loaders, CycleIterator, partial(_apply_fn, length=_nested_calc_num_data(all_lengths, max))
+        )
 
     def __iter__(self) -> Any:
         """Create and return an iterator, `CombinedLoaderIterator`, for the combined loader."""
