@@ -328,6 +328,7 @@ def test_lightning_cli_args_cluster_environments(tmpdir):
     assert cli.trainer.ran_asserts
 
 
+# FIXME
 def test_lightning_cli_args(tmpdir):
 
     cli_args = [
@@ -377,6 +378,7 @@ def test_lightning_cli_save_config_cases(tmpdir):
         LightningCLI(BoringModel)
 
 
+# FIXME
 def test_lightning_cli_config_and_subclass_mode(tmpdir):
     input_config = {
         "fit": {
@@ -688,6 +690,7 @@ def test_lightning_cli_optimizer_and_lr_scheduler_subclasses(tmpdir):
     assert cli.trainer.lr_schedulers[0]["scheduler"].step_size == 50
 
 
+# FIXME
 @pytest.mark.parametrize("use_registries", [False, True])
 def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_registries, tmpdir):
     class MyLightningCLI(LightningCLI):
@@ -1152,6 +1155,7 @@ def test_optimizers_and_lr_schedulers_reload(tmpdir):
         LightningCLI(BoringModel, run=False)
 
 
+# FIXME
 def test_optimizers_and_lr_schedulers_add_arguments_to_parser_implemented_reload(tmpdir):
     class TestLightningCLI(LightningCLI):
         def __init__(self, *args):
