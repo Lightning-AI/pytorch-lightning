@@ -297,9 +297,6 @@ class StochasticWeightAveraging(Callback):
     ) -> dict:
         checkpoint_data = {
             "n_averaged": self.n_averaged,
-            "swa_lrs": self._swa_lrs,
-            "annealing_epochs": self._annealing_epochs,
-            "annealing_strategy": self._annealing_strategy,
             "scheduler_step_count": None if self._swa_scheduler is None else self._swa_scheduler._step_count,
             "average_model_parameters": self._get_average_model_parameters(trainer),
         }
@@ -310,9 +307,6 @@ class StochasticWeightAveraging(Callback):
     ) -> None:
         if callback_state:
             self.n_averaged = callback_state["n_averaged"]
-            self._swa_lrs = callback_state["swa_lrs"]
-            self._annealing_strategy = callback_state["annealing_strategy"]
-            self._annealing_epochs = callback_state["annealing_epochs"]
             self._scheduler_step_count = callback_state["scheduler_step_count"]
             self._load_average_model_parameters(callback_state["average_model_parameters"])
         else:
