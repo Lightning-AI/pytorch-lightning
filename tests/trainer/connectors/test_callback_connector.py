@@ -200,7 +200,7 @@ def test_attach_model_callbacks_override_info(caplog):
     model = LightningModule()
     model.configure_callbacks = lambda: [LearningRateMonitor(), EarlyStopping(monitor="foo")]
     trainer = Trainer(
-        enable_checkpointing=False, callbacks=[EarlyStopping("foo"), LearningRateMonitor(), TQDMProgressBar()]
+        enable_checkpointing=False, callbacks=[EarlyStopping(monitor="foo"), LearningRateMonitor(), TQDMProgressBar()]
     )
     trainer.model = model
     cb_connector = CallbackConnector(trainer)
