@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections.abc import Generator
-from dataclasses import asdict, dataclass, fields, replace
+from dataclasses import asdict, dataclass, replace
 from functools import partial, wraps
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
@@ -51,8 +51,8 @@ class _Sync:
     fn: Optional[Callable] = None
     _should: bool = False
     rank_zero_only: bool = False
-    op: Optional[str] = None
-    group: Optional[Any] = None
+    _op: Optional[str] = None
+    _group: Optional[Any] = None
 
     def __post_init__(self) -> None:
         self._generate_sync_fn()
@@ -67,17 +67,32 @@ class _Sync:
         # `self._fn` needs to be re-generated.
         self._generate_sync_fn()
 
+    @property
+    def op(self) -> Optional[str]:
+        return self._op
+
+    @op.setter
+    def op(self, op: Optional[str]) -> None:
+        self._op = op
+        # `self._fn` needs to be re-generated.
+        self._generate_sync_fn()
+
+    @property
+    def group(self) -> Optional[Any]:
+        return self._group
+
+    @group.setter
+    def group(self, group: Optional[Any]) -> None:
+        self._group = group
+        # `self._fn` needs to be re-generated.
+        self._generate_sync_fn()
+
     def _generate_sync_fn(self) -> None:
         """Used to compute the syncing function and cache it."""
         fn = self.no_op if self.fn is None or not self.should or self.rank_zero_only else self.fn
         # save the function as `_fn` as the meta are being re-created and the object references need to match.
         # ignore typing, bad support for `partial`: mypy/issues/1484
         self._fn: Callable = partial(fn, reduce_op=self.op, group=self.group)  # type: ignore [arg-type]
-
-    def __deepcopy__(self, memo: dict) -> "_Sync":
-        result = _Sync(**{field.name: getattr(self, field.name) for field in fields(self) if field.init})
-        memo[id(self)] = result
-        return result
 
     @property
     def __call__(self) -> Any:
@@ -431,7 +446,7 @@ class ResultCollection(dict):
             dataloader_idx=dataloader_idx,
             metric_attribute=metric_attribute,
         )
-        meta.sync = _Sync(_should=sync_dist, fn=sync_dist_fn, group=sync_dist_group, rank_zero_only=rank_zero_only)
+        meta.sync = _Sync(_should=sync_dist, fn=sync_dist_fn, _group=sync_dist_group, rank_zero_only=rank_zero_only)
 
         # register logged value if it doesn't exist
         if key not in self:
