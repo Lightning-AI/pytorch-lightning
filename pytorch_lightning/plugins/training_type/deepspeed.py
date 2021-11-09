@@ -637,8 +637,8 @@ class DeepSpeedPlugin(DDPPlugin):
                 if deepspeed.utils.logging.logger.level < logging.WARN:
                     rank_zero_warn(
                         "Tried to Infer the batch size for internal deepspeed logging from the `train_dataloader()`. "
-                        "To ensure DeepSpeed logging remains correct, please manually pass the plugin with the"
-                        "batch size, `Trainer(strategy=DeepSpeedPlugin(logging_batch_size_per_gpu=batch_size))`"
+                        "To ensure DeepSpeed logging remains correct, please manually pass the plugin with the "
+                        "batch size, `Trainer(strategy=DeepSpeedPlugin(logging_batch_size_per_gpu=batch_size))`."
                     )
         return batch_size
 
