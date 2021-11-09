@@ -20,7 +20,7 @@ from functools import partial
 from typing import Any, Callable, Collection, Dict, List, Optional, Tuple, Union
 
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, Sampler, SequentialSampler
-from torch.utils.data.dataset import Dataset, IterableDataset
+from torch.utils.data.dataset import IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
@@ -37,7 +37,7 @@ from pytorch_lightning.utilities.auto_restart import (
     CaptureMapDataset,
     FastForwardSampler,
 )
-from pytorch_lightning.utilities.data import has_iterable_dataset, has_len_all_ranks
+from pytorch_lightning.utilities.data import get_len, has_iterable_dataset, has_len_all_ranks
 from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
@@ -282,10 +282,11 @@ class TrainerDataLoadingMixin(ABC):
             dl_kwargs["sampler"] = None
 
         if _fault_tolerant_training():
-            if isinstance(dl_kwargs["dataset"], IterableDataset):
+            dataset = dl_kwargs["dataset"]
+            if isinstance(dataset, IterableDataset):
                 # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
                 dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
-            elif isinstance(dl_kwargs["dataset"], Dataset):
+            elif get_len(dataset) != float("inf"):
                 dl_kwargs["dataset"] = CaptureMapDataset(dataset=dl_kwargs["dataset"])
             else:
                 raise MisconfigurationException(
