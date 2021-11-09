@@ -278,7 +278,7 @@ def test_accelerator_set_when_using_tpu(tmpdir, tpu_cores):
 @RunIf(tpu=True)
 @pl_multi_process_test
 def test_broadcast_on_tpu():
-    """Checks if an object from the master process is broadcasted to other processes correctly."""
+    """Checks if an object from the main process is broadcasted to other processes correctly."""
 
     def test_broadcast(rank):
         trainer = Trainer(tpu_cores=8)

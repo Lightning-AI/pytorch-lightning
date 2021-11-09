@@ -32,11 +32,6 @@ class DDP2Plugin(DDPPlugin):
     def world_size(self) -> int:
         return self.num_nodes
 
-    def setup(self) -> None:
-        # set the task idx
-        self.task_idx = self.cluster_environment.local_rank()
-        # the difference to DDP is that we don't call children processes here
-
     def reduce(self, collection: _METRIC_COLLECTION, *args, **kwargs) -> _METRIC_COLLECTION:
         """Reduces a collection of tensors from all processes. It can be applied to just a single tensor. In DDP2,
         the reduction here is only across local devices within the node.

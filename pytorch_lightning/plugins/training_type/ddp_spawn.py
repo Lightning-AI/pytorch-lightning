@@ -77,7 +77,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             checkpoint_io=checkpoint_io,
         )
         self._num_nodes = 1
-        self._sync_batchnorm = False
+        self.sync_batchnorm = False
         self._ddp_kwargs = kwargs
         self.num_processes = len(parallel_devices) if parallel_devices is not None else 0
         self.mp_queue = None
@@ -96,14 +96,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         # note that world ranks is related to num_nodes, when resetting it, need to reset world ranks
         self._num_nodes = num_nodes
         self.set_world_ranks()
-
-    @property
-    def sync_batchnorm(self) -> bool:
-        return self._sync_batchnorm
-
-    @sync_batchnorm.setter
-    def sync_batchnorm(self, sync_batchnorm: bool) -> None:
-        self._sync_batchnorm = sync_batchnorm
 
     @property
     def local_rank(self) -> int:
@@ -132,7 +124,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         return True
 
     def setup(self) -> None:
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         # pass in a state q
         smp = mp.get_context("spawn")
         self.mp_queue = smp.SimpleQueue()
@@ -178,7 +170,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         Return:
             The output of the function of process 0.
         """
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         context = mp.get_context("spawn")
         return_queue = context.SimpleQueue() if return_result else None
         mp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), nprocs=self.num_processes)
