@@ -4,16 +4,16 @@ repository:
   # See https://docs.github.com/en/rest/reference/repos#update-a-repository for all available settings.
 
   # The name of the repository. Changing this will rename the repository
-  name: pytorch-lightning
+  name: "pytorch-lightning"
 
   # A short description of the repository that will show up on GitHub
-  description: The lightweight PyTorch wrapper for high-performance AI research. Scale your models, not the boilerplate.
+  description: "The lightweight PyTorch wrapper for high-performance AI research. Scale your models, not the boilerplate."
 
   # A URL with more information about the repository
-  homepage: pytorchlightning.ai
+  homepage: "https://pytorchlightning.ai"
 
   # A comma-separated list of topics to set on the repository
-  topics: python,data-science,machine-learning,ai,deep-learning,pytorch,artificial-intelligence
+  topics: "python,data-science,machine-learning,ai,deep-learning,pytorch,artificial-intelligence"
 
   # Either `true` to make the repository private, or `false` to make it public.
   private: false
@@ -303,9 +303,9 @@ branches:
       required_linear_history: false
       # Required. Restrict who can push to this branch. Team and user restrictions are only available for organization-owned repositories. Set to null to disable.
       restrictions:
-        apps: null
-        users: null
-        teams: null
+        apps: []
+        users: []
+        teams: []
       # Permits force pushes for all users with push access. Set to null to disable.
       allow_force_pushes: true
       # Allows users with push access to delete matching branches. Set to `false` to disable.
