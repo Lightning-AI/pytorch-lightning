@@ -162,12 +162,71 @@ milestones:
 
 # Collaborators: give specific users access to this repository.
 # See https://docs.github.com/en/rest/reference/repos#add-a-repository-collaborator for available options
-# FIXME
 collaborators:
-  # - username: bkeepers
-  #   permission: push
-  # - username: hubot
-  #   permission: pull
+  # Grid
+  - username: williamFalcon
+    permission: admin
+  - username: edenlightning
+    permission: admin
+  - username: zippeurfou
+    permission: maintain
+  - username: aribornstein
+    permission: maintain
+  - username: essiequoi
+    permission: maintain
+  # Lightning
+  - username: awaelchli
+    permission: push
+  - username: Borda
+    permission: maintain
+  - username: SeanNaren
+    permission: maintain
+  - username: ananyahjha93
+    permission: maintain
+  - username: ethanwharris
+    permission: maintain
+  - username: carmocca
+    permission: maintain
+  - username: tchaton
+    permission: maintain
+  - username: rohitgr7
+    permission: push
+  - username: justusschock
+    permission: push
+  - username: kaushikb11
+    permission: maintain
+  - username: SkafteNicki
+    permission: push
+  - username: akihironitta
+    permission: push
+  - username: s-rog
+    permission: push
+  - username: tullie
+    permission: push
+  - username: lezwon
+    permission: push
+  - username: jeremyjordan
+    permission: push
+  - username: MattPainter01
+    permission: push
+  # Meta
+  - username: maximsch2
+    permission: push
+  - username: ananthsub
+    permission: push
+  - username: kandluis
+    permission: push
+  - username: yifuwang
+    permission: push
+  - username: ninginthecloud
+    permission: push
+  - username: daniellepintz
+    permission: push
+  - username: edward-io
+    permission: push
+  # Other
+  - username: pl-ghost
+    permission: maintain
 
   # Note: `permission` is only valid on organization-owned repositories.
   # The permission to grant the collaborator. Can be one of:
@@ -181,12 +240,6 @@ collaborators:
 # FIXME
 teams:
   - name: core
-    # The permission to grant the team. Can be one of:
-    # * `pull` - can pull, but not push to or administer this repository.
-    # * `push` - can pull and push, but not administer this repository.
-    # * `admin` - can pull, push and administer this repository.
-    # * `maintain` - Recommended for project managers who need to manage the repository without access to sensitive or destructive actions.
-    # * `triage` - Recommended for contributors who need to proactively manage issues and pull requests without write access.
     permission: admin
   - name: docs
     permission: push
