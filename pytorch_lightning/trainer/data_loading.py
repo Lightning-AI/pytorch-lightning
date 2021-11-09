@@ -20,7 +20,7 @@ from functools import partial
 from typing import Any, Callable, Collection, Dict, List, Optional, Tuple, Union
 
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, Sampler, SequentialSampler
-from torch.utils.data.dataset import IterableDataset
+from torch.utils.data.dataset import Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
@@ -285,7 +285,7 @@ class TrainerDataLoadingMixin(ABC):
             if isinstance(dl_kwargs["dataset"], IterableDataset):
                 # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
                 dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
-            elif len(dl_kwargs["dataset"]):
+            elif isinstance(dl_kwargs["dataset"], Dataset):
                 dl_kwargs["dataset"] = CaptureMapDataset(dataset=dl_kwargs["dataset"])
             else:
                 raise MisconfigurationException(
