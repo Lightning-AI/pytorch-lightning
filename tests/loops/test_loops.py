@@ -912,7 +912,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
 
 
 @RunIf(min_torch="1.8.0")
-@pytest.mark.parametrize("persistent_workers", (True, False))
+@pytest.mark.parametrize("persistent_workers", [False, True])
 def test_workers_are_shutdown(tmpdir, persistent_workers):
     # `num_workers == 1` uses `_MultiProcessingDataLoaderIter`
     # `persistent_workers` makes sure `self._iterator` gets set on the `DataLoader` instance
@@ -923,7 +923,8 @@ def test_workers_are_shutdown(tmpdir, persistent_workers):
             self.dataloader = dataloader
 
         def _shutdown_workers(self):
-            setattr(self.dataloader, "has_shutdown_workers", True)
+            has_shutdown_workers = getattr(self.dataloader, "has_shutdown_workers", 0)
+            setattr(self.dataloader, "has_shutdown_workers", has_shutdown_workers + 1)
             super()._shutdown_workers()
 
     class TestDataLoader(DataLoader):
@@ -938,9 +939,9 @@ def test_workers_are_shutdown(tmpdir, persistent_workers):
     val_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=2)
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=3)
     trainer.fit(model, train_dataloader, val_dataloader)
-    assert train_dataloader.has_shutdown_workers
-    assert val_dataloader.has_shutdown_workers
+    assert train_dataloader.has_shutdown_workers == (2 if persistent_workers else 3)
+    assert val_dataloader.has_shutdown_workers == (2 if persistent_workers else 4)
     assert train_dataloader._iterator is None
     assert val_dataloader._iterator is None
