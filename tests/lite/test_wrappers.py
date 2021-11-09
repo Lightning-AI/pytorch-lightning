@@ -39,9 +39,12 @@ def test_lite_module_wraps():
     [
         (32, torch.float16, torch.float32),
         (32, torch.float32, torch.float32),
+        (32, torch.int, torch.int),
         (32, torch.float64, torch.float32),
         (16, torch.float32, torch.float16),
         (16, torch.float64, torch.float16),
+        (16, torch.long, torch.long),
+        pytest.param("bf16", torch.float32, torch.bfloat16, marks=RunIf(min_torch="1.10")),
         pytest.param("bf16", torch.float32, torch.bfloat16, marks=RunIf(min_torch="1.10")),
     ],
 )
@@ -54,11 +57,11 @@ def test_lite_module_forward_conversion(precision, input_type, expected_type):
         assert precision != 16 or torch.is_autocast_enabled()
         return forward_input
 
-    module = Mock(wraps=torch.nn.Linear(1, 1), side_effect=check_autocast)
+    module = Mock(wraps=torch.nn.Identity(), side_effect=check_autocast)
     lite_module = _LiteModule(module, lite._precision_plugin).to(device)
     out = lite_module(torch.rand(1, dtype=input_type, device=device))
     assert module.call_args[0][0].dtype == expected_type
-    assert out.dtype == torch.get_default_dtype()
+    assert out.dtype == input_type or out.dtype == torch.get_default_dtype()
 
 
 def test_lite_dataloader_iterator():
