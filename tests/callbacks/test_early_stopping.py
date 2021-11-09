@@ -34,14 +34,14 @@ _logger = logging.getLogger(__name__)
 
 
 def test_early_stopping_state_key():
-    early_stopping = EarlyStopping("val_loss")
+    early_stopping = EarlyStopping(monitor="val_loss")
     assert early_stopping.state_key == "EarlyStopping{'monitor': 'val_loss', 'mode': 'min'}"
 
 
 class EarlyStoppingTestRestore(EarlyStopping):
     # this class has to be defined outside the test function, otherwise we get pickle error
-    def __init__(self, expected_state, monitor, *args, **kwargs):
-        super().__init__(monitor, *args, **kwargs)
+    def __init__(self, expected_state, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.expected_state = expected_state
         # cache the state for each epoch
         self.saved_states = []
@@ -65,7 +65,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     model = ClassificationModel()
     dm = ClassifDataModule()
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="train_loss", save_top_k=1)
-    early_stop_callback = EarlyStoppingTestRestore(None, "train_loss")
+    early_stop_callback = EarlyStoppingTestRestore(None, monitor="train_loss")
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[early_stop_callback, checkpoint_callback],
@@ -86,7 +86,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     assert checkpoint["callbacks"][es_name] == early_stop_callback_state
 
     # ensure state is reloaded properly (assertion in the callback)
-    early_stop_callback = EarlyStoppingTestRestore(early_stop_callback_state, "train_loss")
+    early_stop_callback = EarlyStoppingTestRestore(early_stop_callback_state, monitor="train_loss")
     new_trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -101,7 +101,7 @@ def test_early_stopping_no_extraneous_invocations(tmpdir):
     """Test to ensure that callback methods aren't being invoked outside of the callback handler."""
     model = ClassificationModel()
     dm = ClassifDataModule()
-    early_stop_callback = EarlyStopping("train_loss")
+    early_stop_callback = EarlyStopping(monitor="train_loss")
     early_stop_callback._run_early_stopping_check = Mock()
     expected_count = 4
     trainer = Trainer(
@@ -134,7 +134,7 @@ def test_early_stopping_patience(tmpdir, loss_values: list, patience: int, expec
             self.log("test_val_loss", loss)
 
     model = ModelOverrideValidationReturn()
-    early_stop_callback = EarlyStopping("test_val_loss", patience=patience, verbose=True)
+    early_stop_callback = EarlyStopping(monitor="test_val_loss", patience=patience, verbose=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[early_stop_callback],
@@ -168,7 +168,9 @@ def test_early_stopping_patience_train(
     if validation_step_none:
         model.validation_step = None
 
-    early_stop_callback = EarlyStopping("train_loss", patience=patience, verbose=True, check_on_train_epoch_end=True)
+    early_stop_callback = EarlyStopping(
+        monitor="train_loss", patience=patience, verbose=True, check_on_train_epoch_end=True
+    )
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[early_stop_callback],
@@ -181,7 +183,7 @@ def test_early_stopping_patience_train(
 
 
 def test_pickling(tmpdir):
-    early_stopping = EarlyStopping("val_loss")
+    early_stopping = EarlyStopping("foo")
 
     early_stopping_pickled = pickle.dumps(early_stopping)
     early_stopping_loaded = pickle.loads(early_stopping_pickled)
@@ -200,7 +202,7 @@ def test_early_stopping_no_val_step(tmpdir):
     model.validation_step = None
     model.val_dataloader = None
 
-    stopping = EarlyStopping("train_loss", min_delta=0.1, patience=0, check_on_train_epoch_end=True)
+    stopping = EarlyStopping(monitor="train_loss", min_delta=0.1, patience=0, check_on_train_epoch_end=True)
     trainer = Trainer(default_root_dir=tmpdir, callbacks=[stopping], overfit_batches=0.20, max_epochs=10)
     trainer.fit(model, datamodule=dm)
 
@@ -224,7 +226,7 @@ def test_early_stopping_thresholds(tmpdir, stopping_threshold, divergence_thesho
 
     model = CurrentModel()
     early_stopping = EarlyStopping(
-        "abc", stopping_threshold=stopping_threshold, divergence_threshold=divergence_theshold
+        monitor="abc", stopping_threshold=stopping_threshold, divergence_threshold=divergence_theshold
     )
     trainer = Trainer(default_root_dir=tmpdir, callbacks=[early_stopping], overfit_batches=0.20, max_epochs=20)
     trainer.fit(model)
@@ -243,7 +245,7 @@ def test_early_stopping_on_non_finite_monitor(tmpdir, stop_value):
             self.log("val_loss", val_loss)
 
     model = CurrentModel()
-    early_stopping = EarlyStopping("val_loss", check_finite=True)
+    early_stopping = EarlyStopping(monitor="val_loss", check_finite=True)
     trainer = Trainer(default_root_dir=tmpdir, callbacks=[early_stopping], overfit_batches=0.20, max_epochs=10)
     trainer.fit(model)
     assert trainer.current_epoch == expected_stop_epoch
@@ -307,7 +309,7 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze: in
     model = Model(step_freeze)
     model.training_step_end = None
     model.test_dataloader = None
-    early_stop_callback = EarlyStopping("test_val_loss", patience=patience, verbose=True)
+    early_stop_callback = EarlyStopping(monitor="test_val_loss", patience=patience, verbose=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[early_stop_callback],
@@ -348,7 +350,7 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze: in
 
 def test_early_stopping_mode_options():
     with pytest.raises(MisconfigurationException, match="`mode` can be .* got unknown_option"):
-        EarlyStopping("val_loss", mode="unknown_option")
+        EarlyStopping("foo", mode="unknown_option")
 
 
 class EarlyStoppingModel(BoringModel):
@@ -451,7 +453,7 @@ def test_check_on_train_epoch_end_smart_handling(tmpdir, case):
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_val_batches=1,
-        callbacks=EarlyStopping("foo"),
+        callbacks=EarlyStopping(monitor="foo"),
         enable_progress_bar=False,
         **kwargs,
     )
