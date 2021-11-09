@@ -463,9 +463,6 @@ class CombinedLoader:
         if self.mode != "max_size_cycle":
             return
 
-        def get_len(cycle_iterator: CycleIterator) -> int:
-            return get_len(cycle_iterator.loader)
-
         def set_len(cycle_iterator: CycleIterator, length: int) -> None:
             cycle_iterator.length = length
 
