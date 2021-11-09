@@ -143,15 +143,15 @@ You can manually save checkpoints and restore your model from the checkpointed s
     trainer.save_checkpoint("example.ckpt")
     new_model = MyModel.load_from_checkpoint(checkpoint_path="example.ckpt")
 
-Manual saving with accelerators
-===============================
+Manual saving with strategies
+=============================
 
-Lightning also handles accelerators where multiple processes are running, such as DDP. For example, when using the DDP accelerator our training script is running across multiple devices at the same time.
+Lightning also handles strategies where multiple processes are running, such as DDP. For example, when using the DDP strategy our training script is running across multiple devices at the same time.
 Lightning automatically ensures that the model is saved only on the main process, whilst other processes do not interfere with saving checkpoints. This requires no code changes as seen below.
 
 .. code-block:: python
 
-    trainer = Trainer(accelerator="ddp")
+    trainer = Trainer(strategy="ddp")
     model = MyLightningModule(hparams)
     trainer.fit(model)
     # Saves only on the main process
@@ -212,7 +212,7 @@ do the following:
 .. code-block:: python
 
    model = LitModel()
-   trainer = Trainer(resume_from_checkpoint="some/path/to/my_checkpoint.ckpt")
+   trainer = Trainer()
 
    # automatically restores model, epoch, step, LR schedulers, apex, etc...
-   trainer.fit(model)
+   trainer.fit(model, ckpt_path="some/path/to/my_checkpoint.ckpt")

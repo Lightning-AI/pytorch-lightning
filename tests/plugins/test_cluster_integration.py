@@ -69,7 +69,7 @@ def test_ranks_available_manual_plugin_selection(plugin_cls):
             plugin = plugin_cls(
                 parallel_devices=[torch.device("cuda", 1), torch.device("cuda", 2)], cluster_environment=cluster
             )
-            trainer = Trainer(plugins=[plugin], num_nodes=num_nodes)
+            trainer = Trainer(strategy=plugin, num_nodes=num_nodes)
             assert rank_zero_only.rank == expected["global_rank"]
             assert trainer.global_rank == expected["global_rank"]
             assert trainer.local_rank == expected["local_rank"]

@@ -16,10 +16,20 @@ Quantization
 ^^^^^^^^^^^^
 
 """
+import copy
 import functools
-from typing import Any, Callable, Optional, Sequence, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Union
 
 import torch
+from torch import Tensor
+
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
+
+if _TORCH_GREATER_EQUAL_1_8:
+    from torch.quantization import FakeQuantizeBase
+else:
+    # For torch 1.6 and 1.7.
+    from torch.quantization import FakeQuantize as FakeQuantizeBase
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
@@ -126,11 +136,25 @@ class QuantizationAwareTraining(Callback):
         quantize_on_fit_end: perform the quantization in `on_fit_end`.
             Note that once converted, the model cannot be put in training mode again.
 
+        observer_enabled_stages: allow fake-quantization modules' observers to do calibration during provided stages:
+
+            - ``'train'``: the observers can do calibration during training.
+            - ``'validate'``: the observers can do calibration during validating.
+              Note that we don't disable observers during the sanity check as the model hasn't been calibrated with
+              training data yet. After the sanity check, the fake-quantization modules are restored to initial states.
+            - ``'test'``: the observers can do calibration during testing.
+            - ``'predict'``: the observers can do calibration during predicting.
+
+            Note that we only handle observers belonging to fake-quantization modules. When ``qconfig`` is a ``str`` and
+            ``observer_type`` is ``'histogram'``, the observers won't belong to any fake-quantization modules and will
+            not be controlled by the callback.
+
     .. _PyTorch Quantization: https://pytorch.org/docs/stable/quantization.html#quantization-aware-training
     .. _torch.quantization.QConfig: https://pytorch.org/docs/stable/torch.quantization.html#torch.quantization.QConfig
     """
 
     OBSERVER_TYPES = ("histogram", "average")
+    OBSERVER_STAGES = ("train", "validate", "test", "predict")
 
     def __init__(
         self,
@@ -140,6 +164,7 @@ class QuantizationAwareTraining(Callback):
         modules_to_fuse: Optional[Sequence] = None,
         input_compatible: bool = True,
         quantize_on_fit_end: bool = True,
+        observer_enabled_stages: Sequence[str] = ("train",),
     ) -> None:
         _valid_qconf_str = isinstance(qconfig, str) and qconfig in torch.backends.quantized.supported_engines
         if not isinstance(qconfig, QConfig) and not _valid_qconf_str:
@@ -163,9 +188,20 @@ class QuantizationAwareTraining(Callback):
         self.modules_to_fuse = modules_to_fuse
         self._input_compatible = input_compatible
         self._convert_on_fit_end = quantize_on_fit_end
-        self._forward_calls = 0
 
-    def _check_feasible_fuse(self, model):
+        observer_enabled_stages = set(observer_enabled_stages)
+        unsupported_stages = observer_enabled_stages - set(self.OBSERVER_STAGES)
+        if unsupported_stages:
+            raise MisconfigurationException(
+                f'Unsupported stages "{tuple(sorted(unsupported_stages))}", allowed are {self.OBSERVER_STAGES}.'
+            )
+        self._observer_disabled_stages = set(self.OBSERVER_STAGES) - observer_enabled_stages
+
+        self._forward_calls = 0
+        self._fake_quant_to_initial_state_dict = {}
+        self._last_fake_quant_to_observer_enabled = {}
+
+    def _check_feasible_fuse(self, model: "pl.LightningModule") -> bool:
         if not self.modules_to_fuse:
             return False
         for group in self.modules_to_fuse:
@@ -175,7 +211,20 @@ class QuantizationAwareTraining(Callback):
                 )
         return True
 
-    def on_fit_start(self, trainer, pl_module):
+    def _collect_observer_enabled(self) -> Dict[FakeQuantizeBase, Tensor]:
+        return {
+            fake_quant: fake_quant.observer_enabled.clone() for fake_quant in self._fake_quant_to_initial_state_dict
+        }
+
+    def _disable_observer(self, pl_module: "pl.LightningModule") -> None:
+        self._last_fake_quant_to_observer_enabled = self._collect_observer_enabled()
+        pl_module.apply(torch.quantization.disable_observer)
+
+    def _restore_last_observer_enabled(self) -> None:
+        for fake_quant, observer_enabled in self._last_fake_quant_to_observer_enabled.items():
+            fake_quant.observer_enabled.copy_(observer_enabled)
+
+    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         # QuantStub converts tensors from floating point to quantized
         pl_module.quant = torch.quantization.QuantStub()
         # DeQuantStub converts tensors from quantized to floating point
@@ -209,7 +258,12 @@ class QuantizationAwareTraining(Callback):
         # the model that will observe weight and activation tensors during calibration.
         torch.quantization.prepare_qat(pl_module, inplace=True)
 
-    def on_fit_end(self, trainer, pl_module):
+        fake_quants = tuple(module for module in pl_module.modules() if isinstance(module, FakeQuantizeBase))
+        self._fake_quant_to_initial_state_dict = {
+            fake_quant: copy.deepcopy(fake_quant.state_dict()) for fake_quant in fake_quants
+        }
+
+    def on_fit_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if not self._convert_on_fit_end:
             pl_module.forward = self.__module_forward
             return
@@ -224,3 +278,43 @@ class QuantizationAwareTraining(Callback):
             pl_module.forward = wrap_quantize_forward_context(model=pl_module, func=self.__module_forward)
         else:
             pl_module.forward = self.__module_forward
+
+    def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        if "train" in self._observer_disabled_stages:
+            self._disable_observer(pl_module)
+
+    def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        if "train" in self._observer_disabled_stages:
+            self._restore_last_observer_enabled()
+
+    def on_validation_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        if "validate" in self._observer_disabled_stages and not trainer.sanity_checking:
+            # ``torch.quantization.MovingAveragePerChannelMinMaxObserver`` and ``torch.quantization.HistogramObserver``
+            # need to see at least one batch to infer the shapes of quantization ``scale`` and ``zero_point``. So we
+            # don't disable observers during the sanity check so that they can infer the shapes of quantization
+            # parameters with validation data.
+            self._disable_observer(pl_module)
+
+    def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        if "validate" in self._observer_disabled_stages:
+            if trainer.sanity_checking:
+                for fake_quant, state_dict in self._fake_quant_to_initial_state_dict.items():
+                    fake_quant.load_state_dict(state_dict)
+            else:
+                self._restore_last_observer_enabled()
+
+    def on_test_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        if "test" in self._observer_disabled_stages:
+            self._disable_observer(pl_module)
+
+    def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        if "test" in self._observer_disabled_stages:
+            self._restore_last_observer_enabled()
+
+    def on_predict_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        if "predict" in self._observer_disabled_stages:
+            self._disable_observer(pl_module)
+
+    def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        if "predict" in self._observer_disabled_stages:
+            self._restore_last_observer_enabled()

@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Test deprecated functionality which will be removed in v1.5.0."""
-import pytest
-
-from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks.progress.tqdm_progress import TQDMProgressBar
+from pytorch_lightning.utilities import rank_zero_deprecation
 
 
-def test_v1_5_0_distributed_backend_trainer_flag():
-    with pytest.deprecated_call(match="has been deprecated and will be removed in v1.5."):
-        Trainer(distributed_backend="ddp_cpu")
+class ProgressBar(TQDMProgressBar):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        rank_zero_deprecation(
+            "`ProgressBar` has been deprecated in v1.5 and will be removed in v1.7."
+            " It has been renamed to `TQDMProgressBar` instead."
+        )

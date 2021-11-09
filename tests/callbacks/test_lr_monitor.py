@@ -41,7 +41,7 @@ def test_lr_monitor_single_lr(tmpdir):
     assert lr_monitor.lrs, "No learning rates logged"
     assert all(v is None for v in lr_monitor.last_momentum_values.values()), "Momentum should not be logged by default"
     assert len(lr_monitor.lrs) == len(trainer.lr_schedulers)
-    assert lr_monitor.lr_sch_names == list(lr_monitor.lrs.keys()) == ["lr-SGD"]
+    assert list(lr_monitor.lrs) == ["lr-SGD"]
 
 
 @pytest.mark.parametrize("opt", ["SGD", "Adam"])
@@ -77,7 +77,7 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt: str):
 
     assert all(v is not None for v in lr_monitor.last_momentum_values.values()), "Expected momentum to be logged"
     assert len(lr_monitor.last_momentum_values) == len(trainer.lr_schedulers)
-    assert all(k == f"lr-{opt}-momentum" for k in lr_monitor.last_momentum_values.keys())
+    assert all(k == f"lr-{opt}-momentum" for k in lr_monitor.last_momentum_values)
 
 
 def test_log_momentum_no_momentum_optimizer(tmpdir):
@@ -104,7 +104,7 @@ def test_log_momentum_no_momentum_optimizer(tmpdir):
 
     assert all(v == 0 for v in lr_monitor.last_momentum_values.values()), "Expected momentum to be logged"
     assert len(lr_monitor.last_momentum_values) == len(trainer.lr_schedulers)
-    assert all(k == "lr-ASGD-momentum" for k in lr_monitor.last_momentum_values.keys())
+    assert all(k == "lr-ASGD-momentum" for k in lr_monitor.last_momentum_values)
 
 
 def test_lr_monitor_no_lr_scheduler_single_lr(tmpdir):
@@ -127,7 +127,7 @@ def test_lr_monitor_no_lr_scheduler_single_lr(tmpdir):
 
     assert lr_monitor.lrs, "No learning rates logged"
     assert len(lr_monitor.lrs) == len(trainer.optimizers)
-    assert lr_monitor.lr_sch_names == ["lr-SGD"]
+    assert list(lr_monitor.lrs) == ["lr-SGD"]
 
 
 @pytest.mark.parametrize("opt", ["SGD", "Adam"])
@@ -162,7 +162,7 @@ def test_lr_monitor_no_lr_scheduler_single_lr_with_momentum(tmpdir, opt: str):
 
     assert all(v is not None for v in lr_monitor.last_momentum_values.values()), "Expected momentum to be logged"
     assert len(lr_monitor.last_momentum_values) == len(trainer.optimizers)
-    assert all(k == f"lr-{opt}-momentum" for k in lr_monitor.last_momentum_values.keys())
+    assert all(k == f"lr-{opt}-momentum" for k in lr_monitor.last_momentum_values)
 
 
 def test_log_momentum_no_momentum_optimizer_no_lr_scheduler(tmpdir):
@@ -188,7 +188,7 @@ def test_log_momentum_no_momentum_optimizer_no_lr_scheduler(tmpdir):
 
     assert all(v == 0 for v in lr_monitor.last_momentum_values.values()), "Expected momentum to be logged"
     assert len(lr_monitor.last_momentum_values) == len(trainer.optimizers)
-    assert all(k == "lr-ASGD-momentum" for k in lr_monitor.last_momentum_values.keys())
+    assert all(k == "lr-ASGD-momentum" for k in lr_monitor.last_momentum_values)
 
 
 def test_lr_monitor_no_logger(tmpdir):
@@ -238,7 +238,7 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
 
     assert lr_monitor.lrs, "No learning rates logged"
     assert len(lr_monitor.lrs) == len(trainer.lr_schedulers)
-    assert lr_monitor.lr_sch_names == ["lr-Adam", "lr-Adam-1"], "Names of learning rates not set correctly"
+    assert list(lr_monitor.lrs) == ["lr-Adam", "lr-Adam-1"], "Names of learning rates not set correctly"
 
     if logging_interval == "step":
         expected_number_logged = trainer.global_step // log_every_n_steps
@@ -281,7 +281,7 @@ def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
 
     assert lr_monitor.lrs, "No learning rates logged"
     assert len(lr_monitor.lrs) == len(trainer.optimizers)
-    assert lr_monitor.lr_sch_names == ["lr-Adam", "lr-Adam-1"], "Names of learning rates not set correctly"
+    assert list(lr_monitor.lrs) == ["lr-Adam", "lr-Adam-1"], "Names of learning rates not set correctly"
 
     if logging_interval == "step":
         expected_number_logged = trainer.global_step // log_every_n_steps
@@ -317,8 +317,7 @@ def test_lr_monitor_param_groups(tmpdir):
 
     assert lr_monitor.lrs, "No learning rates logged"
     assert len(lr_monitor.lrs) == 2 * len(trainer.lr_schedulers)
-    assert lr_monitor.lr_sch_names == ["lr-Adam"]
-    assert list(lr_monitor.lrs.keys()) == ["lr-Adam/pg1", "lr-Adam/pg2"], "Names of learning rates not set correctly"
+    assert list(lr_monitor.lrs) == ["lr-Adam/pg1", "lr-Adam/pg2"], "Names of learning rates not set correctly"
 
 
 def test_lr_monitor_custom_name(tmpdir):
@@ -339,7 +338,7 @@ def test_lr_monitor_custom_name(tmpdir):
         enable_model_summary=False,
     )
     trainer.fit(TestModel())
-    assert lr_monitor.lr_sch_names == list(lr_monitor.lrs.keys()) == ["my_logging_name"]
+    assert list(lr_monitor.lrs) == ["my_logging_name"]
 
 
 def test_lr_monitor_custom_pg_name(tmpdir):
@@ -360,7 +359,6 @@ def test_lr_monitor_custom_pg_name(tmpdir):
         enable_model_summary=False,
     )
     trainer.fit(TestModel())
-    assert lr_monitor.lr_sch_names == ["lr-SGD"]
     assert list(lr_monitor.lrs) == ["lr-SGD/linear"]
 
 
@@ -434,7 +432,7 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
     class Check(Callback):
         def on_train_epoch_start(self, trainer, pl_module) -> None:
             num_param_groups = sum(len(opt.param_groups) for opt in trainer.optimizers)
-            assert lr_monitor.lr_sch_names == ["lr-Adam", "lr-Adam-1", "lr-Adam-2"]
+
             if trainer.current_epoch == 0:
                 assert num_param_groups == 3
             elif trainer.current_epoch == 1:
@@ -510,3 +508,50 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
 
     expected = [0.1, 0.05]
     assert lr_monitor.lrs["lr-Adam-1/pg3"] == expected
+
+
+def test_lr_monitor_multiple_param_groups_no_lr_scheduler(tmpdir):
+    """Test that the `LearningRateMonitor` is able to log correct keys with multiple param groups and no
+    lr_scheduler."""
+
+    class TestModel(BoringModel):
+        def __init__(self, lr, momentum):
+            super().__init__()
+            self.save_hyperparameters()
+            self.linear_a = torch.nn.Linear(32, 16)
+            self.linear_b = torch.nn.Linear(16, 2)
+
+        def forward(self, x):
+            x = self.linear_a(x)
+            x = self.linear_b(x)
+            return x
+
+        def configure_optimizers(self):
+            param_groups = [
+                {"params": list(self.linear_a.parameters())},
+                {"params": list(self.linear_b.parameters())},
+            ]
+            optimizer = torch.optim.Adam(param_groups, lr=self.hparams.lr, betas=self.hparams.momentum)
+            return optimizer
+
+    lr_monitor = LearningRateMonitor(log_momentum=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_val_batches=2,
+        limit_train_batches=2,
+        callbacks=[lr_monitor],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+
+    lr = 1e-2
+    momentum = 0.7
+    model = TestModel(lr=lr, momentum=(momentum, 0.999))
+    trainer.fit(model)
+
+    assert len(lr_monitor.lrs) == len(trainer.optimizers[0].param_groups)
+    assert list(lr_monitor.lrs) == ["lr-Adam/pg1", "lr-Adam/pg2"]
+    assert list(lr_monitor.last_momentum_values) == ["lr-Adam/pg1-momentum", "lr-Adam/pg2-momentum"]
+    assert all(val == momentum for val in lr_monitor.last_momentum_values.values())
+    assert all(all(val == lr for val in lr_monitor.lrs[lr_key]) for lr_key in lr_monitor.lrs)

@@ -9,7 +9,6 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -48,17 +47,6 @@ def test_sharded_ddp_choice(tmpdir, strategy):
     trainer = Trainer(fast_dev_run=True, strategy=strategy, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
-        trainer.fit(model)
-
-
-@RunIf(amp_apex=True, fairscale=True)
-def test_invalid_apex_sharded(tmpdir):
-    """Test to ensure that we raise an error when we try to use apex and sharded."""
-
-    model = BoringModel()
-    with pytest.raises(MisconfigurationException, match="Sharded Plugin is not supported with Apex AMP"):
-        trainer = Trainer(fast_dev_run=True, strategy="ddp_sharded_spawn", precision=16, amp_backend="apex")
-
         trainer.fit(model)
 
 
@@ -132,7 +120,7 @@ def test_ddp_sharded_plugin_finetune(tmpdir):
 
 
 @RunIf(skip_windows=True, fairscale=True)
-def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
+def test_ddp_sharded_plugin_fit_ckpt_path(tmpdir):
     """Test to ensure that resuming from checkpoint works."""
     model = BoringModel()
     trainer = Trainer(strategy="ddp_sharded_spawn", num_processes=2, fast_dev_run=True)
@@ -144,17 +132,15 @@ def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
 
     model = BoringModel()
 
-    trainer = Trainer(
-        strategy="ddp_sharded_spawn", num_processes=2, fast_dev_run=True, resume_from_checkpoint=checkpoint_path
-    )
+    trainer = Trainer(strategy="ddp_sharded_spawn", num_processes=2, fast_dev_run=True)
 
-    trainer.fit(model)
+    trainer.fit(model, ckpt_path=checkpoint_path)
 
 
 @pytest.mark.skip(reason="Not a critical test, skip till drone CI performance improves.")  # todo
 @pytest.mark.skip(reason="Currently unsupported restarting training on different number of devices.")
 @RunIf(min_gpus=2, skip_windows=True, fairscale=True)
-def test_ddp_sharded_plugin_resume_from_checkpoint_downsize_gpus(tmpdir):
+def test_ddp_sharded_plugin_fit_ckpt_path_downsize_gpus(tmpdir):
     """Test to ensure that resuming from checkpoint works when downsizing number of GPUS."""
     model = BoringModel()
     trainer = Trainer(strategy="ddp_sharded_spawn", fast_dev_run=True, gpus=2)
@@ -166,13 +152,13 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_downsize_gpus(tmpdir):
 
     model = BoringModel()
 
-    trainer = Trainer(strategy="ddp_sharded_spawn", fast_dev_run=True, gpus=1, resume_from_checkpoint=checkpoint_path)
+    trainer = Trainer(strategy="ddp_sharded_spawn", fast_dev_run=True, gpus=1)
 
-    trainer.fit(model)
+    trainer.fit(model, ckpt_path=checkpoint_path)
 
 
 @RunIf(min_gpus=1, skip_windows=True, fairscale=True)
-def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
+def test_ddp_sharded_plugin_fit_ckpt_path_gpu_to_cpu(tmpdir):
     """Test to ensure that resuming from checkpoint works when going from GPUs- > CPU."""
     model = BoringModel()
     trainer = Trainer(strategy="ddp_sharded_spawn", gpus=1, fast_dev_run=True)
@@ -184,11 +170,9 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
 
     model = BoringModel()
 
-    trainer = Trainer(
-        strategy="ddp_sharded_spawn", num_processes=2, fast_dev_run=True, resume_from_checkpoint=checkpoint_path
-    )
+    trainer = Trainer(strategy="ddp_sharded_spawn", num_processes=2, fast_dev_run=True)
 
-    trainer.fit(model)
+    trainer.fit(model, ckpt_path=checkpoint_path)
 
 
 @RunIf(skip_windows=True, special=True, fairscale=True)

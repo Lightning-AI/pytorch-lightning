@@ -13,19 +13,20 @@
 # limitations under the License
 import collections
 from copy import deepcopy
+from unittest.mock import patch
 
 import pytest
 import torch
 from torch import nn
+from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
-from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.plugins import TPUSpawnPlugin
+from pytorch_lightning.plugins import TPUPrecisionPlugin, TPUSpawnPlugin, XLACheckpointIO
 from pytorch_lightning.utilities import find_shared_parameters
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 from tests.helpers.utils import pl_multi_process_test
 
@@ -62,8 +63,8 @@ def test_resume_training_on_cpu(tmpdir):
     assert weight_tensor.device == torch.device("cpu")
 
     # Verify that training is resumed on CPU
-    trainer = Trainer(resume_from_checkpoint=model_path, max_epochs=1, default_root_dir=tmpdir)
-    trainer.fit(model)
+    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    trainer.fit(model, ckpt_path=model_path)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
@@ -189,16 +190,18 @@ def test_manual_optimization_tpus(tmpdir):
             assert torch.all(self.layer.weight.grad == 0)
             self.count += 1
 
+        def on_train_start(self):
+            opt = self.optimizers()
+            self.opt_step_patch = patch.object(opt, "step", wraps=opt.step)
+            self.opt_step_mock = self.opt_step_patch.start()
+
         def on_train_end(self):
             assert self.called["training_step"] == 5
             assert self.called["on_train_batch_start"] == 5
             assert self.called["on_train_batch_end"] == 5
 
-    class TestManualOptimizationCallack(Callback):
-        def on_train_end(self, trainer, pl_module):
-
-            opt = pl_module.optimizers()
-            assert opt._total_optimizer_step_calls == 3
+            self.opt_step_patch.stop()
+            assert self.opt_step_mock.call_count == 3
 
     model = ManualOptimizationModel()
     model_copy = deepcopy(model)
@@ -212,7 +215,6 @@ def test_manual_optimization_tpus(tmpdir):
         limit_test_batches=0,
         limit_val_batches=0,
         tpu_cores=8,
-        callbacks=[TestManualOptimizationCallack()],
     )
     trainer.fit(model)
 
@@ -227,7 +229,7 @@ def test_ddp_cpu_not_supported_on_tpus():
 
 
 @RunIf(tpu=True)
-@pytest.mark.parametrize("strategy", ["tpu_spawn", "tpu_spawn_debug"])
+@pytest.mark.parametrize("strategy", ["ddp_spawn", "tpu_spawn_debug"])
 def test_strategy_choice_tpu_str(tmpdir, strategy):
     trainer = Trainer(strategy=strategy, accelerator="tpu", devices=8)
     assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
@@ -283,3 +285,34 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
     trainer.fit(model)
 
     assert torch.all(torch.eq(model.net_a.layer.weight, model.net_b.layer.weight))
+
+
+def test_tpu_invalid_raises():
+    accelerator = TPUAccelerator(object(), TPUSpawnPlugin())
+    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `TPUPrecisionPlugin"):
+        accelerator.setup(object())
+
+    accelerator = TPUAccelerator(TPUPrecisionPlugin(), object())
+    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUPlugin` or `TPUSpawnPlugi"):
+        accelerator.setup(object())
+
+
+@RunIf(tpu=True)
+def test_xla_checkpoint_plugin_being_default():
+    trainer = Trainer(tpu_cores=8)
+    assert isinstance(trainer.training_type_plugin.checkpoint_io, XLACheckpointIO)
+
+
+@RunIf(tpu=True)
+@patch("pytorch_lightning.plugins.training_type.tpu_spawn.xm")
+def test_mp_device_dataloader_attribute(_):
+    dataset = RandomDataset(32, 64)
+    dataloader = TPUSpawnPlugin().process_dataloader(DataLoader(dataset))
+    assert dataloader.dataset == dataset
+
+
+@RunIf(tpu=True)
+def test_devices_auto_choice_tpu():
+    trainer = Trainer(accelerator="auto", devices="auto")
+    assert trainer.devices == 8
+    assert trainer.tpu_cores == 8

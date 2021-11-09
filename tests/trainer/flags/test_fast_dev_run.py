@@ -65,7 +65,7 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
 
     checkpoint_callback = ModelCheckpoint()
     checkpoint_callback.save_checkpoint = Mock()
-    early_stopping_callback = EarlyStopping()
+    early_stopping_callback = EarlyStopping(monitor="foo")
     early_stopping_callback._evaluate_stopping_criteria = Mock()
     trainer_config = dict(
         default_root_dir=tmpdir,

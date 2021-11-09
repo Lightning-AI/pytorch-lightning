@@ -13,7 +13,7 @@
 # limitations under the License.
 import dataclasses
 import numbers
-from collections import namedtuple, OrderedDict
+from collections import defaultdict, namedtuple, OrderedDict
 from typing import List
 
 import numpy as np
@@ -152,6 +152,11 @@ def test_recursive_application_to_collection():
     to_reduce = _CustomCollection({"a": 1, "b": 2, "c": 3})
     reduced = apply_to_collection(to_reduce, int, lambda x: str(x))
     assert reduced == _CustomCollection({"a": "1", "b": "2", "c": "3"})
+
+    # defaultdict
+    to_reduce = defaultdict(int, {"a": 1, "b": 2, "c": 3})
+    reduced = apply_to_collection(to_reduce, int, lambda x: str(x))
+    assert reduced == defaultdict(int, {"a": "1", "b": "2", "c": "3"})
 
 
 def test_apply_to_collection_include_none():

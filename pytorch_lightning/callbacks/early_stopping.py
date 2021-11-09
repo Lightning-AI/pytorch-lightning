@@ -26,7 +26,7 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 log = logging.getLogger(__name__)
@@ -89,7 +89,7 @@ class EarlyStopping(Callback):
 
     def __init__(
         self,
-        monitor: Optional[str] = None,
+        monitor: str,
         min_delta: float = 0.0,
         patience: int = 3,
         verbose: bool = False,
@@ -101,6 +101,7 @@ class EarlyStopping(Callback):
         check_on_train_epoch_end: Optional[bool] = None,
     ):
         super().__init__()
+        self.monitor = monitor
         self.min_delta = min_delta
         self.patience = patience
         self.verbose = verbose
@@ -120,13 +121,6 @@ class EarlyStopping(Callback):
         torch_inf = torch.tensor(np.Inf)
         self.best_score = torch_inf if self.monitor_op == torch.lt else -torch_inf
 
-        if monitor is None:
-            rank_zero_deprecation(
-                "The `EarlyStopping(monitor)` argument will be required starting in v1.6."
-                " For backward compatibility, setting this to `early_stop_on`."
-            )
-        self.monitor = monitor or "early_stop_on"
-
     @property
     def state_key(self) -> str:
         return self._generate_state_key(monitor=self.monitor, mode=self.mode)
@@ -137,7 +131,7 @@ class EarlyStopping(Callback):
             # validation, then we run after validation instead of on train epoch end
             self._check_on_train_epoch_end = trainer.val_check_interval == 1.0 and trainer.check_val_every_n_epoch == 1
 
-    def _validate_condition_metric(self, logs):
+    def _validate_condition_metric(self, logs: Dict[str, float]) -> bool:
         monitor_val = logs.get(self.monitor)
 
         error_msg = (
@@ -178,7 +172,7 @@ class EarlyStopping(Callback):
         self.best_score = callback_state["best_score"]
         self.patience = callback_state["patience"]
 
-    def _should_skip_check(self, trainer) -> bool:
+    def _should_skip_check(self, trainer: "pl.Trainer") -> bool:
         from pytorch_lightning.trainer.states import TrainerFn
 
         return trainer.state.fn != TrainerFn.FITTING or trainer.sanity_checking
@@ -188,7 +182,7 @@ class EarlyStopping(Callback):
             return
         self._run_early_stopping_check(trainer)
 
-    def on_validation_end(self, trainer, pl_module) -> None:
+    def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if self._check_on_train_epoch_end or self._should_skip_check(trainer):
             return
         self._run_early_stopping_check(trainer)
@@ -213,7 +207,7 @@ class EarlyStopping(Callback):
         if reason and self.verbose:
             self._log_info(trainer, reason)
 
-    def _evaluate_stopping_criteria(self, current: torch.Tensor) -> Tuple[bool, str]:
+    def _evaluate_stopping_criteria(self, current: torch.Tensor) -> Tuple[bool, Optional[str]]:
         should_stop = False
         reason = None
         if self.check_finite and not torch.isfinite(current):

@@ -134,6 +134,7 @@ Under the hood a LightningModule is still just a :class:`torch.nn.Module` that g
 - The Train loop
 - The Validation loop
 - The Test loop
+- The Prediction loop
 - The Model or system of Models
 - The Optimizer
 
@@ -181,7 +182,7 @@ More details in :doc:`lightning module <../common/lightning_module>` docs.
 Step 2: Fit with Lightning Trainer
 **********************************
 
-First, define the data however you want. Lightning just needs a :class:`~torch.utils.data.DataLoader` for the train/val/test splits.
+First, define the data however you want. Lightning just needs a :class:`~torch.utils.data.DataLoader` for the train/val/test/predict splits.
 
 .. code-block:: python
 
@@ -258,7 +259,8 @@ Turn off automatic optimization and you control the train loop!
 
 
     def training_step(self, batch, batch_idx):
-        # access your optimizers with use_pl_optimizer=False. Default is True
+        # access your optimizers with use_pl_optimizer=False. Default is True,
+        # setting use_pl_optimizer=True will maintain plugin/precision support
         opt_a, opt_b = self.optimizers(use_pl_optimizer=True)
 
         loss_a = self.generator(batch)
@@ -272,6 +274,11 @@ Turn off automatic optimization and you control the train loop!
         self.manual_backward(loss_b)
         opt_b.step()
 
+Loop customization
+==================
+
+If you need even more flexibility, you can fully customize the training loop to its core.
+Learn more about loops :doc:`here <../extensions/loops>`.
 
 Predict or Deploy
 =================
@@ -316,7 +323,7 @@ You can also add a forward method to do predictions however you want.
 
 
     autoencoder = LitAutoEncoder()
-    autoencoder = autoencoder(torch.rand(1, 28 * 28))
+    embedding = autoencoder(torch.rand(1, 28 * 28))
 
 
 .. code-block:: python
@@ -366,9 +373,9 @@ a forward method or trace only the sub-models you need.
 
 --------------------
 
-Using CPUs/GPUs/TPUs
-====================
-It's trivial to use CPUs, GPUs or TPUs in Lightning. There's **NO NEED** to change your code, simply change the :class:`~pytorch_lightning.trainer.Trainer` options.
+Using CPUs/GPUs/TPUs/IPUs
+=========================
+It's trivial to use CPUs, GPUs, TPUs or IPUs in Lightning. There's **NO NEED** to change your code, simply change the :class:`~pytorch_lightning.trainer.Trainer` options.
 
 .. testcode::
 
@@ -418,6 +425,11 @@ Without changing a SINGLE line of your code, you can now do the following with t
     # using only half the training data and checking validation every quarter of a training epoch
     trainer = pl.Trainer(tpu_cores=8, precision=16, limit_train_batches=0.5, val_check_interval=0.25)
 
+.. code-block:: python
+
+    # Train on IPUs
+    trainer = pl.Trainer(ipus=8)
+
 -----------
 
 Checkpoints
@@ -444,7 +456,7 @@ If you prefer to do it manually, here's the equivalent
 
 Data flow
 =========
-Each loop (training, validation, test) has three hooks you can implement:
+Each loop (training, validation, test, predict) has three hooks you can implement:
 
 - x_step
 - x_step_end
@@ -469,8 +481,8 @@ The equivalent in Lightning is:
         return prediction
 
 
-    def training_epoch_end(self, training_step_outputs):
-        for prediction in predictions:
+    def training_epoch_end(self, outs):
+        for out in outs:
             ...
 
 In the event that you use DP or DDP2 distributed modes (ie: split a batch across GPUs),
@@ -503,9 +515,9 @@ The lightning equivalent is:
     def training_step_end(self, losses):
         gpu_0_loss = losses[0]
         gpu_1_loss = losses[1]
-        return (gpu_0_loss + gpu_1_loss) * 1 / 2
+        return (gpu_0_loss + gpu_1_loss) / 2
 
-.. tip:: The validation and test loops have the same structure.
+.. tip:: The validation, test and prediction loops have the same structure.
 
 -----------------
 
@@ -643,8 +655,10 @@ Make your data code reusable by organizing it into a :class:`~pytorch_lightning.
           if stage in (None, "fit"):
               mnist_train = MNIST(os.getcwd(), train=True, transform=transform)
               self.mnist_train, self.mnist_val = random_split(mnist_train, [55000, 5000])
-          if stage == (None, "test"):
+          if stage == "test":
               self.mnist_test = MNIST(os.getcwd(), train=False, transform=transform)
+          if stage == "predict":
+              self.mnist_predict = MNIST(os.getcwd(), train=False, transform=transform)
 
       # return the dataloader for each split
       def train_dataloader(self):
@@ -658,6 +672,10 @@ Make your data code reusable by organizing it into a :class:`~pytorch_lightning.
       def test_dataloader(self):
           mnist_test = DataLoader(self.mnist_test, batch_size=self.batch_size)
           return mnist_test
+
+      def predict_dataloader(self):
+          mnist_predict = DataLoader(self.mnist_predict, batch_size=self.batch_size)
+          return mnist_predict
 
 :class:`~pytorch_lightning.core.datamodule.LightningDataModule` is designed to enable sharing and reusing data splits
 and transforms across different projects. It encapsulates all the steps needed to process data: downloading,
@@ -676,10 +694,16 @@ the :class:`~pytorch_lightning.trainer.Trainer`:
 
     # train
     trainer = pl.Trainer()
-    trainer.fit(model, dm)
+    trainer.fit(model, datamodule=dm)
+
+    # validate
+    trainer.validate(datamodule=dm)
 
     # test
     trainer.test(datamodule=dm)
+
+    # predict
+    predictions = trainer.predict(datamodule=dm)
 
 DataModules are specifically useful for building models based on data. Read more on :doc:`datamodules <../extensions/datamodules>`.
 
@@ -696,14 +720,17 @@ Lightning has many tools for debugging. Here is an example of just a few of them
 
 .. testcode::
 
-    # Automatically overfit the sane batch of your model for a sanity test
+    # Automatically overfit the same batch of your model for a sanity test
     trainer = Trainer(overfit_batches=1)
 
 .. testcode::
 
-    # unit test all the code- hits every line of your code once to see if you have bugs,
+    # unit test all the code - hits every line of your code once to see if you have bugs,
     # instead of waiting hours to crash on validation
     trainer = Trainer(fast_dev_run=True)
+
+    # unit test all the code - hits every line of your code with 4 batches
+    trainer = Trainer(fast_dev_run=4)
 
 .. testcode::
 
@@ -734,7 +761,7 @@ Once you define and train your first Lightning model, you might want to try othe
 - :doc:`Automatically find a good learning rate <../advanced/lr_finder>`
 - :ref:`Load checkpoints directly from S3 <common/weights_loading:Checkpoint Loading>`
 - :doc:`Scale to massive compute clusters <../clouds/cluster>`
-- :doc:`Use multiple dataloaders per train/val/test loop <../guides/data>`
+- :doc:`Use multiple dataloaders per train/val/test/predict loop <../guides/data>`
 - :ref:`Use multiple optimizers to do reinforcement learning or even GANs <common/optimizers:Use multiple optimizers (like GANs)>`
 
 Or read our :doc:`Guide <../starter/introduction_guide>` to learn more!

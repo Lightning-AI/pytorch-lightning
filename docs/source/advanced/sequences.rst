@@ -1,6 +1,6 @@
 
 Sequential Data
-================
+===============
 
 Truncated Backpropagation Through Time
 --------------------------------------

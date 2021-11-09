@@ -138,15 +138,10 @@ class LoggerConnector:
         elif self.trainer.state.stage is RunningStage.TESTING:
             self._test_log_step += 1
 
-    def on_evaluation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int, num_dataloaders: int) -> None:
+    def on_evaluation_batch_start(self, dataloader_idx: int, num_dataloaders: int) -> None:
         model = self.trainer.lightning_module
         # set dataloader_idx only if multiple ones
         model._current_dataloader_idx = dataloader_idx if num_dataloaders > 1 else None
-
-        # track batch_size
-        assert self.trainer._results is not None
-        self.trainer._results.extract_batch_size(batch)
-        self._batch_idx = batch_idx
 
     def update_eval_step_metrics(self) -> None:
         if self.trainer.sanity_checking:
@@ -213,15 +208,9 @@ class LoggerConnector:
     Train metric updates
     """
 
-    def on_train_split_start(self, batch_idx: int, split_idx: int, split_batch: Any) -> None:
-        assert self.trainer._results is not None
-        # when the user requests `dataloader_iter`, we can't track the batch_size
-        # and this is left to user responsibility.
-        if isinstance(split_batch, pl.utilities.fetching.DataLoaderIterDataFetcher):
-            self.trainer._results.extract_batch_size(split_batch)
-
-        self._batch_idx = batch_idx
+    def on_train_split_start(self, split_idx: int, split_batch: Any) -> None:
         self._split_idx = split_idx
+        self.on_new_batch(split_batch)
 
     def update_train_step_metrics(self) -> None:
         if self.trainer.fit_loop._should_accumulate() and self.trainer.lightning_module.automatic_optimization:
@@ -255,7 +244,7 @@ class LoggerConnector:
                 self.trainer.lightning_module.log(key, mem, prog_bar=False, logger=True)
             else:
                 gpu_id = int(key.split("/")[0].split(":")[1])
-                if gpu_id in self.trainer.accelerator_connector.parallel_device_ids:
+                if gpu_id in self.trainer._accelerator_connector.parallel_device_ids:
                     self.trainer.lightning_module.log(
                         key, mem, prog_bar=False, logger=True, on_step=True, on_epoch=False
                     )
@@ -264,16 +253,28 @@ class LoggerConnector:
     Utilities and properties
     """
 
+    def on_new_batch(self, batch: Any) -> int:
+        # when the user requests `dataloader_iter`, we can't track the batch_size
+        # and this is left to user responsibility.
+        if not isinstance(batch, pl.utilities.fetching.StepFuncDataLoaderIter):
+            assert self.trainer._results is not None
+            return self.trainer._results.extract_batch_size(batch)
+        return 1
+
     def on_epoch_start(self) -> None:
         self._epoch_end_reached = False
 
-    def on_batch_start(self) -> None:
+    def on_batch_start(self, batch_idx: int, batch: Any) -> int:
+        self._batch_idx = batch_idx
         self._epoch_end_reached = False
+        return self.on_new_batch(batch)
 
     def epoch_end_reached(self) -> None:
         self._epoch_end_reached = True
         self._batch_idx = None
         self._split_idx = None
+        assert self.trainer._results is not None
+        self.trainer._results.batch_size = 1
 
     def on_epoch_end(self) -> None:
         assert self._epoch_end_reached
@@ -324,10 +325,6 @@ class LoggerConnector:
         .. deprecated:: v1.5
             Will be removed in v1.7.
         """
-        rank_zero_deprecation(
-            "The property `LoggerConnector.gpus_metrics` was deprecated in v1.5"
-            " and will be removed in 1.7. Use the `DeviceStatsMonitor` callback instead."
-        )
         if self.trainer._device_type == DeviceType.GPU and self.log_gpu_memory:
             mem_map = memory.get_memory_profile(self.log_gpu_memory)
             self._gpus_metrics.update(mem_map)

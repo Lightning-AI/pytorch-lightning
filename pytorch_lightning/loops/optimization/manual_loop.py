@@ -35,10 +35,6 @@ class ManualResult(OutputResult):
 
     extra: Dict[str, Any] = field(default_factory=dict)
 
-    def __post_init__(self) -> None:
-        # TODO: remove with the deprecation removal in v1.6
-        self.extra = self._check_extra_detach_deprecation(self.extra)
-
     @classmethod
     def from_training_step_output(cls, training_step_output: Optional[STEP_OUTPUT]) -> "ManualResult":
         extra = {}
@@ -73,6 +69,8 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
     This loop is a trivial case because it performs only a single iteration (calling directly into the module's
     :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`) and passing through the output(s).
     """
+
+    output_result_cls = ManualResult
 
     def __init__(self) -> None:
         super().__init__()
@@ -115,7 +113,7 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
 
             self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
 
-            result = ManualResult.from_training_step_output(training_step_output)
+            result = self.output_result_cls.from_training_step_output(training_step_output)
 
             if self.trainer.move_metrics_to_cpu:
                 # hiddens and the training step output are not moved as they are not considered "metrics"

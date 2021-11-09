@@ -28,7 +28,7 @@ from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 from tests.utilities.distributed import call_training_script
 
-CLI_ARGS = "--max_epochs 1 --gpus 2 --accelerator ddp"
+CLI_ARGS = "--max_epochs 1 --gpus 2 --strategy ddp"
 
 
 @RunIf(min_gpus=2)

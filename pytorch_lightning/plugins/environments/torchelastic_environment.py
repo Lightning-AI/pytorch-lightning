@@ -31,18 +31,21 @@ class TorchElasticEnvironment(ClusterEnvironment):
         required_env_vars = ("RANK", "GROUP_RANK", "LOCAL_RANK", "LOCAL_WORLD_SIZE")
         return all(v in os.environ for v in required_env_vars)
 
-    def creates_children(self) -> bool:
+    @property
+    def creates_processes_externally(self) -> bool:
         return True
 
-    def master_address(self) -> str:
+    @property
+    def main_address(self) -> str:
         if "MASTER_ADDR" not in os.environ:
             rank_zero_warn("MASTER_ADDR environment variable is not defined. Set as localhost")
             os.environ["MASTER_ADDR"] = "127.0.0.1"
         log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
-        master_address = os.environ.get("MASTER_ADDR")
-        return master_address
+        main_address = os.environ.get("MASTER_ADDR")
+        return main_address
 
-    def master_port(self) -> int:
+    @property
+    def main_port(self) -> int:
         if "MASTER_PORT" not in os.environ:
             rank_zero_warn("MASTER_PORT environment variable is not defined. Set as 12910")
             os.environ["MASTER_PORT"] = "12910"
