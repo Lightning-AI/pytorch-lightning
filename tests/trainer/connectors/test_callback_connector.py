@@ -33,7 +33,7 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     checkpoint1 = ModelCheckpoint(tmpdir)
     checkpoint2 = ModelCheckpoint(tmpdir)
     model_summary = ModelSummary()
-    early_stopping = EarlyStopping("foo")
+    early_stopping = EarlyStopping(monitor="foo")
     lr_monitor = LearningRateMonitor()
     progress_bar = TQDMProgressBar()
 
@@ -154,7 +154,7 @@ def test_attach_model_callbacks():
         cb_connector._attach_model_callbacks()
         return trainer
 
-    early_stopping = EarlyStopping("foo")
+    early_stopping = EarlyStopping(monitor="foo")
     progress_bar = TQDMProgressBar()
     lr_monitor = LearningRateMonitor()
     grad_accumulation = GradientAccumulationScheduler({1: 1})
@@ -169,14 +169,14 @@ def test_attach_model_callbacks():
 
     # same callback type twice, different instance
     trainer = _attach_callbacks(
-        trainer_callbacks=[progress_bar, EarlyStopping("foo")],
+        trainer_callbacks=[progress_bar, EarlyStopping(monitor="foo")],
         model_callbacks=[early_stopping],
     )
     assert trainer.callbacks == [progress_bar, trainer.accumulation_scheduler, early_stopping]
 
     # multiple callbacks of the same type in trainer
     trainer = _attach_callbacks(
-        trainer_callbacks=[LearningRateMonitor(), EarlyStopping("foo"), LearningRateMonitor(), EarlyStopping("foo")],
+        trainer_callbacks=[LearningRateMonitor(), EarlyStopping(monitor="foo"), LearningRateMonitor(), EarlyStopping(monitor="foo")],
         model_callbacks=[early_stopping, lr_monitor],
     )
     assert trainer.callbacks == [trainer.accumulation_scheduler, early_stopping, lr_monitor]
@@ -186,9 +186,9 @@ def test_attach_model_callbacks():
         trainer_callbacks=[
             LearningRateMonitor(),
             progress_bar,
-            EarlyStopping("foo"),
+            EarlyStopping(monitor="foo"),
             LearningRateMonitor(),
-            EarlyStopping("foo"),
+            EarlyStopping(monitor="foo"),
         ],
         model_callbacks=[early_stopping, lr_monitor, grad_accumulation, early_stopping],
     )
@@ -198,7 +198,7 @@ def test_attach_model_callbacks():
 def test_attach_model_callbacks_override_info(caplog):
     """Test that the logs contain the info about overriding callbacks returned by configure_callbacks."""
     model = LightningModule()
-    model.configure_callbacks = lambda: [LearningRateMonitor(), EarlyStopping("foo")]
+    model.configure_callbacks = lambda: [LearningRateMonitor(), EarlyStopping(monitor="foo")]
     trainer = Trainer(
         enable_checkpointing=False, callbacks=[EarlyStopping("foo"), LearningRateMonitor(), TQDMProgressBar()]
     )

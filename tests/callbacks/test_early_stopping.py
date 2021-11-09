@@ -183,7 +183,7 @@ def test_early_stopping_patience_train(
 
 
 def test_pickling(tmpdir):
-    early_stopping = EarlyStopping("foo")
+    early_stopping = EarlyStopping(monitor="foo")
 
     early_stopping_pickled = pickle.dumps(early_stopping)
     early_stopping_loaded = pickle.loads(early_stopping_pickled)
@@ -350,7 +350,7 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze: in
 
 def test_early_stopping_mode_options():
     with pytest.raises(MisconfigurationException, match="`mode` can be .* got unknown_option"):
-        EarlyStopping("foo", mode="unknown_option")
+        EarlyStopping(monitor="foo", mode="unknown_option")
 
 
 class EarlyStoppingModel(BoringModel):
