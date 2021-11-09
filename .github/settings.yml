@@ -227,7 +227,7 @@ branches:
           - "ci-tests"
           - "conda (3.8, 1.10)"
           - "conda (3.8, 1.9)"
-          #- "conda (3.8, 1.8)"
+          - "conda (3.8, 1.8)"
           - "conda (3.8, 1.7)"
           - "pytest (windows-2019, 3.9, oldest, stable)"
           - "pytest (windows-2019, 3.9, latest, stable)"
