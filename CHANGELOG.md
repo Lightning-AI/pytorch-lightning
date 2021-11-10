@@ -107,7 +107,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed deprecated passthrough methods and properties from `Accelerator` base class:
   * ([#10403](https://github.com/PyTorchLightning/pytorch-lightning/pull/10403))
-  * ([#]())
+  * ([#10448](https://github.com/PyTorchLightning/pytorch-lightning/pull/10448))
 
 
 ### Fixed
