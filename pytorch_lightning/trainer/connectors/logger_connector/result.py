@@ -376,7 +376,7 @@ class ResultCollection(dict):
         super().__init__()
         self.training = training
         self._current_batch = None
-        self._current_batch_size = None
+        self._current_batch_size: Optional[int] = None
         self.device: Optional[Union[str, torch.device]] = device
 
     @property
