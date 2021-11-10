@@ -13,7 +13,7 @@
 # limitations under the License.
 
 ARG PYTHON_VERSION=3.9
-ARG PYTORCH_VERSION=1.6
+ARG PYTORCH_VERSION=1.8
 
 FROM pytorchlightning/pytorch_lightning:base-xla-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
 

@@ -50,8 +50,8 @@ class _Sync:
     fn: Optional[Callable] = None
     _should: bool = False
     rank_zero_only: bool = False
-    op: Optional[str] = None
-    group: Optional[Any] = None
+    _op: Optional[str] = None
+    _group: Optional[Any] = None
 
     def __post_init__(self) -> None:
         self._generate_sync_fn()
@@ -63,6 +63,26 @@ class _Sync:
     @should.setter
     def should(self, should: bool) -> None:
         self._should = should
+        # `self._fn` needs to be re-generated.
+        self._generate_sync_fn()
+
+    @property
+    def op(self) -> Optional[str]:
+        return self._op
+
+    @op.setter
+    def op(self, op: Optional[str]) -> None:
+        self._op = op
+        # `self._fn` needs to be re-generated.
+        self._generate_sync_fn()
+
+    @property
+    def group(self) -> Optional[Any]:
+        return self._group
+
+    @group.setter
+    def group(self, group: Optional[Any]) -> None:
+        self._group = group
         # `self._fn` needs to be re-generated.
         self._generate_sync_fn()
 
@@ -433,7 +453,7 @@ class ResultCollection(dict):
             dataloader_idx=dataloader_idx,
             metric_attribute=metric_attribute,
         )
-        meta.sync = _Sync(_should=sync_dist, fn=sync_dist_fn, group=sync_dist_group, rank_zero_only=rank_zero_only)
+        meta.sync = _Sync(_should=sync_dist, fn=sync_dist_fn, _group=sync_dist_group, rank_zero_only=rank_zero_only)
 
         # register logged value if it doesn't exist
         if key not in self:
