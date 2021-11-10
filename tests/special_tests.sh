@@ -67,11 +67,11 @@ for i in "${!files_arr[@]}"; do
       parametrizations_arr=($parametrizations)
 
       for j in "${!parametrizations_arr[@]}"; do
-        parametrization=${parametrizations_arr[$j]}
+        parametrization=${parametrizations_arr[$j]}p
 
         # run the test
-        report+="Ran\t$file:$lineno::$parametrization\n"
-        python ${defaults} "${file}::${parametrization}"
+        report+="Ran\t$file:$lineno::$test_name\n"
+        python ${defaults} "${parametrization}"
       done
 
       # stop reading lines, move on to the next occurrence
