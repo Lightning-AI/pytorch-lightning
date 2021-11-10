@@ -39,6 +39,7 @@ from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
     _dataloader_load_state_dict,
     _dataloader_to_state_dict,
+    _validate_fault_tolerant_training,
     CaptureIterableDataset,
     CaptureMapDataset,
     FastForwardSampler,
@@ -1196,3 +1197,12 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
         assert "dataloader_state_dict" not in state_dict
     else:
         assert "dataloader_state_dict" in state_dict
+
+
+@pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
+def test_validate_fault_tolerant(val_check_interval, tmpdir):
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epohs=1, val_check_interval=val_check_interval)
+
+    dataloaders = DataLoader(range(10))
+    _validate_fault_tolerant_training(trainer, dataloaders)

@@ -19,6 +19,7 @@ from weakref import proxy
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_deprecation
+from pytorch_lightning.utilities.auto_restart import _validate_fault_tolerant_training
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import (
     AbstractDataFetcher,
@@ -119,6 +120,7 @@ class DataConnector:
         return DataFetcher()
 
     def get_profiled_dataloader(self, dataloader: Iterable, dataloader_idx: int = 0) -> Iterable:
+        _validate_fault_tolerant_training(self.trainer, dataloader)
         stage: str = self.trainer.state.stage.value
         data_fetcher = setattr(self, f"{stage}_data_fetcher", None) or self._select_data_fetcher()
         data_fetcher.setup(

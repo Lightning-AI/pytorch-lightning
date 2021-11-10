@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from functools import partial, wraps
 from random import getstate as python_get_rng_state
 from random import setstate as python_set_rng_state
-from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -588,3 +588,12 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
 
     else:
         raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
+
+
+def _validate_fault_tolerant_training(trainer: "pl.Trainer", dataloader: Iterable) -> None:
+    from pytorch_lightning.trainer.supporters import CombinedLoader
+
+    if not _fault_tolerant_training():
+        return
+    if isinstance(dataloader, CombinedLoader):
+        pass
