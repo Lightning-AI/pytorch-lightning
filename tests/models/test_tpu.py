@@ -407,7 +407,7 @@ def test_tpu_sync_dist():
     """Test tpu spawn sync dist operation."""
 
     def test_sync_dist(_):
-        sync = _Sync(TPUSpawnPlugin().reduce, should=True, op=torch.distributed.ReduceOp.SUM)
+        sync = _Sync(TPUSpawnPlugin().reduce, should=True, _op=torch.distributed.ReduceOp.SUM)
         value = torch.tensor([1.0])
         value = (sync(value),)
         assert value.item() == 8
