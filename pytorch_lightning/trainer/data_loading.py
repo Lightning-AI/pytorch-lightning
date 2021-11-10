@@ -28,7 +28,7 @@ from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.trainer.supporters import CombinedLoader
+from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import (
@@ -37,7 +37,7 @@ from pytorch_lightning.utilities.auto_restart import (
     CaptureMapDataset,
     FastForwardSampler,
 )
-from pytorch_lightning.utilities.data import has_iterable_dataset, has_len_all_ranks
+from pytorch_lightning.utilities.data import get_len, has_iterable_dataset, has_len_all_ranks
 from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
@@ -136,13 +136,21 @@ class TrainerDataLoadingMixin(ABC):
         if isinstance(dataloader, CombinedLoader):
             # apply `prepare_dataloader` on all the collection of loaders
             dataloader.loaders = apply_to_collection(
-                dataloader.loaders, DataLoader, self.prepare_dataloader, shuffle, mode=mode
+                dataloader.loaders, (DataLoader, CycleIterator), self.prepare_dataloader, shuffle, mode=mode
             )
+            # the length need to recomputed across all dataloaders in case of special behavior.
+            dataloader._apply_cycle_iterator_length()
             return dataloader
 
         # don't do anything if it's not a dataloader
-        if not isinstance(dataloader, DataLoader):
+        if not isinstance(dataloader, (DataLoader, CycleIterator)):
             return dataloader
+
+        cycle_iterator: Optional[CycleIterator] = None
+
+        if isinstance(dataloader, CycleIterator):
+            cycle_iterator = dataloader
+            dataloader = dataloader.loader
 
         if (
             _fault_tolerant_training()  # injects components to track the state
@@ -152,6 +160,10 @@ class TrainerDataLoadingMixin(ABC):
         ):
             sampler = self._resolve_sampler(dataloader, shuffle=shuffle, mode=mode)
             dataloader = self._update_dataloader(dataloader, sampler, mode=mode)
+
+        if cycle_iterator is not None:
+            cycle_iterator.loader = dataloader
+            return cycle_iterator
 
         return dataloader
 
@@ -282,10 +294,11 @@ class TrainerDataLoadingMixin(ABC):
             dl_kwargs["sampler"] = None
 
         if _fault_tolerant_training():
-            if isinstance(dl_kwargs["dataset"], IterableDataset):
+            dataset = dl_kwargs["dataset"]
+            if isinstance(dataset, IterableDataset):
                 # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
                 dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
-            elif len(dl_kwargs["dataset"]):
+            elif get_len(dataset) != float("inf"):
                 dl_kwargs["dataset"] = CaptureMapDataset(dataset=dl_kwargs["dataset"])
             else:
                 raise MisconfigurationException(
