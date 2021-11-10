@@ -17,12 +17,9 @@ from unittest.mock import call, Mock
 import pytest
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.plugins.training_type import DDPPlugin
 from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.model_summary import ModelSummary
-from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 
 
@@ -73,14 +70,6 @@ def test_v1_6_0_is_overridden_model():
         assert not is_overridden("foo", model=model)
 
 
-def test_v1_6_0_early_stopping_monitor(tmpdir):
-    with pytest.deprecated_call(
-        match=r"The `EarlyStopping\(monitor\)` argument will be required starting in v1.6."
-        " For backward compatibility, setting this to `early_stop_on`."
-    ):
-        EarlyStopping()
-
-
 def test_v1_6_0_train_loop(tmpdir):
     trainer = Trainer()
     with pytest.deprecated_call(
@@ -94,12 +83,6 @@ def test_v1_6_0_rank_zero_warnings_moved():
         rank_zero_warn("test")
     with pytest.deprecated_call(match="in v1.3.7 and will be removed in v1.6"):
         rank_zero_deprecation("test")
-
-
-def test_v1_6_0_ddp_plugin_task_idx():
-    plugin = DDPPlugin()
-    with pytest.deprecated_call(match="Use `DDPPlugin.local_rank` instead"):
-        _ = plugin.task_idx
 
 
 def test_v1_6_0_deprecated_model_summary_mode(tmpdir):
@@ -125,10 +108,3 @@ def test_v1_6_0_deprecated_hpc_load(tmpdir):
     checkpoint_path = trainer.checkpoint_connector.get_max_ckpt_path_from_folder(str(tmpdir))
     with pytest.deprecated_call(match=r"`CheckpointConnector.hpc_load\(\)` was deprecated in v1.4"):
         trainer.checkpoint_connector.hpc_load(checkpoint_path)
-
-
-def test_v1_6_0_deprecated_device_dtype_mixin_import():
-
-    _soft_unimport_module("pytorch_lightning.utilities.device_dtype_mixin")
-    with pytest.deprecated_call(match="will be removed in v1.6"):
-        from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin  # noqa: F401
