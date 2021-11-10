@@ -185,6 +185,7 @@ class RichProgressBarTheme:
     time: Union[str, Style] = "grey54"
     processing_speed: Union[str, Style] = "grey70"
 
+
 class RichProgressBar(ProgressBarBase):
     """Create a progress bar with `rich text formatting <https://github.com/willmcgugan/rich>`_.
 
