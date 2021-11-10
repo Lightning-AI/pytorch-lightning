@@ -121,6 +121,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `CombinedLoader` and `max_size_cycle` didn't receive a `DistributedSampler` ([#10374](https://github.com/PyTorchLightning/pytorch-lightning/issues/10374))
 
 
+- Fixed `shutdown workers` on failure ([#10463](https://github.com/PyTorchLightning/pytorch-lightning/issues/10463))
+
+
 -
 
 
