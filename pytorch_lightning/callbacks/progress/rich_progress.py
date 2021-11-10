@@ -177,14 +177,13 @@ class RichProgressBarTheme:
     https://rich.readthedocs.io/en/stable/style.html
     """
 
-    text_color: str = "white"
+    description: Union[str, Style] = "white"
     progress_bar: Union[str, Style] = "#6206E0"
     progress_bar_finished: Union[str, Style] = "#6206E0"
     progress_bar_pulse: Union[str, Style] = "#6206E0"
-    batch_progress: str = "white"
-    time: str = "grey54"
-    processing_speed: str = "grey70"
-
+    batch_progress: Union[str, Style] = "white"
+    time: Union[str, Style] = "grey54"
+    processing_speed: Union[str, Style] = "grey70"
 
 class RichProgressBar(ProgressBarBase):
     """Create a progress bar with `rich text formatting <https://github.com/willmcgugan/rich>`_.
@@ -365,7 +364,7 @@ class RichProgressBar(ProgressBarBase):
     def _add_task(self, total_batches: int, description: str, visible: bool = True) -> Optional[int]:
         if self.progress is not None:
             return self.progress.add_task(
-                f"[{self.theme.text_color}]{description}", total=total_batches, visible=visible
+                f"[{self.theme.description}]{description}", total=total_batches, visible=visible
             )
 
     def _update(self, progress_bar_id: int, visible: bool = True) -> None:
