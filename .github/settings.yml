@@ -157,6 +157,8 @@ milestones:
     state: open
   - title: "1.6"
     state: open
+  - title: "1.6.x"
+    state: open
   - title: "1.7"
     state: open
 
@@ -237,11 +239,16 @@ collaborators:
   # * `triage` - Recommended for contributors who need to proactively manage issues and pull requests without write access.
 
 # See https://docs.github.com/en/rest/reference/teams#add-or-update-team-repository-permissions for available options
-# FIXME
 teams:
-  - name: core
+  - name: Admin
     permission: admin
-  - name: docs
+  - name: Core Contributors
+    permission: push
+  - name: FB
+    permission: push
+  - name: leads
+    permission: push
+  - name: staff
     permission: push
 
 branches:
@@ -258,10 +265,9 @@ branches:
         # Blocks merge until code owners have reviewed.
         require_code_owner_reviews: true
         # Specify which users and teams can dismiss pull request reviews. Pass an empty dismissal_restrictions object to disable. User and team dismissal_restrictions are only available for organization-owned repositories. Omit this parameter for personal repositories.
-        # FIXME
-        dismissal_restrictions:
-          users: []
-          teams: []
+        #dismissal_restrictions:
+        #  users: []
+        #  teams: []
       # Required. Require status checks to pass before merging. Set to null to disable
       required_status_checks:
         # Required. Require branches to be up to date before merging.
@@ -298,7 +304,7 @@ branches:
           #- "pytest (macOS-10.15, 3.7, latest, stable)"
           - "pytest (macOS-10.15, 3.6, oldest, stable)"
       # Required. Enforce all configured restrictions for administrators. Set to true to enforce required status checks for repository administrators. Set to null to disable.
-      enforce_admins: true
+      enforce_admins: false
       # Prevent merge commits from being pushed to matching branches
       required_linear_history: false
       # Required. Restrict who can push to this branch. Team and user restrictions are only available for organization-owned repositories. Set to null to disable.
