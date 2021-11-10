@@ -60,9 +60,21 @@ for i in "${!files_arr[@]}"; do
         break
       fi
 
-      # run the test
-      report+="Ran\t$file:$lineno::$test_name\n"
-      python ${defaults} "${file}::${test_name}"
+      # get the list of parametrizations. we need to call them separately.
+      # this is a bit slow but avoids code duplication
+      # note: `head -n -2` is Linux only
+      parametrizations=$(pytest "${file}::${test_name}" --collect-only --quiet | head -n -2)
+      parametrizations_arr=($parametrizations)
+
+      for j in "${!parametrizations_arr[@]}"; do
+        parametrization=${parametrizations_arr[$j]}
+
+        # run the test
+        report+="Ran\t$file:$lineno::$parametrization\n"
+        python ${defaults} "${file}::${parametrization}"
+      done
+
+      # stop reading lines, move on to the next occurrence
       break
     fi
   done < <(echo "$test_code")
