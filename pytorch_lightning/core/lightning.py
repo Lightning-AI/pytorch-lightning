@@ -46,7 +46,6 @@ from pytorch_lightning.utilities import (
 )
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.data import extract_batch_size
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import get_model_size_mb
@@ -428,29 +427,6 @@ class LightningModule(
             raise MisconfigurationException(
                 "With `def training_step(self, dataloader_iter)`, `self.log(..., batch_size=...)` should be provided."
             )
-
-        reduce_fx = reduce_fx.lower() if isinstance(reduce_fx, str) else reduce_fx
-
-        # check if we have extracted the batch size already
-        if batch_size is None:
-            batch_size = batch_size or results.current_batch_size
-
-        # extract batch size if it is None and whenever it is required
-        if batch_size is None:
-            if (
-                on_epoch
-                and True in _FxValidator.functions[self._current_fx_name]["on_step"]
-                and reduce_fx in ("mean", "avg")
-            ):
-                try:
-                    batch_size = extract_batch_size(self.trainer._results.current_batch)
-                except RecursionError:
-                    batch_size = 1
-
-                # cache batch_size
-                results.current_batch_size = batch_size
-            else:
-                batch_size = 1
 
         results.log(
             self._current_fx_name,

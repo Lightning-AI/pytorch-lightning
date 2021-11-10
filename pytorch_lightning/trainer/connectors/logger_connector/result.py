@@ -21,8 +21,10 @@ from torchmetrics import Metric
 from typing_extensions import TypedDict
 
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
+from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
+from pytorch_lightning.utilities.data import extract_batch_size
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
@@ -421,7 +423,7 @@ class ResultCollection(dict):
         sync_dist_fn: Callable = _Sync.no_op,
         sync_dist_group: Optional[Any] = None,
         dataloader_idx: Optional[int] = None,
-        batch_size: int = 1,
+        batch_size: Optional[int] = None,
         metric_attribute: Optional[str] = None,
         rank_zero_only: bool = False,
     ) -> None:
@@ -465,7 +467,25 @@ class ResultCollection(dict):
                 f"You called `self.log({name}, ...)` twice in `{fx}` with different arguments. This is not allowed"
             )
 
+        # check if we have extracted the batch size already
+        if batch_size is None:
+            batch_size = batch_size or self.current_batch_size
+
+        # extract batch size if it is None and whenever it is required
+        if batch_size is None:
+            if on_epoch and (True in _FxValidator.functions[fx.split(".")[0]]["on_step"]) and meta.is_mean_reduction:
+                try:
+                    batch_size = extract_batch_size(self.current_batch)
+                except RecursionError:
+                    batch_size = 1
+
+                # cache batch_size
+                self.current_batch_size = batch_size
+            else:
+                batch_size = 1
+
         batch_size = torch.tensor(batch_size, device=self.device)
+
         self.update_metrics(key, value, batch_size)
 
     def register_key(self, key: str, meta: _Metadata, value: _METRIC_COLLECTION) -> None:

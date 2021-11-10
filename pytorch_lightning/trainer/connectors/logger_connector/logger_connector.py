@@ -260,6 +260,7 @@ class LoggerConnector:
         self._epoch_end_reached = False
         assert self.trainer._results is not None
         self.trainer._results.current_batch = batch
+        self.trainer._results.current_batch_size = None
 
     def epoch_end_reached(self) -> None:
         self._epoch_end_reached = True
