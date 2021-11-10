@@ -166,13 +166,13 @@ class RichProgressBarTheme:
     """Styles to associate to different base components.
 
     Args:
-        text_color: Colour for progress bar titles.
-        progress_bar: Progress bar colour for progress made so far.
-        progress_bar_finished: Progress bar colour for when the task is completed.
-        progress_bar_pulse: Progress bar colour for when `IterableDataset` is being processed.
-        batch_progress: Colour of the text for the progress tracker (i.e 10/50 batches completed).
-        time: Colour for the time since the start of the task and the estimated time remaining.
-        processing_speed: Colour for the current speed of operations.
+        description: Style for the progress bar description. For eg., Epoch x, Testing, etc.
+        progress_bar: Style for the bar in progress.
+        progress_bar_finished: Style for the finished progress bar.
+        progress_bar_pulse: Style for the progress bar when `IterableDataset` is being processed. 
+        batch_progress: Style for the progress tracker (i.e 10/50 batches completed).
+        time: Style for the processed time and estimate time remaining.
+        processing_speed: Style for the speed of the batches being processed.
 
     https://rich.readthedocs.io/en/stable/style.html
     """
