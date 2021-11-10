@@ -25,10 +25,9 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import DataParallelPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, LightningEnum
-from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 class Accelerator:
@@ -76,42 +75,6 @@ class Accelerator:
         if not self.training_type_plugin.setup_optimizers_in_pre_dispatch:
             self.setup_optimizers(trainer)
         self.setup_precision_plugin()
-
-    def start_training(self, trainer: "pl.Trainer") -> None:
-        """
-        .. deprecated:: v1.5
-            This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call `training_type_plugin.start_training` directly.
-        """
-        rank_zero_deprecation(
-            "`Accelerator.start_training` is deprecated in v1.5 and will be removed in v1.6. "
-            "`start_training` logic is implemented directly in the `TrainingTypePlugin` implementations."
-        )
-        self.training_type_plugin.start_training(trainer)
-
-    def start_evaluating(self, trainer: "pl.Trainer") -> None:
-        """
-        .. deprecated:: v1.5
-            This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call `training_type_plugin.start_evaluating` directly.
-        """
-        rank_zero_deprecation(
-            "`Accelerator.start_evaluating` is deprecated in v1.5 and will be removed in v1.6. "
-            "`start_evaluating` logic is implemented directly in the `TrainingTypePlugin` implementations."
-        )
-        self.training_type_plugin.start_evaluating(trainer)
-
-    def start_predicting(self, trainer: "pl.Trainer") -> None:
-        """
-        .. deprecated:: v1.5
-            This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call `training_type_plugin.start_predicting` directly.
-        """
-        rank_zero_deprecation(
-            "`Accelerator.start_predicting` is deprecated in v1.5 and will be removed in v1.6. "
-            "`start_predicting` logic is implemented directly in the `TrainingTypePlugin` implementations."
-        )
-        self.training_type_plugin.start_predicting(trainer)
 
     def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
@@ -325,23 +288,6 @@ class Accelerator:
         """
         with self.training_type_plugin.model_sharded_context():
             yield
-
-    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: _PATH) -> None:
-        """Save model/training states as a checkpoint file through state-dump and file-write.
-
-        .. deprecated:: v1.5
-            This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call `training_type_plugin.save_checkpoint` directly.
-
-        Args:
-            checkpoint: dict containing model and trainer state
-            filepath: write-target file's path
-        """
-        rank_zero_deprecation(
-            "`Accelerator.save_checkpoint` is deprecated in v1.5 and will be removed in v1.6. "
-            "`save_checkpoint` logic is implemented directly in the `TrainingTypePlugin` implementations."
-        )
-        self.training_type_plugin.save_checkpoint(checkpoint, filepath)
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """Gets stats for a given device.
