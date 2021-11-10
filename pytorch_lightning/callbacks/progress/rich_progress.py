@@ -169,7 +169,7 @@ class RichProgressBarTheme:
         description: Style for the progress bar description. For eg., Epoch x, Testing, etc.
         progress_bar: Style for the bar in progress.
         progress_bar_finished: Style for the finished progress bar.
-        progress_bar_pulse: Style for the progress bar when `IterableDataset` is being processed. 
+        progress_bar_pulse: Style for the progress bar when `IterableDataset` is being processed.
         batch_progress: Style for the progress tracker (i.e 10/50 batches completed).
         time: Style for the processed time and estimate time remaining.
         processing_speed: Style for the speed of the batches being processed.
