@@ -356,6 +356,7 @@ class ResultCollection(dict):
         super().__init__()
         self.training = training
         self._current_batch = None
+        self._current_batch_size = None
         self.device: Optional[Union[str, torch.device]] = device
 
     @property
@@ -368,6 +369,14 @@ class ResultCollection(dict):
 
         apply_to_collection(list(self.values()), ResultMetric, append_fn)
         return o
+
+    @property
+    def current_batch_size(self) -> Optional[int]:
+        return self._current_batch_size
+
+    @current_batch_size.setter
+    def current_batch_size(self, val: int) -> None:
+        self._current_batch_size = val
 
     @property
     def current_batch(self) -> Any:

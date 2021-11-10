@@ -429,8 +429,11 @@ class LightningModule(
                 "With `def training_step(self, dataloader_iter)`, `self.log(..., batch_size=...)` should be provided."
             )
 
-        if isinstance(reduce_fx, str):
-            reduce_fx = reduce_fx.lower()
+        reduce_fx = reduce_fx.lower() if isinstance(reduce_fx, str) else reduce_fx
+
+        # check if we have extracted the batch size already
+        if batch_size is None:
+            batch_size = batch_size or results.current_batch_size
 
         # extract batch size if it is None and whenever it is required
         if batch_size is None:
@@ -443,6 +446,9 @@ class LightningModule(
                     batch_size = extract_batch_size(self.trainer._results.current_batch)
                 except RecursionError:
                     batch_size = 1
+
+                # cache batch_size
+                results.current_batch_size = batch_size
             else:
                 batch_size = 1
 

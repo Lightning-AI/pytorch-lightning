@@ -283,6 +283,7 @@ class LoggerConnector:
         self._logged_metrics.update(metrics["log"])
         assert self.trainer._results is not None
         self.trainer._results.current_batch = None
+        self.trainer._results.current_batch_size = None
 
     def should_reset_tensors(self, fx: str) -> bool:
         is_different_fx = self._current_fx != fx
