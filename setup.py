@@ -74,7 +74,7 @@ setup(
     url=about.__homepage__,
     download_url="https://github.com/PyTorchLightning/pytorch-lightning",
     license=about.__license__,
-    packages=find_packages(exclude=["tests*", "pl_examples*", "benchmarks*"]),
+    packages=find_packages(exclude=["tests*", "pl_examples*", "legacy*"]),
     include_package_data=True,
     long_description=long_description,
     long_description_content_type="text/markdown",
