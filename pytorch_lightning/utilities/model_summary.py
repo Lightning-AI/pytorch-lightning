@@ -178,7 +178,7 @@ class ModelSummary:
         0.530     Total estimated model params size (MB)
     """
 
-    def __init__(self, model: "pl.LightningModule", max_depth: Optional[int] = 1) -> None:
+    def __init__(self, model: "pl.LightningModule", max_depth: int = 1) -> None:
         self._model = model
 
         if not isinstance(max_depth, int) or max_depth < -1:
@@ -415,7 +415,7 @@ def _is_lazy_weight_tensor(p: Tensor) -> bool:
     return False
 
 
-def summarize(lightning_module: "pl.LightningModule", max_depth: Optional[int] = None) -> ModelSummary:
+def summarize(lightning_module: "pl.LightningModule", max_depth: int = 1) -> ModelSummary:
     """Summarize the LightningModule specified by `lightning_module`.
 
     Args:
@@ -427,5 +427,4 @@ def summarize(lightning_module: "pl.LightningModule", max_depth: Optional[int] =
     Return:
         The model summary object
     """
-    max_depth = max_depth or 1
     return ModelSummary(lightning_module, max_depth=max_depth)

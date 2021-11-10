@@ -1689,7 +1689,7 @@ class LightningModule(
 
         return splits
 
-    def summarize(self, max_depth: Optional[int] = None) -> Optional[ModelSummary]:
+    def summarize(self, max_depth: int = 1) -> ModelSummary:
         """Summarize this LightningModule.
 
         .. deprecated:: v1.5
