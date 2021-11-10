@@ -19,7 +19,6 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.model_summary import ModelSummary
 from tests.helpers import BoringModel
 
 
@@ -83,15 +82,6 @@ def test_v1_6_0_rank_zero_warnings_moved():
         rank_zero_warn("test")
     with pytest.deprecated_call(match="in v1.3.7 and will be removed in v1.6"):
         rank_zero_deprecation("test")
-
-
-def test_v1_6_0_deprecated_model_summary_mode(tmpdir):
-    model = BoringModel()
-    with pytest.deprecated_call(match="Argument `mode` in `ModelSummary` is deprecated in v1.4"):
-        ModelSummary(model, mode="top")
-
-    with pytest.deprecated_call(match="Argument `mode` in `LightningModule.summarize` is deprecated in v1.4"):
-        model.summarize(mode="top")
 
 
 def test_v1_6_0_deprecated_disable_validation():
