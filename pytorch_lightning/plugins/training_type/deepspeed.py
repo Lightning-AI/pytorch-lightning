@@ -312,6 +312,7 @@ class DeepSpeedPlugin(DDPPlugin):
             )
         self._config_initialized = False
         deepspeed.utils.logging.logger.setLevel(logging_level)
+        pl._logger.setLevel(logging_level)
 
         self.remote_device = remote_device
         self.load_full_weights = load_full_weights
@@ -634,12 +635,11 @@ class DeepSpeedPlugin(DDPPlugin):
                 if hasattr(train_dataloader, "batch_sampler"):
                     batch_size = train_dataloader.batch_sampler.batch_size
             except Exception:
-                if deepspeed.utils.logging.logger.level < logging.WARN:
-                    rank_zero_warn(
-                        "Tried to Infer the batch size for internal deepspeed logging from the `train_dataloader()`. "
-                        "To ensure DeepSpeed logging remains correct, please manually pass the plugin with the "
-                        "batch size, `Trainer(strategy=DeepSpeedPlugin(logging_batch_size_per_gpu=batch_size))`."
-                    )
+                rank_zero_warn(
+                    "Tried to Infer the batch size for internal deepspeed logging from the `train_dataloader()`. "
+                    "To ensure DeepSpeed logging remains correct, please manually pass the plugin with the "
+                    "batch size, `Trainer(strategy=DeepSpeedPlugin(logging_batch_size_per_gpu=batch_size))`."
+                )
         return batch_size
 
     def _format_precision_config(self):
