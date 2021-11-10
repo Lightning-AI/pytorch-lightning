@@ -11,19 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
 from functools import partial
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback, LambdaCallback
 from tests.helpers.boring_model import BoringModel
+from tests.models.test_hooks import get_members
 
 
 def test_lambda_call(tmpdir):
     seed_everything(42)
 
     class CustomModel(BoringModel):
-
         def on_train_epoch_start(self):
             if self.current_epoch > 1:
                 raise KeyboardInterrupt
@@ -33,9 +32,9 @@ def test_lambda_call(tmpdir):
     def call(hook, *_, **__):
         checker.add(hook)
 
-    hooks = {m for m, _ in inspect.getmembers(Callback, predicate=inspect.isfunction)}
+    hooks = get_members(Callback)
     hooks_args = {h: partial(call, h) for h in hooks}
-    hooks_args["on_save_checkpoint"] = lambda *_: [checker.add('on_save_checkpoint')]
+    hooks_args["on_save_checkpoint"] = lambda *_: [checker.add("on_save_checkpoint")]
 
     model = CustomModel()
 
@@ -49,6 +48,8 @@ def test_lambda_call(tmpdir):
     )
     trainer.fit(model)
 
+    ckpt_path = trainer.checkpoint_callback.best_model_path
+
     # raises KeyboardInterrupt and loads from checkpoint
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -57,10 +58,9 @@ def test_lambda_call(tmpdir):
         limit_val_batches=1,
         limit_test_batches=1,
         limit_predict_batches=1,
-        resume_from_checkpoint=trainer.checkpoint_callback.best_model_path,
         callbacks=[LambdaCallback(**hooks_args)],
     )
-    trainer.fit(model)
+    trainer.fit(model, ckpt_path=ckpt_path)
     trainer.test(model)
     trainer.predict(model)
 

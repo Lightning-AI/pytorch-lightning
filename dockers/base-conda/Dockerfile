@@ -12,16 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Existing images:
-# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.8
-# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.6
-
 ARG CUDA_VERSION=11.1
 
-#FROM ubuntu:20.04
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
 
 ARG PYTHON_VERSION=3.8
+ARG PYTORCH_VERSION=1.6
 ARG CONDA_VERSION=4.9.2
 
 SHELL ["/bin/bash", "-c"]
@@ -70,14 +66,11 @@ ENV \
 
 COPY environment.yml environment.yml
 
-ARG PYTORCH_VERSION=1.6
-
 # conda init
 RUN conda update -n base -c defaults conda && \
     conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} cudatoolkit=${CUDA_VERSION} -c nvidia -c pytorch -c pytorch-test -c pytorch-nightly && \
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages
-    # replace channel to nigtly if needed, fix PT version and remove Horovod as it will be installed later
     python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'- python[>=]+[\d\.]+', '# - python=${PYTHON_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
     python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'- pytorch[>=]+[\d\.]+', '# - pytorch=${PYTORCH_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
     cat environment.yml && \
@@ -100,6 +93,7 @@ ENV \
     HOROVOD_WITHOUT_MPI=1
 
 COPY ./requirements/extra.txt requirements-extra.txt
+COPY ./requirements/examples.txt requirements-examples.txt
 COPY ./requirements/test.txt requirements-test.txt
 COPY ./requirements/adjust_versions.py requirements_adjust_versions.py
 
@@ -107,8 +101,10 @@ RUN \
     pip list | grep torch && \
     python -c "import torch; print(torch.__version__)" && \
     python requirements_adjust_versions.py requirements-extra.txt && \
+    python requirements_adjust_versions.py requirements-examples.txt && \
     # Install remaining requirements
     pip install -r requirements-extra.txt --no-cache-dir && \
+    pip install -r requirements-examples.txt --no-cache-dir --find-links https://download.pytorch.org/whl/nightly/torch_nightly.html && \
     pip install -r requirements-test.txt --no-cache-dir && \
     rm requirements*
 
@@ -133,4 +129,4 @@ RUN \
     conda info && \
     pip list && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
-    python -c "from torch import __version__ as ver; assert '.'.join(ver.split('.')[:2]) == '$PYTORCH_VERSION', ver"
+    python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__"

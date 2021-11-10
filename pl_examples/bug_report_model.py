@@ -7,7 +7,6 @@ from pytorch_lightning import LightningModule, Trainer
 
 
 class RandomDataset(Dataset):
-
     def __init__(self, size, length):
         self.len = length
         self.data = torch.randn(length, size)
@@ -20,7 +19,6 @@ class RandomDataset(Dataset):
 
 
 class BoringModel(LightningModule):
-
     def __init__(self):
         super().__init__()
         self.layer = torch.nn.Linear(32, 2)
@@ -57,11 +55,11 @@ def run():
         limit_val_batches=1,
         num_sanity_val_steps=0,
         max_epochs=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
     trainer.test(model, dataloaders=test_data)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()

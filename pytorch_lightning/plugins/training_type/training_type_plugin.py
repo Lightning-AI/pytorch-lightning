@@ -13,8 +13,7 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, TypeVar, Union
+from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -24,60 +23,83 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
-from pytorch_lightning.plugins.base_plugin import Plugin
-from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.cloud_io import atomic_save
-from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT
-
-TBroadcast = TypeVar("T")
+from pytorch_lightning.plugins import TorchCheckpointIO
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.utilities.distributed import ReduceOp
+from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PATH, _PREDICT_OUTPUT
 
 
-class TrainingTypePlugin(Plugin, ABC):
-    """
-    Base class for all training type plugins that change the behaviour of the training, validation and test-loop.
-    """
+class TrainingTypePlugin(ABC):
+    """Base class for all training type plugins that change the behaviour of the training, validation and test-
+    loop."""
 
-    def __init__(self) -> None:
-        self._model = None
+    def __init__(self, checkpoint_io: Optional[CheckpointIO] = None) -> None:
+        self._model: Optional[Module] = None
         self._results: Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]] = None
-        self._call_configure_sharded_model_hook = True
+        checkpoint_io = checkpoint_io if checkpoint_io is not None else TorchCheckpointIO()
+        self._checkpoint_io = checkpoint_io
+
+    @property
+    def checkpoint_io(self) -> CheckpointIO:
+        return self._checkpoint_io
+
+    @checkpoint_io.setter
+    def checkpoint_io(self, plugin: CheckpointIO) -> None:
+        self._checkpoint_io = plugin
 
     def connect(self, model: Module) -> None:
-        """Called by the accelerator to connect the accelerator and the model with this plugin"""
+        """Called by the accelerator to connect the accelerator and the model with this plugin."""
         self.model = model
 
     def setup_environment(self) -> None:
-        """
-        Setup any processes or distributed connections.
-        This is called before the LightningModule/DataModule setup hook
-        which allows the user to access the accelerator environment before setup is complete.
+        """Setup any processes or distributed connections.
+
+        This is called before the LightningModule/DataModule setup hook which allows the user to access the accelerator
+        environment before setup is complete.
         """
 
-    def setup(self, model: Module) -> None:
+    def setup(self) -> None:
         """Called by the accelerator to finish setup."""
+
+    def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
+        """Setup a model and multiple optimizers together.
+
+        The returned objects are expected to be in the same order they were passed in. The default implementation will
+        call :meth:`_setup_model` and :meth:`_setup_optimizer` on the inputs.
+        """
+        # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
+        model = self._setup_model(model)
+        optimizers = [self._setup_optimizer(optimizer) for optimizer in optimizers]
+        return model, optimizers
+
+    def _setup_model(self, model: Module) -> Module:
+        """Performs setup for the model, e.g., by wrapping it by another class."""
+        # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
+        return model
+
+    def _setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
+        """Performs setup for the optimizer, e.g., by wrapping it by another class."""
+        # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
+        return optimizer
 
     @property
     @abstractmethod
     def on_gpu(self) -> bool:
-        """Returns whether the current process is done on GPU"""
-        raise NotImplementedError
+        """Returns whether the current process is done on GPU."""
 
     @property
     @abstractmethod
     def on_tpu(self) -> bool:
-        """Returns whether the current process is done on TPU"""
-        raise NotImplementedError
+        """Returns whether the current process is done on TPU."""
 
     @property
     @abstractmethod
     def root_device(self) -> torch.device:
-        """Returns the root device"""
-        raise NotImplementedError
+        """Returns the root device."""
 
     @abstractmethod
     def model_to_device(self) -> None:
-        """Moves the model to the correct device"""
+        """Moves the model to the correct device."""
 
     @property
     @abstractmethod
@@ -85,68 +107,87 @@ class TrainingTypePlugin(Plugin, ABC):
         """Whether the current process is the rank zero process not only on the local node, but for all nodes."""
 
     @abstractmethod
-    def reduce(self, tensor: Union[torch.Tensor, Any], *args: Any, **kwargs: Any) -> Union[torch.Tensor, Any]:
-        """
-        Reduces the given tensor (e.g. across GPUs/processes).
+    def reduce(
+        self,
+        tensor: Union[torch.Tensor, Any],
+        group: Optional[Any] = None,
+        reduce_op: Optional[Union[ReduceOp, str]] = "mean",
+    ) -> Union[torch.Tensor, Any]:
+        """Reduces the given tensor (e.g. across GPUs/processes).
 
         Args:
             tensor: the tensor to sync and reduce
-            *args: plugin-specific positional arguments
-            **kwargs: plugin-specific keyword arguments
+            group: the process group to reduce
+            reduce_op: the reduction operation. Defaults to 'mean'.
+                Can also be a string 'sum' or ReduceOp.
         """
 
     @abstractmethod
     def barrier(self, name: Optional[str] = None) -> None:
-        """Forces all possibly joined processes to wait for each other"""
+        """Synchronizes all processes which blocks processes until the whole group enters this function.
+
+        Args:
+            name: an optional name to pass into barrier.
+        """
 
     @abstractmethod
-    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        """Broadcasts an object to all processes"""
+    def broadcast(self, obj: object, src: int = 0) -> object:
+        """Broadcasts an object to all processes.
+
+        Args:
+            obj: the object to broadcast
+            src: source rank
+        """
 
     @abstractmethod
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
-        """Perform a all_gather on all processes """
+        """Perform an all_gather on all processes.
+
+        Args:
+            tensor: the tensor to all_gather
+            group: the process group to gather results from
+            sync_grads: flag that allows users to synchronize gradients for all_gather op
+        """
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
-        """Reduce the early stopping decision across all processes"""
+        """Reduce the early stopping decision across all processes."""
         return decision
 
     def pre_backward(self, closure_loss: torch.Tensor) -> None:
-        """Run before precision plugin executes backward"""
+        """Run before precision plugin executes backward."""
 
     def post_backward(self, closure_loss: torch.Tensor) -> None:
-        """Run after precision plugin executes backward"""
-
-    def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int, **kwargs) -> None:
-        """Hook to do something after each optimizer step."""
+        """Run after precision plugin executes backward."""
 
     @property
-    def model(self) -> Module:
-        """Returns the potentially wrapped LightningModule"""
+    def model(self) -> Optional[Module]:
+        """Returns the potentially wrapped LightningModule."""
         return self._model
 
     @model.setter
-    def model(self, new_model: Module) -> None:
+    def model(self, new_model: Optional[Module]) -> None:
         self._model = new_model
 
     @property
-    def lightning_module(self) -> 'pl.LightningModule':
-        """Returns the pure LightningModule without potential wrappers"""
+    def lightning_module(self) -> "pl.LightningModule":
+        """Returns the pure LightningModule without potential wrappers."""
         return unwrap_lightning_module(self._model)
 
     @property
     def results(self) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
-        """
-        Enables plugin-agnostic access to the result returned by the training/evaluation/prediction run. The result is
+        """Enables plugin-agnostic access to the result returned by the training/evaluation/prediction run.
+
+        The result is
         cached instead of returned directly, because some plugins require transmitting the results from one
         multiprocessing context to another in a separate step. For example, the plugins that use the "spawn"
-        start-method send the result to the master process through a
+        start-method send the result to the main process through a
         `multiprocessing queue (shared memory) <https://pytorch.org/docs/stable/multiprocessing.html>`_.
         """
         return self._results
 
-    def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
-        return pl_load(checkpoint_path, map_location=(lambda storage, loc: storage))
+    def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
+        torch.cuda.empty_cache()
+        return self.checkpoint_io.load_checkpoint(checkpoint_path)
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         self.lightning_module.load_state_dict(checkpoint["state_dict"])
@@ -156,15 +197,15 @@ class TrainingTypePlugin(Plugin, ABC):
         for optimizer, opt_state in zip(self.lightning_module.trainer.accelerator.optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
 
-    def start_training(self, trainer: 'pl.Trainer') -> None:
+    def start_training(self, trainer: "pl.Trainer") -> None:
         # double dispatch to initiate the training loop
         self._results = trainer.run_stage()
 
-    def start_evaluating(self, trainer: 'pl.Trainer') -> None:
+    def start_evaluating(self, trainer: "pl.Trainer") -> None:
         # double dispatch to initiate the test loop
         self._results = trainer.run_stage()
 
-    def start_predicting(self, trainer: 'pl.Trainer') -> None:
+    def start_predicting(self, trainer: "pl.Trainer") -> None:
         # double dispatch to initiate the predicting loop
         self._results = trainer.run_stage()
 
@@ -192,89 +233,78 @@ class TrainingTypePlugin(Plugin, ABC):
     def test_step_end(self, output):
         return output
 
-    def on_save(self, checkpoint: Dict[str, Union[Any, torch.Tensor]]) -> Dict[str, Union[Any, torch.Tensor]]:
-        return checkpoint
-
     def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        """Wraps the dataloader if necessary
+        """Wraps the dataloader if necessary.
 
         Args:
             dataloader: iterable. Ideally of type: :class:`torch.utils.data.DataLoader`
         """
         return dataloader
 
-    def on_reset_train_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        """Called before resetting the train dataloader."""
-        return dataloader
-
-    def on_reset_val_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        """Called before resetting the val dataloader."""
-        return dataloader
-
-    def on_reset_test_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        """Called before resetting the test dataloader."""
-        return dataloader
-
-    def on_reset_predict_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        """Called before resetting the predict dataloader."""
-        return dataloader
-
-    def init_optimizers(self, trainer: 'pl.Trainer', model: 'pl.LightningModule'):
+    def init_optimizers(self, trainer: "pl.Trainer", model: "pl.LightningModule"):
         return trainer.init_optimizers(model)
-
-    def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
-        optimizer.step(closure=lambda_closure, **kwargs)
 
     @property
     def setup_optimizers_in_pre_dispatch(self) -> bool:
-        """
-        Override to delay setting optimizers and schedulers till after dispatch.
-        This is useful when the `TrainingTypePlugin` requires operating on the wrapped accelerator model.
-        However this may break certain precision plugins such as APEX which require optimizers to be set.
-        Returns: If True, delay setup optimizers till pre_dispatch, else call within setup.
+        """Override to delay setting optimizers and schedulers till after dispatch. This is useful when the
+        `TrainingTypePlugin` requires operating on the wrapped accelerator model. However this may break certain
+        precision plugins such as APEX which require optimizers to be set.
+
+        Returns:
+            If True, delay setup optimizers till pre_dispatch, else call within setup.
         """
         return False
 
-    def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
-        """
-        Provide a hook to count optimizer step calls.
+    @property
+    def restore_checkpoint_after_pre_dispatch(self) -> bool:
+        """Override to delay restoring from checkpoint till after pre-dispatch. This is useful when the plugin
+        requires all the setup hooks to run before loading checkpoint.
 
-        Args:
-            total_batch_idx: Total number of batches seen for training
-            current_global_step: Current number of optimizer step calls
-
-        Returns: New optimizer step calls
+        Returns:
+            If true, restore checkpoint after pre_dispatch.
         """
-        return current_global_step + 1
+        return False
+
+    @property
+    def lightning_restore_optimizer_and_schedulers(self) -> bool:
+        """Override to disable Lightning restoring optimizers/schedulers.
+
+        This is useful for plugins which manage restoring optimizers/schedulers.
+        """
+        return True
+
+    @property
+    def handles_gradient_accumulation(self) -> bool:
+        """Whether the plugin handles gradient accumulation internally."""
+        return False
 
     def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
         """Returns model state."""
         model = self.lightning_module
         return model.state_dict()
 
-    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: _PATH) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
             checkpoint: dict containing model and trainer state
             filepath: write-target file's path
         """
-        # dump states as a checkpoint dictionary object
-        checkpoint = self.on_save(checkpoint)
-        if self.is_global_zero:
-            try:
-                # write the checkpoint dictionary on the file
-                atomic_save(checkpoint, filepath)
-            except AttributeError as err:
-                key = pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY
-                checkpoint.pop(key, None)
-                rank_zero_warn(f'Warning, `{key}` dropped from checkpoint. An attribute is not picklable: {err}')
-                atomic_save(checkpoint, filepath)
+        if self.should_rank_save_checkpoint:
+            return self.checkpoint_io.save_checkpoint(checkpoint, filepath)
+
+    def remove_checkpoint(self, filepath: _PATH) -> None:
+        """Remove checkpoint filepath from the filesystem.
+
+        Args:
+            filepath: Path to checkpoint
+        """
+        if self.should_rank_save_checkpoint:
+            return self.checkpoint_io.remove_checkpoint(filepath)
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
-        """
-        Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
+        """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
         shard the model instantly, which is useful for extremely large models which can save memory and
         initialization time.
 
@@ -282,29 +312,15 @@ class TrainingTypePlugin(Plugin, ABC):
         """
         yield
 
-    @property
-    def call_configure_sharded_model_hook(self) -> bool:
-        """
-        Allow model parallel hook to be called in suitable environments determined by the training type plugin.
-        This is useful for when we want to shard the model once within fit.
-        Returns: True if we want to call the model parallel setup hook.
-        """
-        return self._call_configure_sharded_model_hook
-
-    @call_configure_sharded_model_hook.setter
-    def call_configure_sharded_model_hook(self, mode: bool) -> None:
-        self._call_configure_sharded_model_hook = mode
-
     @abstractmethod
     def teardown(self) -> None:
-        """
-        This method is called to teardown the training process.
+        """This method is called to teardown the training process.
+
         It is the right place to release memory and free other resources.
         """
-        raise NotImplementedError
 
     @classmethod
-    def register_plugins(cls, plugin_registry):
+    def register_plugins(cls, plugin_registry) -> None:
         pass
 
     @property
@@ -344,8 +360,15 @@ class TrainingTypePlugin(Plugin, ABC):
         """Called when predict ends."""
         pass
 
-    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
-        """
-        Called in the training loop before anything happens for that batch.
-        """
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
+        """Called in the training loop before anything happens for that batch."""
         pass
+
+    def pre_dispatch(self) -> None:
+        """Hook to do something before the training/evaluation/prediction starts."""
+
+    def dispatch(self, trainer: "pl.Trainer") -> None:
+        """Hook to do something at trainer run_stage starts."""
+
+    def post_dispatch(self, trainer: "pl.Trainer") -> None:
+        """Hook to do something after the training/evaluation/prediction finishes."""

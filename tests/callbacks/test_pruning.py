@@ -25,21 +25,17 @@ from torch.nn import Sequential
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, ModelPruning
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers import BoringModel
+from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 
 class TestModel(BoringModel):
-    test_step = None
-
     def __init__(self):
         super().__init__()
         self.layer = Sequential(
-            OrderedDict([
-                ("mlp_1", nn.Linear(32, 32)),
-                ("mlp_2", nn.Linear(32, 32, bias=False)),
-                ("mlp_3", nn.Linear(32, 2)),
-            ])
+            OrderedDict(
+                [("mlp_1", nn.Linear(32, 32)), ("mlp_2", nn.Linear(32, 32, bias=False)), ("mlp_3", nn.Linear(32, 2))]
+            )
         )
 
     def training_step(self, batch, batch_idx):
@@ -58,7 +54,7 @@ class TestPruningMethod(pytorch_prune.BasePruningMethod):
 
     @classmethod
     def apply(cls, module, name, amount):
-        return super(TestPruningMethod, cls).apply(module, name, amount=amount)
+        return super().apply(module, name, amount=amount)
 
 
 def train_with_pruning_callback(
@@ -67,7 +63,7 @@ def train_with_pruning_callback(
     use_global_unstructured=False,
     pruning_fn="l1_unstructured",
     use_lottery_ticket_hypothesis=False,
-    accelerator=None,
+    strategy=None,
     gpus=None,
     num_processes=1,
 ):
@@ -109,14 +105,14 @@ def train_with_pruning_callback(
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
-        weights_summary=None,
-        checkpoint_callback=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
         logger=False,
         limit_train_batches=10,
         limit_val_batches=2,
         max_epochs=10,
-        accelerator=accelerator,
+        strategy=strategy,
         gpus=gpus,
         num_processes=num_processes,
         callbacks=pruning,
@@ -124,7 +120,7 @@ def train_with_pruning_callback(
     trainer.fit(model)
     trainer.test(model)
 
-    if not accelerator:
+    if not strategy:
         # Check some have been pruned
         assert torch.any(model.layer.mlp_2.weight == 0)
 
@@ -133,7 +129,7 @@ def test_pruning_misconfiguration():
     with pytest.raises(MisconfigurationException, match=r"chocolate isn't in \('weight', 'bias'\)"):
         ModelPruning(pruning_fn="l1_unstructured", parameter_names=["chocolate"])
     with pytest.raises(MisconfigurationException, match=r"expected to be a str in \["):
-        ModelPruning(pruning_fn={})  # noqa
+        ModelPruning(pruning_fn={})
     with pytest.raises(MisconfigurationException, match="should be provided"):
         ModelPruning(pruning_fn="random_structured")
     with pytest.raises(MisconfigurationException, match=r"must be any of \(0, 1, 2\)"):
@@ -149,8 +145,11 @@ def test_pruning_misconfiguration():
 )
 @pytest.mark.parametrize("use_lottery_ticket_hypothesis", [False, True])
 def test_pruning_callback(
-    tmpdir, use_global_unstructured: bool, parameters_to_prune: bool,
-    pruning_fn: Union[str, pytorch_prune.BasePruningMethod], use_lottery_ticket_hypothesis: bool
+    tmpdir,
+    use_global_unstructured: bool,
+    parameters_to_prune: bool,
+    pruning_fn: Union[str, pytorch_prune.BasePruningMethod],
+    use_lottery_ticket_hypothesis: bool,
 ):
     train_with_pruning_callback(
         tmpdir,
@@ -164,55 +163,33 @@ def test_pruning_callback(
 @RunIf(special=True, min_gpus=2)
 def test_pruning_callback_ddp_0(tmpdir):
     train_with_pruning_callback(
-        tmpdir,
-        parameters_to_prune=False,
-        use_global_unstructured=False,
-        accelerator="ddp",
-        gpus=2,
+        tmpdir, parameters_to_prune=False, use_global_unstructured=False, strategy="ddp", gpus=2
     )
 
 
 @RunIf(special=True, min_gpus=2)
 def test_pruning_callback_ddp_1(tmpdir):
-    train_with_pruning_callback(
-        tmpdir,
-        parameters_to_prune=False,
-        use_global_unstructured=True,
-        accelerator="ddp",
-        gpus=2,
-    )
+    train_with_pruning_callback(tmpdir, parameters_to_prune=False, use_global_unstructured=True, strategy="ddp", gpus=2)
 
 
 @RunIf(special=True, min_gpus=2)
 def test_pruning_callback_ddp_2(tmpdir):
-    train_with_pruning_callback(
-        tmpdir,
-        parameters_to_prune=True,
-        use_global_unstructured=False,
-        accelerator="ddp",
-        gpus=2,
-    )
+    train_with_pruning_callback(tmpdir, parameters_to_prune=True, use_global_unstructured=False, strategy="ddp", gpus=2)
 
 
 @RunIf(special=True, min_gpus=2)
 def test_pruning_callback_ddp_3(tmpdir):
-    train_with_pruning_callback(
-        tmpdir,
-        parameters_to_prune=True,
-        use_global_unstructured=True,
-        accelerator="ddp",
-        gpus=2,
-    )
+    train_with_pruning_callback(tmpdir, parameters_to_prune=True, use_global_unstructured=True, strategy="ddp", gpus=2)
 
 
 @RunIf(min_gpus=2, skip_windows=True)
 def test_pruning_callback_ddp_spawn(tmpdir):
-    train_with_pruning_callback(tmpdir, use_global_unstructured=True, accelerator="ddp_spawn", gpus=2)
+    train_with_pruning_callback(tmpdir, use_global_unstructured=True, strategy="ddp_spawn", gpus=2)
 
 
 @RunIf(skip_windows=True)
 def test_pruning_callback_ddp_cpu(tmpdir):
-    train_with_pruning_callback(tmpdir, parameters_to_prune=True, accelerator="ddp_cpu", num_processes=2)
+    train_with_pruning_callback(tmpdir, parameters_to_prune=True, strategy="ddp_spawn", num_processes=2)
 
 
 @pytest.mark.parametrize("resample_parameters", (False, True))
@@ -240,9 +217,9 @@ def test_pruning_lth_callable(tmpdir, resample_parameters: bool):
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
-        weights_summary=None,
-        checkpoint_callback=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
         logger=False,
         limit_train_batches=10,
         limit_val_batches=2,
@@ -258,18 +235,18 @@ def test_pruning_lth_callable(tmpdir, resample_parameters: bool):
 def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool):
     model = TestModel()
     pruning_kwargs = {
-        'parameters_to_prune': [(model.layer.mlp_1, "weight"), (model.layer.mlp_3, "weight")],
-        'verbose': 2,
-        "make_pruning_permanent": make_pruning_permanent
+        "parameters_to_prune": [(model.layer.mlp_1, "weight"), (model.layer.mlp_3, "weight")],
+        "verbose": 2,
+        "make_pruning_permanent": make_pruning_permanent,
     }
     p1 = ModelPruning("l1_unstructured", amount=0.5, apply_pruning=lambda e: not e % 2, **pruning_kwargs)
     p2 = ModelPruning("random_unstructured", amount=0.25, apply_pruning=lambda e: e % 2, **pruning_kwargs)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
-        weights_summary=None,
-        checkpoint_callback=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
         logger=False,
         limit_train_batches=10,
         limit_val_batches=2,
@@ -309,11 +286,8 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool
 def test_permanent_when_model_is_saved_multiple_times(
     tmpdir, caplog, prune_on_train_epoch_end, save_on_train_epoch_end
 ):
-    """
-    When a model is saved multiple times and make_permanent=True, we need to
-    make sure a copy is pruned and not the trained model if we want to continue
-    with the same pruning buffers.
-    """
+    """When a model is saved multiple times and make_permanent=True, we need to make sure a copy is pruned and not
+    the trained model if we want to continue with the same pruning buffers."""
     if prune_on_train_epoch_end and save_on_train_epoch_end:
         pytest.xfail(
             "Pruning sets the `grad_fn` of the parameters so we can't save"
@@ -321,7 +295,6 @@ def test_permanent_when_model_is_saved_multiple_times(
         )
 
     class TestPruning(ModelPruning):
-
         def on_save_checkpoint(self, trainer, pl_module, checkpoint):
             had_buffers = hasattr(pl_module.layer.mlp_3, "weight_orig")
             super().on_save_checkpoint(trainer, pl_module, checkpoint)
@@ -340,7 +313,7 @@ def test_permanent_when_model_is_saved_multiple_times(
     ckpt_callback = ModelCheckpoint(
         monitor="test", save_top_k=2, save_last=True, save_on_train_epoch_end=save_on_train_epoch_end
     )
-    trainer = Trainer(callbacks=[pruning_callback, ckpt_callback], max_epochs=3, progress_bar_refresh_rate=0)
+    trainer = Trainer(callbacks=[pruning_callback, ckpt_callback], max_epochs=3, enable_progress_bar=False)
     with caplog.at_level(INFO):
         trainer.fit(model)
 

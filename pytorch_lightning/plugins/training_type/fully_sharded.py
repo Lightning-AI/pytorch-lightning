@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
-from typing import Any, Dict, Generator, List, Optional, Union
+from typing import Dict, Generator, List, Optional
 
 import torch
-from torch import Tensor
-from torch.nn import Module
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
+from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
@@ -29,6 +29,8 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
 
 
 class DDPFullyShardedPlugin(DDPPlugin):
+
+    distributed_backend = DistributedType.DDP_FULLY_SHARDED
 
     def __init__(
         self,
@@ -42,10 +44,10 @@ class DDPFullyShardedPlugin(DDPPlugin):
         min_num_params: int = 1e8,
         state_dict_to_cpu: bool = True,
         parallel_devices: Optional[List[torch.device]] = None,
-        cluster_environment: ClusterEnvironment = None,
+        cluster_environment: Optional[ClusterEnvironment] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
     ):
-        """
-        Plugin for Fully Sharded Data Parallel provided by FairScale.
+        """Plugin for Fully Sharded Data Parallel provided by FairScale.
 
         Full Sharded Training shards the entire model across all available GPUs, allowing you to scale model
         size, whilst using efficient communication to reduce overhead. In practice, this means we can remain
@@ -94,6 +96,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
         super().__init__(
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
+            checkpoint_io=checkpoint_io,
         )
         self.cpu_offload = cpu_offload
         self.move_grads_to_cpu = move_grads_to_cpu
@@ -142,15 +145,6 @@ class DDPFullyShardedPlugin(DDPPlugin):
         ):
             yield
 
-    def connect(self, model: Module) -> None:
-        super().connect(model)
-        model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
-        if not model_call_configure_sharded_model_hook:
-            # if model has not called configure sharded model, we reset
-            # the training type plugin's call_configure_sharded_model_hook
-            # to give trainer a chance to configure.
-            self.call_configure_sharded_model_hook = True
-
     def configure_ddp(self) -> None:
         if not self.cpu_offload:
             # When using CPU Offload, FSDP will manage the CUDA movement for us.
@@ -171,12 +165,6 @@ class DDPFullyShardedPlugin(DDPPlugin):
     def model_to_device(self) -> None:
         # ensure we update the device type in the lightning module
         self.lightning_module.to(self.root_device)
-
-    def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
-        # Currently it is same as default TrainingTypePlugin, i.e. return
-        # the full state dict for FSDP, in the future, we will provide sharded
-        # state dict.
-        return super().lightning_module_state_dict()
 
     @property
     def setup_optimizers_in_pre_dispatch(self) -> bool:
@@ -199,9 +187,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
         pass
 
     @classmethod
-    def register_plugins(cls, plugin_registry: Dict):
+    def register_plugins(cls, plugin_registry: Dict) -> None:
         plugin_registry.register(
-            "fsdp",
-            cls,
-            description="Fully sharded training with checkpointing the full state dict.",
+            "fsdp", cls, description="Fully sharded training with checkpointing the full state dict."
         )

@@ -13,119 +13,278 @@
 # limitations under the License.
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn
 
 
-class ConfigValidator:
+def verify_loop_configurations(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+    r"""
+    Checks that the model is configured correctly before the run is started.
 
-    def __init__(self, trainer: 'pl.Trainer') -> None:
-        self.trainer = trainer
+    Args:
+        trainer: Lightning Trainer
+        model: The model to check the configuration.
 
-    def verify_loop_configurations(self, model: 'pl.LightningModule') -> None:
-        r"""
-        Checks that the model is configured correctly before the run is started.
+    """
+    if trainer.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
+        __verify_train_val_loop_configuration(trainer, model)
+        __verify_manual_optimization_support(trainer, model)
+        __check_training_step_requires_dataloader_iter(model)
+    elif trainer.state.fn == TrainerFn.VALIDATING:
+        __verify_eval_loop_configuration(trainer, model, "val")
+    elif trainer.state.fn == TrainerFn.TESTING:
+        __verify_eval_loop_configuration(trainer, model, "test")
+    elif trainer.state.fn == TrainerFn.PREDICTING:
+        __verify_eval_loop_configuration(trainer, model, "predict")
 
-        Args:
-            model: The model to check the configuration.
+    __verify_dp_batch_transfer_support(trainer, model)
+    _check_add_get_queue(model)
+    # TODO(@daniellepintz): Delete _check_progress_bar in v1.7
+    _check_progress_bar(model)
+    # TODO: Delete _check_on_post_move_to_device in v1.7
+    _check_on_post_move_to_device(model)
+    # TODO: Delete _check_on_keyboard_interrupt in v1.7
+    _check_on_keyboard_interrupt(trainer)
+    # TODO: Remove this in v1.7 (deprecation: #9816)
+    _check_dl_idx_in_on_train_batch_hooks(trainer, model)
 
-        """
-        if self.trainer.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
-            self.__verify_train_loop_configuration(model)
-            self.__verify_eval_loop_configuration(model, 'val')
-            self.__verify_manual_optimization_support(model)
-        elif self.trainer.state.fn == TrainerFn.VALIDATING:
-            self.__verify_eval_loop_configuration(model, 'val')
-        elif self.trainer.state.fn == TrainerFn.TESTING:
-            self.__verify_eval_loop_configuration(model, 'test')
-        elif self.trainer.state.fn == TrainerFn.PREDICTING:
-            self.__verify_predict_loop_configuration(model)
-        self.__verify_dp_batch_transfer_support(model)
 
-    def __verify_train_loop_configuration(self, model: 'pl.LightningModule') -> None:
+def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+    # -----------------------------------
+    # verify model has a training step
+    # -----------------------------------
+    has_training_step = is_overridden("training_step", model)
+    if not has_training_step:
+        raise MisconfigurationException(
+            "No `training_step()` method defined. Lightning `Trainer` expects as minimum a"
+            " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
+        )
+
+    # -----------------------------------
+    # verify model has a train dataloader
+    # -----------------------------------
+    has_train_dataloader = trainer._data_connector._train_dataloader_source.is_defined()
+    if not has_train_dataloader:
+        raise MisconfigurationException(
+            "No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a"
+            " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
+        )
+
+    # -----------------------------------
+    # verify model has optimizer
+    # -----------------------------------
+    has_optimizers = is_overridden("configure_optimizers", model)
+    if not has_optimizers:
+        raise MisconfigurationException(
+            "No `configure_optimizers()` method defined. Lightning `Trainer` expects as minimum a"
+            " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
+        )
+
+    # ----------------------------------------------
+    # verify model does not have on_train_dataloader
+    # ----------------------------------------------
+    has_on_train_dataloader = is_overridden("on_train_dataloader", model)
+    if has_on_train_dataloader:
+        rank_zero_deprecation(
+            "Method `on_train_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
+            " Please use `train_dataloader()` directly."
+        )
+
+    trainer.overriden_optimizer_step = is_overridden("optimizer_step", model)
+    trainer.overriden_optimizer_zero_grad = is_overridden("optimizer_zero_grad", model)
+    automatic_optimization = model.automatic_optimization
+    going_to_accumulate_grad_batches = trainer.accumulation_scheduler.going_to_accumulate_grad_batches()
+
+    has_overriden_optimization_functions = trainer.overriden_optimizer_step or trainer.overriden_optimizer_zero_grad
+    if has_overriden_optimization_functions and going_to_accumulate_grad_batches and automatic_optimization:
+        rank_zero_warn(
+            "When using `Trainer(accumulate_grad_batches != 1)` and overriding"
+            " `LightningModule.optimizer_{step,zero_grad}`, the hooks will not be called on every batch"
+            " (rather, they are called on every optimization step)."
+        )
+
+    # -----------------------------------
+    # verify model for val loop
+    # -----------------------------------
+
+    has_val_loader = trainer._data_connector._val_dataloader_source.is_defined()
+    has_val_step = is_overridden("validation_step", model)
+
+    if has_val_loader and not has_val_step:
+        rank_zero_warn("You passed in a `val_dataloader` but have no `validation_step`. Skipping val loop.")
+    if has_val_step and not has_val_loader:
+        rank_zero_warn("You defined a `validation_step` but have no `val_dataloader`. Skipping val loop.")
+
+    # ----------------------------------------------
+    # verify model does not have on_val_dataloader
+    # ----------------------------------------------
+    has_on_val_dataloader = is_overridden("on_val_dataloader", model)
+    if has_on_val_dataloader:
+        rank_zero_deprecation(
+            "Method `on_val_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
+            " Please use `val_dataloader()` directly."
+        )
+
+
+def _check_progress_bar(model: "pl.LightningModule") -> None:
+    r"""
+    Checks if get_progress_bar_dict is overriden and sends a deprecation warning.
+
+    Args:
+        model: The model to check the get_progress_bar_dict method.
+    """
+    if is_overridden("get_progress_bar_dict", model):
+        rank_zero_deprecation(
+            "The `LightningModule.get_progress_bar_dict` method was deprecated in v1.5 and will be removed in v1.7."
+            " Please use the `ProgressBarBase.get_metrics` instead."
+        )
+
+
+def _check_on_post_move_to_device(model: "pl.LightningModule") -> None:
+    r"""
+    Checks if `on_post_move_to_device` method is overriden and sends a deprecation warning.
+
+    Args:
+        model: The model to check the `on_post_move_to_device` method.
+    """
+    if is_overridden("on_post_move_to_device", model):
+        rank_zero_deprecation(
+            "Method `on_post_move_to_device` has been deprecated in v1.5 and will be removed in v1.7. "
+            "We perform automatic parameters tying without the need of implementing `on_post_move_to_device`."
+        )
+
+
+def __verify_eval_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule", stage: str) -> None:
+    loader_name = f"{stage}_dataloader"
+    step_name = "validation_step" if stage == "val" else f"{stage}_step"
+    trainer_method = "validate" if stage == "val" else stage
+    on_eval_hook = f"on_{loader_name}"
+
+    has_loader = getattr(trainer._data_connector, f"_{stage}_dataloader_source").is_defined()
+    has_step = is_overridden(step_name, model)
+    has_on_eval_dataloader = is_overridden(on_eval_hook, model)
+
+    # ----------------------------------------------
+    # verify model does not have on_eval_dataloader
+    # ----------------------------------------------
+    if has_on_eval_dataloader:
+        rank_zero_deprecation(
+            f"Method `{on_eval_hook}` is deprecated in v1.5.0 and will"
+            f" be removed in v1.7.0. Please use `{loader_name}()` directly."
+        )
+
+    # -----------------------------------
+    # verify model has an eval_dataloader
+    # -----------------------------------
+    if not has_loader:
+        raise MisconfigurationException(f"No `{loader_name}()` method defined to run `Trainer.{trainer_method}`.")
+
+    # predict_step is not required to be overridden
+    if stage == "predict":
+        if model.predict_step is None:
+            raise MisconfigurationException("`predict_step` cannot be None to run `Trainer.predict`")
+        elif not has_step and not is_overridden("forward", model):
+            raise MisconfigurationException("`Trainer.predict` requires `forward` method to run.")
+    else:
         # -----------------------------------
-        # verify model has a training step
+        # verify model has an eval_step
         # -----------------------------------
-        has_training_step = is_overridden('training_step', model)
-        if not has_training_step:
+        if not has_step:
+            raise MisconfigurationException(f"No `{step_name}()` method defined to run `Trainer.{trainer_method}`.")
+
+
+def __verify_dp_batch_transfer_support(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+    """Raise Misconfiguration exception since these hooks are not supported in DP mode."""
+    # TODO: Remove this blocker once batch transfer to device is integrated in Lightning for DP mode.
+    batch_transfer_hooks = ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
+    for hook in batch_transfer_hooks:
+        if trainer._accelerator_connector.use_dp and is_overridden(hook, model):
+            raise MisconfigurationException(f"Overriding `{hook}` is not supported in DP mode.")
+
+
+def __verify_manual_optimization_support(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+    if model.automatic_optimization:
+        return
+    if trainer.gradient_clip_val is not None and trainer.gradient_clip_val > 0:
+        raise MisconfigurationException(
+            "Automatic gradient clipping is not supported for manual optimization."
+            f" Remove `Trainer(gradient_clip_val={trainer.gradient_clip_val})`"
+            " or switch to automatic optimization."
+        )
+    if trainer.accumulate_grad_batches != 1:
+        raise MisconfigurationException(
+            "Automatic gradient accumulation is not supported for manual optimization."
+            f" Remove `Trainer(accumulate_grad_batches={trainer.accumulate_grad_batches})`"
+            " or switch to automatic optimization."
+        )
+
+
+def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule"):
+    """Check if the current `training_step` is requesting `dataloader_iter`."""
+    training_step_fx = model.training_step
+    if is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):
+
+        if is_overridden("on_train_batch_start", model):
             raise MisconfigurationException(
-                'No `training_step()` method defined. Lightning `Trainer` expects as minimum a'
-                ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.'
+                "The model hook `on_train_batch_start` is not compatible with "
+                "taking a `dataloader_iter` argument in your `training_step`."
             )
 
-        # -----------------------------------
-        # verify model has a train dataloader
-        # -----------------------------------
-        has_train_dataloader = is_overridden('train_dataloader', model)
-        if not has_train_dataloader:
+        if is_overridden("on_train_batch_end", model):
             raise MisconfigurationException(
-                'No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a'
-                ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.'
+                "The model hook `on_train_batch_end` is not compatible with "
+                "taking a `dataloader_iter` argument in your `training_step`."
             )
 
-        # -----------------------------------
-        # verify model has optimizer
-        # -----------------------------------
-        has_optimizers = is_overridden('configure_optimizers', model)
-        if not has_optimizers:
+        if model.truncated_bptt_steps > 0:
             raise MisconfigurationException(
-                'No `configure_optimizers()` method defined. Lightning `Trainer` expects as minimum a'
-                ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.'
+                "The model taking a `dataloader_iter` argument in your `training_step` "
+                "is incompatible with `truncated_bptt_steps > 0`."
             )
 
-        trainer = self.trainer
 
-        trainer.overriden_optimizer_step = is_overridden('optimizer_step', model)
-        trainer.overriden_optimizer_zero_grad = is_overridden('optimizer_zero_grad', model)
-        automatic_optimization = model.automatic_optimization
-        going_to_accumulate_grad_batches = trainer.accumulation_scheduler.going_to_accumulate_grad_batches()
+def _check_add_get_queue(model: "pl.LightningModule") -> None:
+    r"""
+    Checks if add_to_queue or get_from_queue is overriden and sends a deprecation warning.
 
-        has_overriden_optimization_functions = trainer.overriden_optimizer_step or trainer.overriden_optimizer_zero_grad
-        if has_overriden_optimization_functions and going_to_accumulate_grad_batches and automatic_optimization:
-            rank_zero_warn(
-                'When using `Trainer(accumulate_grad_batches != 1)` and overriding'
-                '`LightningModule.optimizer_{step,zero_grad}`, the hooks will not be called on every batch'
-                '(rather, they are called on every optimization step).'
+    Args:
+        model: The lightning module
+    """
+    if is_overridden("add_to_queue", model):
+        rank_zero_deprecation(
+            "The `LightningModule.add_to_queue` method was deprecated in v1.5 and will be removed in v1.7 in "
+            "favor of `DDPSpawnPlugin.add_to_queue`"
+        )
+    if is_overridden("get_from_queue", model):
+        rank_zero_deprecation(
+            "The `LightningModule.get_from_queue` method was deprecated in v1.5 and will be removed in v1.7 in "
+            "favor of `DDPSpawnPlugin.get_from_queue`"
+        )
+
+
+def _check_on_keyboard_interrupt(trainer: "pl.Trainer") -> None:
+    """Checks if on_keyboard_interrupt is overriden and sends a deprecation warning."""
+    for callback in trainer.callbacks:
+        if is_overridden(method_name="on_keyboard_interrupt", instance=callback):
+            rank_zero_deprecation(
+                "The `on_keyboard_interrupt` callback hook was deprecated in v1.5 and will be removed in v1.7."
+                " Please use the `on_exception` callback hook instead."
             )
 
-    def __verify_eval_loop_configuration(self, model: 'pl.LightningModule', stage: str) -> None:
-        loader_name = f'{stage}_dataloader'
-        step_name = 'validation_step' if stage == 'val' else 'test_step'
 
-        has_loader = is_overridden(loader_name, model)
-        has_step = is_overridden(step_name, model)
-
-        if has_loader and not has_step:
-            rank_zero_warn(f'you passed in a {loader_name} but have no {step_name}. Skipping {stage} loop')
-        if has_step and not has_loader:
-            rank_zero_warn(f'you defined a {step_name} but have no {loader_name}. Skipping {stage} loop')
-
-    def __verify_predict_loop_configuration(self, model: 'pl.LightningModule') -> None:
-        has_predict_dataloader = is_overridden('predict_dataloader', model)
-        if not has_predict_dataloader:
-            raise MisconfigurationException('Dataloader not found for `Trainer.predict`')
-
-    def __verify_dp_batch_transfer_support(self, model: 'pl.LightningModule') -> None:
-        """Raise Misconfiguration exception since these hooks are not supported in DP mode"""
-        # TODO: Remove this blocker once batch transfer to device is integrated in Lightning for DP mode.
-        batch_transfer_hooks = ('on_before_batch_transfer', 'transfer_batch_to_device', 'on_after_batch_transfer')
-        for hook in batch_transfer_hooks:
-            if self.trainer.accelerator_connector.use_dp and is_overridden(hook, model):
-                raise MisconfigurationException(f'Overriding `{hook}` is not supported in DP mode.')
-
-    def __verify_manual_optimization_support(self, model: 'pl.LightningModule') -> None:
-        if model.automatic_optimization:
-            return
-        if self.trainer.gradient_clip_val > 0:
-            raise MisconfigurationException(
-                f"Automatic gradient clipping is not supported for manual optimization."
-                f" Remove `Trainer(gradient_clip_val={self.trainer.gradient_clip_val})`"
-                f" or switch to automatic optimization."
+def _check_dl_idx_in_on_train_batch_hooks(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+    for hook in ("on_train_batch_start", "on_train_batch_end"):
+        if is_param_in_hook_signature(getattr(model, hook), "dataloader_idx", explicit=True):
+            rank_zero_deprecation(
+                f"Base `LightningModule.{hook}` hook signature has changed in v1.5."
+                " The `dataloader_idx` argument will be removed in v1.7."
             )
-        if self.trainer.accumulate_grad_batches != 1:
-            raise MisconfigurationException(
-                f"Automatic gradient accumulation is not supported for manual optimization."
-                f" Remove `Trainer(accumulate_grad_batches={self.trainer.accumulate_grad_batches})`"
-                f" or switch to automatic optimization."
-            )
+
+        for cb in trainer.callbacks:
+            if is_param_in_hook_signature(getattr(cb, hook), "dataloader_idx", explicit=True):
+                rank_zero_deprecation(
+                    f"Base `Callback.{hook}` hook signature has changed in v1.5."
+                    " The `dataloader_idx` argument will be removed in v1.7."
+                )

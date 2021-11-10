@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""General utilities"""
+"""General utilities."""
 
 import numpy
 
@@ -23,11 +23,11 @@ from pytorch_lightning.utilities.enums import (  # noqa: F401
     DistributedType,
     GradClipAlgorithmType,
     LightningEnum,
+    ModelSummaryMode,
 )
 from pytorch_lightning.utilities.grads import grad_norm  # noqa: F401
 from pytorch_lightning.utilities.imports import (  # noqa: F401
     _APEX_AVAILABLE,
-    _BOLTS_AVAILABLE,
     _DEEPSPEED_AVAILABLE,
     _FAIRSCALE_AVAILABLE,
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
@@ -38,20 +38,23 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _HYDRA_EXPERIMENTAL_AVAILABLE,
     _IPU_AVAILABLE,
     _IS_INTERACTIVE,
+    _IS_WINDOWS,
+    _JSONARGPARSE_AVAILABLE,
     _module_available,
-    _NATIVE_AMP_AVAILABLE,
     _OMEGACONF_AVAILABLE,
     _POPTORCH_AVAILABLE,
-    _TORCH_GREATER_EQUAL_1_6,
+    _RICH_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_7,
     _TORCH_GREATER_EQUAL_1_8,
     _TORCH_GREATER_EQUAL_1_9,
+    _TORCH_GREATER_EQUAL_1_10,
     _TORCH_QUANTIZE_AVAILABLE,
     _TORCHTEXT_AVAILABLE,
     _TORCHVISION_AVAILABLE,
     _TPU_AVAILABLE,
     _XLA_AVAILABLE,
 )
+from pytorch_lightning.utilities.parameter_tying import find_shared_parameters, set_shared_parameters  # noqa: F401
 from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable  # noqa: F401
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn  # noqa: F401
 

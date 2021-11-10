@@ -21,7 +21,7 @@ Monitor and logs XLA stats during training.
 import time
 
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import _TPU_AVAILABLE, DeviceType, rank_zero_info
+from pytorch_lightning.utilities import _TPU_AVAILABLE, DeviceType, rank_zero_deprecation, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TPU_AVAILABLE:
@@ -29,9 +29,13 @@ if _TPU_AVAILABLE:
 
 
 class XLAStatsMonitor(Callback):
-    """
-    Automatically monitors and logs XLA stats during training stage. ``XLAStatsMonitor``
-    is a callback and in order to use it you need to assign a logger in the ``Trainer``.
+    r"""
+    .. deprecated:: v1.5
+        The `XLAStatsMonitor` callback was deprecated in v1.5 and will be removed in v1.7.
+        Please use the `DeviceStatsMonitor` callback instead.
+
+    Automatically monitors and logs XLA stats during training stage. ``XLAStatsMonitor`` is a callback and in
+    order to use it you need to assign a logger in the ``Trainer``.
 
     Args:
         verbose: Set to ``True`` to print average peak and free memory, and epoch time
@@ -47,25 +51,29 @@ class XLAStatsMonitor(Callback):
         >>> from pytorch_lightning.callbacks import XLAStatsMonitor
         >>> xla_stats = XLAStatsMonitor() # doctest: +SKIP
         >>> trainer = Trainer(callbacks=[xla_stats]) # doctest: +SKIP
-
     """
 
     def __init__(self, verbose: bool = True) -> None:
         super().__init__()
 
+        rank_zero_deprecation(
+            "The `XLAStatsMonitor` callback was deprecated in v1.5 and will be removed in v1.7."
+            " Please use the `DeviceStatsMonitor` callback instead."
+        )
+
         if not _TPU_AVAILABLE:
-            raise MisconfigurationException('Cannot use XLAStatsMonitor with TPUs are not available')
+            raise MisconfigurationException("Cannot use XLAStatsMonitor with TPUs are not available")
 
         self._verbose = verbose
 
     def on_train_start(self, trainer, pl_module) -> None:
         if not trainer.logger:
-            raise MisconfigurationException('Cannot use XLAStatsMonitor callback with Trainer that has no logger.')
+            raise MisconfigurationException("Cannot use XLAStatsMonitor callback with Trainer that has no logger.")
 
         if trainer._device_type != DeviceType.TPU:
             raise MisconfigurationException(
-                'You are using XLAStatsMonitor but are not running on TPU'
-                f' since `tpu_cores` attribute in Trainer is set to {trainer.tpu_cores}.'
+                "You are using XLAStatsMonitor but are not running on TPU"
+                f" since `tpu_cores` attribute in Trainer is set to {trainer.tpu_cores}."
             )
 
         memory_info = xm.get_memory_info(pl_module.device)

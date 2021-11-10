@@ -15,11 +15,12 @@ env:
 jobs:
   tpu-cleanup:
     name: TPU cleaning
+    if: ${{ github.repository_owner == 'PyTorchLightning' }}
     runs-on: ubuntu-20.04
 
     steps:
       - name: Setup gcloud CLI
-        uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+        uses: google-github-actions/setup-gcloud@master
         with:
           version: '290.0.1'
           service_account_key: ${{ secrets.GKE_SA_KEY_BASE64 }}

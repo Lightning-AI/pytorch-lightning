@@ -15,14 +15,14 @@ import copy
 import inspect
 import types
 from argparse import Namespace
-from typing import Optional, Sequence, Union
+from typing import MutableMapping, Optional, Sequence, Union
 
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES
 from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.parsing import save_hyperparameters
 
 
-class HyperparametersMixin(object):
+class HyperparametersMixin:
 
     __jit_unused_properties__ = ["hparams", "hparams_initial"]
 
@@ -35,7 +35,7 @@ class HyperparametersMixin(object):
         *args,
         ignore: Optional[Union[Sequence[str], str]] = None,
         frame: Optional[types.FrameType] = None,
-        logger: bool = True
+        logger: bool = True,
     ) -> None:
         """Save arguments to ``hparams`` attribute.
 
@@ -104,7 +104,7 @@ class HyperparametersMixin(object):
             frame = inspect.currentframe().f_back
         save_hyperparameters(self, *args, ignore=ignore, frame=frame)
 
-    def _set_hparams(self, hp: Union[dict, Namespace, str]) -> None:
+    def _set_hparams(self, hp: Union[MutableMapping, Namespace, str]) -> None:
         hp = self._to_hparams_dict(hp)
 
         if isinstance(hp, dict) and isinstance(self.hparams, dict):
@@ -113,7 +113,7 @@ class HyperparametersMixin(object):
             self._hparams = hp
 
     @staticmethod
-    def _to_hparams_dict(hp: Union[dict, Namespace, str]):
+    def _to_hparams_dict(hp: Union[MutableMapping, Namespace, str]):
         if isinstance(hp, Namespace):
             hp = vars(hp)
         if isinstance(hp, dict):
@@ -126,12 +126,24 @@ class HyperparametersMixin(object):
 
     @property
     def hparams(self) -> Union[AttributeDict, dict, Namespace]:
+        """The collection of hyperparameters saved with :meth:`save_hyperparameters`. It is mutable by the user.
+        For the frozen set of initial hyperparameters, use :attr:`hparams_initial`.
+
+        Returns:
+            Union[AttributeDict, dict, Namespace]: mutable hyperparameters dicionary
+        """
         if not hasattr(self, "_hparams"):
             self._hparams = AttributeDict()
         return self._hparams
 
     @property
     def hparams_initial(self) -> AttributeDict:
+        """The collection of hyperparameters saved with :meth:`save_hyperparameters`. These contents are read-only.
+        Manual updates to the saved hyperparameters can instead be performed through :attr:`hparams`.
+
+        Returns:
+            AttributeDict: immutable initial hyperparameters
+        """
         if not hasattr(self, "_hparams_initial"):
             return AttributeDict()
         # prevent any change
