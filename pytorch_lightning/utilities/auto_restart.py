@@ -623,12 +623,11 @@ def _validate_fault_tolerant_training(trainer: "pl.Trainer", dataloader: Iterabl
         if len(dataloader) > 1 and stage == RunningStage.TRAINING:
             raise MisconfigurationException("Fault Tolerant Training supports only a single dataloader.")
 
-    else:
-        dataloader = [dataloader]
-
     supported_samplers = (RandomSampler, SequentialSampler, DistributedSampler)
 
-    for dataloader in dataloader:
+    dataloaders = dataloader if isinstance(dataloader, Sequence) else [dataloader]
+
+    for dataloader in dataloaders:
 
         if isinstance(dataloader.dataset, IterableDataset):
             dataset = dataloader.dataset
@@ -653,7 +652,6 @@ def _validate_fault_tolerant_training(trainer: "pl.Trainer", dataloader: Iterabl
                     raise MisconfigurationException(f"Fault Tolerant Training supports only {supported_samplers}.")
 
         else:
-            supported_samplers = (RandomSampler, SequentialSampler, DistributedSampler)
             sampler = getattr(dataloader, "sampler", None)
             if sampler is not None and sampler.__class__ not in supported_samplers:
                 raise MisconfigurationException(f"Fault Tolerant Training supports only {supported_samplers}.")
