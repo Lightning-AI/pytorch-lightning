@@ -32,9 +32,12 @@ from torch.utils.data import BatchSampler, DistributedSampler, RandomSampler, Se
 from torch.utils.data._utils.worker import get_worker_info
 from torch.utils.data.dataloader import DataLoader, default_collate
 from torch.utils.data.dataset import Dataset, IterableDataset
+from torch.utils.data.sampler import Sampler
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningModule, seed_everything, Trainer
+from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
     _dataloader_load_state_dict,
@@ -1199,10 +1202,93 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
         assert "dataloader_state_dict" in state_dict
 
 
-@pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
-def test_validate_fault_tolerant(val_check_interval, tmpdir):
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+def test_validate_fault_tolerant(tmpdir):
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epohs=1, val_check_interval=val_check_interval)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=0.5)
+    data = range(10)
+    dataloader = DataLoader(data)
 
-    dataloaders = DataLoader(range(10))
-    _validate_fault_tolerant_training(trainer, dataloaders)
+    with pytest.raises(
+        MisconfigurationException,
+        match="Fault Tolerant Training isn't support for `val_check_interval` different than 1.0.",
+    ):
+        _validate_fault_tolerant_training(trainer, dataloader, RunningStage.TRAINING)
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    _validate_fault_tolerant_training(trainer, dataloader, RunningStage.TRAINING)
+
+    with pytest.raises(MisconfigurationException, match="Fault Tolerant Training supports only a single dataloader."):
+        dataloaders = CombinedLoader([DataLoader(data), DataLoader(range(10))])
+        _validate_fault_tolerant_training(trainer, dataloaders, RunningStage.TRAINING)
+
+    with pytest.raises(MisconfigurationException, match="Fault Tolerant Training supports only a single dataloader."):
+        dataloaders = CombinedLoader([DataLoader(data), DataLoader(range(10))], mode="max_size_cycle")
+        _validate_fault_tolerant_training(trainer, dataloaders, RunningStage.TRAINING)
+
+    dataloaders = [DataLoader(data), DataLoader(range(10))]
+    with pytest.raises(MisconfigurationException, match="Fault Tolerant Training supports only a single dataloader."):
+        _validate_fault_tolerant_training(trainer, dataloaders, RunningStage.TRAINING)
+
+    _validate_fault_tolerant_training(trainer, dataloaders, RunningStage.VALIDATING)
+
+    with pytest.raises(MisconfigurationException, match="RandomSampler"):
+
+        class CustomRandomSampler(RandomSampler):
+            pass
+
+        dataloader = DataLoader(data, sampler=CustomRandomSampler(data))
+        _validate_fault_tolerant_training(trainer, dataloader, RunningStage.TRAINING)
+
+    with pytest.raises(MisconfigurationException, match="BatchSampler"):
+
+        class CustomBatchSampler(BatchSampler):
+            pass
+
+        sampler = Sampler(data)
+        batch_sampler = CustomBatchSampler(sampler, 2, False)
+        dataloader = DataLoader(data, batch_sampler=batch_sampler)
+        _validate_fault_tolerant_training(trainer, dataloader, RunningStage.TRAINING)
+
+    with pytest.raises(MisconfigurationException, match="without a `__next__` method"):
+
+        class CustomIterable(IterableDataset):
+            def __iter__(self):
+                while True:
+                    yield 0
+
+        dataloader = DataLoader(CustomIterable())
+        _validate_fault_tolerant_training(trainer, dataloader, RunningStage.TRAINING)
+
+    with pytest.raises(MisconfigurationException, match="IterableDataset without a sampler as attribute"):
+
+        class CustomIterable(IterableDataset):
+            def __iter__(self):
+                return self
+
+            def __next__(self):
+                return torch.tensor(0)
+
+        dataloader = DataLoader(CustomIterable())
+        _validate_fault_tolerant_training(trainer, dataloader, RunningStage.TRAINING)
+
+    with pytest.raises(MisconfigurationException, match="RandomSampler"):
+
+        class CustomIterable(IterableDataset):
+            def __init__(self):
+                super().__init__()
+                self.data = data
+                self.sampler = CustomRandomSampler(self.data)
+
+            def __iter__(self):
+                return self
+
+            def __next__(self):
+                return torch.tensor(0)
+
+        dataloader = DataLoader(CustomIterable())
+        _validate_fault_tolerant_training(trainer, dataloader, RunningStage.TRAINING)
+
+    dataloaders = [DataLoader(data), DataLoader(CustomIterable())]
+    with pytest.raises(MisconfigurationException, match="RandomSampler"):
+        _validate_fault_tolerant_training(trainer, dataloaders, RunningStage.VALIDATING)

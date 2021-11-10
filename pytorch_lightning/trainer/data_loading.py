@@ -33,6 +33,7 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import (
     _capture_metadata_collate,
+    _validate_fault_tolerant_training,
     CaptureIterableDataset,
     CaptureMapDataset,
     FastForwardSampler,
@@ -579,6 +580,7 @@ class TrainerDataLoadingMixin(ABC):
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
         self.training_type_plugin.barrier("get_dataloaders")
+        _validate_fault_tolerant_training(self, dataloader, stage)
         return dataloader
 
     @staticmethod
