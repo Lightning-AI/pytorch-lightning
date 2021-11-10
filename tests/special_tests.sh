@@ -67,7 +67,7 @@ for i in "${!files_arr[@]}"; do
       parametrizations_arr=($parametrizations)
 
       for j in "${!parametrizations_arr[@]}"; do
-        parametrization=${parametrizations_arr[$j]}p
+        parametrization=${parametrizations_arr[$j]}
 
         # run the test
         report+="Ran\t$file:$lineno::$test_name\n"
