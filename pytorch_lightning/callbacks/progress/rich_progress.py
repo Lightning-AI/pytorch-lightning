@@ -169,10 +169,10 @@ class RichProgressBarTheme:
     """
 
     text_color: str = "white"
-    progress_bar_complete: Union[str, Style] = "#6206E0"
-    progress_bar_finished: Union[str, Style] = "#6206E0"
+    progress_bar_completed_so_far: Union[str, Style] = "#6206E0"
+    progress_bar_on_completion: Union[str, Style] = "#6206E0"
     progress_bar_pulse: Union[str, Style] = "#6206E0"
-    batch_process: str = "white"
+    batch_progress: str = "white"
     time: str = "grey54"
     processing_speed: str = "grey70"
 
@@ -453,11 +453,11 @@ class RichProgressBar(ProgressBarBase):
         return [
             TextColumn("[progress.description]{task.description}"),
             CustomBarColumn(
-                complete_style=self.theme.progress_bar_complete,
-                finished_style=self.theme.progress_bar_finished,
+                complete_style=self.theme.progress_bar_completed_so_far,
+                finished_style=self.theme.progress_bar_on_completion,
                 pulse_style=self.theme.progress_bar_pulse,
             ),
-            BatchesProcessedColumn(style=self.theme.batch_process),
+            BatchesProcessedColumn(style=self.theme.batch_progress),
             CustomTimeColumn(style=self.theme.time),
             ProcessingSpeedColumn(style=self.theme.processing_speed),
         ]
