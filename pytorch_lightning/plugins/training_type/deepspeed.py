@@ -634,6 +634,8 @@ class DeepSpeedPlugin(DDPPlugin):
                 train_dataloader = train_dl_source.dataloader()
                 if hasattr(train_dataloader, "batch_sampler"):
                     batch_size = train_dataloader.batch_sampler.batch_size
+            # broad exception on purpose as `source.dataloader()` will fail if the dataloader requires `setup`
+            # to have been called before
             except Exception:
                 rank_zero_warn(
                     "Tried to Infer the batch size for internal deepspeed logging from the `train_dataloader()`. "
