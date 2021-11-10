@@ -395,7 +395,7 @@ class ResultCollection(dict):
         return self._current_batch_size
 
     @current_batch_size.setter
-    def current_batch_size(self, val: int) -> None:
+    def current_batch_size(self, val: Optional[int]) -> None:
         self._current_batch_size = val
 
     @property
