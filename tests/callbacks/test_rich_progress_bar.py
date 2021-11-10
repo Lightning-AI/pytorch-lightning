@@ -106,8 +106,8 @@ def test_rich_progress_bar_custom_theme(tmpdir):
 
         assert progress_bar.theme == theme
         args, kwargs = mocks["CustomBarColumn"].call_args
-        assert kwargs["complete_style"] == theme.progress_bar_completed_so_far
-        assert kwargs["finished_style"] == theme.progress_bar_on_completion
+        assert kwargs["complete_style"] == theme.progress_bar
+        assert kwargs["finished_style"] == theme.progress_bar_finished
 
         args, kwargs = mocks["BatchesProcessedColumn"].call_args
         assert kwargs["style"] == theme.batch_progress
