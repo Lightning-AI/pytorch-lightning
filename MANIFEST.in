@@ -15,3 +15,4 @@ include pytorch_lightning/py.typed  # marker file for PEP 561
 include CHANGELOG.md
 recursive-include requirements *.txt
 include requirements.txt
+include *.cff  # citation info
