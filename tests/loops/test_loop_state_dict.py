@@ -80,12 +80,14 @@ def test_loops_state_dict_structure():
             },
             "epoch_loop.val_loop._results": {
                 "_current_batch": None,
+                "_current_batch_size": None,
                 "training": False,
                 "device": None,
                 "items": {},
             },
             "epoch_loop._results": {
                 "_current_batch": None,
+                "_current_batch_size": None,
                 "training": True,
                 "device": None,
                 "items": {},
@@ -106,6 +108,7 @@ def test_loops_state_dict_structure():
             },
             "_results": {
                 "_current_batch": None,
+                "_current_batch_size": None,
                 "training": False,
                 "device": None,
                 "items": {},
@@ -122,6 +125,7 @@ def test_loops_state_dict_structure():
             },
             "_results": {
                 "_current_batch": None,
+                "_current_batch_size": None,
                 "training": False,
                 "device": None,
                 "items": {},
