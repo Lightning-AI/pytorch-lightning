@@ -473,7 +473,9 @@ class ResultCollection(dict):
 
         # extract batch size if it is None and whenever it is required
         if batch_size is None:
-            if on_epoch and (True in _FxValidator.functions[fx.split(".")[0]]["on_step"]) and meta.is_mean_reduction:
+            fx_validate = _FxValidator.functions[fx.split(".")[0]]
+            assert fx_validate is not None
+            if on_epoch and (True in fx_validate["on_step"]) and meta.is_mean_reduction:
                 try:
                     batch_size = extract_batch_size(self.current_batch)
                 except RecursionError:
