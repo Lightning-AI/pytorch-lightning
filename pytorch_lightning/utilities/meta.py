@@ -272,15 +272,6 @@ def _set_meta_device() -> None:
                 if subclass.__bases__[0] != torch.nn.modules.module.Module:
                     _MetaClass.add_subclasses(subclass.__bases__[0])
 
-            def __subclasscheck__(cls, sub):
-                breakpoint()
-
-            def __subclasshook__(cls, C):
-                breakpoint()
-                if cls is _MetaClass:
-                    return isinstance(subclass, cls.__bases__[0])
-                return False
-
             def __new__(cls, *args, **kwargs):
                 subclass = cls.__bases__[0]
                 cls.add_subclasses(subclass)
