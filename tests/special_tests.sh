@@ -17,7 +17,7 @@ set -e
 # this environment variable allows special tests to run
 export PL_RUNNING_SPECIAL_TESTS=1
 # python arguments
-defaults='-m coverage run --source pytorch_lightning --append -m pytest --durations=0 --capture=no --disable-warnings'
+defaults='-m coverage run --source pytorch_lightning --append -m pytest --disable-warnings'
 
 # find tests marked as `@RunIf(special=True)`
 grep_output=$(grep --recursive --line-number --word-regexp 'tests' 'benchmarks' --regexp 'special=True')
@@ -70,9 +70,10 @@ for i in "${!files_arr[@]}"; do
         parametrization=${parametrizations_arr[$j]}
 
         # run the test
-        report+="Ran\t$file:$lineno::$test_name\n"
+        echo "Running ${parametrization}"
         python ${defaults} "${parametrization}"
       done
+      report+="Ran\t$file:$lineno::$test_name\n"
 
       # stop reading lines, move on to the next occurrence
       break
