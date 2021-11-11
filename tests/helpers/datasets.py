@@ -16,11 +16,12 @@ import os
 import random
 import time
 import urllib.request
-from typing import Optional, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple
 
+import numpy as np
 import torch
 from torch import Tensor
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, Subset
 
 
 class MNIST(Dataset):
@@ -213,3 +214,24 @@ class SklearnDataset(Dataset):
 
     def __len__(self):
         return len(self.y)
+
+
+def make_unbalanced(dataset: Dataset, weights: List[float]):
+    assert np.sum(weights) == 1
+
+    indices = []
+
+    total = np.bincount(dataset.targets).min() * np.array(weights)
+    count = np.zeros(len(weights))
+
+    new_targets = []
+
+    for idx, t in enumerate(dataset.targets):
+        if count[t] < total[t]:
+            indices.append(idx)
+            new_targets.append(t)
+            count[t] += 1
+
+    subset = Subset(dataset, indices)
+    subset.targets = np.asarray(new_targets)
+    return subset
