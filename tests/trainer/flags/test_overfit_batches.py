@@ -70,6 +70,7 @@ def test_overfit_basic(tmpdir, overfit_batches):
     assert trainer.num_training_batches == int(
         overfit_batches * (1 if isinstance(overfit_batches, int) else total_train_samples)
     )
+    breakpoint()
 
 
 def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmpdir):
