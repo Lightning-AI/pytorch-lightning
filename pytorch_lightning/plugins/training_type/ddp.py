@@ -259,6 +259,7 @@ class DDPPlugin(ParallelPlugin):
             # TODO: PyTorch 1.7.0 DDP introduces `self.reducer._rebuild_buckets()` breaking manual_optimization
             rank_zero_warn(
                 "Lightning `manual_optimization` needs to set `find_unused_parameters=True` to properly work with DDP."
+                " Using `find_unused_parameters=True`."
             )
             self._ddp_kwargs["find_unused_parameters"] = True
 
