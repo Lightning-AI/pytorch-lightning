@@ -262,17 +262,7 @@ class LightningModule(
     ) -> Any:
         device = device or self.device
         batch = self.on_before_batch_transfer(batch, dataloader_idx)
-
-        if is_param_in_hook_signature(self.transfer_batch_to_device, "dataloader_idx"):
-            batch = self.transfer_batch_to_device(batch, device, dataloader_idx)
-        else:
-            warning_cache.deprecation(
-                "`transfer_batch_to_device` hook signature has changed in v1.4."
-                " `dataloader_idx` parameter has been added to it. Support for"
-                " the old signature will be removed in v1.6"
-            )
-            batch = self.transfer_batch_to_device(batch, device)
-
+        batch = self.transfer_batch_to_device(batch, device, dataloader_idx)
         batch = self.on_after_batch_transfer(batch, dataloader_idx)
         return batch
 
