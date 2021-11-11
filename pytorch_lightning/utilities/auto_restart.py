@@ -31,11 +31,13 @@ from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
 class _FaulTolerantAbstract(abc.ABC):
-
     @classmethod
     def __subclasshook__(cls, subclass: Any) -> Union[bool, Any]:
         if cls is _FaulTolerantAbstract:
-            return (getattr(subclass, "state_dict", None) is not None and getattr(subclass, "load_state_dict", None) is not None)
+            return (
+                getattr(subclass, "state_dict", None) is not None
+                and getattr(subclass, "load_state_dict", None) is not None
+            )
         return False
 
 
