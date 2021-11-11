@@ -272,6 +272,15 @@ def _set_meta_device() -> None:
                 if subclass.__bases__[0] != torch.nn.modules.module.Module:
                     _MetaClass.add_subclasses(subclass.__bases__[0])
 
+            def __subclasscheck__(cls, sub):
+                breakpoint()
+
+            def __subclasshook__(cls, C):
+                breakpoint()
+                if cls is _MetaClass:
+                    return isinstance(subclass, cls.__bases__[0])
+                return False
+
             def __new__(cls, *args, **kwargs):
                 subclass = cls.__bases__[0]
                 cls.add_subclasses(subclass)
@@ -312,6 +321,12 @@ def _set_meta_device() -> None:
             setattr(mod, subclass.__name__, _MetaClass)
 
 
+def mock_isinstance(A, B, isinstance=None):
+    if isinstance(B, type) and "_MetaClass" in B.__name__:
+        return isinstance(A, B.__bases__[0])
+    return isinstance(A, B)
+
+
 @contextmanager
 def init_meta_context() -> Generator:
     rank_zero_warn(
@@ -319,5 +334,7 @@ def init_meta_context() -> Generator:
         "where it can internal assert and/or crash. A more stable version is to be expected from PyTorch 1.11."
     )
     _set_meta_device()
+    __builtins__["isinstance"] = partial(mock_isinstance, isinstance=isinstance)
     yield
+    __builtins__["isinstance"] = isinstance.keywords["isinstance"]
     _unset_meta_device()

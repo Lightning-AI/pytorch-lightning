@@ -36,6 +36,7 @@ def test_init_meta_context():
 
     with init_meta_context():
         m = nn.Linear(in_features=1, out_features=1)
+        assert isinstance(m, nn.Linear)
         assert m.weight.device.type == "meta"
         mlp = MLP(4)
         assert mlp.layer[0].weight.device.type == "meta"
