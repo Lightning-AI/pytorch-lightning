@@ -866,7 +866,7 @@ def test_trainer_datamodule_hook_system(tmpdir):
         limit_predict_batches=batches,
         enable_progress_bar=False,
         enable_model_summary=False,
-        reload_dataloaders_every_epoch=True,
+        reload_dataloaders_every_n_epochs=True,
     )
 
     called = []
