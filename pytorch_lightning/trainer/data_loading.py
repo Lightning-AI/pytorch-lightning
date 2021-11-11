@@ -580,7 +580,7 @@ class TrainerDataLoadingMixin(ABC):
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
         self.training_type_plugin.barrier("get_dataloaders")
-        _validate_fault_tolerant_training(self, dataloader, stage)
+        _validate_fault_tolerant_training(dataloader, stage)
         return dataloader
 
     @staticmethod

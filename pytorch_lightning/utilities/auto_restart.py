@@ -594,17 +594,12 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
         raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
 
 
-def _validate_fault_tolerant_training(trainer: "pl.Trainer", dataloader: Iterable, stage: RunningStage) -> None:
+def _validate_fault_tolerant_training(dataloader: Iterable, stage: RunningStage) -> None:
     """This function is used to validate fault tolerant training is possible with the user data."""
     from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 
     if not _fault_tolerant_training():
         return
-
-    if trainer.val_check_interval != 1.0:
-        raise MisconfigurationException(
-            "Fault Tolerant Training isn't support for `val_check_interval` different than 1.0."
-        )
 
     if isinstance(dataloader, CombinedLoader):
         count_dataloader = 0
