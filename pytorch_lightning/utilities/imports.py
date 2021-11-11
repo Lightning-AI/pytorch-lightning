@@ -25,6 +25,8 @@ import torch
 from packaging.version import Version
 from pkg_resources import DistributionNotFound
 
+from pytorch_lightning.utilities.enums import FaultTolerantTrainingMode
+
 
 def _module_available(module_path: str) -> bool:
     """Check if a path is available in your environment.
@@ -110,6 +112,13 @@ else:
     _IPU_AVAILABLE = False
 
 
+def _fault_tolerant_training_mode() -> FaultTolerantTrainingMode:
+    if not _TORCH_GREATER_EQUAL_1_7:
+        return FaultTolerantTrainingMode.INACTIVE
+
+    return FaultTolerantTrainingMode(os.getenv("PL_FAULT_TOLERANT_TRAINING", 0))
+
+
 # experimental feature within PyTorch Lightning.
 def _fault_tolerant_training() -> bool:
-    return _TORCH_GREATER_EQUAL_1_7 and int(os.getenv("PL_FAULT_TOLERANT_TRAINING", 0))
+    return _fault_tolerant_training_mode() != FaultTolerantTrainingMode.INACTIVE

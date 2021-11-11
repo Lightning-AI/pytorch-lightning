@@ -1196,3 +1196,68 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
         assert "dataloader_state_dict" not in state_dict
     else:
         assert "dataloader_state_dict" in state_dict
+
+
+class RandomFaultTolerantDataset(RandomGetItemDataset):
+    def state_dict(self):
+        return {"torch": torch.get_rng_state(), "numpy": np.random.get_state(), "python": random.getstate()}
+
+    def load_state_dict(self, state_dict):
+        torch.set_rng_state(state_dict.get("torch"))
+        np.random.set_state(state_dict.get("numpy"))
+        version, state, gauss = state_dict.get("python")
+        random.setstate((version, tuple(state), gauss))
+
+
+@pytest.mark.parametrize(
+    ["train_dataset_cls", "val_dataset_cls"],
+    [
+        ([RandomFaultTolerantDataset], [RandomFaultTolerantDataset]),
+    ],
+)
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "2"})
+def test_fault_tolerant_manual_mode(train_dataset_cls, val_dataset_cls, tmpdir):
+    class TestModel(BoringModel):
+        def __init__(self, should_fail: bool = False):
+            super().__init__()
+            self.should_fail = should_fail
+            self.batches = []
+
+        def training_step(self, batch, batch_idx):
+            if self.should_fail and batch_idx == 2:
+                raise CustomException
+            self.batches.append(batch)
+            return super().training_step(batch, batch_idx)
+
+        def validation_epoch_end(self, outputs) -> None:
+            pass
+
+        def train_dataloader(self):
+            return [DataLoader(dataset_class(3, 1), batch_size=1, num_workers=0) for dataset_class in train_dataset_cls]
+
+        def val_dataloader(self):
+            return [DataLoader(dataset_class(3, 1), batch_size=1, num_workers=0) for dataset_class in val_dataset_cls]
+
+    seed_everything(42)
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer.fit(model)
+    total_batches = model.batches
+
+    seed_everything(42)
+    model = TestModel(should_fail=True)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    with suppress(CustomException):
+        trainer.fit(model)
+    failed_batches = model.batches
+
+    checkpoint_path = str(tmpdir / ".pl_auto_save.ckpt")
+    assert os.path.exists(checkpoint_path)
+
+    seed_everything(42)
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer.fit(model, ckpt_path=checkpoint_path)
+    restart_batches = model.batches
+
+    assert len(total_batches) == len(failed_batches) + len(restart_batches)

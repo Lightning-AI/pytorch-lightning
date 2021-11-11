@@ -188,3 +188,10 @@ class ModelSummaryMode(LightningEnum):
     @staticmethod
     def supported_types() -> List[str]:
         return [x.value for x in ModelSummaryMode]
+
+
+class FaultTolerantTrainingMode(LightningEnum):
+
+    INACTIVE = "0"
+    AUTOMATIC = "1"
+    MANUAL = "2"

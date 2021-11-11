@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import abc
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial, wraps
@@ -28,6 +28,15 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
+
+
+class _FaulTolerantAbstract(abc.ABC):
+
+    @classmethod
+    def __subclasshook__(cls, subclass: Any) -> Union[bool, Any]:
+        if cls is _FaulTolerantAbstract:
+            return (getattr(subclass, "state_dict", None) is not None and getattr(subclass, "load_state_dict", None) is not None)
+        return False
 
 
 class FastForwardSampler(Sampler):
@@ -478,6 +487,47 @@ def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: 
     return {"data": data, AutoRestartBatchKeys.PL_RESTART_META: metadata}
 
 
+def _next_data_wrapper(fn, it, dl, num_batches_fetched) -> Callable:
+    @wraps(fn)
+    def wrapper():
+        nonlocal num_batches_fetched
+        nonlocal it
+        nonlocal dl
+
+        dataset = dl.dataset
+        combined_batch = fn()
+
+        batch, state = combined_batch["data"], combined_batch[AutoRestartBatchKeys.PL_RESTART_META]
+        num_batches_fetched += 1
+
+        if isinstance(dataset, CaptureIterableDataset):
+            state = [
+                IteratorState(
+                    num_workers=dl.num_workers,
+                    sampler_state=iterator_state,
+                    num_batches_fetched=num_batches_fetched,
+                    worker_id=list(iterator_state.keys())[0],
+                    name=sampler_iter_name,
+                )
+                for sampler_iter_name, iterator_state in state.items()
+            ]
+        elif isinstance(dataset, CaptureMapDataset):
+            ff_sampler = _find_fast_forward_samplers(dl)
+            state = [
+                IteratorState(
+                    num_workers=dl.num_workers,
+                    sampler_state=ff_sampler.state_dict(num_batches_fetched),
+                    dataset_state=state,
+                    worker_id=list(state.keys())[0],
+                    num_batches_fetched=num_batches_fetched,
+                )
+            ]
+        data_fetcher._store_dataloader_iter_state(it, state)
+        return batch
+
+    return wrapper
+
+
 def patch_dataloader_iterator(
     dataloader: DataLoader,
     iterator: Iterator,
@@ -522,7 +572,7 @@ def patch_dataloader_iterator(
             if isinstance(dataset, CaptureIterableDataset):
                 state = [
                     IteratorState(
-                        num_workers=dataloader.num_workers,
+                        num_workers=dl.num_workers,
                         sampler_state=iterator_state,
                         num_batches_fetched=num_batches_fetched,
                         worker_id=list(iterator_state.keys())[0],
