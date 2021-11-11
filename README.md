@@ -357,10 +357,10 @@ ______________________________________________________________________
 
 ###### Contrastive Learning
 
-- [BYOL](https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/self_supervised_models.html#byol)
-- [CPC v2](https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/self_supervised_models.html#cpc-v2)
-- [Moco v2](https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/self_supervised_models.html#moco-v2)
-- [SIMCLR](https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/self_supervised_models.html#simclr)
+- [BYOL](https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/self_supervised.html#byol)
+- [CPC v2](https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/self_supervised.html#cpc-v2)
+- [Moco v2](https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/self_supervised.html#moco-v2-api)
+- [SIMCLR](https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/self_supervised.html#simclr)
 
 ###### NLP
 
