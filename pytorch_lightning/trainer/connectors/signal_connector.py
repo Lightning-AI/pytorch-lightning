@@ -4,7 +4,7 @@ import signal
 import sys
 from signal import Signals
 from subprocess import call
-from types import FrameType, FunctionType
+from types import FrameType
 from typing import Callable, List, Union
 
 import pytorch_lightning as pl
@@ -104,6 +104,6 @@ class SignalConnector:
 
     def _has_already_handler(self, signum: Signals) -> bool:
         try:
-            return isinstance(signal.getsignal(signum), FunctionType)
+            return callable(signal.getsignal(signum))
         except AttributeError:
             return False
