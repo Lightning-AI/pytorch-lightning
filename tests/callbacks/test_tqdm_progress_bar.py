@@ -524,8 +524,7 @@ def test_tqdm_progress_bar_can_be_pickled():
 @RunIf(min_gpus=2, special=True)
 @pytest.mark.parametrize(
     ["total_train_samples", "train_batch_size", "total_val_samples", "val_batch_size", "val_check_interval"],
-    (8, 4, 2, 1, 0.2),
-    (8, 4, 2, 1, 0.5),
+    [(8, 4, 2, 1, 0.2), (8, 4, 2, 1, 0.5)],
 )
 def test_progress_bar_max_val_check_interval(
     tmpdir, total_train_samples, train_batch_size, total_val_samples, val_batch_size, val_check_interval
@@ -536,7 +535,6 @@ def test_progress_bar_max_val_check_interval(
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
         num_sanity_val_steps=0,
         max_epochs=1,
         enable_model_summary=False,
