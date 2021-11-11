@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from contextlib import suppress
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Dict, Iterator
@@ -949,15 +948,22 @@ def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
                 raise CustomException
 
     max_epochs = 3
-    train_kwargs = dict(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=max_epochs)
-
-    if should_fail:
-        train_kwargs["callbacks"] = TestCallback()
 
     model = BoringModel()
-    trainer = Trainer(**train_kwargs)
-    with suppress(CustomException):
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=max_epochs,
+        callbacks=TestCallback() if should_fail else None,
+    )
+
+    if should_fail:
+        with pytest.raises(CustomException):
+            trainer.fit(model, train_dataloader, val_dataloader)
+    else:
         trainer.fit(model, train_dataloader, val_dataloader)
+
     assert train_dataloader.count_shutdown_workers == 2 if should_fail else (2 if persistent_workers else max_epochs)
     # on sanity checking end, the workers are being deleted too.
     assert val_dataloader.count_shutdown_workers == 2 if persistent_workers else (3 if should_fail else max_epochs + 1)
