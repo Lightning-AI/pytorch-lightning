@@ -323,6 +323,7 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_m
         trainer.fit(model)
 
 
+@RunIf(special=True)
 @pytest.mark.parametrize("ddp_plugin_class", (DDPPlugin, DDPSpawnPlugin))
 def test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class):
     model = BoringModel()
