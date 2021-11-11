@@ -129,11 +129,12 @@ if _RICH_AVAILABLE:
     class MetricsTextColumn(ProgressColumn):
         """A column containing text."""
 
-        def __init__(self, trainer):
+        def __init__(self, trainer, style):
             self._trainer = trainer
             self._tasks = {}
             self._current_task_id = 0
             self._metrics = {}
+            self._style = style
             super().__init__()
 
         def update(self, metrics):
@@ -158,7 +159,7 @@ if _RICH_AVAILABLE:
 
             for k, v in self._metrics.items():
                 _text += f"{k}: {round(v, 3) if isinstance(v, float) else v} "
-            return Text(_text, justify="left")
+            return Text(_text, justify="left", style=self._style)
 
 
 @dataclass
@@ -184,6 +185,7 @@ class RichProgressBarTheme:
     batch_progress: Union[str, Style] = "white"
     time: Union[str, Style] = "grey54"
     processing_speed: Union[str, Style] = "grey70"
+    metrics: Union[str, Style] = "white"
 
 
 class RichProgressBar(ProgressBarBase):
@@ -282,7 +284,7 @@ class RichProgressBar(ProgressBarBase):
             self._reset_progress_bar_ids()
             self._console: Console = Console()
             self._console.clear_live()
-            self._metric_component = MetricsTextColumn(trainer)
+            self._metric_component = MetricsTextColumn(trainer, self.theme.metrics)
             self.progress = CustomProgress(
                 *self.configure_columns(trainer),
                 self._metric_component,
