@@ -174,6 +174,7 @@ class RichProgressBarTheme:
         batch_progress: Style for the progress tracker (i.e 10/50 batches completed).
         time: Style for the processed time and estimate time remaining.
         processing_speed: Style for the speed of the batches being processed.
+        metrics: Style for the metrics
 
     https://rich.readthedocs.io/en/stable/style.html
     """
