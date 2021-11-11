@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from functools import partial, wraps
 from random import getstate as python_get_rng_state
 from random import setstate as python_set_rng_state
-from typing import Any, Callable, Dict, Generator, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -594,6 +594,58 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
         raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
 
 
+def _validate_iterable_dataset(dataloader: DataLoader) -> bool:
+
+    SUPPORTED_SAMPLERS = (RandomSampler, SequentialSampler, DistributedSampler)
+
+    dataset = dataloader.dataset
+
+    next_fn = getattr(dataset, "__next__", None)
+    if not next_fn:
+        raise MisconfigurationException(
+            "Fault Tolerant Training doesn't support an IterableDataset without a `__next__`"
+            " method implemented. Hint: We recommend you to move your logic inside and rely "
+            "on a sampler, generator to perform the iteration."
+        )
+
+    samplers = {k: v for k, v in dataset.__dict__.items() if isinstance(v, Sampler)}
+
+    if not samplers:
+        raise MisconfigurationException(
+            "Fault Tolerant Training doesn't support an IterableDataset without a sampler as attribute."
+        )
+
+    sampler = [v for v in samplers.values() if v.__class__ in SUPPORTED_SAMPLERS]
+
+    if not sampler:
+        raise MisconfigurationException(f"Fault Tolerant Training supports only {SUPPORTED_SAMPLERS}.")
+
+    if len(sampler) > 1:
+        raise MisconfigurationException(f"A single sampler is supported within an Iterable Dataset. Found {sampler}.")
+
+    if sampler[0].__class__ == DistributedSampler:
+        return not sampler.shuffle, "A `DistributedSampler` sampler shuffle attribute is set to True."
+
+    return sampler[0].__class__ == SequentialSampler, ""
+
+
+def _validate_map_dataset(dataloader: DataLoader) -> bool:
+    SUPPORTED_SAMPLERS = (RandomSampler, SequentialSampler, DistributedSampler)
+
+    sampler = getattr(dataloader, "sampler", None)
+    if sampler is not None and sampler.__class__ not in SUPPORTED_SAMPLERS:
+        raise MisconfigurationException(f"Fault Tolerant Training supports only {SUPPORTED_SAMPLERS}.")
+
+    batch_sampler = getattr(dataloader, "batch_sampler", None)
+    if batch_sampler is not None and batch_sampler.__class__ is not BatchSampler:
+        raise MisconfigurationException("Fault Tolerant Training supports only a BatchSampler.")
+
+    if sampler.__class__ == DistributedSampler:
+        return not sampler.shuffle, "A `DistributedSampler` sampler shuffle attribute is set to True."
+
+    return sampler.__class__ == SequentialSampler, ""
+
+
 def _validate_fault_tolerant_training(dataloader: Iterable, stage: RunningStage) -> None:
     """This function is used to validate fault tolerant training is possible with the user data."""
     from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
@@ -602,55 +654,34 @@ def _validate_fault_tolerant_training(dataloader: Iterable, stage: RunningStage)
         return
 
     if isinstance(dataloader, CombinedLoader):
-        count_dataloader = 0
+        dataloaders = dataloader.loaders
+    else:
+        dataloaders = dataloader
 
-        def increment_count_dataloader(dataloader: Union[DataLoader, CycleIterator]) -> None:
-            nonlocal count_dataloader
-            count_dataloader += 1
+    dl_loaders = []
 
-        apply_to_collection(dataloader.loaders, (DataLoader, CycleIterator), increment_count_dataloader)
-        if count_dataloader > 1:
+    def flatten_dataloader(dataloader: Union[DataLoader, CycleIterator, Iterable]) -> None:
+        nonlocal dl_loaders
+        if isinstance(dataloader, CycleIterator):
+            dataloader = dataloader.loader
+        dl_loaders.append(dataloader)
+
+    apply_to_collection(dataloaders, (DataLoader, CycleIterator), flatten_dataloader)
+
+    if len(dl_loaders) > 1 and stage == RunningStage.TRAINING:
+        if not all(getattr(dl.dataset, "deterministic", False) for dl in dl_loaders):
             raise MisconfigurationException("Fault Tolerant Training supports only a single dataloader.")
 
-        dataloader = dataloader.loaders
+    supported = []
+    messages = []
 
-    elif isinstance(dataloader, Sequence):
-        if len(dataloader) > 1 and stage == RunningStage.TRAINING:
-            raise MisconfigurationException("Fault Tolerant Training supports only a single dataloader.")
+    for dataloader in dl_loaders:
+        validator_fn = (
+            _validate_iterable_dataset if isinstance(dataloader.dataset, IterableDataset) else _validate_map_dataset
+        )
+        is_supported, message = validator_fn(dataloader)
+        supported.append(is_supported)
+        messages.append(message)
 
-    supported_samplers = (RandomSampler, SequentialSampler, DistributedSampler)
-
-    dataloaders = dataloader if isinstance(dataloader, Sequence) else [dataloader]
-
-    for dataloader in dataloaders:
-
-        if isinstance(dataloader.dataset, IterableDataset):
-            dataset = dataloader.dataset
-
-            next_fn = getattr(dataset, "__next__", None)
-            if not next_fn:
-                raise MisconfigurationException(
-                    "Fault Tolerant Training doesn't support an IterableDataset without a `__next__`"
-                    " method implemented. Hint: We recommend you to move your logic inside and rely "
-                    "on a sampler, generator to perform the iteration."
-                )
-
-            samplers = {k: v for k, v in dataset.__dict__.items() if isinstance(v, Sampler)}
-
-            if not samplers:
-                raise MisconfigurationException(
-                    "Fault Tolerant Training doesn't support an IterableDataset without a sampler as attribute."
-                )
-
-            for v in samplers.keys():
-                if v.__class__ not in supported_samplers:
-                    raise MisconfigurationException(f"Fault Tolerant Training supports only {supported_samplers}.")
-
-        else:
-            sampler = getattr(dataloader, "sampler", None)
-            if sampler is not None and sampler.__class__ not in supported_samplers:
-                raise MisconfigurationException(f"Fault Tolerant Training supports only {supported_samplers}.")
-
-            batch_sampler = getattr(dataloader, "batch_sampler", None)
-            if batch_sampler is not None and batch_sampler.__class__ is not BatchSampler:
-                raise MisconfigurationException("Fault Tolerant Training supports only a BatchSampler.")
+    if len(dl_loaders) > 1 and sum(supported) != len(dl_loaders):
+        raise MisconfigurationException(f"The current combinaison of DataLoaders isn't supported. Messages: {messages}")

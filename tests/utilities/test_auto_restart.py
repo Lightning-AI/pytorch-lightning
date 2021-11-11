@@ -755,10 +755,14 @@ def test_data_loading_wraps_dataset_and_samplers(use_fault_tolerant, tmpdir):
         model = TestModel()
         model.training_epoch_end = None
         trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, callbacks=Check())
+        trainer._validate_fault_tolerant_training = lambda x, y: None
         trainer.fit(model)
 
 
 class SequentialGetItemDataset(Dataset):
+
+    deterministic = True
+
     def __init__(self, length, *_):
         self.len = length
 
@@ -873,6 +877,9 @@ class CustomException(Exception):
 
 
 class SequentialIterableDataset(IterableDataset):
+
+    deterministic = True
+
     def __init__(self, length, *_):
         self.len = length
         self.sampler = SequentialSampler(range(self.len))
@@ -1223,6 +1230,28 @@ def test_validate_fault_tolerant(tmpdir):
         _validate_fault_tolerant_training(dataloaders, RunningStage.TRAINING)
 
     _validate_fault_tolerant_training(dataloaders, RunningStage.VALIDATING)
+
+    dataloaders = [DataLoader(data, sampler=DistributedSampler(data, num_replicas=2, rank=0, shuffle=True))]
+    _validate_fault_tolerant_training(dataloaders, RunningStage.TRAINING)
+
+    dataloaders = [DataLoader(data, sampler=DistributedSampler(data, num_replicas=2, rank=0, shuffle=False))]
+    _validate_fault_tolerant_training(dataloaders, RunningStage.TRAINING)
+
+    dataset = SequentialGetItemDataset(2)
+    dataloaders = [
+        DataLoader(dataset, sampler=DistributedSampler(dataset, num_replicas=2, rank=0, shuffle=False)),
+        DataLoader(dataset, sampler=DistributedSampler(dataset, num_replicas=2, rank=0, shuffle=False)),
+    ]
+
+    _validate_fault_tolerant_training(dataloaders, RunningStage.TRAINING)
+
+    dataloaders = [
+        DataLoader(dataset, sampler=DistributedSampler(dataset, num_replicas=2, rank=0, shuffle=True)),
+        DataLoader(dataset, sampler=DistributedSampler(dataset, num_replicas=2, rank=0, shuffle=False)),
+    ]
+
+    with pytest.raises(MisconfigurationException, match="The current combinaison of DataLoaders isn't supported."):
+        _validate_fault_tolerant_training(dataloaders, RunningStage.TRAINING)
 
     with pytest.raises(MisconfigurationException, match="RandomSampler"):
 
