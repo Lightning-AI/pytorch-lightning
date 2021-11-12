@@ -41,7 +41,7 @@ from pytorch_lightning.plugins import (
 )
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.utilities import DeviceType, DistributedType, move_data_to_device
+from pytorch_lightning.utilities import DeviceType, move_data_to_device, StrategyType
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.data import has_iterable_dataset
 from pytorch_lightning.utilities.device_parser import _parse_devices
@@ -477,14 +477,14 @@ class LightningLite(ABC):
         )
 
     @staticmethod
-    def _supported_strategy_types() -> Sequence[DistributedType]:
+    def _supported_strategy_types() -> Sequence[StrategyType]:
         return (
-            DistributedType.DP,
-            DistributedType.DDP,
-            DistributedType.DDP_SPAWN,
-            DistributedType.DEEPSPEED,
-            DistributedType.DDP_SHARDED,
-            DistributedType.DDP_SHARDED_SPAWN,
+            StrategyType.DP,
+            StrategyType.DDP,
+            StrategyType.DDP_SPAWN,
+            StrategyType.DEEPSPEED,
+            StrategyType.DDP_SHARDED,
+            StrategyType.DDP_SHARDED_SPAWN,
         )
 
     @staticmethod

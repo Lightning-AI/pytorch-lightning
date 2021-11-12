@@ -73,30 +73,30 @@ class PrecisionType(LightningEnum):
         return [x.value for x in PrecisionType]
 
 
-class DistributedType(LightningEnum):
-    """Define type of distributed computing.
+class StrategyType(LightningEnum):
+    """Define type of training strategy.
 
     >>> # you can match the type with string
-    >>> DistributedType.DDP == 'ddp'
+    >>> StrategyType.DDP == 'ddp'
     True
     >>> # which is case invariant
-    >>> DistributedType.DDP2 in ('ddp2', )
+    >>> StrategyType.DDP2 in ('ddp2', )
     True
     """
 
     @staticmethod
-    def interactive_compatible_types() -> List["DistributedType"]:
+    def interactive_compatible_types() -> List["StrategyType"]:
         """Returns a list containing interactive compatible DistributeTypes."""
         return [
-            DistributedType.DP,
-            DistributedType.DDP_SPAWN,
-            DistributedType.DDP_SHARDED_SPAWN,
-            DistributedType.TPU_SPAWN,
+            StrategyType.DP,
+            StrategyType.DDP_SPAWN,
+            StrategyType.DDP_SHARDED_SPAWN,
+            StrategyType.TPU_SPAWN,
         ]
 
     def is_interactive_compatible(self) -> bool:
         """Returns whether self is interactive compatible."""
-        return self in DistributedType.interactive_compatible_types()
+        return self in StrategyType.interactive_compatible_types()
 
     DP = "dp"
     DDP = "ddp"

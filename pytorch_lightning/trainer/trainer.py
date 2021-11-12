@@ -67,12 +67,12 @@ from pytorch_lightning.utilities import (
     _TPU_AVAILABLE,
     device_parser,
     DeviceType,
-    DistributedType,
     GradClipAlgorithmType,
     parsing,
     rank_zero_deprecation,
     rank_zero_info,
     rank_zero_warn,
+    StrategyType,
 )
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
@@ -1589,7 +1589,7 @@ class Trainer(
         return self.training_type_plugin.should_rank_save_checkpoint
 
     @property
-    def _distrib_type(self) -> DistributedType:
+    def _distrib_type(self) -> StrategyType:
         return self._accelerator_connector._distrib_type
 
     @property
@@ -1752,10 +1752,10 @@ class Trainer(
     @property
     def data_parallel(self) -> bool:
         return self._distrib_type in (
-            DistributedType.DP,
-            DistributedType.DDP,
-            DistributedType.DDP_SPAWN,
-            DistributedType.DDP2,
+            StrategyType.DP,
+            StrategyType.DDP,
+            StrategyType.DDP_SPAWN,
+            StrategyType.DDP2,
         )
 
     @property

@@ -15,7 +15,7 @@ import torch
 from torchmetrics.functional import accuracy
 
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.utilities import DistributedType
+from pytorch_lightning.utilities import StrategyType
 from tests.helpers import BoringModel
 from tests.helpers.utils import get_default_logger, load_model_from_checkpoint, reset_seed
 
@@ -82,7 +82,7 @@ def run_model_test(
             run_prediction_eval_model_template(model, dataloader, min_acc=min_acc)
 
     if with_hpc:
-        if trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2):
+        if trainer._distrib_type in (StrategyType.DDP, StrategyType.DDP_SPAWN, StrategyType.DDP2):
             # on hpc this would work fine... but need to hack it for the purpose of the test
             trainer.optimizers, trainer.lr_schedulers, trainer.optimizer_frequencies = trainer.init_optimizers(
                 pretrained_model
