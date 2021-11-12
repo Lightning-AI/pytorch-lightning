@@ -105,10 +105,20 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the automatic detachment of "extras" returned from `training_step`. For example, `return {'loss': ..., 'foo': foo.detach()}` will now be necessary if `foo` has gradients which you do not want to store ([#10424](https://github.com/PyTorchLightning/pytorch-lightning/pull/10424))
 
 
-- Removed deprecated passthrough methods and properties from `Accelerator` base class ([#10403](https://github.com/PyTorchLightning/pytorch-lightning/pull/10403))
+- Removed deprecated passthrough methods and properties from `Accelerator` base class:
+  * ([#10403](https://github.com/PyTorchLightning/pytorch-lightning/pull/10403))
+  * ([#10448](https://github.com/PyTorchLightning/pytorch-lightning/pull/10448))
+
+
+- Removed deprecated `utilities.distributed.rank_zero_{warn/deprecation}` ([#10451](https://github.com/PyTorchLightning/pytorch-lightning/pull/10451))
+
+
+- Removed deprecated `Trainer.train_loop` property in favor of `Trainer.fit_loop` ([#10482](https://github.com/PyTorchLightning/pytorch-lightning/pull/10482))
 
 
 ### Fixed
+
+- Fixed an issue where class or init-only variables of dataclasses were passed to the dataclass constructor in `utilities.apply_to_collection` ([#9702](https://github.com/PyTorchLightning/pytorch-lightning/issues/9702))
 
 
 - Fixed `CombinedLoader` and `max_size_cycle` didn't receive a `DistributedSampler` ([#10374](https://github.com/PyTorchLightning/pytorch-lightning/issues/10374))

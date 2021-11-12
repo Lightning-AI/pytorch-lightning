@@ -38,12 +38,9 @@ from tests.loggers.test_base import CustomLogger
 
 
 def test_v1_7_0_deprecated_lightning_module_summarize(tmpdir):
-    from pytorch_lightning.core.lightning import warning_cache
-
     model = BoringModel()
-    model.summarize(max_depth=1)
-    assert any("The `LightningModule.summarize` method is deprecated in v1.5" in w for w in warning_cache)
-    warning_cache.clear()
+    with pytest.deprecated_call(match="The `LightningModule.summarize` method is deprecated in v1.5"):
+        model.summarize(max_depth=1)
 
 
 def test_v1_7_0_moved_model_summary_and_layer_summary(tmpdir):
