@@ -242,7 +242,7 @@ def _set_meta_device() -> None:
 
         # if a subclass has already been stored, we should use the cache
         if str(subclass) in __STORAGE_META__:
-            # reset the class import package to its rightfull state.
+            # reset the class import package to its rightful state.
             mods, subclass, meta_class = __STORAGE_META__[subclass]
             for mod in mods:
                 setattr(mod, subclass.__name__, meta_class)
@@ -254,21 +254,21 @@ def _set_meta_device() -> None:
         class _MetaClass(subclass):
             @classmethod
             @contextmanager
-            def instantiation_context(cls, materialize: bool):
+            def instantiation_context(cls):
                 _unset_meta_device(from_created=True)
                 yield
                 _set_meta_device_populated(from_created=True)
 
             @classmethod
             def materialize(cls, materialize_fn: Callable):
-                with cls.instantiation_context(materialize=True):
+                with cls.instantiation_context():
                     obj = materialize_fn()
                 return obj
 
             @staticmethod
             def add_subclasses(subclass):
-                """This is used to unroll the instantion tree while creating the modules."""
-                # Don't store the LightningModule as skiped from the Meta process.
+                """This is used to unroll the instantiation tree while creating the modules."""
+                # Don't store the LightningModule as skipped from the Meta process.
                 if subclass != pl.LightningModule:
                     __CREATED_MODULES__.add(subclass)
                 if subclass.__bases__[0] != torch.nn.modules.module.Module:
@@ -277,7 +277,7 @@ def _set_meta_device() -> None:
             def __new__(cls, *args, **kwargs):
                 subclass = cls.__bases__[0]
                 cls.add_subclasses(subclass)
-                with cls.instantiation_context(materialize=False):
+                with cls.instantiation_context():
                     obj = init_meta(subclass, *args, **kwargs)
 
                 obj.materialize = partial(cls.materialize, materialize_fn=obj.materialize)
@@ -297,8 +297,7 @@ def _set_meta_device() -> None:
         # Example: torch.nn.Linear is actually torch.nn.modules.linear.Linear
         # Therefore, torch.nn.Linear, torch.nn.modules.Linear, torch.nn.modules.linear.Linear
         # needs to be replaced by the torch.nn.linear.modules.Linear _MetaClass
-        out = []
-        out.append(search(mod))
+        out = [search(mod)]
         for name in submodules[1:]:
             mod = getattr(mod, name)
             out.append(search(mod))
