@@ -31,7 +31,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The `monitor` argument in the `EarlyStopping` callback is no longer optional ([#10328](https://github.com/PyTorchLightning/pytorch-lightning/pull/10328))
 
 
--
+- Renamed `DistributedType` Enum to `StrategyType` ([#10505](https://github.com/PyTorchLightning/pytorch-lightning/pull/10505))
 
 
 -
