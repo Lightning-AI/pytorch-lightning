@@ -114,11 +114,11 @@ else:
 
 def _fault_tolerant_training_mode() -> FaultTolerantTrainingMode:
     if not _TORCH_GREATER_EQUAL_1_7:
-        return FaultTolerantTrainingMode.INACTIVE
+        return FaultTolerantTrainingMode.DISABLED
 
     return FaultTolerantTrainingMode(os.getenv("PL_FAULT_TOLERANT_TRAINING", 0))
 
 
 # experimental feature within PyTorch Lightning.
 def _fault_tolerant_training() -> bool:
-    return _fault_tolerant_training_mode() != FaultTolerantTrainingMode.INACTIVE
+    return _fault_tolerant_training_mode() != FaultTolerantTrainingMode.DISABLED

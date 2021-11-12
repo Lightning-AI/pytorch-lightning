@@ -35,7 +35,6 @@ train_dataset_unbalanced = make_unbalanced(
 
 class WeightedRandomBatchSampler(Sampler):
     def __init__(self, dataset: Subset, batch_size: int, drop_last: bool, seed: int = 42, replacement: bool = False):
-
         self.num_samples = len(dataset)
         bicount = torch.tensor(np.bincount(dataset.targets)).float()
         bicount /= bicount.sum()

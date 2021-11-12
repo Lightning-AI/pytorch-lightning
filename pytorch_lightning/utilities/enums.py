@@ -192,6 +192,8 @@ class ModelSummaryMode(LightningEnum):
 
 class FaultTolerantTrainingMode(LightningEnum):
 
-    INACTIVE = "0"
+    DISABLED = "0"
     AUTOMATIC = "1"
-    MANUAL = "2"
+    AUTOMATIC_ELASTIC = "2"
+    MANUAL = "3"
+    MANUAL_ELASTIC = "4"

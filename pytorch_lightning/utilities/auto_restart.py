@@ -25,9 +25,9 @@ from torch.utils.data import Dataset, get_worker_info, Sampler
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
+from pytorch_lightning.utilities.enums import AutoRestartBatchKeys, FaultTolerantTrainingMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
+from pytorch_lightning.utilities.imports import _fault_tolerant_training, _fault_tolerant_training_mode
 
 
 class _FaulTolerantAbstract(abc.ABC):
@@ -483,13 +483,18 @@ def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: 
         }
     """
     data = default_collate(samples)
-    if not isinstance(dataset, (CaptureIterableDataset, CaptureMapDataset)):
+    mode = _fault_tolerant_training_mode()
+    if mode == FaultTolerantTrainingMode.DISABLED:
         return data
-    metadata = dataset.state_dict()
+    elif mode == FaultTolerantTrainingMode.AUTOMATIC:
+        metadata = dataset.state_dict()
+    else:
+        breakpoint()
+
     return {"data": data, AutoRestartBatchKeys.PL_RESTART_META: metadata}
 
 
-def _next_data_wrapper(fn, it, dl, num_batches_fetched) -> Callable:
+def _next_data_wrapper(fn, it, dl, num_batches_fetched, data_fetcher) -> Callable:
     @wraps(fn)
     def wrapper():
         nonlocal num_batches_fetched
@@ -555,54 +560,16 @@ def patch_dataloader_iterator(
     as part of the sample and then a special collate function :func:`_capture_metadata_collate`
     will extract the current iteration as part of the metadata returned by a custom batch.
     """
-
-    assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
-
-    def _next_data_wrapper(fn, it, dl, num_batches_fetched) -> Callable:
-        @wraps(fn)
-        def wrapper():
-            nonlocal num_batches_fetched
-            nonlocal it
-            nonlocal dl
-
-            dataset = dl.dataset
-            combined_batch = fn()
-
-            batch, state = combined_batch["data"], combined_batch[AutoRestartBatchKeys.PL_RESTART_META]
-            num_batches_fetched += 1
-
-            if isinstance(dataset, CaptureIterableDataset):
-                state = [
-                    IteratorState(
-                        num_workers=dl.num_workers,
-                        sampler_state=iterator_state,
-                        num_batches_fetched=num_batches_fetched,
-                        worker_id=list(iterator_state.keys())[0],
-                        name=sampler_iter_name,
-                    )
-                    for sampler_iter_name, iterator_state in state.items()
-                ]
-            elif isinstance(dataset, CaptureMapDataset):
-                ff_sampler = _find_fast_forward_samplers(dl)
-                state = [
-                    IteratorState(
-                        num_workers=dataloader.num_workers,
-                        sampler_state=ff_sampler.state_dict(num_batches_fetched),
-                        dataset_state=state,
-                        worker_id=list(state.keys())[0],
-                        num_batches_fetched=num_batches_fetched,
-                    )
-                ]
-            data_fetcher._store_dataloader_iter_state(it, state)
-            return batch
-
-        return wrapper
-
-    iterator._next_data = _next_data_wrapper(iterator._next_data, iterator, dataloader, num_batches_fetched)
+    if _fault_tolerant_training_mode() == FaultTolerantTrainingMode.AUTOMATIC:
+        assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
+    iterator._next_data = _next_data_wrapper(
+        iterator._next_data, iterator, dataloader, num_batches_fetched, data_fetcher
+    )
 
 
 def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
     """Wrap default collate function to retrive captured dataset state dict when fault tolerant is enabled."""
+    breakpoint()
     dataloader.collate_fn = partial(
         _capture_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
     )
