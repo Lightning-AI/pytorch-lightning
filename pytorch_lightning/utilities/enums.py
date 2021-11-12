@@ -142,12 +142,12 @@ class DistributedType(LightningEnum, metaclass=_OnAccessEnumMeta):
         """Returns whether self is interactive compatible."""
         return self in DistributedType.interactive_compatible_types()
 
-    def __new__(cls, value: str):
+    def __new__(cls, value: str) -> 'DistributedType':
         member = str.__new__(cls, value)
         member._on_access = member.deprecate
         return member
 
-    def deprecate(self):
+    def deprecate(self) -> None:
         rank_zero_deprecation(
             "`DistributedType` Enum has been deprecated in v1.6 and will be removed in v1.8."
             " Use the string value `{self.value!r}` instead."
