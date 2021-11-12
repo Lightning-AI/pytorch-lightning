@@ -917,7 +917,7 @@ class AcceleratorConnector:
 
         using_valid_distributed = self.use_ddp or self.use_ddp2
         if self.num_nodes > 1 and not using_valid_distributed:
-            # throw error to force user to choose a supported distributed type such as ddp or ddp2
+            # throw error to force user to choose a supported strategy type such as ddp or ddp2
             raise MisconfigurationException(
                 "Your chosen strategy does not support `num_nodes > 1`. Please set `strategy=('ddp'|'ddp2')`."
             )
