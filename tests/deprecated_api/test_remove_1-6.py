@@ -69,14 +69,6 @@ def test_v1_6_0_is_overridden_model():
         assert not is_overridden("foo", model=model)
 
 
-def test_v1_6_0_train_loop(tmpdir):
-    trainer = Trainer()
-    with pytest.deprecated_call(
-        match=r"`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
-    ):
-        _ = trainer.train_loop
-
-
 def test_v1_6_0_deprecated_model_summary_mode(tmpdir):
     model = BoringModel()
     with pytest.deprecated_call(match="Argument `mode` in `ModelSummary` is deprecated in v1.4"):
