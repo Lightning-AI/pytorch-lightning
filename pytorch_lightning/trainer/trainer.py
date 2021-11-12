@@ -2137,13 +2137,6 @@ class Trainer(
         self.__dict__ = state
 
     @property
-    def train_loop(self) -> FitLoop:
-        rank_zero_deprecation(
-            "`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
-        )
-        return self.fit_loop
-
-    @property
     def terminate_on_nan(self) -> bool:
         rank_zero_deprecation("`Trainer.terminate_on_nan` is deprecated in v1.5 and will be removed in 1.7.")
         return self._terminate_on_nan
