@@ -1416,9 +1416,8 @@ class Trainer(
             raise MisconfigurationException("LightningModule on meta device isn't supported with spawn.")
 
         materialize_module(self.lightning_module)
+        # the trainer reference is lost during materialization
         self.lightning_module.trainer = proxy(self)
-        # TODO: Find a better place to move the newly materialized model to the device
-        self.training_type_plugin.model_to_device()
 
     def _call_teardown_hook(self) -> None:
         fn = self.state.fn._setup_fn
