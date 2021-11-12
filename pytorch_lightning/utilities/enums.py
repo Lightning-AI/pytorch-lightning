@@ -113,7 +113,7 @@ class DistributedType(LightningEnum, metaclass=OnAccessEnumMeta):
 
     Deprecated since v1.6.0 and will be removed in v1.8.0.
 
-    Use `DistributedType` instead.
+    Use `StrategyType` instead.
     """
 
     DP = "dp"
