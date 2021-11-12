@@ -63,7 +63,7 @@ for i in "${!files_arr[@]}"; do
       # get the list of parametrizations. we need to call them separately.
       # this is a bit slow but avoids code duplication. the last two lines are removed.
       # note: if there's a syntax error, this will fail with some garbled output
-      # note: `head -n -2` is Linux only, use `tail -r | sed -e '1,3d' | tail -r` on Mac 
+      # note: `head -n -2` is Linux only, use `tail -r | sed -e '1,3d' | tail -r` on Mac
       parametrizations=$(pytest "${file}::${test_name}" --collect-only --quiet | head -n -2)
       parametrizations_arr=($parametrizations)
 
