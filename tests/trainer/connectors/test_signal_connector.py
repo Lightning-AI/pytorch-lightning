@@ -74,7 +74,7 @@ class SignalHandlers:
     [
         (signal.Handlers.SIG_DFL, False),
         (signal_handler, True),
-        (C().signal_handler, True),
+        (SignalHandlers().signal_handler, True),
     ],
 )
 def test_has_already_handler(handler, expected_return):
