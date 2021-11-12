@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from functools import partial
-from typing import Optional, Type, Union
+from typing import Optional, Type
 from unittest.mock import Mock
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities import rank_zero_deprecation
 
 
 def is_overridden(method_name: str, instance: Optional[object] = None, parent: Optional[Type[object]] = None) -> bool:
