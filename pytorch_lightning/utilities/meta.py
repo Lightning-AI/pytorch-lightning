@@ -242,42 +242,47 @@ def _set_meta_device() -> None:
 
         # if a subclass has already been stored, we should use the cache
         if str(subclass) in __STORAGE_META__:
-            # reset the class import package to its rightfull state.
+            # reset the class import package to its rightful state.
             mods, subclass, meta_class = __STORAGE_META__[subclass]
             for mod in mods:
                 setattr(mod, subclass.__name__, meta_class)
             continue
 
+        class _IsinstanceMetaclass(type(subclass)):
+            def __instancecheck__(self, instance: Any) -> bool:
+                """Overrides the ``isinstance`` check on ``_MaterializerModule`` objects."""
+                return isinstance(instance, self.__bases__[0])
+
         # Create a class subclassing current `subclass` overriding its new method.
         # this will enable use to use `torch.distributed.nn.utils.init_meta` to create a `meta`
         # version of the current subclass module
-        class _MetaClass(subclass):
+        class _MaterializerModule(subclass, metaclass=_IsinstanceMetaclass):
             @classmethod
             @contextmanager
-            def instantiation_context(cls, materialize: bool):
+            def instantiation_context(cls):
                 _unset_meta_device(from_created=True)
                 yield
                 _set_meta_device_populated(from_created=True)
 
             @classmethod
             def materialize(cls, materialize_fn: Callable):
-                with cls.instantiation_context(materialize=True):
+                with cls.instantiation_context():
                     obj = materialize_fn()
                 return obj
 
             @staticmethod
             def add_subclasses(subclass):
-                """This is used to unroll the instantion tree while creating the modules."""
-                # Don't store the LightningModule as skiped from the Meta process.
+                """This is used to unroll the instantiation tree while creating the modules."""
+                # Don't store the LightningModule as skipped from the Meta process.
                 if subclass != pl.LightningModule:
                     __CREATED_MODULES__.add(subclass)
                 if subclass.__bases__[0] != torch.nn.modules.module.Module:
-                    _MetaClass.add_subclasses(subclass.__bases__[0])
+                    _MaterializerModule.add_subclasses(subclass.__bases__[0])
 
             def __new__(cls, *args, **kwargs):
                 subclass = cls.__bases__[0]
                 cls.add_subclasses(subclass)
-                with cls.instantiation_context(materialize=False):
+                with cls.instantiation_context():
                     obj = init_meta(subclass, *args, **kwargs)
 
                 obj.materialize = partial(cls.materialize, materialize_fn=obj.materialize)
@@ -296,9 +301,8 @@ def _set_meta_device() -> None:
         # nn.Module class can be imported at different level and they all need to be mocked.
         # Example: torch.nn.Linear is actually torch.nn.modules.linear.Linear
         # Therefore, torch.nn.Linear, torch.nn.modules.Linear, torch.nn.modules.linear.Linear
-        # needs to be replaced by the torch.nn.linear.modules.Linear _MetaClass
-        out = []
-        out.append(search(mod))
+        # needs to be replaced by the torch.nn.linear.modules.Linear _MaterializerModule
+        out = [search(mod)]
         for name in submodules[1:]:
             mod = getattr(mod, name)
             out.append(search(mod))
@@ -307,19 +311,11 @@ def _set_meta_device() -> None:
         mods = [mod for mod in chain(*out) if mod]
 
         # store the modules search so it doesn't have to be performed again for this class
-        __STORAGE_META__[subclass] = (mods, subclass, _MetaClass)
+        __STORAGE_META__[subclass] = (mods, subclass, _MaterializerModule)
 
         # replace all subclass by its meta form
         for mod in mods:
-            setattr(mod, subclass.__name__, _MetaClass)
-
-
-def _mock_isinstance(A: Any, B: Any, isinstance: Callable) -> bool:
-    # This functions enables to builtins `isinstance` function to work as expected within
-    # the context of `init_meta_context` as the nn.Module are replace by their Meta version.
-    if isinstance(B, type) and "_MetaClass" in B.__name__:
-        return isinstance(A, B.__bases__[0])
-    return isinstance(A, B)
+            setattr(mod, subclass.__name__, _MaterializerModule)
 
 
 @contextmanager
@@ -329,9 +325,7 @@ def init_meta_context() -> Generator:
         "where it can internal assert and/or crash. A more stable version is to be expected from PyTorch 1.11."
     )
     _set_meta_device()
-    __builtins__["isinstance"] = partial(_mock_isinstance, isinstance=isinstance)
     yield
-    __builtins__["isinstance"] = isinstance.keywords["isinstance"]
     _unset_meta_device()
 
 
