@@ -5,7 +5,6 @@ import numpy as np
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.utilities import AllGatherGrad
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -17,28 +16,6 @@ def setup_ddp(rank, world_size):
 
     if torch.distributed.is_available() and sys.platform not in ("win32", "cygwin"):
         torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
-
-
-def _test_all_gather_ddp(rank, world_size):
-    setup_ddp(rank, world_size)
-
-    tensor1 = torch.ones(8, requires_grad=True)
-    tensor2 = torch.ones((8, 16, 32), requires_grad=True)
-
-    tensor1_gathered = AllGatherGrad.apply(tensor1)
-    tensor2_gathered = AllGatherGrad.apply(tensor2)
-
-    tensor1_gathered = tensor1_gathered * rank
-    tensor2_gathered = tensor2_gathered * rank
-
-    tensor1_gathered.sum().backward()
-    tensor2_gathered.sum().backward()
-
-    grad1 = torch.zeros_like(tensor1.grad).fill_(torch.arange(world_size).sum().float())
-    grad2 = torch.zeros_like(tensor2.grad).fill_(torch.arange(world_size).sum().float())
-
-    assert torch.allclose(grad1, tensor1.grad)
-    assert torch.allclose(grad2, tensor2.grad)
 
 
 @RunIf(skip_windows=True)
