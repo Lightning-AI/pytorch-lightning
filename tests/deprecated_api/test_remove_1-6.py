@@ -17,7 +17,6 @@ from unittest.mock import call, Mock
 import pytest
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringModel
 

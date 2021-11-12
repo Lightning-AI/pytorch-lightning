@@ -142,15 +142,20 @@ class DeepNestedModel(LightningModule):
 def test_invalid_weights_summmary():
     """Test that invalid value for weights_summary raises an error."""
 
-    with pytest.raises(MisconfigurationException, match="`weights_summary` can be None, .* got temp"):
+    with pytest.raises(
+        MisconfigurationException, match="`weights_summary` can be None, .* got temp"
+    ), pytest.deprecated_call(match="weights_summary=temp)` is deprecated"):
         Trainer(weights_summary="temp")
+
+    with pytest.raises(ValueError, match="max_depth` can be .* got temp"):
+        ModelSummary(model, max_depth="temp")
 
 
 @pytest.mark.parametrize("max_depth", [-1, 1])
-def test_empty_model_summary_shapes(max_depth: int):
+def test_empty_model_summary_shapes(max_depth):
     """Test that the summary works for models that have no submodules."""
     model = EmptyModule()
-    summary = summarize(model, max_depth)
+    summary = summarize(model, max_depth=max_depth)
     assert summary.in_sizes == []
     assert summary.out_sizes == []
     assert summary.param_nums == []
@@ -163,7 +168,7 @@ def test_linear_model_summary_shapes(device, max_depth):
     """Test that the model summary correctly computes the input- and output shapes."""
     model = UnorderedModel().to(device)
     model.train()
-    summary = summarize(model, max_depth)
+    summary = summarize(model, max_depth=max_depth)
     assert summary.in_sizes == [[2, 10], [2, 7], [2, 3], [2, 7], UNKNOWN_SIZE]  # layer 2  # combine  # layer 1  # relu
     assert summary.out_sizes == [[2, 2], [2, 9], [2, 5], [2, 7], UNKNOWN_SIZE]  # layer 2  # combine  # layer 1  # relu
     assert model.training
@@ -202,7 +207,7 @@ def test_rnn_summary_shapes(max_depth):
 
     model.example_input_array = torch.zeros(b, t, 10)
 
-    summary = summarize(model, max_depth)
+    summary = summarize(model, max_depth=max_depth)
     assert summary.in_sizes == [[b, t, i], [b, t, h]]  # rnn  # linear
     assert summary.out_sizes == [[[b, t, h], [[1, b, h], [1, b, h]]], [b, t, o]]  # rnn  # linear
 
@@ -211,7 +216,7 @@ def test_rnn_summary_shapes(max_depth):
 def test_summary_parameter_count(max_depth):
     """Test that the summary counts the number of parameters in every submodule."""
     model = UnorderedModel()
-    summary = summarize(model, max_depth)
+    summary = summarize(model, max_depth=max_depth)
     assert summary.param_nums == [
         model.layer2.weight.numel() + model.layer2.bias.numel(),
         model.combine.weight.numel() + model.combine.bias.numel(),
@@ -225,14 +230,14 @@ def test_summary_parameter_count(max_depth):
 def test_summary_layer_types(max_depth):
     """Test that the summary displays the layer names correctly."""
     model = UnorderedModel()
-    summary = summarize(model, max_depth)
+    summary = summarize(model, max_depth=max_depth)
     assert summary.layer_types == ["Linear", "Linear", "Linear", "ReLU", "Conv2d"]
 
 
 @pytest.mark.parametrize("max_depth", [-1, 1])
 def test_summary_with_scripted_modules(max_depth):
     model = PartialScriptModel()
-    summary = summarize(model, max_depth)
+    summary = summarize(model, max_depth=max_depth)
     assert summary.layer_types == ["RecursiveScriptModule", "Linear"]
     assert summary.in_sizes == [UNKNOWN_SIZE, [2, 3]]
     assert summary.out_sizes == [UNKNOWN_SIZE, [2, 2]]
@@ -269,7 +274,7 @@ def test_example_input_array_types(example_input, expected_size, max_depth):
 
     model = DummyLightningModule()
     model.example_input_array = example_input
-    summary = summarize(model, max_depth)
+    summary = summarize(model, max_depth=max_depth)
     assert summary.in_sizes == [expected_size]
 
 
@@ -277,7 +282,7 @@ def test_example_input_array_types(example_input, expected_size, max_depth):
 def test_model_size(max_depth):
     """Test model size is calculated correctly."""
     model = PreCalculatedModel()
-    summary = summarize(model, max_depth)
+    summary = summarize(model, max_depth=max_depth)
     assert model.pre_calculated_model_size == summary.model_size
 
 
@@ -285,7 +290,7 @@ def test_model_size(max_depth):
 def test_empty_model_size(max_depth):
     """Test empty model size is zero."""
     model = EmptyModule()
-    summary = summarize(model, max_depth)
+    summary = summarize(model, max_depth=max_depth)
     assert 0.0 == summary.model_size
 
 

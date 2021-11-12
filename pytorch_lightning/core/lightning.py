@@ -1703,7 +1703,7 @@ class LightningModule(
         Return:
             The model summary object
         """
-        warning_cache.deprecation(
+        rank_zero_deprecation(
             "The `LightningModule.summarize` method is deprecated in v1.5 and will be removed in v1.7. "
             "Use `pytorch_lightning.utilities.model_summary.summarize` instead.",
             stacklevel=6,
