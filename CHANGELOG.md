@@ -113,6 +113,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated `utilities.distributed.rank_zero_{warn/deprecation}` ([#10451](https://github.com/PyTorchLightning/pytorch-lightning/pull/10451))
 
 
+- Removed deprecated `mode` argument from `ModelSummary` class ([#10449](https://github.com/PyTorchLightning/pytorch-lightning/pull/10449))
+
+
 - Removed deprecated `Trainer.train_loop` property in favor of `Trainer.fit_loop` ([#10482](https://github.com/PyTorchLightning/pytorch-lightning/pull/10482))
 
 
