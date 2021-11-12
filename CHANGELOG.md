@@ -112,6 +112,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed deprecated `utilities.distributed.rank_zero_{warn/deprecation}` ([#10451](https://github.com/PyTorchLightning/pytorch-lightning/pull/10451))
 
+- Removed deprecated custom `AllGatherGrad implementation` ([#10504](https://github.com/PyTorchLightning/pytorch-lightning/pull/10504))
+
 
 ### Fixed
 
