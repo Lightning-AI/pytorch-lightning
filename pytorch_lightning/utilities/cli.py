@@ -14,7 +14,6 @@
 import inspect
 import os
 import sys
-from argparse import Namespace
 from types import MethodType, ModuleType
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
 from unittest import mock
@@ -32,13 +31,12 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTuple
 
 if _JSONARGPARSE_AVAILABLE:
-    from jsonargparse import ActionConfigFile, ArgumentParser, class_from_function, set_config_read_mode
-    from jsonargparse.actions import _ActionSubCommands
+    from jsonargparse import ActionConfigFile, ArgumentParser, class_from_function, Namespace, set_config_read_mode
     from jsonargparse.optionals import import_docstring_parse
 
     set_config_read_mode(fsspec_enabled=True)
 else:
-    ArgumentParser = object
+    ArgumentParser = Namespace = object
 
 
 class _Registry(dict):
@@ -100,7 +98,7 @@ class LightningArgumentParser(ArgumentParser):
     # use class attribute because `parse_args` is only called on the main parser
     _choices: Dict[str, Tuple[Tuple[Type, ...], bool]] = {}
 
-    def __init__(self, *args: Any, parse_as_dict: bool = True, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize argument parser that supports configuration file input.
 
         For full details of accepted arguments see `ArgumentParser.__init__
@@ -109,9 +107,9 @@ class LightningArgumentParser(ArgumentParser):
         if not _JSONARGPARSE_AVAILABLE:
             raise ModuleNotFoundError(
                 "`jsonargparse` is not installed but it is required for the CLI."
-                " Install it with `pip install jsonargparse[signatures]`."
+                " Install it with `pip install -U jsonargparse[signatures]`."
             )
-        super().__init__(*args, parse_as_dict=parse_as_dict, **kwargs)
+        super().__init__(*args, **kwargs)
         self.add_argument(
             "--config", action=ActionConfigFile, help="Path to a configuration file in json or yaml format."
         )
@@ -363,7 +361,7 @@ class SaveConfigCallback(Callback):
     def __init__(
         self,
         parser: LightningArgumentParser,
-        config: Union[Namespace, Dict[str, Any]],
+        config: Namespace,
         config_filename: str,
         overwrite: bool = False,
         multifile: bool = False,
@@ -671,8 +669,7 @@ class LightningCLI:
         if subcommand is None:
             return self.parser
         # return the subcommand parser for the subcommand passed
-        action_subcommands = [a for a in self.parser._actions if isinstance(a, _ActionSubCommands)]
-        action_subcommand = action_subcommands[0]
+        action_subcommand = getattr(self.parser, '_subcommands_action')
         return action_subcommand._name_parser_map[subcommand]
 
     def _add_configure_optimizers_method_to_model(self, subcommand: Optional[str]) -> None:
@@ -772,12 +769,14 @@ class LightningCLI:
         return fn_kwargs
 
 
-def _global_add_class_path(class_type: Type, init_args: Dict[str, Any] = None) -> Dict[str, Any]:
+def _global_add_class_path(class_type: Type, init_args: Optional[Union[Namespace, Dict[str, Any]]] = None) -> Dict[str, Any]:
+    if hasattr(init_args, 'as_dict'):
+        init_args = init_args.as_dict()  # type: ignore
     return {"class_path": class_type.__module__ + "." + class_type.__name__, "init_args": init_args or {}}
 
 
-def _add_class_path_generator(class_type: Type) -> Callable[[Dict[str, Any]], Dict[str, Any]]:
-    def add_class_path(init_args: Dict[str, Any]) -> Dict[str, Any]:
+def _add_class_path_generator(class_type: Type) -> Callable[[Namespace], Dict[str, Any]]:
+    def add_class_path(init_args: Namespace) -> Dict[str, Any]:
         return _global_add_class_path(class_type, init_args)
 
     return add_class_path
