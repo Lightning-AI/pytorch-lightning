@@ -267,7 +267,8 @@ def _set_meta_device() -> None:
 
             @staticmethod
             def add_subclasses(subclass):
-                """This is used to unrol the instantion tree while creating the modules."""
+                """This is used to unroll the instantion tree while creating the modules."""
+                # Don't store the LightningModule as skiped from the Meta process.
                 if subclass != pl.LightningModule:
                     __CREATED_MODULES__.add(subclass)
                 if subclass.__bases__[0] != torch.nn.modules.module.Module:
