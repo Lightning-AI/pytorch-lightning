@@ -63,9 +63,11 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
 def signal_handler():
     pass
 
+
 class C:
     def signal_handler(self):
         pass
+
 
 @pytest.mark.parametrize(
     ["handler", "expected_return"],
