@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Enumerated utilities."""
-from enum import Enum
+from enum import Enum, EnumMeta
 from typing import List, Optional, Union
+
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
 class LightningEnum(str, Enum):
@@ -35,6 +37,32 @@ class LightningEnum(str, Enum):
         # re-enable hashtable so it can be used as a dict key or in a set
         # example: set(LightningEnum)
         return hash(self.value.lower())
+
+
+class OnAccessEnumMeta(EnumMeta):
+    """Enum with a hook to run a function whenever a member is accessed.
+
+    Adapted from:
+    https://www.buzzphp.com/posts/how-do-i-detect-and-invoke-a-function-when-a-python-enum-member-is-accessed
+    """
+
+    def __getattribute__(cls, name):
+        obj = super().__getattribute__(name)
+        if isinstance(obj, Enum) and obj._on_access:
+            obj._on_access()
+        return obj
+
+    def __getitem__(cls, name):
+        member = super().__getitem__(name)
+        if member._on_access:
+            member._on_access()
+        return member
+
+    def __call__(cls, value, names=None, *, module=None, qualname=None, type=None, start=1):
+        obj = super().__call__(value, names, module=module, qualname=qualname, type=type, start=start)
+        if isinstance(obj, Enum) and obj._on_access:
+            obj._on_access()
+        return obj
 
 
 class AMPType(LightningEnum):
@@ -73,30 +101,20 @@ class PrecisionType(LightningEnum):
         return [x.value for x in PrecisionType]
 
 
-class StrategyType(LightningEnum):
+class DistributedType(LightningEnum, metaclass=OnAccessEnumMeta):
     """Define type of training strategy.
 
     >>> # you can match the type with string
-    >>> StrategyType.DDP == 'ddp'
+    >>> DistributedType.DDP == 'ddp'
     True
     >>> # which is case invariant
-    >>> StrategyType.DDP2 in ('ddp2', )
+    >>> DistributedType.DDP2 in ('ddp2', )
     True
+
+    Deprecated since v1.6.0 and will be removed in v1.8.0.
+
+    Use `DistributedType` instead.
     """
-
-    @staticmethod
-    def interactive_compatible_types() -> List["StrategyType"]:
-        """Returns a list containing interactive compatible DistributeTypes."""
-        return [
-            StrategyType.DP,
-            StrategyType.DDP_SPAWN,
-            StrategyType.DDP_SHARDED_SPAWN,
-            StrategyType.TPU_SPAWN,
-        ]
-
-    def is_interactive_compatible(self) -> bool:
-        """Returns whether self is interactive compatible."""
-        return self in StrategyType.interactive_compatible_types()
 
     DP = "dp"
     DDP = "ddp"
@@ -109,6 +127,31 @@ class StrategyType(LightningEnum):
     DDP_SHARDED = "ddp_sharded"
     DDP_SHARDED_SPAWN = "ddp_sharded_spawn"
     DDP_FULLY_SHARDED = "ddp_fully_sharded"
+
+    @staticmethod
+    def interactive_compatible_types() -> List["DistributedType"]:
+        """Returns a list containing interactive compatible DistributeTypes."""
+        return [
+            DistributedType.DP,
+            DistributedType.DDP_SPAWN,
+            DistributedType.DDP_SHARDED_SPAWN,
+            DistributedType.TPU_SPAWN,
+        ]
+
+    def is_interactive_compatible(self) -> bool:
+        """Returns whether self is interactive compatible."""
+        return self in DistributedType.interactive_compatible_types()
+
+    def __new__(cls, value):
+        member = str.__new__(cls, value)
+        member._on_access = member.deprecate
+        return member
+
+    def deprecate(self):
+        rank_zero_deprecation(
+            "`DistributedType` Enum has been deprecated in v1.6 and will be removed in v1.8."
+            " Use `StrategyType` instead."
+        )
 
 
 class DeviceType(LightningEnum):
@@ -188,3 +231,41 @@ class ModelSummaryMode(LightningEnum):
     @staticmethod
     def supported_types() -> List[str]:
         return [x.value for x in ModelSummaryMode]
+
+
+class StrategyType(LightningEnum):
+    """Define type of training strategy.
+
+    >>> # you can match the type with string
+    >>> StrategyType.DDP == 'ddp'
+    True
+    >>> # which is case invariant
+    >>> StrategyType.DDP2 in ('ddp2', )
+    True
+    """
+
+    DP = "dp"
+    DDP = "ddp"
+    DDP2 = "ddp2"
+    DDP_CPU = "ddp_cpu"
+    DDP_SPAWN = "ddp_spawn"
+    TPU_SPAWN = "tpu_spawn"
+    DEEPSPEED = "deepspeed"
+    HOROVOD = "horovod"
+    DDP_SHARDED = "ddp_sharded"
+    DDP_SHARDED_SPAWN = "ddp_sharded_spawn"
+    DDP_FULLY_SHARDED = "ddp_fully_sharded"
+
+    @staticmethod
+    def interactive_compatible_types() -> List["StrategyType"]:
+        """Returns a list containing interactive compatible StrategyTypes."""
+        return [
+            StrategyType.DP,
+            StrategyType.DDP_SPAWN,
+            StrategyType.DDP_SHARDED_SPAWN,
+            StrategyType.TPU_SPAWN,
+        ]
+
+    def is_interactive_compatible(self) -> bool:
+        """Returns whether self is interactive compatible."""
+        return self in StrategyType.interactive_compatible_types()

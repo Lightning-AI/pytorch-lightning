@@ -20,6 +20,7 @@ from pytorch_lightning.utilities.distributed import AllGatherGrad, rank_zero_inf
 from pytorch_lightning.utilities.enums import (  # noqa: F401
     AMPType,
     DeviceType,
+    DistributedType,
     GradClipAlgorithmType,
     LightningEnum,
     ModelSummaryMode,
