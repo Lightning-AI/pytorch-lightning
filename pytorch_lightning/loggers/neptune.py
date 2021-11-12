@@ -544,7 +544,7 @@ class NeptuneLogger(LightningLoggerBase):
     @staticmethod
     def _get_full_model_name(model_path: str, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> str:
         """Returns model name which is string `modle_path` appended to `checkpoint_callback.dirpath`."""
-        expected_model_path = f"{checkpoint_callback.dirpath}/"
+        expected_model_path = f"{checkpoint_callback.dirpath}{os.sep}"
         if not model_path.startswith(expected_model_path):
             raise ValueError(f"{model_path} was expected to start with {expected_model_path}.")
         return model_path[len(expected_model_path) :]
