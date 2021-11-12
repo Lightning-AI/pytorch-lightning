@@ -18,7 +18,7 @@ from contextlib import contextmanager
 from functools import partial
 from itertools import chain
 from types import ModuleType
-from typing import Callable, Dict, Generator, Iterator, List, Optional, Set, Type
+from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Set, Type
 
 import torch
 from torch import nn, Tensor
@@ -314,7 +314,7 @@ def _set_meta_device() -> None:
             setattr(mod, subclass.__name__, _MetaClass)
 
 
-def mock_isinstance(A, B, isinstance=None):
+def mock_isinstance(A: Any, B: Any, isinstance: Callable) -> bool:
     if isinstance(B, type) and "_MetaClass" in B.__name__:
         return isinstance(A, B.__bases__[0])
     return isinstance(A, B)
