@@ -19,8 +19,8 @@ from platform import python_version
 from typing import Any, Callable, List, Optional, Tuple, Union
 
 import torch
-from torch.nn.parallel.distributed import DistributedDataParallel
 import torch.distributed as dist
+from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
