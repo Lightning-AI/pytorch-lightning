@@ -113,7 +113,7 @@ class DistributedType(LightningEnum, metaclass=_OnAccessEnumMeta):
 
     Deprecated since v1.6.0 and will be removed in v1.8.0.
 
-    Use `StrategyType` instead.
+    Use `_StrategyType` instead.
     """
 
     DP = "dp"
@@ -150,7 +150,7 @@ class DistributedType(LightningEnum, metaclass=_OnAccessEnumMeta):
     def deprecate(self):
         rank_zero_deprecation(
             "`DistributedType` Enum has been deprecated in v1.6 and will be removed in v1.8."
-            " Use `StrategyType` instead."
+            " Use `_StrategyType` instead."
         )
 
 
@@ -233,14 +233,14 @@ class ModelSummaryMode(LightningEnum):
         return [x.value for x in ModelSummaryMode]
 
 
-class StrategyType(LightningEnum):
+class _StrategyType(LightningEnum):
     """Define type of training strategy.
 
     >>> # you can match the type with string
-    >>> StrategyType.DDP == 'ddp'
+    >>> _StrategyType.DDP == 'ddp'
     True
     >>> # which is case invariant
-    >>> StrategyType.DDP2 in ('ddp2', )
+    >>> _StrategyType.DDP2 in ('ddp2', )
     True
     """
 
@@ -257,15 +257,15 @@ class StrategyType(LightningEnum):
     DDP_FULLY_SHARDED = "ddp_fully_sharded"
 
     @staticmethod
-    def interactive_compatible_types() -> List["StrategyType"]:
-        """Returns a list containing interactive compatible StrategyTypes."""
+    def interactive_compatible_types() -> List["_StrategyType"]:
+        """Returns a list containing interactive compatible _StrategyTypes."""
         return [
-            StrategyType.DP,
-            StrategyType.DDP_SPAWN,
-            StrategyType.DDP_SHARDED_SPAWN,
-            StrategyType.TPU_SPAWN,
+            _StrategyType.DP,
+            _StrategyType.DDP_SPAWN,
+            _StrategyType.DDP_SHARDED_SPAWN,
+            _StrategyType.TPU_SPAWN,
         ]
 
     def is_interactive_compatible(self) -> bool:
         """Returns whether self is interactive compatible."""
-        return self in StrategyType.interactive_compatible_types()
+        return self in _StrategyType.interactive_compatible_types()

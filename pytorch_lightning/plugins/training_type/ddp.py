@@ -57,7 +57,7 @@ from pytorch_lightning.utilities.distributed import (
     ReduceOp,
     sync_ddp_if_available,
 )
-from pytorch_lightning.utilities.enums import StrategyType
+from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -81,7 +81,7 @@ class DDPPlugin(ParallelPlugin):
     devices (e.g. GPU) per node. It is very similar to how :mod:`torch.distributed.launch` launches processes.
     """
 
-    distributed_backend = StrategyType.DDP
+    distributed_backend = _StrategyType.DDP
 
     def __init__(
         self,

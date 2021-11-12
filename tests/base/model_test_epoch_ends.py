@@ -15,7 +15,7 @@ from abc import ABC
 
 import torch
 
-from pytorch_lightning.utilities import StrategyType
+from pytorch_lightning.utilities import _StrategyType
 
 
 class TestEpochEndVariations(ABC):
@@ -34,13 +34,13 @@ class TestEpochEndVariations(ABC):
             test_loss = self.get_output_metric(output, "test_loss")
 
             # reduce manually when using dp
-            if self.trainer._distrib_type == StrategyType.DP:
+            if self.trainer._distrib_type == _StrategyType.DP:
                 test_loss = torch.mean(test_loss)
             test_loss_mean += test_loss
 
             # reduce manually when using dp
             test_acc = self.get_output_metric(output, "test_acc")
-            if self.trainer._distrib_type == StrategyType.DP:
+            if self.trainer._distrib_type == _StrategyType.DP:
                 test_acc = torch.mean(test_acc)
 
             test_acc_mean += test_acc
@@ -69,13 +69,13 @@ class TestEpochEndVariations(ABC):
                 test_loss = output["test_loss"]
 
                 # reduce manually when using dp
-                if self.trainer._distrib_type == StrategyType.DP:
+                if self.trainer._distrib_type == _StrategyType.DP:
                     test_loss = torch.mean(test_loss)
                 test_loss_mean += test_loss
 
                 # reduce manually when using dp
                 test_acc = output["test_acc"]
-                if self.trainer._distrib_type == StrategyType.DP:
+                if self.trainer._distrib_type == _StrategyType.DP:
                     test_acc = torch.mean(test_acc)
 
                 test_acc_mean += test_acc

@@ -36,7 +36,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import AMPType, GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import log, rank_zero_info, rank_zero_only
-from pytorch_lightning.utilities.enums import StrategyType
+from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -82,7 +82,7 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
 
 
 class DeepSpeedPlugin(DDPPlugin):
-    distributed_backend = StrategyType.DEEPSPEED
+    distributed_backend = _StrategyType.DEEPSPEED
     DEEPSPEED_ENV_VAR = "PL_DEEPSPEED_CONFIG_PATH"
 
     def __init__(

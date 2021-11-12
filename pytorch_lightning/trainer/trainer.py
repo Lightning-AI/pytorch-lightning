@@ -64,6 +64,7 @@ from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
     _IPU_AVAILABLE,
+    _StrategyType,
     _TPU_AVAILABLE,
     device_parser,
     DeviceType,
@@ -72,7 +73,6 @@ from pytorch_lightning.utilities import (
     rank_zero_deprecation,
     rank_zero_info,
     rank_zero_warn,
-    StrategyType,
 )
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
@@ -1589,7 +1589,7 @@ class Trainer(
         return self.training_type_plugin.should_rank_save_checkpoint
 
     @property
-    def _distrib_type(self) -> StrategyType:
+    def _distrib_type(self) -> _StrategyType:
         return self._accelerator_connector._distrib_type
 
     @property
@@ -1752,10 +1752,10 @@ class Trainer(
     @property
     def data_parallel(self) -> bool:
         return self._distrib_type in (
-            StrategyType.DP,
-            StrategyType.DDP,
-            StrategyType.DDP_SPAWN,
-            StrategyType.DDP2,
+            _StrategyType.DP,
+            _StrategyType.DDP,
+            _StrategyType.DDP_SPAWN,
+            _StrategyType.DDP2,
         )
 
     @property

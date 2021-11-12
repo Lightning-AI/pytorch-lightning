@@ -15,14 +15,14 @@ import torch
 
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.enums import StrategyType
+from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION
 
 
 class DDP2Plugin(DDPPlugin):
     """DDP2 behaves like DP in one node, but synchronization across nodes behaves like in DDP."""
 
-    distributed_backend = StrategyType.DDP2
+    distributed_backend = _StrategyType.DDP2
 
     @property
     def global_rank(self) -> int:
