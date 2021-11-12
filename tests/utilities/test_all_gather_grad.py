@@ -3,8 +3,8 @@ import sys
 
 import numpy as np
 import torch
-
 from pytorch_lightning import seed_everything, Trainer
+
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -16,12 +16,6 @@ def setup_ddp(rank, world_size):
 
     if torch.distributed.is_available() and sys.platform not in ("win32", "cygwin"):
         torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
-
-
-@RunIf(skip_windows=True)
-def test_all_gather_ddp():
-    world_size = 3
-    torch.multiprocessing.spawn(_test_all_gather_ddp, args=(world_size,), nprocs=world_size)
 
 
 @RunIf(min_gpus=2, skip_windows=True, special=True)

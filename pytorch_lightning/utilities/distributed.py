@@ -16,10 +16,9 @@ import logging
 import os
 from functools import wraps
 from platform import python_version
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Union
 
 import torch
-import torch.distributed as dist
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
