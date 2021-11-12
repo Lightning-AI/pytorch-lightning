@@ -141,6 +141,7 @@ class DeepNestedModel(LightningModule):
 
 def test_invalid_weights_summmary():
     """Test that invalid value for weights_summary raises an error."""
+    model = LightningModule()
 
     with pytest.raises(
         MisconfigurationException, match="`weights_summary` can be None, .* got temp"
