@@ -17,8 +17,6 @@ from typing import Any, Optional, Union
 import torch
 from torch.nn import Module
 
-import pytorch_lightning as pl
-
 
 class DeviceDtypeModuleMixin(Module):
     __jit_unused_properties__ = ["device", "dtype"]
@@ -180,8 +178,8 @@ class DeviceDtypeModuleMixin(Module):
     ) -> None:
         def apply_fn(module: Union["DeviceDtypeModuleMixin", Module]) -> None:
             # TODO: Find why `isinstance(module, DeviceDtypeModuleMixin)` doesn't
-            # work when using `init_meta_device`.
-            if not isinstance(module, (DeviceDtypeModuleMixin, pl.LightningModule)):
+            # work when using `init_meta_context`.
+            if not isinstance(module, (DeviceDtypeModuleMixin, Module)):
                 return
             if device is not None:
                 module._device = device
