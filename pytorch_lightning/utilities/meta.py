@@ -333,3 +333,11 @@ def init_meta_context() -> Generator:
     yield
     __builtins__["isinstance"] = isinstance.keywords["isinstance"]
     _unset_meta_device()
+
+
+def is_meta_device(module: nn.Module) -> bool:
+    try:
+        param = next(module.parameters())
+        return param.device.type == "meta"
+    except StopIteration:
+        return False

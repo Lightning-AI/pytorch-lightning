@@ -84,7 +84,7 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
-from pytorch_lightning.utilities.meta import materialize_module
+from pytorch_lightning.utilities.meta import is_meta_device, materialize_module
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import (
@@ -1409,8 +1409,7 @@ class Trainer(
             self.call_hook("on_configure_sharded_model")
 
     def _handle_meta_model(self) -> None:
-        param = next(self.lightning_module.parameters())
-        if param.device.type != "meta":
+        if not is_meta_device(self.lightning_module):
             return
 
         if isinstance(self.training_type_plugin, DDPSpawnPlugin):
