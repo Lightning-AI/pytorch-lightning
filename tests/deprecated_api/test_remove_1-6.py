@@ -17,7 +17,6 @@ from unittest.mock import call, Mock
 import pytest
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.model_summary import ModelSummary
 from tests.helpers import BoringModel
 
