@@ -13,7 +13,7 @@
 # limitations under the License.
 """Enumerated utilities."""
 from enum import Enum, EnumMeta
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
@@ -46,20 +46,20 @@ class _OnAccessEnumMeta(EnumMeta):
     https://www.buzzphp.com/posts/how-do-i-detect-and-invoke-a-function-when-a-python-enum-member-is-accessed
     """
 
-    def __getattribute__(cls, name):
+    def __getattribute__(cls, name: str) -> Any:
         obj = super().__getattribute__(name)
         if isinstance(obj, Enum) and obj._on_access:
             obj._on_access()
         return obj
 
-    def __getitem__(cls, name):
+    def __getitem__(cls, name: str) -> Any:
         member = super().__getitem__(name)
         if member._on_access:
             member._on_access()
         return member
 
-    def __call__(cls, value, names=None, *, module=None, qualname=None, type=None, start=1):
-        obj = super().__call__(value, names, module=module, qualname=qualname, type=type, start=start)
+    def __call__(cls, value: str, *args: Any, **kwargs: Any) -> Any:
+        obj = super().__call__(value, *args, **kwargs)
         if isinstance(obj, Enum) and obj._on_access:
             obj._on_access()
         return obj
@@ -101,7 +101,7 @@ class PrecisionType(LightningEnum):
         return [x.value for x in PrecisionType]
 
 
-class DistributedType(LightningEnum, metaclass=OnAccessEnumMeta):
+class DistributedType(LightningEnum, metaclass=_OnAccessEnumMeta):
     """Define type of training strategy.
 
     >>> # you can match the type with string
