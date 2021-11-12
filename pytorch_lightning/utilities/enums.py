@@ -111,16 +111,16 @@ class DistributedType(LightningEnum):
     DDP_FULLY_SHARDED = "ddp_fully_sharded"
 
 
-class DeviceType(LightningEnum):
-    """Define Device type by its nature - acceleatrors.
+class AcceleratorType(LightningEnum):
+    """Define Accelerator type by its nature.
 
-    >>> DeviceType.CPU == DeviceType.from_str('cpu')
+    >>> AcceleratorType.CPU == AcceleratorType.from_str('cpu')
     True
     >>> # you can match the type with string
-    >>> DeviceType.GPU == 'GPU'
+    >>> AcceleratorType.GPU == 'GPU'
     True
     >>> # which is case invariant
-    >>> DeviceType.TPU in ('tpu', 'CPU')
+    >>> AcceleratorType.TPU in ('tpu', 'CPU')
     True
     """
 

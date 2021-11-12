@@ -43,7 +43,7 @@ from pytorch_lightning.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from pytorch_lightning.utilities import DeviceType, DistributedType
+from pytorch_lightning.utilities import AcceleratorType, DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -718,7 +718,7 @@ def test_device_type_when_training_plugin_gpu_passed(tmpdir, plugin):
 
     trainer = Trainer(strategy=plugin(), gpus=2)
     assert isinstance(trainer.training_type_plugin, plugin)
-    assert trainer._device_type == DeviceType.GPU
+    assert trainer._device_type == AcceleratorType.GPU
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
 

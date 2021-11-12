@@ -65,8 +65,8 @@ from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
     _IPU_AVAILABLE,
     _TPU_AVAILABLE,
+    AcceleratorType,
     device_parser,
-    DeviceType,
     DistributedType,
     GradClipAlgorithmType,
     parsing,
@@ -1517,26 +1517,30 @@ class Trainer(
         self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
 
     def _log_device_info(self) -> None:
-        rank_zero_info(f"GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}")
+        rank_zero_info(f"GPU available: {torch.cuda.is_available()}, used: {self._device_type == AcceleratorType.GPU}")
 
-        num_tpu_cores = self.tpu_cores if self.tpu_cores is not None and self._device_type == DeviceType.TPU else 0
+        num_tpu_cores = self.tpu_cores if self.tpu_cores is not None and self._device_type == AcceleratorType.TPU else 0
         rank_zero_info(f"TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores")
 
         num_ipus = self.ipus if self.ipus is not None else 0
         rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
 
-        if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
+        if torch.cuda.is_available() and self._device_type != AcceleratorType.GPU:
             rank_zero_warn(
                 "GPU available but not used. Set the gpus flag in your trainer `Trainer(gpus=1)` or script `--gpus=1`."
             )
 
-        if _TPU_AVAILABLE and self._device_type != DeviceType.TPU:
+        if _TPU_AVAILABLE and self._device_type != AcceleratorType.TPU:
             rank_zero_warn(
                 "TPU available but not used. Set the `tpu_cores` flag in your trainer"
                 " `Trainer(tpu_cores=8)` or script `--tpu_cores=8`."
             )
 
-        if _IPU_AVAILABLE and self._device_type != DeviceType.IPU and not isinstance(self.accelerator, IPUAccelerator):
+        if (
+            _IPU_AVAILABLE
+            and self._device_type != AcceleratorType.IPU
+            and not isinstance(self.accelerator, IPUAccelerator)
+        ):
             rank_zero_warn(
                 "IPU available but not used. Set the `ipus` flag in your trainer"
                 " `Trainer(ipus=8)` or script `--ipus=8`."
@@ -1593,7 +1597,7 @@ class Trainer(
         return self._accelerator_connector._distrib_type
 
     @property
-    def _device_type(self) -> DeviceType:
+    def _device_type(self) -> AcceleratorType:
         return self._accelerator_connector._device_type
 
     @property
