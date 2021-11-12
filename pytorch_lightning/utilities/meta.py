@@ -113,6 +113,7 @@ if _TORCH_GREATER_EQUAL_1_10:
         def create_instance(module=None) -> Module:
             if module:
                 module.__init__(*args, **kwargs)
+                return module
             return module_fn(*args, **kwargs)
 
         if _tls.in_call:
@@ -185,7 +186,7 @@ def materialize_module(root_module: nn.Module) -> nn.Module:
         if not materialize_fn or isinstance(child, (Sequential, ModuleList, ModuleDict)):
             materialize_module(child)
         else:
-            materialize_fn()
+            setattr(child, name, materialize_fn())
     return root_module
 
 
