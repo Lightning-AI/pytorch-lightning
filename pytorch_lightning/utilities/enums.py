@@ -39,7 +39,7 @@ class LightningEnum(str, Enum):
         return hash(self.value.lower())
 
 
-class OnAccessEnumMeta(EnumMeta):
+class _OnAccessEnumMeta(EnumMeta):
     """Enum with a hook to run a function whenever a member is accessed.
 
     Adapted from:
