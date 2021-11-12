@@ -61,14 +61,6 @@ def test_v1_6_0_reload_dataloaders_every_epoch(tmpdir):
     assert tracker.mock_calls == expected_sequence
 
 
-def test_v1_6_0_is_overridden_model():
-    model = BoringModel()
-    with pytest.deprecated_call(match="and will be removed in v1.6"):
-        assert is_overridden("validation_step", model=model)
-    with pytest.deprecated_call(match="and will be removed in v1.6"):
-        assert not is_overridden("foo", model=model)
-
-
 def test_v1_6_0_deprecated_model_summary_mode(tmpdir):
     model = BoringModel()
     with pytest.deprecated_call(match="Argument `mode` in `ModelSummary` is deprecated in v1.4"):
