@@ -64,7 +64,7 @@ def signal_handler():
     pass
 
 
-class C:
+class SignalHandlers:
     def signal_handler(self):
         pass
 
@@ -78,6 +78,7 @@ class C:
     ],
 )
 def test_has_already_handler(handler, expected_return):
+    """Test that the SignalConnector detects whether a signal handler is already attached."""
     trainer = Trainer()
     connector = SignalConnector(trainer)
     with mock.patch("signal.getsignal", return_value=handler):
