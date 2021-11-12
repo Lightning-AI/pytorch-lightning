@@ -19,7 +19,6 @@ import pytorch_lightning as pl
 
 
 def is_overridden(method_name: str, instance: Optional[object] = None, parent: Optional[Type[object]] = None) -> bool:
-
     if instance is None:
         # if `self.lightning_module` was passed as instance, it can be `None`
         return False
