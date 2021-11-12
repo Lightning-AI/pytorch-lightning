@@ -142,7 +142,7 @@ class DistributedType(LightningEnum, metaclass=_OnAccessEnumMeta):
         """Returns whether self is interactive compatible."""
         return self in DistributedType.interactive_compatible_types()
 
-    def __new__(cls, value):
+    def __new__(cls, value: str):
         member = str.__new__(cls, value)
         member._on_access = member.deprecate
         return member
