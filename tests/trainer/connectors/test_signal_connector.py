@@ -19,6 +19,7 @@ from unittest import mock
 import pytest
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -57,3 +58,25 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
         else:
             trainer.fit(model)
         assert trainer._terminate_gracefully == (False if register_handler else terminate_gracefully)
+
+
+def signal_handler():
+    pass
+
+class C:
+    def signal_handler(self):
+        pass
+
+@pytest.mark.parametrize(
+    ["handler", "expected_return"],
+    [
+        (signal.Handlers.SIG_DFL, False),
+        (signal_handler, True),
+        (C().signal_handler, True),
+    ],
+)
+def test_has_already_handler(handler, expected_return):
+    trainer = Trainer()
+    connector = SignalConnector(trainer)
+    with mock.patch("signal.getsignal", return_value=handler):
+        assert connector._has_already_handler(signal.SIGTERM) is expected_return
