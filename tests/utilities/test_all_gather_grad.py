@@ -3,8 +3,8 @@ import sys
 
 import numpy as np
 import torch
-from pytorch_lightning import seed_everything, Trainer
 
+from pytorch_lightning import seed_everything, Trainer
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
