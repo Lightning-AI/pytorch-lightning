@@ -377,7 +377,7 @@ class RichProgressBar(ProgressBarBase):
 
     def _update(self, progress_bar_id: int, current: int, total: int, visible: bool = True) -> None:
         if self.progress is not None and self._should_update(current, total):
-            self.progress.update(progress_bar_id, advance=1.0, visible=visible)
+            self.progress.update(progress_bar_id, advance=self.refresh_rate, visible=visible)
             self.refresh()
 
     def _should_update(self, current: int, total: int) -> bool:
