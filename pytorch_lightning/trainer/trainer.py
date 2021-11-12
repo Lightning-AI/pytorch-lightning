@@ -1404,9 +1404,22 @@ class Trainer(
 
     def _call_configure_sharded_model(self) -> None:
         with self.accelerator.model_sharded_context():
-            materialize_module(self.lightning_module)
+            self._handle_meta_model()
             self.call_hook("configure_sharded_model")
             self.call_hook("on_configure_sharded_model")
+
+    def _handle_meta_model(self) -> None:
+        param = next(self.lightning_module.parameters())
+        if param.device.type != "meta":
+            return
+
+        if isinstance(self.training_type_plugin, DDPSpawnPlugin):
+            raise MisconfigurationException("LightningModule on meta device isn't supported with spawn.")
+
+        materialize_module(self.lightning_module)
+        self.lightning_module.trainer = proxy(self)
+        # TODO: Find a better place to move the newly materialized model to the device
+        self.training_type_plugin.model_to_device()
 
     def _call_teardown_hook(self) -> None:
         fn = self.state.fn._setup_fn

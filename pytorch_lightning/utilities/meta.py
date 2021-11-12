@@ -25,6 +25,7 @@ from torch import nn, Tensor
 from torch.nn import Module
 from torch.nn.modules.container import ModuleDict, ModuleList, Sequential
 
+import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_10
@@ -112,7 +113,6 @@ if _TORCH_GREATER_EQUAL_1_10:
         def create_instance(module=None) -> Module:
             if module:
                 module.__init__(*args, **kwargs)
-                return module
             return module_fn(*args, **kwargs)
 
         if _tls.in_call:
@@ -185,13 +185,12 @@ def materialize_module(root_module: nn.Module) -> nn.Module:
         if not materialize_fn or isinstance(child, (Sequential, ModuleList, ModuleDict)):
             materialize_module(child)
         else:
-            setattr(child, name, materialize_fn())
+            materialize_fn()
     return root_module
 
 
 # cache subclasses to optimize the search when resetting the meta device later on.
 __STORAGE_META__ = {}
-
 __CREATED_MODULES__ = set()
 
 
@@ -237,7 +236,7 @@ def _set_meta_device() -> None:
 
     for subclass in get_all_subclasses(torch.nn.modules.module.Module):
 
-        if isinstance(subclass, (Sequential, ModuleList, ModuleDict)):
+        if subclass in (Sequential, ModuleList, ModuleDict, pl.LightningModule):
             continue
 
         # if a subclass has already been stored, we should use the cache
@@ -268,7 +267,8 @@ def _set_meta_device() -> None:
             @staticmethod
             def add_subclasses(subclass):
                 """This is used to unrol the instantion tree while creating the modules."""
-                __CREATED_MODULES__.add(subclass)
+                if subclass != pl.LightningModule:
+                    __CREATED_MODULES__.add(subclass)
                 if subclass.__bases__[0] != torch.nn.modules.module.Module:
                     _MetaClass.add_subclasses(subclass.__bases__[0])
 
