@@ -190,14 +190,13 @@ def all_gather_ddp_if_available(
     Return:
         A tensor of shape (world_size, batch, ...)
     """
-    group = group if group is not None else torch.distributed.group.WORLD
-    if distributed_available():
-        gathered_tensor = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())]
-        if sync_grads:
-            return torch.distributed.all_gather(gathered_tensor, tensor, group=group)
-        with torch.no_grad():
-            return torch.distributed.all_gather(gathered_tensor, tensor, group=group)
-    return tensor
+    if not distributed_available():
+        return tensor
+    gathered_tensor = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size(group=group))]
+    if sync_grads:
+        return torch.distributed.all_gather(gathered_tensor, tensor, group=group)
+    with torch.no_grad():
+        return torch.distributed.all_gather(gathered_tensor, tensor, group=group)
 
 
 def register_ddp_comm_hook(
