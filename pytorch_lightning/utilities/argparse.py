@@ -319,7 +319,7 @@ def _defaults_from_env_vars(fn: Callable) -> Callable:
     @wraps(fn)
     def insert_env_defaults(self, *args, **kwargs) -> Any:
         cls = self.__class__  # get the class
-        if args:  # inace any args passed move them to kwargs
+        if args:  # in case any args passed move them to kwargs
             # parse only the argument names
             cls_arg_names = [arg[0] for arg in get_init_arguments_and_types(cls)]
             # convert args to kwargs
