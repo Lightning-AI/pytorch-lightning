@@ -150,7 +150,7 @@ class DistributedType(LightningEnum, metaclass=_OnAccessEnumMeta):
     def deprecate(self):
         rank_zero_deprecation(
             "`DistributedType` Enum has been deprecated in v1.6 and will be removed in v1.8."
-            " Use `_StrategyType` instead."
+            " Use the string value `{self.value!r}` instead."
         )
 
 
