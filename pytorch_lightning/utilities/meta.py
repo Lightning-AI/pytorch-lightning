@@ -314,7 +314,9 @@ def _set_meta_device() -> None:
             setattr(mod, subclass.__name__, _MetaClass)
 
 
-def mock_isinstance(A: Any, B: Any, isinstance: Callable) -> bool:
+def _mock_isinstance(A: Any, B: Any, isinstance: Callable) -> bool:
+    # This functions enables to builtins `isinstance` function to work as expected within
+    # the context of `init_meta_context` as the nn.Module are replace by their Meta version.
     if isinstance(B, type) and "_MetaClass" in B.__name__:
         return isinstance(A, B.__bases__[0])
     return isinstance(A, B)
@@ -327,7 +329,7 @@ def init_meta_context() -> Generator:
         "where it can internal assert and/or crash. A more stable version is to be expected from PyTorch 1.11."
     )
     _set_meta_device()
-    __builtins__["isinstance"] = partial(mock_isinstance, isinstance=isinstance)
+    __builtins__["isinstance"] = partial(_mock_isinstance, isinstance=isinstance)
     yield
     __builtins__["isinstance"] = isinstance.keywords["isinstance"]
     _unset_meta_device()

@@ -38,14 +38,7 @@ from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop, TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
-from pytorch_lightning.plugins import (
-    DDPSpawnPlugin,
-    ParallelPlugin,
-    PLUGIN_INPUT,
-    PrecisionPlugin,
-    TPUSpawnPlugin,
-    TrainingTypePlugin,
-)
+from pytorch_lightning.plugins import DDPSpawnPlugin, ParallelPlugin, PLUGIN_INPUT, PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
     BaseProfiler,
@@ -1420,7 +1413,7 @@ class Trainer(
         if param.device.type != "meta":
             return
 
-        if isinstance(self.training_type_plugin, (DDPSpawnPlugin, TPUSpawnPlugin)):
+        if isinstance(self.training_type_plugin, DDPSpawnPlugin):
             raise MisconfigurationException("LightningModule on meta device isn't supported with spawn.")
 
         materialize_module(self.lightning_module)
