@@ -1679,7 +1679,7 @@ class LightningModule(
 
         return splits
 
-    def summarize(self, mode: Optional[str] = "top", max_depth: Optional[int] = None) -> Optional[ModelSummary]:
+    def summarize(self, max_depth: int = 1) -> ModelSummary:
         """Summarize this LightningModule.
 
         .. deprecated:: v1.5
@@ -1687,11 +1687,6 @@ class LightningModule(
             and will be removed in v1.7.
 
         Args:
-            mode: Can be either ``'top'`` (summarize only direct submodules) or ``'full'`` (summarize all layers).
-
-                .. deprecated:: v1.4
-                    This parameter was deprecated in v1.4 in favor of `max_depth` and will be removed in v1.6.
-
             max_depth: The maximum depth of layer nesting that the summary will include. A value of 0 turns the
                 layer summary off. Default: 1.
 
@@ -1704,7 +1699,7 @@ class LightningModule(
             stacklevel=6,
         )
 
-        return summarize(self, mode, max_depth)
+        return summarize(self, max_depth)
 
     def freeze(self) -> None:
         r"""
