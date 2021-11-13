@@ -134,7 +134,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Squeeze the early stopping monitor to remove empty tensor dimensions ([#10461](https://github.com/PyTorchLightning/pytorch-lightning/issues/10461))
 
 
--
+- Fixed issue where `trainer.progress_bar_callback` was not getting set with `enable_progress_bar=False` if a progress bar instance has been passed in the callback list ([#10520](https://github.com/PyTorchLightning/pytorch-lightning/issues/10520))
 
 
 ## [1.5.1] - 2021-11-09
