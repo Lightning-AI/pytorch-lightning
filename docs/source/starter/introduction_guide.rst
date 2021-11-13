@@ -106,6 +106,7 @@ equivalent to a pure PyTorch Module except it has added functionality. However, 
     net = LitMNIST()
     x = torch.randn(1, 1, 28, 28)
     out = net(x)
+    print(out.shape)
 
 .. rst-class:: sphx-glr-script-out
 
@@ -127,9 +128,45 @@ Now we add the training_step which has all our training loop logic
             loss = F.nll_loss(logits, y)
             return loss
 
+Optimizer
+---------
+
+Next we choose what optimizer to use for training our system.
+In PyTorch we do it as follows:
+
+.. code-block:: python
+
+    from torch.optim import Adam
+
+    optimizer = Adam(LitMNIST().parameters(), lr=1e-3)
+
+
+In Lightning we do the same but organize it under the :func:`~pytorch_lightning.core.LightningModule.configure_optimizers` method.
+
+.. testcode::
+
+    class LitMNIST(LightningModule):
+        def configure_optimizers(self):
+            return Adam(self.parameters(), lr=1e-3)
+
+.. note:: The LightningModule itself has the parameters, so pass in self.parameters()
+
+However, if you have multiple optimizers use the matching parameters
+
+.. testcode::
+
+    class LitMNIST(LightningModule):
+        def configure_optimizers(self):
+            return Adam(self.generator(), lr=1e-3), Adam(self.discriminator(), lr=1e-3)
+
 Data
 ----
 
+Install torchvision library.
+
+.. code-block:: shell
+
+    pip install torchvision
 
 Lightning operates on pure dataloaders. Here's the PyTorch code for loading MNIST.
 
@@ -169,6 +206,9 @@ You can use DataLoaders in 3 ways:
 Pass in the dataloaders to the `.fit()` function.
 
 .. code-block:: python
+
+    from pytorch_lightning import Trainer
+
 
     model = LitMNIST()
     trainer = Trainer()
@@ -308,38 +348,6 @@ An alternative to using a DataModule is to defer initialization of the models mo
             num_classes = data.classes
             self.l1 = nn.Linear(..., num_classes)
 
-Optimizer
----------
-
-Next we choose what optimizer to use for training our system.
-In PyTorch we do it as follows:
-
-.. code-block:: python
-
-    from torch.optim import Adam
-
-    optimizer = Adam(LitMNIST().parameters(), lr=1e-3)
-
-
-In Lightning we do the same but organize it under the :func:`~pytorch_lightning.core.LightningModule.configure_optimizers` method.
-
-.. testcode::
-
-    class LitMNIST(LightningModule):
-        def configure_optimizers(self):
-            return Adam(self.parameters(), lr=1e-3)
-
-.. note:: The LightningModule itself has the parameters, so pass in self.parameters()
-
-However, if you have multiple optimizers use the matching parameters
-
-.. testcode::
-
-    class LitMNIST(LightningModule):
-        def configure_optimizers(self):
-            return Adam(self.generator(), lr=1e-3), Adam(self.discriminator(), lr=1e-3)
-
-
 Training step
 -------------
 
@@ -430,6 +438,9 @@ For clarity, we'll recall that the full LightningModule now looks like this.
             logits = self(x)
             loss = F.nll_loss(logits, y)
             return loss
+
+        def configure_optimizers(self):
+            return Adam(self.parameters(), lr=1e-3)
 
 Again, this is the same PyTorch code, except that it's organized by the LightningModule.
 
