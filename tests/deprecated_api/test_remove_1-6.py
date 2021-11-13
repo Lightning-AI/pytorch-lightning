@@ -18,18 +18,7 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.model_summary import ModelSummary
 from tests.helpers import BoringModel
-
-
-def test_old_transfer_batch_to_device_hook(tmpdir):
-    class OldModel(BoringModel):
-        def transfer_batch_to_device(self, batch, device):
-            return super().transfer_batch_to_device(batch, device, None)
-
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=0, max_epochs=1)
-    with pytest.deprecated_call(match="old signature will be removed in v1.6"):
-        trainer.fit(OldModel())
 
 
 def test_v1_6_0_reload_dataloaders_every_epoch(tmpdir):
@@ -67,23 +56,6 @@ def test_v1_6_0_is_overridden_model():
         assert is_overridden("validation_step", model=model)
     with pytest.deprecated_call(match="and will be removed in v1.6"):
         assert not is_overridden("foo", model=model)
-
-
-def test_v1_6_0_train_loop(tmpdir):
-    trainer = Trainer()
-    with pytest.deprecated_call(
-        match=r"`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
-    ):
-        _ = trainer.train_loop
-
-
-def test_v1_6_0_deprecated_model_summary_mode(tmpdir):
-    model = BoringModel()
-    with pytest.deprecated_call(match="Argument `mode` in `ModelSummary` is deprecated in v1.4"):
-        ModelSummary(model, mode="top")
-
-    with pytest.deprecated_call(match="Argument `mode` in `LightningModule.summarize` is deprecated in v1.4"):
-        model.summarize(mode="top")
 
 
 def test_v1_6_0_deprecated_disable_validation():
