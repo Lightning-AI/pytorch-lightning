@@ -137,9 +137,9 @@ def test_log_metrics_only_include_metrics_from_concerned_dataloader(tmpdir):
         def test_step(self, batch, batch_idx, dataloader_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)
-            self.log('fake_test_acc', loss)
+            self.log("fake_test_acc", loss)
             return {"y": loss}
-        
+
         def test_epoch_end(self, outputs) -> None:
             torch.stack([x["y"] for x in outputs[0]]).mean()
 
@@ -151,4 +151,4 @@ def test_log_metrics_only_include_metrics_from_concerned_dataloader(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     output = trainer.test(model, dataloaders=test_dataloaders)
-    assert sum([len(x) for x in output]) == num_dataloaders
+    assert sum(len(x) for x in output) == num_dataloaders
