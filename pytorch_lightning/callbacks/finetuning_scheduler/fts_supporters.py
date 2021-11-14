@@ -30,6 +30,7 @@ from collections.abc import KeysView
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
+import torch
 import yaml
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
@@ -38,11 +39,15 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from pytorch_lightning.utilities import LightningEnum, rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 log = logging.getLogger(__name__)
+
+CALLBACK_DEP_PARENTS = {"ModelCheckpoint": ModelCheckpoint, "EarlyStopping": EarlyStopping}
+CALLBACK_ATTRS = ("ft_schedule", "max_depth")
+TARGET_CALLBACK_REF = "FinetuningScheduler"
 
 
 @dataclass
@@ -68,14 +73,184 @@ class FTSState:
         }
 
 
-class FTSCheckpoint(ModelCheckpoint):
+class CallbackResolverMixin(ABC):
+    """Give user-provided callbacks with the ability to connect to another user-provided callback.
+
+    This resolution logic is provided in order to avoid callback-dependent trainer attributes (e.g.
+    trainer.finetuningscheduler_callback)
+    """
+
+    def __init__(
+        self,
+        callback_attrs: Tuple = CALLBACK_ATTRS,
+        callback_parents: Dict = CALLBACK_DEP_PARENTS,
+        target_callback_ref: str = TARGET_CALLBACK_REF,
+        support_multiple: bool = False,
+    ) -> None:
+        """Initialize the user-provided callback depedency resolver in accordance with the user-provided module
+        configuration.
+
+        Args:
+            callback_attrs (Tuple, optional): Attribute signature of user-provided callback to be structurally detected
+                and connected. Defaults to CALLBACK_ATTRS defined in the user-provided module.
+            callback_parents (Dict, optional): The parent classes of all user-provided callbacks in the module that
+                should be connected to the target user-provided callback. Defaults to CALLBACK_DEP_PARENTS in the
+                user-provided module.
+            target_callback_ref (str, optional): The name of the target user-provided callback to connect to. For each
+                subclass of CALLBACK_DEP_PARENTS, an attribute named ``(target_callback_ref.lower())_callback`` will be
+                added. Defaults to TARGET_CALLBACK_REF in the user-provided module.
+            support_multiple (bool, optional): Whether multiple instances of the target user-provided callback (only the
+                first of which will be connected to) are allowed. Defaults to False.
+        """
+        super().__init__()
+        self.callback_attrs = callback_attrs
+        self.callback_parents = callback_parents
+        self.target_callback_ref = target_callback_ref
+        self.callback_handle = f"{self.target_callback_ref.lower()}_callback"
+        self.support_multiple = support_multiple
+        setattr(self, self.callback_handle, None)
+
+    def connect_callback(self, trainer: "pl.Trainer", reconnect: bool = False) -> None:
+        """Connect each user-provided callback dependency that needs to be connected to the target user-provided
+        callback.
+
+        Args:
+            trainer (pl.Trainer): The :class:`~pytorch_lightning.trainer.trainer.Trainer` object.
+            reconnect (bool, optional): Whether to check for an updated target callback object even if one is already
+                resolved. Predominantly useful in the context of testing. Defaults to False.
+
+        Raises:
+            MisconfigurationException: If no target callback is detected
+            MisconfigurationException: if :attr:`support_multiple` is ``False`` and multiple target callbacks are
+                detected.
+        """
+        if self.__dict__[self.callback_handle] and not reconnect:
+            return
+        resolved_callbacks = [c for c in trainer.callbacks if all([hasattr(c, a) for a in self.callback_attrs])]
+        if not resolved_callbacks:
+            raise MisconfigurationException(
+                f"{self.__class__.__name__} is intended for use with a {self.target_callback_ref}. If not using a"
+                f"{self.target_callback_ref} callback, please use the standard "
+                f"{[k for k,v in self.callback_parents.items() if isinstance(self,v)][0]} callback."
+            )
+        elif not self.support_multiple and len(resolved_callbacks) > 1:
+            raise MisconfigurationException(
+                f"Use of multiple {resolved_callbacks[0].__class__.__name__} callbacks is"
+                "not currently supported. Please provide a maximum of one."
+            )
+        else:
+            setattr(self, self.callback_handle, resolved_callbacks[0])
+
+
+class FTSEarlyStopping(EarlyStopping, CallbackResolverMixin):
+    r"""
+    Extends/specializes :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` to facilitate multi-phase
+    scheduled finetuning.
+
+    Adds :attr:`es_phase_complete`, :attr:`final_phase` and :attr:`finetuningscheduler_callback` attributes and modifies
+    :meth:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping._evaluate_stopping_criteria` to enable multi-phase
+    behavior. Overrides :meth:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping.on_init_start` hook to
+    ensure presence of :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler` callback.
+    Usage of :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts_supporters.FTSEarlyStopping` is identical to
+    :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` except the former will evaluate the specified
+    early stopping criteria at every scheduled phase.
+    :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts_supporters.FTSEarlyStopping` will automatically be
+    used if a :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler` callback is detected
+    and :attr:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler.epoch_transitions_only` is
+    ``False``
+
+    .. warning:: :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts_supporters.FTSEarlyStopping` is in beta
+        and subject to change. The finetuning schedule (FTS) checkpoint functionality is currently experimental and may
+        be added directly into :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` in the future if the
+        community deems appropriate. For detailed usage information, see
+        :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`.
+    """
+
+    def __init__(self, *args, **kwargs):
+        """
+        Attributes:
+            es_phase_complete (bool):
+                Used to determine if the current phase's early stopping criteria have been met.
+            final_phase (bool):
+                Used to indicate whether the current phase is the final scheduled phase.
+            finetuningscheduler_callback (Callback):
+                Reference to the :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler`
+                callback being used.
+        """
+        super().__init__(*args, **kwargs)
+        self.es_phase_complete = True
+        self.final_phase = True
+        self.finetuningscheduler_callback = None
+
+    def on_init_start(self, trainer: "pl.Trainer") -> None:
+        """Ensure a :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler` is provided
+        on trainer initialization.
+
+        Args:
+            trainer (pl.Trainer): The :class:`~pytorch_lightning.trainer.trainer.Trainer` object.
+        """
+        self.connect_callback(trainer)
+        return super().on_init_start(trainer)
+
+    def _evaluate_stopping_criteria(self, current: torch.Tensor) -> Tuple[bool, Optional[str]]:
+        """Evaluate whether and why to stop the current training session.
+
+        Args:
+            current (torch.Tensor): The current monitored value to be evaluated
+
+        Returns:
+            Tuple[bool, Optional[str]]: Whether the training session should stop and if so, the reason why.
+        """
+        should_stop = False
+        reason = None
+        if self.check_finite and not torch.isfinite(current):
+            should_stop = True
+            reason = (
+                f"Monitored metric {self.monitor} = {current} is not finite."
+                f" Previous best value was {self.best_score:.3f}. Signaling Trainer to stop."
+            )
+        elif self.stopping_threshold is not None and self.monitor_op(current, self.stopping_threshold):
+            should_stop = True
+            reason = (
+                "Stopping threshold reached:"
+                f" {self.monitor} = {current} {self.order_dict[self.mode]} {self.stopping_threshold}."
+                " Signaling Trainer to stop."
+            )
+        elif self.divergence_threshold is not None and self.monitor_op(-current, -self.divergence_threshold):
+            should_stop = True
+            reason = (
+                "Divergence threshold reached:"
+                f" {self.monitor} = {current} {self.order_dict[self.mode]} {self.divergence_threshold}."
+                " Signaling Trainer to stop."
+            )
+        elif self.monitor_op(current - self.min_delta, self.best_score.to(current.device)):
+            should_stop = False
+            reason = self._improvement_message(current)
+            self.best_score = current
+            self.wait_count = 0
+        else:
+            self.wait_count += 1
+            if self.wait_count >= self.patience:
+                if self.final_phase:
+                    should_stop = True
+                    reason = (
+                        f"Monitored metric {self.monitor} did not improve in the last {self.wait_count} records."
+                        f" Best score: {self.best_score:.3f}. Signaling Trainer to stop."
+                    )
+                else:
+                    self.es_phase_complete = True
+                    self.wait_count = 0
+        return should_stop, reason
+
+
+class FTSCheckpoint(ModelCheckpoint, CallbackResolverMixin):
     r"""
     Extends/specializes :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` to facilitate multi-phase
     scheduled finetuning. Overrides the
     :meth:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint.on_save_checkpoint` and
     :meth:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint.on_load_checkpoint` hooks to maintain
-    additional state (:attr:`current_ckpt_depth`, :attr:`best_ckpt_depth`). Usage of
-    :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts_supporters.FTSCheckpoint` is identical to
+    additional state (:attr:`current_ckpt_depth`, :attr:`best_ckpt_depth`, :attr:`finetuningscheduler_callback`). Usage
+    of :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts_supporters.FTSCheckpoint` is identical to
     :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` and
     :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts_supporters.FTSCheckpoint` will automatically be used
     if a :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler` callback is detected.
@@ -94,10 +269,14 @@ class FTSCheckpoint(ModelCheckpoint):
                 Used to track the depth of most recently saved checkpoint
             best_ckpt_depth (int):
                 Used to track the depth of the best known checkpoint (it may be from a different training depth)
+            finetuningscheduler_callback (Callback):
+                Reference to the :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler`
+                callback being used.
         """
         super().__init__(*args, **kwargs)
         self.current_ckpt_depth = 0
         self.best_ckpt_depth = 0
+        self.finetuningscheduler_callback = None
 
     def on_init_start(self, trainer: "pl.Trainer") -> None:
         """When the trainer initialization begins, verify a valid callback configuration is present.
@@ -108,8 +287,7 @@ class FTSCheckpoint(ModelCheckpoint):
         Raises:
             MisconfigurationException:
                 If a :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler` callback is not
-                found on initialization
-                (:attr:`~pytorch_lightning.trainer.trainer.Trainer.finetuning_scheduler_callback` is ``None``)
+                found on initialization (``finetuningscheduler_callback`` is ``None``)
             MisconfigurationException:
                 If :paramref:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler.restore_best` is
                 ``True`` and :paramref:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint.save_top_k` is
@@ -118,25 +296,19 @@ class FTSCheckpoint(ModelCheckpoint):
                 If :paramref:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler.restore_best` is
                 ``True`` and ``monitor`` is ``None``
         """
-        if not trainer.finetuning_scheduler_callback:
-            raise MisconfigurationException(
-                f"{self.__class__.__name__} is intended for use with a "
-                "finetuning scheduler callback such as "
-                "pytorch_lightning.callbacks.finetuning_scheduler.FinetuningScheduler."
-                "If not using a finetuning scheduler callback, please use the standard ModelCheckpoint callback."
-            )
         # note if only saving best ckpt rather than top k > 1, current_ckpt_depth == best_ckpt_depth
-        if trainer.finetuning_scheduler_callback.restore_best:
+        self.connect_callback(trainer)
+        if self.finetuningscheduler_callback.restore_best:
             if not self.save_top_k or self.save_top_k == 0:
                 raise MisconfigurationException(
-                    f"{type(trainer.finetuning_scheduler_callback)} was directed to restore checkpoints"
+                    f"{type(self.finetuningscheduler_callback)} was directed to restore checkpoints"
                     f"(restore_best=True) but {self.__class__.__name__} is configured to save no intermediate"
                     "checkpoints (save_top_k is 0 or None). Please set save_top_k to a non-zero value or set"
                     "restore_best=False"
                 )
             elif not self.monitor:
                 raise MisconfigurationException(
-                    f"{type(trainer.finetuning_scheduler_callback)} was directed to restore checkpoints"
+                    f"{type(self.finetuningscheduler_callback)} was directed to restore checkpoints"
                     f"(restore_best=True) but {self.__class__.__name__} but has no quantity to monitor (monitor=None)."
                     "Please provide a value to monitor or set restore_best=False."
                 )
@@ -155,7 +327,7 @@ class FTSCheckpoint(ModelCheckpoint):
         Returns:
             Dict[str, Any]: the checkpoint dictionary that will be saved.
         """
-        self.current_ckpt_depth = trainer.finetuning_scheduler_callback.curr_depth
+        self.current_ckpt_depth = self.finetuningscheduler_callback.curr_depth
         # note, if current score is precisely the best score but a previous depth had the same score the
         # best ckpt depth will be set to the latest (deepest) depth with that score.
         # a future enhancement of per-depth best score mapping could allow more fine-grained control of this behavior
@@ -189,11 +361,11 @@ class FTSCheckpoint(ModelCheckpoint):
         self.best_ckpt_depth = callback_state["best_ckpt_depth"]
         # if we're starting a new level from another checkpoint depth, wait_count could be > 0 contingent on the
         # min_delta
-        if trainer.finetuning_scheduler_callback.curr_depth > self.best_ckpt_depth:
-            if not trainer.finetuning_scheduler_callback.epoch_transitions_only:
+        if self.finetuningscheduler_callback.curr_depth > self.best_ckpt_depth:
+            if not self.finetuningscheduler_callback.epoch_transitions_only:
                 trainer.early_stopping_callback.wait_count = 0
-        if trainer.finetuning_scheduler_callback._fts_state._resume_fit_from_ckpt:
-            if trainer.finetuning_scheduler_callback.new_incarnation_mode:
+        if self.finetuningscheduler_callback._fts_state._resume_fit_from_ckpt:
+            if self.finetuningscheduler_callback.new_incarnation_mode:
                 # reset state for new training incarnation at resumption depth
                 self.best_ckpt_depth = self.current_ckpt_depth
                 self.best_model_path = ""
@@ -578,37 +750,6 @@ class SchedulingMixin(ABC):
 class CallbackDepMixin(ABC):
     """Functionality for validating/managing callback dependencies."""
 
-    class CheckpointCapabilityType(LightningEnum):
-        """Define checkpoint callback capabilities.
-
-        >>> # you can match the type with string
-        >>> CallbackDepMixin.CheckpointCapabilityType.FTS == 'fts'
-        True
-        """
-
-        FTS = "fts"
-        BASE = "base"
-
-    def _ckpt_capability(self, c: Callback) -> Optional[CheckpointCapabilityType]:
-        """Ascertain current checkpoint callback capabilities.
-
-        Args:
-            c: The :class:`~pytorch_lighting.callbacks.Callback` to inspect
-
-        Returns:
-            Optional[CheckpointCapabilityType]: The ``CheckpointCapabilityType`` of the inspected class
-
-        .. note::
-            This may be changed from a nominal subtype approach to a protocol/structural subtype design once Python >=
-                3.8 is required
-        """
-        if isinstance(c, FTSCheckpoint):
-            return self.CheckpointCapabilityType.FTS
-        elif isinstance(c, ModelCheckpoint) and not isinstance(c, FTSCheckpoint):
-            return self.CheckpointCapabilityType.BASE
-        else:
-            return None
-
     def _inspect_callback_deps(self, trainer: "pl.Trainer") -> Tuple[bool]:
         """Inspect the trainer :paramref:`~pytorch_lighting.trainer.trainer.Trainer.callbacks` for earlystopping
         and scheduled finetuning capabilities.
@@ -620,15 +761,11 @@ class CallbackDepMixin(ABC):
         Returns:
             Tuple[bool]: The ascertained :paramref:`~pytorch_lighting.trainer.trainer.Trainer.callbacks` capabilities
         """
-        has_earlystopping, has_fts_ckpt, has_other_ckpt = False, False, False
-        for c in trainer.callbacks:
-            if isinstance(c, EarlyStopping):
-                has_earlystopping = True
-            elif self._ckpt_capability(c) == self.CheckpointCapabilityType.FTS:
-                has_fts_ckpt = True
-            elif self._ckpt_capability(c) == self.CheckpointCapabilityType.BASE:
-                has_other_ckpt = True
-        return has_earlystopping, has_fts_ckpt, has_other_ckpt
+        callbacks_inspected = [FTSCheckpoint, ModelCheckpoint, FTSEarlyStopping, EarlyStopping]
+        callback_inspection = []
+        for ci in callbacks_inspected:
+            callback_inspection.append(any([isinstance(c, ci) for c in trainer.callbacks]))
+        return callback_inspection
 
     def _configure_callback_deps(self, trainer: "pl.Trainer") -> List[Callback]:
         """Ensures FTSCheckpoint and :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callbacks
@@ -643,31 +780,38 @@ class CallbackDepMixin(ABC):
             List[Callback]: A new callback list that includes at least one FTSCheckpoint and EarlyStopping class,
                 ensuring the FTSCheckpoint is at the end of list.
         """
-        has_earlystopping, has_fts_ckpt, has_other_ckpt = self._inspect_callback_deps(trainer)
-        if not any([has_earlystopping, self.epoch_transitions_only, self.gen_ft_sched_only]):
-            rank_zero_warn(
-                f"{self.__class__.__name__} currently depends upon an EarlyStopping callback. Adding an"
-                "EarlyStopping callback with default configuration"
-            )
-            trainer.callbacks.append(EarlyStopping(monitor="val_loss"))
-        if has_earlystopping and self.epoch_transitions_only:
+        has_ckpt_fts, has_ckpt_base, has_es_fts, has_es_base = self._inspect_callback_deps(trainer)
+        if not any([has_es_fts, self.epoch_transitions_only, self.gen_ft_sched_only]):
+            if has_es_base:
+                rank_zero_warn(
+                    f"{self.__class__.__name__} currently depends upon a finetuning schedule "
+                    "capable EarlyStopping callback such as FTSEarlyStopping. Substituting current "
+                    "EarlyStopping for FTSCheckpoint"
+                )
+                trainer.callbacks = [c for c in trainer.callbacks if not isinstance(c, EarlyStopping)]
+            else:
+                rank_zero_warn(
+                    f"{self.__class__.__name__} currently depends upon an FTSEarlyStopping callback unless configured "
+                    "in epoch_transitions_only mode. Adding an FTSEarlyStopping callback with default configuration."
+                )
+            trainer.callbacks.append(FTSEarlyStopping(monitor="val_loss"))
+        if (has_es_fts or has_es_base) and self.epoch_transitions_only:
             rank_zero_warn(
                 "You have specified an EarlyStopping callback along with epoch_transitions_only. Pruning the "
                 "extraneous EarlyStopping callback"
             )
             trainer.callbacks = [c for c in trainer.callbacks if not isinstance(c, EarlyStopping)]
-        if not has_fts_ckpt:
-            if has_other_ckpt:
+        if not has_ckpt_fts:
+            if has_ckpt_base:
                 rank_zero_warn(
                     f"{self.__class__.__name__} currently depends upon a finetuning schedule "
                     "capable ModelCheckpoint callback such as FTSCheckpoint. Substituting current "
                     "ModelCheckpoint for FTSCheckpoint"
                 )
-                # filter out non-fts capable ModelCheckpoint callbacks
-                trainer.callbacks = [
-                    c for c in trainer.callbacks if not self._ckpt_capability(c) == self.CheckpointCapabilityType.BASE
-                ]
+                trainer.callbacks = [c for c in trainer.callbacks if not isinstance(c, ModelCheckpoint)]
             trainer.callbacks.append(FTSCheckpoint(monitor="val_loss", verbose=True))
+        for uc in [c for c in trainer.callbacks if any([isinstance(c, d) for d in CALLBACK_DEP_PARENTS.values()])]:
+            uc.connect_callback(trainer)
         # ensure existing callback_connector logic is adhered to. Adding an FTS configuration method to
         # CallbackConnector or forcing users to manually add default EarlyStopping and FTSCheckpoint classes
         # would avoid this callback_connector call

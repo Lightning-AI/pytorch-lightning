@@ -1,12 +1,12 @@
 trainer:
   callbacks:
-  - class_path: pytorch_lightning.callbacks.FinetuningScheduler
+  - class_path: pytorch_lightning.callbacks.finetuning_scheduler.FinetuningScheduler
   - class_path: pytorch_lightning.callbacks.finetuning_scheduler.FTSCheckpoint
     init_args:
         save_top_k: 5
         monitor: val_loss
         verbose: true
-  - class_path: pytorch_lightning.callbacks.EarlyStopping
+  - class_path: pytorch_lightning.callbacks.finetuning_scheduler.FTSEarlyStopping
     init_args:
       monitor: val_loss
       min_delta: 0.001

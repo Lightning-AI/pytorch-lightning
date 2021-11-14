@@ -1,6 +1,6 @@
 trainer:
   callbacks:
-  - class_path: pytorch_lightning.callbacks.EarlyStopping
+  - class_path: pytorch_lightning.callbacks.early_stopping.EarlyStopping
     init_args:
       monitor: val_loss
       min_delta: 0.001

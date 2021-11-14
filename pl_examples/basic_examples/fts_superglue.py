@@ -43,6 +43,7 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pl_examples import _HF_AVAILABLE
+from pytorch_lightning.callbacks.finetuning_scheduler.fts import FinetuningScheduler
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cli import instantiate_class, LightningCLI
 
@@ -116,6 +117,7 @@ class RteBoolqModule(pl.LightningModule):
         self.model.config.update(self.model_cfg)  # apply model config overrides
         self.metric = datasets.load_metric("super_glue", self.task_name, experiment_id=self.experiment_id)
         self.no_decay = ["bias", "LayerNorm.weight"]
+        self.finetuningscheduler_callback = None
 
     def forward(self, **inputs):
         return self.model(**inputs)
@@ -128,8 +130,8 @@ class RteBoolqModule(pl.LightningModule):
     def training_epoch_end(self, outputs: List[Any]) -> None:
         loss = torch.stack([x["loss"] for x in outputs]).mean()
         self.log("train_loss", loss, prog_bar=True, sync_dist=True)
-        if self.trainer.finetuning_scheduler_callback:
-            self.log("finetuning_schedule_depth", self.trainer.finetuning_scheduler_callback.curr_depth)
+        if self.finetuningscheduler_callback:
+            self.log("finetuning_schedule_depth", self.finetuningscheduler_callback.curr_depth)
 
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
         outputs = self(**batch)
@@ -182,6 +184,12 @@ class RteBoolqModule(pl.LightningModule):
         optimizer = instantiate_class(self.init_pgs(), self.optimizer_init)
         scheduler = {"scheduler": instantiate_class(optimizer, self.lr_scheduler_init), **self.pl_lrs_cfg}
         return [optimizer], [scheduler]
+
+    def configure_callbacks(self):
+        found_fts = [c for c in self.trainer.callbacks if isinstance(c, FinetuningScheduler)]
+        if found_fts:
+            self.finetuningscheduler_callback = found_fts[0]
+        return super().configure_callbacks()
 
 
 class RteBoolqDataModule(pl.LightningDataModule):

@@ -31,7 +31,7 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
-from pytorch_lightning.callbacks import Callback, EarlyStopping, FinetuningScheduler, ModelCheckpoint, ProgressBarBase
+from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -2166,13 +2166,6 @@ class Trainer(
         if get_filesystem(self._weights_save_path).protocol == "file":
             return os.path.normpath(self._weights_save_path)
         return self._weights_save_path
-
-    @property
-    def finetuning_scheduler_callback(self) -> Optional[FinetuningScheduler]:
-        """The first :class:`~pytorch_lightning.callbacks.finetuning_scheduler.FinetuningScheduler` callback in the
-        Trainer.callbacks list, or ``None`` if it doesn't exist."""
-        callbacks = [c for c in self.callbacks if isinstance(c, FinetuningScheduler)]
-        return callbacks[0] if len(callbacks) > 0 else None
 
     @property
     def early_stopping_callback(self) -> Optional[EarlyStopping]:
