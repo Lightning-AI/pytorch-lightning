@@ -1,0 +1,16 @@
+name: Probot
+
+on:
+  issues:
+    types:
+      - labeled
+  pull_request:
+    types:
+      - labeled
+
+jobs:
+  auto-cc:
+    if: ${{ github.repository_owner == 'PyTorchLightning' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: carmocca/probot@v1
