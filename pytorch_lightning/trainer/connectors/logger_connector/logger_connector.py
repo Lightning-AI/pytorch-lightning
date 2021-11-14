@@ -160,11 +160,11 @@ class LoggerConnector:
         result = {}
         for k, v in metrics.items():
             if metric_prefix not in k:
+                result[k] = v
                 continue
             num_in_metric = int(re.search(r"\d+", k).group(0))
             if num_in_metric == dl_idx:
                 result[k] = v
-                break
         return result
 
     def _prepare_eval_loop_results(self, metrics: _OUT_DICT) -> None:
