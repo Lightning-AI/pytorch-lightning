@@ -48,20 +48,19 @@ class _OnAccessEnumMeta(EnumMeta):
 
     def __getattribute__(cls, name: str) -> Any:
         obj = super().__getattribute__(name)
-        if isinstance(obj, Enum) and obj._on_access:
-            obj._on_access()
+        if isinstance(obj, Enum):
+            obj.deprecate()
         return obj
 
     def __getitem__(cls, name: str) -> Any:
         member = super().__getitem__(name)
-        if member._on_access:
-            member._on_access()
+        member.deprecate()
         return member
 
     def __call__(cls, value: str, *args: Any, **kwargs: Any) -> Any:
         obj = super().__call__(value, *args, **kwargs)
-        if isinstance(obj, Enum) and obj._on_access:
-            obj._on_access()
+        if isinstance(obj, Enum):
+            obj.deprecate()
         return obj
 
 
@@ -141,11 +140,6 @@ class DistributedType(LightningEnum, metaclass=_OnAccessEnumMeta):
     def is_interactive_compatible(self) -> bool:
         """Returns whether self is interactive compatible."""
         return self in DistributedType.interactive_compatible_types()
-
-    def __new__(cls, value: str) -> "DistributedType":
-        member = str.__new__(cls, value)
-        member._on_access = member.deprecate
-        return member
 
     def deprecate(self) -> None:
         rank_zero_deprecation(
