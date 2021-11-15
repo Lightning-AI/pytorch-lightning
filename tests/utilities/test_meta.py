@@ -14,7 +14,7 @@
 from torch import nn
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities.meta import init_meta_context, is_meta_device, materialize_module
+from pytorch_lightning.utilities.meta import init_meta_context, is_on_meta_device, materialize_module
 from tests.helpers.runif import RunIf
 
 
@@ -38,15 +38,15 @@ def test_init_meta_context():
         m = nn.Linear(in_features=1, out_features=1)
         assert isinstance(m, nn.Linear)
         assert m.weight.device.type == "meta"
-        assert is_meta_device(m)
+        assert is_on_meta_device(m)
         mlp = MLP(4)
         assert mlp.layer[0].weight.device.type == "meta"
 
         mlp = materialize_module(mlp)
         assert mlp.layer[0].weight.device.type == "cpu"
 
-        assert not is_meta_device(mlp)
-        assert not is_meta_device(nn.Module())
+        assert not is_on_meta_device(mlp)
+        assert not is_on_meta_device(nn.Module())
 
         model = BoringModel(4)
         assert model.layer[0].weight.device.type == "meta"

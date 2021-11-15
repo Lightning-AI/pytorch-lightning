@@ -329,7 +329,7 @@ def init_meta_context() -> Generator:
     _unset_meta_device()
 
 
-def is_meta_device(module: nn.Module) -> bool:
+def is_on_meta_device(module: nn.Module) -> bool:
     try:
         param = next(module.parameters())
         return param.device.type == "meta"
