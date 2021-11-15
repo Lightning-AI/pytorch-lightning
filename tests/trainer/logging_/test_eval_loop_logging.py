@@ -691,7 +691,7 @@ def test_log_metrics_only_include_metrics_from_concerned_dataloader(num_dataload
     test_dataloaders = [DataLoader(test, batch_size=1)] * num_dataloaders
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmpdir)
 
     output = trainer.test(model, dataloaders=test_dataloaders)
     assert sum(len(x) for x in output) == num_dataloaders
