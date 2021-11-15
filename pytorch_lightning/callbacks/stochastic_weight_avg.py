@@ -127,6 +127,7 @@ class StochasticWeightAveraging(Callback):
         self._initialized = False
         self._swa_scheduler: Optional[SWALR] = None
         self._scheduler_step_count: Optional[int] = None
+        self._init_n_averaged = 0
         self.momenta: Optional[Dict[nn.modules.batchnorm._BatchNorm, float]] = None
 
     @property
@@ -209,7 +210,7 @@ class StochasticWeightAveraging(Callback):
                 trainer.lr_schedulers.append(default_scheduler_cfg)
 
             if self.n_averaged is None:
-                self.n_averaged = torch.tensor(0, dtype=torch.long, device=pl_module.device)
+                self.n_averaged = torch.tensor(self._init_n_averaged, dtype=torch.long, device=pl_module.device)
 
         if self.swa_start <= trainer.current_epoch <= self.swa_end:
             self.update_parameters(self._average_model, pl_module, self.n_averaged, self.avg_fn)
@@ -295,7 +296,7 @@ class StochasticWeightAveraging(Callback):
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
     ) -> dict:
         checkpoint_data = {
-            "n_averaged": self.n_averaged,
+            "n_averaged": 0 if self.n_averaged is None else self.n_averaged.item(),
             "scheduler_step_count": None if self._swa_scheduler is None else self._swa_scheduler._step_count,
             "average_model_parameters": self._get_average_model_parameters(trainer),
         }
@@ -305,7 +306,7 @@ class StochasticWeightAveraging(Callback):
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
     ) -> None:
         if callback_state:
-            self.n_averaged = callback_state["n_averaged"]
+            self._init_n_averaged = callback_state["n_averaged"]
             self._scheduler_step_count = callback_state["scheduler_step_count"]
             self._load_average_model_parameters(callback_state["average_model_parameters"])
         else:

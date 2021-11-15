@@ -299,12 +299,14 @@ def test_swa_multiple_lrs(tmpdir):
     assert model.on_train_epoch_start_called
 
 
-@pytest.mark.parametrize("crash_after_epoch", [2, 4])
-def test_swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch):
+def swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch=4, ddp=False):
     model = SwaTestModel(crash_after_epoch=crash_after_epoch)
     swa_start = 3
     max_epochs = 5
     swa_callback = SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1)
+
+    num_processes = 2 if ddp else 1
+    strategy = "ddp_spawn" if ddp else None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -314,10 +316,12 @@ def test_swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch):
         limit_val_batches=0,
         callbacks=[swa_callback],
         accumulate_grad_batches=2,
-        num_processes=1,
+        num_processes=num_processes,
+        strategy=strategy,
     )
 
-    with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward), pytest.raises(RuntimeError):
+    exception_type = torch.multiprocessing.ProcessRaisedException if ddp else RuntimeError
+    with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward), pytest.raises(exception_type):
         trainer.fit(model)
 
     checkpoint_dir = Path(tmpdir) / "lightning_logs" / "version_0" / "checkpoints"
@@ -335,9 +339,20 @@ def test_swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch):
         limit_val_batches=0,
         callbacks=[swa_callback],
         accumulate_grad_batches=2,
-        num_processes=1,
+        num_processes=num_processes,
+        strategy=strategy,
         resume_from_checkpoint=checkpoint_path,
     )
 
     with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward):
         trainer.fit(model)
+
+
+@pytest.mark.parametrize("crash_after_epoch", [2, 4])
+def test_swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch):
+    swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch=crash_after_epoch)
+
+
+@RunIf(skip_windows=True)
+def test_swa_resume_training_from_checkpoint_ddp(tmpdir):
+    swa_resume_training_from_checkpoint(tmpdir, ddp=True)
