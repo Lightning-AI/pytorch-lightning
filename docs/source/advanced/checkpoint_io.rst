@@ -4,9 +4,9 @@ Custom Checkpointing IO
 .. warning:: The Checkpoint IO API is experimental and subject to change.
 
 Lightning supports modifying the checkpointing save/load functionality through the ``CheckpointIO``. This encapsulates the save/load logic
-that is managed by the ``TrainingTypePlugin``.
+that is managed by the ``StrategyPlugin``.
 
-``CheckpointIO`` can be extended to include your custom save/load functionality to and from a path. The ``CheckpointIO`` object can be passed to either a ``Trainer`` object or a ``TrainingTypePlugin`` as shown below.
+``CheckpointIO`` can be extended to include your custom save/load functionality to and from a path. The ``CheckpointIO`` object can be passed to either a ``Trainer`` object or a ``StrategyPlugin`` as shown below.
 
 .. code-block:: python
 
@@ -38,15 +38,15 @@ that is managed by the ``TrainingTypePlugin``.
     )
     trainer.fit(model)
 
-    # pass into TrainingTypePlugin
+    # pass into StrategyPlugin
     model = MyModel()
     device = torch.device("cpu")
     trainer = Trainer(
-        plugins=SingleDevicePlugin(device, checkpoint_io=custom_checkpoint_io),
+        strategy=SingleDevicePlugin(device, checkpoint_io=custom_checkpoint_io),
         callbacks=ModelCheckpoint(save_last=True),
     )
     trainer.fit(model)
 
 .. note::
 
-    Some ``TrainingTypePlugins`` do not support custom ``CheckpointIO`` as as checkpointing logic is not modifiable.
+    Some ``StrategyPlugins`` do not support custom ``CheckpointIO`` as as checkpointing logic is not modifiable.

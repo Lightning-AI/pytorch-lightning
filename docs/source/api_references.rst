@@ -136,17 +136,17 @@ Prediction
 Plugins API
 -----------
 
-Training Type Plugins
+Strategy Plugins
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. currentmodule:: pytorch_lightning.plugins.training_type
+.. currentmodule:: pytorch_lightning.plugins.strategy
 
 .. autosummary::
     :toctree: api
     :nosignatures:
     :template: classtemplate.rst
 
-    TrainingTypePlugin
+    StrategyPlugin
     SingleDevicePlugin
     ParallelPlugin
     DataParallelPlugin

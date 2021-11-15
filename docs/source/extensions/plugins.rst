@@ -29,7 +29,7 @@ We expose Accelerators and Plugins mainly for expert users that want to extend L
 
 There are two types of Plugins in Lightning with different responsibilities:
 
-TrainingTypePlugin
+StrategyPlugin
 ------------------
 
 - Launching and teardown of training processes (if applicable)
@@ -70,7 +70,7 @@ Expert users may choose to extend an existing plugin by overriding its methods .
                 device_ids=...,
             )
 
-or by subclassing the base classes :class:`~pytorch_lightning.plugins.training_type.TrainingTypePlugin` or
+or by subclassing the base classes :class:`~pytorch_lightning.plugins.strategy.StrategyPlugin` or
 :class:`~pytorch_lightning.plugins.precision.PrecisionPlugin` to create new ones. These custom plugins
 can then be passed into the Trainer directly or via a (custom) accelerator:
 
@@ -97,16 +97,16 @@ The full list of built-in plugins is listed below.
 ----------
 
 
-Training Type Plugins
+Strategy Plugins
 ---------------------
 
-.. currentmodule:: pytorch_lightning.plugins.training_type
+.. currentmodule:: pytorch_lightning.plugins.strategy
 
 .. autosummary::
     :nosignatures:
     :template: classtemplate.rst
 
-    TrainingTypePlugin
+    StrategyPlugin
     SingleDevicePlugin
     ParallelPlugin
     DataParallelPlugin
