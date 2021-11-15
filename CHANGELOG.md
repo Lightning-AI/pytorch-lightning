@@ -109,6 +109,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * ([#10403](https://github.com/PyTorchLightning/pytorch-lightning/pull/10403))
   * ([#10448](https://github.com/PyTorchLightning/pytorch-lightning/pull/10448))
 
+- Removed deprecated signature for `transfer_batch_to_device` hook. The new argument `dataloader_idx` is now required ([#10480](https://github.com/PyTorchLightning/pytorch-lightning/pull/10480))
+
 
 - Removed deprecated `utilities.distributed.rank_zero_{warn/deprecation}` ([#10451](https://github.com/PyTorchLightning/pytorch-lightning/pull/10451))
 
@@ -116,8 +118,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed custom `AllGatherGrad` implementation in favor of PyTorch's ([#10504](https://github.com/PyTorchLightning/pytorch-lightning/pull/10504))
 
 
+- Removed deprecated `mode` argument from `ModelSummary` class ([#10449](https://github.com/PyTorchLightning/pytorch-lightning/pull/10449))
+
+
 - Removed deprecated `Trainer.train_loop` property in favor of `Trainer.fit_loop` ([#10482](https://github.com/PyTorchLightning/pytorch-lightning/pull/10482))
 
+
+- Removed deprecated `Trainer.train_loop` property in favor of `Trainer.fit_loop` ([#10482](https://github.com/PyTorchLightning/pytorch-lightning/pull/10482))
 
 ### Fixed
 
@@ -127,7 +134,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `CombinedLoader` and `max_size_cycle` didn't receive a `DistributedSampler` ([#10374](https://github.com/PyTorchLightning/pytorch-lightning/issues/10374))
 
 
--
+- Fixed an issue that prevented the Trainer to shutdown workers when execution is interrupted due to failure([#10463](https://github.com/PyTorchLightning/pytorch-lightning/issues/10463))
+
+
+- Squeeze the early stopping monitor to remove empty tensor dimensions ([#10461](https://github.com/PyTorchLightning/pytorch-lightning/issues/10461))
 
 
 -
