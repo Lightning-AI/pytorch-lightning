@@ -137,7 +137,7 @@ Optimizer
 ---------
 
 Next, we choose which optimizer to use for training our model.
-In PyTorch we do it as follows:
+In PyTorch, the optimizer is created as follows:
 
 .. code-block:: python
 
@@ -146,7 +146,7 @@ In PyTorch we do it as follows:
     optimizer = Adam(LitMNIST().parameters(), lr=1e-3)
 
 
-In Lightning, this code is organized within the :func:`~pytorch_lightning.core.LightningModule.configure_optimizers` method of the LightningModule.
+In Lightning, the code above is moved within the :func:`~pytorch_lightning.core.LightningModule.configure_optimizers` method of the LightningModule.
 
 .. testcode::
 
@@ -154,7 +154,7 @@ In Lightning, this code is organized within the :func:`~pytorch_lightning.core.L
         def configure_optimizers(self):
             return Adam(self.parameters(), lr=1e-3)
 
-.. note:: The LightningModule is a subclassing :class:`~torch.nn.Module`  and therefore, you can access its children parameters with ``self.parameters()``.
+.. note:: The LightningModule is subclassing :class:`~torch.nn.Module` and therefore, you can access its children parameters directly with ``self.parameters()``.
 
 If you have multiple optimizers, you can configure them as follows:
 
