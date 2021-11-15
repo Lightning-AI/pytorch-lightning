@@ -874,21 +874,6 @@ def test_deepspeed_skip_backward_raises(tmpdir):
 
 
 @RunIf(min_gpus=1, deepspeed=True, special=True)
-def test_deepspeed_warn_train_dataloader_called(tmpdir):
-    """Test DeepSpeed warns when it calls ``lightning_module.train_dataloader`` internally for logging batch
-    size."""
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        strategy=DeepSpeedPlugin(),
-        gpus=1,
-        fast_dev_run=True,
-    )
-    with pytest.warns(UserWarning, match="Inferring the batch size for internal deepspeed logging"):
-        trainer.fit(model)
-
-
-@RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_deepspeed_setup_train_dataloader(tmpdir):
     """Test DeepSpeed works when setup is required to call in the DataModule."""
 
