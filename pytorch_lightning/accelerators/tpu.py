@@ -18,8 +18,8 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.plugins.precision import TPUPrecisionPlugin
-from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
-from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
+from pytorch_lightning.plugins.strategy.single_tpu import SingleTPUPlugin
+from pytorch_lightning.plugins.strategy.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.utilities import _XLA_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 

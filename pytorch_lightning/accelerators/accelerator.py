@@ -23,7 +23,8 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
-from pytorch_lightning.plugins.training_type import DataParallelPlugin, TrainingTypePlugin
+from pytorch_lightning.plugins.strategy import DataParallelPlugin
+from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, LightningEnum

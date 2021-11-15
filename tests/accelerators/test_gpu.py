@@ -2,7 +2,7 @@ import torch
 
 from pytorch_lightning.accelerators import GPUAccelerator
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.dp import DataParallelPlugin
+from pytorch_lightning.plugins.strategy.dp import DataParallelPlugin
 from tests.helpers.runif import RunIf
 
 
