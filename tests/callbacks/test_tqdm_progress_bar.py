@@ -45,8 +45,10 @@ from tests.helpers.runif import RunIf
 def test_tqdm_progress_bar_on(tmpdir, kwargs):
     """Test different ways the progress bar can be turned on."""
     if "progress_bar_refresh_rate" in kwargs:
-        pytest.deprecated_call(match=r"progress_bar_refresh_rate=.*` is deprecated").__enter__()
-    trainer = Trainer(default_root_dir=tmpdir, **kwargs)
+        with pytest.deprecated_call(match=r"progress_bar_refresh_rate=.*` is deprecated"):
+            trainer = Trainer(default_root_dir=tmpdir, **kwargs)
+    else:
+        trainer = Trainer(default_root_dir=tmpdir, **kwargs)
 
     progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBarBase)]
     assert len(progress_bars) == 1
