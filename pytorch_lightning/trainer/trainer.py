@@ -1784,15 +1784,6 @@ class Trainer(
         return n_epochs and (not self.current_epoch % n_epochs)
 
     @property
-    def disable_validation(self) -> bool:
-        """Check if validation is disabled during training."""
-        rank_zero_deprecation(
-            "`trainer.disable_validation` is deprecated in v1.4 and will be removed in v1.6."
-            " Use `not trainer.enable_validation` instead."
-        )
-        return not self.enable_validation
-
-    @property
     def enable_validation(self) -> bool:
         """Check if we should run validation during training."""
         model_ref = self.lightning_module
