@@ -116,6 +116,8 @@ class LightningModule(
         self._param_requires_grad_state = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
         self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
+        # TODO: remove after the 1.6 release
+        self._running_torchscript = False
 
         self._register_sharded_tensor_state_dict_hooks_if_available()
 
@@ -1962,6 +1964,8 @@ class LightningModule(
         """
         mode = self.training
 
+        self._running_torchscript = True
+
         if method == "script":
             torchscript_module = torch.jit.script(self.eval(), **kwargs)
         elif method == "trace":
@@ -1987,6 +1991,8 @@ class LightningModule(
             with fs.open(file_path, "wb") as f:
                 torch.jit.save(torchscript_module, f)
 
+        self._running_torchscript = False
+
         return torchscript_module
 
     @property
@@ -1996,11 +2002,12 @@ class LightningModule(
         Note:
             This property will not return correct value for Deepspeed (stage 3) and fully-sharded training.
         """
-        rank_zero_deprecation(
-            "The `LightningModule.model_size` property was deprecated in v1.5 and will be removed in v1.7."
-            " Please use the `pytorch_lightning.utilities.memory.get_model_size_mb`.",
-            stacklevel=5,
-        )
+        if not self._running_torchscript:  # remove with the deprecation removal
+            rank_zero_deprecation(
+                "The `LightningModule.model_size` property was deprecated in v1.5 and will be removed in v1.7."
+                " Please use the `pytorch_lightning.utilities.memory.get_model_size_mb`.",
+                stacklevel=5,
+            )
         return get_model_size_mb(self)
 
     def add_to_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
