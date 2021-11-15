@@ -130,25 +130,3 @@ def test_evaluation_loop_doesnt_store_outputs_if_epoch_end_not_overridden(tmpdir
     trainer.test_loop.connect(TestLoop())
     trainer.test(model)
     assert did_assert
-
-
-def test_log_metrics_only_include_metrics_from_concerned_dataloader(tmpdir):
-    class LessBoringModel(BoringModel):
-        def test_step(self, batch, batch_idx, dataloader_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            self.log("fake_test_acc", loss)
-            return {"y": loss}
-
-        def test_epoch_end(self, outputs) -> None:
-            torch.stack([x["y"] for x in outputs[0]]).mean()
-
-    num_dataloaders = 11
-    test = RandomDataset(32, 128)
-    test_dataloaders = [DataLoader(test, batch_size=32)] * num_dataloaders
-
-    model = LessBoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
-
-    output = trainer.test(model, dataloaders=test_dataloaders)
-    assert sum(len(x) for x in output) == num_dataloaders

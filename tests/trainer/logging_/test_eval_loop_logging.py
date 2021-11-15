@@ -20,6 +20,7 @@ from unittest.mock import call
 import numpy as np
 import pytest
 import torch
+from torch.utils.data import DataLoader
 
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -672,3 +673,29 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
         enable_model_summary=False,
     )
     trainer.fit(model)
+
+
+@pytest.mark.parametrize("num_dataloaders", [1, 2, 11])
+def test_log_metrics_only_include_metrics_from_concerned_dataloader(num_dataloaders, tmpdir):
+    class TestModel(BoringModel):
+        def test_step(self, batch, batch_idx, dataloader_idx=0):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log("fake_test_acc", loss)
+            return {"y": loss}
+
+        def test_epoch_end(self, *_) -> None:
+            pass
+
+    test = RandomDataset(32, 2)
+    test_dataloaders = [DataLoader(test, batch_size=1)] * num_dataloaders
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+
+    output = trainer.test(model, dataloaders=test_dataloaders)
+    assert sum(len(x) for x in output) == num_dataloaders
+    if num_dataloaders == 1:
+        assert "dataloader_idx" not in output[0]
+    else:
+        assert all(f"dataloader_idx_{idx}" == list(x.keys())[0].split("/")[1] for idx, x in enumerate(output))
