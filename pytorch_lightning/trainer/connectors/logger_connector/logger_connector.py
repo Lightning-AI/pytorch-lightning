@@ -156,7 +156,9 @@ class LoggerConnector:
         self._increment_eval_log_step()
 
     @staticmethod
-    def _filter_metrics_for_dataloader(dl_idx, metrics, metric_prefix="dataloader_idx"):
+    def _filter_metrics_for_dataloader(
+        dl_idx: int, metrics: Dict[str, int], metric_prefix: str = "dataloader_idx"
+    ) -> Dict[str, int]:
         result = {}
         for k, v in metrics.items():
             if metric_prefix not in k:
