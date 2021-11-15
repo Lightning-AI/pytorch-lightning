@@ -100,7 +100,7 @@ class TQDMProgressBar(ProgressBarBase):
 
     def __init__(self, refresh_rate: int = 1, process_position: int = 0):
         super().__init__()
-        self._refresh_rate = refresh_rate
+        self._refresh_rate = self._resolve_refresh_rate(refresh_rate)
         self._process_position = process_position
         self._enabled = True
         self.main_progress_bar = None
@@ -116,6 +116,13 @@ class TQDMProgressBar(ProgressBarBase):
         state["test_progress_bar"] = None
         state["predict_progress_bar"] = None
         return state
+
+    @staticmethod
+    def _resolve_refresh_rate(refresh_rate: Optional[int]) -> int:
+        if os.getenv("COLAB_GPU") and refresh_rate in [None, 1]:
+            # smaller refresh rate on colab causes crashes, choose a higher value
+            refresh_rate = 20
+        return 1 if refresh_rate is None else refresh_rate
 
     @property
     def refresh_rate(self) -> int:

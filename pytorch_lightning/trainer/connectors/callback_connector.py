@@ -216,11 +216,6 @@ class CallbackConnector:
             self.trainer.callbacks = [StochasticWeightAveraging()] + self.trainer.callbacks
 
     def configure_progress_bar(self, refresh_rate=None, process_position=0):
-        if os.getenv("COLAB_GPU") and refresh_rate is None:
-            # smaller refresh rate on colab causes crashes, choose a higher value
-            refresh_rate = 20
-        refresh_rate = 1 if refresh_rate is None else refresh_rate
-
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]
         if len(progress_bars) > 1:
             raise MisconfigurationException(
@@ -229,7 +224,7 @@ class CallbackConnector:
             )
         if len(progress_bars) == 1:
             progress_bar_callback = progress_bars[0]
-        elif refresh_rate > 0:
+        elif refresh_rate is None or refresh_rate > 0:
             progress_bar_callback = TQDMProgressBar(refresh_rate=refresh_rate, process_position=process_position)
             self.trainer.callbacks.append(progress_bar_callback)
         else:
