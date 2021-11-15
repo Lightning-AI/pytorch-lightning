@@ -761,7 +761,7 @@ def test_data_loading_wraps_dataset_and_samplers(use_fault_tolerant, tmpdir):
 
 class SequentialGetItemDataset(Dataset):
 
-    deterministic = True
+    _deterministic = True
 
     def __init__(self, length, *_):
         self.len = length
@@ -878,7 +878,7 @@ class CustomException(Exception):
 
 class SequentialIterableDataset(IterableDataset):
 
-    deterministic = True
+    _deterministic = True
 
     def __init__(self, length, *_):
         self.len = length

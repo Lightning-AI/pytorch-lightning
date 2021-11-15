@@ -594,17 +594,16 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
         raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
 
 
-def _validate_iterable_dataset(dataloader: DataLoader) -> bool:
+def _validate_iterable_dataset(dataloader: DataLoader) -> Tuple[bool, str]:
 
     SUPPORTED_SAMPLERS = (RandomSampler, SequentialSampler, DistributedSampler)
 
     dataset = dataloader.dataset
 
-    next_fn = getattr(dataset, "__next__", None)
-    if not next_fn:
+    if getattr(dataset, "__next__", None) is None:
         raise MisconfigurationException(
-            "Fault Tolerant Training doesn't support an IterableDataset without a `__next__`"
-            " method implemented. Hint: We recommend you to move your logic inside and rely "
+            "Fault Tolerant Training doesn't support an IterableDataset without a `__next__` "
+            "method implemented. Hint: We recommend you to move your logic inside and rely "
             "on a sampler, generator to perform the iteration."
         )
 
@@ -629,7 +628,7 @@ def _validate_iterable_dataset(dataloader: DataLoader) -> bool:
     return sampler[0].__class__ == SequentialSampler, ""
 
 
-def _validate_map_dataset(dataloader: DataLoader) -> bool:
+def _validate_map_dataset(dataloader: DataLoader) -> Tuple[bool, str]:
     SUPPORTED_SAMPLERS = (RandomSampler, SequentialSampler, DistributedSampler)
 
     sampler = getattr(dataloader, "sampler", None)
@@ -647,7 +646,7 @@ def _validate_map_dataset(dataloader: DataLoader) -> bool:
 
 
 def _validate_fault_tolerant_training(dataloader: Iterable, stage: RunningStage) -> None:
-    """This function is used to validate fault tolerant training is possible with the user data."""
+    """This function is used to validate that fault tolerant training is possible with the user data."""
     from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 
     if not _fault_tolerant_training():
@@ -669,7 +668,8 @@ def _validate_fault_tolerant_training(dataloader: Iterable, stage: RunningStage)
     apply_to_collection(dataloaders, (DataLoader, CycleIterator), flatten_dataloader)
 
     if len(dl_loaders) > 1 and stage == RunningStage.TRAINING:
-        if not all(getattr(dl.dataset, "deterministic", False) for dl in dl_loaders):
+        # Fixme: Find a better API or refactor the auto_restart test.
+        if not all(getattr(dl.dataset, "_deterministic", False) for dl in dl_loaders):
             raise MisconfigurationException("Fault Tolerant Training supports only a single dataloader.")
 
     supported = []
