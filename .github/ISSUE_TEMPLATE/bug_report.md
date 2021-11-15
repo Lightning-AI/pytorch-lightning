@@ -1,14 +1,14 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Create a bug report to help us improve
 title: ''
-labels: bug / fix, help wanted
+labels: bug
 assignees: ''
 ---
 
 ## 🐛 Bug
 
-<!-- A clear and concise description of what the bug is. -->
+<!-- A clear and concise description of the bug. -->
 
 ### To Reproduce
 
