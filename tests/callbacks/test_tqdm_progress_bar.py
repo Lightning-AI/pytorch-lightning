@@ -37,8 +37,6 @@ from tests.helpers.runif import RunIf
         # won't print but is still set
         {"callbacks": TQDMProgressBar(refresh_rate=0)},
         {"callbacks": TQDMProgressBar()},
-        # callbacks takes precedence
-        {"callbacks": TQDMProgressBar(), "enable_progress_bar": False},
         {"progress_bar_refresh_rate": 1},
     ],
 )
@@ -71,6 +69,9 @@ def test_tqdm_progress_bar_misconfiguration():
     callbacks = [TQDMProgressBar(), TQDMProgressBar(), ModelCheckpoint(dirpath="../trainer")]
     with pytest.raises(MisconfigurationException, match=r"^You added multiple progress bar callbacks"):
         Trainer(callbacks=callbacks)
+
+    with pytest.raises(MisconfigurationException, match=r"enable_progress_bar=False` but found `TQDMProgressBar"):
+        Trainer(callbacks=TQDMProgressBar(), enable_progress_bar=False)
 
 
 def test_tqdm_progress_bar_totals(tmpdir):
