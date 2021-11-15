@@ -1,0 +1,14 @@
+from pytorch_lightning.plugins.strategy.ddp import DDPPlugin  # noqa: F401
+from pytorch_lightning.plugins.strategy.ddp2 import DDP2Plugin  # noqa: F401
+from pytorch_lightning.plugins.strategy.ddp_spawn import DDPSpawnPlugin  # noqa: F401
+from pytorch_lightning.plugins.strategy.deepspeed import DeepSpeedPlugin  # noqa: F401
+from pytorch_lightning.plugins.strategy.dp import DataParallelPlugin  # noqa: F401
+from pytorch_lightning.plugins.strategy.fully_sharded import DDPFullyShardedPlugin  # noqa: F401
+from pytorch_lightning.plugins.strategy.horovod import HorovodPlugin  # noqa: F401
+from pytorch_lightning.plugins.strategy.parallel import ParallelPlugin  # noqa: F401
+from pytorch_lightning.plugins.strategy.sharded import DDPShardedPlugin  # noqa: F401
+from pytorch_lightning.plugins.strategy.sharded_spawn import DDPSpawnShardedPlugin  # noqa: F401
+from pytorch_lightning.plugins.strategy.single_device import SingleDevicePlugin  # noqa: F401
+from pytorch_lightning.plugins.strategy.single_tpu import SingleTPUPlugin  # noqa: F401
+from pytorch_lightning.plugins.strategy.strategy_plugin import StrategyPlugin  # noqa: F401
+from pytorch_lightning.plugins.strategy.tpu_spawn import TPUSpawnPlugin  # noqa: F401
