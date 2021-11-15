@@ -131,7 +131,7 @@ Now we add the training_step which has all our training loop logic
 Optimizer
 ---------
 
-Next we choose what optimizer to use for training our system.
+Next, we choose which optimizer to use for training our model.
 In PyTorch we do it as follows:
 
 .. code-block:: python
@@ -141,7 +141,7 @@ In PyTorch we do it as follows:
     optimizer = Adam(LitMNIST().parameters(), lr=1e-3)
 
 
-In Lightning we do the same but organize it under the :func:`~pytorch_lightning.core.LightningModule.configure_optimizers` method.
+In Lightning, this code is organized within the :func:`~pytorch_lightning.core.LightningModule.configure_optimizers` method of the LightningModule.
 
 .. testcode::
 
@@ -149,9 +149,9 @@ In Lightning we do the same but organize it under the :func:`~pytorch_lightning.
         def configure_optimizers(self):
             return Adam(self.parameters(), lr=1e-3)
 
-.. note:: The LightningModule itself has the parameters, so pass in self.parameters()
+.. note:: The LightningModule is a subclassing :class:`~torch.nn.Module`  and therefore, you can access its children parameters with ``self.parameters()``.
 
-However, if you have multiple optimizers use the matching parameters
+If you have multiple optimizers, you can configure them as follows:
 
 .. testcode::
 
