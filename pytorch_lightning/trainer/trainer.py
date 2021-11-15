@@ -64,10 +64,10 @@ from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
     _IPU_AVAILABLE,
+    _StrategyType,
     _TPU_AVAILABLE,
     device_parser,
     DeviceType,
-    DistributedType,
     GradClipAlgorithmType,
     parsing,
     rank_zero_deprecation,
@@ -694,6 +694,8 @@ class Trainer(
             # reset bookkeeping
             self.state.stage = None
             self.on_exception(exception)
+            # shutdown workers
+            self._data_connector.teardown()
             raise
 
     def fit(
@@ -1589,7 +1591,7 @@ class Trainer(
         return self.training_type_plugin.should_rank_save_checkpoint
 
     @property
-    def _distrib_type(self) -> DistributedType:
+    def _distrib_type(self) -> _StrategyType:
         return self._accelerator_connector._distrib_type
 
     @property
@@ -1752,10 +1754,10 @@ class Trainer(
     @property
     def data_parallel(self) -> bool:
         return self._distrib_type in (
-            DistributedType.DP,
-            DistributedType.DDP,
-            DistributedType.DDP_SPAWN,
-            DistributedType.DDP2,
+            _StrategyType.DP,
+            _StrategyType.DDP,
+            _StrategyType.DDP_SPAWN,
+            _StrategyType.DDP2,
         )
 
     @property
@@ -1780,15 +1782,6 @@ class Trainer(
         """Check if dataloader should be reloaded in the current epoch."""
         n_epochs = self.reload_dataloaders_every_n_epochs
         return n_epochs and (not self.current_epoch % n_epochs)
-
-    @property
-    def disable_validation(self) -> bool:
-        """Check if validation is disabled during training."""
-        rank_zero_deprecation(
-            "`trainer.disable_validation` is deprecated in v1.4 and will be removed in v1.6."
-            " Use `not trainer.enable_validation` instead."
-        )
-        return not self.enable_validation
 
     @property
     def enable_validation(self) -> bool:
@@ -2133,13 +2126,6 @@ class Trainer(
 
     def __setstate__(self, state):
         self.__dict__ = state
-
-    @property
-    def train_loop(self) -> FitLoop:
-        rank_zero_deprecation(
-            "`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
-        )
-        return self.fit_loop
 
     @property
     def terminate_on_nan(self) -> bool:

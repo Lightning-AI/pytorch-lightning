@@ -17,20 +17,7 @@ from unittest.mock import call, Mock
 import pytest
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_warn
-from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.model_summary import ModelSummary
 from tests.helpers import BoringModel
-
-
-def test_old_transfer_batch_to_device_hook(tmpdir):
-    class OldModel(BoringModel):
-        def transfer_batch_to_device(self, batch, device):
-            return super().transfer_batch_to_device(batch, device, None)
-
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=0, max_epochs=1)
-    with pytest.deprecated_call(match="old signature will be removed in v1.6"):
-        trainer.fit(OldModel())
 
 
 def test_v1_6_0_reload_dataloaders_every_epoch(tmpdir):
@@ -60,51 +47,3 @@ def test_v1_6_0_reload_dataloaders_every_epoch(tmpdir):
         [call.val_dataloader()] + [call.train_dataloader(), call.val_dataloader()] * 3 + [call.test_dataloader()]
     )
     assert tracker.mock_calls == expected_sequence
-
-
-def test_v1_6_0_is_overridden_model():
-    model = BoringModel()
-    with pytest.deprecated_call(match="and will be removed in v1.6"):
-        assert is_overridden("validation_step", model=model)
-    with pytest.deprecated_call(match="and will be removed in v1.6"):
-        assert not is_overridden("foo", model=model)
-
-
-def test_v1_6_0_train_loop(tmpdir):
-    trainer = Trainer()
-    with pytest.deprecated_call(
-        match=r"`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
-    ):
-        _ = trainer.train_loop
-
-
-def test_v1_6_0_rank_zero_warnings_moved():
-    with pytest.deprecated_call(match="in v1.3.7 and will be removed in v1.6"):
-        rank_zero_warn("test")
-    with pytest.deprecated_call(match="in v1.3.7 and will be removed in v1.6"):
-        rank_zero_deprecation("test")
-
-
-def test_v1_6_0_deprecated_model_summary_mode(tmpdir):
-    model = BoringModel()
-    with pytest.deprecated_call(match="Argument `mode` in `ModelSummary` is deprecated in v1.4"):
-        ModelSummary(model, mode="top")
-
-    with pytest.deprecated_call(match="Argument `mode` in `LightningModule.summarize` is deprecated in v1.4"):
-        model.summarize(mode="top")
-
-
-def test_v1_6_0_deprecated_disable_validation():
-    trainer = Trainer()
-    with pytest.deprecated_call(match="disable_validation` is deprecated in v1.4"):
-        _ = trainer.disable_validation
-
-
-def test_v1_6_0_deprecated_hpc_load(tmpdir):
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1)
-    trainer.fit(model)
-    trainer.checkpoint_connector.hpc_save(tmpdir, trainer.logger)
-    checkpoint_path = trainer.checkpoint_connector.get_max_ckpt_path_from_folder(str(tmpdir))
-    with pytest.deprecated_call(match=r"`CheckpointConnector.hpc_load\(\)` was deprecated in v1.4"):
-        trainer.checkpoint_connector.hpc_load(checkpoint_path)
