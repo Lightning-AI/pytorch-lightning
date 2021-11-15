@@ -124,7 +124,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated `Trainer.train_loop` property in favor of `Trainer.fit_loop` ([#10482](https://github.com/PyTorchLightning/pytorch-lightning/pull/10482))
 
 
-- Removed deprecated `hpc_load` property in favor of `CheckpointConnector` ([#10525](https://github.com/PyTorchLightning/pytorch-lightning/pull/10525))
+- Removed deprecated `hpc_load` property in favor of `CheckpointConnector.restore` ([#10525](https://github.com/PyTorchLightning/pytorch-lightning/pull/10525))
 
 ### Fixed
 
