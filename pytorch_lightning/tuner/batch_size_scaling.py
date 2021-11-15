@@ -106,7 +106,6 @@ def __scale_batch_dump_params(trainer: "pl.Trainer") -> None:
         "current_epoch": trainer.current_epoch,
         "global_step": trainer.global_step,
         "max_steps": trainer.max_steps,
-        "weights_summary": trainer.weights_summary,
         "logger": trainer.logger,
         "callbacks": trainer.callbacks,
         "checkpoint_callback": trainer.checkpoint_callback,
@@ -121,7 +120,6 @@ def __scale_batch_reset_params(trainer: "pl.Trainer", model: "pl.LightningModule
     trainer.auto_lr_find = False  # avoid lr find being called multiple times
     trainer.fit_loop.current_epoch = 0
     trainer.fit_loop.max_steps = steps_per_trial  # take few steps
-    trainer.weights_summary = None  # not needed before full run
     trainer.logger = DummyLogger() if trainer.logger is not None else None
     trainer.callbacks = []  # not needed before full run
     trainer.limit_train_batches = 1.0
@@ -134,7 +132,6 @@ def __scale_batch_restore_params(trainer: "pl.Trainer") -> None:
     trainer.fit_loop.current_epoch = trainer.__dumped_params["current_epoch"]
     trainer.fit_loop.global_step = trainer.__dumped_params["global_step"]
     trainer.fit_loop.max_steps = trainer.__dumped_params["max_steps"]
-    trainer.weights_summary = trainer.__dumped_params["weights_summary"]
     trainer.logger = trainer.__dumped_params["logger"]
     trainer.callbacks = trainer.__dumped_params["callbacks"]
     trainer.auto_scale_batch_size = trainer.__dumped_params["auto_scale_batch_size"]
