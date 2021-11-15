@@ -115,19 +115,19 @@ class StochasticWeightAveraging(Callback):
         if device is not None and not isinstance(device, (torch.device, str)):
             raise MisconfigurationException(f"device is expected to be a torch.device or a str. Found {device}")
 
-        self.n_averaged = None
+        self.n_averaged: Optional[torch.Tensor] = None
         self._swa_epoch_start = swa_epoch_start
         self._swa_lrs = swa_lrs
         self._annealing_epochs = annealing_epochs
         self._annealing_strategy = annealing_strategy
         self._avg_fn = avg_fn or self.avg_fn
         self._device = device
-        self._model_contains_batch_norm = None
-        self._average_model = None
+        self._model_contains_batch_norm: Optional[bool] = None
+        self._average_model: Optional[pl.LightningModule] = None
         self._initialized = False
-        self._swa_scheduler = None
-        self._scheduler_step_count = None
-        self.momenta = None
+        self._swa_scheduler: Optional[SWALR] = None
+        self._scheduler_step_count: Optional[int] = None
+        self.momenta: Optional[Dict[nn.modules.batchnorm._BatchNorm, float]] = None
 
     @property
     def swa_start(self) -> int:
@@ -167,8 +167,7 @@ class StochasticWeightAveraging(Callback):
             trainer.fit_loop.max_epochs += 1
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
-        resuming_after_start = (not self._initialized) and (self.swa_start < trainer.current_epoch <= self.swa_end)
-        if trainer.current_epoch == self.swa_start or resuming_after_start:
+        if (not self._initialized) and (self.swa_start <= trainer.current_epoch <= self.swa_end):
             self._initialized = True
 
             # move average model to request device.
@@ -314,15 +313,12 @@ class StochasticWeightAveraging(Callback):
                 f"Checkpoint has no data for the {self.state_key} callback, not initializing the callback state."
             )
 
-    def _get_average_model_parameters(self, trainer: "pl.Trainer") -> Any:
+    def _get_average_model_parameters(self, trainer: "pl.Trainer") -> Optional[List[nn.Parameter]]:
         if self._average_model is None or not (self.swa_start <= trainer.current_epoch <= self.swa_end):
             # If we're not within the SWA epochs then when loading checkpoint data we would want
             # to use parameters from the underlying model rather than the SWA parameters.
             return None
-        parameters = []
-        for p_swa in self._average_model.parameters():
-            parameters.append(p_swa.detach())
-        return parameters
+        return list(self._average_model.parameters())
 
     def _load_average_model_parameters(self, parameter_state: Any):
         if self._average_model is None or parameter_state is None:
@@ -330,5 +326,4 @@ class StochasticWeightAveraging(Callback):
         for p_swa, p_checkpoint in zip(self._average_model.parameters(), parameter_state):
             device = p_swa.device
             p_swa_ = p_swa.detach()
-            p_checkpoint_ = p_checkpoint.detach().to(device)
-            p_swa_.copy_(p_checkpoint_)
+            p_swa_.copy_(p_checkpoint.to(device))

@@ -14,6 +14,7 @@
 import logging
 import os
 from pathlib import Path
+from typing import Optional
 from unittest import mock
 
 import pytest
@@ -78,16 +79,10 @@ class SwaTestModel(BoringModel):
 
 
 class SwaTestCallback(StochasticWeightAveraging):
-    def __init__(self, *args, **kwargs):
-        if "resuming_from_epoch" in kwargs:
-            self.resuming_from_epoch = kwargs["resuming_from_epoch"]
-            del kwargs["resuming_from_epoch"]
-        else:
-            self.resuming_from_epoch = 0
-        super().__init__(*args, **kwargs)
-
     update_parameters_calls: int = 0
     transfer_weights_calls: int = 0
+    # Record the first epoch, as if we are resuming from a checkpoint this may not be equal to 0
+    first_epoch: Optional[int] = None
 
     def update_parameters(self, *args, **kwargs):
         self.update_parameters_calls += 1
@@ -99,6 +94,8 @@ class SwaTestCallback(StochasticWeightAveraging):
 
     def on_train_epoch_start(self, trainer, *args):
         super().on_train_epoch_start(trainer, *args)
+        if self.first_epoch is None:
+            self.first_epoch = trainer.current_epoch
         assert trainer.fit_loop._skip_backward == (trainer.current_epoch > self.swa_end)
         if self.swa_start <= trainer.current_epoch:
             assert isinstance(trainer.lr_schedulers[0]["scheduler"], SWALR)
@@ -127,15 +124,12 @@ class SwaTestCallback(StochasticWeightAveraging):
         if not isinstance(trainer.training_type_plugin, DDPSpawnPlugin):
             # check backward call count. the batchnorm update epoch should not backward
             assert trainer.accelerator.backward.call_count == (
-                (trainer.max_epochs - self.resuming_from_epoch) * trainer.limit_train_batches
+                (trainer.max_epochs - self.first_epoch) * trainer.limit_train_batches
             )
 
         # check call counts
-        if self.resuming_from_epoch >= self._swa_epoch_start:
-            expected_update_calls = trainer.max_epochs - self.resuming_from_epoch
-        else:
-            expected_update_calls = trainer.max_epochs - (self._swa_epoch_start - 1)
-        assert self.update_parameters_calls == expected_update_calls
+        first_swa_epoch = max(self.first_epoch, self.swa_start)
+        assert self.update_parameters_calls == trainer.max_epochs - first_swa_epoch
         assert self.transfer_weights_calls == 1
 
 
@@ -332,8 +326,7 @@ def test_swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch):
     checkpoint_path = checkpoint_dir / checkpoint_files[0]
 
     model = SwaTestModel()
-    restart_epoch = crash_after_epoch - 1
-    swa_callback = SwaTestCallback(resuming_from_epoch=restart_epoch, swa_epoch_start=swa_start, swa_lrs=0.1)
+    swa_callback = SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1)
     trainer = Trainer(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
