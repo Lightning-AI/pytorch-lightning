@@ -86,7 +86,7 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
-from pytorch_lightning.utilities.meta import materialize_module
+from pytorch_lightning.utilities.meta import is_on_meta_device, materialize_module
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import (
@@ -1437,9 +1437,20 @@ class Trainer(
 
     def _call_configure_sharded_model(self) -> None:
         with self.accelerator.model_sharded_context():
-            materialize_module(self.lightning_module)
+            self._handle_meta_model()
             self.call_hook("configure_sharded_model")
             self.call_hook("on_configure_sharded_model")
+
+    def _handle_meta_model(self) -> None:
+        if not is_on_meta_device(self.lightning_module):
+            return
+
+        if isinstance(self.training_type_plugin, DDPSpawnPlugin):
+            raise MisconfigurationException("LightningModule on meta device isn't supported with spawn.")
+
+        materialize_module(self.lightning_module)
+        # the trainer reference is lost during materialization
+        self.lightning_module.trainer = proxy(self)
 
     def _call_teardown_hook(self) -> None:
         fn = self.state.fn._setup_fn
