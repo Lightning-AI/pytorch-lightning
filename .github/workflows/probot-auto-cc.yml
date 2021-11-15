@@ -10,7 +10,6 @@ on:
 
 jobs:
   auto-cc:
-    if: ${{ github.repository_owner == 'PyTorchLightning' }}
     runs-on: ubuntu-latest
     steps:
       - uses: carmocca/probot@v1
