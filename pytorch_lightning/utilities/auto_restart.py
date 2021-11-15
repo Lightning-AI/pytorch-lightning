@@ -305,9 +305,6 @@ class CaptureIterableDataset(IterableDataset):
         # access wrapped dataset attributes
         dataset_dict = self.dataset.__dict__
 
-        # create a tuple of sampler names
-        samplers_names = tuple(v.__class__.__name__ for k, v in dataset_dict.items() if isinstance(v, Sampler))
-
         # create a dictionary of generator present within the dataset attributes
         dataset_sampler_generators = {k: v for k, v in dataset_dict.items() if isinstance(v, (Generator, Iterator))}
 
@@ -318,31 +315,17 @@ class CaptureIterableDataset(IterableDataset):
             if isinstance(generator, Sampler):
                 continue
 
-            # used to handle a weird behaviour from PyTorch 1.6
-            # where the sampler is converted to a list_iterator
-            is_legacy = False
+            # wrap the generator into a `FastForwardSampler`
+            sampler = FastForwardSampler(generator, attr_name=generator_attr_name)
 
-            if isinstance(generator, Generator):
-                # Generator name have the  the form `SamplerName.__iter__`
-                generator_name = generator.__qualname__.split(".")[0]
-            else:
-                # assume the retrieved iterator is coming from sampler.
-                is_legacy = True
+            # if `CaptureIterableDataset` was available, the sampler should reload its own state.
+            if self._state_dict is not None:
+                sampler.load_state_dict(self._state_dict[generator_attr_name])
+            # store the samplers
+            self.samplers[generator_attr_name] = sampler
 
-            # validate the base generator name matches a sampler name.
-            if is_legacy or any(sampler_name == generator_name for sampler_name in samplers_names):
-
-                # wrap the generator into a `FastForwardSampler`
-                sampler = FastForwardSampler(generator, attr_name=generator_attr_name)
-
-                # if `CaptureIterableDataset` was available, the sampler should reload its own state.
-                if self._state_dict is not None:
-                    sampler.load_state_dict(self._state_dict[generator_attr_name])
-                # store the samplers
-                self.samplers[generator_attr_name] = sampler
-
-                # replace generator with the generator from the `FastForwardSampler`.
-                dataset_dict[generator_attr_name] = iter(sampler)
+            # replace generator with the generator from the `FastForwardSampler`.
+            dataset_dict[generator_attr_name] = iter(sampler)
 
         self.reset_on_epoch()
 
