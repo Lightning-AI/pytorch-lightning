@@ -791,7 +791,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         max_epochs=1,
         val_check_interval=val_check_interval,
         num_sanity_val_steps=0,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
     trainer.fit(model)
 
@@ -829,7 +829,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         max_epochs=1,
         val_check_interval=val_check_interval,
         num_sanity_val_steps=0,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
     with pytest.raises(CustomException):
         # will stop during validation
@@ -880,7 +880,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         max_epochs=1,
         val_check_interval=val_check_interval,
         num_sanity_val_steps=0,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
     trainer.fit(model, ckpt_path=ckpt_path)
 

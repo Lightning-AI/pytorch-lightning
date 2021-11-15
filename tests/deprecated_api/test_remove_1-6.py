@@ -47,9 +47,3 @@ def test_v1_6_0_reload_dataloaders_every_epoch(tmpdir):
         [call.val_dataloader()] + [call.train_dataloader(), call.val_dataloader()] * 3 + [call.test_dataloader()]
     )
     assert tracker.mock_calls == expected_sequence
-
-
-def test_v1_6_0_deprecated_disable_validation():
-    trainer = Trainer()
-    with pytest.deprecated_call(match="disable_validation` is deprecated in v1.4"):
-        _ = trainer.disable_validation
