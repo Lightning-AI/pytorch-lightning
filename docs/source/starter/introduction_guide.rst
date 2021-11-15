@@ -108,6 +108,11 @@ equivalent to a pure PyTorch Module except it has added functionality. However, 
     out = net(x)
     print(out.shape)
 
+.. testoutput::
+    :hide:
+
+    torch.Size([1, 10])
+
 .. rst-class:: sphx-glr-script-out
 
  Out:
