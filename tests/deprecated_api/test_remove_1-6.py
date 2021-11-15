@@ -17,7 +17,6 @@ from unittest.mock import call, Mock
 import pytest
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringModel
 
 
@@ -48,11 +47,3 @@ def test_v1_6_0_reload_dataloaders_every_epoch(tmpdir):
         [call.val_dataloader()] + [call.train_dataloader(), call.val_dataloader()] * 3 + [call.test_dataloader()]
     )
     assert tracker.mock_calls == expected_sequence
-
-
-def test_v1_6_0_is_overridden_model():
-    model = BoringModel()
-    with pytest.deprecated_call(match="and will be removed in v1.6"):
-        assert is_overridden("validation_step", model=model)
-    with pytest.deprecated_call(match="and will be removed in v1.6"):
-        assert not is_overridden("foo", model=model)
