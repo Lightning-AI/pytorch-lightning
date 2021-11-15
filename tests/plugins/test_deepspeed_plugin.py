@@ -888,7 +888,7 @@ def test_deepspeed_warn_train_dataloader_called(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=1, deepspeed=True, special=False)
+@RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_deepspeed_setup_train_dataloader(tmpdir):
     """Test DeepSpeed works when setup is required to call in the DataModule."""
 
@@ -920,9 +920,9 @@ def test_deepspeed_setup_train_dataloader(tmpdir):
         fast_dev_run=True,
     )
     dm = TestSetupIsCalledDataModule()
-    with pytest.warns(UserWarning, match="Tried to Infer the batch size for internal deepspeed logging"):
+    with mock.patch("deepspeed.utils.logging.logger.warning", autospec=True) as mock_object:
         trainer.fit(model, datamodule=dm)
-    trainer.test(model, datamodule=dm)
+    assert any("Tried to infer the batch size" in str(arg) for arg in mock_object.call_args_list)
 
 
 @mock.patch("torch.optim.lr_scheduler.StepLR.step", autospec=True)
