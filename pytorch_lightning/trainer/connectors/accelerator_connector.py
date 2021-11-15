@@ -74,7 +74,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,
     _IPU_AVAILABLE,
-    _TORCH_GREATER_EQUAL_1_7,
     _TORCH_GREATER_EQUAL_1_8,
     _TPU_AVAILABLE,
 )
@@ -190,10 +189,8 @@ class AcceleratorConnector:
         self.deterministic = deterministic
         if _TORCH_GREATER_EQUAL_1_8:
             torch.use_deterministic_algorithms(deterministic)
-        elif _TORCH_GREATER_EQUAL_1_7:
+        else:
             torch.set_deterministic(deterministic)
-        else:  # the minimum version Lightning supports is PyTorch 1.6
-            torch._set_deterministic(deterministic)
         if deterministic:
             # fixing non-deterministic part of horovod
             # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383

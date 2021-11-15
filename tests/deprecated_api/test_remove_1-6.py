@@ -21,16 +21,6 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringModel
 
 
-def test_old_transfer_batch_to_device_hook(tmpdir):
-    class OldModel(BoringModel):
-        def transfer_batch_to_device(self, batch, device):
-            return super().transfer_batch_to_device(batch, device, None)
-
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=0, max_epochs=1)
-    with pytest.deprecated_call(match="old signature will be removed in v1.6"):
-        trainer.fit(OldModel())
-
-
 def test_v1_6_0_reload_dataloaders_every_epoch(tmpdir):
     model = BoringModel()
 
