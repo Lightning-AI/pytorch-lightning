@@ -40,16 +40,14 @@ def _extract_batch_size(batch: BType) -> Generator[int, None, None]:
             yield 1
         else:
             yield batch.size(0)
-    elif isinstance(batch, str):
-        yield len(batch)
-    elif isinstance(batch, (Iterable, Mapping)):
+    elif isinstance(batch, (Iterable, Mapping)) and not isinstance(batch, str):
         if isinstance(batch, Mapping):
             batch = batch.values()
 
         for sample in batch:
             yield from _extract_batch_size(sample)
     else:
-        yield 1
+        yield None
 
 
 def extract_batch_size(batch: BType) -> int:
@@ -60,6 +58,9 @@ def extract_batch_size(batch: BType) -> int:
     """
     batch_size = None
     for bs in _extract_batch_size(batch):
+        if bs is None:
+            continue
+
         if batch_size is None:
             batch_size = bs
         elif batch_size != bs:
@@ -68,6 +69,13 @@ def extract_batch_size(batch: BType) -> int:
                 f" found is {batch_size}. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`."
             )
             break
+
+    if batch_size is None:
+        raise MisconfigurationException(
+            "Trying to infer `batch_size` from an ambiguous collection but couldn't find one. Either"
+            " set `self.log(..., batch_size = batch_size)` or simply the batch collection passed"
+            " inside `*_step` functions."
+        )
 
     return batch_size
 
