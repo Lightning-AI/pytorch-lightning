@@ -16,7 +16,7 @@ from typing import Any, Dict, Optional
 
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
-from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
+from pytorch_lightning.plugins.strategy.single_device import SingleDevicePlugin
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden

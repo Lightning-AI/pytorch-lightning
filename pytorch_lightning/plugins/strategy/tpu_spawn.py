@@ -27,7 +27,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
-from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
+from pytorch_lightning.plugins.strategy.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, rank_zero_warn, set_shared_parameters

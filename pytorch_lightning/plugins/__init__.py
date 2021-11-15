@@ -19,20 +19,21 @@ from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.tpu import TPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.tpu_bf16 import TPUBf16PrecisionPlugin
-from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
-from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
-from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
-from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedPlugin
-from pytorch_lightning.plugins.training_type.dp import DataParallelPlugin
-from pytorch_lightning.plugins.training_type.fully_sharded import DDPFullyShardedPlugin
-from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin
-from pytorch_lightning.plugins.training_type.ipu import IPUPlugin
-from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
-from pytorch_lightning.plugins.training_type.sharded import DDPShardedPlugin
-from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnShardedPlugin
-from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
-from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
-from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
+from pytorch_lightning.plugins.strategy.ddp import DDPPlugin
+from pytorch_lightning.plugins.strategy.ddp2 import DDP2Plugin
+from pytorch_lightning.plugins.strategy.ddp_spawn import DDPSpawnPlugin
+from pytorch_lightning.plugins.strategy.deepspeed import DeepSpeedPlugin
+from pytorch_lightning.plugins.strategy.dp import DataParallelPlugin
+from pytorch_lightning.plugins.strategy.fully_sharded import DDPFullyShardedPlugin
+from pytorch_lightning.plugins.strategy.horovod import HorovodPlugin
+from pytorch_lightning.plugins.strategy.ipu import IPUPlugin
+from pytorch_lightning.plugins.strategy.parallel import ParallelPlugin
+from pytorch_lightning.plugins.strategy.sharded import DDPShardedPlugin
+from pytorch_lightning.plugins.strategy.sharded_spawn import DDPSpawnShardedPlugin
+from pytorch_lightning.plugins.strategy.single_device import SingleDevicePlugin
+from pytorch_lightning.plugins.strategy.single_tpu import SingleTPUPlugin
+from pytorch_lightning.plugins.strategy.strategy_plugin import StrategyPlugin
+from pytorch_lightning.plugins.strategy.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
 
 PLUGIN = Union[TrainingTypePlugin, PrecisionPlugin, ClusterEnvironment, CheckpointIO]
@@ -60,6 +61,7 @@ __all__ = [
     "FullyShardedNativeMixedPrecisionPlugin",
     "SingleDevicePlugin",
     "SingleTPUPlugin",
+    "StrategyPlugin",
     "TPUPrecisionPlugin",
     "TPUBf16PrecisionPlugin",
     "TPUSpawnPlugin",

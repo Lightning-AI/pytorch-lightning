@@ -29,7 +29,7 @@ from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
-from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.plugins.strategy.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
