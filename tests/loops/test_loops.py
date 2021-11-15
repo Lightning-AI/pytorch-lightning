@@ -24,7 +24,7 @@ from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoad
 
 from pl_examples.bug_report_model import RandomDataset
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from pytorch_lightning.loops import Loop, TrainingBatchLoop
 from pytorch_lightning.trainer.progress import BaseProgress
 from tests.helpers import BoringModel
@@ -907,8 +907,10 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
 
 
 @RunIf(min_torch="1.8.0")
-@pytest.mark.parametrize("persistent_workers", (False, True))
-def test_workers_are_shutdown(tmpdir, persistent_workers):
+@pytest.mark.parametrize("should_fail", [False, True])
+# False is de-activated due to slowness
+@pytest.mark.parametrize("persistent_workers", [True])
+def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
     # `num_workers == 1` uses `_MultiProcessingDataLoaderIter`
     # `persistent_workers` makes sure `self._iterator` gets set on the `DataLoader` instance
 
@@ -936,12 +938,30 @@ def test_workers_are_shutdown(tmpdir, persistent_workers):
     train_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
     val_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
 
+    class TestCallback(Callback):
+        def on_train_epoch_end(self, trainer, *_):
+            if trainer.current_epoch == 1:
+                raise CustomException
+
     max_epochs = 3
+
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=max_epochs)
-    trainer.fit(model, train_dataloader, val_dataloader)
-    assert train_dataloader.count_shutdown_workers == (2 if persistent_workers else max_epochs)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=max_epochs,
+        callbacks=TestCallback() if should_fail else None,
+    )
+
+    if should_fail:
+        with pytest.raises(CustomException):
+            trainer.fit(model, train_dataloader, val_dataloader)
+    else:
+        trainer.fit(model, train_dataloader, val_dataloader)
+
+    assert train_dataloader.count_shutdown_workers == 2 if should_fail else (2 if persistent_workers else max_epochs)
     # on sanity checking end, the workers are being deleted too.
-    assert val_dataloader.count_shutdown_workers == (2 if persistent_workers else max_epochs + 1)
+    assert val_dataloader.count_shutdown_workers == 2 if persistent_workers else (3 if should_fail else max_epochs + 1)
     assert train_dataloader._iterator is None
     assert val_dataloader._iterator is None
