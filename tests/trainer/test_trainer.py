@@ -48,7 +48,7 @@ from pytorch_lightning.plugins import (
     DDPSpawnShardedPlugin,
 )
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import DeviceType, DistributedType
+from pytorch_lightning.utilities import _StrategyType, DeviceType
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
@@ -1161,15 +1161,15 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
         ),
         (
             dict(accelerator="ddp", num_processes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(accelerator="ddp", num_nodes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(accelerator="ddp_cpu", num_processes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(accelerator="ddp2", gpus=None),
@@ -1181,43 +1181,43 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
         ),
         (
             dict(accelerator="dp", gpus=1),
-            dict(_distrib_type=DistributedType.DP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+            dict(_distrib_type=_StrategyType.DP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(accelerator="ddp", gpus=1),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(accelerator="ddp_cpu", num_processes=2, gpus=1),
-            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(accelerator="ddp2", gpus=1),
-            dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP2, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(accelerator=None, gpus=2),
-            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
         ),
         (
             dict(accelerator="dp", gpus=2),
-            dict(_distrib_type=DistributedType.DP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+            dict(_distrib_type=_StrategyType.DP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
         (
             dict(accelerator="ddp", gpus=2),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
         ),
         (
             dict(accelerator="ddp2", gpus=2),
-            dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP2, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
         (
             dict(accelerator="ddp2", num_processes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(accelerator="dp", num_processes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
     ],
 )
@@ -2103,11 +2103,11 @@ def test_detect_anomaly_nan(tmpdir):
         ),
         (
             dict(strategy="ddp", num_processes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(strategy="ddp", num_nodes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(strategy="ddp2", gpus=None),
@@ -2119,47 +2119,47 @@ def test_detect_anomaly_nan(tmpdir):
         ),
         (
             dict(strategy="dp", gpus=1),
-            dict(_distrib_type=DistributedType.DP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+            dict(_distrib_type=_StrategyType.DP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(strategy="ddp", gpus=1),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(strategy="ddp_spawn", gpus=1),
-            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(strategy="ddp2", gpus=1),
-            dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP2, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(strategy=None, gpus=2),
-            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
         ),
         (
             dict(strategy="dp", gpus=2),
-            dict(_distrib_type=DistributedType.DP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+            dict(_distrib_type=_StrategyType.DP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
         (
             dict(strategy="ddp", gpus=2),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
         ),
         (
             dict(strategy="ddp2", gpus=2),
-            dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP2, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
         (
             dict(strategy="ddp2", num_processes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(strategy="dp", num_processes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(strategy="ddp_spawn", num_processes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(strategy="ddp_spawn", num_processes=1, gpus=None),
@@ -2168,7 +2168,7 @@ def test_detect_anomaly_nan(tmpdir):
         (
             dict(strategy="ddp_fully_sharded", gpus=1),
             dict(
-                _distrib_type=DistributedType.DDP_FULLY_SHARDED,
+                _distrib_type=_StrategyType.DDP_FULLY_SHARDED,
                 _device_type=DeviceType.GPU,
                 num_gpus=1,
                 num_processes=1,
@@ -2176,32 +2176,32 @@ def test_detect_anomaly_nan(tmpdir):
         ),
         (
             dict(strategy=DDPSpawnPlugin(), num_processes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(strategy=DDPSpawnPlugin(), gpus=2),
-            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
         (
             dict(strategy=DDPPlugin(), num_processes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(strategy=DDPPlugin(), gpus=2),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
         (
             dict(strategy=DDP2Plugin(), gpus=2),
-            dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP2, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
         (
             dict(strategy=DataParallelPlugin(), gpus=2),
-            dict(_distrib_type=DistributedType.DP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+            dict(_distrib_type=_StrategyType.DP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
         (
             dict(strategy=DDPFullyShardedPlugin(), gpus=2),
             dict(
-                _distrib_type=DistributedType.DDP_FULLY_SHARDED,
+                _distrib_type=_StrategyType.DDP_FULLY_SHARDED,
                 _device_type=DeviceType.GPU,
                 num_gpus=2,
                 num_processes=1,
@@ -2210,7 +2210,7 @@ def test_detect_anomaly_nan(tmpdir):
         (
             dict(strategy=DDPSpawnShardedPlugin(), gpus=2),
             dict(
-                _distrib_type=DistributedType.DDP_SHARDED_SPAWN,
+                _distrib_type=_StrategyType.DDP_SHARDED_SPAWN,
                 _device_type=DeviceType.GPU,
                 num_gpus=2,
                 num_processes=1,
@@ -2218,7 +2218,7 @@ def test_detect_anomaly_nan(tmpdir):
         ),
         (
             dict(strategy=DDPShardedPlugin(), gpus=2),
-            dict(_distrib_type=DistributedType.DDP_SHARDED, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP_SHARDED, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
     ],
 )

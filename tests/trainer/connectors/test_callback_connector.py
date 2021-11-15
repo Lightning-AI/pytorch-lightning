@@ -22,6 +22,7 @@ from pytorch_lightning.callbacks import (
     LearningRateMonitor,
     ModelCheckpoint,
     ModelSummary,
+    ProgressBarBase,
     TQDMProgressBar,
 )
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
@@ -143,10 +144,11 @@ def test_attach_model_callbacks():
     def _attach_callbacks(trainer_callbacks, model_callbacks):
         model = LightningModule()
         model.configure_callbacks = lambda: model_callbacks
+        has_progress_bar = any(isinstance(cb, ProgressBarBase) for cb in trainer_callbacks + model_callbacks)
         trainer = Trainer(
             enable_checkpointing=False,
-            enable_progress_bar=False,
-            enable_model_summary=None,
+            enable_progress_bar=has_progress_bar,
+            enable_model_summary=False,
             callbacks=trainer_callbacks,
         )
         trainer.model = model

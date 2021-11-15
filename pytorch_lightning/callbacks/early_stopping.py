@@ -196,7 +196,7 @@ class EarlyStopping(Callback):
         ):  # short circuit if metric not present
             return
 
-        current = logs.get(self.monitor)
+        current = logs[self.monitor].squeeze()
         should_stop, reason = self._evaluate_stopping_criteria(current)
 
         # stop every ddp process if any world process decides to stop
