@@ -697,6 +697,8 @@ class Trainer(
             # reset bookkeeping
             self.state.stage = None
             self.on_exception(exception)
+            # shutdown workers
+            self._data_connector.teardown()
             raise
 
     def fit(
