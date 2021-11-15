@@ -694,6 +694,8 @@ class Trainer(
             # reset bookkeeping
             self.state.stage = None
             self.on_exception(exception)
+            # shutdown workers
+            self._data_connector.teardown()
             raise
 
     def fit(
@@ -2133,13 +2135,6 @@ class Trainer(
 
     def __setstate__(self, state):
         self.__dict__ = state
-
-    @property
-    def train_loop(self) -> FitLoop:
-        rank_zero_deprecation(
-            "`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
-        )
-        return self.fit_loop
 
     @property
     def terminate_on_nan(self) -> bool:

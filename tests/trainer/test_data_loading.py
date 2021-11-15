@@ -26,7 +26,7 @@ from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 
-@RunIf(skip_windows=True, min_torch="1.7.0")
+@RunIf(skip_windows=True)
 @pytest.mark.parametrize("mode", (1, 2, 3))
 def test_replace_distributed_sampler(tmpdir, mode):
     class IndexedRandomDataset(RandomDataset):
