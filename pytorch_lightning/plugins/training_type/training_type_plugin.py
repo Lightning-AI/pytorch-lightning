@@ -48,10 +48,6 @@ class TrainingTypePlugin(ABC):
         return self._checkpoint_io
 
     @property
-    def precision(self) -> Union[str, int]:
-        return self._precision_plugin.precision
-
-    @property
     def precision_plugin(self) -> PrecisionPlugin:
         return self._precision_plugin
 

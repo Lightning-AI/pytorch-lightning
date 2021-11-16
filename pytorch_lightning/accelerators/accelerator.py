@@ -25,6 +25,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import DataParallelPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, LightningEnum
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -56,6 +57,15 @@ class Accelerator:
         self.training_type_plugin = training_type_plugin
 
         if precision_plugin:
+            """
+            .. deprecated
+                precision_plugin parameter is deprecated will be removed soon.
+                Use :`training_type_plugin(precision_plugin) instead.
+            """
+            rank_zero_deprecation(
+                f"`{self.__class__.__name__}.precision` was and will be removed soon"
+                f" Use `training_type_plugin.precision_plugin.precision` instead."
+            )
             self.training_type_plugin._precision_plugin = precision_plugin
 
         self.optimizers: List = []
@@ -213,7 +223,7 @@ class Accelerator:
         opt_idx: int,
         closure: Callable[[], Any],
         model: Optional[Union["pl.LightningModule", Module]] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
         """performs the actual optimizer step.
 
@@ -270,8 +280,16 @@ class Accelerator:
 
     @property
     def precision(self) -> Union[str, int]:
-        """deprecated."""
-        return self.training_type_plugin.precision
+        """
+        .. deprecated
+            This method is deprecated will be removed soon.
+            Use :`training_type_plugin.precision_plugin.precision` instead.
+        """
+        rank_zero_deprecation(
+            f"`{self.__class__.__name__}.precision` was and will be removed soon"
+            f" Use `training_type_plugin.precision_plugin.precision` instead."
+        )
+        return self.training_type_plugin.precision_plugin.precision
 
     @property
     def scaler(self) -> Optional["GradScaler"]:
