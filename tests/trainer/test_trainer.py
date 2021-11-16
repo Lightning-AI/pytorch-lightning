@@ -1809,7 +1809,7 @@ class TrainerStagesModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "strategy,num_processes", [(None, 1), pytest.param("ddp_spawn", 2, marks=RunIf(skip_windows=True))]
+    "strategy,num_processes", [(None, 1), pytest.param("ddp_spawn", 2, marks=RunIf(skip_windows=True, skip_49370=True))]
 )
 def test_model_in_correct_mode_during_stages(tmpdir, strategy, num_processes):
     model = TrainerStagesModel()
@@ -1830,7 +1830,7 @@ class TestDummyModelForCheckpoint(BoringModel):
         pass
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, skip_49370=True)
 def test_fit_test_synchronization(tmpdir):
     """Test that the trainer synchronizes processes before returning control back to the caller."""
     tutils.set_random_main_port()

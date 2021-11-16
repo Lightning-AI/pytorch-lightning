@@ -161,7 +161,7 @@ def test_simple_profiler_with_nonexisting_dirpath(tmpdir):
     assert nonexisting_tmpdir.join("fit-profiler.txt").exists()
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, skip_49370=True)
 def test_simple_profiler_distributed_files(tmpdir):
     """Ensure the proper files are saved in distributed."""
     profiler = SimpleProfiler(dirpath=tmpdir, filename="profiler")

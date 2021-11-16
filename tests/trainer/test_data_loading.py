@@ -133,7 +133,7 @@ class TestSpawnBoringModel(BoringModel):
             assert warn_str in msg
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, skip_49370=True)
 @pytest.mark.parametrize("num_workers", [0, 1])
 def test_dataloader_warnings(tmpdir, num_workers):
     trainer = Trainer(default_root_dir=tmpdir, strategy="ddp_spawn", num_processes=2, fast_dev_run=4)
