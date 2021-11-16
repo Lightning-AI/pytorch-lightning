@@ -43,7 +43,7 @@ from pytorch_lightning.utilities.distributed import (
     ReduceOp,
     sync_ddp_if_available,
 )
-from pytorch_lightning.utilities.enums import DistributedType
+from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -58,7 +58,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     """Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training
     finishes."""
 
-    distributed_backend = DistributedType.DDP_SPAWN
+    distributed_backend = _StrategyType.DDP_SPAWN
 
     def __init__(
         self,

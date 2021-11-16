@@ -94,12 +94,9 @@ class CallbackConnector:
                 " bar pass `enable_progress_bar = False` to the Trainer."
             )
 
-        if enable_progress_bar:
-            self.trainer._progress_bar_callback = self.configure_progress_bar(
-                progress_bar_refresh_rate, process_position
-            )
-        else:
-            self.trainer._progress_bar_callback = None
+        self.trainer._progress_bar_callback = self.configure_progress_bar(
+            progress_bar_refresh_rate, process_position, enable_progress_bar
+        )
 
         # configure the ModelSummary callback
         self._configure_model_summary_callback(enable_model_summary, weights_summary)
@@ -214,8 +211,11 @@ class CallbackConnector:
         existing_swa = [cb for cb in self.trainer.callbacks if isinstance(cb, StochasticWeightAveraging)]
         if not existing_swa:
             self.trainer.callbacks = [StochasticWeightAveraging()] + self.trainer.callbacks
-
-    def configure_progress_bar(self, refresh_rate=None, process_position=0):
+            
+    def configure_progress_bar(
+        self, refresh_rate: Optional[int] = None, process_position: int = 0, enable_progress_bar: bool = True
+    ) -> Optional[ProgressBarBase]:
+      
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]
         if len(progress_bars) > 1:
             raise MisconfigurationException(
@@ -224,7 +224,12 @@ class CallbackConnector:
             )
         if len(progress_bars) == 1:
             progress_bar_callback = progress_bars[0]
-        elif refresh_rate is None or refresh_rate > 0:
+            if not enable_progress_bar:
+                raise MisconfigurationException(
+                    "Trainer was configured with `enable_progress_bar=False`"
+                    f" but found `{progress_bar_callback.__class__.__name__}` in callbacks list."
+                )
+        elif (refresh_rate is None or refresh_rate > 0) and enable_progress_bar:
             progress_bar_callback = TQDMProgressBar(refresh_rate=refresh_rate, process_position=process_position)
             self.trainer.callbacks.append(progress_bar_callback)
         else:
