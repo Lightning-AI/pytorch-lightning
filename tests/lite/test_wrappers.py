@@ -73,10 +73,11 @@ def test_lite_module_device_propagation(device):
     class DeviceModule(DeviceDtypeModuleMixin):
         pass
 
-    module = DeviceModule()
-    lite_module = _LiteModule(module, Mock())
+    device_module = DeviceModule()
+    lite_module = _LiteModule(device_module, Mock())
     lite_module.to(device)
-    assert lite_module.device == lite_module.module.device == module.device == device
+    assert device_module.device == device
+    assert lite_module.device == device
 
 
 def test_lite_dataloader_iterator():
