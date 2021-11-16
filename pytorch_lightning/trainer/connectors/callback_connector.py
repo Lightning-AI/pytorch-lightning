@@ -221,12 +221,19 @@ class CallbackConnector:
                 " progress bar is supported."
             )
         if len(progress_bars) == 1:
+            # the user specified the progress bar in the callbacks list
+            # so the trainer doesn't need to provide a default one
+            if enable_progress_bar:
+                return
+
+            # otherwise the user specified a progress bar callback but also
+            # elected to disable the progress bar with the trainer flag
             progress_bar_callback = progress_bars[0]
-            if not enable_progress_bar:
-                raise MisconfigurationException(
-                    "Trainer was configured with `enable_progress_bar=False`"
-                    f" but found `{progress_bar_callback.__class__.__name__}` in callbacks list."
-                )
+            raise MisconfigurationException(
+                "Trainer was configured with `enable_progress_bar=False`"
+                f" but found `{progress_bar_callback.__class__.__name__}` in callbacks list."
+            )
+
         # Return early if the user intends to disable the progress bar callback
         if refresh_rate == 0 or not enable_progress_bar:
             return
