@@ -1276,12 +1276,19 @@ class RandomSamplerStateful(RandomSampler):
     [
         ([RandomFaultTolerantDataset], [RandomFaultTolerantDataset]),
         ([RandomFaultTolerantDataset, RandomFaultTolerantDataset], [RandomFaultTolerantDataset]),
+        (
+            [RandomFaultTolerantDataset, RandomFaultTolerantDataset],
+            [RandomFaultTolerantDataset, RandomFaultTolerantDataset],
+        ),
     ],
 )
 @pytest.mark.parametrize("sampler_cls", [RandomSamplerStateful])
 @pytest.mark.parametrize("num_workers", [0])
+@pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "2"})
-def test_fault_tolerant_manual_mode(num_workers, sampler_cls, train_dataset_cls, val_dataset_cls, tmpdir):
+def test_fault_tolerant_manual_mode(
+    val_check_interval, num_workers, sampler_cls, train_dataset_cls, val_dataset_cls, tmpdir
+):
     class TestModel(BoringModel):
         def __init__(self, should_fail: bool = False):
             super().__init__()
@@ -1299,7 +1306,7 @@ def test_fault_tolerant_manual_mode(num_workers, sampler_cls, train_dataset_cls,
                 losses.append(super().training_step(b, batch_idx)["loss"])
             return torch.stack(losses).mean()
 
-        def validation_step(self, batch, batch_idx):
+        def validation_step(self, batch, batch_idx, dataloader_idx=0):
             pass
 
         validation_epoch_end = None
@@ -1331,14 +1338,14 @@ def test_fault_tolerant_manual_mode(num_workers, sampler_cls, train_dataset_cls,
 
     seed_everything(42)
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval)
     trainer.fit(model)
     total_batches = model.batches
     total_weight = deepcopy(model.layer.weight)
 
     seed_everything(42)
     model = TestModel(should_fail=True)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval)
     with suppress(CustomException):
         trainer.fit(model)
     failed_batches = model.batches
@@ -1349,7 +1356,7 @@ def test_fault_tolerant_manual_mode(num_workers, sampler_cls, train_dataset_cls,
 
     seed_everything(42)
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval)
     trainer.fit(model, ckpt_path=checkpoint_path)
     restart_batches = model.batches
 
