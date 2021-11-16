@@ -85,7 +85,7 @@ def test_attributes_from_environment_variables(caplog):
     },
 )
 def test_is_using_kubeflow():
-    assert KubeflowEnvironment.is_using_kubeflow()
+    assert KubeflowEnvironment.detect()
 
 
 @mock.patch.dict(
@@ -100,4 +100,4 @@ def test_is_using_kubeflow():
     },
 )
 def test_is_using_kubeflow_torchelastic():
-    assert not KubeflowEnvironment.is_using_kubeflow()
+    assert not KubeflowEnvironment.detect()

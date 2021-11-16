@@ -70,6 +70,10 @@ class SLURMEnvironment(ClusterEnvironment):
 
         return int(default_port)
 
+    @staticmethod
+    def detect() -> bool:
+        return "SLURM_NTASKS" in os.environ
+
     def world_size(self) -> int:
         return int(os.environ["SLURM_NTASKS"])
 

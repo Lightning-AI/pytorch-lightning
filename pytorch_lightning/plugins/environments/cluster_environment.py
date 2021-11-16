@@ -40,6 +40,12 @@ class ClusterEnvironment(ABC):
     def main_port(self) -> int:
         """An open and configured port in the main node through which all processes communicate."""
 
+    @staticmethod
+    @abstractmethod
+    def detect() -> bool:
+        """Detects the environment settings corresponding to this cluster and returns ``True`` if they match."""
+        pass
+
     @abstractmethod
     def world_size(self) -> int:
         """The number of processes across all devices and nodes."""

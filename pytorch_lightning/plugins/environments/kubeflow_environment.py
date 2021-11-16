@@ -14,8 +14,10 @@
 
 import logging
 import os
+from typing import Any
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.utilities import rank_zero_deprecation
 
 log = logging.getLogger(__name__)
 
@@ -27,13 +29,14 @@ class KubeflowEnvironment(ClusterEnvironment):
     .. _Kubeflow: https://www.kubeflow.org
     """
 
-    @staticmethod
-    def is_using_kubeflow() -> bool:
-        """Returns ``True`` if the current process was launched using Kubeflow PyTorchJob."""
-        required_env_vars = ("KUBERNETES_PORT", "MASTER_ADDR", "MASTER_PORT", "WORLD_SIZE", "RANK")
-        # torchelastic sets these. Make sure we're not in torchelastic
-        excluded_env_vars = ("GROUP_RANK", "LOCAL_RANK", "LOCAL_WORLD_SIZE")
-        return all(v in os.environ for v in required_env_vars) and not any(v in os.environ for v in excluded_env_vars)
+    def __new__(cls, *args: Any, **kwargs: Any) -> "ClusterEnvironment":
+        # TODO: remove in 1.7
+        if hasattr(cls, "is_using_kubeflow") and callable(cls.is_using_kubeflow):
+            rank_zero_deprecation(
+                f"`{cls.__name__}.is_using_kubeflow` has been deprecated in v1.6 and will be removed in 1.7."
+                " Implement the static method `detect()` instead (do not forget to add the `@staticmethod` decorator)."
+            )
+        return super().__new__(cls, *args, **kwargs)
 
     @property
     def creates_processes_externally(self) -> bool:
@@ -46,6 +49,14 @@ class KubeflowEnvironment(ClusterEnvironment):
     @property
     def main_port(self) -> int:
         return int(os.environ["MASTER_PORT"])
+
+    @staticmethod
+    def detect() -> bool:
+        """Returns ``True`` if the current process was launched using Kubeflow PyTorchJob."""
+        required_env_vars = ("KUBERNETES_PORT", "MASTER_ADDR", "MASTER_PORT", "WORLD_SIZE", "RANK")
+        # torchelastic sets these. Make sure we're not in torchelastic
+        excluded_env_vars = ("GROUP_RANK", "LOCAL_RANK", "LOCAL_WORLD_SIZE")
+        return all(v in os.environ for v in required_env_vars) and not any(v in os.environ for v in excluded_env_vars)
 
     def world_size(self) -> int:
         return int(os.environ["WORLD_SIZE"])
