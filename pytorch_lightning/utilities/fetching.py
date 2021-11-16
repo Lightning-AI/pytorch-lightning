@@ -133,6 +133,16 @@ class AbstractDataFetcher(ABC):
 
         apply_to_collections(self.loaders, self.loader_iters, (Iterator, DataLoader), _apply_patch_fn)
 
+    def _attach_data_fetcher(self):
+        def _attach_data_fetcher_fn(loader: DataLoader):
+            if isinstance(loader, CycleIterator):
+                loader = loader.loader
+
+            if isinstance(loader, DataLoader) and _fault_tolerant_training():
+                loader._lightning_fetcher = self
+
+        apply_to_collection(self.loaders, (DataLoader, CycleIterator), _attach_data_fetcher_fn)
+
     def _store_dataloader_iter_state(
         self, dataloader_iter: Iterator, dataloader_iter_states: List[IteratorState]
     ) -> None:
@@ -195,7 +205,8 @@ class AbstractDataFetcher(ABC):
         if self.dataloader is None:
             raise MisconfigurationException("The iterate hasn't been provided. HINT: Did you call setup function ?.")
         self.reset()
-        _patch_dataloader_iterators()
+        self._attach_data_fetcher()
+        _patch_dataloader_iterators(self)
         self.dataloader_iter = iter(self.dataloader)
         self._apply_patch()
         self.prefetching(self.prefetch_batches)

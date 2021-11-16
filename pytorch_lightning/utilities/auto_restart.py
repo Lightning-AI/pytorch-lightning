@@ -589,7 +589,8 @@ def patch_dataloader_iterator(
     as part of the sample and then a special collate function :func:`_capture_metadata_collate`
     will extract the current iteration as part of the metadata returned by a custom batch.
     """
-    if _fault_tolerant_training_mode() == FaultTolerantTrainingModes.AUTOMATIC:
+    if not _fault_tolerant_training_mode().is_automatic:
+        return
         assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
     iterator._next_data = _next_data_wrapper(
         iterator._next_data, iterator, dataloader, num_batches_fetched, data_fetcher
@@ -661,6 +662,7 @@ class _StatefulMixin:
     def _reset(self, loader, first_iter=False):
         super()._reset(loader, first_iter=first_iter)
         self._loader = loader
+        self.num_batches_fetched = 0
 
     def _store_sampler_state(self):
         """This function is used to extract the sampler states if any."""
@@ -694,20 +696,48 @@ class _StatefulMixin:
         if isinstance(self._loader.collate_fn, partial):
             self._loader.collate_fn = self._loader.collate_fn.keywords["default_collate"]
 
+    def _next_data(self):
+        combined_batch = super()._next_data()
+
+        batch, state = combined_batch["data"], combined_batch[AutoRestartBatchKeys.PL_RESTART_META]
+        self.num_batches_fetched += 1
+
+        sampler_state, sampler_state_idx = self._sampler_state.pop(0)
+        # there is no workers within the samplers
+        worker_id = list(state.keys())[0]
+        state = [
+            IteratorState(
+                num_workers=self._loader.num_workers,
+                sampler_state=sampler_state,
+                dataset_state=state,
+                worker_id=worker_id,
+                num_batches_fetched=self.num_batches_fetched,
+            )
+        ]
+        # ensures there is an alignement between the sampler state and currently fetched batch
+        assert sampler_state_idx == self.num_batches_fetched
+        self._data_fetcher._store_dataloader_iter_state(self, state)
+        return batch
+
 
 class _SingleProcessDataLoaderIterStateful(_StatefulMixin, _SingleProcessDataLoaderIter):
     def __init__(self, loader):
         self._prepare_loader(loader)
         super().__init__(loader)
+        self._data_fetcher = loader._lightning_fetcher
+        self.num_batches_fetched = 0
 
 
 class _MultiProcessingDataLoaderIterStateful(_StatefulMixin, _MultiProcessingDataLoaderIter):
     def __init__(self, loader):
         self._prepare_loader(loader)
         super().__init__(loader)
+        self._data_fetcher = loader._lightning_fetcher
+        self.num_batches_fetched = 0
 
 
 def _get_iterator(self) -> "_BaseDataLoaderIter":
+    self._lightning_fetcher
     if self.num_workers == 0:
         return _SingleProcessDataLoaderIterStateful(self)
     else:
@@ -715,7 +745,7 @@ def _get_iterator(self) -> "_BaseDataLoaderIter":
         return _MultiProcessingDataLoaderIterStateful(self)
 
 
-def _patch_dataloader_iterators():
+def _patch_dataloader_iterators(data_fetcher):
     """This function is used to replace the DataLoader iterator by their stateful version."""
     if _fault_tolerant_training_mode().is_manual:
         DataLoader._get_iterator = _get_iterator
