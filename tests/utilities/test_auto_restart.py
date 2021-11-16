@@ -1293,10 +1293,9 @@ def test_fault_tolerant_manual_mode_enum():
         ([RandomFaultTolerantDataset, RandomFaultTolerantDataset], [RandomFaultTolerantDataset]),
     ],
 )
-@pytest.mark.parametrize("sampler_cls", [RandomSamplerStateful])
 @pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "2"})
-def test_fault_tolerant_manual_mode(val_check_interval, sampler_cls, train_dataset_cls, val_dataset_cls, tmpdir):
+def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_dataset_cls, tmpdir):
     class TestModel(BoringModel):
         def __init__(self, should_fail: bool = False):
             super().__init__()
@@ -1321,7 +1320,7 @@ def test_fault_tolerant_manual_mode(val_check_interval, sampler_cls, train_datas
         def _create_dataloader_kwargs(self, dataset_class, dataset_len, seed, num_workers):
             dl_kwargs = {}
             dl_kwargs["dataset"] = dataset_class(dataset_len, 1, seed=seed)
-            dl_kwargs["sampler"] = sampler_cls(dl_kwargs["dataset"], seed=seed)
+            dl_kwargs["sampler"] = RandomSamplerStateful(dl_kwargs["dataset"], seed=seed)
             dl_kwargs["num_workers"] = num_workers
             dl_kwargs["batch_size"] = 1
             return dl_kwargs
