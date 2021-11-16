@@ -15,8 +15,10 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
+import torch.nn as nn
 from torch.utils.data.dataloader import DataLoader
 
+from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from tests.helpers.runif import RunIf
@@ -63,6 +65,18 @@ def test_lite_module_forward_conversion(precision, input_type, expected_type):
     out = lite_module(torch.tensor([1, 2, 3], dtype=input_type, device=device))
     assert module.call_args[0][0].dtype == expected_type
     assert out.dtype == input_type or out.dtype == torch.get_default_dtype()
+
+
+@RunIf(min_gpus=1)
+@pytest.mark.parametrize("device", ["cpu", torch.device("cuda", 0)])
+def test_lite_module_device_propagation(device):
+    class DeviceModule(DeviceDtypeModuleMixin):
+        pass
+
+    module = DeviceModule()
+    lite_module = _LiteModule(module, Mock())
+    lite_module.to(device)
+    assert lite_module.device is lite_module.module.device is module.device is device
 
 
 def test_lite_dataloader_iterator():
