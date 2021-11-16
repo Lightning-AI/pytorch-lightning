@@ -240,6 +240,7 @@ class TensorBoardLogger(LightningLoggerBase):
 
             if input_array is not None:
                 input_array = model._apply_batch_transfer_handler(input_array)
+                model._running_torchscript = True
                 self.experiment.add_graph(model, input_array)
             else:
                 rank_zero_warn(
