@@ -90,7 +90,7 @@ This is done by adding ``sync_dist=True`` to all ``self.log`` calls in the valid
 This ensures that each GPU worker has the same behaviour when tracking model checkpoints, which is important for later downstream tasks such as testing the best checkpoint across all workers.
 The ``sync_dist`` option can also be used in logging calls during the step methods, but be aware that this can lead to significant communication overhead and slow down your training.
 
-Note if you use any built in metrics or custom metrics that use the :doc:`Metrics API <../extensions/metrics>`, these do not need to be updated and are automatically handled for you.
+Note if you use any built in metrics or custom metrics that use `TorchMetrics <https://torchmetrics.readthedocs.io/>`_, these do not need to be updated and are automatically handled for you.
 
 .. testcode::
 
