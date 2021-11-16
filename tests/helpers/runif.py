@@ -168,6 +168,7 @@ class RunIf:
             reasons.append("Rich")
 
         if skip_49370:
+            # strategy=ddp_spawn, accelerator=cpu, python>=3.9, torch<1.8 does not work
             py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
             ge_3_9 = Version(py_version) >= Version("3.9")
             torch_version = get_distribution("torch").version

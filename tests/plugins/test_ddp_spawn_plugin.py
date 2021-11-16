@@ -91,7 +91,6 @@ class TestDDPSpawnPlugin(DDPSpawnPlugin):
         return super().get_from_queue(trainer, queue)
 
 
-# (ddp_spawn, CPU, python 3.9) does not work: https://github.com/pytorch/pytorch/issues/49370
 @RunIf(skip_windows=True, skip_49370=True)
 def test_ddp_spawn_add_get_queue(tmpdir):
     """Tests add_to_queue/get_from_queue with DDPSpawnPlugin."""
@@ -129,7 +128,6 @@ class BoringModelDDP(BoringModel):
         assert isinstance(self.trainer.model, LightningModule)
 
 
-# (ddp_spawn, CPU, python 3.9) does not work: https://github.com/pytorch/pytorch/issues/49370
 @RunIf(skip_windows=True, skip_49370=True)
 def test_ddp_spawn_configure_ddp(tmpdir):
     """Tests with ddp spawn plugin."""
