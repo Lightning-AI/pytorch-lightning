@@ -126,7 +126,6 @@ class PredictionLoop(DataLoaderLoop):
         self.trainer._call_hook(self.trainer, "on_predict_epoch_end", results)
         self.trainer._call_hook(self.trainer.lightning_module, "on_predict_epoch_end", results)
 
-
         if self.return_predictions:
             return results[0] if self.num_dataloaders == 1 else results
 

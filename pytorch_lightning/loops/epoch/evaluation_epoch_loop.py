@@ -240,11 +240,14 @@ class EvaluationEpochLoop(Loop):
 
         if self.trainer.testing:
             self.trainer._call_hook(self.trainer, "on_test_batch_start", batch, batch_idx, dataloader_idx)
-            self.trainer._call_hook(self.trainer.lightning_module, "on_test_batch_start", batch, batch_idx, dataloader_idx)
+            self.trainer._call_hook(
+                self.trainer.lightning_module, "on_test_batch_start", batch, batch_idx, dataloader_idx
+            )
         else:
             self.trainer._call_hook(self.trainer, "on_validation_batch_start", batch, batch_idx, dataloader_idx)
-            self.trainer._call_hook(self.trainer.lightning_module, "on_validation_batch_start", batch, batch_idx, dataloader_idx)
-
+            self.trainer._call_hook(
+                self.trainer.lightning_module, "on_validation_batch_start", batch, batch_idx, dataloader_idx
+            )
 
     def _on_evaluation_batch_end(
         self, output: Optional[STEP_OUTPUT], batch: Any, batch_idx: int, dataloader_idx: int

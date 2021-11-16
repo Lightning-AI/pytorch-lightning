@@ -220,7 +220,9 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             else {}
         )
         self.trainer._call_hook(self.trainer, "on_train_batch_end", batch_end_outputs, batch, batch_idx, **extra_kwargs)
-        self.trainer._call_hook(self.trainer.lightning_module, "on_train_batch_end", batch_end_outputs, batch, batch_idx, **extra_kwargs)
+        self.trainer._call_hook(
+            self.trainer.lightning_module, "on_train_batch_end", batch_end_outputs, batch, batch_idx, **extra_kwargs
+        )
         self.trainer._call_hook(self.trainer, "on_batch_end")
         self.trainer.logger_connector.on_batch_end()
 
