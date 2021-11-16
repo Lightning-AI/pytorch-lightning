@@ -701,7 +701,7 @@ class AcceleratorConnector:
                 cluster_environment=self.select_cluster_environment(), parallel_devices=self.parallel_devices
             )
         elif self.use_ddp:
-            use_slurm_ddp = self.use_ddp and self._is_slurm_managing_tasks
+            use_slurm_ddp = self.use_ddp and self._is_slurm_managing_tasks()
             use_torchelastic_ddp = self.use_ddp and TorchElasticEnvironment.is_using_torchelastic()
             use_kubeflow_ddp = self.use_ddp and KubeflowEnvironment.is_using_kubeflow()
             use_ddp_spawn = self._distrib_type == _StrategyType.DDP_SPAWN
@@ -709,7 +709,7 @@ class AcceleratorConnector:
             use_tpu_spawn = self.use_tpu and self._distrib_type == _StrategyType.TPU_SPAWN
             use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and TorchElasticEnvironment.is_using_torchelastic()
             use_ddp_cpu_kubeflow = use_ddp_cpu_spawn and KubeflowEnvironment.is_using_kubeflow()
-            use_ddp_cpu_slurm = use_ddp_cpu_spawn and self._is_slurm_managing_tasks
+            use_ddp_cpu_slurm = use_ddp_cpu_spawn and self._is_slurm_managing_tasks()
             use_ddp_sharded = self._distrib_type == _StrategyType.DDP_SHARDED
             use_ddp_sharded_spawn = self._distrib_type == _StrategyType.DDP_SHARDED_SPAWN
             use_ddp_fully_sharded = self._distrib_type == _StrategyType.DDP_FULLY_SHARDED
@@ -805,7 +805,7 @@ class AcceleratorConnector:
     def select_cluster_environment(self) -> ClusterEnvironment:
         if self._cluster_environment is not None:
             return self._cluster_environment
-        if self._is_slurm_managing_tasks:
+        if self._is_slurm_managing_tasks():
             env = SLURMEnvironment()
             rank_zero_info("Multiprocessing is handled by SLURM.")
         elif TorchElasticEnvironment.is_using_torchelastic():
@@ -998,7 +998,6 @@ class AcceleratorConnector:
         if self._training_type_plugin is not None:
             self._distrib_type = getattr(self._training_type_plugin, "distributed_backend", None)
 
-    @property
     def _is_slurm_managing_tasks(self) -> bool:
         """Returns whether we let SLURM manage the processes or not.
 
