@@ -197,3 +197,19 @@ class FaultTolerantTrainingModes(LightningEnum):
     MANUAL = "2"
     AUTOMATIC_ELASTIC = "3"
     MANUAL_ELASTIC = "4"
+
+    @property
+    def is_enabled(self) -> bool:
+        return self != FaultTolerantTrainingModes.DISABLED
+
+    @property
+    def is_automatic(self) -> bool:
+        return self in (FaultTolerantTrainingModes.AUTOMATIC, FaultTolerantTrainingModes.AUTOMATIC_ELASTIC)
+
+    @property
+    def is_manual(self) -> bool:
+        return self in (FaultTolerantTrainingModes.MANUAL, FaultTolerantTrainingModes.MANUAL_ELASTIC)
+
+    @property
+    def is_elastic(self) -> bool:
+        return self in (FaultTolerantTrainingModes.AUTOMATIC_ELASTIC, FaultTolerantTrainingModes.MANUAL_ELASTIC)

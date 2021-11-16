@@ -121,4 +121,4 @@ def _fault_tolerant_training_mode() -> FaultTolerantTrainingModes:
 
 # experimental feature within PyTorch Lightning.
 def _fault_tolerant_training() -> bool:
-    return _fault_tolerant_training_mode() != FaultTolerantTrainingModes.DISABLED
+    return _fault_tolerant_training_mode().is_enabled

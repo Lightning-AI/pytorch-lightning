@@ -490,10 +490,10 @@ def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: 
     """
     data = default_collate(samples)
     mode = _fault_tolerant_training_mode()
-    if mode == FaultTolerantTrainingModes.DISABLED:
+    if not mode.is_enabled:
         return data
     metadata = None
-    if mode == FaultTolerantTrainingModes.AUTOMATIC:
+    if mode.is_automatic:
         metadata = dataset.state_dict()
     else:
         state_dict_fn = getattr(dataset, "state_dict", None)
@@ -520,6 +520,8 @@ def _next_data_wrapper(fn, it, dl, num_batches_fetched, data_fetcher) -> Callabl
         batch, state = combined_batch["data"], combined_batch[AutoRestartBatchKeys.PL_RESTART_META]
         num_batches_fetched += 1
 
+        mode = _fault_tolerant_training_mode()
+
         if isinstance(dataset, CaptureIterableDataset):
             state = [
                 IteratorState(
@@ -542,7 +544,7 @@ def _next_data_wrapper(fn, it, dl, num_batches_fetched, data_fetcher) -> Callabl
                     num_batches_fetched=num_batches_fetched,
                 )
             ]
-        if _fault_tolerant_training_mode() == FaultTolerantTrainingModes.MANUAL:
+        if mode.is_manual:
             sampler_state, sampler_state_idx = it._sampler_state.pop(0)
             worker_id = list(state.keys())[0]
             state = [
@@ -554,52 +556,10 @@ def _next_data_wrapper(fn, it, dl, num_batches_fetched, data_fetcher) -> Callabl
                     num_batches_fetched=num_batches_fetched,
                 )
             ]
-            print(worker_id)
             # ensures there is an alignement between the sampler state and currently fetched batch
             assert sampler_state_idx == num_batches_fetched
         data_fetcher._store_dataloader_iter_state(it, state)
         return batch
-
-    return wrapper
-
-
-def _next_index_wrapper(fn, it=None) -> Callable:
-    @wraps(fn)
-    def wrapper(self):
-        nonlocal it
-        it = self or it
-        indexes = fn(it)
-        index_sampler = it._index_sampler
-        state = {}
-        state_dict_fn = getattr(index_sampler, "state_dict", None)
-        if state_dict_fn:
-            state["_index_sampler"] = state_dict_fn()
-        sampler = getattr(index_sampler, "sampler", None)
-        if sampler:
-            state_dict_fn = getattr(sampler, "state_dict", None)
-            if state_dict_fn:
-                state["_index_sampler.sampler"] = state_dict_fn()
-
-        if not hasattr(it, "_sampler_state"):
-            it._sampler_state = []
-            it._sampler_state_idx = 0
-
-        it._sampler_state_idx = getattr(it, "_sampler_state_idx", 0) + 1
-        it._sampler_state.append((state, it._sampler_state_idx))
-        return indexes
-
-    return wrapper
-
-
-def _reset_wrapper(fn) -> Callable:
-    @wraps(fn)
-    def wrapper(iterator, loader, first_iter):
-        if not isinstance(iterator._next_index, partial):
-            iterator._next_index = _next_index_wrapper(iterator._next_index, iterator)
-        else:
-            iterator._sampler_state = []
-            iterator._sampler_state_idx = 0
-        fn(iterator, loader, first_iter)
 
     return wrapper
 
@@ -756,5 +716,5 @@ def _get_iterator(self) -> "_BaseDataLoaderIter":
 
 
 def _patch_dataloader_iterators():
-    if _fault_tolerant_training_mode() == FaultTolerantTrainingModes.MANUAL:
+    if _fault_tolerant_training_mode().is_manual:
         DataLoader._get_iterator = _get_iterator
