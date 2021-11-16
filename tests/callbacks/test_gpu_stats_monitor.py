@@ -95,7 +95,9 @@ def test_gpu_stats_monitor_no_queries(tmpdir):
 @pytest.mark.skipif(torch.cuda.is_available(), reason="test requires CPU machine")
 def test_gpu_stats_monitor_cpu_machine(tmpdir):
     """Test GPUStatsMonitor on CPU machine."""
-    with pytest.raises(MisconfigurationException, match="NVIDIA driver is not installed"):
+    with pytest.raises(MisconfigurationException, match="NVIDIA driver is not installed"), pytest.deprecated_call(
+        match="GPUStatsMonitor` callback was deprecated in v1.5"
+    ):
         GPUStatsMonitor()
 
 
