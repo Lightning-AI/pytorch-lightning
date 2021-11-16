@@ -211,11 +211,11 @@ class CallbackConnector:
         existing_swa = [cb for cb in self.trainer.callbacks if isinstance(cb, StochasticWeightAveraging)]
         if not existing_swa:
             self.trainer.callbacks = [StochasticWeightAveraging()] + self.trainer.callbacks
-            
+
     def configure_progress_bar(
         self, refresh_rate: Optional[int] = None, process_position: int = 0, enable_progress_bar: bool = True
     ) -> Optional[ProgressBarBase]:
-      
+
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]
         if len(progress_bars) > 1:
             raise MisconfigurationException(
