@@ -15,7 +15,6 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
-import torch.nn as nn
 from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
