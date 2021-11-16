@@ -86,7 +86,6 @@ def test_accelerator_choice_ddp_spawn(cuda_available_mock, device_count_mock):
     assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
 
 
-@RunIf(min_gpus=2)
 @mock.patch.dict(
     os.environ,
     {
@@ -98,8 +97,10 @@ def test_accelerator_choice_ddp_spawn(cuda_available_mock, device_count_mock):
         "SLURM_LOCALID": "1",
     },
 )
+@mock.patch("torch.cuda.set_device")
+@mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_accelerator_choice_ddp_slurm(setup_distributed_mock):
+def test_accelerator_choice_ddp_slurm(set_device_mock, device_count_mock, setup_distributed_mock):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer._accelerator_connector._is_slurm_managing_tasks
@@ -111,13 +112,13 @@ def test_accelerator_choice_ddp_slurm(setup_distributed_mock):
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=2, callbacks=[CB()])
+    with pytest.deprecated_call(match=r"accelerator='ddp'\)` has been deprecated in v1.5"):
+        trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=2, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=2)
 @mock.patch.dict(
     os.environ,
     {
@@ -129,9 +130,10 @@ def test_accelerator_choice_ddp_slurm(setup_distributed_mock):
         "SLURM_LOCALID": "1",
     },
 )
+@mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_accelerator_choice_ddp2_slurm(device_count_mock, setup_distributed_mock):
+def test_accelerator_choice_ddp2_slurm(set_device_mock, device_count_mock, setup_distributed_mock):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer._accelerator_connector._is_slurm_managing_tasks
@@ -143,13 +145,15 @@ def test_accelerator_choice_ddp2_slurm(device_count_mock, setup_distributed_mock
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp2", gpus=2, callbacks=[CB()])
+    with pytest.deprecated_call(match=r"accelerator='ddp2'\)` has been deprecated in v1.5"):
+        trainer = Trainer(fast_dev_run=True, accelerator="ddp2", gpus=2, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
+    set_device_mock.assert_called_once()
 
-@RunIf(min_gpus=1)
+
 @mock.patch.dict(
     os.environ,
     {
@@ -161,9 +165,10 @@ def test_accelerator_choice_ddp2_slurm(device_count_mock, setup_distributed_mock
         "GROUP_RANK": "0",
     },
 )
-@mock.patch("torch.cuda.device_count", return_value=2)
+@mock.patch("torch.cuda.set_device")
+@mock.patch("torch.cuda.device_count", return_value=1)
 @mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_accelerator_choice_ddp_te(device_count_mock, setup_distributed_mock):
+def test_accelerator_choice_ddp_te(set_device_mock, device_count_mock, setup_distributed_mock):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator, GPUAccelerator)
@@ -174,13 +179,15 @@ def test_accelerator_choice_ddp_te(device_count_mock, setup_distributed_mock):
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=2, callbacks=[CB()])
+    with pytest.deprecated_call(match=r"accelerator='ddp'\)` has been deprecated in v1.5"):
+        trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=2, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
+    set_device_mock.assert_called_once()
 
-@RunIf(min_gpus=1)
+
 @mock.patch.dict(
     os.environ,
     {
@@ -192,9 +199,10 @@ def test_accelerator_choice_ddp_te(device_count_mock, setup_distributed_mock):
         "GROUP_RANK": "0",
     },
 )
-@mock.patch("torch.cuda.device_count", return_value=2)
+@mock.patch("torch.cuda.set_device")
+@mock.patch("torch.cuda.device_count", return_value=1)
 @mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_accelerator_choice_ddp2_te(device_count_mock, setup_distributed_mock):
+def test_accelerator_choice_ddp2_te(set_device_mock, device_count_mock, setup_distributed_mock):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator, GPUAccelerator)
@@ -205,10 +213,13 @@ def test_accelerator_choice_ddp2_te(device_count_mock, setup_distributed_mock):
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp2", gpus=2, callbacks=[CB()])
+    with pytest.deprecated_call(match=r"accelerator='ddp2'\)` has been deprecated in v1.5"):
+        trainer = Trainer(fast_dev_run=True, accelerator="ddp2", gpus=2, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
+
+    set_device_mock.assert_called_once()
 
 
 @mock.patch.dict(
@@ -233,7 +244,6 @@ def test_accelerator_choice_ddp_cpu_te(device_count_mock, setup_distributed_mock
         trainer.fit(model)
 
 
-@RunIf(min_gpus=1)
 @mock.patch.dict(
     os.environ,
     {
@@ -245,9 +255,10 @@ def test_accelerator_choice_ddp_cpu_te(device_count_mock, setup_distributed_mock
         "RANK": "1",
     },
 )
+@mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=1)
 @mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_accelerator_choice_ddp_kubeflow(device_count_mock, setup_distributed_mock):
+def test_accelerator_choice_ddp_kubeflow(set_device_mock, device_count_mock, setup_distributed_mock):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator, GPUAccelerator)
@@ -258,10 +269,13 @@ def test_accelerator_choice_ddp_kubeflow(device_count_mock, setup_distributed_mo
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=1, callbacks=[CB()])
+    with pytest.deprecated_call(match=r"accelerator='ddp'\)` has been deprecated in v1.5"):
+        trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=1, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
+
+    set_device_mock.assert_called_once()
 
 
 @mock.patch.dict(
@@ -326,26 +340,25 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_m
 @RunIf(special=True)
 def test_accelerator_choice_ddp_cpu_and_plugin(tmpdir):
     """Test that accelerator="ddp_cpu" can work together with an instance of DDPPlugin."""
-    _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class=DDPPlugin)
+    _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_strategy_class=DDPPlugin)
 
 
-@RunIf(special=True)
 def test_accelerator_choice_ddp_cpu_and_plugin_spawn(tmpdir):
     """Test that accelerator="ddp_cpu" can work together with an instance of DDPPSpawnPlugin."""
-    _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class=DDPSpawnPlugin)
+    _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_strategy_class=DDPSpawnPlugin)
 
 
-def _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class):
+def _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_strategy_class):
 
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        plugins=[ddp_plugin_class(find_unused_parameters=True)],
+        strategy=ddp_strategy_class(find_unused_parameters=True),
         fast_dev_run=True,
         accelerator="ddp_cpu",
         num_processes=2,
     )
-    assert isinstance(trainer.training_type_plugin, ddp_plugin_class)
+    assert isinstance(trainer.training_type_plugin, ddp_strategy_class)
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert trainer.training_type_plugin.num_processes == 2
     assert trainer.training_type_plugin.parallel_devices == [torch.device("cpu")] * 2
@@ -793,7 +806,6 @@ def test_strategy_choice_ddp_slurm(setup_distributed_mock, strategy):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=2)
 @mock.patch.dict(
     os.environ,
     {
@@ -805,10 +817,11 @@ def test_strategy_choice_ddp_slurm(setup_distributed_mock, strategy):
         "SLURM_LOCALID": "1",
     },
 )
+@mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
 @pytest.mark.parametrize("strategy", ["ddp2", DDP2Plugin()])
-def test_strategy_choice_ddp2_slurm(device_count_mock, setup_distributed_mock, strategy):
+def test_strategy_choice_ddp2_slurm(set_device_mock, device_count_mock, setup_distributed_mock, strategy):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer._accelerator_connector._is_slurm_managing_tasks
@@ -825,8 +838,9 @@ def test_strategy_choice_ddp2_slurm(device_count_mock, setup_distributed_mock, s
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
+    set_device_mock.assert_called_once()
 
-@RunIf(min_gpus=1)
+
 @mock.patch.dict(
     os.environ,
     {
@@ -838,9 +852,10 @@ def test_strategy_choice_ddp2_slurm(device_count_mock, setup_distributed_mock, s
         "GROUP_RANK": "0",
     },
 )
+@mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_strategy_choice_ddp_te(device_count_mock, setup_distributed_mock):
+def test_strategy_choice_ddp_te(set_device_mock, device_count_mock, setup_distributed_mock):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator, GPUAccelerator)
@@ -856,8 +871,9 @@ def test_strategy_choice_ddp_te(device_count_mock, setup_distributed_mock):
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
+    set_device_mock.assert_called_once()
 
-@RunIf(min_gpus=1)
+
 @mock.patch.dict(
     os.environ,
     {
@@ -869,9 +885,10 @@ def test_strategy_choice_ddp_te(device_count_mock, setup_distributed_mock):
         "GROUP_RANK": "0",
     },
 )
+@mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_strategy_choice_ddp2_te(device_count_mock, setup_distributed_mock):
+def test_strategy_choice_ddp2_te(set_device_mock, device_count_mock, setup_distributed_mock):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator, GPUAccelerator)
@@ -886,6 +903,8 @@ def test_strategy_choice_ddp2_te(device_count_mock, setup_distributed_mock):
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
+
+    set_device_mock.assert_called_once()
 
 
 @mock.patch.dict(
@@ -910,7 +929,6 @@ def test_strategy_choice_ddp_cpu_te(device_count_mock, setup_distributed_mock):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=1)
 @mock.patch.dict(
     os.environ,
     {
@@ -922,9 +940,10 @@ def test_strategy_choice_ddp_cpu_te(device_count_mock, setup_distributed_mock):
         "RANK": "1",
     },
 )
+@mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=1)
 @mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_strategy_choice_ddp_kubeflow(device_count_mock, setup_distributed_mock):
+def test_strategy_choice_ddp_kubeflow(set_device_mock, device_count_mock, setup_distributed_mock):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator, GPUAccelerator)
@@ -939,6 +958,8 @@ def test_strategy_choice_ddp_kubeflow(device_count_mock, setup_distributed_mock)
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
+
+    set_device_mock.assert_called_once()
 
 
 @mock.patch.dict(
