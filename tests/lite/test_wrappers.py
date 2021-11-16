@@ -68,7 +68,7 @@ def test_lite_module_forward_conversion(precision, input_type, expected_type):
 
 
 @RunIf(min_gpus=1)
-@pytest.mark.parametrize("device", ["cpu", torch.device("cuda", 0)])
+@pytest.mark.parametrize("device", [torch.device("cpu"), torch.device("cuda", 0)])
 def test_lite_module_device_propagation(device):
     class DeviceModule(DeviceDtypeModuleMixin):
         pass
