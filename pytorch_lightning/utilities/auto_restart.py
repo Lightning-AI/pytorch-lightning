@@ -22,10 +22,16 @@ from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Tup
 import numpy as np
 import torch
 from torch.utils.data import Dataset, get_worker_info, Sampler
-from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
+from torch.utils.data.dataloader import (
+    _BaseDataLoaderIter,
+    _MultiProcessingDataLoaderIter,
+    _SingleProcessDataLoaderIter,
+    DataLoader,
+    IterableDataset,
+)
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.enums import AutoRestartBatchKeys, FaultTolerantTrainingMode
+from pytorch_lightning.utilities.enums import AutoRestartBatchKeys, FaultTolerantTrainingModes
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _fault_tolerant_training_mode
 
@@ -484,12 +490,19 @@ def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: 
     """
     data = default_collate(samples)
     mode = _fault_tolerant_training_mode()
-    if mode == FaultTolerantTrainingMode.DISABLED:
+    if mode == FaultTolerantTrainingModes.DISABLED:
         return data
-    elif mode == FaultTolerantTrainingMode.AUTOMATIC:
+    metadata = None
+    if mode == FaultTolerantTrainingModes.AUTOMATIC:
         metadata = dataset.state_dict()
     else:
-        breakpoint()
+        state_dict_fn = getattr(dataset, "state_dict", None)
+        if state_dict_fn:
+            info = get_worker_info()
+            worker_id = info.id if info else 0
+            metadata = state_dict_fn()
+            if worker_id not in metadata:
+                raise MisconfigurationException("The state_dict needs to be indexed by `worker_id`")
 
     return {"data": data, AutoRestartBatchKeys.PL_RESTART_META: metadata}
 
@@ -529,8 +542,62 @@ def _next_data_wrapper(fn, it, dl, num_batches_fetched, data_fetcher) -> Callabl
                     num_batches_fetched=num_batches_fetched,
                 )
             ]
+        if _fault_tolerant_training_mode() == FaultTolerantTrainingModes.MANUAL:
+            sampler_state, sampler_state_idx = it._sampler_state.pop(0)
+            state = [
+                IteratorState(
+                    num_workers=dl.num_workers,
+                    sampler_state=sampler_state,
+                    dataset_state=state,
+                    worker_id=list(state.keys())[0],
+                    num_batches_fetched=num_batches_fetched,
+                )
+            ]
+            # ensures there is an alignement between the sampler state and currently fetched batch
+            assert sampler_state_idx == num_batches_fetched
         data_fetcher._store_dataloader_iter_state(it, state)
         return batch
+
+    return wrapper
+
+
+def _next_index_wrapper(fn, it=None) -> Callable:
+    @wraps(fn)
+    def wrapper(self):
+        nonlocal it
+        it = self or it
+        indexes = fn(it)
+        index_sampler = it._index_sampler
+        state = {}
+        state_dict_fn = getattr(index_sampler, "state_dict", None)
+        if state_dict_fn:
+            state["_index_sampler"] = state_dict_fn()
+        sampler = getattr(index_sampler, "sampler", None)
+        if sampler:
+            state_dict_fn = getattr(sampler, "state_dict", None)
+            if state_dict_fn:
+                state["_index_sampler.sampler"] = state_dict_fn()
+
+        if not hasattr(it, "_sampler_state"):
+            it._sampler_state = []
+            it._sampler_state_idx = 0
+
+        it._sampler_state_idx = getattr(it, "_sampler_state_idx", 0) + 1
+        it._sampler_state.append((state, it._sampler_state_idx))
+        return indexes
+
+    return wrapper
+
+
+def _reset_wrapper(fn) -> Callable:
+    @wraps(fn)
+    def wrapper(iterator, loader, first_iter):
+        if not isinstance(iterator._next_index, partial):
+            iterator._next_index = _next_index_wrapper(iterator._next_index, iterator)
+        else:
+            iterator._sampler_state = []
+            iterator._sampler_state_idx = 0
+        fn(iterator, loader, first_iter)
 
     return wrapper
 
@@ -560,16 +627,27 @@ def patch_dataloader_iterator(
     as part of the sample and then a special collate function :func:`_capture_metadata_collate`
     will extract the current iteration as part of the metadata returned by a custom batch.
     """
-    if _fault_tolerant_training_mode() == FaultTolerantTrainingMode.AUTOMATIC:
+    if _fault_tolerant_training_mode() == FaultTolerantTrainingModes.AUTOMATIC:
         assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
     iterator._next_data = _next_data_wrapper(
         iterator._next_data, iterator, dataloader, num_batches_fetched, data_fetcher
     )
 
 
+def _patch_dataloader_iterator_reset(
+    dataloader: DataLoader,
+    data_fetcher: "pl.utilities.fetching.DataFetcher",
+    num_batches_fetched: int = 0,
+) -> None:
+    if _fault_tolerant_training_mode() == FaultTolerantTrainingModes.MANUAL:
+        if dataloader.num_workers > 0 and not isinstance(_BaseDataLoaderIter._reset, partial):
+            _BaseDataLoaderIter._reset = _reset_wrapper(_BaseDataLoaderIter._reset)
+        elif dataloader.num_workers == 0 and not isinstance(_BaseDataLoaderIter._next_index, partial):
+            _BaseDataLoaderIter._next_index = _next_index_wrapper(_BaseDataLoaderIter._next_index)
+
+
 def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
     """Wrap default collate function to retrive captured dataset state dict when fault tolerant is enabled."""
-    breakpoint()
     dataloader.collate_fn = partial(
         _capture_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
     )
@@ -606,4 +684,61 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
         )
 
     else:
-        raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
+        if _fault_tolerant_training_mode() == FaultTolerantTrainingModes.AUTOMATIC:
+            raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
+
+        sampler_state = state_dict["state"][0]["sampler_state"]
+        if sampler_state:
+            for k, v in sampler_state.items():
+                obj = getattr(dataloader, k)
+                if not isinstance(obj, _FaulTolerantAbstract):
+                    raise MisconfigurationException(
+                        f"The DataLoader attribute should have a load_state_dict method. Found {obj}"
+                    )
+                obj.load_state_dict(sampler_state[k])
+        dataset.load_state_dict(state_dict["state"][0]["dataset_state"])
+
+
+class _SingleProcessDataLoaderIterStateful(_SingleProcessDataLoaderIter):
+    def __init__(self, loader):
+        super().__init__(loader)
+        self._loader = loader
+
+    def _reset(self, loader, first_iter=False):
+        super()._reset(loader, first_iter=first_iter)
+        self._sampler_state = []
+        self._sampler_state_idx = 0
+        self._loader = loader
+
+    def _store_sampler_state(self):
+        """This function is used to extract the sampler states if any."""
+        sampler_state = {
+            k: v.state_dict()
+            for k, v in self._loader.__dict__.items()
+            if isinstance(v, _FaulTolerantAbstract) and k != "dataset"
+        }
+
+        if not hasattr(self, "_sampler_state"):
+            self._sampler_state = []
+            self._sampler_state_idx = 0
+
+        # store them within a queue alongside the idx
+        self._sampler_state_idx = getattr(self, "_sampler_state_idx", 0) + 1
+        self._sampler_state.append((sampler_state, self._sampler_state_idx))
+
+    def _next_index(self):
+        indexes = super()._next_index()
+        self._store_sampler_state()
+        return indexes
+
+
+def _get_iterator(self) -> "_BaseDataLoaderIter":
+    if self.num_workers == 0:
+        return _SingleProcessDataLoaderIterStateful(self)
+    else:
+        self.check_worker_number_rationality()
+        return _MultiProcessingDataLoaderIter(self)
+
+
+def _patch_dataloader_iterators():
+    DataLoader._get_iterator = _get_iterator

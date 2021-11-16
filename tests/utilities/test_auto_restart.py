@@ -19,7 +19,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import suppress
 from copy import deepcopy
-from typing import List, Optional
+from typing import Iterator, List, Optional
 from unittest import mock
 from unittest.mock import ANY
 
@@ -1199,50 +1199,127 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
 
 
 class RandomFaultTolerantDataset(RandomGetItemDataset):
+    def __init__(self, *args, seed: int, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.generator = torch.Generator().manual_seed(seed)
+
+    @property
+    def worker_id(self):
+        info = get_worker_info()
+        return info.id if info else 0
+
+    def __getitem__(self, index):
+        t = torch.rand(self.size, generator=self.generator)
+        return index + t
+
     def state_dict(self):
-        return {"torch": torch.get_rng_state(), "numpy": np.random.get_state(), "python": random.getstate()}
+        return {self.worker_id: {"random_state": self.generator.get_state()}}
 
     def load_state_dict(self, state_dict):
-        torch.set_rng_state(state_dict.get("torch"))
-        np.random.set_state(state_dict.get("numpy"))
-        version, state, gauss = state_dict.get("python")
-        random.setstate((version, tuple(state), gauss))
+        state_dict = state_dict[self.worker_id]
+        self.generator.set_state(state_dict["random_state"])
+
+
+class RandomSamplerStateful(RandomSampler):
+    def __init__(self, *args, seed: int = 0, generator=None, **kwargs):
+        generator = torch.Generator().manual_seed(seed)
+        super().__init__(*args, generator=generator, **kwargs)
+        self.counter = 0
+        self.restarting = False
+
+    def state_dict(self):
+        return {"random_state": self.state, "counter": self.counter}
+
+    def load_state_dict(self, state_dict):
+        self.generator.set_state(state_dict.get("random_state"))
+        self.counter = state_dict["counter"]
+        self.restarting = True
+
+    def __len__(self):
+        return len(self.data_source) - self.counter
+
+    def __iter__(self) -> Iterator[int]:
+        n = len(self.data_source)
+
+        self.state = self.generator.get_state()
+        indices = torch.randperm(n, generator=self.generator).tolist()
+
+        if not self.restarting:
+            self.counter = 0
+        else:
+            indices = indices[self.counter :]
+            self.restarting = False
+
+        for index in indices:
+            self.counter += 1
+            yield index
+
+        self.counter = 0
 
 
 @pytest.mark.parametrize(
     ["train_dataset_cls", "val_dataset_cls"],
     [
         ([RandomFaultTolerantDataset], [RandomFaultTolerantDataset]),
+        ([RandomFaultTolerantDataset, RandomFaultTolerantDataset], [RandomFaultTolerantDataset]),
     ],
 )
+@pytest.mark.parametrize("sampler_cls", [RandomSamplerStateful])
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "2"})
-def test_fault_tolerant_manual_mode(train_dataset_cls, val_dataset_cls, tmpdir):
+def test_fault_tolerant_manual_mode(sampler_cls, train_dataset_cls, val_dataset_cls, tmpdir):
     class TestModel(BoringModel):
         def __init__(self, should_fail: bool = False):
             super().__init__()
+            self.layer = torch.nn.Linear(1, 2)
             self.should_fail = should_fail
             self.batches = []
 
         def training_step(self, batch, batch_idx):
-            if self.should_fail and batch_idx == 2:
+            print(batch)
+            if self.should_fail and batch_idx == 7:
                 raise CustomException
             self.batches.append(batch)
-            return super().training_step(batch, batch_idx)
+            losses = []
+            for b in batch:
+                losses.append(super().training_step(b, batch_idx)["loss"])
+            return torch.stack(losses).mean()
 
-        def validation_epoch_end(self, outputs) -> None:
-            pass
+        def validation_step(self, batch, batch_idx):
+            print(batch)
+
+        validation_epoch_end = None
+
+        def _create_dataloader_kwargs(self, dataset_class, seed):
+            dl_kwargs = {}
+            dl_kwargs["dataset"] = dataset_class(32, 1, seed=seed)
+            dl_kwargs["sampler"] = sampler_cls(dl_kwargs["dataset"], seed=seed)
+            dl_kwargs["num_workers"] = 0
+            dl_kwargs["batch_size"] = 1
+            return dl_kwargs
 
         def train_dataloader(self):
-            return [DataLoader(dataset_class(3, 1), batch_size=1, num_workers=0) for dataset_class in train_dataset_cls]
+            return [
+                DataLoader(**self._create_dataloader_kwargs(dataset_class, seed))
+                for seed, dataset_class in enumerate(train_dataset_cls)
+            ]
 
         def val_dataloader(self):
-            return [DataLoader(dataset_class(3, 1), batch_size=1, num_workers=0) for dataset_class in val_dataset_cls]
+            return [
+                DataLoader(**self._create_dataloader_kwargs(dataset_class, seed))
+                for seed, dataset_class in enumerate(val_dataset_cls)
+            ]
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.001)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+            return [optimizer], [lr_scheduler]
 
     seed_everything(42)
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(model)
     total_batches = model.batches
+    total_weight = deepcopy(model.layer.weight)
 
     seed_everything(42)
     model = TestModel(should_fail=True)
@@ -1250,6 +1327,7 @@ def test_fault_tolerant_manual_mode(train_dataset_cls, val_dataset_cls, tmpdir):
     with suppress(CustomException):
         trainer.fit(model)
     failed_batches = model.batches
+    failed_weight = deepcopy(model.layer.weight)
 
     checkpoint_path = str(tmpdir / ".pl_auto_save.ckpt")
     assert os.path.exists(checkpoint_path)
@@ -1260,4 +1338,6 @@ def test_fault_tolerant_manual_mode(train_dataset_cls, val_dataset_cls, tmpdir):
     trainer.fit(model, ckpt_path=checkpoint_path)
     restart_batches = model.batches
 
-    assert len(total_batches) == len(failed_batches) + len(restart_batches)
+    torch.testing.assert_allclose(total_batches, failed_batches + restart_batches)
+    assert not torch.equal(total_weight, failed_weight)
+    assert torch.equal(total_weight, model.layer.weight)

@@ -25,7 +25,7 @@ import torch
 from packaging.version import Version
 from pkg_resources import DistributionNotFound
 
-from pytorch_lightning.utilities.enums import FaultTolerantTrainingMode
+from pytorch_lightning.utilities.enums import FaultTolerantTrainingModes
 
 
 def _module_available(module_path: str) -> bool:
@@ -112,13 +112,13 @@ else:
     _IPU_AVAILABLE = False
 
 
-def _fault_tolerant_training_mode() -> FaultTolerantTrainingMode:
+def _fault_tolerant_training_mode() -> FaultTolerantTrainingModes:
     if not _TORCH_GREATER_EQUAL_1_7:
-        return FaultTolerantTrainingMode.DISABLED
+        return FaultTolerantTrainingModes.DISABLED
 
-    return FaultTolerantTrainingMode(os.getenv("PL_FAULT_TOLERANT_TRAINING", 0))
+    return FaultTolerantTrainingModes(os.getenv("PL_FAULT_TOLERANT_TRAINING", 0))
 
 
 # experimental feature within PyTorch Lightning.
 def _fault_tolerant_training() -> bool:
-    return _fault_tolerant_training_mode() != FaultTolerantTrainingMode.DISABLED
+    return _fault_tolerant_training_mode() != FaultTolerantTrainingModes.DISABLED

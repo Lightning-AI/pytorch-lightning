@@ -33,13 +33,12 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import (
     _capture_metadata_collate,
-    _FaulTolerantAbstract,
     CaptureIterableDataset,
     CaptureMapDataset,
     FastForwardSampler,
 )
 from pytorch_lightning.utilities.data import get_len, has_iterable_dataset, has_len_all_ranks
-from pytorch_lightning.utilities.enums import DistributedType, FaultTolerantTrainingMode
+from pytorch_lightning.utilities.enums import DistributedType, FaultTolerantTrainingModes
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _fault_tolerant_training_mode
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -206,7 +205,7 @@ class TrainerDataLoadingMixin(ABC):
             if is_predicting:
                 batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
 
-            if _fault_tolerant_training_mode() == FaultTolerantTrainingMode.AUTOMATIC:
+            if _fault_tolerant_training_mode() == FaultTolerantTrainingModes.AUTOMATIC:
                 fast_forward_sampler = batch_sampler = FastForwardSampler(batch_sampler)
                 fast_forward_sampler.setup(dataloader_batch_size=1)
 
@@ -218,7 +217,7 @@ class TrainerDataLoadingMixin(ABC):
                 "drop_last": False,
             }
 
-        if _fault_tolerant_training_mode() == FaultTolerantTrainingMode.AUTOMATIC:
+        if _fault_tolerant_training_mode() == FaultTolerantTrainingModes.AUTOMATIC:
             fast_forward_sampler = sampler = FastForwardSampler(sampler)
             fast_forward_sampler.setup(dataloader_batch_size=dataloader.batch_size)
 
@@ -302,7 +301,7 @@ class TrainerDataLoadingMixin(ABC):
     @staticmethod
     def _prepare_fault_tolerance(dl_kwargs: Dict) -> Dict:
         fault_tolerant_mode = _fault_tolerant_training_mode()
-        if fault_tolerant_mode == FaultTolerantTrainingMode.AUTOMATIC:
+        if fault_tolerant_mode == FaultTolerantTrainingModes.AUTOMATIC:
             dataset = dl_kwargs["dataset"]
             if isinstance(dataset, IterableDataset):
                 # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.

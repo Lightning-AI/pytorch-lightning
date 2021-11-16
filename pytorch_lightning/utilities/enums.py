@@ -190,10 +190,10 @@ class ModelSummaryMode(LightningEnum):
         return [x.value for x in ModelSummaryMode]
 
 
-class FaultTolerantTrainingMode(LightningEnum):
+class FaultTolerantTrainingModes(LightningEnum):
 
     DISABLED = "0"
     AUTOMATIC = "1"
-    AUTOMATIC_ELASTIC = "2"
-    MANUAL = "3"
+    MANUAL = "2"
+    AUTOMATIC_ELASTIC = "3"
     MANUAL_ELASTIC = "4"

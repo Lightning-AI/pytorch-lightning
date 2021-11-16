@@ -27,6 +27,7 @@ from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
+    _patch_dataloader_iterators,
     IteratorState,
     MergedIteratorState,
     patch_dataloader_iterator,
@@ -194,6 +195,8 @@ class AbstractDataFetcher(ABC):
         if self.dataloader is None:
             raise MisconfigurationException("The iterate hasn't been provided. HINT: Did you call setup function ?.")
         self.reset()
+        _patch_dataloader_iterators()
+        # _patch_dataloader_iterator_reset(self.dataloader, self)
         self.dataloader_iter = iter(self.dataloader)
         self._apply_patch()
         self.prefetching(self.prefetch_batches)
