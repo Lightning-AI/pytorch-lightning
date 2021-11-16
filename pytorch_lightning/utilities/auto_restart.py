@@ -659,28 +659,35 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
 
 
 class _StatefulMixin:
-    def _reset(self, loader, first_iter=False):
+    """This mixin is used to make PyTorch DataLoaderIter stateful."""
+
+    def _reset(self, loader: DataLoader, first_iter: bool = False):
         super()._reset(loader, first_iter=first_iter)
         self._loader = loader
         self.num_batches_fetched = 0
 
-    def _store_sampler_state(self):
+    def __accumulate_state(self, sampler_state: Dict[str, Any]) -> None:
+        # initialize the queue if it doesn't exist.
+        if not hasattr(self, "_sampler_state"):
+            self._sampler_state = []
+            self._sampler_state_idx = 0
+
+        # store sampler state within a queue alongside its idx.
+        self._sampler_state_idx = getattr(self, "_sampler_state_idx", 0) + 1
+        self._sampler_state.append((sampler_state, self._sampler_state_idx))
+
+    def _store_sampler_state(self) -> None:
         """This function is used to extract the sampler states if any."""
+        # collect the state_dict from any objects matching the `_FaulTolerantAbstract` API
         sampler_state = {
             k: v.state_dict()
             for k, v in self._loader.__dict__.items()
             if isinstance(v, _FaulTolerantAbstract) and k != "dataset"
         }
 
-        if not hasattr(self, "_sampler_state"):
-            self._sampler_state = []
-            self._sampler_state_idx = 0
+        self.__accumulate_state(sampler_state)
 
-        # store them within a queue alongside the idx
-        self._sampler_state_idx = getattr(self, "_sampler_state_idx", 0) + 1
-        self._sampler_state.append((sampler_state, self._sampler_state_idx))
-
-    def _next_index(self):
+    def _next_index(self) -> Any:
         indexes = super()._next_index()
         self._store_sampler_state()
         return indexes
@@ -692,11 +699,11 @@ class _StatefulMixin:
             )
         self._loader = loader
 
-    def __del__(self):
+    def __del__(self) -> None:
         if isinstance(self._loader.collate_fn, partial):
             self._loader.collate_fn = self._loader.collate_fn.keywords["default_collate"]
 
-    def _next_data(self):
+    def _next_data(self) -> Any:
         combined_batch = super()._next_data()
 
         batch, state = combined_batch["data"], combined_batch[AutoRestartBatchKeys.PL_RESTART_META]
@@ -721,7 +728,7 @@ class _StatefulMixin:
 
 
 class _SingleProcessDataLoaderIterStateful(_StatefulMixin, _SingleProcessDataLoaderIter):
-    def __init__(self, loader):
+    def __init__(self, loader: DataLoader):
         self._prepare_loader(loader)
         super().__init__(loader)
         self._data_fetcher: "pl.utilities.fetching.AbstractDataFetcher" = loader._lightning_fetcher
@@ -729,7 +736,7 @@ class _SingleProcessDataLoaderIterStateful(_StatefulMixin, _SingleProcessDataLoa
 
 
 class _MultiProcessingDataLoaderIterStateful(_StatefulMixin, _MultiProcessingDataLoaderIter):
-    def __init__(self, loader):
+    def __init__(self, loader: DataLoader):
         self._prepare_loader(loader)
         super().__init__(loader)
         self._data_fetcher: "pl.utilities.fetching.AbstractDataFetcher" = loader._lightning_fetcher
@@ -745,7 +752,7 @@ def _get_iterator(self) -> "_BaseDataLoaderIter":
         return _MultiProcessingDataLoaderIterStateful(self)
 
 
-def _patch_dataloader_iterators(data_fetcher):
+def _patch_dataloader_iterators() -> None:
     """This function is used to replace the DataLoader iterator by their stateful version."""
     if _fault_tolerant_training_mode().is_manual:
         DataLoader._get_iterator = _get_iterator
