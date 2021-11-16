@@ -52,7 +52,7 @@ class TrainingTypePlugin(ABC):
         return self._precision_plugin.precision
 
     @property
-    def precision_plugin(self) -> Optional[PrecisionPlugin]:
+    def precision_plugin(self) -> PrecisionPlugin:
         return self._precision_plugin
 
     @checkpoint_io.setter
