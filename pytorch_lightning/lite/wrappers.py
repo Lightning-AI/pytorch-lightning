@@ -95,12 +95,17 @@ class _LiteModule(nn.Module):
         }
         # TODO (@awaelchli): let the precision plugin handle the conversion
         to_type = precision_to_type[precision]
-        args, kwargs = apply_to_collection([args, kwargs], function=lambda t: t.to(to_type), dtype=Tensor)
+
+        def _convert_float_tensor(t: Tensor) -> Tensor:
+            return t.to(to_type) if torch.is_floating_point(t) else t
+
+        args, kwargs = apply_to_collection([args, kwargs], function=_convert_float_tensor, dtype=Tensor)
 
         with self._precision_plugin.forward_context():
             output = self.module(*args, **kwargs)
 
-        output = apply_to_collection(output, function=lambda t: t.to(torch.get_default_dtype()), dtype=Tensor)
+        to_type = torch.get_default_dtype()
+        output = apply_to_collection(output, function=_convert_float_tensor, dtype=Tensor)
         return output
 
 

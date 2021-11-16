@@ -55,9 +55,6 @@ class ClosureResult(OutputResult):
     extra: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        # TODO: remove with the deprecation removal in v1.6
-        self.extra = self._check_extra_detach_deprecation(self.extra)
-
         self._clone_loss()
 
     def _clone_loss(self) -> None:

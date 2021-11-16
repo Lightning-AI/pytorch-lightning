@@ -183,7 +183,7 @@ def test_early_stopping_patience_train(
 
 
 def test_pickling(tmpdir):
-    early_stopping = EarlyStopping()
+    early_stopping = EarlyStopping(monitor="foo")
 
     early_stopping_pickled = pickle.dumps(early_stopping)
     early_stopping_loaded = pickle.loads(early_stopping_pickled)
@@ -350,7 +350,7 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze: in
 
 def test_early_stopping_mode_options():
     with pytest.raises(MisconfigurationException, match="`mode` can be .* got unknown_option"):
-        EarlyStopping(mode="unknown_option")
+        EarlyStopping(monitor="foo", mode="unknown_option")
 
 
 class EarlyStoppingModel(BoringModel):
@@ -469,3 +469,16 @@ def test_check_on_train_epoch_end_smart_handling(tmpdir, case):
         assert trainer.global_step == len(side_effect) * int(trainer.limit_train_batches * trainer.val_check_interval)
     else:
         assert trainer.current_epoch == len(side_effect) * trainer.check_val_every_n_epoch - 1
+
+
+def test_early_stopping_squeezes():
+    early_stopping = EarlyStopping(monitor="foo")
+    trainer = Trainer()
+    trainer.callback_metrics["foo"] = torch.tensor([[[0]]])
+
+    with mock.patch(
+        "pytorch_lightning.callbacks.EarlyStopping._evaluate_stopping_criteria", return_value=(False, "")
+    ) as es_mock:
+        early_stopping._run_early_stopping_check(trainer)
+
+    es_mock.assert_called_once_with(torch.tensor(0))

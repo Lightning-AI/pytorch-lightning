@@ -26,7 +26,6 @@ from pytorch_lightning.loggers.base import LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.profiler.pytorch import RegisterRecordFunction
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from tests.helpers import BoringModel, ManualOptimBoringModel
@@ -186,7 +185,7 @@ def test_simple_profiler_logs(tmpdir, caplog, simple_profiler):
     """Ensure that the number of printed logs is correct."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2, profiler=simple_profiler, logger=False)
-    with caplog.at_level(logging.INFO, logger="pytorch_lightning.profiler.profilers"):
+    with caplog.at_level(logging.INFO, logger="pytorch_lightning.profiler"):
         trainer.fit(model)
         trainer.test(model)
 
@@ -394,8 +393,7 @@ def test_pytorch_profiler_nested(tmpdir):
 
     names = {"a", "b", "c"}
     ops = {"add", "empty", "fill_", "ones", "zero_", "zeros"}
-    if _TORCH_GREATER_EQUAL_1_7:
-        ops = {"aten::" + op for op in ops}
+    ops = {"aten::" + op for op in ops}
 
     expected = names.union(ops)
     assert events_name == expected, (events_name, torch.__version__, platform.system())

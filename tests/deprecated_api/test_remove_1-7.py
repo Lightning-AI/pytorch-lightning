@@ -23,6 +23,12 @@ from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
 from pytorch_lightning.callbacks.progress import ProgressBar
 from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
+from pytorch_lightning.plugins.environments import (
+    KubeflowEnvironment,
+    LightningEnvironment,
+    SLURMEnvironment,
+    TorchElasticEnvironment,
+)
 from tests.callbacks.test_callbacks import OldStatefulCallback
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
@@ -32,12 +38,9 @@ from tests.loggers.test_base import CustomLogger
 
 
 def test_v1_7_0_deprecated_lightning_module_summarize(tmpdir):
-    from pytorch_lightning.core.lightning import warning_cache
-
     model = BoringModel()
-    model.summarize(max_depth=1)
-    assert any("The `LightningModule.summarize` method is deprecated in v1.5" in w for w in warning_cache)
-    warning_cache.clear()
+    with pytest.deprecated_call(match="The `LightningModule.summarize` method is deprecated in v1.5"):
+        model.summarize(max_depth=1)
 
 
 def test_v1_7_0_moved_model_summary_and_layer_summary(tmpdir):
@@ -455,3 +458,43 @@ def test_v1_7_0_deprecate_lr_sch_names(tmpdir):
 
     with pytest.deprecated_call(match="`LearningRateMonitor.lr_sch_names` has been deprecated in v1.5"):
         assert lr_monitor.lr_sch_names == ["lr-SGD"]
+
+
+@pytest.mark.parametrize(
+    "cls",
+    [
+        KubeflowEnvironment,
+        LightningEnvironment,
+        SLURMEnvironment,
+        TorchElasticEnvironment,
+    ],
+)
+def test_v1_7_0_cluster_environment_master_address(cls):
+    class MyClusterEnvironment(cls):
+        def master_address(self):
+            pass
+
+    with pytest.deprecated_call(
+        match="MyClusterEnvironment.master_address` has been deprecated in v1.6 and will be removed in 1.7"
+    ):
+        MyClusterEnvironment()
+
+
+@pytest.mark.parametrize(
+    "cls",
+    [
+        KubeflowEnvironment,
+        LightningEnvironment,
+        SLURMEnvironment,
+        TorchElasticEnvironment,
+    ],
+)
+def test_v1_7_0_cluster_environment_master_port(cls):
+    class MyClusterEnvironment(cls):
+        def master_port(self):
+            pass
+
+    with pytest.deprecated_call(
+        match="MyClusterEnvironment.master_port` has been deprecated in v1.6 and will be removed in 1.7"
+    ):
+        MyClusterEnvironment()

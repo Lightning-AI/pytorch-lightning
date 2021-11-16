@@ -43,7 +43,7 @@ from pytorch_lightning.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from pytorch_lightning.utilities import DeviceType, DistributedType
+from pytorch_lightning.utilities import _StrategyType, DeviceType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -368,7 +368,8 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
     """Test that we choose the custom cluster even when SLURM or TE flags are around."""
 
     class CustomCluster(LightningEnvironment):
-        def master_address(self):
+        @property
+        def main_address(self):
             return "asdf"
 
         @property
@@ -635,7 +636,7 @@ def test_unsupported_distrib_types_on_cpu(training_type):
     with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
         trainer = Trainer(accelerator=training_type, num_processes=2)
 
-    assert trainer._distrib_type == DistributedType.DDP
+    assert trainer._distrib_type == _StrategyType.DDP
 
 
 def test_accelerator_ddp_for_cpu(tmpdir):
