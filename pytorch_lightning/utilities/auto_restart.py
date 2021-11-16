@@ -724,7 +724,7 @@ class _SingleProcessDataLoaderIterStateful(_StatefulMixin, _SingleProcessDataLoa
     def __init__(self, loader):
         self._prepare_loader(loader)
         super().__init__(loader)
-        self._data_fetcher = loader._lightning_fetcher
+        self._data_fetcher: "pl.utilities.fetching.AbstractDataFetcher" = loader._lightning_fetcher
         self.num_batches_fetched = 0
 
 
@@ -732,7 +732,7 @@ class _MultiProcessingDataLoaderIterStateful(_StatefulMixin, _MultiProcessingDat
     def __init__(self, loader):
         self._prepare_loader(loader)
         super().__init__(loader)
-        self._data_fetcher = loader._lightning_fetcher
+        self._data_fetcher: "pl.utilities.fetching.AbstractDataFetcher" = loader._lightning_fetcher
         self.num_batches_fetched = 0
 
 
