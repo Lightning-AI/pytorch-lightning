@@ -152,7 +152,7 @@ Here is a simple example how to add a new hook:
             # ... whatever code before
 
             # pass anything you want to the hook
-            self.trainer._call_hook("my_new_hook", *args, **kwargs)
+            self.trainer.call_hook("my_new_hook", *args, **kwargs)
 
             # ... whatever code after
 
