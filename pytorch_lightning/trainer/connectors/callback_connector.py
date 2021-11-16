@@ -230,10 +230,9 @@ class CallbackConnector:
         # Return early if the user intends to disable the progress bar callback
         if refresh_rate == 0 or not enable_progress_bar:
             return
-        if os.getenv("COLAB_GPU") and refresh_rate is None:
+        if refresh_rate is None:
             # smaller refresh rate on colab causes crashes, choose a higher value
-            refresh_rate = 20
-        refresh_rate = 1 if refresh_rate is None else refresh_rate
+            refresh_rate = 20 if os.getenv("COLAB_GPU") else 1
 
         progress_bar_callback = TQDMProgressBar(refresh_rate=refresh_rate, process_position=process_position)
         self.trainer.callbacks.append(progress_bar_callback)
