@@ -29,7 +29,7 @@ class SLURMEnvironment(ClusterEnvironment):
         return True
 
     @staticmethod
-    def is_using_slurm() -> bool:
+    def detect() -> bool:
         """Returns ``True`` if the current process was launched on a SLURM cluster."""
         return "SLURM_NTASKS" in os.environ
 

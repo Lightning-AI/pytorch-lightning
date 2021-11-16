@@ -1011,7 +1011,7 @@ class AcceleratorConnector:
         """
         if (
             (not self.use_ddp and not self.use_ddp2)
-            or not SLURMEnvironment.is_using_slurm()
+            or not SLURMEnvironment.detect()
             or os.environ.get("SLURM_JOB_NAME") == "bash"  # in interactive mode we don't manage tasks
         ):
             return False
