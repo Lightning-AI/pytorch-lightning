@@ -227,17 +227,16 @@ class CallbackConnector:
                     "Trainer was configured with `enable_progress_bar=False`"
                     f" but found `{progress_bar_callback.__class__.__name__}` in callbacks list."
                 )
-        # Setting refresh_rate to 0 disables the progress bar callback, so return early
-        if refresh_rate == 0:
+        # Return early if the user intends to disable the progress bar callback
+        if refresh_rate == 0 or not enable_progress_bar:
             return
         if os.getenv("COLAB_GPU") and refresh_rate is None:
             # smaller refresh rate on colab causes crashes, choose a higher value
             refresh_rate = 20
         refresh_rate = 1 if refresh_rate is None else refresh_rate
 
-        if enable_progress_bar:
-            progress_bar_callback = TQDMProgressBar(refresh_rate=refresh_rate, process_position=process_position)
-            self.trainer.callbacks.append(progress_bar_callback)
+        progress_bar_callback = TQDMProgressBar(refresh_rate=refresh_rate, process_position=process_position)
+        self.trainer.callbacks.append(progress_bar_callback)
 
     def _configure_timer_callback(self, max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None) -> None:
         if max_time is None:
