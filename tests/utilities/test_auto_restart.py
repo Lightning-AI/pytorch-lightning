@@ -44,7 +44,7 @@ from pytorch_lightning.utilities.auto_restart import (
     FastForwardSampler,
     MergedIteratorState,
 )
-from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
+from pytorch_lightning.utilities.enums import AutoRestartBatchKeys, FaultTolerantTrainingModes
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
@@ -1265,6 +1265,27 @@ class RandomSamplerStateful(RandomSampler):
             yield index
 
         self.counter = 0
+
+
+def test_fault_tolerant_manual_mode_enum():
+    mode = FaultTolerantTrainingModes("0")
+    assert not mode.is_enabled
+
+    mode = FaultTolerantTrainingModes("1")
+    assert mode.is_automatic
+    assert not mode.is_elastic
+
+    mode = FaultTolerantTrainingModes("2")
+    assert mode.is_manual
+    assert not mode.is_elastic
+
+    mode = FaultTolerantTrainingModes("3")
+    assert mode.is_automatic
+    assert mode.is_elastic
+
+    mode = FaultTolerantTrainingModes("4")
+    assert mode.is_manual
+    assert mode.is_elastic
 
 
 @pytest.mark.parametrize(

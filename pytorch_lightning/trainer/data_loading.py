@@ -38,7 +38,7 @@ from pytorch_lightning.utilities.auto_restart import (
     FastForwardSampler,
 )
 from pytorch_lightning.utilities.data import get_len, has_iterable_dataset, has_len_all_ranks
-from pytorch_lightning.utilities.enums import _StrategyType, FaultTolerantTrainingModes
+from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _fault_tolerant_training_mode
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -293,15 +293,13 @@ class TrainerDataLoadingMixin(ABC):
             dl_kwargs["batch_sampler"] = None
             dl_kwargs["sampler"] = None
 
-        if _fault_tolerant_training():
-            dl_kwargs = TrainerDataLoadingMixin._prepare_fault_tolerance(dl_kwargs)
+        dl_kwargs = TrainerDataLoadingMixin._prepare_fault_tolerance(dl_kwargs)
 
         return dl_kwargs
 
     @staticmethod
     def _prepare_fault_tolerance(dl_kwargs: Dict) -> Dict:
-        fault_tolerant_mode = _fault_tolerant_training_mode()
-        if fault_tolerant_mode == FaultTolerantTrainingModes.AUTOMATIC:
+        if _fault_tolerant_training_mode().is_automatic:
             dataset = dl_kwargs["dataset"]
             if isinstance(dataset, IterableDataset):
                 # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.

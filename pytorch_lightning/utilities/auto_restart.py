@@ -490,6 +490,7 @@ def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: 
     return {"data": data, AutoRestartBatchKeys.PL_RESTART_META: metadata}
 
 
+# TODO: Merge this code within stateful DataLoaderIter.
 def _next_data_wrapper(fn, it, dl, num_batches_fetched, data_fetcher) -> Callable:
     @wraps(fn)
     def wrapper():
@@ -502,8 +503,6 @@ def _next_data_wrapper(fn, it, dl, num_batches_fetched, data_fetcher) -> Callabl
 
         batch, state = combined_batch["data"], combined_batch[AutoRestartBatchKeys.PL_RESTART_META]
         num_batches_fetched += 1
-
-        mode = _fault_tolerant_training_mode()
 
         if isinstance(dataset, CaptureIterableDataset):
             state = [
@@ -527,20 +526,6 @@ def _next_data_wrapper(fn, it, dl, num_batches_fetched, data_fetcher) -> Callabl
                     num_batches_fetched=num_batches_fetched,
                 )
             ]
-        if mode.is_manual:
-            sampler_state, sampler_state_idx = it._sampler_state.pop(0)
-            worker_id = list(state.keys())[0]
-            state = [
-                IteratorState(
-                    num_workers=dl.num_workers,
-                    sampler_state=sampler_state,
-                    dataset_state=state,
-                    worker_id=worker_id,
-                    num_batches_fetched=num_batches_fetched,
-                )
-            ]
-            # ensures there is an alignement between the sampler state and currently fetched batch
-            assert sampler_state_idx == num_batches_fetched
         data_fetcher._store_dataloader_iter_state(it, state)
         return batch
 
@@ -574,7 +559,7 @@ def patch_dataloader_iterator(
     """
     if not _fault_tolerant_training_mode().is_automatic:
         return
-        assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
+    assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
     iterator._next_data = _next_data_wrapper(
         iterator._next_data, iterator, dataloader, num_batches_fetched, data_fetcher
     )
