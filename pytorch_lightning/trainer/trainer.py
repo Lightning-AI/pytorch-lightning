@@ -1672,7 +1672,7 @@ class Trainer(
 
     @property
     def precision(self) -> Union[str, int]:
-        return self.training_type_plugin.precision
+        return self.training_type_plugin.precision_plugin.precision
 
     @property
     def scaler(self):
