@@ -226,6 +226,7 @@ def test_advanced_profiler_iterable_durations(advanced_profiler, action: str, ex
     np.testing.assert_allclose(recored_total_duration, expected_total_duration, rtol=0.2)
 
 
+@pytest.mark.flaky(reruns=3)
 def test_advanced_profiler_overhead(advanced_profiler, n_iter=5):
     """ensure that the profiler doesn't introduce too much overhead during training."""
     for _ in range(n_iter):
