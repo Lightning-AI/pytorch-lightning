@@ -76,7 +76,7 @@ def test_lite_module_device_propagation(device):
     module = DeviceModule()
     lite_module = _LiteModule(module, Mock())
     lite_module.to(device)
-    assert lite_module.device is lite_module.module.device is module.device is device
+    assert lite_module.device == lite_module.module.device == module.device == device
 
 
 def test_lite_dataloader_iterator():
