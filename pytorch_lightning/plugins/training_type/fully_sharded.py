@@ -18,6 +18,7 @@ import torch
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.enums import _StrategyType
@@ -46,6 +47,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
     ):
         """Plugin for Fully Sharded Data Parallel provided by FairScale.
 
@@ -97,6 +99,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
+            precision_plugin=precision_plugin,
         )
         self.cpu_offload = cpu_offload
         self.move_grads_to_cpu = move_grads_to_cpu

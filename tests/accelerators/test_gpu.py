@@ -12,7 +12,7 @@ def test_get_torch_gpu_stats(tmpdir):
     """Test GPU get_device_stats with Pytorch >= 1.8.0."""
     current_device = torch.device(f"cuda:{torch.cuda.current_device()}")
     GPUAccel = GPUAccelerator(
-        training_type_plugin=DataParallelPlugin(parallel_devices=[current_device]), precision_plugin=PrecisionPlugin()
+        training_type_plugin=DataParallelPlugin(parallel_devices=[current_device], precision_plugin=PrecisionPlugin())
     )
     gpu_stats = GPUAccel.get_device_stats(current_device)
     fields = ["allocated_bytes.all.freed", "inactive_split.all.peak", "reserved_bytes.large_pool.peak"]
@@ -27,7 +27,7 @@ def test_get_nvidia_gpu_stats(tmpdir):
     """Test GPU get_device_stats with Pytorch < 1.8.0."""
     current_device = torch.device(f"cuda:{torch.cuda.current_device()}")
     GPUAccel = GPUAccelerator(
-        training_type_plugin=DataParallelPlugin(parallel_devices=[current_device]), precision_plugin=PrecisionPlugin()
+        training_type_plugin=DataParallelPlugin(parallel_devices=[current_device], precision_plugin=PrecisionPlugin())
     )
     gpu_stats = GPUAccel.get_device_stats(current_device)
     fields = ["utilization.gpu", "memory.used", "memory.free", "utilization.memory"]

@@ -27,6 +27,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
@@ -56,11 +57,14 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self,
         parallel_devices: Optional[List[int]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
         **_: Any
     ) -> None:
         checkpoint_io = checkpoint_io or XLACheckpointIO()
-        super().__init__(parallel_devices=parallel_devices, checkpoint_io=checkpoint_io)
+        super().__init__(
+            parallel_devices=parallel_devices, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin
+        )
         self.debug = debug
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0

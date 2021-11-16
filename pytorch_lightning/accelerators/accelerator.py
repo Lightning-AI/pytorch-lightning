@@ -44,14 +44,19 @@ class Accelerator:
     One to handle differences from the training routine and one to handle different precisions.
     """
 
-    def __init__(self, precision_plugin: PrecisionPlugin, training_type_plugin: TrainingTypePlugin) -> None:
+    def __init__(
+        self, training_type_plugin: TrainingTypePlugin, precision_plugin: Optional[PrecisionPlugin] = None
+    ) -> None:
         """
         Args:
             precision_plugin: the plugin to handle precision-specific parts
             training_type_plugin: the plugin to handle different training routines
         """
-        self.precision_plugin = precision_plugin
+
         self.training_type_plugin = training_type_plugin
+
+        if precision_plugin:
+            self.training_type_plugin._precision_plugin = precision_plugin
 
         self.optimizers: List = []
         self.lr_schedulers: List = []
@@ -84,7 +89,7 @@ class Accelerator:
         if self.training_type_plugin.setup_optimizers_in_pre_dispatch:
             self.setup_optimizers(trainer)
 
-        self.precision_plugin.pre_dispatch()
+        self.training_type_plugin.precision_plugin.pre_dispatch()
 
     def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
         """Moves the state of the optimizers to the GPU if needed."""
@@ -96,12 +101,12 @@ class Accelerator:
     def dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
         self.training_type_plugin.dispatch(trainer)
-        self.precision_plugin.dispatch(trainer)
+        self.training_type_plugin.precision_plugin.dispatch(trainer)
 
     def post_dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something after the training/evaluation/prediction starts."""
         self.training_type_plugin.post_dispatch(trainer)
-        self.precision_plugin.post_dispatch()
+        self.training_type_plugin.precision_plugin.post_dispatch()
 
     @property
     def model(self) -> Module:
@@ -159,7 +164,7 @@ class Accelerator:
 
         See :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` for more details
         """
-        with self.precision_plugin.train_step_context():
+        with self.training_type_plugin.precision_plugin.train_step_context():
             return self.training_type_plugin.training_step(*step_kwargs.values())
 
     def validation_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> Optional[STEP_OUTPUT]:
@@ -167,7 +172,7 @@ class Accelerator:
 
         See :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` for more details
         """
-        with self.precision_plugin.val_step_context():
+        with self.training_type_plugin.precision_plugin.val_step_context():
             return self.training_type_plugin.validation_step(*step_kwargs.values())
 
     def test_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> Optional[STEP_OUTPUT]:
@@ -175,7 +180,7 @@ class Accelerator:
 
         See :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step` for more details
         """
-        with self.precision_plugin.test_step_context():
+        with self.training_type_plugin.precision_plugin.test_step_context():
             return self.training_type_plugin.test_step(*step_kwargs.values())
 
     def predict_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> STEP_OUTPUT:
@@ -183,7 +188,7 @@ class Accelerator:
 
         See :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` for more details
         """
-        with self.precision_plugin.predict_step_context():
+        with self.training_type_plugin.precision_plugin.predict_step_context():
             return self.training_type_plugin.predict_step(*step_kwargs.values())
 
     def backward(self, closure_loss: Tensor, *args: Any, **kwargs: Any) -> Tensor:
@@ -193,11 +198,11 @@ class Accelerator:
             closure_loss: a tensor holding the loss value to backpropagate
         """
         self.training_type_plugin.pre_backward(closure_loss)
-        closure_loss = self.precision_plugin.pre_backward(self.lightning_module, closure_loss)
+        closure_loss = self.training_type_plugin.precision_plugin.pre_backward(self.lightning_module, closure_loss)
 
-        self.precision_plugin.backward(self.lightning_module, closure_loss, *args, **kwargs)
+        self.training_type_plugin.precision_plugin.backward(self.lightning_module, closure_loss, *args, **kwargs)
 
-        closure_loss = self.precision_plugin.post_backward(self.lightning_module, closure_loss)
+        closure_loss = self.training_type_plugin.precision_plugin.post_backward(self.lightning_module, closure_loss)
         self.training_type_plugin.post_backward(closure_loss)
 
         return closure_loss
@@ -220,7 +225,7 @@ class Accelerator:
             **kwargs: Any extra arguments to ``optimizer.step``
         """
         model = model or self.lightning_module
-        self.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
+        self.training_type_plugin.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
 
     def optimizer_zero_grad(self, current_epoch: int, batch_idx: int, optimizer: Optimizer, opt_idx: int) -> None:
         """Zeros all model parameter's gradients."""
@@ -248,26 +253,29 @@ class Accelerator:
 
     def setup_precision_plugin(self) -> None:
         """Attaches the precision plugin to the accelerator."""
-        model, optimizers, schedulers = self.precision_plugin.connect(self.model, self.optimizers, self.lr_schedulers)
+        model, optimizers, schedulers = self.training_type_plugin.precision_plugin.connect(
+            self.model, self.optimizers, self.lr_schedulers
+        )
         self.model = model
         self.optimizers = optimizers
         self.lr_schedulers = schedulers
 
     @property
     def amp_backend(self) -> Optional[LightningEnum]:
-        if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
+        if isinstance(self.training_type_plugin.precision_plugin, ApexMixedPrecisionPlugin):
             return AMPType.APEX
-        if isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
+        if isinstance(self.training_type_plugin.precision_plugin, NativeMixedPrecisionPlugin):
             return AMPType.NATIVE
         return None
 
     @property
     def precision(self) -> Union[str, int]:
-        return self.precision_plugin.precision
+        """deprecated."""
+        return self.training_type_plugin.precision
 
     @property
     def scaler(self) -> Optional["GradScaler"]:
-        return getattr(self.precision_plugin, "scaler", None)
+        return getattr(self.training_type_plugin.precision_plugin, "scaler", None)
 
     def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
         """Returns state of an optimizer.

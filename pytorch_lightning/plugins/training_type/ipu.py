@@ -22,6 +22,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE
@@ -64,6 +65,7 @@ class IPUPlugin(ParallelPlugin):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
         training_opts: Optional["poptorch.Options"] = None,
         inference_opts: Optional["poptorch.Options"] = None,
     ) -> None:
@@ -116,8 +118,7 @@ class IPUPlugin(ParallelPlugin):
         self.lightning_module.trainer._update_dataloader = self._convert_to_poptorch_loader
 
     def pre_dispatch(self) -> None:
-        precision = self.lightning_module.trainer.precision
-        model = LightningIPUModule(self.lightning_module, precision)
+        model = LightningIPUModule(self.lightning_module, self.precision)
         self.model = model
 
         # reset the backup
