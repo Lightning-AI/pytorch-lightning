@@ -37,6 +37,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Raise `MisconfigurationException` when `enable_progress_bar=False` and a progress bar instance has been passed in the callback list ([#10520](https://github.com/PyTorchLightning/pytorch-lightning/issues/10520))
 
 
+- Moved `precision_plugin` into `Training_type_plugin` and updated reference ([#10570](https://github.com/PyTorchLightning/pytorch-lightning/pull/10570))
+
+
 -
 
 
@@ -50,7 +53,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `DistributedType` in favor of `_StrategyType` ([#10505](https://github.com/PyTorchLightning/pytorch-lightning/pull/10505))
 
 
--
+- Deprecated `precision_plugin` from `Accelerator` ([#10570](https://github.com/PyTorchLightning/pytorch-lightning/pull/10570))
 
 
 -
@@ -138,6 +141,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed deprecated `reload_dataloaders_every_epoch` from `Trainer` in favour of `reload_dataloaders_every_n_epochs` ([#10481](https://github.com/PyTorchLightning/pytorch-lightning/pull/10481))
 
+
+- Removed `precision_plugin` from `Accelerator` in favor of `precision_plugin` in `training_type_plugin` ([#10570](https://github.com/PyTorchLightning/pytorch-lightning/pull/10570))
 
 
 ### Fixed
