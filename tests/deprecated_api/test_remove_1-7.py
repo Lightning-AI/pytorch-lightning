@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.7.0."""
+import os
 from unittest import mock
 
 import pytest
@@ -28,6 +29,7 @@ from pytorch_lightning.plugins.environments import (
     LightningEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
+    LSFEnvironment,
 )
 from tests.callbacks.test_callbacks import OldStatefulCallback
 from tests.deprecated_api import _soft_unimport_module
@@ -496,5 +498,34 @@ def test_v1_7_0_cluster_environment_master_port(cls):
 
     with pytest.deprecated_call(
         match="MyClusterEnvironment.master_port` has been deprecated in v1.6 and will be removed in 1.7"
+    ):
+        MyClusterEnvironment()
+
+
+@pytest.mark.parametrize(
+    "cls,method_name",
+    [
+        (KubeflowEnvironment, "is_using_kubeflow"),
+        (LSFEnvironment, "is_using_lsf"),
+        (TorchElasticEnvironment, "is_using_torchelastic"),
+    ],
+)
+@mock.patch.dict(os.environ, {"LSB_HOSTS": "batch 10.10.10.0 10.10.10.1", "LSB_JOBID": "1234"})
+def test_v1_7_0_cluster_environment_detection(cls, method_name):
+    class MyClusterEnvironment(cls):
+        @staticmethod
+        def is_using_kubeflow():
+            pass
+
+        @staticmethod
+        def is_using_lsf():
+            pass
+
+        @staticmethod
+        def is_using_torchelastic():
+            pass
+
+    with pytest.deprecated_call(
+        match=f"MyClusterEnvironment.{method_name}` has been deprecated in v1.6 and will be removed in 1.7"
     ):
         MyClusterEnvironment()

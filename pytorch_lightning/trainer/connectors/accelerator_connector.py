@@ -704,12 +704,12 @@ class AcceleratorConnector:
             )
         elif self.use_ddp:
             use_slurm_ddp = self.use_ddp and self._is_slurm_managing_tasks
-            use_torchelastic_ddp = self.use_ddp and TorchElasticEnvironment.is_using_torchelastic()
+            use_torchelastic_ddp = self.use_ddp and TorchElasticEnvironment.detect()
             use_kubeflow_ddp = self.use_ddp and KubeflowEnvironment.detect()
             use_ddp_spawn = self._distrib_type == _StrategyType.DDP_SPAWN
             use_ddp_cpu_spawn = use_ddp_spawn and self.use_cpu
             use_tpu_spawn = self.use_tpu and self._distrib_type == _StrategyType.TPU_SPAWN
-            use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and TorchElasticEnvironment.is_using_torchelastic()
+            use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and TorchElasticEnvironment.detect()
             use_ddp_cpu_kubeflow = use_ddp_cpu_spawn and KubeflowEnvironment.detect()
             use_ddp_cpu_slurm = use_ddp_cpu_spawn and self._is_slurm_managing_tasks
             use_ddp_sharded = self._distrib_type == _StrategyType.DDP_SHARDED
@@ -809,11 +809,11 @@ class AcceleratorConnector:
             return self._cluster_environment
         if self._is_slurm_managing_tasks:
             env = SLURMEnvironment()
-        elif TorchElasticEnvironment.is_using_torchelastic():
+        elif TorchElasticEnvironment.detect():
             env = TorchElasticEnvironment()
         elif KubeflowEnvironment.detect():
             env = KubeflowEnvironment()
-        elif LSFEnvironment.is_using_lsf():
+        elif LSFEnvironment.detect():
             env = LSFEnvironment()
         else:
             env = LightningEnvironment()

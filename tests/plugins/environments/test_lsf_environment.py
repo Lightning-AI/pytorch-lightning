@@ -65,7 +65,7 @@ def test_attributes_from_environment_variables():
     assert env.global_rank() == 3
     env.set_world_size(100)
     assert env.world_size() == 4
-    assert LSFEnvironment.is_using_lsf()
+    assert LSFEnvironment.detect()
 
 
 @mock.patch("socket.gethostname", return_value="host2")
