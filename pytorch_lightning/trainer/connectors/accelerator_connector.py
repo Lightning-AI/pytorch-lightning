@@ -808,16 +808,13 @@ class AcceleratorConnector:
         if self._cluster_environment is not None:
             return self._cluster_environment
         if self._is_slurm_managing_tasks:
-            env = SLURMEnvironment()
-        elif TorchElasticEnvironment.detect():
-            env = TorchElasticEnvironment()
-        elif KubeflowEnvironment.detect():
-            env = KubeflowEnvironment()
-        elif LSFEnvironment.detect():
-            env = LSFEnvironment()
-        else:
-            env = LightningEnvironment()
-        return env
+            return SLURMEnvironment()
+
+        for env_type in (TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment, LightningEnvironment):
+            if env_type.detect():
+                return env_type()
+
+        return LightningEnvironment()
 
     def set_distributed_mode(self, strategy: Optional[str] = None):
 
