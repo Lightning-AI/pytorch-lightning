@@ -338,18 +338,17 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_m
 
 
 @RunIf(special=True)
-def test_accelerator_choice_ddp_cpu_and_plugin(tmpdir):
+def test_accelerator_choice_ddp_cpu_and_strategy(tmpdir):
     """Test that accelerator="ddp_cpu" can work together with an instance of DDPPlugin."""
-    _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_strategy_class=DDPPlugin)
+    _test_accelerator_choice_ddp_cpu_and_strategy(tmpdir, ddp_strategy_class=DDPPlugin)
 
 
-def test_accelerator_choice_ddp_cpu_and_plugin_spawn(tmpdir):
+def test_accelerator_choice_ddp_cpu_and_strategy_spawn(tmpdir):
     """Test that accelerator="ddp_cpu" can work together with an instance of DDPPSpawnPlugin."""
-    _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_strategy_class=DDPSpawnPlugin)
+    _test_accelerator_choice_ddp_cpu_and_strategy(tmpdir, ddp_strategy_class=DDPSpawnPlugin)
 
 
-def _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_strategy_class):
-
+def _test_accelerator_choice_ddp_cpu_and_strategy(tmpdir, ddp_strategy_class):
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
