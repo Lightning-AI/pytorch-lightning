@@ -31,7 +31,7 @@ from torch.utils.data.dataloader import (
 )
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.enums import AutoRestartBatchKeys, FaultTolerantTrainingModes
+from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _fault_tolerant_training_mode
 
@@ -618,7 +618,7 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
         )
 
     else:
-        if _fault_tolerant_training_mode() == FaultTolerantTrainingModes.AUTOMATIC:
+        if _fault_tolerant_training_mode().is_automatic:
             raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
 
         latest_worker_id = state_dict["latest_worker_id"]

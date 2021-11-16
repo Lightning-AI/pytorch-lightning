@@ -205,7 +205,7 @@ class TrainerDataLoadingMixin(ABC):
             if is_predicting:
                 batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
 
-            if _fault_tolerant_training_mode() == FaultTolerantTrainingModes.AUTOMATIC:
+            if _fault_tolerant_training_mode().is_automatic:
                 fast_forward_sampler = batch_sampler = FastForwardSampler(batch_sampler)
                 fast_forward_sampler.setup(dataloader_batch_size=1)
 
@@ -217,7 +217,7 @@ class TrainerDataLoadingMixin(ABC):
                 "drop_last": False,
             }
 
-        if _fault_tolerant_training_mode() == FaultTolerantTrainingModes.AUTOMATIC:
+        if _fault_tolerant_training_mode().is_automatic:
             fast_forward_sampler = sampler = FastForwardSampler(sampler)
             fast_forward_sampler.setup(dataloader_batch_size=dataloader.batch_size)
 
