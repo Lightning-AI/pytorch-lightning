@@ -677,12 +677,15 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
 
 @pytest.mark.parametrize("num_dataloaders", [1, 2, 11])
 def test_log_metrics_only_include_metrics_from_concerned_dataloader(num_dataloaders, tmpdir):
+
+    metric_prefix = "fake_test_acc"
+    dataloader_prefix = "dataloader_idx"
+
     class TestModel(BoringModel):
         def test_step(self, batch, batch_idx, dataloader_idx=0):
             output = self.layer(batch)
             loss = self.loss(batch, output)
-            self.log("fake_test_acc", loss)
-            return {"y": loss}
+            self.log(metric_prefix, loss)
 
         def test_epoch_end(self, *_) -> None:
             pass
@@ -694,8 +697,11 @@ def test_log_metrics_only_include_metrics_from_concerned_dataloader(num_dataload
     trainer = Trainer(default_root_dir=tmpdir)
 
     output = trainer.test(model, dataloaders=test_dataloaders)
-    assert sum(len(x) for x in output) == num_dataloaders
+
     if num_dataloaders == 1:
-        assert "dataloader_idx" not in output[0]
+        assert dataloader_prefix not in output[0]
     else:
-        assert all(f"dataloader_idx_{idx}" == list(x.keys())[0].split("/")[1] for idx, x in enumerate(output))
+        for idx, metric in enumerate(output):
+            expected_dl_idx_str = f"{metric_prefix}/{dataloader_prefix}_{idx}"
+            assert len(metric) == 1
+            assert expected_dl_idx_str in metric
