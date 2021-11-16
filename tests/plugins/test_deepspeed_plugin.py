@@ -1024,7 +1024,6 @@ def test_specific_gpu_device_id(tmpdir):
             pl_module: LightningModule,
             batch: Any,
             batch_idx: int,
-            dataloader_idx: int,
         ) -> None:
             assert batch.device.index == 1
 
