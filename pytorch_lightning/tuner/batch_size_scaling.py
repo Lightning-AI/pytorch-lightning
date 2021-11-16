@@ -218,6 +218,7 @@ def _run_binsearch_scaling(
                 midval = (high + low) // 2
                 new_size, _ = _adjust_batch_size(trainer, batch_arg_name, value=midval, desc="failed")
                 trainer.reset_train_dataloader(model)
+                trainer.reset_val_dataloader(model)
                 if high - low <= 1:
                     break
             else:
