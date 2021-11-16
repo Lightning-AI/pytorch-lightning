@@ -487,7 +487,8 @@ def _run_trainer_model_hook_system_fit(kwargs, tmpdir, automatic_optimization):
         dict(name="Callback.on_init_start", args=(trainer,)),
         dict(name="Callback.on_init_end", args=(trainer,)),
     ]
-    trainer.fit(model)
+    with pytest.deprecated_call(match="on_train_dataloader` is deprecated in v1.5"):
+        trainer.fit(model)
     saved_ckpt = {
         "callbacks": ANY,
         "epoch": 1,
@@ -589,7 +590,8 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         enable_model_summary=False,
         callbacks=[HookedCallback([])],
     )
-    trainer.fit(model)
+    with pytest.deprecated_call(match="on_keyboard_interrupt` callback hook was deprecated in v1.5"):
+        trainer.fit(model)
     best_model_path = trainer.checkpoint_callback.best_model_path
 
     # resume from checkpoint with HookedModel
@@ -611,7 +613,8 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         dict(name="Callback.on_init_start", args=(trainer,)),
         dict(name="Callback.on_init_end", args=(trainer,)),
     ]
-    trainer.fit(model, ckpt_path=best_model_path)
+    with pytest.deprecated_call(match="on_train_dataloader` is deprecated in v1.5"):
+        trainer.fit(model, ckpt_path=best_model_path)
     saved_ckpt = {
         "callbacks": ANY,
         "epoch": 2,  # TODO: wrong saved epoch
@@ -706,7 +709,8 @@ def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader,
         dict(name="Callback.on_init_end", args=(trainer,)),
     ]
     fn = getattr(trainer, verb)
-    fn(model, verbose=False)
+    with pytest.deprecated_call(match=f"on_{dataloader}_dataloader` is deprecated in v1.5"):
+        fn(model, verbose=False)
     hooks = [
         dict(name="train", args=(False,)),
         dict(name=f"on_{noun}_model_eval"),
@@ -750,7 +754,8 @@ def test_trainer_model_hook_system_predict(tmpdir):
         dict(name="Callback.on_init_start", args=(trainer,)),
         dict(name="Callback.on_init_end", args=(trainer,)),
     ]
-    trainer.predict(model)
+    with pytest.deprecated_call(match="on_predict_dataloader` is deprecated in v1.5"):
+        trainer.predict(model)
     expected = [
         dict(name="Callback.on_init_start", args=(trainer,)),
         dict(name="Callback.on_init_end", args=(trainer,)),
@@ -866,7 +871,7 @@ def test_trainer_datamodule_hook_system(tmpdir):
         limit_predict_batches=batches,
         enable_progress_bar=False,
         enable_model_summary=False,
-        reload_dataloaders_every_epoch=True,
+        reload_dataloaders_every_n_epochs=True,
     )
 
     called = []
