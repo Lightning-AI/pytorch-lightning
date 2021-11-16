@@ -544,15 +544,17 @@ def _next_data_wrapper(fn, it, dl, num_batches_fetched, data_fetcher) -> Callabl
             ]
         if _fault_tolerant_training_mode() == FaultTolerantTrainingModes.MANUAL:
             sampler_state, sampler_state_idx = it._sampler_state.pop(0)
+            worker_id = list(state.keys())[0]
             state = [
                 IteratorState(
                     num_workers=dl.num_workers,
                     sampler_state=sampler_state,
                     dataset_state=state,
-                    worker_id=list(state.keys())[0],
+                    worker_id=worker_id,
                     num_batches_fetched=num_batches_fetched,
                 )
             ]
+            print(worker_id)
             # ensures there is an alignement between the sampler state and currently fetched batch
             assert sampler_state_idx == num_batches_fetched
         data_fetcher._store_dataloader_iter_state(it, state)
@@ -634,18 +636,6 @@ def patch_dataloader_iterator(
     )
 
 
-def _patch_dataloader_iterator_reset(
-    dataloader: DataLoader,
-    data_fetcher: "pl.utilities.fetching.DataFetcher",
-    num_batches_fetched: int = 0,
-) -> None:
-    if _fault_tolerant_training_mode() == FaultTolerantTrainingModes.MANUAL:
-        if dataloader.num_workers > 0 and not isinstance(_BaseDataLoaderIter._reset, partial):
-            _BaseDataLoaderIter._reset = _reset_wrapper(_BaseDataLoaderIter._reset)
-        elif dataloader.num_workers == 0 and not isinstance(_BaseDataLoaderIter._next_index, partial):
-            _BaseDataLoaderIter._next_index = _next_index_wrapper(_BaseDataLoaderIter._next_index)
-
-
 def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
     """Wrap default collate function to retrive captured dataset state dict when fault tolerant is enabled."""
     dataloader.collate_fn = partial(
@@ -687,27 +677,29 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
         if _fault_tolerant_training_mode() == FaultTolerantTrainingModes.AUTOMATIC:
             raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
 
-        sampler_state = state_dict["state"][0]["sampler_state"]
+        latest_worker_id = state_dict["latest_worker_id"]
+        sampler_state = state_dict["state"][latest_worker_id]["sampler_state"]
         if sampler_state:
-            for k, v in sampler_state.items():
+            for k in sampler_state:
                 obj = getattr(dataloader, k)
                 if not isinstance(obj, _FaulTolerantAbstract):
                     raise MisconfigurationException(
                         f"The DataLoader attribute should have a load_state_dict method. Found {obj}"
                     )
+
                 obj.load_state_dict(sampler_state[k])
-        dataset.load_state_dict(state_dict["state"][0]["dataset_state"])
+
+        dataset_state = {
+            worker_id: state_dict["state"][worker_id]["dataset_state"][worker_id]
+            for worker_id in state_dict["state"].keys()
+        }
+
+        dataset.load_state_dict(dataset_state)
 
 
-class _SingleProcessDataLoaderIterStateful(_SingleProcessDataLoaderIter):
-    def __init__(self, loader):
-        super().__init__(loader)
-        self._loader = loader
-
+class _StatefulMixin:
     def _reset(self, loader, first_iter=False):
         super()._reset(loader, first_iter=first_iter)
-        self._sampler_state = []
-        self._sampler_state_idx = 0
         self._loader = loader
 
     def _store_sampler_state(self):
@@ -731,14 +723,38 @@ class _SingleProcessDataLoaderIterStateful(_SingleProcessDataLoaderIter):
         self._store_sampler_state()
         return indexes
 
+    def _prepare_loader(self, loader):
+        if not isinstance(loader.collate_fn, partial):
+            loader.collate_fn = partial(
+                _capture_metadata_collate, dataset=loader.dataset, default_collate=loader.collate_fn
+            )
+        self._loader = loader
+
+    def __del__(self):
+        if isinstance(self._loader.collate_fn, partial):
+            self._loader.collate_fn = self._loader.collate_fn.keywords["default_collate"]
+
+
+class _SingleProcessDataLoaderIterStateful(_StatefulMixin, _SingleProcessDataLoaderIter):
+    def __init__(self, loader):
+        self._prepare_loader(loader)
+        super().__init__(loader)
+
+
+class _MultiProcessingDataLoaderIterStateful(_StatefulMixin, _MultiProcessingDataLoaderIter):
+    def __init__(self, loader):
+        self._prepare_loader(loader)
+        super().__init__(loader)
+
 
 def _get_iterator(self) -> "_BaseDataLoaderIter":
     if self.num_workers == 0:
         return _SingleProcessDataLoaderIterStateful(self)
     else:
         self.check_worker_number_rationality()
-        return _MultiProcessingDataLoaderIter(self)
+        return _MultiProcessingDataLoaderIterStateful(self)
 
 
 def _patch_dataloader_iterators():
-    DataLoader._get_iterator = _get_iterator
+    if _fault_tolerant_training_mode() == FaultTolerantTrainingModes.MANUAL:
+        DataLoader._get_iterator = _get_iterator

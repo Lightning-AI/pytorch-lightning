@@ -1201,7 +1201,9 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
 class RandomFaultTolerantDataset(RandomGetItemDataset):
     def __init__(self, *args, seed: int, **kwargs):
         super().__init__(*args, **kwargs)
-        self.generator = torch.Generator().manual_seed(seed)
+        self.seed = seed
+        self._cache_state_dict = None
+        self.generator = None
 
     @property
     def worker_id(self):
@@ -1209,15 +1211,24 @@ class RandomFaultTolerantDataset(RandomGetItemDataset):
         return info.id if info else 0
 
     def __getitem__(self, index):
-        t = torch.rand(self.size, generator=self.generator)
-        return index + t
+        if self._cache_state_dict:
+            state_dict = self._cache_state_dict[self.worker_id]
+            print("RELOADED STATE", self.worker_id, np.mean(state_dict["random_state"][1]))
+            self.generator = random.Random(self.seed + self.worker_id)
+            self.generator.setstate(state_dict["random_state"])
+            print(self.worker_id, np.mean(self.generator.getstate()[1]))
+            self._cache_state_dict = None
+
+        if not self.generator:
+            self.generator = random.Random(self.seed + self.worker_id)
+        return torch.tensor(index + self.generator.random())
 
     def state_dict(self):
-        return {self.worker_id: {"random_state": self.generator.get_state()}}
+        print(self.worker_id, np.mean(self.generator.getstate()[1]))
+        return {self.worker_id: {"random_state": self.generator.getstate()}}
 
     def load_state_dict(self, state_dict):
-        state_dict = state_dict[self.worker_id]
-        self.generator.set_state(state_dict["random_state"])
+        self._cache_state_dict = state_dict
 
 
 class RandomSamplerStateful(RandomSampler):
@@ -1265,8 +1276,9 @@ class RandomSamplerStateful(RandomSampler):
     ],
 )
 @pytest.mark.parametrize("sampler_cls", [RandomSamplerStateful])
+@pytest.mark.parametrize("num_workers", [0, 1])
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "2"})
-def test_fault_tolerant_manual_mode(sampler_cls, train_dataset_cls, val_dataset_cls, tmpdir):
+def test_fault_tolerant_manual_mode(num_workers, sampler_cls, train_dataset_cls, val_dataset_cls, tmpdir):
     class TestModel(BoringModel):
         def __init__(self, should_fail: bool = False):
             super().__init__()
@@ -1285,27 +1297,27 @@ def test_fault_tolerant_manual_mode(sampler_cls, train_dataset_cls, val_dataset_
             return torch.stack(losses).mean()
 
         def validation_step(self, batch, batch_idx):
-            print(batch)
+            pass
 
         validation_epoch_end = None
 
-        def _create_dataloader_kwargs(self, dataset_class, seed):
+        def _create_dataloader_kwargs(self, dataset_class, seed, num_workers):
             dl_kwargs = {}
             dl_kwargs["dataset"] = dataset_class(32, 1, seed=seed)
             dl_kwargs["sampler"] = sampler_cls(dl_kwargs["dataset"], seed=seed)
-            dl_kwargs["num_workers"] = 0
+            dl_kwargs["num_workers"] = num_workers
             dl_kwargs["batch_size"] = 1
             return dl_kwargs
 
         def train_dataloader(self):
             return [
-                DataLoader(**self._create_dataloader_kwargs(dataset_class, seed))
+                DataLoader(**self._create_dataloader_kwargs(dataset_class, seed, num_workers))
                 for seed, dataset_class in enumerate(train_dataset_cls)
             ]
 
         def val_dataloader(self):
             return [
-                DataLoader(**self._create_dataloader_kwargs(dataset_class, seed))
+                DataLoader(**self._create_dataloader_kwargs(dataset_class, seed, 0))
                 for seed, dataset_class in enumerate(val_dataset_cls)
             ]
 

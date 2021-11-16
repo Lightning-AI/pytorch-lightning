@@ -196,7 +196,6 @@ class AbstractDataFetcher(ABC):
             raise MisconfigurationException("The iterate hasn't been provided. HINT: Did you call setup function ?.")
         self.reset()
         _patch_dataloader_iterators()
-        # _patch_dataloader_iterator_reset(self.dataloader, self)
         self.dataloader_iter = iter(self.dataloader)
         self._apply_patch()
         self.prefetching(self.prefetch_batches)
