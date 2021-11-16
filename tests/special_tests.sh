@@ -17,55 +17,49 @@ set -e
 # this environment variable allows special tests to run
 export PL_RUNNING_SPECIAL_TESTS=1
 # python arguments
-defaults='-m coverage run --source pytorch_lightning --append -m pytest --durations=0 --capture=no --disable-warnings'
+defaults='-m coverage run --source pytorch_lightning --append -m pytest --capture=no'
 
-# find tests marked as `@RunIf(special=True)`
-grep_output=$(grep --recursive --line-number --word-regexp 'tests' 'benchmarks' --regexp 'special=True')
-# file paths
-files=$(echo "$grep_output" | cut -f1 -d:)
-files_arr=($files)
-# line numbers
-linenos=$(echo "$grep_output" | cut -f2 -d:)
-linenos_arr=($linenos)
+# find tests marked as `@RunIf(special=True)`. done manually instead of with pytest because it is faster
+grep_output=$(grep --recursive --word-regexp 'tests' 'benchmarks' --regexp 'special=True' --include '*.py' --exclude 'tests/conftest.py')
+
+# file paths, remove duplicates
+files=$(echo "$grep_output" | cut -f1 -d: | sort | uniq)
+
+# get the list of parametrizations. we need to call them separately. the last two lines are removed.
+# note: if there's a syntax error, this will fail with some garbled output
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  parametrizations=$(pytest $files --collect-only --quiet | tail -r | sed -e '1,3d' | tail -r)
+else
+  parametrizations=$(pytest $files --collect-only --quiet | head -n -2)
+fi
+parametrizations_arr=($parametrizations)
 
 # tests to skip - space separated
-blocklist='test_pytorch_profiler_nested_emit_nvtx'
+blocklist='tests/profiler/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx'
 report=''
 
-for i in "${!files_arr[@]}"; do
-  file=${files_arr[$i]}
-  lineno=${linenos_arr[$i]}
+for i in "${!parametrizations_arr[@]}"; do
+  parametrization=${parametrizations_arr[$i]}
 
-  # get code from `@RunIf(special=True)` line to EOF
-  test_code=$(tail -n +"$lineno" "$file")
+  # check blocklist
+  if echo $blocklist | grep -F "${parametrization}"; then
+    report+="Skipped\t$parametrization\n"
+    continue
+  fi
 
-  # read line by line
-  while read -r line; do
-    # if it's a test
-    if [[ $line == def\ test_* ]]; then
-      # get the name
-      test_name=$(echo $line | cut -c 5- | cut -f1 -d\()
+  # SPECIAL_PATTERN allows filtering the tests to run when debugging.
+  # use as `SPECIAL_PATTERN="foo_bar" ./special_tests.sh` to run only those
+  # test with `foo_bar` in their name
+  if [[ $parametrization != *$SPECIAL_PATTERN* ]]; then
+    report+="Skipped\t$parametrization\n"
+    continue
+  fi
 
-      # check blocklist
-      if echo $blocklist | grep --word-regexp "$test_name" > /dev/null; then
-        report+="Skipped\t$file:$lineno::$test_name\n"
-        break
-      fi
+  # run the test
+  echo "Running ${parametrization}"
+  #pytest ${defaults} "${parametrization}"
 
-      # SPECIAL_PATTERN allows filtering the tests to run when debugging.
-      # use as `SPECIAL_PATTERN="foo_bar" ./special_tests.sh` to run only those
-      # test with `foo_bar` in their name
-      if [[ $line != *$SPECIAL_PATTERN* ]]; then
-        report+="Skipped\t$file:$lineno::$test_name\n"
-        break
-      fi
-
-      # run the test
-      report+="Ran\t$file:$lineno::$test_name\n"
-      python ${defaults} "${file}::${test_name}"
-      break
-    fi
-  done < <(echo "$test_code")
+  report+="Ran\t$parametrization\n"
 done
 
 if nvcc --version; then

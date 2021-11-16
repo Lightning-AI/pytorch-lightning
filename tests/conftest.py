@@ -154,3 +154,16 @@ def single_process_pg():
         torch.distributed.destroy_process_group()
         os.environ.clear()
         os.environ.update(orig_environ)
+
+
+def pytest_collection_modifyitems(items):
+    if os.getenv("PL_RUNNING_SPECIAL_TESTS", "0") != "1":
+        return
+    # filter out non-special tests
+    items[:] = [
+        item
+        for item in items
+        for marker in item.own_markers
+        # has `@RunIf(special=True)`
+        if marker.name == "skipif" and marker.kwargs.get("special")
+    ]
