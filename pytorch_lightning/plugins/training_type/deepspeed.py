@@ -618,11 +618,6 @@ class DeepSpeedPlugin(DDPPlugin):
             )
         self.config["gradient_accumulation_steps"] = self.lightning_module.trainer.accumulate_grad_batches
         if "train_micro_batch_size_per_gpu" not in self.config:
-            rank_zero_warn(
-                "Inferring the batch size for internal deepspeed logging from the `train_dataloader()`. "
-                "If you require skipping this, please pass "
-                "`Trainer(strategy=DeepSpeedPlugin(logging_batch_size_per_gpu=batch_size))`"
-            )
             batch_size = self._auto_select_batch_size()
             self.config["train_micro_batch_size_per_gpu"] = batch_size
         if "gradient_clipping" not in self.config:
@@ -634,9 +629,19 @@ class DeepSpeedPlugin(DDPPlugin):
         batch_size = 1
         train_dl_source = self.lightning_module.trainer._data_connector._train_dataloader_source
         if train_dl_source.is_defined():
-            train_dataloader = train_dl_source.dataloader()
-            if hasattr(train_dataloader, "batch_sampler"):
-                batch_size = train_dataloader.batch_sampler.batch_size
+            try:
+                train_dataloader = train_dl_source.dataloader()
+                if hasattr(train_dataloader, "batch_sampler"):
+                    batch_size = train_dataloader.batch_sampler.batch_size
+            # broad exception on purpose as `source.dataloader()` will fail if the dataloader requires `setup`
+            # to have been called before
+            except Exception:
+                if self.global_rank == 0:
+                    deepspeed.utils.logging.logger.warning(
+                        "Tried to infer the batch size for internal deepspeed logging from the `train_dataloader()`. "
+                        "To ensure DeepSpeed logging remains correct, please manually pass the plugin with the "
+                        "batch size, `Trainer(strategy=DeepSpeedPlugin(logging_batch_size_per_gpu=batch_size))`."
+                    )
         return batch_size
 
     def _format_precision_config(self):
