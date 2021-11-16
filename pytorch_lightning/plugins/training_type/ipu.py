@@ -241,9 +241,9 @@ class IPUPlugin(ParallelPlugin):
         args = self._prepare_input(args)
         poptorch_model = self.poptorch_models[stage]
         self.lightning_module._running_torchscript = True
-        compiled_model = poptorch_model(*args, **kwargs)
+        out = poptorch_model(*args, **kwargs)
         self.lightning_module._running_torchscript = False
-        return compiled_model
+        return out
 
     def training_step(self, *args, **kwargs):
         return self._step(RunningStage.TRAINING, *args, **kwargs)
