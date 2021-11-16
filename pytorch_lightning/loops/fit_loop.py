@@ -197,7 +197,9 @@ class FitLoop(Loop):
         self.trainer.reset_train_val_dataloaders(self.trainer.lightning_module)
         self._is_fresh_start_epoch = True
         self._results.to(device=self.trainer.lightning_module.device)
-        self.trainer.call_hook("on_train_start")
+        self.trainer._call_hook(self.trainer, "on_train_start")
+        self.trainer._call_hook(self.trainer.lightning_module, "on_train_start")
+        self.trainer._call_hook(self.trainer.accelerator, "on_train_start")
 
     def on_advance_start(self) -> None:
         """Prepares the dataloader for training and calls the hooks ``on_epoch_start`` and
@@ -254,7 +256,8 @@ class FitLoop(Loop):
         self.current_epoch = max(self.current_epoch - 1, 0)
 
         # hook
-        self.trainer.call_hook("on_train_end")
+        self.trainer._call_hook(self.trainer, "on_train_end")
+        self.trainer._call_hook(self.trainer.lightning_module, "on_train_end")
 
         # give accelerators a chance to finish
         self.trainer.training_type_plugin.on_train_end()

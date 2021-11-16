@@ -392,7 +392,8 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             optimizer: the current optimizer
         """
         self.optim_progress.optimizer.zero_grad.increment_ready()
-        self.trainer.call_hook("on_before_zero_grad", optimizer)
+        self.trainer._call_hook(self.trainer, "on_before_zero_grad", optimizer)
+        self.trainer._call_hook(self.trainer.lightning_module, "on_before_zero_grad", optimizer)
         self.optim_progress.optimizer.zero_grad.increment_started()
 
     def _optimizer_zero_grad(self, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int) -> None:
@@ -434,7 +435,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
 
             del step_kwargs
 
-            training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
+            training_step_output = self.trainer._call_hook(self.trainer.lightning_module, "training_step_end", training_step_output)
 
             self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
 

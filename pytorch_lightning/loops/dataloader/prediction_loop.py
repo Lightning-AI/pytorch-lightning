@@ -110,8 +110,10 @@ class PredictionLoop(DataLoaderLoop):
         self.trainer.lightning_module.zero_grad()
 
         # hook
-        self.trainer.call_hook("on_predict_start")
-        self.trainer.call_hook("on_predict_epoch_start")
+        self.trainer._call_hook(self.trainer, "on_predict_start")
+        self.trainer._call_hook(self.trainer.lightning_module, "on_predict_start")
+        self.trainer._call_hook(self.trainer, "on_predict_epoch_start")
+        self.trainer._call_hook(self.trainer.lightning_module, "on_predict_epoch_start")
 
     def _on_predict_epoch_end(self) -> Optional[_PREDICT_OUTPUT]:
         """Calls ``on_predict_epoch_end`` hook.
@@ -121,7 +123,9 @@ class PredictionLoop(DataLoaderLoop):
         """
         results = self.predictions
 
-        self.trainer.call_hook("on_predict_epoch_end", results)
+        self.trainer._call_hook(self.trainer, "on_predict_epoch_end", results)
+        self.trainer._call_hook(self.trainer.lightning_module, "on_predict_epoch_end", results)
+
 
         if self.return_predictions:
             return results[0] if self.num_dataloaders == 1 else results
@@ -133,7 +137,8 @@ class PredictionLoop(DataLoaderLoop):
         self.epoch_batch_indices = []
 
         # hook
-        self.trainer.call_hook("on_predict_end")
+        self.trainer._call_hook(self.trainer, "on_predict_end")
+        self.trainer._call_hook(self.trainer.lightning_module, "on_predict_end")
 
     def _on_predict_model_eval(self):
         """Calls ``on_predict_model_eval`` hook."""

@@ -109,7 +109,7 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
 
             del step_kwargs
 
-            training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
+            training_step_output = self.trainer._call_hook(self.trainer.lightning_module, "training_step_end", training_step_output)
 
             self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
 

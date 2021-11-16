@@ -1098,7 +1098,7 @@ class Trainer(
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
-        self.call_hook("on_before_accelerator_backend_setup")
+        self._call_hook(self, "on_before_accelerator_backend_setup")
         self.accelerator.setup_environment()
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
@@ -1147,7 +1147,8 @@ class Trainer(
 
         # hook
         if self.state.fn == TrainerFn.FITTING:
-            self.call_hook("on_fit_start")
+            self._call_hook(self, "on_fit_start")
+            self._call_hook(self.lightning_module, "on_fit_start")
 
         # plugin will setup fitting (e.g. ddp will launch child processes)
         self._pre_dispatch()
@@ -1171,7 +1172,8 @@ class Trainer(
         # ----------------------------
         # hook
         if self.state.fn == TrainerFn.FITTING:
-            self.call_hook("on_fit_end")
+            self._call_hook(self, "on_fit_end")
+            self._call_hook(self.lightning_module, "on_fit_end")
 
         # teardown if necessary (similar calls for spawn plugins are excluded as they have
         # been included at the end of `new_process` functions)
@@ -1262,9 +1264,11 @@ class Trainer(
         # --------------------------
         # Pre-train
         # --------------------------
-        self.call_hook("on_pretrain_routine_start")
+        self._call_hook(self, "on_pretrain_routine_start")
+        self._call_hook(self.lightning_module, "on_pretrain_routine_start")
 
-        self.call_hook("on_pretrain_routine_end")
+        self._call_hook(self, "on_pretrain_routine_end")
+        self._call_hook(self.lightning_module, "on_pretrain_routine_end")
 
     def _run_train(self) -> None:
         self._pre_training_routine()
@@ -1329,7 +1333,7 @@ class Trainer(
             self.logger_connector.reset_results()
             self.logger_connector.reset_metrics()
 
-            self.call_hook("on_sanity_check_start")
+            self._call_hook(self, "on_sanity_check_start")
 
             # reload dataloaders
             self._evaluation_loop._reload_evaluation_dataloaders()
@@ -1338,7 +1342,7 @@ class Trainer(
             with torch.no_grad():
                 self._evaluation_loop.run()
 
-            self.call_hook("on_sanity_check_end")
+            self._call_hook(self, "on_sanity_check_end")
 
             # reset logger connector
             self.logger_connector.reset_results()
@@ -1400,15 +1404,16 @@ class Trainer(
 
         if self.datamodule is not None:
             self.datamodule.setup(stage=fn)
-        self.call_hook("setup", stage=fn)
+        self._call_hook(self, "setup", stage=fn)
+        self._call_hook(self.lightning_module, "setup", stage=fn)
 
         self.training_type_plugin.barrier("post_setup")
 
     def _call_configure_sharded_model(self) -> None:
         with self.accelerator.model_sharded_context():
             self._handle_meta_model()
-            self.call_hook("configure_sharded_model")
-            self.call_hook("on_configure_sharded_model")
+            self._call_hook(self.lightning_module, "configure_sharded_model")
+            self._call_hook(self, "on_configure_sharded_model")
 
     def _handle_meta_model(self) -> None:
         if not is_on_meta_device(self.lightning_module):
@@ -1427,7 +1432,8 @@ class Trainer(
         if self.datamodule is not None:
             self.datamodule.teardown(stage=fn)
 
-        self.call_hook("teardown", stage=fn)
+        self._call_hook(self, "teardown", stage=fn)
+        self._call_hook(self.lightning_module, "teardown", stage=fn)
 
         self.lightning_module._current_fx_name = None
         self.lightning_module._current_dataloader_idx = None
@@ -1489,6 +1495,42 @@ class Trainer(
                 output = ttp_output if output is None else output
 
         if pl_module:
+            # restore current_fx when nested context
+            pl_module._current_fx_name = prev_fx_name
+
+        return output
+
+    def _profile_and_call(self, obj: object, hook_name: str, *args: Any, **kwargs: Any) -> Optional[Any]:
+        fn = getattr(obj, hook_name)
+        with self.profiler.profile(f"{obj.__class__.__name__}.{hook_name}"):
+            return fn(*args, **kwargs)
+
+    def _call_hook(
+        self,
+        obj: object,
+        hook_name: str,
+        *args: Any,
+        pl_module: Optional["pl.LightningModule"] = None,
+        **kwargs: Any,
+    ) -> Optional[Any]:
+        pl_module = pl_module or self.lightning_module
+
+        if pl_module is not None:
+            prev_fx_name = pl_module._current_fx_name
+            pl_module._current_fx_name = hook_name
+
+        output = None
+        if isinstance(obj, Trainer):
+            for obj in self.callbacks:
+                if hook_name in ("on_init_start", "on_init_end"):
+                    # these `Callback` hooks are the only ones that do not take a lightning module
+                    output = self._profile_and_call(obj, hook_name, self, *args, **kwargs)
+                else:
+                    output = self._profile_and_call(obj, hook_name, self, pl_module, *args, **kwargs)
+        else:
+            output = self._profile_and_call(obj, hook_name, *args, **kwargs)
+
+        if pl_module is not None:
             # restore current_fx when nested context
             pl_module._current_fx_name = prev_fx_name
 

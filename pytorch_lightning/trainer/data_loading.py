@@ -574,7 +574,7 @@ class TrainerDataLoadingMixin(ABC):
         source = getattr(self._data_connector, f"_{stage.dataloader_prefix}_dataloader_source")
 
         hook = f"{stage.dataloader_prefix}_dataloader"
-        self.call_hook("on_" + hook, pl_module=model)
+        self._call_hook(model, "on_" + hook, pl_module=model)
         dataloader = source.dataloader()
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
