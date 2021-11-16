@@ -171,7 +171,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             set_shared_parameters(self.model.module, shared_params)
 
         trainer.accelerator.setup_optimizers(trainer)
-        trainer.precision_plugin.connect(self._model, None, None)
+        self.precision_plugin.connect(self._model, None, None)
 
         self.barrier("pre-run-stage")
 
