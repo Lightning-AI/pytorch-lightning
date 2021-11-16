@@ -57,7 +57,7 @@ for i in "${!parametrizations_arr[@]}"; do
 
   # run the test
   echo "Running ${parametrization}"
-  #pytest ${defaults} "${parametrization}"
+  python ${defaults} "${parametrization}"
 
   report+="Ran\t$parametrization\n"
 done
