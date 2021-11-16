@@ -27,9 +27,9 @@ from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
+    LSFEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
-    LSFEnvironment,
 )
 from tests.callbacks.test_callbacks import OldStatefulCallback
 from tests.deprecated_api import _soft_unimport_module
