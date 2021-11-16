@@ -335,7 +335,6 @@ def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
     """Test that loggers get replaced by dummy loggers on global rank > 0."""
     _patch_comet_atexit(monkeypatch)
     try:
-
         if logger_class is TestTubeLogger:
             with pytest.deprecated_call(match="TestTubeLogger is deprecated since v1.5"):
                 _test_logger_created_on_rank_zero_only(tmpdir, logger_class)
