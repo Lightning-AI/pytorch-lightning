@@ -1279,7 +1279,7 @@ class RandomSamplerStateful(RandomSampler):
     ],
 )
 @pytest.mark.parametrize("sampler_cls", [RandomSamplerStateful])
-@pytest.mark.parametrize("num_workers", [0, 1])
+@pytest.mark.parametrize("num_workers", [0])
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "2"})
 def test_fault_tolerant_manual_mode(num_workers, sampler_cls, train_dataset_cls, val_dataset_cls, tmpdir):
     class TestModel(BoringModel):
