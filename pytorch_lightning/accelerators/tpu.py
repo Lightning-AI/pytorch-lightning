@@ -40,7 +40,7 @@ class TPUAccelerator(Accelerator):
             # this configuration should have been avoided in the accelerator connector
             raise ValueError(
                 f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`,"
-                f" found: {self.training_type_plugin}."
+                f" found: {self.training_type_plugin.precision_plugin}."
             )
         if not isinstance(self.training_type_plugin, (SingleTPUPlugin, TPUSpawnPlugin)):
             raise ValueError(
