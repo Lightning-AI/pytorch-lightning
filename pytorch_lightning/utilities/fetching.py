@@ -221,6 +221,7 @@ class AbstractDataFetcher(ABC):
         self.done: bool = False
 
     def teardown(self) -> None:
+        # cleanup the get_iterator replacement in case of Fault Tolerant Training.
         get_iterator = getattr(DataLoader, "_ori_get_iterator", None)
         if get_iterator:
             DataLoader.get_iterator = get_iterator

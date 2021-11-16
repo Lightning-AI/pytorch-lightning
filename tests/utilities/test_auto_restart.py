@@ -1203,6 +1203,7 @@ class RandomFaultTolerantDataset(RandomGetItemDataset):
         self.seed = seed
         self._cache_state_dict = None
         self.generator = None
+        self.counter_debug = 0
 
     @property
     def worker_id(self):
@@ -1212,10 +1213,8 @@ class RandomFaultTolerantDataset(RandomGetItemDataset):
     def __getitem__(self, index):
         if self._cache_state_dict:
             state_dict = self._cache_state_dict[self.worker_id]
-            print("RELOADED STATE", self.worker_id, np.mean(state_dict["random_state"][1]))
-            self.generator = random.Random(self.seed + self.worker_id)
+            self.generator = random.Random()
             self.generator.setstate(state_dict["random_state"])
-            print(self.worker_id, np.mean(self.generator.getstate()[1]))
             self._cache_state_dict = None
 
         if not self.generator:
@@ -1223,7 +1222,6 @@ class RandomFaultTolerantDataset(RandomGetItemDataset):
         return torch.tensor(index + self.generator.random())
 
     def state_dict(self):
-        print(self.worker_id, np.mean(self.generator.getstate()[1]))
         return {self.worker_id: {"random_state": self.generator.getstate()}}
 
     def load_state_dict(self, state_dict):
@@ -1288,20 +1286,17 @@ def test_fault_tolerant_manual_mode_enum():
     assert mode.is_elastic
 
 
+@pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 22 sec and should be skipped in Azure CI")
 @pytest.mark.parametrize(
     ["train_dataset_cls", "val_dataset_cls"],
     [
-        ([RandomFaultTolerantDataset], [RandomFaultTolerantDataset]),
         ([RandomFaultTolerantDataset, RandomFaultTolerantDataset], [RandomFaultTolerantDataset]),
     ],
 )
 @pytest.mark.parametrize("sampler_cls", [RandomSamplerStateful])
-@pytest.mark.parametrize("num_workers", [0])
-@pytest.mark.parametrize("val_check_interval", [1.0])
+@pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "2"})
-def test_fault_tolerant_manual_mode(
-    val_check_interval, num_workers, sampler_cls, train_dataset_cls, val_dataset_cls, tmpdir
-):
+def test_fault_tolerant_manual_mode(val_check_interval, sampler_cls, train_dataset_cls, val_dataset_cls, tmpdir):
     class TestModel(BoringModel):
         def __init__(self, should_fail: bool = False):
             super().__init__()
@@ -1310,7 +1305,6 @@ def test_fault_tolerant_manual_mode(
             self.batches = []
 
         def training_step(self, batch, batch_idx):
-            print(batch)
             if self.should_fail and batch_idx == 7:
                 raise CustomException
             self.batches.append(batch)
@@ -1324,9 +1318,9 @@ def test_fault_tolerant_manual_mode(
 
         validation_epoch_end = None
 
-        def _create_dataloader_kwargs(self, dataset_class, seed, num_workers):
+        def _create_dataloader_kwargs(self, dataset_class, dataset_len, seed, num_workers):
             dl_kwargs = {}
-            dl_kwargs["dataset"] = dataset_class(32, 1, seed=seed)
+            dl_kwargs["dataset"] = dataset_class(dataset_len, 1, seed=seed)
             dl_kwargs["sampler"] = sampler_cls(dl_kwargs["dataset"], seed=seed)
             dl_kwargs["num_workers"] = num_workers
             dl_kwargs["batch_size"] = 1
@@ -1334,13 +1328,17 @@ def test_fault_tolerant_manual_mode(
 
         def train_dataloader(self):
             return [
-                DataLoader(**self._create_dataloader_kwargs(dataset_class, seed, num_workers))
+                DataLoader(
+                    **self._create_dataloader_kwargs(
+                        dataset_class, 10, seed, seed + 1 if val_check_interval == 1.0 else 0
+                    )
+                )
                 for seed, dataset_class in enumerate(train_dataset_cls)
             ]
 
         def val_dataloader(self):
             return [
-                DataLoader(**self._create_dataloader_kwargs(dataset_class, seed, 0))
+                DataLoader(**self._create_dataloader_kwargs(dataset_class, 1, seed, 0))
                 for seed, dataset_class in enumerate(val_dataset_cls)
             ]
 

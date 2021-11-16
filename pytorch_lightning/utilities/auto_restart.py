@@ -607,6 +607,7 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
             raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
 
         latest_worker_id = state_dict["latest_worker_id"]
+        num_workers = state_dict["state"][latest_worker_id]["num_workers"]
         sampler_state = state_dict["state"][latest_worker_id]["sampler_state"]
         if sampler_state:
             for k in sampler_state:
@@ -622,6 +623,14 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
             worker_id: state_dict["state"][worker_id]["dataset_state"][worker_id]
             for worker_id in state_dict["state"].keys()
         }
+
+        if num_workers > 0:
+            # remap states to worker ids starting at 0
+            next_worker_id = latest_worker_id + 1
+            old_to_new_worker_id_map = [((next_worker_id + i) % num_workers, i) for i in range(num_workers)]
+            dataset_state = {
+                new_id: dataset_state[old_id] for old_id, new_id in old_to_new_worker_id_map if old_id in dataset_state
+            }
 
         dataset.load_state_dict(dataset_state)
 
@@ -680,6 +689,7 @@ class _StatefulMixin:
         sampler_state, sampler_state_idx = self._sampler_state.pop(0)
         # there is no workers within the samplers
         worker_id = list(state.keys())[0]
+
         state = [
             IteratorState(
                 num_workers=self._loader.num_workers,
