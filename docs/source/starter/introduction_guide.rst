@@ -167,12 +167,6 @@ If you have multiple optimizers, you can configure them as follows:
 Data
 ----
 
-Install torchvision library.
-
-.. code-block:: shell
-
-    pip install torchvision
-
 Lightning operates on pure dataloaders. Here's the PyTorch code for loading MNIST.
 
 .. testcode::
@@ -182,6 +176,7 @@ Lightning operates on pure dataloaders. Here's the PyTorch code for loading MNIS
     from torchvision.datasets import MNIST
     import os
     from torchvision import datasets, transforms
+    from pytorch_lightning import Trainer
 
     # transforms
     # prepare transforms standard to MNIST
@@ -211,9 +206,6 @@ You can use DataLoaders in 3 ways:
 Pass in the dataloaders to the `.fit()` function.
 
 .. code-block:: python
-
-    from pytorch_lightning import Trainer
-
 
     model = LitMNIST()
     trainer = Trainer()
