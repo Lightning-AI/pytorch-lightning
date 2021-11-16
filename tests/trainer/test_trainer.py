@@ -1465,12 +1465,12 @@ def test_trainer_predict_special(tmpdir, kwargs):
     predict(tmpdir, accelerator="gpu", **kwargs)
 
 
-def test_trainer_predict_single_gpu(tmpdir):
+def test_trainer_predict_1_gpu(tmpdir):
     predict(tmpdir, accelerator="gpu", devices=1)
 
 
-@RunIf(skip_windows=True)
-def test_trainer_predict_ddp_cpu(tmpdir):
+@RunIf(skip_windows=True, skip_49370=True)
+def test_trainer_predict_ddp_spawn(tmpdir):
     predict(tmpdir, strategy="ddp_spawn", accelerator="auto", devices=2)
 
 
