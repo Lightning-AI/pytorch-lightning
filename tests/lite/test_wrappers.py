@@ -67,9 +67,13 @@ def test_lite_module_forward_conversion(precision, input_type, expected_type):
     assert out.dtype == input_type or out.dtype == torch.get_default_dtype()
 
 
-@RunIf(min_gpus=1)
-@pytest.mark.parametrize("device", [torch.device("cpu"), torch.device("cuda", 0)])
-def test_lite_module_device_propagation(device):
+@pytest.mark.parametrize(
+    "device", [torch.device("cpu"), pytest.param(torch.device("cuda", 0), marks=RunIf(min_gpus=1))]
+)
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float16])
+def test_lite_module_device_dtype_propagation(device, dtype):
+    """Test that the LiteModule propagates device and dtype properties to its submodules (e.g. torchmetrics)."""
+
     class DeviceModule(DeviceDtypeModuleMixin):
         pass
 
@@ -78,6 +82,10 @@ def test_lite_module_device_propagation(device):
     lite_module.to(device)
     assert device_module.device == device
     assert lite_module.device == device
+
+    lite_module.to(dtype)
+    assert device_module.dtype == dtype
+    assert lite_module.dtype == dtype
 
 
 def test_lite_dataloader_iterator():
