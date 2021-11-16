@@ -94,9 +94,7 @@ class CallbackConnector:
                 " bar pass `enable_progress_bar = False` to the Trainer."
             )
 
-        self.trainer._progress_bar_callback = self.configure_progress_bar(
-            progress_bar_refresh_rate, process_position, enable_progress_bar
-        )
+        self.configure_progress_bar(progress_bar_refresh_rate, process_position, enable_progress_bar)
 
         # configure the ModelSummary callback
         self._configure_model_summary_callback(enable_model_summary, weights_summary)
@@ -193,9 +191,10 @@ class CallbackConnector:
                 )
             max_depth = ModelSummaryMode.get_max_depth(weights_summary)
 
-        is_progress_bar_rich = isinstance(self.trainer._progress_bar_callback, RichProgressBar)
+        progress_bar_callback = self.trainer.progress_bar_callback
+        is_progress_bar_rich = isinstance(progress_bar_callback, RichProgressBar)
 
-        if self.trainer._progress_bar_callback is not None and is_progress_bar_rich:
+        if progress_bar_callback is not None and is_progress_bar_rich:
             model_summary = RichModelSummary(max_depth=max_depth)
         else:
             model_summary = ModelSummary(max_depth=max_depth)
@@ -214,7 +213,7 @@ class CallbackConnector:
 
     def configure_progress_bar(
         self, refresh_rate: Optional[int] = None, process_position: int = 0, enable_progress_bar: bool = True
-    ) -> Optional[ProgressBarBase]:
+    ) -> None:
         if os.getenv("COLAB_GPU") and refresh_rate is None:
             # smaller refresh rate on colab causes crashes, choose a higher value
             refresh_rate = 20
@@ -236,10 +235,6 @@ class CallbackConnector:
         elif refresh_rate > 0 and enable_progress_bar:
             progress_bar_callback = TQDMProgressBar(refresh_rate=refresh_rate, process_position=process_position)
             self.trainer.callbacks.append(progress_bar_callback)
-        else:
-            progress_bar_callback = None
-
-        return progress_bar_callback
 
     def _configure_timer_callback(self, max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None) -> None:
         if max_time is None:
