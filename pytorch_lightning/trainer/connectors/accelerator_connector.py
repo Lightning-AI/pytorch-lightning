@@ -1019,6 +1019,6 @@ class AcceleratorConnector:
             # in interactive mode we don't manage tasks
             return False
 
-        total_requested_devices = len(self.parallel_devices) * self.num_nodes
+        total_requested_devices = (self.num_gpus or self.num_processes) * self.num_nodes
         num_slurm_tasks = int(os.environ["SLURM_NTASKS"], 0)
         return num_slurm_tasks == total_requested_devices
