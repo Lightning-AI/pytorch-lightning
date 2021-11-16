@@ -26,7 +26,6 @@ from pytorch_lightning.loggers.base import LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.profiler.pytorch import RegisterRecordFunction
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from tests.helpers import BoringModel, ManualOptimBoringModel
@@ -162,7 +161,7 @@ def test_simple_profiler_with_nonexisting_dirpath(tmpdir):
     assert nonexisting_tmpdir.join("fit-profiler.txt").exists()
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, skip_49370=True)
 def test_simple_profiler_distributed_files(tmpdir):
     """Ensure the proper files are saved in distributed."""
     profiler = SimpleProfiler(dirpath=tmpdir, filename="profiler")
@@ -227,6 +226,7 @@ def test_advanced_profiler_iterable_durations(advanced_profiler, action: str, ex
     np.testing.assert_allclose(recored_total_duration, expected_total_duration, rtol=0.2)
 
 
+@pytest.mark.flaky(reruns=3)
 def test_advanced_profiler_overhead(advanced_profiler, n_iter=5):
     """ensure that the profiler doesn't introduce too much overhead during training."""
     for _ in range(n_iter):
@@ -394,8 +394,7 @@ def test_pytorch_profiler_nested(tmpdir):
 
     names = {"a", "b", "c"}
     ops = {"add", "empty", "fill_", "ones", "zero_", "zeros"}
-    if _TORCH_GREATER_EQUAL_1_7:
-        ops = {"aten::" + op for op in ops}
+    ops = {"aten::" + op for op in ops}
 
     expected = names.union(ops)
     assert events_name == expected, (events_name, torch.__version__, platform.system())

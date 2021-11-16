@@ -115,6 +115,8 @@ class LightningModule(
         self._param_requires_grad_state = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
         self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
+        # TODO: remove after the 1.6 release
+        self._running_torchscript = False
 
         self._register_sharded_tensor_state_dict_hooks_if_available()
 
@@ -262,17 +264,7 @@ class LightningModule(
     ) -> Any:
         device = device or self.device
         batch = self.on_before_batch_transfer(batch, dataloader_idx)
-
-        if is_param_in_hook_signature(self.transfer_batch_to_device, "dataloader_idx"):
-            batch = self.transfer_batch_to_device(batch, device, dataloader_idx)
-        else:
-            warning_cache.deprecation(
-                "`transfer_batch_to_device` hook signature has changed in v1.4."
-                " `dataloader_idx` parameter has been added to it. Support for"
-                " the old signature will be removed in v1.6"
-            )
-            batch = self.transfer_batch_to_device(batch, device)
-
+        batch = self.transfer_batch_to_device(batch, device, dataloader_idx)
         batch = self.on_after_batch_transfer(batch, dataloader_idx)
         return batch
 
@@ -1903,6 +1895,8 @@ class LightningModule(
         """
         mode = self.training
 
+        self._running_torchscript = True
+
         if method == "script":
             torchscript_module = torch.jit.script(self.eval(), **kwargs)
         elif method == "trace":
@@ -1928,6 +1922,8 @@ class LightningModule(
             with fs.open(file_path, "wb") as f:
                 torch.jit.save(torchscript_module, f)
 
+        self._running_torchscript = False
+
         return torchscript_module
 
     @property
@@ -1937,11 +1933,12 @@ class LightningModule(
         Note:
             This property will not return correct value for Deepspeed (stage 3) and fully-sharded training.
         """
-        rank_zero_deprecation(
-            "The `LightningModule.model_size` property was deprecated in v1.5 and will be removed in v1.7."
-            " Please use the `pytorch_lightning.utilities.memory.get_model_size_mb`.",
-            stacklevel=5,
-        )
+        if not self._running_torchscript:  # remove with the deprecation removal
+            rank_zero_deprecation(
+                "The `LightningModule.model_size` property was deprecated in v1.5 and will be removed in v1.7."
+                " Please use the `pytorch_lightning.utilities.memory.get_model_size_mb`.",
+                stacklevel=5,
+            )
         return get_model_size_mb(self)
 
     def add_to_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
