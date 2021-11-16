@@ -1453,24 +1453,18 @@ def test_trainer_predict_cpu(tmpdir, datamodule, enable_progress_bar):
 
 
 @RunIf(min_gpus=2, special=True)
-@pytest.mark.parametrize("num_gpus", [1, 2])
-def test_trainer_predict_dp(tmpdir, num_gpus):
-    predict(tmpdir, strategy="dp", accelerator="gpu", devices=num_gpus)
-
-
-@RunIf(min_gpus=2, special=True, fairscale=True)
-def test_trainer_predict_ddp(tmpdir):
-    predict(tmpdir, strategy="ddp", accelerator="gpu", devices=2)
-
-
-@RunIf(min_gpus=2, skip_windows=True, special=True)
-def test_trainer_predict_ddp_spawn(tmpdir):
-    predict(tmpdir, strategy="dp", accelerator="gpu", devices=2)
-
-
-@RunIf(min_gpus=1, special=True)
-def test_trainer_predict_1_gpu(tmpdir):
-    predict(tmpdir, accelerator="gpu", devices=1)
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"strategy": "dp", "devices": 1},
+        {"strategy": "dp", "devices": 2},
+        {"strategy": "ddp", "devices": 2},
+        {"strategy": "ddp_spawn", "devices": 2},
+        {"devices": 1},
+    ],
+)
+def test_trainer_predict_special(tmpdir, kwargs):
+    predict(tmpdir, accelerator="gpu", **kwargs)
 
 
 @RunIf(skip_windows=True)
