@@ -1009,14 +1009,11 @@ class AcceleratorConnector:
             - The process is not launching in interactive mode
             - The number of tasks in SLURM matches the requested number of devices and nodes in the Trainer
         """
-        if not self.use_ddp and not self.use_ddp2:
-            return False
-
-        if not SLURMEnvironment.is_using_slurm():
-            return False
-
-        if os.environ.get("SLURM_JOB_NAME") == "bash":
-            # in interactive mode we don't manage tasks
+        if (
+            (not self.use_ddp and not self.use_ddp2)
+            or not SLURMEnvironment.is_using_slurm()
+            or os.environ.get("SLURM_JOB_NAME") == "bash"  # in interactive mode we don't manage tasks
+        ):
             return False
 
         total_requested_devices = (self.num_gpus or self.num_processes) * self.num_nodes
