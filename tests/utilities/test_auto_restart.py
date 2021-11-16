@@ -693,7 +693,6 @@ def test_dataloader_to_state_dict_and_reload():
     }
 
 
-@RunIf(min_torch="1.7.0")
 @pytest.mark.parametrize("use_fault_tolerant", ["0", "1"])
 def test_data_loading_wraps_dataset_and_samplers(use_fault_tolerant, tmpdir):
     """This test ensures the dataset and sampler are properly wrapped when fault tolerant is enabled."""
@@ -788,7 +787,6 @@ class RandomGetItemDataset(Dataset):
 
 # TODO: test with `RandomGeneratorGetItemDataset`
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@RunIf(min_torch="1.7.0")
 @pytest.mark.parametrize(
     "dataset_class",
     [
@@ -924,7 +922,6 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1, ckpt_
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@RunIf(min_torch="1.7.0")
 @pytest.mark.parametrize(
     "dataset_classes",
     [
@@ -978,7 +975,6 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir, dataset_classes, mult
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@RunIf(min_torch="1.7.0")
 @pytest.mark.parametrize(
     ["train_datasets", "val_datasets"],
     [
@@ -1142,7 +1138,7 @@ def _fit_model(
 @pytest.mark.parametrize("failure_on_training", [False, True])
 @pytest.mark.parametrize("failure_on_step", [False, True])
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@RunIf(min_torch="1.7.0", skip_windows=True)
+@RunIf(skip_windows=True)
 def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on_training, failure_on_step, tmpdir):
     """This test asserts that if a signal is being sent during the training / validation phase, the model should
     restart in a reproducible way."""

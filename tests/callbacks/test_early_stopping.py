@@ -381,7 +381,7 @@ class EarlyStoppingModel(BoringModel):
 
 _ES_CHECK = dict(check_on_train_epoch_end=True)
 _ES_CHECK_P3 = dict(patience=3, check_on_train_epoch_end=True)
-_NO_WIN = dict(marks=RunIf(skip_windows=True))
+_SPAWN_MARK = dict(marks=RunIf(skip_windows=True, skip_49370=True))
 
 
 @pytest.mark.parametrize(
@@ -389,8 +389,8 @@ _NO_WIN = dict(marks=RunIf(skip_windows=True))
     [
         ([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, None, 1),
         ([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, None, 1),
-        pytest.param([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, "ddp_spawn", 2, **_NO_WIN),
-        pytest.param([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, "ddp_spawn", 2, **_NO_WIN),
+        pytest.param([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, "ddp_spawn", 2, **_SPAWN_MARK),
+        pytest.param([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, "ddp_spawn", 2, **_SPAWN_MARK),
         ([EarlyStopping("abc", **_ES_CHECK), EarlyStopping("cba", **_ES_CHECK_P3)], 3, True, None, 1),
         ([EarlyStopping("cba", **_ES_CHECK_P3), EarlyStopping("abc", **_ES_CHECK)], 3, True, None, 1),
         pytest.param(
@@ -399,7 +399,7 @@ _NO_WIN = dict(marks=RunIf(skip_windows=True))
             True,
             "ddp_spawn",
             2,
-            **_NO_WIN,
+            **_SPAWN_MARK,
         ),
         pytest.param(
             [EarlyStopping("cba", **_ES_CHECK_P3), EarlyStopping("abc", **_ES_CHECK)],
@@ -407,7 +407,7 @@ _NO_WIN = dict(marks=RunIf(skip_windows=True))
             True,
             "ddp_spawn",
             2,
-            **_NO_WIN,
+            **_SPAWN_MARK,
         ),
     ],
 )
@@ -469,3 +469,16 @@ def test_check_on_train_epoch_end_smart_handling(tmpdir, case):
         assert trainer.global_step == len(side_effect) * int(trainer.limit_train_batches * trainer.val_check_interval)
     else:
         assert trainer.current_epoch == len(side_effect) * trainer.check_val_every_n_epoch - 1
+
+
+def test_early_stopping_squeezes():
+    early_stopping = EarlyStopping(monitor="foo")
+    trainer = Trainer()
+    trainer.callback_metrics["foo"] = torch.tensor([[[0]]])
+
+    with mock.patch(
+        "pytorch_lightning.callbacks.EarlyStopping._evaluate_stopping_criteria", return_value=(False, "")
+    ) as es_mock:
+        early_stopping._run_early_stopping_check(trainer)
+
+    es_mock.assert_called_once_with(torch.tensor(0))
