@@ -17,8 +17,9 @@ transfer learning [#]_ [#]_ [#]_ .
 :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler` orchestrates the gradual unfreezing
 of models via a finetuning schedule that is either implicitly generated (the default) or explicitly provided by the user
 (more computationally efficient). Finetuning phase transitions are driven by
-:class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` criteria, user-specified epoch transitions or a
-composition of the two (the default mode). A
+:class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts_supporters.FTSEarlyStopping` criteria (a multi-phase
+extension of :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`), user-specified epoch transitions
+or a composition of the two (the default mode). A
 :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler` training session completes when the
 final phase of the schedule has its stopping criteria met. See
 :ref:`Early Stopping<common/early_stopping:Early stopping>` for more details on that callback's configuration.
@@ -31,14 +32,15 @@ Basic Example
 If no finetuning schedule is user-provided,
 :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler` will generate a
 :ref:`default schedule<advanced/finetuning_scheduler:The Default Finetuning Schedule>` and proceed to finetune
-according to the generated schedule, using default :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`
+according to the generated schedule, using default
+:class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts_supporters.FTSEarlyStopping`
 and :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts_supporters.FTSCheckpoint` callbacks with
 ``monitor=val_loss``.
 
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.callbacks import FinetuningScheduler
+    from pytorch_lightning.callbacks.finetuning_scheduler import FinetuningScheduler
 
     trainer = Trainer(callbacks=[FinetuningScheduler()])
 
@@ -70,7 +72,7 @@ and executed in ascending order.
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.callbacks import FinetuningScheduler
+    from pytorch_lightning.callbacks.finetuning_scheduler import FinetuningScheduler
 
     trainer = Trainer(callbacks=[FinetuningScheduler(gen_ft_sched_only=True)])
 
@@ -133,19 +135,20 @@ and executed in ascending order.
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.callbacks import FinetuningScheduler
+    from pytorch_lightning.callbacks.finetuning_scheduler import FinetuningScheduler
 
     trainer = Trainer(callbacks=[FinetuningScheduler(ft_schedule="/path/to/my/schedule/my_schedule.yaml")])
 
 EarlyStopping and Epoch-Driven Phase Transition Criteria
 ========================================================
 
-By default, :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` and epoch-driven transition criteria are
-composed. If a ``max_transition_epoch`` is specified for a given phase, the next finetuning phase will begin at that
-epoch unless :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` criteria are met first.
+By default, :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts_supporters.FTSEarlyStopping` and epoch-driven
+transition criteria are composed. If a ``max_transition_epoch`` is specified for a given phase, the next finetuning
+phase will begin at that epoch unless
+:class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts_supporters.FTSEarlyStopping` criteria are met first.
 If :paramref:`~pytorch_lightning.callbacks.finetuning_scheduler.fts.FinetuningScheduler.epoch_transitions_only` is
-``True``, :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` will not be used and transitions will be
-exclusively epoch-driven.
+``True``, :class:`~pytorch_lightning.callbacks.finetuning_scheduler.fts_supporters.FTSEarlyStopping` will not be used
+and transitions will be exclusively epoch-driven.
 
 .. tip::
 
@@ -194,7 +197,7 @@ metadata.
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.callbacks import FinetuningScheduler
+    from pytorch_lightning.callbacks.finetuning_scheduler import FinetuningScheduler
 
     trainer = Trainer(callbacks=[FinetuningScheduler()], resume_from_checkpoint="some/path/to/my_checkpoint.ckpt")
 

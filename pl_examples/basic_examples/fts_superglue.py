@@ -155,7 +155,8 @@ class RteBoolqModule(pl.LightningModule):
 
     def init_pgs(self) -> List[Dict]:
         """Initialize the parameter groups, necessary only for the baseline 'nofts_baseline.yaml' configuration
-        that doesn't use the :class:`~pytorch_lightning.callbacks.FinetuningScheduler` callback.
+        that doesn't use the :class:`~pytorch_lightning.callbacks.finetuning_scheduler.FinetuningScheduler`
+        callback.
 
         Returns:
             List[Dict]: A list of parameter group dictionaries.
