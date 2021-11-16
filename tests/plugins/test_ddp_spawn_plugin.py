@@ -46,7 +46,7 @@ class BoringCallbackDDPSpawnModel(BoringModel):
         return super().get_from_queue(queue)
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, skip_49370=True)
 def test_ddp_cpu():
     """Tests if device is set correctly when training for DDPSpawnPlugin."""
     trainer = Trainer(num_processes=2, fast_dev_run=True)
@@ -91,7 +91,7 @@ class TestDDPSpawnPlugin(DDPSpawnPlugin):
         return super().get_from_queue(trainer, queue)
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, skip_49370=True)
 def test_ddp_spawn_add_get_queue(tmpdir):
     """Tests add_to_queue/get_from_queue with DDPSpawnPlugin."""
 
@@ -128,7 +128,7 @@ class BoringModelDDP(BoringModel):
         assert isinstance(self.trainer.model, LightningModule)
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, skip_49370=True)
 def test_ddp_spawn_configure_ddp(tmpdir):
     """Tests with ddp spawn plugin."""
     trainer = Trainer(default_root_dir=tmpdir, num_processes=2, strategy="ddp_spawn", fast_dev_run=True)
