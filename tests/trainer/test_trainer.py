@@ -1465,6 +1465,7 @@ def test_trainer_predict_special(tmpdir, kwargs):
     predict(tmpdir, accelerator="gpu", **kwargs)
 
 
+@RunIf(min_gpus=1)
 def test_trainer_predict_1_gpu(tmpdir):
     predict(tmpdir, accelerator="gpu", devices=1)
 
