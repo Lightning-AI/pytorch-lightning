@@ -237,21 +237,25 @@ class IPUPlugin(ParallelPlugin):
         args = apply_to_collection(args, dtype=(int, float), function=to_tensor)
         return args
 
-    def training_step(self, *args, **kwargs):
+    def _step(self, stage: RunningStage, *args: Any, **kwargs: Any):
         args = self._prepare_input(args)
-        return self.poptorch_models[RunningStage.TRAINING](*args, **kwargs)
+        poptorch_model = self.poptorch_models[stage]
+        self.lightning_module._running_torchscript = True
+        compiled_model = poptorch_model(*args, **kwargs)
+        self.lightning_module._running_torchscript = False
+        return compiled_model
+
+    def training_step(self, *args, **kwargs):
+        return self._step(RunningStage.TRAINING, *args, **kwargs)
 
     def validation_step(self, *args, **kwargs):
-        args = self._prepare_input(args)
-        return self.poptorch_models[RunningStage.VALIDATING](*args, **kwargs)
+        return self._step(RunningStage.VALIDATING, *args, **kwargs)
 
     def test_step(self, *args, **kwargs):
-        args = self._prepare_input(args)
-        return self.poptorch_models[RunningStage.TESTING](*args, **kwargs)
+        return self._step(RunningStage.TESTING, *args, **kwargs)
 
     def predict_step(self, *args, **kwargs):
-        args = self._prepare_input(args)
-        return self.poptorch_models[RunningStage.PREDICTING](*args, **kwargs)
+        return self._step(RunningStage.PREDICTING, *args, **kwargs)
 
     def teardown(self) -> None:
         # undo dataloader patching

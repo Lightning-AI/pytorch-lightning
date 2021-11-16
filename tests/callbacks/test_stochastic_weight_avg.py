@@ -171,8 +171,7 @@ def test_swa_callback_scheduler_step(tmpdir, interval: str):
 
 def test_swa_warns(tmpdir, caplog):
     model = SwaTestModel(interval="step")
-    swa = StochasticWeightAveraging()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, callbacks=swa)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, callbacks=StochasticWeightAveraging())
     with caplog.at_level(level=logging.INFO), pytest.warns(UserWarning, match="SWA is currently only supported"):
         trainer.fit(model)
     assert "Swapping scheduler `StepLR` for `SWALR`" in caplog.text
