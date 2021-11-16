@@ -221,6 +221,9 @@ class AbstractDataFetcher(ABC):
         self.done: bool = False
 
     def teardown(self) -> None:
+        get_iterator = getattr(DataLoader, "_ori_get_iterator", None)
+        if get_iterator:
+            DataLoader.get_iterator = get_iterator
         self.reset()
         if isinstance(self.dataloader, CombinedLoader):
             self.dataloader.reset()

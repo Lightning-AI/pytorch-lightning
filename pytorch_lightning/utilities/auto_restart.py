@@ -723,4 +723,5 @@ def _get_iterator(self) -> "_BaseDataLoaderIter":
 def _patch_dataloader_iterators() -> None:
     """This function is used to replace the DataLoader iterator by their stateful version."""
     if _fault_tolerant_training_mode().is_manual:
+        DataLoader._ori_get_iterator = DataLoader._get_iterator
         DataLoader._get_iterator = _get_iterator
