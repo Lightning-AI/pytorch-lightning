@@ -29,7 +29,7 @@ jobs:
           # nightly: add when there's a release candidate
           #- {os: ubuntu-20.04, python-version: "3.10", requires: "latest", release: "pre"}
 
-    timeout-minutes: 50
+    timeout-minutes: 40
 
     steps:
     - uses: actions/checkout@v2

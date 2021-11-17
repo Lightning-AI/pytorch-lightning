@@ -17,7 +17,7 @@ jobs:
         python-version: ["3.8"]  # previous to last Python version as that one is already used in test-full
         pytorch-version: ["1.7", "1.8", "1.9", "1.10"]  # nightly: add when there's a release candidate
 
-    timeout-minutes: 50
+    timeout-minutes: 35
     steps:
     - uses: actions/checkout@v2
 
