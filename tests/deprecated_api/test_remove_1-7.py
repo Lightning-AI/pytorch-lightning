@@ -15,7 +15,6 @@
 from unittest import mock
 
 import pytest
-import torch
 
 from pytorch_lightning import Callback, LightningDataModule, Trainer
 from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
@@ -233,17 +232,16 @@ def test_v1_7_0_flush_logs_every_n_steps_trainer_constructor(tmpdir):
 
 
 class BoringCallbackDDPSpawnModel(BoringModel):
-    def add_to_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+    def add_to_queue(self, queue):
         ...
 
-    def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+    def get_from_queue(self, queue):
         ...
 
 
-@RunIf(skip_windows=True, skip_49370=True)
 def test_v1_7_0_deprecate_add_get_queue(tmpdir):
     model = BoringCallbackDDPSpawnModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, num_processes=1, strategy="ddp_spawn")
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
 
     with pytest.deprecated_call(match=r"`LightningModule.add_to_queue` method was deprecated in v1.5"):
         trainer.fit(model)
