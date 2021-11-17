@@ -280,10 +280,9 @@ class Accelerator:
 
     @property
     def precision(self) -> Union[str, int]:
-        """
-        .. deprecated
-            This method is deprecated will be removed soon.
-            Use :`training_type_plugin.precision_plugin.precision` instead.
+        """This method is deprecated and will be removed soon.
+
+        Use `training_type_plugin.precision_plugin.precision` instead.
         """
         rank_zero_deprecation(
             f"`{self.__class__.__name__}.precision` was and will be removed soon"

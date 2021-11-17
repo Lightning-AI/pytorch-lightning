@@ -118,7 +118,7 @@ class IPUPlugin(ParallelPlugin):
         self.lightning_module.trainer._update_dataloader = self._convert_to_poptorch_loader
 
     def pre_dispatch(self) -> None:
-        model = LightningIPUModule(self.lightning_module, self.precision)
+        model = LightningIPUModule(self.lightning_module, self.precision_plugin.precision)
         self.model = model
 
         # reset the backup
