@@ -669,7 +669,7 @@ class LightningCLI:
         if subcommand is None:
             return self.parser
         # return the subcommand parser for the subcommand passed
-        action_subcommand = getattr(self.parser, '_subcommands_action')
+        action_subcommand = getattr(self.parser, "_subcommands_action")
         return action_subcommand._name_parser_map[subcommand]
 
     def _add_configure_optimizers_method_to_model(self, subcommand: Optional[str]) -> None:
@@ -769,8 +769,10 @@ class LightningCLI:
         return fn_kwargs
 
 
-def _global_add_class_path(class_type: Type, init_args: Optional[Union[Namespace, Dict[str, Any]]] = None) -> Dict[str, Any]:
-    if hasattr(init_args, 'as_dict'):
+def _global_add_class_path(
+    class_type: Type, init_args: Optional[Union[Namespace, Dict[str, Any]]] = None
+) -> Dict[str, Any]:
+    if hasattr(init_args, "as_dict"):
         init_args = init_args.as_dict()  # type: ignore
     return {"class_path": class_type.__module__ + "." + class_type.__name__, "init_args": init_args or {}}
 
