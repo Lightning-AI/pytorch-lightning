@@ -127,7 +127,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
-        precision = self.lightning_module.trainer.precision
+        precision = self.precision_plugin.precision
 
         def wrap_policy(*args, **kwargs):
             return default_auto_wrap_policy(*args, **kwargs, min_num_params=self.min_num_params)
