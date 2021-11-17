@@ -52,7 +52,7 @@ class Accelerator:
         Args:
             training_type_plugin: the plugin to handle different training routines
             precision_plugin: the plugin to handle precision-specific parts
-        
+
         Notes:
             precision_plugin is deprecated and will be removed soon
             User `training_type_plugin(precision_plugi)n` instead
