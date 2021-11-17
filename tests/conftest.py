@@ -99,7 +99,7 @@ def reset_deterministic_algorithm():
         torch.set_deterministic(False)
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def caplog(caplog):
     """Workaround for https://github.com/pytest-dev/pytest/issues/3697.
 
