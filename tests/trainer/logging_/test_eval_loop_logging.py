@@ -20,10 +20,10 @@ from unittest.mock import call
 import numpy as np
 import pytest
 import torch
-from torch.utils.data import DataLoader
 
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 
@@ -675,33 +675,27 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.parametrize("num_dataloaders", [1, 2, 11])
-def test_log_metrics_only_include_metrics_from_concerned_dataloader(num_dataloaders, tmpdir):
-
-    metric_prefix = "fake_test_acc"
-    dataloader_prefix = "dataloader_idx"
-
-    class TestModel(BoringModel):
-        def test_step(self, batch, batch_idx, dataloader_idx=0):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            self.log(metric_prefix, loss)
-
-        def test_epoch_end(self, *_) -> None:
-            pass
-
-    test = RandomDataset(32, 2)
-    test_dataloaders = [DataLoader(test, batch_size=1)] * num_dataloaders
-
-    model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir)
-
-    output = trainer.test(model, dataloaders=test_dataloaders)
-
-    if num_dataloaders == 1:
-        assert dataloader_prefix not in output[0]
-    else:
-        for idx, metric in enumerate(output):
-            expected_dl_idx_str = f"{metric_prefix}/{dataloader_prefix}_{idx}"
-            assert len(metric) == 1
-            assert expected_dl_idx_str in metric
+@pytest.mark.parametrize(
+    ["kwargs", "expected"],
+    [
+        ({"dl_idx": 0, "metrics": {"acc": 123}}, {"acc": 123}),
+        (
+            {"dl_idx": 0, "metrics": {"acc/dataloader_idx_0": 123, "acc/dataloader_idx_1": 321}},
+            {"acc/dataloader_idx_0": 123},
+        ),
+        (
+            {"dl_idx": 10, "metrics": {"acc/dataloader_idx_1": 123, "acc/dataloader_idx_10": 321}},
+            {"acc/dataloader_idx_10": 321},
+        ),
+        (
+            {"dl_idx": 3, "metrics": {"top_3_acc/dataloader_idx_0": 123, "top_3_acc/dataloader_idx_3": 321}},
+            {"top_3_acc/dataloader_idx_3": 321},
+        ),
+        # theoretical case, as `/dataloader_idx_3` would have been added
+        ({"dl_idx": 3, "metrics": {"top_3_acc": 123}}, {"top_3_acc": 123}),
+    ],
+)
+def test_filter_metrics_for_dataloader(kwargs, expected):
+    """Logged metrics should only include metrics from the concerned dataloader."""
+    actual = LoggerConnector._filter_metrics_for_dataloader(**kwargs)
+    assert actual == expected
