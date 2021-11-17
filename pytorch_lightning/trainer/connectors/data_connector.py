@@ -19,6 +19,7 @@ from weakref import proxy
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_deprecation
+from pytorch_lightning.utilities.auto_restart import _teardown_dataloader_get_iterators
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import (
     AbstractDataFetcher,
@@ -253,6 +254,7 @@ class DataConnector:
         if self.sanity_check_data_fetcher:
             self.sanity_check_data_fetcher.teardown()
             self.sanity_check_data_fetcher = None
+        _teardown_dataloader_get_iterators()
 
 
 @dataclass

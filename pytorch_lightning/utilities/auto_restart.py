@@ -730,8 +730,18 @@ def _get_iterator(self) -> "_BaseDataLoaderIter":
         return _MultiProcessingDataLoaderIterStateful(self)
 
 
-def _patch_dataloader_iterators() -> None:
+def _patch_dataloader_get_iterators() -> None:
     """This function is used to replace the DataLoader iterator by their stateful version."""
     if _fault_tolerant_training_mode().is_manual:
-        DataLoader._ori_get_iterator = DataLoader._get_iterator
+        if not hasattr(DataLoader, "_ori_get_iterator"):
+            DataLoader._ori_get_iterator = DataLoader._get_iterator
         DataLoader._get_iterator = _get_iterator
+
+
+def _teardown_dataloader_get_iterators() -> None:
+    """This function is used to restore the DataLoader `get_iterator` with its original one."""
+    # cleanup the get_iterator replacement in case of Fault Tolerant Training.
+    get_iterator = getattr(DataLoader, "_ori_get_iterator", None)
+    if get_iterator:
+        DataLoader._get_iterator = get_iterator
+        del DataLoader._ori_get_iterator
