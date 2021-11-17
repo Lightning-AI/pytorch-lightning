@@ -17,7 +17,6 @@ jobs:
         python-version: ["3.8"]  # previous to last Python version as that one is already used in test-full
         pytorch-version: ["1.6", "1.7", "1.8", "1.9", "1.10"]
 
-    # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 35
     steps:
     - uses: actions/checkout@v2
