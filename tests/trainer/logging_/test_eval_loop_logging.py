@@ -423,6 +423,12 @@ def test_log_works_in_test_callback(tmpdir):
         def on_test_start(self, _, pl_module):
             self.make_logging(pl_module, "on_test_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices)
 
+        def on_epoch_start(self, trainer, pl_module):
+            if trainer.testing:
+                self.make_logging(
+                    pl_module, "on_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
+                )
+
         def on_test_epoch_start(self, _, pl_module):
             self.make_logging(
                 pl_module, "on_test_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
@@ -443,7 +449,7 @@ def test_log_works_in_test_callback(tmpdir):
     class TestModel(BoringModel):
         seen_losses = {i: [] for i in range(num_dataloaders)}
 
-        def test_step(self, batch, batch_idx, dataloader_idx=None):
+        def test_step(self, batch, batch_idx, dataloader_idx=0):
             loss = super().test_step(batch, batch_idx)["y"]
             self.log("test_loss", loss)
             self.seen_losses[dataloader_idx].append(loss)

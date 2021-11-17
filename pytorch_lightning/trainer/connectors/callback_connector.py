@@ -20,9 +20,9 @@ from pytorch_lightning.callbacks import (
     GradientAccumulationScheduler,
     ModelCheckpoint,
     ModelSummary,
-    ProgressBar,
     ProgressBarBase,
     RichProgressBar,
+    TQDMProgressBar,
 )
 from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.timer import Timer
@@ -82,24 +82,21 @@ class CallbackConnector:
         if process_position != 0:
             rank_zero_deprecation(
                 f"Setting `Trainer(process_position={process_position})` is deprecated in v1.5 and will be removed"
-                " in v1.7. Please pass `pytorch_lightning.callbacks.progress.ProgressBar` with"
+                " in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with"
                 " `process_position` directly to the Trainer's `callbacks` argument instead."
             )
 
         if progress_bar_refresh_rate is not None:
             rank_zero_deprecation(
                 f"Setting `Trainer(progress_bar_refresh_rate={progress_bar_refresh_rate})` is deprecated in v1.5 and"
-                " will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.ProgressBar` with"
+                " will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with"
                 " `refresh_rate` directly to the Trainer's `callbacks` argument instead. Or, to disable the progress"
                 " bar pass `enable_progress_bar = False` to the Trainer."
             )
 
-        if enable_progress_bar:
-            self.trainer._progress_bar_callback = self.configure_progress_bar(
-                progress_bar_refresh_rate, process_position
-            )
-        else:
-            self.trainer._progress_bar_callback = None
+        self.trainer._progress_bar_callback = self.configure_progress_bar(
+            progress_bar_refresh_rate, process_position, enable_progress_bar
+        )
 
         # configure the ModelSummary callback
         self._configure_model_summary_callback(enable_model_summary, weights_summary)
@@ -215,7 +212,9 @@ class CallbackConnector:
         if not existing_swa:
             self.trainer.callbacks = [StochasticWeightAveraging()] + self.trainer.callbacks
 
-    def configure_progress_bar(self, refresh_rate=None, process_position=0):
+    def configure_progress_bar(
+        self, refresh_rate: Optional[int] = None, process_position: int = 0, enable_progress_bar: bool = True
+    ) -> Optional[ProgressBarBase]:
         if os.getenv("COLAB_GPU") and refresh_rate is None:
             # smaller refresh rate on colab causes crashes, choose a higher value
             refresh_rate = 20
@@ -229,8 +228,13 @@ class CallbackConnector:
             )
         if len(progress_bars) == 1:
             progress_bar_callback = progress_bars[0]
-        elif refresh_rate > 0:
-            progress_bar_callback = ProgressBar(refresh_rate=refresh_rate, process_position=process_position)
+            if not enable_progress_bar:
+                raise MisconfigurationException(
+                    "Trainer was configured with `enable_progress_bar=False`"
+                    f" but found `{progress_bar_callback.__class__.__name__}` in callbacks list."
+                )
+        elif refresh_rate > 0 and enable_progress_bar:
+            progress_bar_callback = TQDMProgressBar(refresh_rate=refresh_rate, process_position=process_position)
             self.trainer.callbacks.append(progress_bar_callback)
         else:
             progress_bar_callback = None

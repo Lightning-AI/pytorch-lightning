@@ -44,7 +44,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
     @property
     @abstractmethod
     def root_device(self) -> torch.device:
-        raise NotImplementedError
+        """Return the root device."""
 
     @property
     def on_gpu(self) -> bool:

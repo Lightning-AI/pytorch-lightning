@@ -70,6 +70,7 @@ class RunIf:
         fairscale_fully_sharded: bool = False,
         deepspeed: bool = False,
         rich: bool = False,
+        skip_49370: bool = False,
         **kwargs,
     ):
         """
@@ -91,6 +92,7 @@ class RunIf:
             fairscale_fully_sharded: if `fairscale` fully sharded module is required to run the test
             deepspeed: if `deepspeed` module is required to run the test
             rich: if `rich` module is required to run the test
+            skip_49370: Skip the test as it's impacted by https://github.com/pytorch/pytorch/issues/49370.
             kwargs: native pytest.mark.skipif keyword arguments
         """
         conditions = []
@@ -164,6 +166,15 @@ class RunIf:
         if rich:
             conditions.append(not _RICH_AVAILABLE)
             reasons.append("Rich")
+
+        if skip_49370:
+            # strategy=ddp_spawn, accelerator=cpu, python>=3.9, torch<1.8 does not work
+            py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+            ge_3_9 = Version(py_version) >= Version("3.9")
+            torch_version = get_distribution("torch").version
+            old_torch = Version(torch_version) < Version("1.8")
+            conditions.append(ge_3_9 and old_torch)
+            reasons.append("Impacted by https://github.com/pytorch/pytorch/issues/49370")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(

@@ -15,10 +15,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Dict, Generic, Optional, TypeVar
 
-from torch import Tensor
-
-from pytorch_lightning.utilities import rank_zero_deprecation
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 T = TypeVar("T")
@@ -26,22 +22,6 @@ T = TypeVar("T")
 
 @dataclass
 class OutputResult:
-    @staticmethod
-    def _check_extra_detach_deprecation(extra: Dict[str, Any]) -> Dict[str, Any]:
-        # TODO: remove with the deprecation removal in v1.6
-        # this is only here to avoid duplication
-        def check_fn(v: Tensor) -> Tensor:
-            if v.grad_fn is not None:
-                rank_zero_deprecation(
-                    f"One of the returned values {set(extra.keys())} has a `grad_fn`. We will detach it automatically"
-                    " but this behaviour will change in v1.6. Please detach it manually:"
-                    " `return {'loss': ..., 'something': something.detach()}`"
-                )
-                return v.detach()
-            return v
-
-        return apply_to_collection(extra, Tensor, check_fn)
-
     def asdict(self) -> Dict[str, Any]:
         raise NotImplementedError
 

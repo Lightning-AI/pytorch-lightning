@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
-from unittest.mock import DEFAULT
+from unittest.mock import DEFAULT, Mock
 
 import pytest
 from torch.utils.data import DataLoader
@@ -106,11 +106,11 @@ def test_rich_progress_bar_custom_theme(tmpdir):
 
         assert progress_bar.theme == theme
         args, kwargs = mocks["CustomBarColumn"].call_args
-        assert kwargs["complete_style"] == theme.progress_bar_complete
+        assert kwargs["complete_style"] == theme.progress_bar
         assert kwargs["finished_style"] == theme.progress_bar_finished
 
         args, kwargs = mocks["BatchesProcessedColumn"].call_args
-        assert kwargs["style"] == theme.batch_process
+        assert kwargs["style"] == theme.batch_progress
 
         args, kwargs = mocks["CustomTimeColumn"].call_args
         assert kwargs["style"] == theme.time
@@ -141,3 +141,42 @@ def test_rich_progress_bar_keyboard_interrupt(tmpdir):
 
         trainer.fit(model)
     mock_progress_stop.assert_called_once()
+
+
+@RunIf(rich=True)
+def test_rich_progress_bar_configure_columns():
+    from rich.progress import TextColumn
+
+    custom_column = TextColumn("[progress.description]Testing Rich!")
+
+    class CustomRichProgressBar(RichProgressBar):
+        def configure_columns(self, trainer):
+            return [custom_column]
+
+    progress_bar = CustomRichProgressBar()
+
+    progress_bar._init_progress(Mock())
+
+    assert progress_bar.progress.columns[0] == custom_column
+    assert len(progress_bar.progress.columns) == 2
+
+
+@RunIf(rich=True)
+@pytest.mark.parametrize(("leave", "reset_call_count"), ([(True, 0), (False, 5)]))
+def test_rich_progress_bar_leave(tmpdir, leave, reset_call_count):
+    # Calling `reset` means continuing on the same progress bar.
+    model = BoringModel()
+
+    with mock.patch(
+        "pytorch_lightning.callbacks.progress.rich_progress.Progress.reset", autospec=True
+    ) as mock_progress_reset:
+        progress_bar = RichProgressBar(leave=leave)
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            num_sanity_val_steps=0,
+            limit_train_batches=1,
+            max_epochs=6,
+            callbacks=progress_bar,
+        )
+        trainer.fit(model)
+    assert mock_progress_reset.call_count == reset_call_count

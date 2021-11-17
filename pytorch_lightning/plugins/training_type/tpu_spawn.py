@@ -147,7 +147,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def configure_ddp(self) -> None:
         pass
 
-    def init_ddp_connection(self, global_rank: int, world_size: int) -> None:
+    def init_dist_connection(self, global_rank: int, world_size: int) -> None:
         pass
 
     def set_world_ranks(self, process_idx: int = 0) -> None:
@@ -326,7 +326,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def _pod_progress_bar_force_stdout(self) -> None:
         # Why is it required? The way `pytorch_xla.distributed` streams logs
-        # from different vms to the master worker doesn't work well with tqdm
+        # from different vms to the main worker doesn't work well with tqdm
         # Ref: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/xla_dist.py#L140
         # The print statement seems to force tqdm to flush stdout.
         if self.tpu_global_core_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:

@@ -20,8 +20,15 @@ import torch
 from pytorch_lightning import Callback, LightningDataModule, Trainer
 from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
+from pytorch_lightning.callbacks.progress import ProgressBar
 from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
+from pytorch_lightning.plugins.environments import (
+    KubeflowEnvironment,
+    LightningEnvironment,
+    SLURMEnvironment,
+    TorchElasticEnvironment,
+)
 from tests.callbacks.test_callbacks import OldStatefulCallback
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
@@ -31,12 +38,9 @@ from tests.loggers.test_base import CustomLogger
 
 
 def test_v1_7_0_deprecated_lightning_module_summarize(tmpdir):
-    from pytorch_lightning.core.lightning import warning_cache
-
     model = BoringModel()
-    model.summarize(max_depth=1)
-    assert any("The `LightningModule.summarize` method is deprecated in v1.5" in w for w in warning_cache)
-    warning_cache.clear()
+    with pytest.deprecated_call(match="The `LightningModule.summarize` method is deprecated in v1.5"):
+        model.summarize(max_depth=1)
 
 
 def test_v1_7_0_moved_model_summary_and_layer_summary(tmpdir):
@@ -241,7 +245,7 @@ class BoringCallbackDDPSpawnModel(BoringModel):
         return super().get_from_queue(queue)
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, skip_49370=True)
 def test_v1_7_0_deprecate_add_get_queue(tmpdir):
     model = BoringCallbackDDPSpawnModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, num_processes=2, strategy="ddp_spawn")
@@ -391,6 +395,11 @@ def test_v1_7_0_deprecate_xla_stats_monitor(tmpdir):
         _ = XLAStatsMonitor()
 
 
+def test_v1_7_0_progress_bar():
+    with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.7."):
+        _ = ProgressBar()
+
+
 def test_v1_7_0_deprecated_max_steps_none(tmpdir):
     with pytest.deprecated_call(match="`max_steps = None` is deprecated in v1.5"):
         _ = Trainer(max_steps=None)
@@ -449,3 +458,43 @@ def test_v1_7_0_deprecate_lr_sch_names(tmpdir):
 
     with pytest.deprecated_call(match="`LearningRateMonitor.lr_sch_names` has been deprecated in v1.5"):
         assert lr_monitor.lr_sch_names == ["lr-SGD"]
+
+
+@pytest.mark.parametrize(
+    "cls",
+    [
+        KubeflowEnvironment,
+        LightningEnvironment,
+        SLURMEnvironment,
+        TorchElasticEnvironment,
+    ],
+)
+def test_v1_7_0_cluster_environment_master_address(cls):
+    class MyClusterEnvironment(cls):
+        def master_address(self):
+            pass
+
+    with pytest.deprecated_call(
+        match="MyClusterEnvironment.master_address` has been deprecated in v1.6 and will be removed in 1.7"
+    ):
+        MyClusterEnvironment()
+
+
+@pytest.mark.parametrize(
+    "cls",
+    [
+        KubeflowEnvironment,
+        LightningEnvironment,
+        SLURMEnvironment,
+        TorchElasticEnvironment,
+    ],
+)
+def test_v1_7_0_cluster_environment_master_port(cls):
+    class MyClusterEnvironment(cls):
+        def master_port(self):
+            pass
+
+    with pytest.deprecated_call(
+        match="MyClusterEnvironment.master_port` has been deprecated in v1.6 and will be removed in 1.7"
+    ):
+        MyClusterEnvironment()

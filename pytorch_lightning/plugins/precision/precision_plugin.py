@@ -22,7 +22,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.hooks import CheckpointHooks
-from pytorch_lightning.utilities import grad_norm, GradClipAlgorithmType, rank_zero_deprecation
+from pytorch_lightning.utilities import grad_norm, GradClipAlgorithmType
 from pytorch_lightning.utilities.types import _PARAMETERS
 
 
@@ -33,19 +33,6 @@ class PrecisionPlugin(CheckpointHooks):
     """
 
     precision: Union[str, int] = 32
-
-    def master_params(self, optimizer: Optimizer) -> _PARAMETERS:
-        """The main params of the model.
-
-        .. deprecated:: v1.5
-
-            This method is deprecated in v1.5 and will be removed in v1.6. Use :meth:`main_params` instead.
-        """
-        rank_zero_deprecation(
-            f"`{self.__class__.__name__}.master_params` was deprecated in v1.5 and will be removed in v1.6."
-            f" Use `main_params` instead."
-        )
-        return self.main_params(optimizer)
 
     def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
         """The main params of the model.
@@ -111,6 +98,27 @@ class PrecisionPlugin(CheckpointHooks):
         """
         tensor.backward(*args, **kwargs)
 
+    def _after_closure(
+        self, model: Union["pl.LightningModule", Module], optimizer: Optimizer, optimizer_idx: int
+    ) -> None:
+        """Utility to share some code after the closure has been run."""
+        if not isinstance(model, pl.LightningModule):
+            # none of this applies to Lite
+            return
+        trainer = model.trainer
+        assert trainer is not None
+        trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
+        # TODO: this is done for the entire model but should be changed to per-optimizer
+        if optimizer_idx == 0:
+            self._track_grad_norm(trainer)
+        self._clip_gradients(
+            model,
+            optimizer,
+            optimizer_idx,
+            trainer.gradient_clip_val,
+            gradient_clip_algorithm=trainer.gradient_clip_algorithm,
+        )
+
     def _wrap_closure(
         self,
         model: "pl.LightningModule",
@@ -125,7 +133,7 @@ class PrecisionPlugin(CheckpointHooks):
         consistent with the ``PrecisionPlugin`` subclasses that cannot pass ``optimizer.step(closure)`` directly.
         """
         closure_result = closure()
-        model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
+        self._after_closure(model, optimizer, optimizer_idx)
         return closure_result
 
     def optimizer_step(
