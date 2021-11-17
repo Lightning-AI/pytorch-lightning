@@ -423,16 +423,10 @@ class HookedModel(BoringModel):
 
 
 @RunIf(deepspeed=True, min_gpus=1, special=True)
-def test_trainer_model_hook_system_fit_deepspeed_automatic_optimization(tmpdir):
+@pytest.mark.parametrize("automatic_optimization", (True, False))
+def test_trainer_model_hook_system_fit_deepspeed(tmpdir, automatic_optimization):
     _run_trainer_model_hook_system_fit(
-        dict(gpus=1, precision=16, strategy="deepspeed"), tmpdir, automatic_optimization=True
-    )
-
-
-@RunIf(deepspeed=True, min_gpus=1, special=True)
-def test_trainer_model_hook_system_fit_deepspeed_manual_optimization(tmpdir):
-    _run_trainer_model_hook_system_fit(
-        dict(gpus=1, precision=16, strategy="deepspeed"), tmpdir, automatic_optimization=False
+        dict(gpus=1, precision=16, strategy="deepspeed"), tmpdir, automatic_optimization=automatic_optimization
     )
 
 
