@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import abc
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial, wraps
@@ -34,17 +33,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _fault_tolerant_training_mode
-
-
-class _FaulTolerantAbstract(abc.ABC):
-    @classmethod
-    def __subclasshook__(cls, subclass: Any) -> Union[bool, Any]:
-        if cls is _FaulTolerantAbstract:
-            return (
-                getattr(subclass, "state_dict", None) is not None
-                and getattr(subclass, "load_state_dict", None) is not None
-            )
-        return False
 
 
 class FastForwardSampler(Sampler):
@@ -368,6 +356,11 @@ class CaptureIterableDataset(IterableDataset):
         return next(self.iter_data)
 
 
+def is_obj_stateful(obj: Any) -> bool:
+    """In order to be stateful, an object should implement a ``state_dict`` and ``load_state_dict`` method."""
+    return getattr(obj, "state_dict", None) is not None and getattr(obj, "load_state_dict", None) is not None
+
+
 def _find_fast_forward_samplers(dataloader: DataLoader) -> Optional[FastForwardSampler]:
     """If the ``DataLoader`` is wrapping a mapping based Dataset, return the ``FastForwardSampler``."""
     if isinstance(dataloader.sampler, FastForwardSampler):
@@ -612,9 +605,9 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
         if sampler_state:
             for k in sampler_state:
                 obj = getattr(dataloader, k)
-                if not isinstance(obj, _FaulTolerantAbstract):
+                if not is_obj_stateful(obj):
                     raise MisconfigurationException(
-                        f"The DataLoader attribute should have a load_state_dict method. Found {obj}"
+                        f"The DataLoader attribute should have a `load_state_dict` method. Found {obj}"
                     )
 
                 obj.load_state_dict(sampler_state[k])
@@ -655,11 +648,8 @@ class _StatefulMixin:
 
     def _store_sampler_state(self) -> None:
         """This function is used to extract the sampler states if any."""
-        # collect the state_dict from any objects matching the `_FaulTolerantAbstract` API
         sampler_state = {
-            k: v.state_dict()
-            for k, v in self._loader.__dict__.items()
-            if isinstance(v, _FaulTolerantAbstract) and k != "dataset"
+            k: v.state_dict() for k, v in self._loader.__dict__.items() if is_obj_stateful(v) and k != "dataset"
         }
 
         self.__accumulate_state(sampler_state)
