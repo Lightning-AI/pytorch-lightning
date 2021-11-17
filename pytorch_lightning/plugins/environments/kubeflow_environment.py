@@ -14,7 +14,6 @@
 
 import logging
 import os
-from typing import Any
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.utilities import rank_zero_deprecation
@@ -29,14 +28,15 @@ class KubeflowEnvironment(ClusterEnvironment):
     .. _Kubeflow: https://www.kubeflow.org
     """
 
-    def __new__(cls, *args: Any, **kwargs: Any) -> "ClusterEnvironment":
+    def __init__(self) -> None:
+        super().__init__()
         # TODO: remove in 1.7
-        if hasattr(cls, "is_using_kubeflow") and callable(cls.is_using_kubeflow):
+        if hasattr(self, "is_using_kubeflow") and callable(self.is_using_kubeflow):
             rank_zero_deprecation(
-                f"`{cls.__name__}.is_using_kubeflow` has been deprecated in v1.6 and will be removed in 1.7."
-                " Implement the static method `detect()` instead (do not forget to add the `@staticmethod` decorator)."
+                f"`{self.__class__.__name__}.is_using_kubeflow` has been deprecated in v1.6 and will be removed in"
+                f" v1.7. Implement the static method `detect()` instead (do not forget to add the `@staticmethod`"
+                f" decorator)."
             )
-        return super().__new__(cls, *args, **kwargs)
 
     @property
     def creates_processes_externally(self) -> bool:

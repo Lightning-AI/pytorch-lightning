@@ -14,7 +14,6 @@
 
 import os
 import socket
-from typing import Any
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.plugins.environments import ClusterEnvironment
@@ -42,16 +41,14 @@ class LSFEnvironment(ClusterEnvironment):
         The world size for the task. This environment variable is set by jsrun
     """
 
-    def __new__(cls, *args: Any, **kwargs: Any) -> "ClusterEnvironment":
+    def __init__(self):
+        super().__init__()
         # TODO: remove in 1.7
-        if hasattr(cls, "is_using_lsf") and callable(cls.is_using_lsf):
+        if hasattr(self, "is_using_lsf") and callable(self.is_using_lsf):
             rank_zero_deprecation(
-                f"`{cls.__name__}.is_using_lsf` has been deprecated in v1.6 and will be removed in 1.7."
+                f"`{self.__class__.__name__}.is_using_lsf` has been deprecated in v1.6 and will be removed in v1.7."
                 " Implement the static method `detect()` instead (do not forget to add the `@staticmethod` decorator)."
             )
-        return super().__new__(cls, *args, **kwargs)
-
-    def __init__(self):
         self._main_address = self._get_main_address()
         self._main_port = self._get_main_port()
         log.debug(f"MASTER_ADDR: {self._main_address}")

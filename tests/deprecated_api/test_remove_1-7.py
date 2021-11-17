@@ -472,7 +472,7 @@ def test_v1_7_0_cluster_environment_master_address(cls):
             pass
 
     with pytest.deprecated_call(
-        match="MyClusterEnvironment.master_address` has been deprecated in v1.6 and will be removed in 1.7"
+        match="MyClusterEnvironment.master_address` has been deprecated in v1.6 and will be removed in v1.7"
     ):
         MyClusterEnvironment()
 
@@ -492,7 +492,7 @@ def test_v1_7_0_cluster_environment_master_port(cls):
             pass
 
     with pytest.deprecated_call(
-        match="MyClusterEnvironment.master_port` has been deprecated in v1.6 and will be removed in 1.7"
+        match="MyClusterEnvironment.master_port` has been deprecated in v1.6 and will be removed in v1.7"
     ):
         MyClusterEnvironment()
 
@@ -521,6 +521,6 @@ def test_v1_7_0_cluster_environment_detection(cls, method_name):
             pass
 
     with pytest.deprecated_call(
-        match=f"MyClusterEnvironment.{method_name}` has been deprecated in v1.6 and will be removed in 1.7"
+        match=f"MyClusterEnvironment.{method_name}` has been deprecated in v1.6 and will be removed in v1.7"
     ):
         MyClusterEnvironment()
