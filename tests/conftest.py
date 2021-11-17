@@ -99,6 +99,21 @@ def reset_deterministic_algorithm():
         torch.set_deterministic(False)
 
 
+@pytest.yield_fixture
+def caplog(caplog):
+    """Workaround for https://github.com/pytest-dev/pytest/issues/3697.
+
+    Setting ``filterwarnings`` with pytest breaks ``caplog`` when ``not logger.propagate``.
+    """
+    import logging
+
+    lightning_logger = logging.getLogger("pytorch_lightning")
+    propagate = lightning_logger.propagate
+    lightning_logger.propagate = True
+    yield caplog
+    lightning_logger.propagate = propagate
+
+
 @pytest.fixture
 def tmpdir_server(tmpdir):
     if sys.version_info >= (3, 7):
