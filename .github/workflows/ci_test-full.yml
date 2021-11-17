@@ -34,8 +34,6 @@ jobs:
           - {os: windows-2019, python-version: "3.9", requires: "oldest", release: "stable"}
           - {os: macOS-10.15, python-version: "3.9", requires: "oldest", release: "stable"}
 
-    # Timeout: https://stackoverflow.com/a/59076067/4521646
-    # TODO: the macOS is taking too long, probably caching did not work...
     timeout-minutes: 40
 
     steps:

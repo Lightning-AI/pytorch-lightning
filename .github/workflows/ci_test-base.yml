@@ -20,7 +20,7 @@ jobs:
         # this will install stable torch
         python-version: [3.9]
 
-    # Timeout: https://stackoverflow.com/a/59076067/4521646
+    # lower timeout as this should run very quickly
     timeout-minutes: 20
     steps:
     - uses: actions/checkout@v2
