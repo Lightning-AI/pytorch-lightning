@@ -55,7 +55,7 @@ class Accelerator:
 
         Notes:
             precision_plugin is deprecated and will be removed soon
-            User `training_type_plugin(precision_plugi)n` instead
+            User `training_type_plugin(precision_plugin)` instead
         """
 
         self.training_type_plugin = training_type_plugin
@@ -67,8 +67,8 @@ class Accelerator:
                 Use :`training_type_plugin(precision_plugin) instead.
             """
             rank_zero_deprecation(
-                f"`{self.__class__.__name__}.precision` was and will be removed soon"
-                f" Use `training_type_plugin.precision_plugin.precision` instead."
+                f"`precision_plugin` was deprecated and will be removed soon"
+                f" Use `training_type_plugin(precision_plugin)` instead."
             )
             self.training_type_plugin._precision_plugin = precision_plugin
 
