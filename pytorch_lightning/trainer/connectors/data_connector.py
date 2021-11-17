@@ -64,7 +64,6 @@ class DataConnector:
         self,
         check_val_every_n_epoch: int,
         reload_dataloaders_every_n_epochs: int,
-        reload_dataloaders_every_epoch: bool,
         prepare_data_per_node: Optional[bool] = None,
     ) -> None:
         self.trainer.datamodule = None
@@ -82,13 +81,6 @@ class DataConnector:
             )
 
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch
-
-        if reload_dataloaders_every_epoch:
-            reload_dataloaders_every_n_epochs = int(reload_dataloaders_every_epoch)
-            rank_zero_deprecation(
-                "`reload_dataloaders_every_epoch` is deprecated in v1.4 and will be removed in v1.6."
-                " Please use `reload_dataloaders_every_n_epochs` in Trainer."
-            )
 
         if not isinstance(reload_dataloaders_every_n_epochs, int) or (reload_dataloaders_every_n_epochs < 0):
             raise MisconfigurationException(

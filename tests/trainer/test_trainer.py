@@ -1453,29 +1453,26 @@ def test_trainer_predict_cpu(tmpdir, datamodule, enable_progress_bar):
 
 
 @RunIf(min_gpus=2, special=True)
-@pytest.mark.parametrize("num_gpus", [1, 2])
-def test_trainer_predict_dp(tmpdir, num_gpus):
-    predict(tmpdir, strategy="dp", accelerator="gpu", devices=num_gpus)
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"strategy": "dp", "devices": 1},
+        {"strategy": "dp", "devices": 2},
+        {"strategy": "ddp", "devices": 2},
+    ],
+)
+def test_trainer_predict_special(tmpdir, kwargs):
+    predict(tmpdir, accelerator="gpu", **kwargs)
 
 
-@RunIf(min_gpus=2, special=True, fairscale=True)
-def test_trainer_predict_ddp(tmpdir):
-    predict(tmpdir, strategy="ddp", accelerator="gpu", devices=2)
-
-
-@RunIf(min_gpus=2, skip_windows=True, special=True)
-def test_trainer_predict_ddp_spawn(tmpdir):
-    predict(tmpdir, strategy="dp", accelerator="gpu", devices=2)
-
-
-@RunIf(min_gpus=1, special=True)
+@RunIf(min_gpus=1)
 def test_trainer_predict_1_gpu(tmpdir):
     predict(tmpdir, accelerator="gpu", devices=1)
 
 
 @RunIf(skip_windows=True)
-def test_trainer_predict_ddp_cpu(tmpdir):
-    predict(tmpdir, strategy="ddp_spawn", accelerator="cpu", devices=2)
+def test_trainer_predict_ddp_spawn(tmpdir):
+    predict(tmpdir, strategy="ddp_spawn", accelerator="auto", devices=2)
 
 
 @pytest.mark.parametrize("dataset_cls", [RandomDataset, RandomIterableDatasetWithLen, RandomIterableDataset])
@@ -1809,7 +1806,7 @@ class TrainerStagesModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "strategy,num_processes", [(None, 1), pytest.param("ddp_spawn", 2, marks=RunIf(skip_windows=True))]
+    "strategy,num_processes", [(None, 1), pytest.param("ddp_spawn", 2, marks=RunIf(skip_windows=True, skip_49370=True))]
 )
 def test_model_in_correct_mode_during_stages(tmpdir, strategy, num_processes):
     model = TrainerStagesModel()
@@ -1830,7 +1827,7 @@ class TestDummyModelForCheckpoint(BoringModel):
         pass
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, skip_49370=True)
 def test_fit_test_synchronization(tmpdir):
     """Test that the trainer synchronizes processes before returning control back to the caller."""
     tutils.set_random_main_port()
