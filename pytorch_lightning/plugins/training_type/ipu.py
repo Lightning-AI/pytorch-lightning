@@ -86,6 +86,7 @@ class IPUPlugin(ParallelPlugin):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
+            precision_plugin=precision_plugin,
         )
         if not _IPU_AVAILABLE:
             raise MisconfigurationException(
