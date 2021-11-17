@@ -29,9 +29,7 @@ jobs:
           # nightly: add when there's a release candidate
           #- {os: ubuntu-20.04, python-version: "3.10", requires: "latest", release: "pre"}
 
-    # Timeout: https://stackoverflow.com/a/59076067/4521646
-    # TODO: the macOS is taking too long, probably caching did not work...
-    timeout-minutes: 40
+    timeout-minutes: 50
 
     steps:
     - uses: actions/checkout@v2
