@@ -903,8 +903,8 @@ def test_nan_loss_detection(backward_mock, tmpdir):
 
     model = CurrentModel()
 
-    # fit model
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_inf + 1), terminate_on_nan=True)
+    with pytest.deprecated_call(match="terminate_on_nan` was deprecated in v1.5"):
+        trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_inf + 1), terminate_on_nan=True)
 
     with pytest.raises(ValueError, match=r".*The loss returned in `training_step` is.*"):
         trainer.fit(model)
@@ -916,7 +916,9 @@ def test_nan_loss_detection(backward_mock, tmpdir):
 
 
 def test_invalid_terminate_on_nan(tmpdir):
-    with pytest.raises(TypeError, match="`terminate_on_nan` should be a bool"):
+    with pytest.raises(TypeError, match="`terminate_on_nan` should be a bool"), pytest.deprecated_call(
+        match="terminate_on_nan` was deprecated in v1.5"
+    ):
         Trainer(default_root_dir=tmpdir, terminate_on_nan="False")
 
 
@@ -937,7 +939,9 @@ def test_nan_params_detection(backward_mock, tmpdir):
                 torch.nn.init.constant_(self.layer.bias, math.nan)
 
     model = CurrentModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_nan + 1), terminate_on_nan=True)
+
+    with pytest.deprecated_call(match="terminate_on_nan` was deprecated in v1.5"):
+        trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_nan + 1), terminate_on_nan=True)
 
     with pytest.raises(ValueError, match=r".*Detected nan and/or inf values in `layer.bias`.*"):
         trainer.fit(model)
@@ -991,11 +995,14 @@ def test_on_exception_hook(tmpdir):
     assert not trainer.interrupted
     assert handle_interrupt_callback.exception is None
     assert handle_interrupt_callback.exc_info is None
-    trainer.fit(model)
+    with pytest.deprecated_call(match="on_keyboard_interrupt` callback hook was deprecated in v1.5"):
+        trainer.fit(model)
     assert trainer.interrupted
     assert isinstance(handle_interrupt_callback.exception, KeyboardInterrupt)
     assert isinstance(handle_interrupt_callback.exc_info[1], KeyboardInterrupt)
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(MisconfigurationException), pytest.deprecated_call(
+        match="on_keyboard_interrupt` callback hook was deprecated in v1.5"
+    ):
         trainer.test(model)
     assert trainer.interrupted
     assert isinstance(handle_interrupt_callback.exception, MisconfigurationException)
@@ -1218,7 +1225,11 @@ def test_trainer_config(trainer_kwargs, expected, monkeypatch):
     if trainer_kwargs["gpus"] is not None:
         monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
         monkeypatch.setattr(torch.cuda, "device_count", lambda: trainer_kwargs["gpus"])
-    trainer = Trainer(**trainer_kwargs)
+    if trainer_kwargs["accelerator"] in (None, "ddp_cpu"):
+        trainer = Trainer(**trainer_kwargs)
+    else:
+        with pytest.deprecated_call(match=r"accelerator='.*'\)` has been deprecated in v1.5"):
+            trainer = Trainer(**trainer_kwargs)
     assert len(expected) == 4
     for k, v in expected.items():
         assert getattr(trainer, k) == v, f"Failed {k}: {v}"
@@ -1314,7 +1325,6 @@ def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, l
     trainer = Trainer(
         default_root_dir=tmpdir,
         log_every_n_steps=log_interval,
-        flush_logs_every_n_steps=log_interval,
         limit_train_batches=train_batches,
         limit_val_batches=0,
         max_steps=max_steps,
@@ -1806,7 +1816,7 @@ class TrainerStagesModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "strategy,num_processes", [(None, 1), pytest.param("ddp_spawn", 2, marks=RunIf(skip_windows=True, skip_49370=True))]
+    "strategy,num_processes", [(None, 1), pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True, skip_49370=True))]
 )
 def test_model_in_correct_mode_during_stages(tmpdir, strategy, num_processes):
     model = TrainerStagesModel()
@@ -1982,7 +1992,7 @@ class TrainerStagesErrorsModel(BoringModel):
     "strategy,num_processes",
     [
         (None, 1),
-        pytest.param("ddp_spawn", 2, marks=RunIf(skip_windows=True)),
+        pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True)),
     ],
 )
 def test_error_handling_all_stages(tmpdir, strategy, num_processes):
