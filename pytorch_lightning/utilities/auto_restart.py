@@ -722,11 +722,11 @@ class _MultiProcessingDataLoaderIterStateful(_StatefulMixin, _MultiProcessingDat
 
 
 def _get_iterator(self) -> "_BaseDataLoaderIter":
-    self._lightning_fetcher
     if self.num_workers == 0:
         return _SingleProcessDataLoaderIterStateful(self)
     else:
-        self.check_worker_number_rationality()
+        if hasattr(self, "check_worker_number_rationality"):
+            self.check_worker_number_rationality()
         return _MultiProcessingDataLoaderIterStateful(self)
 
 
