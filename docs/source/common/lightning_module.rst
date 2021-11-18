@@ -1167,14 +1167,14 @@ for more information.
 
         on_train_start()
         for epoch in epochs:
-            train_loop()
+            fit_loop()
         on_train_end()
 
         on_fit_end()
         teardown("fit")
 
 
-    def train_loop():
+    def fit_loop():
         on_epoch_start()
         on_train_epoch_start()
 
