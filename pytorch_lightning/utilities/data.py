@@ -12,23 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
-from typing import Any, Dict, Iterable, Mapping, Optional, Union
-
-from typing import Any, Generator, Iterable, Mapping, Union
+from typing import Any, Dict, Generator, Iterable, Mapping, Optional, Union
 
 import torch
 from torch.utils.data import BatchSampler, DataLoader, IterableDataset, Sampler
 
 import pytorch_lightning as pl
-import pytorch_lightning as pl
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.warnings import WarningCache
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
+from pytorch_lightning.utilities.warnings import WarningCache
 
 BType = Union[torch.Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
 
@@ -247,12 +243,12 @@ def _get_dataloader_init_kwargs(
 def _dataloader_init_kwargs_resolve_sampler(
     dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
 ) -> Dict[str, Any]:
-    """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for
-    its re-instantiation.
+    """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its
+    re-instantiation.
 
-    If the dataloader is being used for prediction, the sampler will be wrapped into an `IndexBatchSamplerWrapper`,
-    so Lightning can keep track of its indices. If fault tolerant training is enabled, the sampler will be wrapped
-    into a `FastForwardSampler`.
+    If the dataloader is being used for prediction, the sampler will be wrapped into an `IndexBatchSamplerWrapper`, so
+    Lightning can keep track of its indices. If fault tolerant training is enabled, the sampler will be wrapped into a
+    `FastForwardSampler`.
     """
     batch_sampler = getattr(dataloader, "batch_sampler")
     is_predicting = mode == RunningStage.PREDICTING
