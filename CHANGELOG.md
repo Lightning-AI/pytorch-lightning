@@ -168,6 +168,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed `DeepSpeedPlugin.{precision,amp_type,amp_level}` properties ([#10657](https://github.com/PyTorchLightning/pytorch-lightning/pull/10657))
 
 
+- Removed patching of common `DataHooks` to the `LightningModule` ([#10603](https://github.com/PyTorchLightning/pytorch-lightning/pull/10603))
+
+
+
 ### Fixed
 
 - When a tensor is logged with `self.log`, run its computation with the same `dtype` ([#10076](https://github.com/PyTorchLightning/pytorch-lightning/pull/10076))
