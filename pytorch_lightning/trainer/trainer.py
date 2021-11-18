@@ -1094,6 +1094,10 @@ class Trainer(
         self.accelerator.setup_environment()
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
+        if self.state.fn == TrainerFn.FITTING:
+            # reset train dataloader and val dataloader
+            self.reset_train_val_dataloaders(self.lightning_module)
+
         # check if we should delay restoring checkpoint till later
         if not self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
             self._restore_modules_and_callbacks(ckpt_path)
