@@ -114,8 +114,8 @@ def _wrap_init(f: Callable) -> Callable:
     @functools.wraps(f)
     def wrapper(module: Any, *args: Any, **kwargs: Dict[str, Any]) -> None:
         params = dict(inspect.signature(module._old_init).parameters)
-        params.pop("args")
-        params.pop("kwargs")
+        params.pop("args", None)
+        params.pop("kwargs", None)
         for init_name, init_arg in chain(zip(params, args), kwargs.items()):
             setattr(module, init_name, init_arg)
         f(module, *args, **kwargs)
