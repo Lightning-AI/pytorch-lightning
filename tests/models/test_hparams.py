@@ -101,33 +101,38 @@ def _run_standard_hparams_test(tmpdir, model, cls, try_overwrite=False):
 
 @pytest.mark.parametrize("cls", [SaveHparamsModel, SaveHparamsDecoratedModel])
 def test_namespace_hparams(tmpdir, cls):
-    # init model
-    model = cls(hparams=Namespace(test_arg=14))
+    with pytest.deprecated_call(match="Passing a container to `save_hyperparameters` has been deprecated in v1.6"):
+        # init model
+        model = cls(hparams=Namespace(test_arg=14))
 
-    # run standard test suite
-    _run_standard_hparams_test(tmpdir, model, cls)
+        # run standard test suite
+        _run_standard_hparams_test(tmpdir, model, cls)
 
 
 @pytest.mark.parametrize("cls", [SaveHparamsModel, SaveHparamsDecoratedModel])
 def test_dict_hparams(tmpdir, cls):
-    # init model
-    model = cls(hparams={"test_arg": 14})
+    with pytest.deprecated_call(match="Passing a container to `save_hyperparameters` has been deprecated in v1.6"):
+        # init model
+        model = cls(hparams={"test_arg": 14})
 
-    # run standard test suite
-    _run_standard_hparams_test(tmpdir, model, cls)
+        # run standard test suite
+        _run_standard_hparams_test(tmpdir, model, cls)
 
 
 @pytest.mark.parametrize("cls", [SaveHparamsModel, SaveHparamsDecoratedModel])
 def test_omega_conf_hparams(tmpdir, cls):
     # init model
     conf = OmegaConf.create(dict(test_arg=14, mylist=[15.4, dict(a=1, b=2)]))
-    model = cls(hparams=conf)
-    assert isinstance(model.hparams, Container)
 
-    # run standard test suite
-    raw_checkpoint_path = _run_standard_hparams_test(tmpdir, model, cls)
-    model2 = cls.load_from_checkpoint(raw_checkpoint_path)
-    assert isinstance(model2.hparams, Container)
+    with pytest.deprecated_call(match="Passing a container to `save_hyperparameters` has been deprecated in v1.6"):
+
+        model = cls(hparams=conf)
+        assert isinstance(model.hparams, Container)
+
+        # run standard test suite
+        raw_checkpoint_path = _run_standard_hparams_test(tmpdir, model, cls)
+        model2 = cls.load_from_checkpoint(raw_checkpoint_path)
+        assert isinstance(model2.hparams, Container)
 
     # config specific tests
     assert model2.hparams.test_arg == 14
@@ -426,7 +431,9 @@ class OtherArgsModel(BoringModel):
 )
 def test_single_config_models_fail(tmpdir, cls, config):
     """Test fail on passing unsupported config type."""
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError), pytest.deprecated_call(
+        match="Passing a container to `save_hyperparameters` has been deprecated in v1.6"
+    ):
         _ = cls(**config)
 
 
@@ -699,17 +706,23 @@ class HparamsNamespaceContainerModel(BoringModel):
 
 def test_empty_hparams_container(tmpdir):
     """Test that save_hyperparameters() is a no-op when saving an empty hparams container."""
-    model = HparamsKwargsContainerModel()
+    with pytest.deprecated_call(match="Passing a container to `save_hyperparameters` has been deprecated in v1.6"):
+        model = HparamsKwargsContainerModel()
     assert not model.hparams
-    model = HparamsNamespaceContainerModel(Namespace())
+
+    with pytest.deprecated_call(match="Passing a container to `save_hyperparameters` has been deprecated in v1.6"):
+        model = HparamsNamespaceContainerModel(Namespace())
     assert not model.hparams
 
 
 def test_hparams_name_from_container(tmpdir):
     """Test that save_hyperparameters(container) captures the name of the argument correctly."""
-    model = HparamsKwargsContainerModel(a=1, b=2)
+    with pytest.deprecated_call(match="Passing a container to `save_hyperparameters` has been deprecated in v1.6"):
+        model = HparamsKwargsContainerModel(a=1, b=2)
     assert model._hparams_name is None
-    model = HparamsNamespaceContainerModel(Namespace(a=1, b=2))
+
+    with pytest.deprecated_call(match="Passing a container to `save_hyperparameters` has been deprecated in v1.6"):
+        model = HparamsNamespaceContainerModel(Namespace(a=1, b=2))
     assert model._hparams_name == "config"
 
 
@@ -759,15 +772,25 @@ def _get_mock_logger(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "model_cls, model_args", ((SaveHparamsModel, {"arg1": 5, "arg2": "abc"}), (NoHparamsModel, {}))
+    "model_cls, model_args", ((SaveHparamsModel, {"hparams": {"arg1": 5, "arg2": "abc"}}), (NoHparamsModel, {}))
 )
 @pytest.mark.parametrize(
-    "data_cls, data_args", ((DataModuleWithHparams, {"data_dir": "foo"}), (DataModuleWithoutHparams, {}))
+    "data_cls, data_args", ((DataModuleWithHparams, {"hparams": {"data_dir": "foo"}}), (DataModuleWithoutHparams, {}))
 )
 def test_adding_datamodule_hparams(tmpdir, model_cls, model_args, data_cls, data_args):
     """Test that hparams from datamodule and model are logged."""
-    model = model_cls(model_args)
-    data = data_cls(data_args)
+    if model_args:
+        with pytest.deprecated_call(match="Passing a container to `save_hyperparameters` has been deprecated in v1.6"):
+            model = model_cls(**model_args)
+    else:
+        model = model_cls()
+
+    if data_args:
+        with pytest.deprecated_call(match="Passing a container to `save_hyperparameters` has been deprecated in v1.6"):
+            data = data_cls(**data_args)
+    else:
+        data = data_cls()
+
     org_model_hparams = copy.deepcopy(model.hparams_initial)
     org_data_hparams = copy.deepcopy(data.hparams_initial)
 
@@ -787,7 +810,8 @@ def test_adding_datamodule_hparams(tmpdir, model_cls, model_args, data_cls, data
 
 def test_no_datamodule_for_hparams(tmpdir):
     """Test that hparams model are logged if no datamodule is used."""
-    model = SaveHparamsModel({"arg1": 5, "arg2": "abc"})
+    with pytest.deprecated_call(match="Passing a container to `save_hyperparameters` has been deprecated in v1.6"):
+        model = SaveHparamsModel({"arg1": 5, "arg2": "abc"})
     org_model_hparams = copy.deepcopy(model.hparams_initial)
     data = DataModuleWithoutHparams()
     data.setup()
@@ -801,9 +825,9 @@ def test_no_datamodule_for_hparams(tmpdir):
 
 
 def test_colliding_hparams(tmpdir):
-
-    model = SaveHparamsModel({"data_dir": "abc", "arg2": "abc"})
-    data = DataModuleWithHparams({"data_dir": "foo"})
+    with pytest.deprecated_call(match="Passing a container to `save_hyperparameters` has been deprecated in v1.6"):
+        model = SaveHparamsModel({"data_dir": "abc", "arg2": "abc"})
+        data = DataModuleWithHparams({"data_dir": "foo"})
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     with pytest.raises(MisconfigurationException, match=r"Error while merging hparams:"):

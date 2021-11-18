@@ -1106,7 +1106,7 @@ def test_hparams_type(tmpdir, hparams_type):
     class TestModel(BoringModel):
         def __init__(self, hparams):
             super().__init__()
-            self.save_hyperparameters(hparams)
+            self.save_hyperparameters()
 
     model_checkpoint = ModelCheckpoint(dirpath=tmpdir, save_top_k=1, monitor="foo")
     trainer = Trainer(

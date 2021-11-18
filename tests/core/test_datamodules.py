@@ -424,7 +424,7 @@ class DataModuleWithHparams_0(LightningDataModule):
 class DataModuleWithHparams_1(LightningDataModule):
     def __init__(self, arg0, *args, **kwargs):
         super().__init__()
-        self.save_hyperparameters(arg0)
+        self.save_hyperparameters(ignore=["args", "kwargs"])
 
 
 def test_hyperparameters_saving():
