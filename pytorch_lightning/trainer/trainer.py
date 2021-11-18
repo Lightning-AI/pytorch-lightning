@@ -589,10 +589,14 @@ class Trainer(
                 f"fast_dev_run={fast_dev_run} is not a valid configuration. It should be >= 0."
             )
 
-        self.fast_dev_run = bool(fast_dev_run)
-        num_batches = int(fast_dev_run)
+        self.fast_dev_run = fast_dev_run
+
+        # set fast_dev_run=True when it is 1, used while logging
+        if fast_dev_run == 1:
+            self.fast_dev_run = True
 
         if fast_dev_run:
+            num_batches = int(fast_dev_run)
             limit_train_batches = num_batches
             limit_val_batches = num_batches
             limit_test_batches = num_batches
