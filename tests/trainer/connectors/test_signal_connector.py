@@ -31,9 +31,6 @@ from tests.helpers.runif import RunIf
 @RunIf(skip_windows=True)
 def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpdir):
 
-    # hack to reset the signal
-    signal.signal(signal.SIGUSR1, 0)
-
     if register_handler:
 
         def handler(*_):
@@ -59,6 +56,9 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
         else:
             trainer.fit(model)
         assert trainer._terminate_gracefully == (False if register_handler else terminate_gracefully)
+
+    # reset the signal to system defaults
+    signal.signal(signal.SIGUSR1, signal.SIG_DFL)
 
 
 @RunIf(skip_windows=True)
