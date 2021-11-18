@@ -259,6 +259,8 @@ class LoggerConnector:
         self._batch_idx = batch_idx
         self._epoch_end_reached = False
         assert self.trainer._results is not None
+
+        # attach reference to the new batch and remove the cached batch_size
         self.trainer._results.current_batch = batch
         self.trainer._results.current_batch_size = None
 
@@ -283,6 +285,8 @@ class LoggerConnector:
         self._callback_metrics.update(metrics["callback"])
         self._logged_metrics.update(metrics["log"])
         assert self.trainer._results is not None
+
+        # drop the reference to current batch and batch_size
         self.trainer._results.current_batch = None
         self.trainer._results.current_batch_size = None
 
