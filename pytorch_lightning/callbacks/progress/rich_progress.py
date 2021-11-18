@@ -389,7 +389,6 @@ class RichProgressBar(ProgressBarBase):
             self._update(self.val_progress_bar_id, self.val_batch_idx, self.total_val_batches, visible=False)
 
     def on_test_epoch_start(self, trainer, pl_module):
-        super().on_test_epoch_start(trainer, pl_module)
         self.test_progress_bar_id = self._add_task(self.total_test_batches, self.test_description)
         self.refresh()
 
