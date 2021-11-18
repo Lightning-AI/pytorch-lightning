@@ -17,6 +17,7 @@ import os
 import re
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from typing import Optional
 
 log = logging.getLogger(__name__)
 
@@ -41,6 +42,21 @@ class SLURMEnvironment(ClusterEnvironment):
     def detect() -> bool:
         """Returns ``True`` if the current process was launched on a SLURM cluster."""
         return "SLURM_NTASKS" in os.environ
+
+    @staticmethod
+    def job_id() -> Optional[int]:
+        job_id = os.environ.get("SLURM_JOB_ID")
+        if job_id:
+            try:
+                job_id = int(job_id)
+            except ValueError:
+                job_id = None
+
+        # in interactive mode, don't make logs use the same job id
+        in_slurm_interactive_mode = os.environ.get("SLURM_JOB_NAME") == "bash"
+        if in_slurm_interactive_mode:
+            job_id = None
+        return job_id
 
     @property
     def main_address(self) -> str:

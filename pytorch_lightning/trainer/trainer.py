@@ -1729,21 +1729,6 @@ class Trainer(
         return self.global_rank == 0
 
     @property
-    def slurm_job_id(self) -> Optional[int]:
-        job_id = os.environ.get("SLURM_JOB_ID")
-        if job_id:
-            try:
-                job_id = int(job_id)
-            except ValueError:
-                job_id = None
-
-        # in interactive mode, don't make logs use the same job id
-        in_slurm_interactive_mode = os.environ.get("SLURM_JOB_NAME") == "bash"
-        if in_slurm_interactive_mode:
-            job_id = None
-        return job_id
-
-    @property
     def lightning_optimizers(self) -> List[LightningOptimizer]:
         if self._lightning_optimizers is None:
             self.convert_to_lightning_optimizers()
