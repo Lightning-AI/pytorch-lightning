@@ -160,8 +160,8 @@ def lightning_loop(cls_model, idx, device_type: str = "cuda", num_epochs=10):
         max_epochs=num_epochs if idx > 0 else 1,
         enable_progress_bar=False,
         enable_model_summary=False,
+        enable_checkpointing=False,
         gpus=1 if device_type == "cuda" else 0,
-        checkpoint_callback=False,
         logger=False,
         replace_sampler_ddp=False,
     )
