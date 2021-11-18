@@ -22,7 +22,7 @@ import pytest
 import torch.distributed
 
 from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7, _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 from tests import _PATH_DATASETS
 
 
@@ -95,10 +95,23 @@ def reset_deterministic_algorithm():
     yield
     if _TORCH_GREATER_EQUAL_1_8:
         torch.use_deterministic_algorithms(False)
-    elif _TORCH_GREATER_EQUAL_1_7:
+    else:
         torch.set_deterministic(False)
-    else:  # the minimum version Lightning supports is PyTorch 1.6
-        torch._set_deterministic(False)
+
+
+@pytest.fixture
+def caplog(caplog):
+    """Workaround for https://github.com/pytest-dev/pytest/issues/3697.
+
+    Setting ``filterwarnings`` with pytest breaks ``caplog`` when ``not logger.propagate``.
+    """
+    import logging
+
+    lightning_logger = logging.getLogger("pytorch_lightning")
+    propagate = lightning_logger.propagate
+    lightning_logger.propagate = True
+    yield caplog
+    lightning_logger.propagate = propagate
 
 
 @pytest.fixture
@@ -156,3 +169,16 @@ def single_process_pg():
         torch.distributed.destroy_process_group()
         os.environ.clear()
         os.environ.update(orig_environ)
+
+
+def pytest_collection_modifyitems(items):
+    if os.getenv("PL_RUNNING_SPECIAL_TESTS", "0") != "1":
+        return
+    # filter out non-special tests
+    items[:] = [
+        item
+        for item in items
+        for marker in item.own_markers
+        # has `@RunIf(special=True)`
+        if marker.name == "skipif" and marker.kwargs.get("special")
+    ]

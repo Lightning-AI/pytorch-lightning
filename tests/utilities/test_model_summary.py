@@ -143,16 +143,10 @@ def test_invalid_weights_summmary():
     """Test that invalid value for weights_summary raises an error."""
     model = LightningModule()
 
-    with pytest.raises(MisconfigurationException, match="`mode` can be None, .* got temp"):
-        summarize(model, mode="temp")
-
     with pytest.raises(
         MisconfigurationException, match="`weights_summary` can be None, .* got temp"
     ), pytest.deprecated_call(match="weights_summary=temp)` is deprecated"):
         Trainer(weights_summary="temp")
-
-    with pytest.raises(MisconfigurationException, match="mode` can be .* got temp"):
-        ModelSummary(model, mode="temp")
 
     with pytest.raises(ValueError, match="max_depth` can be .* got temp"):
         ModelSummary(model, max_depth="temp")
@@ -332,21 +326,6 @@ def test_lazy_model_summary():
             # https://github.com/pytorch/pytorch/issues/58350
             assert summary.total_parameters == 7
             assert summary.trainable_parameters == 7
-
-
-def test_max_depth_equals_mode_interface():
-    """Test summarize(model, full/top) interface mapping matches max_depth."""
-    model = DeepNestedModel()
-
-    with pytest.deprecated_call(match="mode` in `LightningModule.summarize` is deprecated"):
-        summary_top = summarize(model, mode="top")
-    summary_0 = summarize(model, max_depth=1)
-    assert str(summary_top) == str(summary_0)
-
-    with pytest.deprecated_call(match="mode` in `LightningModule.summarize` is deprecated"):
-        summary_full = summarize(model, mode="full")
-    summary_minus1 = summarize(model, max_depth=-1)
-    assert str(summary_full) == str(summary_minus1)
 
 
 @pytest.mark.parametrize("max_depth", [-1, 0, 1, 3, 999])

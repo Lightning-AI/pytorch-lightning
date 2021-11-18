@@ -293,7 +293,7 @@ class RichProgressBar(ProgressBarBase):
             # progress has started
             self._progress_stopped = False
 
-    def refresh(self):
+    def refresh(self) -> None:
         if self.progress:
             self.progress.refresh()
 
