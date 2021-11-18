@@ -31,7 +31,7 @@ from tests.helpers.simple_models import RegressionModel
 if _TORCH_GREATER_EQUAL_1_8:
     from torch.quantization import FakeQuantizeBase
 else:
-    # For torch 1.6 and 1.7.
+    # For torch 1.7.
     from torch.quantization import FakeQuantize as FakeQuantizeBase
 
 
@@ -224,8 +224,8 @@ def test_quantization_val_test_predict(tmpdir):
         max_epochs=4,
     )
     trainer.fit(val_test_predict_qmodel, datamodule=dm)
-    trainer.validate(model=val_test_predict_qmodel, verbose=False)
-    trainer.test(model=val_test_predict_qmodel, verbose=False)
+    trainer.validate(model=val_test_predict_qmodel, datamodule=dm, verbose=False)
+    trainer.test(model=val_test_predict_qmodel, datamodule=dm, verbose=False)
     trainer.predict(
         model=val_test_predict_qmodel, dataloaders=[torch.utils.data.DataLoader(RandomDataset(num_features, 16))]
     )

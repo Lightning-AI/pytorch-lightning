@@ -71,7 +71,7 @@ Prefer DDP over DP
 
 1. Copy model to device.
 2. Copy data to device.
-3. Copy outputs of each device back to master.
+3. Copy outputs of each device back to main device.
 
 Whereas :class:`~pytorch_lightning.plugins.training_type.DDPPlugin` only performs 1 transfer to sync gradients, making DDP MUCH faster than DP.
 
@@ -144,6 +144,16 @@ some references, [`1 <https://discuss.pytorch.org/t/guidelines-for-assigning-num
 .. warning:: Increasing ``num_workers`` will ALSO increase your CPU memory consumption.
 
 The best thing to do is to increase the ``num_workers`` slowly and stop once you see no more improvement in your training speed.
+
+For debugging purposes or for dataloaders that load very small datasets, it is desirable to set ``num_workers=0``. However, this will always log a warning for every dataloader with ``num_workers <= min(2, os.cpu_count())``. In such cases, you can specifically filter this warning by using:
+
+.. code-block:: python
+
+    import warnings
+
+    warnings.filterwarnings(
+        "ignore", ".*does not have many workers. Consider increasing the value of the `num_workers` argument*"
+    )
 
 Spawn
 """""

@@ -26,12 +26,13 @@ from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.overrides.distributed import UnrepeatedDistributedSampler
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.trainer.supporters import CombinedLoader
+from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.data import _get_dataloader_init_kwargs
 from pytorch_lightning.utilities.auto_restart import _capture_metadata_collate
-from pytorch_lightning.utilities.data import _get_dataloader_init_kwargs, has_iterable_dataset, has_len
-from pytorch_lightning.utilities.enums import DistributedType
+from pytorch_lightning.utilities.data import has_iterable_dataset, has_len_all_ranks
+from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -63,7 +64,7 @@ class TrainerDataLoadingMixin(ABC):
         if not isinstance(dataloader, DataLoader):
             return
 
-        using_spawn = self._accelerator_connector._distrib_type == DistributedType.DDP_SPAWN
+        using_spawn = self._accelerator_connector._distrib_type == _StrategyType.DDP_SPAWN
         num_cpus = multiprocessing.cpu_count()
 
         # ddp_spawn + num_workers > 0 don't mix! tell the user
@@ -107,9 +108,10 @@ class TrainerDataLoadingMixin(ABC):
                 " in the `DataLoader` init to improve performance."
             )
 
-    def auto_add_worker_init_fn(self, dataloader: DataLoader) -> None:
+    @staticmethod
+    def _auto_add_worker_init_fn(dataloader: DataLoader, rank: int) -> None:
         if int(os.environ.get("PL_SEED_WORKERS", 0)) and dataloader.worker_init_fn is None:
-            dataloader.worker_init_fn = partial(pl_worker_init_function, rank=self.global_rank)
+            dataloader.worker_init_fn = partial(pl_worker_init_function, rank=rank)
 
     def _requires_distributed_sampler(self, dataloader) -> bool:
         return (
@@ -128,13 +130,21 @@ class TrainerDataLoadingMixin(ABC):
         if isinstance(dataloader, CombinedLoader):
             # apply `prepare_dataloader` on all the collection of loaders
             dataloader.loaders = apply_to_collection(
-                dataloader.loaders, DataLoader, self.prepare_dataloader, shuffle, mode=mode
+                dataloader.loaders, (DataLoader, CycleIterator), self.prepare_dataloader, shuffle, mode=mode
             )
+            # the length need to recomputed across all dataloaders in case of special behavior.
+            dataloader._apply_cycle_iterator_length()
             return dataloader
 
         # don't do anything if it's not a dataloader
-        if not isinstance(dataloader, DataLoader):
+        if not isinstance(dataloader, (DataLoader, CycleIterator)):
             return dataloader
+
+        cycle_iterator: Optional[CycleIterator] = None
+
+        if isinstance(dataloader, CycleIterator):
+            cycle_iterator = dataloader
+            dataloader = dataloader.loader
 
         if (
             _fault_tolerant_training()  # injects components to track the state
@@ -144,6 +154,10 @@ class TrainerDataLoadingMixin(ABC):
         ):
             sampler = self._resolve_sampler(dataloader, shuffle=shuffle, mode=mode)
             dataloader = self._update_dataloader(dataloader, sampler, mode=mode)
+
+        if cycle_iterator is not None:
+            cycle_iterator.loader = dataloader
+            return cycle_iterator
 
         return dataloader
 
@@ -205,7 +219,7 @@ class TrainerDataLoadingMixin(ABC):
         apply_to_collection(self.train_dataloader, DataLoader, self._worker_check, "train_dataloader")
 
         # add worker_init_fn for correct seeding in worker processes
-        apply_to_collection(self.train_dataloader, DataLoader, self.auto_add_worker_init_fn)
+        apply_to_collection(self.train_dataloader, DataLoader, self._auto_add_worker_init_fn, rank=self.global_rank)
 
         # add collate_fn to collect metadata for fault tolerant training
         if _fault_tolerant_training():
@@ -214,7 +228,12 @@ class TrainerDataLoadingMixin(ABC):
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
         self.train_dataloader = CombinedLoader(self.train_dataloader, self._data_connector.multiple_trainloader_mode)
 
-        self.num_training_batches = len(self.train_dataloader) if has_len(self.train_dataloader) else float("inf")
+        module = model or self.lightning_module or self.datamodule
+        self.num_training_batches = (
+            len(self.train_dataloader)
+            if has_len_all_ranks(self.train_dataloader, self.training_type_plugin, module)
+            else float("inf")
+        )
 
         if isinstance(self.limit_train_batches, int) or self.limit_train_batches == 0.0:
             self.num_training_batches = min(self.num_training_batches, int(self.limit_train_batches))
@@ -239,7 +258,7 @@ class TrainerDataLoadingMixin(ABC):
                     "If you want to disable validation set `limit_val_batches` to 0.0 instead."
                 )
         else:
-            if not has_len(self.train_dataloader):
+            if not has_len_all_ranks(self.train_dataloader, self.training_type_plugin, module):
                 if self.val_check_interval == 1.0:
                     self.val_check_batch = float("inf")
                 else:
@@ -288,8 +307,7 @@ class TrainerDataLoadingMixin(ABC):
         for loader_i in range(len(dataloaders)):
             loader = dataloaders[loader_i]
 
-            if hasattr(loader, "sampler") and isinstance(loader.sampler, RandomSampler):
-
+            if hasattr(loader, "sampler") and not isinstance(loader.sampler, SequentialSampler):
                 # when overfitting, the dataloader should not have sampler
                 if self.overfit_batches > 0 and mode.evaluating:
                     rank_zero_warn(
@@ -312,15 +330,22 @@ class TrainerDataLoadingMixin(ABC):
         dataloaders = [self.prepare_dataloader(dl, False, mode=mode) for dl in dataloaders if dl is not None]
 
         # add worker_init_fn for correct seeding in worker processes
-        apply_to_collection(dataloaders, dtype=DataLoader, function=self.auto_add_worker_init_fn)
+        apply_to_collection(
+            dataloaders, dtype=DataLoader, function=self._auto_add_worker_init_fn, rank=self.global_rank
+        )
 
         loader_num_batches = []
 
         # determine number of batches
         # datasets could be none, 1 or 2+
+        module = model or self.lightning_module or self.datamodule
         if len(dataloaders) != 0:
             for i, dataloader in enumerate(dataloaders):
-                num_batches = len(dataloader) if has_len(dataloader) else float("inf")
+                num_batches = (
+                    len(dataloader)
+                    if has_len_all_ranks(dataloader, self.training_type_plugin, module)
+                    else float("inf")
+                )
                 self._worker_check(dataloader, f"{mode.dataloader_prefix}_dataloader {i}")
 
                 # percent or num_steps
@@ -434,16 +459,17 @@ class TrainerDataLoadingMixin(ABC):
 
     @staticmethod
     def _resolve_overfit_batches(dataloader: Collection[DataLoader]) -> Collection[DataLoader]:
-        has_random_sampler = False
+        all_have_sequential_sampler = True
 
-        def resolve_had_random_sampler(dataloader: DataLoader):
-            nonlocal has_random_sampler
-            if not has_random_sampler:
-                has_random_sampler = isinstance(dataloader.sampler, RandomSampler)
+        def resolve_has_no_sequential_sampler(dataloader: DataLoader):
+            nonlocal all_have_sequential_sampler
+            all_have_sequential_sampler = all_have_sequential_sampler & isinstance(
+                dataloader.sampler, SequentialSampler
+            )
 
-        apply_to_collection(dataloader, DataLoader, resolve_had_random_sampler)
+        apply_to_collection(dataloader, DataLoader, resolve_has_no_sequential_sampler)
 
-        if has_random_sampler:
+        if not all_have_sequential_sampler:
             rank_zero_warn(
                 "You requested to overfit but enabled training dataloader shuffling."
                 " We are turning off the training dataloader shuffling for you."

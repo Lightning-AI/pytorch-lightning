@@ -35,10 +35,6 @@ class ManualResult(OutputResult):
 
     extra: Dict[str, Any] = field(default_factory=dict)
 
-    def __post_init__(self) -> None:
-        # TODO: remove with the deprecation removal in v1.6
-        self.extra = self._check_extra_detach_deprecation(self.extra)
-
     @classmethod
     def from_training_step_output(cls, training_step_output: Optional[STEP_OUTPUT]) -> "ManualResult":
         extra = {}

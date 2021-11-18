@@ -15,6 +15,7 @@ import os
 from dataclasses import dataclass
 from functools import partial
 from typing import Iterable, Optional, Union
+from weakref import proxy
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_deprecation
@@ -63,7 +64,6 @@ class DataConnector:
         self,
         check_val_every_n_epoch: int,
         reload_dataloaders_every_n_epochs: int,
-        reload_dataloaders_every_epoch: bool,
         prepare_data_per_node: Optional[bool] = None,
     ) -> None:
         self.trainer.datamodule = None
@@ -81,13 +81,6 @@ class DataConnector:
             )
 
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch
-
-        if reload_dataloaders_every_epoch:
-            reload_dataloaders_every_n_epochs = int(reload_dataloaders_every_epoch)
-            rank_zero_deprecation(
-                "`reload_dataloaders_every_epoch` is deprecated in v1.4 and will be removed in v1.6."
-                " Please use `reload_dataloaders_every_n_epochs` in Trainer."
-            )
 
         if not isinstance(reload_dataloaders_every_n_epochs, int) or (reload_dataloaders_every_n_epochs < 0):
             raise MisconfigurationException(
@@ -139,7 +132,7 @@ class DataConnector:
         lightning_module = self.trainer.lightning_module
         # handle datamodule prepare data:
         # check for prepare_data_per_node & datamodule lifecycle properties before calling datamodule.prepare_data
-        if datamodule is not None and not datamodule._has_prepared_data:
+        if datamodule is not None:
             dm_prepare_data_per_node = datamodule.prepare_data_per_node
             dm_eq_prepare_data = datamodule.prepare_data_per_node == self.trainer.prepare_data_per_node
             if self.trainer.prepare_data_per_node is not None and not dm_eq_prepare_data:
@@ -186,7 +179,15 @@ class DataConnector:
         )
         self.attach_datamodule(model, datamodule=datamodule)
         # set local properties on the model
-        self.trainer.model_connector.copy_trainer_model_properties(model)
+        self._copy_trainer_model_properties(model)
+
+    def _copy_trainer_model_properties(self, model):
+        ref_model = self.trainer.lightning_module or model
+
+        for m in [model, ref_model]:
+            m.trainer = proxy(self.trainer)
+            m.use_amp = self.trainer.amp_backend is not None
+            m.precision = self.trainer.precision
 
     def attach_dataloaders(
         self,

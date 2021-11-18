@@ -1,4 +1,4 @@
-name: "Check code"
+name: Test
 
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
@@ -7,14 +7,13 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     branches: [master, "release/*"]
 
 jobs:
-  python-typing-mypy:
-    name: Python typing Mypy
+  mypy:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@master
       - uses: actions/setup-python@v2
         with:
-          python-version: 3.8
+          python-version: 3.9
       - name: Install mypy
         run: |
           grep mypy requirements/test.txt | xargs -0 pip install

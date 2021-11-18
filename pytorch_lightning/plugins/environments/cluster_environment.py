@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
+from typing import Any, Type
 
 from pytorch_lightning.utilities import rank_zero_deprecation
 
@@ -19,31 +20,25 @@ from pytorch_lightning.utilities import rank_zero_deprecation
 class ClusterEnvironment(ABC):
     """Specification of a cluster environment."""
 
+    def __new__(cls, *args: Any, **kwargs: Any) -> "ClusterEnvironment":
+        # TODO: remove in 1.7
+        _check_for_deprecated_methods(cls)
+        return super().__new__(cls, *args, **kwargs)
+
     @property
     @abstractmethod
     def creates_processes_externally(self) -> bool:
         """Whether the environment creates the subprocesses or not."""
 
-    def creates_children(self) -> bool:
-        """Whether the environment creates the subprocesses or not.
-
-        .. deprecated:: v1.5
-            This method was deprecated in v1.5 and will be removed in v1.6. Use the property
-            :attr:`creates_processes_externally` instead.
-        """
-        rank_zero_deprecation(
-            f"`{self.__class__.__name__}.creates_children()` was deprecated in v1.5 and will be removed in v1.6."
-            " Use the property :attr:`creates_processes_externally` instead."
-        )
-        return self.creates_processes_externally
-
+    @property
     @abstractmethod
-    def master_address(self) -> str:
-        """The master address through which all processes connect and communicate."""
+    def main_address(self) -> str:
+        """The main address through which all processes connect and communicate."""
 
+    @property
     @abstractmethod
-    def master_port(self) -> int:
-        """An open and configured port in the master node through which all processes communicate."""
+    def main_port(self) -> int:
+        """An open and configured port in the main node through which all processes communicate."""
 
     @abstractmethod
     def world_size(self) -> int:
@@ -72,3 +67,16 @@ class ClusterEnvironment(ABC):
     def teardown(self) -> None:
         """Clean up any state set after execution finishes."""
         pass
+
+
+def _check_for_deprecated_methods(cls: Type[ClusterEnvironment]) -> None:
+    if hasattr(cls, "master_address") and callable(cls.master_address):
+        rank_zero_deprecation(
+            f"`{cls.__name__}.master_address` has been deprecated in v1.6 and will be removed in 1.7."
+            " Implement the property `main_address` instead (do not forget to add the `@property` decorator)."
+        )
+    if hasattr(cls, "master_port") and callable(cls.master_port):
+        rank_zero_deprecation(
+            f"`{cls.__name__}.master_port` has been deprecated in v1.6 and will be removed in 1.7."
+            " Implement the property `main_port` instead (do not forget to add the `@property` decorator)."
+        )

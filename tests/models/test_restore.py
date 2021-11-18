@@ -331,11 +331,11 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
 
     # correct result and ok accuracy
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    pretrained_model = ClassificationModel.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+    pretrained_model = CustomClassificationModelDP.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     # run test set
     new_trainer = Trainer(**trainer_options)
-    new_trainer.test(pretrained_model)
+    new_trainer.test(pretrained_model, datamodule=dm)
     pretrained_model.cpu()
 
     dataloaders = dm.test_dataloader()
@@ -383,7 +383,7 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
 
     # run test set
     new_trainer = Trainer(**trainer_options)
-    new_trainer.test(pretrained_model)
+    new_trainer.test(pretrained_model, datamodule=dm)
     pretrained_model.cpu()
 
     dataloaders = dm.test_dataloader()
@@ -500,7 +500,6 @@ def test_dp_resume(tmpdir):
 
     # fit model
     trainer = Trainer(**trainer_options)
-    trainer._is_slurm_managing_tasks = True
     trainer.fit(model, datamodule=dm)
 
     # track epoch before saving. Increment since we finished the current epoch, don't want to rerun

@@ -81,7 +81,6 @@ class MNISTDataModule(LightningDataModule):
             )
             num_workers = 0
 
-        self.dims = (1, 28, 28)
         self.data_dir = data_dir
         self.val_split = val_split
         self.num_workers = num_workers
@@ -90,7 +89,6 @@ class MNISTDataModule(LightningDataModule):
         self.batch_size = batch_size
         self.dataset_train = ...
         self.dataset_val = ...
-        self.test_transforms = self.default_transforms
 
     @property
     def num_classes(self):
@@ -134,7 +132,7 @@ class MNISTDataModule(LightningDataModule):
 
     def test_dataloader(self):
         """MNIST test set uses the test split."""
-        extra = dict(transform=self.test_transforms) if self.test_transforms else {}
+        extra = dict(transform=self.default_transforms) if self.default_transforms else {}
         dataset = MNIST(self.data_dir, train=False, download=False, **extra)
         loader = DataLoader(
             dataset,

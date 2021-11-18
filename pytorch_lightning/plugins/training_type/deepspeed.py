@@ -36,6 +36,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import AMPType, GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import log, rank_zero_info, rank_zero_only
+from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -81,7 +82,7 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
 
 
 class DeepSpeedPlugin(DDPPlugin):
-    distributed_backend = "deepspeed"
+    distributed_backend = _StrategyType.DEEPSPEED
     DEEPSPEED_ENV_VAR = "PL_DEEPSPEED_CONFIG_PATH"
 
     def __init__(
@@ -115,7 +116,6 @@ class DeepSpeedPlugin(DDPPlugin):
         logging_batch_size_per_gpu: Union[str, int] = "auto",
         config: Optional[Union[Path, str, dict]] = None,
         logging_level: int = logging.WARN,
-        num_nodes: Optional[int] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         loss_scale: float = 0,
@@ -272,7 +272,6 @@ class DeepSpeedPlugin(DDPPlugin):
 
         super().__init__(
             parallel_devices=parallel_devices,
-            num_nodes=num_nodes,
             cluster_environment=cluster_environment,
         )
 
@@ -325,6 +324,24 @@ class DeepSpeedPlugin(DDPPlugin):
         self.hysteresis = hysteresis
         self.min_loss_scale = min_loss_scale
 
+        # optionally set by Lite
+        self._precision: Optional[Union[str, int]] = None
+        self._amp_level: Optional[str] = None
+        self._amp_type: Optional[str] = None
+
+    @property
+    def precision(self) -> Union[str, int]:
+        return self._precision or self.lightning_module.trainer.precision
+
+    @property
+    def amp_level(self) -> Optional[str]:
+        if self._amp_type == AMPType.APEX:
+            return self._amp_level or self.lightning_module.trainer._accelerator_connector.amp_level
+
+    @property
+    def amp_type(self) -> Optional[str]:
+        return self._amp_type or self.lightning_module.trainer._accelerator_connector.amp_type
+
     def _load_config(self, config):
         if config is None and self.DEEPSPEED_ENV_VAR in os.environ:
             rank_zero_info(f"Loading DeepSpeed config from set {self.DEEPSPEED_ENV_VAR} environment variable")
@@ -359,13 +376,11 @@ class DeepSpeedPlugin(DDPPlugin):
                 f"GLOBAL_RANK: {self.global_rank}, "
                 f"MEMBER: {self.global_rank + 1}/{self.world_size}"
             )
-        deepspeed.init_distributed(
-            self.torch_distributed_backend, distributed_port=self.cluster_environment.master_port()
-        )
+        deepspeed.init_distributed(self.torch_distributed_backend, distributed_port=self.cluster_environment.main_port)
 
     def _set_node_environment_variables(self) -> None:
-        os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
+        os.environ["MASTER_ADDR"] = self.cluster_environment.main_address
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         os.environ["RANK"] = str(self.global_rank)
         os.environ["WORLD_SIZE"] = str(self.world_size)
         os.environ["LOCAL_RANK"] = str(self.local_rank)
@@ -424,8 +439,10 @@ class DeepSpeedPlugin(DDPPlugin):
         # deepspeed handles gradient clipping internally
         if is_overridden("configure_gradient_clipping", self.lightning_module, pl.LightningModule):
             rank_zero_warn(
-                "Since deepspeed handles gradient clipping internally, `LightningModule.configure_gradient_clipping`"
-                " will be ignored. Consider setting `Trainer(gradient_clip_val=..., gradient_clip_algorithm='norm')`"
+                "Since DeepSpeed handles gradient clipping internally, the default"
+                " `LightningModule.configure_gradient_clipping` implementation will not actually clip gradients."
+                " The hook will still be called. Consider setting"
+                " `Trainer(gradient_clip_val=..., gradient_clip_algorithm='norm')`"
                 " which will use the internal mechanism."
             )
 
@@ -510,10 +527,6 @@ class DeepSpeedPlugin(DDPPlugin):
 
         with model_parallel_context:
             yield
-
-    @property
-    def precision(self) -> Union[str, int]:
-        return self.lightning_module.trainer.precision
 
     def _set_deepspeed_activation_checkpointing(self):
         if self.config.get("activation_checkpointing"):
@@ -605,11 +618,6 @@ class DeepSpeedPlugin(DDPPlugin):
             )
         self.config["gradient_accumulation_steps"] = self.lightning_module.trainer.accumulate_grad_batches
         if "train_micro_batch_size_per_gpu" not in self.config:
-            rank_zero_warn(
-                "Inferring the batch size for internal deepspeed logging from the `train_dataloader()`. "
-                "If you require skipping this, please pass "
-                "`Trainer(strategy=DeepSpeedPlugin(logging_batch_size_per_gpu=batch_size))`"
-            )
             batch_size = self._auto_select_batch_size()
             self.config["train_micro_batch_size_per_gpu"] = batch_size
         if "gradient_clipping" not in self.config:
@@ -621,17 +629,26 @@ class DeepSpeedPlugin(DDPPlugin):
         batch_size = 1
         train_dl_source = self.lightning_module.trainer._data_connector._train_dataloader_source
         if train_dl_source.is_defined():
-            train_dataloader = train_dl_source.dataloader()
-            if hasattr(train_dataloader, "batch_sampler"):
-                batch_size = train_dataloader.batch_sampler.batch_size
+            try:
+                train_dataloader = train_dl_source.dataloader()
+                if hasattr(train_dataloader, "batch_sampler"):
+                    batch_size = train_dataloader.batch_sampler.batch_size
+            # broad exception on purpose as `source.dataloader()` will fail if the dataloader requires `setup`
+            # to have been called before
+            except Exception:
+                if self.global_rank == 0:
+                    deepspeed.utils.logging.logger.warning(
+                        "Tried to infer the batch size for internal deepspeed logging from the `train_dataloader()`. "
+                        "To ensure DeepSpeed logging remains correct, please manually pass the plugin with the "
+                        "batch size, `Trainer(strategy=DeepSpeedPlugin(logging_batch_size_per_gpu=batch_size))`."
+                    )
         return batch_size
 
     def _format_precision_config(self):
-        amp_type = self.lightning_module.trainer._accelerator_connector.amp_type
-        amp_level = self.lightning_module.trainer._accelerator_connector.amp_level
-        precision = self.lightning_module.trainer._accelerator_connector.precision
-        if precision in (16, "mixed"):
-            if "fp16" not in self.config and amp_type == AMPType.NATIVE:
+        if self.amp_type == AMPType.APEX:
+            amp_level = self.amp_level
+        if self.precision in (16, "mixed"):
+            if "fp16" not in self.config and self.amp_type == AMPType.NATIVE:
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
                 self.config["fp16"] = {
@@ -642,7 +659,7 @@ class DeepSpeedPlugin(DDPPlugin):
                     "hysteresis": self.hysteresis,
                     "min_loss_scale": self.min_loss_scale,
                 }
-            elif "amp" not in self.config and amp_type == AMPType.APEX:
+            elif "amp" not in self.config and self.amp_type == AMPType.APEX:
                 rank_zero_only("Enabling DeepSpeed APEX Implementation.")
                 self.config["amp"] = {"enabled": True, "opt_level": amp_level}
 

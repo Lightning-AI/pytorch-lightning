@@ -66,26 +66,6 @@ def _get_rank() -> int:
 rank_zero_only.rank = getattr(rank_zero_only, "rank", _get_rank())
 
 
-def rank_zero_warn(*args: Any, stacklevel: int = 5, **kwargs: Any) -> None:
-    from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn
-
-    rank_zero_deprecation(
-        "`pytorch_lightning.utilities.distributed.rank_zero_warn` has been moved to"
-        " `pytorch_lightning.utilities.rank_zero_warn` in v1.3.7 and will be removed in v1.6"
-    )
-    return rank_zero_warn(*args, stacklevel=stacklevel, **kwargs)
-
-
-def rank_zero_deprecation(*args: Any, stacklevel: int = 5, **kwargs: Any) -> None:
-    from pytorch_lightning.utilities.warnings import rank_zero_deprecation
-
-    rank_zero_deprecation(
-        "`pytorch_lightning.utilities.distributed.rank_zero_deprecation` has been moved to"
-        " `pytorch_lightning.utilities.rank_zero_deprecation` in v1.3.7 and will be removed in v1.6"
-    )
-    return rank_zero_deprecation(*args, stacklevel=stacklevel, **kwargs)
-
-
 def _info(*args: Any, stacklevel: int = 2, **kwargs: Any) -> None:
     if python_version() >= "3.8.0":
         kwargs["stacklevel"] = stacklevel
@@ -162,7 +142,7 @@ def sync_ddp_if_available(
 def sync_ddp(
     result: torch.Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
 ) -> torch.Tensor:
-    """Function to reduce the tensors from several ddp processes to one master process.
+    """Function to reduce the tensors from several ddp processes to one main process.
 
     Args:
         result: the value to sync and reduce (typically tensor or number)
@@ -360,15 +340,15 @@ def tpu_distributed() -> bool:
     return _TPU_AVAILABLE and xm.xrt_world_size() > 1
 
 
-def init_ddp_connection(
+def init_dist_connection(
     cluster_environment: "pl.plugins.environments.ClusterEnvironment",
     torch_distributed_backend: str,
     global_rank: Optional[int] = None,
     world_size: Optional[int] = None,
     **kwargs: Any,
 ) -> None:
-    """Utility function to initialize DDP connection by setting env variables and initiliazing the distributed
-    process group.
+    """Utility function to initialize distributed connection by setting env variables and initiliazing the
+    distributed process group.
 
     Args:
         cluster_environment: ``ClusterEnvironment`` instance
@@ -379,10 +359,12 @@ def init_ddp_connection(
     """
     global_rank = global_rank if global_rank is not None else cluster_environment.global_rank()
     world_size = world_size if world_size is not None else cluster_environment.world_size()
-    os.environ["MASTER_ADDR"] = cluster_environment.master_address()
-    os.environ["MASTER_PORT"] = str(cluster_environment.master_port())
-    if torch.distributed.is_available() and not torch.distributed.is_initialized():
-        log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
+    os.environ["MASTER_ADDR"] = cluster_environment.main_address
+    os.environ["MASTER_PORT"] = str(cluster_environment.main_port)
+    if not torch.distributed.is_available():
+        raise RuntimeError("torch.distributed is not available. Cannot initialize distributed process group")
+    if not torch.distributed.is_initialized():
+        log.info(f"initializing distributed: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
         torch.distributed.init_process_group(
             torch_distributed_backend, rank=global_rank, world_size=world_size, **kwargs
         )
@@ -391,6 +373,6 @@ def init_ddp_connection(
         rank_zero_info(
             f"{'-' * 100}\n"
             f"distributed_backend={torch_distributed_backend}\n"
-            f"All DDP processes registered. Starting ddp with {world_size} processes\n"
+            f"All distributed processes registered. Starting with {world_size} processes\n"
             f"{'-' * 100}\n"
         )

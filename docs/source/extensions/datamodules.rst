@@ -234,11 +234,6 @@ we assume all stages have been set-up.
 
 .. note:: ``setup`` is called from every process. Setting state here is okay.
 .. note:: ``teardown`` can be used to clean up the state. It is also called from every process
-.. note::
-    ``{setup,teardown,prepare_data}`` call will be only called once for a specific stage.
-    If the stage was ``None`` then we assume ``{fit,validate,test}`` have been called. For example, this means that
-    any duplicate ``dm.setup('fit')`` calls will be a no-op. To avoid this, you can overwrite
-    ``dm._has_setup_fit = False``
 
 
 train_dataloader
@@ -303,7 +298,7 @@ Returns a special dataloader for inference. This is the dataloader that the Trai
 transfer_batch_to_device
 ^^^^^^^^^^^^^^^^^^^^^^^^
 Override to define how you want to move an arbitrary batch to a device.
-To check the current state of execution of this hook you can use ``self.trainer.training/testing/validating/predicting``
+To check the current state of execution of this hook you can use ``self.trainer.training/testing/validating/predicting/sanity_checking``
 so that you can add different logic as per your requirement.
 
 .. testcode::
@@ -322,7 +317,7 @@ so that you can add different logic as per your requirement.
 on_before_batch_transfer
 ^^^^^^^^^^^^^^^^^^^^^^^^
 Override to alter or apply augmentations to your batch before it is transferred to the device.
-To check the current state of execution of this hook you can use ``self.trainer.training/testing/validating/predicting``
+To check the current state of execution of this hook you can use ``self.trainer.training/testing/validating/predicting/sanity_checking``
 so that you can add different logic as per your requirement.
 
 .. testcode::
@@ -339,7 +334,7 @@ so that you can add different logic as per your requirement.
 on_after_batch_transfer
 ^^^^^^^^^^^^^^^^^^^^^^^
 Override to alter or apply augmentations to your batch after it is transferred to the device.
-To check the current state of execution of this hook you can use ``self.trainer.training/testing/validating/predicting``
+To check the current state of execution of this hook you can use ``self.trainer.training/testing/validating/predicting/sanity_checking``
 so that you can add different logic as per your requirement.
 
 .. testcode::

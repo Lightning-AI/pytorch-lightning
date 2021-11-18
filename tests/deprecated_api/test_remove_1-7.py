@@ -15,12 +15,19 @@
 from unittest import mock
 
 import pytest
-import torch
 
 from pytorch_lightning import Callback, LightningDataModule, Trainer
 from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
+from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
+from pytorch_lightning.callbacks.progress import ProgressBar
 from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
+from pytorch_lightning.plugins.environments import (
+    KubeflowEnvironment,
+    LightningEnvironment,
+    SLURMEnvironment,
+    TorchElasticEnvironment,
+)
 from tests.callbacks.test_callbacks import OldStatefulCallback
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
@@ -30,12 +37,9 @@ from tests.loggers.test_base import CustomLogger
 
 
 def test_v1_7_0_deprecated_lightning_module_summarize(tmpdir):
-    from pytorch_lightning.core.lightning import warning_cache
-
     model = BoringModel()
-    model.summarize(max_depth=1)
-    assert any("The `LightningModule.summarize` method is deprecated in v1.5" in w for w in warning_cache)
-    warning_cache.clear()
+    with pytest.deprecated_call(match="The `LightningModule.summarize` method is deprecated in v1.5"):
+        model.summarize(max_depth=1)
 
 
 def test_v1_7_0_moved_model_summary_and_layer_summary(tmpdir):
@@ -163,27 +167,27 @@ def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
     model = CustomBoringModel()
 
     with pytest.deprecated_call(
-        match="Method `on_train_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+        match="Method `on_train_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
     ):
         _run(model, "fit")
 
     with pytest.deprecated_call(
-        match="Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+        match="Method `on_val_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
     ):
         _run(model, "fit")
 
     with pytest.deprecated_call(
-        match="Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+        match="Method `on_val_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
     ):
         _run(model, "validate")
 
     with pytest.deprecated_call(
-        match="Method `on_test_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+        match="Method `on_test_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
     ):
         _run(model, "test")
 
     with pytest.deprecated_call(
-        match="Method `on_predict_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+        match="Method `on_predict_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
     ):
         _run(model, "predict")
 
@@ -228,22 +232,16 @@ def test_v1_7_0_flush_logs_every_n_steps_trainer_constructor(tmpdir):
 
 
 class BoringCallbackDDPSpawnModel(BoringModel):
-    def __init__(self):
-        super().__init__()
+    def add_to_queue(self, queue):
+        ...
 
-    def add_to_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
-        queue.put("test_val")
-        return super().add_to_queue(queue)
-
-    def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
-        self.test_val = queue.get()
-        return super().get_from_queue(queue)
+    def get_from_queue(self, queue):
+        ...
 
 
-@RunIf(skip_windows=True)
 def test_v1_7_0_deprecate_add_get_queue(tmpdir):
     model = BoringCallbackDDPSpawnModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, num_processes=2, strategy="ddp_spawn")
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
 
     with pytest.deprecated_call(match=r"`LightningModule.add_to_queue` method was deprecated in v1.5"):
         trainer.fit(model)
@@ -390,6 +388,11 @@ def test_v1_7_0_deprecate_xla_stats_monitor(tmpdir):
         _ = XLAStatsMonitor()
 
 
+def test_v1_7_0_progress_bar():
+    with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.7."):
+        _ = ProgressBar()
+
+
 def test_v1_7_0_deprecated_max_steps_none(tmpdir):
     with pytest.deprecated_call(match="`max_steps = None` is deprecated in v1.5"):
         _ = Trainer(max_steps=None)
@@ -400,13 +403,6 @@ def test_v1_7_0_deprecated_max_steps_none(tmpdir):
 
 
 def test_v1_7_0_resume_from_checkpoint_trainer_constructor(tmpdir):
-    with pytest.deprecated_call(match=r"Setting `Trainer\(resume_from_checkpoint=\)` is deprecated in v1.5"):
-        trainer = Trainer(resume_from_checkpoint="a")
-    with pytest.deprecated_call(
-        match=r"trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7."
-    ):
-        _ = trainer.resume_from_checkpoint
-
     # test resume_from_checkpoint still works until v1.7 deprecation
     model = BoringModel()
     callback = OldStatefulCallback(state=111)
@@ -415,14 +411,22 @@ def test_v1_7_0_resume_from_checkpoint_trainer_constructor(tmpdir):
     ckpt_path = trainer.checkpoint_callback.best_model_path
 
     callback = OldStatefulCallback(state=222)
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback], resume_from_checkpoint=ckpt_path)
+    with pytest.deprecated_call(match=r"Setting `Trainer\(resume_from_checkpoint=\)` is deprecated in v1.5"):
+        trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback], resume_from_checkpoint=ckpt_path)
+    with pytest.deprecated_call(
+        match=r"trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7."
+    ):
+        _ = trainer.resume_from_checkpoint
     assert trainer.checkpoint_connector.resume_checkpoint_path is None
     assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path == ckpt_path
     trainer.validate(model=model, ckpt_path=ckpt_path)
     assert callback.state == 222
     assert trainer.checkpoint_connector.resume_checkpoint_path is None
     assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path == ckpt_path
-    trainer.fit(model)
+    with pytest.deprecated_call(
+        match=r"trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7."
+    ):
+        trainer.fit(model)
     assert callback.state == 111
     assert trainer.checkpoint_connector.resume_checkpoint_path is None
     assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path is None
@@ -435,6 +439,57 @@ def test_v1_7_0_resume_from_checkpoint_trainer_constructor(tmpdir):
 
     # test fit(ckpt_path=) precedence over Trainer(resume_from_checkpoint=) path
     model = BoringModel()
-    trainer = Trainer(resume_from_checkpoint="trainer_arg_path")
+    with pytest.deprecated_call(match=r"Setting `Trainer\(resume_from_checkpoint=\)` is deprecated in v1.5"):
+        trainer = Trainer(resume_from_checkpoint="trainer_arg_path")
     with pytest.raises(FileNotFoundError, match="Checkpoint at fit_arg_ckpt_path not found. Aborting training."):
         trainer.fit(model, ckpt_path="fit_arg_ckpt_path")
+
+
+def test_v1_7_0_deprecate_lr_sch_names(tmpdir):
+    model = BoringModel()
+    lr_monitor = LearningRateMonitor()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, callbacks=[lr_monitor])
+    trainer.fit(model)
+
+    with pytest.deprecated_call(match="`LearningRateMonitor.lr_sch_names` has been deprecated in v1.5"):
+        assert lr_monitor.lr_sch_names == ["lr-SGD"]
+
+
+@pytest.mark.parametrize(
+    "cls",
+    [
+        KubeflowEnvironment,
+        LightningEnvironment,
+        SLURMEnvironment,
+        TorchElasticEnvironment,
+    ],
+)
+def test_v1_7_0_cluster_environment_master_address(cls):
+    class MyClusterEnvironment(cls):
+        def master_address(self):
+            pass
+
+    with pytest.deprecated_call(
+        match="MyClusterEnvironment.master_address` has been deprecated in v1.6 and will be removed in 1.7"
+    ):
+        MyClusterEnvironment()
+
+
+@pytest.mark.parametrize(
+    "cls",
+    [
+        KubeflowEnvironment,
+        LightningEnvironment,
+        SLURMEnvironment,
+        TorchElasticEnvironment,
+    ],
+)
+def test_v1_7_0_cluster_environment_master_port(cls):
+    class MyClusterEnvironment(cls):
+        def master_port(self):
+            pass
+
+    with pytest.deprecated_call(
+        match="MyClusterEnvironment.master_port` has been deprecated in v1.6 and will be removed in 1.7"
+    ):
+        MyClusterEnvironment()

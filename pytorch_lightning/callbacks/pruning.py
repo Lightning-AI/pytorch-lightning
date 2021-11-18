@@ -131,7 +131,7 @@ class ModelPruning(Callback):
             make_pruning_permanent: Whether to remove all reparametrization pre-hooks and apply masks
                 when training ends or the model is saved.
 
-            use_lottery_ticket_hypothesis: See `The lottery ticket hypothesis <https://arxiv.org/pdf/1803.03635.pdf>`_:
+            use_lottery_ticket_hypothesis: See `The lottery ticket hypothesis <https://arxiv.org/abs/1803.03635>`_:
 
                 - ``bool``. Whether to apply it or not.
                 - ``Callable[[epoch], bool]``. For dynamic values. Will be called every epoch.

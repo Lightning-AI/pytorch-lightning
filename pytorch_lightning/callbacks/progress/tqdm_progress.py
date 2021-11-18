@@ -54,7 +54,7 @@ class Tqdm(_tqdm):
         return n
 
 
-class ProgressBar(ProgressBarBase):
+class TQDMProgressBar(ProgressBarBase):
     r"""
     This is the default progress bar used by Lightning. It prints to ``stdout`` using the
     :mod:`tqdm` package and shows up to four different bars:
@@ -75,7 +75,7 @@ class ProgressBar(ProgressBarBase):
 
     Example:
 
-        >>> class LitProgressBar(ProgressBar):
+        >>> class LitProgressBar(TQDMProgressBar):
         ...     def init_validation_tqdm(self):
         ...         bar = super().init_validation_tqdm()
         ...         bar.set_description('running validation ...')

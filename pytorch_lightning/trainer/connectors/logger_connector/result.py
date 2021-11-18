@@ -51,8 +51,8 @@ class _Sync:
     fn: Optional[Callable] = None
     _should: bool = False
     rank_zero_only: bool = False
-    op: Optional[str] = None
-    group: Optional[Any] = None
+    _op: Optional[str] = None
+    _group: Optional[Any] = None
 
     def __post_init__(self) -> None:
         self._generate_sync_fn()
@@ -64,6 +64,26 @@ class _Sync:
     @should.setter
     def should(self, should: bool) -> None:
         self._should = should
+        # `self._fn` needs to be re-generated.
+        self._generate_sync_fn()
+
+    @property
+    def op(self) -> Optional[str]:
+        return self._op
+
+    @op.setter
+    def op(self, op: Optional[str]) -> None:
+        self._op = op
+        # `self._fn` needs to be re-generated.
+        self._generate_sync_fn()
+
+    @property
+    def group(self) -> Optional[Any]:
+        return self._group
+
+    @group.setter
+    def group(self, group: Optional[Any]) -> None:
+        self._group = group
         # `self._fn` needs to be re-generated.
         self._generate_sync_fn()
 
@@ -98,6 +118,8 @@ class _Metadata:
     _sync: Optional[_Sync] = None
 
     def __post_init__(self) -> None:
+        if not self.on_step and not self.on_epoch:
+            raise MisconfigurationException("`self.log(on_step=False, on_epoch=False)` is not useful.")
         self._parse_reduce_fx()
 
     def _parse_reduce_fx(self) -> None:
@@ -192,11 +214,14 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
     def update(self, value: _IN_METRIC, batch_size: torch.Tensor) -> None:
         if self.is_tensor:
             value = value.float()
+            if self.meta.on_step:
+                self._forward_cache = self.meta.sync(value.clone())  # `clone` because `sync` is in-place
+
             # performance: no need to accumulate on values only logged on_step
-            if self.meta.on_step and not self.meta.on_epoch:
-                self._forward_cache = self.value = self.meta.sync(value)
+            if not self.meta.on_epoch:
+                self.value = self._forward_cache
                 return
-            self._forward_cache = value
+
             # perform accumulation with reduction
             if self.meta.is_mean_reduction:
                 self.value += value.mean() * batch_size
@@ -421,7 +446,7 @@ class ResultCollection(dict):
             dataloader_idx=dataloader_idx,
             metric_attribute=metric_attribute,
         )
-        meta.sync = _Sync(_should=sync_dist, fn=sync_dist_fn, group=sync_dist_group, rank_zero_only=rank_zero_only)
+        meta.sync = _Sync(_should=sync_dist, fn=sync_dist_fn, _group=sync_dist_group, rank_zero_only=rank_zero_only)
 
         # register logged value if it doesn't exist
         if key not in self:

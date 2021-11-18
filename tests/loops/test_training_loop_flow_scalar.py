@@ -329,7 +329,7 @@ def test_training_step_none_batches(tmpdir):
         def train_dataloader(self):
             return DataLoader(RandomDataset(32, 4), collate_fn=self.collate_none_when_even)
 
-        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+        def on_train_batch_end(self, outputs, batch, batch_idx):
             if batch_idx % 2 == 0:
                 assert outputs == []
             else:
