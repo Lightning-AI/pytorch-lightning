@@ -473,12 +473,14 @@ def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: 
         metadata = dataset.state_dict()
     else:
         state_dict_fn = getattr(dataset, "state_dict", None)
+        info = get_worker_info()
+        worker_id = info.id if info else 0
         if state_dict_fn:
-            info = get_worker_info()
-            worker_id = info.id if info else 0
             metadata = state_dict_fn()
             if worker_id not in metadata:
                 raise MisconfigurationException("The state_dict needs to be indexed by `worker_id`")
+        if metadata is None:
+            metadata = {worker_id: {}}
 
     return {"data": data, AutoRestartBatchKeys.PL_RESTART_META: metadata}
 
@@ -612,6 +614,11 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
 
                 obj.load_state_dict(sampler_state[k])
 
+        load_state_dict_fn = getattr(dataset, "load_state_dict", None)
+
+        if not load_state_dict_fn:
+            return
+
         dataset_state = {
             worker_id: state_dict["state"][worker_id]["dataset_state"][worker_id]
             for worker_id in state_dict["state"].keys()
@@ -674,6 +681,9 @@ class _StatefulMixin:
         combined_batch = super()._next_data()
 
         batch, state = combined_batch["data"], combined_batch[AutoRestartBatchKeys.PL_RESTART_META]
+
+        print(batch["ys_pad"][-1][:10])
+
         self.num_batches_fetched += 1
 
         sampler_state, sampler_state_idx = self._sampler_state.pop(0)
