@@ -17,8 +17,17 @@ Note: This file is used to ensure Fault Tolerant is working properly when
 Lightning is used in an environment where users have full control on their
 Kubernetes Environnement
 
-Here are the steps to use this file to ensure your cluster is properly setup.
-Step 1:
+Here are the steps to use this file to ensure your cluster is properly setup for Fault Tolerant Training.
+
+1. Launch this script with `python tests/utilities/fault_tolerant.py`
+2. Once ``READY TO BE KILLED WITH SIGTERM SIGNAL`` is detected within
+   the Pod Logs, send a SIGTERM to this process. The process is waiting for it.
+3. You should detect `.pl_auto_save.ckpt exists` within the Pod Logs.
+4. Resume your instance with the same volumes and relaunch the same script.
+5. The script should contain `[-1.0939, -0.4306]` within its Pod Logs.
+
+The mode weights with the failure matches the weight without.
+The training has been properly resumed and is fully reproduced.
 
 """
 
