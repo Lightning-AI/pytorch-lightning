@@ -4,7 +4,7 @@ import signal
 import sys
 from signal import Signals
 from subprocess import call
-from types import FrameType, FunctionType
+from types import FrameType
 from typing import Any, Callable, Dict, List, Union
 
 import pytorch_lightning as pl
