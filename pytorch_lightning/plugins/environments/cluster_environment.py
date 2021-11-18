@@ -78,11 +78,11 @@ class ClusterEnvironment(ABC):
 def _check_for_deprecated_methods(cls: Type[ClusterEnvironment]) -> None:
     if hasattr(cls, "master_address") and callable(cls.master_address):
         rank_zero_deprecation(
-            f"`{cls.__name__}.master_address` has been deprecated in v1.6 and will be removed in 1.7."
+            f"`{cls.__name__}.master_address` has been deprecated in v1.6 and will be removed in v1.7."
             " Implement the property `main_address` instead (do not forget to add the `@property` decorator)."
         )
     if hasattr(cls, "master_port") and callable(cls.master_port):
         rank_zero_deprecation(
-            f"`{cls.__name__}.master_port` has been deprecated in v1.6 and will be removed in 1.7."
+            f"`{cls.__name__}.master_port` has been deprecated in v1.6 and will be removed in v1.7."
             " Implement the property `main_port` instead (do not forget to add the `@property` decorator)."
         )
