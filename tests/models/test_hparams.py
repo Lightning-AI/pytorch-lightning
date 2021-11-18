@@ -758,10 +758,16 @@ def _get_mock_logger(tmpdir):
     return mock_logger
 
 
-@pytest.mark.parametrize("model", (SaveHparamsModel({"arg1": 5, "arg2": "abc"}), NoHparamsModel()))
-@pytest.mark.parametrize("data", (DataModuleWithHparams({"data_dir": "foo"}), DataModuleWithoutHparams()))
-def test_adding_datamodule_hparams(tmpdir, model, data):
+@pytest.mark.parametrize(
+    "model_cls, model_args", ((SaveHparamsModel, {"arg1": 5, "arg2": "abc"}), (NoHparamsModel, {}))
+)
+@pytest.mark.parametrize(
+    "data_cls, data_args", ((DataModuleWithHparams, {"data_dir": "foo"}), (DataModuleWithoutHparams, {}))
+)
+def test_adding_datamodule_hparams(tmpdir, model_cls, model_args, data_cls, data_args):
     """Test that hparams from datamodule and model are logged."""
+    model = model_cls(model_args)
+    data = data_cls(data_args)
     org_model_hparams = copy.deepcopy(model.hparams_initial)
     org_data_hparams = copy.deepcopy(data.hparams_initial)
 
