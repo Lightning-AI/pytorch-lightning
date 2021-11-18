@@ -276,11 +276,10 @@ class Accelerator:
     def precision(self) -> Union[str, int]:
         """The type of precision being used with this accelerator.
 
-        Use `training_type_plugin.precision_plugin.precision` instead.
-
         .. deprecated::
-            The ``precision_plugin`` parameter has been deprecated and will be removed soon.
-            Pass the precision plugin as a parameter to the ``TrainingTypePlugin`` instead.
+            This property been deprecated and will be removed soon.
+            Use ``training_type_plugin.precision_plugin.precision`` instead.
+
         """
         rank_zero_deprecation(
             f"`{self.__class__.__name__}.precision` has been deprecated and will be removed soon"
