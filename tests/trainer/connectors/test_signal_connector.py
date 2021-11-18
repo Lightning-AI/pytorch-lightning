@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import concurrent.futures
 import os
 import signal
 from time import sleep
@@ -57,3 +58,16 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
         else:
             trainer.fit(model)
         assert trainer._terminate_gracefully == (False if register_handler else terminate_gracefully)
+
+
+def _registering_signals():
+    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"}):
+        trainer = Trainer()
+        trainer.signal_connector.register_signal_handlers()
+
+
+@RunIf(skip_windows=True)
+def test_signal_connector_in_thread(tmpdir):
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        for future in concurrent.futures.as_completed([executor.submit(_registering_signals)]):
+            assert future.exception() is None

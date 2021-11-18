@@ -44,10 +44,10 @@ class SignalConnector:
         # signal.SIGUSR1 doesn't seem available on windows
         if not self._is_on_windows():
             if not self._has_already_handler(signal.SIGUSR1):
-                signal.signal(signal.SIGUSR1, HandlersCompose(sigusr1_handlers))
+                self._register_signal(signal.SIGUSR1, HandlersCompose(sigusr1_handlers))
 
             if not self._has_already_handler(signal.SIGTERM):
-                signal.signal(signal.SIGTERM, HandlersCompose(sigterm_handlers))
+                self._register_signal(signal.SIGTERM, HandlersCompose(sigterm_handlers))
 
     def slurm_sigusr1_handler_fn(self, signum: Signals, frame: FrameType) -> None:
         if self.trainer.is_global_zero:
@@ -107,3 +107,11 @@ class SignalConnector:
             return isinstance(signal.getsignal(signum), FunctionType)
         except AttributeError:
             return False
+
+    @staticmethod
+    def _register_signal(signum: Signals, handlers: HandlersCompose) -> None:
+        try:
+            signal.signal(signum, handlers)
+        except ValueError as e:
+            if "signal only works in main thread" not in str(e):
+                raise e
