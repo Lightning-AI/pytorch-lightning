@@ -81,3 +81,12 @@ def test_master_address_from_slurm_node_list(slurm_node_list, expected):
     with mock.patch.dict(os.environ, {"SLURM_NODELIST": slurm_node_list}):
         env = SLURMEnvironment()
         assert env.main_address == expected
+
+
+def test_detect():
+    """Test the detection of a SLURM environment configuration."""
+    with mock.patch.dict(os.environ, {}):
+        assert not SLURMEnvironment.detect()
+
+    with mock.patch.dict(os.environ, {"SLURM_NTASKS": "2"}):
+        assert SLURMEnvironment.detect()

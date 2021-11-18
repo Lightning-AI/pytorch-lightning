@@ -84,7 +84,7 @@ def test_attributes_from_environment_variables(caplog):
         "RANK": "1",
     },
 )
-def test_is_using_kubeflow():
+def test_detect_kubeflow():
     assert KubeflowEnvironment.detect()
 
 
@@ -99,5 +99,5 @@ def test_is_using_kubeflow():
         "GROUP_RANK": "1",
     },
 )
-def test_is_using_kubeflow_torchelastic():
+def test_detect_torchelastic_over_kubeflow():
     assert not KubeflowEnvironment.detect()
