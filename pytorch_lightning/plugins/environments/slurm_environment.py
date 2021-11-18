@@ -22,7 +22,16 @@ log = logging.getLogger(__name__)
 
 
 class SLURMEnvironment(ClusterEnvironment):
-    """Cluster environment for training on a cluster managed by SLURM."""
+    """Cluster environment for training on a cluster managed by SLURM.
+
+    Args:
+        auto_requeue: Whether automatic job resubmission is enabled or not. How and under which conditions a job gets
+            rescheduled gets determined by the owner of this plugin.
+    """
+
+    def __init__(self, auto_requeue: bool = True):
+        super().__init__()
+        self.auto_requeue = auto_requeue
 
     @property
     def creates_processes_externally(self) -> bool:

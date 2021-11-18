@@ -8,6 +8,7 @@ from types import FrameType, FunctionType
 from typing import Callable, List, Union
 
 import pytorch_lightning as pl
+from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 log = logging.getLogger(__name__)
@@ -36,8 +37,9 @@ class SignalConnector:
         if _fault_tolerant_training():
             sigusr1_handlers.append(self.fault_tolerant_sigusr1_handler_fn)
 
-        if self._is_on_slurm():
-            log.info("Set SLURM handle signals.")
+        environment = self.trainer.accelerator_connector.cluster_environment
+        if isinstance(environment, SLURMEnvironment) and environment.auto_requeue:
+            log.info("SLURM auto-requeueing enabled. Setting signal handlers.")
             sigusr1_handlers.append(self.slurm_sigusr1_handler_fn)
             sigterm_handlers.append(self.sigterm_handler_fn)
 
@@ -85,19 +87,6 @@ class SignalConnector:
 
     def sigterm_handler_fn(self, signum: Signals, frame: FrameType) -> None:
         log.info("bypassing sigterm")
-
-    def _is_on_slurm(self) -> bool:
-        # see if we're using slurm (not interactive)
-        on_slurm = False
-        try:
-            job_name = os.environ["SLURM_JOB_NAME"]
-            if job_name != "bash":
-                on_slurm = True
-        # todo: specify the possible exception
-        except Exception:
-            pass
-
-        return on_slurm
 
     def _is_on_windows(self) -> bool:
         return sys.platform == "win32"
