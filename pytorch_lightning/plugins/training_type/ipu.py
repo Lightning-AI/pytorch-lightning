@@ -197,6 +197,7 @@ class IPUPlugin(ParallelPlugin):
     def _convert_to_poptorch_loader(
         self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None
     ) -> "poptorch.DataLoader":
+        print("DEBUG IN THE CI FUN: ", dataloader, sampler, mode)
         dl_kwargs = _get_dataloader_init_kwargs(dataloader, sampler)
         # Override to drop last uneven batch, as IPUs does not support uneven inputs.
         dl_kwargs["drop_last"] = True
