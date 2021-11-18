@@ -20,7 +20,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.utilities import DeviceType, memory
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
@@ -30,7 +29,6 @@ from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 class LoggerConnector:
     def __init__(self, trainer: "pl.Trainer", log_gpu_memory: Optional[str] = None) -> None:
         self.trainer = trainer
-        self.env = SLURMEnvironment()
         if log_gpu_memory is not None:
             rank_zero_deprecation(
                 "Setting `log_gpu_memory` with the trainer flag is deprecated in v1.5 and will be removed in v1.7. "
@@ -83,7 +81,7 @@ class LoggerConnector:
             # default logger
             self.trainer.logger = (
                 TensorBoardLogger(
-                    save_dir=self.trainer.default_root_dir, version=self.env.job_id, name="lightning_logs"
+                    save_dir=self.trainer.default_root_dir, version=self.SLURMEnvironment.job_id, name="lightning_logs"
                 )
                 if logger
                 else None
