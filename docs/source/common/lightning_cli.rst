@@ -625,7 +625,7 @@ This can be implemented as follows:
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
             parser.add_lightning_class_args(EarlyStopping, "my_early_stopping")
-            parser.set_defaults({"my_early_stopping.patience": 5})
+            parser.set_defaults({"my_early_stopping.monitor": "val_loss", "my_early_stopping.patience": 5})
 
 
     cli = MyLightningCLI(MyModel)

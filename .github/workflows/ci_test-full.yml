@@ -1,4 +1,4 @@
-name: CI complete testing
+name: Test
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
@@ -10,7 +10,7 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
 
 jobs:
 
-  pytest:
+  cpu:
 
     runs-on: ${{ matrix.os }}
     if: github.event.pull_request.draft == false
@@ -18,20 +18,17 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-18.04, windows-2019, macOS-10.15]
-        python-version: [3.6, 3.8, 3.9]
-        requires: ['minimal', 'latest']
-        release: ['stable']
-        exclude:
-          - python-version: 3.9
-            requires: 'minimal'
+        python-version: ["3.7", "3.9"]  # minimum, maximum
+        requires: ["oldest", "latest"]
+        release: ["stable"]
         include:
-          - os: ubuntu-20.04
-            python-version: 3.9
-            requires: 'latest'
-            release: 'pre'
+          # test 3.6 only on oldest until EOL: https://github.com/PyTorchLightning/pytorch-lightning/issues/9981
+          - {os: ubuntu-18.04, python-version: "3.6", requires: "oldest", release: "stable"}
+          - {os: windows-2019, python-version: "3.6", requires: "oldest", release: "stable"}
+          - {os: macOS-10.15, python-version: "3.6", requires: "oldest", release: "stable"}
+          # nightly: add when there's a release candidate
+          #- {os: ubuntu-20.04, python-version: "3.10", requires: "latest", release: "pre"}
 
-    # Timeout: https://stackoverflow.com/a/59076067/4521646
-    # TODO: the macOS is taking too long, probably caching did not work...
     timeout-minutes: 40
 
     steps:
@@ -64,7 +61,7 @@ jobs:
         python .github/prune-packages.py requirements/extra.txt "horovod"
 
     - name: Set min. dependencies
-      if: matrix.requires == 'minimal'
+      if: matrix.requires == 'oldest'
       run: |
         python .github/set-min-requirements.py
 

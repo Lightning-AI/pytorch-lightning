@@ -14,6 +14,7 @@
 import functools
 import inspect
 from contextlib import contextmanager
+from itertools import chain
 from typing import Any, Callable, Dict, Generator, Iterable, Iterator, Optional, Set, Sized, Type, Union
 
 import torch
@@ -23,6 +24,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from pytorch_lightning.plugins import PrecisionPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 
@@ -63,7 +65,7 @@ class _LiteOptimizer:
         )
 
 
-class _LiteModule(nn.Module):
+class _LiteModule(DeviceDtypeModuleMixin):
     def __init__(self, module: nn.Module, precision_plugin: PrecisionPlugin) -> None:
         """The LiteModule is a thin wrapper around the :class:`torch.nn.Module` and handles precision / autocast
         automatically for the forward pass.
@@ -94,12 +96,17 @@ class _LiteModule(nn.Module):
         }
         # TODO (@awaelchli): let the precision plugin handle the conversion
         to_type = precision_to_type[precision]
-        args, kwargs = apply_to_collection([args, kwargs], function=lambda t: t.to(to_type), dtype=Tensor)
+
+        def _convert_float_tensor(t: Tensor) -> Tensor:
+            return t.to(to_type) if torch.is_floating_point(t) else t
+
+        args, kwargs = apply_to_collection([args, kwargs], function=_convert_float_tensor, dtype=Tensor)
 
         with self._precision_plugin.forward_context():
             output = self.module(*args, **kwargs)
 
-        output = apply_to_collection(output, function=lambda t: t.to(torch.get_default_dtype()), dtype=Tensor)
+        to_type = torch.get_default_dtype()
+        output = apply_to_collection(output, function=_convert_float_tensor, dtype=Tensor)
         return output
 
 
@@ -109,7 +116,7 @@ def _wrap_init(f: Callable) -> Callable:
         params = dict(inspect.signature(module._old_init).parameters)
         params.pop("args")
         params.pop("kwargs")
-        for init_name, init_arg in zip(params, args):
+        for init_name, init_arg in chain(zip(params, args), kwargs.items()):
             setattr(module, init_name, init_arg)
         f(module, *args, **kwargs)
 
@@ -118,15 +125,15 @@ def _wrap_init(f: Callable) -> Callable:
 
 # https://stackoverflow.com/a/63851681/9201239
 def _get_all_subclasses(cls: Type[Any]) -> Set[Type[Any]]:
-    subclass_list = []
+    subclasses = set()
 
     def recurse(cl: Type[Any]) -> None:
         for subclass in cl.__subclasses__():
-            subclass_list.append(subclass)
+            subclasses.add(subclass)
             recurse(subclass)
 
     recurse(cls)
-    return set(subclass_list)
+    return subclasses
 
 
 def _enable_class(cls: Type[Any]) -> None:

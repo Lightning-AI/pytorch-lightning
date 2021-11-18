@@ -45,10 +45,10 @@ class LSFEnvironment(ClusterEnvironment):
     """
 
     def __init__(self):
-        self._master_address = self._get_master_address()
-        self._master_port = self._get_master_port()
-        log.debug(f"MASTER_ADDR: {self._master_address}")
-        log.debug(f"MASTER_PORT: {self._master_port}")
+        self._main_address = self._get_main_address()
+        self._main_port = self._get_main_port()
+        log.debug(f"MASTER_ADDR: {self._main_address}")
+        log.debug(f"MASTER_PORT: {self._main_port}")
 
     @staticmethod
     def is_using_lsf() -> bool:
@@ -60,14 +60,16 @@ class LSFEnvironment(ClusterEnvironment):
     def creates_processes_externally(self) -> bool:
         return True
 
-    def master_address(self):
-        """The master address is read from a list of hosts contained in the environment variable
+    @property
+    def main_address(self) -> str:
+        """The main address is read from a list of hosts contained in the environment variable
         `LSB_MCPU_HOSTS`."""
-        return self._master_address
+        return self._main_address
 
-    def master_port(self):
-        """THe master port gets calculated from the LSF job ID."""
-        return self._master_port
+    @property
+    def main_port(self) -> int:
+        """The main port gets calculated from the LSF job ID."""
+        return self._main_port
 
     def world_size(self):
         """The world size is read from the environment variable `JSM_NAMESPACE_SIZE`."""
@@ -134,16 +136,16 @@ class LSFEnvironment(ClusterEnvironment):
             )
         return host_config[::2]
 
-    def _get_master_address(self):
+    def _get_main_address(self) -> str:
         return self._read_hosts()[0]
 
     @staticmethod
-    def _get_master_port():
-        """A helper function for accessing the master port.
+    def _get_main_port() -> int:
+        """A helper function for accessing the main port.
 
-        Uses the LSF job ID so all ranks can compute the master port.
+        Uses the LSF job ID so all ranks can compute the main port.
         """
-        # check for user-specified master port
+        # check for user-specified main port
         port = os.environ.get("MASTER_PORT")
         if not port:
             jobid = os.environ.get("LSB_JOBID")
@@ -152,7 +154,7 @@ class LSFEnvironment(ClusterEnvironment):
             port = int(jobid)
             # all ports should be in the 10k+ range
             port = int(port) % 1000 + 10000
-            log.debug(f"calculated LSF master port: {port}")
+            log.debug(f"calculated LSF main port: {port}")
         else:
-            log.debug(f"using externally specified master port: {port}")
+            log.debug(f"using externally specified main port: {port}")
         return int(port)

@@ -60,15 +60,14 @@ from pytorch_lightning.trainer.connectors.signal_connector import SignalConnecto
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
-from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
     _IPU_AVAILABLE,
+    _StrategyType,
     _TPU_AVAILABLE,
     device_parser,
     DeviceType,
-    DistributedType,
     GradClipAlgorithmType,
     parsing,
     rank_zero_deprecation,
@@ -85,7 +84,7 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
-from pytorch_lightning.utilities.meta import materialize_module
+from pytorch_lightning.utilities.meta import is_on_meta_device, materialize_module
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import (
@@ -163,7 +162,6 @@ class Trainer(
         benchmark: bool = False,
         deterministic: bool = False,
         reload_dataloaders_every_n_epochs: int = 0,
-        reload_dataloaders_every_epoch: bool = False,
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
         detect_anomaly: bool = False,
@@ -342,12 +340,6 @@ class Trainer(
 
             reload_dataloaders_every_n_epochs: Set to a non-negative integer to reload dataloaders every n epochs.
 
-            reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch.
-
-                .. deprecated:: v1.4
-                    ``reload_dataloaders_every_epoch`` has been deprecated in v1.4 and will be removed in v1.6.
-                    Please use ``reload_dataloaders_every_n_epochs``.
-
             replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this
                 will toggled automatically when DDP is used. By default it will add ``shuffle=True`` for
                 train sampler and ``shuffle=False`` for val/test sampler. If you want to customize it,
@@ -516,7 +508,6 @@ class Trainer(
         self._data_connector.on_trainer_init(
             check_val_every_n_epoch,
             reload_dataloaders_every_n_epochs,
-            reload_dataloaders_every_epoch,
             prepare_data_per_node,
         )
 
@@ -695,6 +686,8 @@ class Trainer(
             # reset bookkeeping
             self.state.stage = None
             self.on_exception(exception)
+            # shutdown workers
+            self._data_connector.teardown()
             raise
 
     def fit(
@@ -1405,9 +1398,20 @@ class Trainer(
 
     def _call_configure_sharded_model(self) -> None:
         with self.accelerator.model_sharded_context():
-            materialize_module(self.lightning_module)
+            self._handle_meta_model()
             self.call_hook("configure_sharded_model")
             self.call_hook("on_configure_sharded_model")
+
+    def _handle_meta_model(self) -> None:
+        if not is_on_meta_device(self.lightning_module):
+            return
+
+        if isinstance(self.training_type_plugin, DDPSpawnPlugin):
+            raise MisconfigurationException("LightningModule on meta device isn't supported with spawn.")
+
+        materialize_module(self.lightning_module)
+        # the trainer reference is lost during materialization
+        self.lightning_module.trainer = proxy(self)
 
     def _call_teardown_hook(self) -> None:
         fn = self.state.fn._setup_fn
@@ -1488,13 +1492,7 @@ class Trainer(
         auto_select_gpus: bool,
         tpu_cores: Optional[Union[List[int], str, int]],
     ) -> Tuple[Optional[List[int]], Optional[Union[List[int], int]]]:
-        if auto_select_gpus and isinstance(gpus, int):
-            gpus = pick_multiple_gpus(gpus)
-
-        # TODO (@seannaren, @kaushikb11): Include IPU parsing logic here
-        gpu_ids = device_parser.parse_gpu_ids(gpus)
-        tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
-        return gpu_ids, tpu_cores
+        return device_parser._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
     @staticmethod
     def _log_api_event(event: str) -> None:
@@ -1596,7 +1594,7 @@ class Trainer(
         return self.training_type_plugin.should_rank_save_checkpoint
 
     @property
-    def _distrib_type(self) -> DistributedType:
+    def _distrib_type(self) -> _StrategyType:
         return self._accelerator_connector._distrib_type
 
     @property
@@ -1759,10 +1757,10 @@ class Trainer(
     @property
     def data_parallel(self) -> bool:
         return self._distrib_type in (
-            DistributedType.DP,
-            DistributedType.DDP,
-            DistributedType.DDP_SPAWN,
-            DistributedType.DDP2,
+            _StrategyType.DP,
+            _StrategyType.DDP,
+            _StrategyType.DDP_SPAWN,
+            _StrategyType.DDP2,
         )
 
     @property
@@ -1787,15 +1785,6 @@ class Trainer(
         """Check if dataloader should be reloaded in the current epoch."""
         n_epochs = self.reload_dataloaders_every_n_epochs
         return n_epochs and (not self.current_epoch % n_epochs)
-
-    @property
-    def disable_validation(self) -> bool:
-        """Check if validation is disabled during training."""
-        rank_zero_deprecation(
-            "`trainer.disable_validation` is deprecated in v1.4 and will be removed in v1.6."
-            " Use `not trainer.enable_validation` instead."
-        )
-        return not self.enable_validation
 
     @property
     def enable_validation(self) -> bool:
@@ -2140,13 +2129,6 @@ class Trainer(
 
     def __setstate__(self, state):
         self.__dict__ = state
-
-    @property
-    def train_loop(self) -> FitLoop:
-        rank_zero_deprecation(
-            "`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
-        )
-        return self.fit_loop
 
     @property
     def terminate_on_nan(self) -> bool:

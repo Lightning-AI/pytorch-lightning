@@ -106,11 +106,11 @@ def test_rich_progress_bar_custom_theme(tmpdir):
 
         assert progress_bar.theme == theme
         args, kwargs = mocks["CustomBarColumn"].call_args
-        assert kwargs["complete_style"] == theme.progress_bar_complete
+        assert kwargs["complete_style"] == theme.progress_bar
         assert kwargs["finished_style"] == theme.progress_bar_finished
 
         args, kwargs = mocks["BatchesProcessedColumn"].call_args
-        assert kwargs["style"] == theme.batch_process
+        assert kwargs["style"] == theme.batch_progress
 
         args, kwargs = mocks["CustomTimeColumn"].call_args
         assert kwargs["style"] == theme.time
@@ -150,15 +150,15 @@ def test_rich_progress_bar_configure_columns():
     custom_column = TextColumn("[progress.description]Testing Rich!")
 
     class CustomRichProgressBar(RichProgressBar):
-        def configure_columns(self, trainer, pl_module):
+        def configure_columns(self, trainer):
             return [custom_column]
 
     progress_bar = CustomRichProgressBar()
 
-    progress_bar._init_progress(Mock(), Mock())
+    progress_bar._init_progress(Mock())
 
     assert progress_bar.progress.columns[0] == custom_column
-    assert len(progress_bar.progress.columns) == 1
+    assert len(progress_bar.progress.columns) == 2
 
 
 @RunIf(rich=True)

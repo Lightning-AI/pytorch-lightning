@@ -20,13 +20,13 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torch.utils.data.sampler import BatchSampler, Sampler, SequentialSampler
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities.enums import DistributedType
+from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 
-@RunIf(skip_windows=True, min_torch="1.7.0")
+@RunIf(skip_windows=True)
 @pytest.mark.parametrize("mode", (1, 2, 3))
 def test_replace_distributed_sampler(tmpdir, mode):
     class IndexedRandomDataset(RandomDataset):
@@ -133,11 +133,11 @@ class TestSpawnBoringModel(BoringModel):
             assert warn_str in msg
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, skip_49370=True)
 @pytest.mark.parametrize("num_workers", [0, 1])
 def test_dataloader_warnings(tmpdir, num_workers):
     trainer = Trainer(default_root_dir=tmpdir, strategy="ddp_spawn", num_processes=2, fast_dev_run=4)
-    assert trainer._accelerator_connector._distrib_type == DistributedType.DDP_SPAWN
+    assert trainer._accelerator_connector._distrib_type == _StrategyType.DDP_SPAWN
     trainer.fit(TestSpawnBoringModel(num_workers))
 
 
@@ -283,25 +283,26 @@ def test_dataloader_reinit_for_subclass():
         trainer.prepare_dataloader(dataloader, shuffle=True)
 
 
+class LoaderTestModel(BoringModel):
+    def training_step(self, batch, batch_idx):
+        assert len(self.trainer.train_dataloader.loaders) == 10
+        return super().training_step(batch, batch_idx)
+
+    def validation_step(self, batch, batch_idx):
+        assert len(self.trainer.val_dataloaders[0]) == 10
+        return super().validation_step(batch, batch_idx)
+
+    def test_step(self, batch, batch_idx):
+        assert len(self.trainer.test_dataloaders[0]) == 10
+        return super().test_step(batch, batch_idx)
+
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
+        assert len(self.trainer.predict_dataloaders[0]) == 10
+        return super().predict_step(batch, batch_idx, dataloader_idx=dataloader_idx)
+
+
 def test_loader_detaching():
     """Checks that the loader has been resetted after the entrypoint."""
-
-    class LoaderTestModel(BoringModel):
-        def training_step(self, batch, batch_idx):
-            assert len(self.trainer.train_dataloader.loaders) == 10
-            return super().training_step(batch, batch_idx)
-
-        def validation_step(self, batch, batch_idx):
-            assert len(self.trainer.val_dataloaders[0]) == 10
-            return super().validation_step(batch, batch_idx)
-
-        def test_step(self, batch, batch_idx):
-            assert len(self.trainer.test_dataloaders[0]) == 10
-            return super().test_step(batch, batch_idx)
-
-        def predict_step(self, batch, batch_idx, dataloader_idx=0):
-            assert len(self.trainer.predict_dataloaders[0]) == 10
-            return super().predict_step(batch, batch_idx, dataloader_idx=dataloader_idx)
 
     loader = DataLoader(RandomDataset(32, 10), batch_size=1)
 
@@ -340,3 +341,10 @@ def test_loader_detaching():
     assert len(model.val_dataloader()) == 64
     assert len(model.predict_dataloader()) == 64
     assert len(model.test_dataloader()) == 64
+
+
+def test_pre_made_batches():
+    """Check that loader works with pre-made batches."""
+    loader = DataLoader(RandomDataset(32, 10), batch_size=None)
+    trainer = Trainer(fast_dev_run=1)
+    trainer.predict(LoaderTestModel(), loader)

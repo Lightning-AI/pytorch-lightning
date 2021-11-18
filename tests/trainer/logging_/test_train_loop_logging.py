@@ -272,13 +272,11 @@ def test_log_works_in_train_callback(tmpdir):
             self.make_logging(pl_module, "on_train_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices)
 
         def on_epoch_start(self, _, pl_module):
-            self.make_logging(
-                pl_module, "on_epoch_start", on_steps=self.choices, on_epochs=[True], prob_bars=self.choices
-            )
+            self.make_logging(pl_module, "on_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices)
 
         def on_train_epoch_start(self, _, pl_module):
             self.make_logging(
-                pl_module, "on_train_epoch_start", on_steps=self.choices, on_epochs=[True], prob_bars=self.choices
+                pl_module, "on_train_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
         def on_batch_start(self, _, pl_module, *__):
@@ -397,7 +395,7 @@ class LoggingSyncDistModel(BoringModel):
         return super().validation_step(batch, batch_idx)
 
 
-@pytest.mark.parametrize("devices", [1, pytest.param(2, marks=RunIf(skip_windows=True))])
+@pytest.mark.parametrize("devices", [1, pytest.param(2, marks=RunIf(skip_windows=True, skip_49370=True))])
 def test_logging_sync_dist_true(tmpdir, devices):
     """Tests to ensure that the sync_dist flag works (should just return the original value)"""
     fake_result = 1
