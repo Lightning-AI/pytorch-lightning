@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pprint import pprint
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Union
 
 import torch
+from torch import Tensor
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
@@ -156,8 +157,8 @@ class LoggerConnector:
 
     @staticmethod
     def _filter_metrics_for_dataloader(
-        dl_idx: int, metrics: Dict[str, int], metric_prefix: str = "dataloader_idx"
-    ) -> Dict[str, int]:
+        dl_idx: int, metrics: Mapping[str, Union[Tensor, Dict[str, Tensor]]], metric_prefix: str = "dataloader_idx"
+    ) -> Mapping[str, Union[Tensor, Dict[str, Tensor]]]:
         result = {}
         for k, v in metrics.items():
             if metric_prefix not in k:
