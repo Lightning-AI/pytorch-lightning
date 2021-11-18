@@ -407,7 +407,7 @@ class AcceleratorConnector:
             self._training_type_plugin.checkpoint_io = self._checkpoint_io
         precision_plugin = self.precision_plugin
         if precision_plugin is not None:
-            self._training_type_plugin._precision_plugin = self.precision_plugin
+            self._training_type_plugin._precision_plugin = precision_plugin
         self._training_type_plugin_resolved = True
 
         return self._training_type_plugin
