@@ -13,7 +13,6 @@
 # limitations under the License.
 import json
 import os
-from functools import partial
 from typing import Any, List, Optional, Union
 
 import torch
@@ -116,7 +115,7 @@ class IPUPlugin(ParallelPlugin):
         # this violates the intended control flow for the plugins, but since this is experimental, we have chosen
         # to use the simpler solution before adding abstractions to override the `DataLoader` class
         self._update_dataloader_original = pl.trainer.data_loading._update_dataloader
-        pl.trainer.data_loading._update_dataloader = partial(IPUPlugin._convert_to_poptorch_loader, self)
+        pl.trainer.data_loading._update_dataloader = self._convert_to_poptorch_loader
 
     def pre_dispatch(self) -> None:
         precision = self.lightning_module.trainer.precision
