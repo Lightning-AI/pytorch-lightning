@@ -171,7 +171,7 @@ def test_swa_callback_scheduler_step(tmpdir, interval: str):
 
 def test_swa_warns(tmpdir, caplog):
     model = SwaTestModel(interval="step")
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, stochastic_weight_avg=True)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, callbacks=StochasticWeightAveraging())
     with caplog.at_level(level=logging.INFO), pytest.warns(UserWarning, match="SWA is currently only supported"):
         trainer.fit(model)
     assert "Swapping scheduler `StepLR` for `SWALR`" in caplog.text
@@ -199,14 +199,19 @@ def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks: bool, stochast
             return optimizer
 
     model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=StochasticWeightAveraging(swa_lrs=1e-3) if use_callbacks else None,
-        stochastic_weight_avg=stochastic_weight_avg,
-        limit_train_batches=4,
-        limit_val_batches=4,
-        max_epochs=2,
-    )
+    kwargs = {
+        "default_root_dir": tmpdir,
+        "callbacks": StochasticWeightAveraging(swa_lrs=1e-3) if use_callbacks else None,
+        "stochastic_weight_avg": stochastic_weight_avg,
+        "limit_train_batches": 4,
+        "limit_val_batches": 4,
+        "max_epochs": 2,
+    }
+    if stochastic_weight_avg:
+        with pytest.deprecated_call(match=r"stochastic_weight_avg=True\)` is deprecated in v1.5"):
+            trainer = Trainer(**kwargs)
+    else:
+        trainer = Trainer(**kwargs)
     trainer.fit(model)
     if use_callbacks or stochastic_weight_avg:
         assert sum(1 for cb in trainer.callbacks if isinstance(cb, StochasticWeightAveraging)) == 1
