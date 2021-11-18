@@ -23,7 +23,7 @@ class ClusterEnvironment(ABC):
     def __new__(cls, *args: Any, **kwargs: Any) -> "ClusterEnvironment":
         # TODO: remove in 1.7
         _check_for_deprecated_methods(cls)
-        return super().__new__(cls, *args, **kwargs)
+        return super().__new__(cls)
 
     @property
     @abstractmethod

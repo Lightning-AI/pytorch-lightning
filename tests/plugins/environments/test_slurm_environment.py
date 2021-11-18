@@ -52,6 +52,7 @@ def test_default_attributes():
 def test_attributes_from_environment_variables(caplog):
     """Test that the SLURM cluster environment takes the attributes from the environment variables."""
     env = SLURMEnvironment()
+    assert env.auto_requeue is True
     assert env.main_address == "1.1.1.1"
     assert env.main_port == 15000 + 1234
     assert env.world_size() == 20
