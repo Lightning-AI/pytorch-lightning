@@ -26,7 +26,7 @@ from torch.utils.data.sampler import SequentialSampler
 import tests.helpers.pipelines as tpipes
 from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.utilities.data import has_iterable_dataset, has_len_all_ranks, _auto_add_worker_init_fn
+from pytorch_lightning.utilities.data import _auto_add_worker_init_fn, has_iterable_dataset, has_len_all_ranks
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset, RandomIterableDatasetWithLen

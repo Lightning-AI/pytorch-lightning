@@ -31,10 +31,10 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import _capture_metadata_collate
 from pytorch_lightning.utilities.data import (
+    _auto_add_worker_init_fn,
     _update_dataloader,
     has_iterable_dataset,
     has_len_all_ranks,
-    _auto_add_worker_init_fn,
 )
 from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
