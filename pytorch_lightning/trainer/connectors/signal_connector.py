@@ -92,7 +92,7 @@ class SignalConnector:
     def sigterm_handler_fn(self, signum: Signals, frame: FrameType) -> None:
         log.info("bypassing sigterm")
 
-    def teardown(self):
+    def teardown(self) -> None:
         """Restores the signals that were previsouly configured before :class:`SignalConnector` replaced them."""
         for signum, handler in self._original_handlers.items():
             signal.signal(signum, handler)
