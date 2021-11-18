@@ -36,6 +36,7 @@ from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
+from pytorch_lightning.trainer.connectors.data_connector import _DataHookSource
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import (
     _IS_WINDOWS,
@@ -263,13 +264,13 @@ class LightningModule(
         self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0
     ) -> Any:
         device = device or self.device
-        batch = self.trainer._data_connector._datahook_source.get_hook("on_before_batch_transfer")(
-            batch, dataloader_idx
+        datahook_source = (
+            _DataHookSource(self) if self.trainer is None else self.trainer._data_connector._datahook_source
         )
-        batch = self.trainer._data_connector._datahook_source.get_hook("transfer_batch_to_device")(
-            batch, device, dataloader_idx
-        )
-        batch = self.trainer._data_connector._datahook_source.get_hook("on_after_batch_transfer")(batch, dataloader_idx)
+
+        batch = datahook_source.get_hook("on_before_batch_transfer")(batch, dataloader_idx)
+        batch = datahook_source.get_hook("transfer_batch_to_device")(batch, device, dataloader_idx)
+        batch = datahook_source.get_hook("on_after_batch_transfer")(batch, dataloader_idx)
         return batch
 
     def print(self, *args, **kwargs) -> None:
