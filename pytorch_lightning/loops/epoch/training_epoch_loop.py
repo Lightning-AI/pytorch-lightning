@@ -324,7 +324,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             or self.batch_progress.current.ready == 0  # did not start
         ):
             return state_dict
-        print(self._has_completed())
         state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(
             has_completed=self._has_completed()
         )
