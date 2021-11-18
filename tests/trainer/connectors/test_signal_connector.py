@@ -57,9 +57,7 @@ def test_signal_handlers_restored_in_teardown():
     connector.register_signal_handlers()
 
     assert signal.getsignal(signal.SIGTERM) is not signal.SIG_DFL
-
     connector.teardown()
-
     assert signal.getsignal(signal.SIGTERM) is signal.SIG_DFL
 
 
