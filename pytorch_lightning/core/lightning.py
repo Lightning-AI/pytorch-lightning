@@ -263,9 +263,13 @@ class LightningModule(
         self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0
     ) -> Any:
         device = device or self.device
-        batch = self.on_before_batch_transfer(batch, dataloader_idx)
-        batch = self.transfer_batch_to_device(batch, device, dataloader_idx)
-        batch = self.on_after_batch_transfer(batch, dataloader_idx)
+        batch = self.trainer._data_connector._datahook_source.get_hook("on_before_batch_transfer")(
+            batch, dataloader_idx
+        )
+        batch = self.trainer._data_connector._datahook_source.get_hook("transfer_batch_to_device")(
+            batch, device, dataloader_idx
+        )
+        batch = self.trainer._data_connector._datahook_source.get_hook("on_after_batch_transfer")(batch, dataloader_idx)
         return batch
 
     def print(self, *args, **kwargs) -> None:

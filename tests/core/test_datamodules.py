@@ -27,7 +27,6 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
@@ -299,13 +298,7 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
     trainer = Trainer(gpus=1)
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
     get_module_mock.return_value = model
-    if is_overridden("transfer_batch_to_device", dm):
-        model.transfer_batch_to_device = dm.transfer_batch_to_device
-
-    model.on_before_batch_transfer = dm.on_before_batch_transfer
-    model.transfer_batch_to_device = dm.transfer_batch_to_device
-    model.on_after_batch_transfer = dm.on_after_batch_transfer
-
+    trainer.attach_datamodule(model, datamodule=dm)
     batch_gpu = trainer.accelerator.batch_to_device(batch, expected_device)
 
     assert dm.on_before_batch_transfer_hook_rank == 0

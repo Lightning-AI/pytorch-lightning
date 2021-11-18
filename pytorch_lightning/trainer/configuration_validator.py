@@ -200,7 +200,9 @@ def __verify_dp_batch_transfer_support(trainer: "pl.Trainer", model: "pl.Lightni
     # TODO: Remove this blocker once batch transfer to device is integrated in Lightning for DP mode.
     batch_transfer_hooks = ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
     for hook in batch_transfer_hooks:
-        if trainer._accelerator_connector.use_dp and is_overridden(hook, model):
+        if trainer._accelerator_connector.use_dp and is_overridden(
+            hook, trainer._data_connector._datahook_source.instance
+        ):
             raise MisconfigurationException(f"Overriding `{hook}` is not supported in DP mode.")
 
 

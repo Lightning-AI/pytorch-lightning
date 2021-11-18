@@ -54,6 +54,8 @@ class DataConnector:
         self._test_dataloader_source = _DataLoaderSource(None, "")
         self._predict_dataloader_source = _DataLoaderSource(None, "")
 
+        self._datahook_source = _DataHookSource(None)
+
     @property
     def evaluation_data_fetcher(self) -> Optional[AbstractDataFetcher]:
         if self.trainer.sanity_checking:
@@ -219,6 +221,8 @@ class DataConnector:
         self, model: "pl.LightningModule", datamodule: Optional["pl.LightningDataModule"] = None
     ) -> None:
         # If we have a datamodule, attach necessary hooks + dataloaders
+        self._datahook_source = _DataHookSource(model if datamodule is None else datamodule)
+
         if datamodule is None:
             return
 
@@ -226,12 +230,6 @@ class DataConnector:
         self._val_dataloader_source = _DataLoaderSource(datamodule, "val_dataloader")
         self._test_dataloader_source = _DataLoaderSource(datamodule, "test_dataloader")
         self._predict_dataloader_source = _DataLoaderSource(datamodule, "predict_dataloader")
-
-        # Override data transfer hooks if dataset-specific to_device logic has been defined in datamodule
-        batch_transfer_hooks = ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
-        for hook in batch_transfer_hooks:
-            if is_overridden(hook, datamodule):
-                setattr(model, hook, getattr(datamodule, hook))
 
         self.trainer.datamodule = datamodule
         datamodule.trainer = self.trainer
@@ -308,3 +306,22 @@ class _DataLoaderSource:
         from pytorch_lightning import LightningDataModule, LightningModule  # prevent cyclic import
 
         return isinstance(self.instance, (LightningModule, LightningDataModule))
+
+
+@dataclass
+class _DataHookSource:
+    """Stores the info about the common DataHooks within LightningModule and LightningDataModule.
+
+    The hook source can be
+
+    1. a method from the :class:`~pytorch_lightning.core.lightning.LightningModule`,
+    2. a method from the :class:`~pytorch_lightning.core.datamodule.LightningDataModule`,
+
+    Arguments:
+        instance: A LightningModule or a LightningDataModule
+    """
+
+    instance: Optional[Union["pl.LightningModule", "pl.LightningDataModule"]]
+
+    def get_hook(self, hook_name):
+        return getattr(self.instance, hook_name)
