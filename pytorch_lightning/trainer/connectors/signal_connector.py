@@ -45,10 +45,10 @@ class SignalConnector:
 
         # signal.SIGUSR1 doesn't seem available on windows
         if not self._is_on_windows():
-            if not self._has_already_handler(signal.SIGUSR1):
+            if sigusr1_handlers and not self._has_already_handler(signal.SIGUSR1):
                 signal.signal(signal.SIGUSR1, HandlersCompose(sigusr1_handlers))
 
-            if not self._has_already_handler(signal.SIGTERM):
+            if sigterm_handlers and not self._has_already_handler(signal.SIGTERM):
                 signal.signal(signal.SIGTERM, HandlersCompose(sigterm_handlers))
 
     def slurm_sigusr1_handler_fn(self, signum: Signals, frame: FrameType) -> None:
