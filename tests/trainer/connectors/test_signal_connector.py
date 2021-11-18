@@ -61,6 +61,7 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
         assert trainer._terminate_gracefully == (False if register_handler else terminate_gracefully)
 
 
+@RunIf(skip_windows=True)
 @pytest.mark.parametrize("auto_requeue", (True, False))
 def test_auto_requeue_flag(auto_requeue):
     sigterm_handler_default = signal.getsignal(signal.SIGTERM)
