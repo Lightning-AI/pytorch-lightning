@@ -23,6 +23,7 @@ import torch
 
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 
@@ -423,6 +424,12 @@ def test_log_works_in_test_callback(tmpdir):
         def on_test_start(self, _, pl_module):
             self.make_logging(pl_module, "on_test_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices)
 
+        def on_epoch_start(self, trainer, pl_module):
+            if trainer.testing:
+                self.make_logging(
+                    pl_module, "on_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
+                )
+
         def on_test_epoch_start(self, _, pl_module):
             self.make_logging(
                 pl_module, "on_test_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
@@ -666,3 +673,29 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
         enable_model_summary=False,
     )
     trainer.fit(model)
+
+
+@pytest.mark.parametrize(
+    ["kwargs", "expected"],
+    [
+        ({"dl_idx": 0, "metrics": {"acc": 123}}, {"acc": 123}),
+        (
+            {"dl_idx": 0, "metrics": {"acc/dataloader_idx_0": 123, "acc/dataloader_idx_1": 321}},
+            {"acc/dataloader_idx_0": 123},
+        ),
+        (
+            {"dl_idx": 10, "metrics": {"acc/dataloader_idx_1": 123, "acc/dataloader_idx_10": 321}},
+            {"acc/dataloader_idx_10": 321},
+        ),
+        (
+            {"dl_idx": 3, "metrics": {"top_3_acc/dataloader_idx_0": 123, "top_3_acc/dataloader_idx_3": 321}},
+            {"top_3_acc/dataloader_idx_3": 321},
+        ),
+        # theoretical case, as `/dataloader_idx_3` would have been added
+        ({"dl_idx": 3, "metrics": {"top_3_acc": 123}}, {"top_3_acc": 123}),
+    ],
+)
+def test_filter_metrics_for_dataloader(kwargs, expected):
+    """Logged metrics should only include metrics from the concerned dataloader."""
+    actual = LoggerConnector._filter_metrics_for_dataloader(**kwargs)
+    assert actual == expected

@@ -24,9 +24,14 @@ from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
 from pytorch_lightning.lite import LightningLite
-from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
+from pytorch_lightning.lite.wrappers import (
+    _LiteDataLoader,
+    _LiteModule,
+    _LiteOptimizer,
+    _replace_dataloader_init_method,
+)
 from pytorch_lightning.plugins import DeepSpeedPlugin, PrecisionPlugin, TrainingTypePlugin
-from pytorch_lightning.utilities import DistributedType
+from pytorch_lightning.utilities import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import pl_worker_init_function
 from tests.helpers.runif import RunIf
@@ -282,12 +287,12 @@ def test_seed_everything():
 @pytest.mark.parametrize(
     "strategy",
     [
-        DistributedType.DP,
-        DistributedType.DDP,
-        DistributedType.DDP_SPAWN,
-        pytest.param(DistributedType.DEEPSPEED, marks=RunIf(deepspeed=True)),
-        pytest.param(DistributedType.DDP_SHARDED, marks=RunIf(fairscale=True)),
-        pytest.param(DistributedType.DDP_SHARDED_SPAWN, marks=RunIf(fairscale=True)),
+        _StrategyType.DP,
+        _StrategyType.DDP,
+        _StrategyType.DDP_SPAWN,
+        pytest.param(_StrategyType.DEEPSPEED, marks=RunIf(deepspeed=True)),
+        pytest.param(_StrategyType.DDP_SHARDED, marks=RunIf(fairscale=True)),
+        pytest.param(_StrategyType.DDP_SHARDED_SPAWN, marks=RunIf(fairscale=True)),
     ],
 )
 def test_setup_dataloaders_replace_custom_sampler(strategy):
@@ -310,12 +315,12 @@ def test_setup_dataloaders_replace_custom_sampler(strategy):
 @pytest.mark.parametrize(
     "strategy",
     [
-        DistributedType.DP,
-        DistributedType.DDP,
-        DistributedType.DDP_SPAWN,
-        pytest.param(DistributedType.DEEPSPEED, marks=RunIf(deepspeed=True)),
-        pytest.param(DistributedType.DDP_SHARDED, marks=RunIf(fairscale=True)),
-        pytest.param(DistributedType.DDP_SHARDED_SPAWN, marks=RunIf(fairscale=True)),
+        _StrategyType.DP,
+        _StrategyType.DDP,
+        _StrategyType.DDP_SPAWN,
+        pytest.param(_StrategyType.DEEPSPEED, marks=RunIf(deepspeed=True)),
+        pytest.param(_StrategyType.DDP_SHARDED, marks=RunIf(fairscale=True)),
+        pytest.param(_StrategyType.DDP_SHARDED_SPAWN, marks=RunIf(fairscale=True)),
     ],
 )
 @pytest.mark.parametrize("shuffle", [True, False])
@@ -475,3 +480,25 @@ def test_deepspeed_multiple_models():
             assert self.is_global_zero == (self.local_rank == 0)
 
     Lite(strategy=DeepSpeedPlugin(stage=3, logging_batch_size_per_gpu=1), devices=2, accelerator="gpu").run()
+
+
+def test_replace_dataloader_init_method():
+    """Test that the context manager enables to save the parameters passed to the DataLoader __init__ method."""
+
+    class CustomDataLoader(DataLoader):
+        def __init__(self, extra_argument: int, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+    dataloader = CustomDataLoader(extra_argument=1, dataset=range(1))
+    lite = EmptyLite()
+    with pytest.raises(MisconfigurationException, match="extra_argument"):
+        dataloader = lite.setup_dataloaders(dataloader)
+
+    with _replace_dataloader_init_method():
+        dataloader = CustomDataLoader(extra_argument=1, dataset=range(1))
+        assert dataloader.extra_argument == 1
+        dataloader = lite.setup_dataloaders(dataloader)
+
+        dataloader = CustomDataLoader(1, range(1))
+        assert dataloader.extra_argument == 1
+        dataloader = lite.setup_dataloaders(dataloader)
