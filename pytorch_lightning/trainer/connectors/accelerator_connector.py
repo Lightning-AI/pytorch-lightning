@@ -797,7 +797,7 @@ class AcceleratorConnector:
         else:
             acc_cls = CPUAccelerator
 
-        accelerator = acc_cls(training_type_plugin=self.training_type_plugin)
+        accelerator = acc_cls(precision_plugin=None, training_type_plugin=self.training_type_plugin)
         # transfer ownership of the plugins to the accelerator
         self._training_type_plugin = proxy(self.training_type_plugin)
 

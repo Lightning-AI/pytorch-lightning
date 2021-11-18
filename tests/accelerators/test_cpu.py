@@ -41,8 +41,8 @@ def test_plugin_setup_optimizers_in_pre_dispatch(tmpdir, delay_dispatch):
 
 def test_restore_checkpoint_after_pre_dispatch_default():
     """Assert default for restore_checkpoint_after_pre_dispatch is False."""
-    plugin = SingleDevicePlugin(torch.device("cpu"), precision_plugin=PrecisionPlugin())
-    accelerator = CPUAccelerator(training_type_plugin=plugin)
+    plugin = SingleDevicePlugin(torch.device("cpu"))
+    accelerator = CPUAccelerator(training_type_plugin=plugin, precision_plugin=PrecisionPlugin())
     assert not accelerator.training_type_plugin.restore_checkpoint_after_pre_dispatch
     assert not plugin.restore_checkpoint_after_pre_dispatch
 
@@ -74,8 +74,8 @@ def test_restore_checkpoint_after_pre_dispatch(tmpdir, restore_after_pre_dispatc
     checkpoint_path = os.path.join(tmpdir, "model.pt")
     trainer.save_checkpoint(checkpoint_path)
 
-    plugin = TestPlugin(torch.device("cpu"), checkpoint_io=TorchCheckpointIO(), precision_plugin=PrecisionPlugin())
-    accelerator = CPUAccelerator(training_type_plugin=plugin)
+    plugin = TestPlugin(torch.device("cpu"), checkpoint_io=TorchCheckpointIO())
+    accelerator = CPUAccelerator(training_type_plugin=plugin, precision_plugin=PrecisionPlugin())
 
     assert accelerator.training_type_plugin.restore_checkpoint_after_pre_dispatch == restore_after_pre_dispatch
     assert plugin.restore_checkpoint_after_pre_dispatch == restore_after_pre_dispatch

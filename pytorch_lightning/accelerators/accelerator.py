@@ -45,9 +45,7 @@ class Accelerator:
     One to handle differences from the training routine and one to handle different precisions.
     """
 
-    def __init__(
-        self, training_type_plugin: TrainingTypePlugin, precision_plugin: Optional[PrecisionPlugin] = None
-    ) -> None:
+    def __init__(self, precision_plugin: Optional[PrecisionPlugin], training_type_plugin: TrainingTypePlugin) -> None:
         """
         Args:
             training_type_plugin: the plugin to handle different training routines
@@ -60,12 +58,9 @@ class Accelerator:
 
         self.training_type_plugin = training_type_plugin
 
-        if precision_plugin:
-            """
-            .. deprecated
-                precision_plugin parameter is deprecated will be removed soon.
-                Use :`training_type_plugin(precision_plugin) instead.
-            """
+        if precision_plugin is not None:
+            """precision_plugin is deprecated and will be removed soon User
+            `training_type_plugin(precision_plugin)` instead."""
             self.training_type_plugin._precision_plugin = precision_plugin
 
         self.optimizers: List = []
