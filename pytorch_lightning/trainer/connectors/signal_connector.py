@@ -37,7 +37,7 @@ class SignalConnector:
         if _fault_tolerant_training():
             sigusr1_handlers.append(self.fault_tolerant_sigusr1_handler_fn)
 
-        environment = self.trainer.accelerator_connector.cluster_environment
+        environment = self.trainer._accelerator_connector.cluster_environment
         if isinstance(environment, SLURMEnvironment) and environment.auto_requeue:
             log.info("SLURM auto-requeueing enabled. Setting signal handlers.")
             sigusr1_handlers.append(self.slurm_sigusr1_handler_fn)
