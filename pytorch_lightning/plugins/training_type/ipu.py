@@ -117,7 +117,7 @@ class IPUPlugin(ParallelPlugin):
         # this violates the intended control flow for the plugins, but since this is experimental, we have chosen
         # to use the simpler solution before adding abstractions to override the `DataLoader` class
         self._update_dataloader_original = pytorch_lightning.utilities.data._update_dataloader
-        pytorch_lightning.utilities.data._update_dataloader = partial(self._convert_to_poptorch_loader, self)
+        pytorch_lightning.utilities.data._update_dataloader = partial(IPUPlugin._convert_to_poptorch_loader, self)
 
     def pre_dispatch(self) -> None:
         precision = self.lightning_module.trainer.precision
