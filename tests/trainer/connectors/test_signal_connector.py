@@ -99,9 +99,6 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("auto_requeue", (True, False))
 def test_auto_requeue_flag(auto_requeue):
-    sigterm_handler_default = signal.getsignal(signal.SIGTERM)
-    sigusr1_handler_default = signal.getsignal(signal.SIGUSR1)
-
     trainer = Trainer(plugins=[SLURMEnvironment(auto_requeue=auto_requeue)])
     connector = SignalConnector(trainer)
     connector.register_signal_handlers()
@@ -115,10 +112,7 @@ def test_auto_requeue_flag(auto_requeue):
         assert len(sigusr1_handlers) == 1
         assert sigusr1_handlers[0].__qualname__ == "SignalConnector.slurm_sigusr1_handler_fn"
     else:
-        assert signal.getsignal(signal.SIGTERM) is sigterm_handler_default
-        assert signal.getsignal(signal.SIGUSR1) is sigusr1_handler_default
+        assert signal.getsignal(signal.SIGTERM) is signal.SIG_DFL
+        assert signal.getsignal(signal.SIGUSR1) is signal.SIG_DFL
 
-    # restore the signal handlers so the next test can run with system defaults
-    # TODO: should this be done in SignalConnector teardown?
-    signal.signal(signal.SIGTERM, sigterm_handler_default)
-    signal.signal(signal.SIGUSR1, sigusr1_handler_default)
+    connector.teardown()
