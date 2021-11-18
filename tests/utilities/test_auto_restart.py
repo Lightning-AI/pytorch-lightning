@@ -905,13 +905,13 @@ class TestModel(LightningModule):
         return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 
 
-def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1, ckpt_path=None):
+def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1, ckpt_path=None, model_cls=TestModel):
     seed_everything(1)
     train_dataloader = [
         DataLoader(dataset_class(3, 1), batch_size=1, num_workers=0) for dataset_class in dataset_classes
     ]
     train_dataloader = train_dataloader[0] if len(train_dataloader) == 1 else train_dataloader
-    model = TestModel(fail_on_step=fail_on_step)
+    model = model_cls(fail_on_step=fail_on_step)
     trainer = Trainer(**trainer_kwargs)
     with suppress(CustomException):
         trainer.fit(model, train_dataloaders=train_dataloader, ckpt_path=ckpt_path)

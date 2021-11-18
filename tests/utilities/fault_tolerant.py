@@ -14,9 +14,25 @@
 
 # Note, this file is used to ensure Fault Tolerant is working as expected
 import os
+from time import sleep
+
+import torch
 
 from pytorch_lightning import seed_everything
-from tests.utilities.test_auto_restart import _run_training, RandomGetItemDataset
+from tests.utilities.test_auto_restart import _run_training, CustomException, RandomGetItemDataset, TestModel
+
+
+class SignalTestModel(TestModel):
+    def training_step(self, batch, batch_idx):
+        if self.global_step == self.fail_on_step:
+            while not self.trainer._terminate_gracefully:
+                sleep(0.00001)
+            raise CustomException()
+        batch = batch["data"] if isinstance(batch, dict) else batch
+        self.seen_batches.append(torch.stack(batch) if isinstance(batch, list) else batch)
+        loss = sum(self.layer(b).sum() for b in batch)
+        return loss
+
 
 tmpdir = "/tmp/pl_fault_tolerant"
 
@@ -48,7 +64,9 @@ else:
     completed_batches = 4
 
 # Perform a failure
-complete_batches, weights = _run_training(trainer_kwargs, dataset_classes, fail_on_step=fail_on_step)
+complete_batches, weights = _run_training(
+    trainer_kwargs, dataset_classes, fail_on_step=fail_on_step, model_cls=SignalTestModel
+)
 assert len(complete_batches) == completed_batches
 
 if not auto_restart_checkpoint_path_exists:
