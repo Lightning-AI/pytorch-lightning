@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.warnings import rank_zero_warn
+from pytorch_lightning.utilities.warnings import rank_zero_warn, rank_zero_deprecation
 
 
 def str_to_bool_or_str(val: str) -> Union[str, bool]:
@@ -201,6 +201,11 @@ def save_hyperparameters(
     obj: Any, *args: Any, ignore: Optional[Union[Sequence[str], str]] = None, frame: Optional[types.FrameType] = None
 ) -> None:
     """See :meth:`~pytorch_lightning.LightningModule.save_hyperparameters`"""
+    if any(not isinstance(arg, str) for arg in args):
+        rank_zero_deprecation(
+            "Passing a container to `save_hyperparameters` has been deprecated in v1.6 and will be removed in v1.8."
+            " Pass in the name of the container as a string instead."
+        )
 
     if len(args) == 1 and not isinstance(args, str) and not args[0]:
         # args[0] is an empty container
