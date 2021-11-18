@@ -62,8 +62,7 @@ class LSFEnvironment(ClusterEnvironment):
 
     @property
     def main_address(self) -> str:
-        """The main address is read from a list of hosts contained in the environment variable
-        `LSB_MCPU_HOSTS`."""
+        """The main address is read from a list of hosts contained in the environment variable `LSB_MCPU_HOSTS`."""
         return self._main_address
 
     @property
