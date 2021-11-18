@@ -19,6 +19,8 @@ from unittest import mock
 import pytest
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.plugins.environments import SLURMEnvironment
+from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector, HandlersCompose
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -57,3 +59,17 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
         else:
             trainer.fit(model)
         assert trainer._terminate_gracefully == (False if register_handler else terminate_gracefully)
+
+
+def test_auto_requeue_flag():
+    trainer = Trainer(plugins=[SLURMEnvironment(auto_requeue=True)])
+    connector = SignalConnector(trainer)
+    connector.register_signal_handlers()
+
+    sigterm_handlers = signal.getsignal(signal.SIGTERM).signal_handlers
+    assert len(sigterm_handlers) == 1
+    assert sigterm_handlers[0].__qualname__ == "SignalConnector.sigterm_handler_fn"
+
+    sigusr1_handlers = signal.getsignal(signal.SIGUSR1).signal_handlers
+    assert len(sigusr1_handlers) == 1
+    assert sigusr1_handlers[0].__qualname__ == "SignalConnector.slurm_sigusr1_handler_fn"
