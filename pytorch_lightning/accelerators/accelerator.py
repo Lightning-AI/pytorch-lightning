@@ -49,17 +49,21 @@ class Accelerator:
         """
         Args:
             precision_plugin: the plugin to handle precision-specific parts
+
                 .. deprecated::
                     The ``precision_plugin`` parameter has been deprecated and will be removed soon.
                     Pass the precision plugin as a parameter to the ``TrainingTypePlugin`` instead.
+
             training_type_plugin: the plugin to handle different training routines
         """
 
         self.training_type_plugin = training_type_plugin
 
         if precision_plugin is not None:
-            """precision_plugin is deprecated and will be removed soon, use
-            `training_type_plugin(precision_plugin)` instead."""
+            """precision_plugin is deprecated and will be removed soon.
+
+            Use `training_type_plugin(precision_plugin)` instead.
+            """
             self.training_type_plugin._precision_plugin = precision_plugin
 
         self.optimizers: List = []
@@ -276,8 +280,11 @@ class Accelerator:
     def precision(self) -> Union[str, int]:
         """The type of precision being used with this accelerator.
 
-        .. deprecated::     The ``precision_plugin`` parameter has been deprecated and will be removed soon.     Pass
-        the precision plugin as a parameter to the ``TrainingTypePlugin`` instead.
+        Use `training_type_plugin.precision_plugin.precision` instead.
+
+        .. deprecated::
+            The ``precision_plugin`` parameter has been deprecated and will be removed soon.
+            Pass the precision plugin as a parameter to the ``TrainingTypePlugin`` instead.
         """
         rank_zero_deprecation(
             f"`{self.__class__.__name__}.precision` has been deprecated and will be removed soon"
