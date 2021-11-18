@@ -12,6 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Note: This file is used to ensure Fault Tolerant is working properly when
+Lightning is used in an environment where users have full control on their
+Kubernetes Environnement
+
+Here are the steps to use this file to ensure your cluster is properly setup.
+Step 1:
+
+"""
+
 # Note, this file is used to ensure Fault Tolerant is working as expected
 import os
 from time import sleep
@@ -25,6 +35,7 @@ from tests.utilities.test_auto_restart import _run_training, CustomException, Ra
 class SignalTestModel(TestModel):
     def training_step(self, batch, batch_idx):
         if self.global_step == self.fail_on_step:
+            print("READY TO BE KILLED WITH SIGTERM SIGNAL.")
             while not self.trainer._terminate_gracefully:
                 sleep(0.00001)
             raise CustomException()
@@ -42,8 +53,6 @@ env_backup = os.environ.copy()
 
 auto_restart_checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
 auto_restart_checkpoint_path_exists = os.path.exists(auto_restart_checkpoint_path)
-
-os.environ["PL_FAULT_TOLERANT_TRAINING"] = "1"
 
 seed_everything(42)
 
