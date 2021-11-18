@@ -614,9 +614,7 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
 
                 obj.load_state_dict(sampler_state[k])
 
-        load_state_dict_fn = getattr(dataset, "load_state_dict", None)
-
-        if not load_state_dict_fn:
+        if not hasattr(dataset, "load_state_dict"):
             return
 
         dataset_state = {
