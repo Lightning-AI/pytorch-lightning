@@ -22,6 +22,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.callbacks import StochasticWeightAveraging
 from pytorch_lightning.loggers.base import LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
@@ -288,7 +289,9 @@ def test_pytorch_profiler_describe(pytorch_profiler):
 def test_advanced_profiler_cprofile_deepcopy(tmpdir):
     """Checks for pickle issue reported in #6522."""
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, profiler="advanced", stochastic_weight_avg=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir, fast_dev_run=True, profiler="advanced", callbacks=StochasticWeightAveraging()
+    )
     trainer.fit(model)
 
 
