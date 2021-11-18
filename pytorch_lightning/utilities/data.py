@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
+import os
+from functools import partial
 from typing import Any, Dict, Generator, Iterable, Mapping, Optional, Union
 
 import torch
@@ -24,6 +26,7 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
+from pytorch_lightning.utilities.seed import pl_worker_init_function
 from pytorch_lightning.utilities.warnings import WarningCache
 
 BType = Union[torch.Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
@@ -286,3 +289,8 @@ def _dataloader_init_kwargs_resolve_sampler(
         fast_forward_sampler.setup(dataloader_batch_size=dataloader.batch_size)
 
     return {"sampler": sampler, "shuffle": False, "batch_sampler": None}
+
+
+def _auto_add_worker_init_fn(dataloader: DataLoader, rank: int) -> None:
+    if int(os.environ.get("PL_SEED_WORKERS", 0)) and dataloader.worker_init_fn is None:
+        dataloader.worker_init_fn = partial(pl_worker_init_function, rank=rank)

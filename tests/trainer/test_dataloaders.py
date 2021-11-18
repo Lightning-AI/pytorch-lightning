@@ -26,7 +26,7 @@ from torch.utils.data.sampler import SequentialSampler
 import tests.helpers.pipelines as tpipes
 from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.utilities.data import has_iterable_dataset, has_len_all_ranks
+from pytorch_lightning.utilities.data import has_iterable_dataset, has_len_all_ranks, _auto_add_worker_init_fn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset, RandomIterableDatasetWithLen
@@ -768,27 +768,26 @@ def test_auto_add_worker_init_fn():
     """Test Trainer adds a default worker_init_fn to the dataloader when seed_everything() is used."""
     dataset = Mock()
     dataloader = DataLoader(dataset)
-    trainer = Trainer()
 
     # without pl.seed_everything()
-    trainer._auto_add_worker_init_fn(dataloader, 0)
+    _auto_add_worker_init_fn(dataloader, 0)
     assert dataloader.worker_init_fn is None
 
     # with forcefully avoiding it
     seed_everything(0, workers=False)
-    trainer._auto_add_worker_init_fn(dataloader, 0)
+    _auto_add_worker_init_fn(dataloader, 0)
     assert dataloader.worker_init_fn is None
 
     # when user already has a worker_init_fn
     user_function = _user_worker_init_fn
     dataloader.worker_init_fn = user_function
-    trainer._auto_add_worker_init_fn(dataloader, 0)
+    _auto_add_worker_init_fn(dataloader, 0)
     assert dataloader.worker_init_fn is user_function
     dataloader.worker_init_fn = None
 
     # main use case
     seed_everything(0, workers=True)
-    trainer._auto_add_worker_init_fn(dataloader, 0)
+    _auto_add_worker_init_fn(dataloader, 0)
     assert dataloader.worker_init_fn is not None
 
 

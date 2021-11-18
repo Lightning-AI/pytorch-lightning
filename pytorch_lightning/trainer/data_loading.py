@@ -30,12 +30,16 @@ from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import _capture_metadata_collate
-from pytorch_lightning.utilities.data import _update_dataloader, has_iterable_dataset, has_len_all_ranks
+from pytorch_lightning.utilities.data import (
+    _update_dataloader,
+    has_iterable_dataset,
+    has_len_all_ranks,
+    _auto_add_worker_init_fn,
+)
 from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.seed import pl_worker_init_function
 
 
 class TrainerDataLoadingMixin(ABC):
@@ -106,11 +110,6 @@ class TrainerDataLoadingMixin(ABC):
                 f" (try {num_cpus} which is the number of cpus on this machine)"
                 " in the `DataLoader` init to improve performance."
             )
-
-    @staticmethod
-    def _auto_add_worker_init_fn(dataloader: DataLoader, rank: int) -> None:
-        if int(os.environ.get("PL_SEED_WORKERS", 0)) and dataloader.worker_init_fn is None:
-            dataloader.worker_init_fn = partial(pl_worker_init_function, rank=rank)
 
     def _requires_distributed_sampler(self, dataloader) -> bool:
         return (
@@ -211,7 +210,7 @@ class TrainerDataLoadingMixin(ABC):
         apply_to_collection(self.train_dataloader, DataLoader, self._worker_check, "train_dataloader")
 
         # add worker_init_fn for correct seeding in worker processes
-        apply_to_collection(self.train_dataloader, DataLoader, self._auto_add_worker_init_fn, rank=self.global_rank)
+        apply_to_collection(self.train_dataloader, DataLoader, _auto_add_worker_init_fn, rank=self.global_rank)
 
         # add collate_fn to collect metadata for fault tolerant training
         if _fault_tolerant_training():
@@ -320,9 +319,7 @@ class TrainerDataLoadingMixin(ABC):
         dataloaders = [self.prepare_dataloader(dl, False, mode=mode) for dl in dataloaders if dl is not None]
 
         # add worker_init_fn for correct seeding in worker processes
-        apply_to_collection(
-            dataloaders, dtype=DataLoader, function=self._auto_add_worker_init_fn, rank=self.global_rank
-        )
+        apply_to_collection(dataloaders, dtype=DataLoader, function=_auto_add_worker_init_fn, rank=self.global_rank)
 
         loader_num_batches = []
 
