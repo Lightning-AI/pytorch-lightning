@@ -67,7 +67,7 @@ def _registering_signals():
 
 
 @RunIf(skip_windows=True)
-def test_signal_connector_in_thread(tmpdir):
+def test_signal_connector_in_thread():
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         for future in concurrent.futures.as_completed([executor.submit(_registering_signals)]):
             assert future.exception() is None
