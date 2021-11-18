@@ -29,7 +29,7 @@ class SLURMEnvironment(ClusterEnvironment):
             rescheduled gets determined by the owner of this plugin.
     """
 
-    def __init__(self, auto_requeue: bool = True):
+    def __init__(self, auto_requeue: bool = True) -> None:
         super().__init__()
         self.auto_requeue = auto_requeue
 
