@@ -680,6 +680,8 @@ class _StatefulMixin:
 
         batch, state = combined_batch["data"], combined_batch[AutoRestartBatchKeys.PL_RESTART_META]
 
+        print(batch["ys_pad"][-1][:10])
+
         self.num_batches_fetched += 1
 
         sampler_state, sampler_state_idx = self._sampler_state.pop(0)
