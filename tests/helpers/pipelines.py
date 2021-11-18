@@ -20,6 +20,16 @@ from tests.helpers import BoringModel
 from tests.helpers.utils import get_default_logger, load_model_from_checkpoint, reset_seed
 
 
+def run_model_predict(trainer_options: dict, model, data: LightningDataModule):
+    reset_seed()
+    trainer = Trainer(**trainer_options)
+
+    predictions = trainer.predict(model, data.train_dataloader(), return_predictions=True)
+    assert len(predictions) == len(
+        data.train_dataloader()
+    ), f"Expected {len(data.train_dataloader())} got {len(predictions)}"
+
+
 def run_model_test_without_loggers(
     trainer_options: dict, model: LightningModule, data: LightningDataModule = None, min_acc: float = 0.50
 ):

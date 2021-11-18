@@ -72,6 +72,24 @@ def test_single_gpu_model(tmpdir, gpus):
     tpipes.run_model_test(trainer_options, model)
 
 
+@RunIf(min_gpus=2)
+def test_predict_multi_model(tmpdir):
+    """Make sure single GPU works (DP mode)."""
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        max_epochs=1,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+        gpus=2,
+        strategy="ddp",
+    )
+    dm = ClassifDataModule()
+    model = ClassificationModel()
+    tpipes.run_model_predict(trainer_options, model, dm)
+
+
 @pytest.fixture
 def mocked_device_count(monkeypatch):
     def device_count():
