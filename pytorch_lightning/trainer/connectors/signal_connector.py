@@ -2,6 +2,7 @@ import logging
 import os
 import signal
 import sys
+import threading
 from signal import Signals
 from subprocess import call
 from types import FrameType, FunctionType
@@ -110,8 +111,5 @@ class SignalConnector:
 
     @staticmethod
     def _register_signal(signum: Signals, handlers: HandlersCompose) -> None:
-        try:
+        if threading.current_thread() is threading.main_thread():
             signal.signal(signum, handlers)
-        except ValueError as e:
-            if "signal only works in main thread" not in str(e):
-                raise e

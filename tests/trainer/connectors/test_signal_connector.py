@@ -61,12 +61,12 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
 
 
 def _registering_signals():
-    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"}):
-        trainer = Trainer()
-        trainer.signal_connector.register_signal_handlers()
+    trainer = Trainer()
+    trainer.signal_connector.register_signal_handlers()
 
 
 @RunIf(skip_windows=True)
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_signal_connector_in_thread():
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         for future in concurrent.futures.as_completed([executor.submit(_registering_signals)]):
