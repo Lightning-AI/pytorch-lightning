@@ -1352,12 +1352,14 @@ def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_d
     trainer.fit(model)
     total_batches = model.batches
     total_weight = deepcopy(model.layer.weight)
+    trainer.train_dataloader = None
 
     seed_everything(42)
     model = TestModel(should_fail=True)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval)
     with suppress(CustomException):
         trainer.fit(model)
+    trainer.train_dataloader = None
     failed_batches = model.batches
     failed_weight = deepcopy(model.layer.weight)
 
@@ -1368,6 +1370,7 @@ def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_d
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval)
     trainer.fit(model, ckpt_path=checkpoint_path)
+    trainer.train_dataloader = None
     restart_batches = model.batches
 
     torch.testing.assert_allclose(total_batches, failed_batches + restart_batches)
