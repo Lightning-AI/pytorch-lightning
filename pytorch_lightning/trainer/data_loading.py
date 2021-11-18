@@ -38,7 +38,7 @@ from pytorch_lightning.utilities.auto_restart import (
     FastForwardSampler,
 )
 from pytorch_lightning.utilities.data import get_len, has_iterable_dataset, has_len_all_ranks
-from pytorch_lightning.utilities.enums import DistributedType
+from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -70,7 +70,7 @@ class TrainerDataLoadingMixin(ABC):
         if not isinstance(dataloader, DataLoader):
             return
 
-        using_spawn = self._accelerator_connector._distrib_type == DistributedType.DDP_SPAWN
+        using_spawn = self._accelerator_connector._distrib_type == _StrategyType.DDP_SPAWN
         num_cpus = multiprocessing.cpu_count()
 
         # ddp_spawn + num_workers > 0 don't mix! tell the user
@@ -438,8 +438,7 @@ class TrainerDataLoadingMixin(ABC):
         for loader_i in range(len(dataloaders)):
             loader = dataloaders[loader_i]
 
-            if hasattr(loader, "sampler") and isinstance(loader.sampler, RandomSampler):
-
+            if hasattr(loader, "sampler") and not isinstance(loader.sampler, SequentialSampler):
                 # when overfitting, the dataloader should not have sampler
                 if self.overfit_batches > 0 and mode.evaluating:
                     rank_zero_warn(
@@ -591,16 +590,17 @@ class TrainerDataLoadingMixin(ABC):
 
     @staticmethod
     def _resolve_overfit_batches(dataloader: Collection[DataLoader]) -> Collection[DataLoader]:
-        has_random_sampler = False
+        all_have_sequential_sampler = True
 
-        def resolve_had_random_sampler(dataloader: DataLoader):
-            nonlocal has_random_sampler
-            if not has_random_sampler:
-                has_random_sampler = isinstance(dataloader.sampler, RandomSampler)
+        def resolve_has_no_sequential_sampler(dataloader: DataLoader):
+            nonlocal all_have_sequential_sampler
+            all_have_sequential_sampler = all_have_sequential_sampler & isinstance(
+                dataloader.sampler, SequentialSampler
+            )
 
-        apply_to_collection(dataloader, DataLoader, resolve_had_random_sampler)
+        apply_to_collection(dataloader, DataLoader, resolve_has_no_sequential_sampler)
 
-        if has_random_sampler:
+        if not all_have_sequential_sampler:
             rank_zero_warn(
                 "You requested to overfit but enabled training dataloader shuffling."
                 " We are turning off the training dataloader shuffling for you."

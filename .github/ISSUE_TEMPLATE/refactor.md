@@ -1,18 +1,18 @@
 ---
-name: Code improvement
-about: Suggest a code improvement, i.e. refactoring, deprecation, etc.
+name: Refactor
+about: Suggest a code refactor or deprecation
 title: ''
-labels: refactors / code health
+labels: refactor
 assignees: ''
 ---
 
-## Proposed refactoring or deprecation
+## Proposed refactor
 
-<!-- A clear and concise description of the code improvement -->
+<!-- A clear and concise description of the refactor -->
 
 ### Motivation
 
-<!-- Please outline the motivation for the proposal. If this is related to another GitHub issue, please link here too -->
+<!-- Please outline the motivation for the proposal. If this is related to another GitHub issue, please link it here -->
 
 ### Pitch
 

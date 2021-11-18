@@ -14,10 +14,10 @@
 """Test deprecated functionality which will be removed in v1.8.0."""
 import pytest
 
-from tests.deprecated_api import _soft_unimport_module
+from pytorch_lightning.utilities.enums import DistributedType
 
 
-def test_v1_8_0_deprecated_env_vars_connector_defaults_from_env_vars():
-    _soft_unimport_module("pytorch_lightning.trainer.connectors.env_vars_connector._defaults_from_env_vars")
-    with pytest.deprecated_call(match="deprecated in v1.6, and will be removed in v1.8."):
-        from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_from_env_vars  # noqa: F401
+def test_v1_8_0_deprecated_distributed_type_enum():
+
+    with pytest.deprecated_call(match="has been deprecated in v1.6 and will be removed in v1.8."):
+        _ = DistributedType.DDP
