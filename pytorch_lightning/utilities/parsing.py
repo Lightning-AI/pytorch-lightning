@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.warnings import rank_zero_warn, rank_zero_deprecation
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn
 
 
 def str_to_bool_or_str(val: str) -> Union[str, bool]:
