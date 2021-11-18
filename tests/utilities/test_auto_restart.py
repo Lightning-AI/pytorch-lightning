@@ -1069,7 +1069,7 @@ class TestAutoRestartModelUnderSignal(BoringModel):
 
     def _signal(self):
         if self.should_signal:
-            # simulate `os.kill(os.getpid(), signal.SIGUSR1)`
+            # simulate `os.kill(os.getpid(), signal.SIGTERM)`
             self.trainer._terminate_gracefully = True
 
     def training_step(self, batch, batch_idx):

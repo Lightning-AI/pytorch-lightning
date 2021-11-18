@@ -30,19 +30,19 @@ from tests.helpers.runif import RunIf
 def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpdir):
 
     # hack to reset the signal
-    signal.signal(signal.SIGUSR1, 0)
+    signal.signal(signal.SIGTERM, 0)
 
     if register_handler:
 
         def handler(*_):
             pass
 
-        signal.signal(signal.SIGUSR1, handler)
+        signal.signal(signal.SIGTERM, handler)
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             if terminate_gracefully or register_handler:
-                os.kill(os.getpid(), signal.SIGUSR1)
+                os.kill(os.getpid(), signal.SIGTERM)
                 sleep(0.1)
             return super().training_step(batch, batch_idx)
 
