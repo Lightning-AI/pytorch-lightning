@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import re
 from pprint import pprint
 from typing import Any, Dict, Iterable, List, Optional, Union
 
@@ -164,8 +163,7 @@ class LoggerConnector:
             if metric_prefix not in k:
                 result[k] = v
                 continue
-            num_in_metric = int(re.search(r"\d+", k).group(0))
-            if num_in_metric == dl_idx:
+            if k.endswith(f"{metric_prefix}_{dl_idx}"):
                 result[k] = v
         return result
 
