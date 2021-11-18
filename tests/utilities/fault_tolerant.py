@@ -56,6 +56,8 @@ auto_restart_checkpoint_path_exists = os.path.exists(auto_restart_checkpoint_pat
 
 seed_everything(42)
 
+os.environ["PL_FAULT_TOLERANT_TRAINING"] = "1"
+
 dataset_classes = [RandomGetItemDataset]
 
 trainer_kwargs = dict(
