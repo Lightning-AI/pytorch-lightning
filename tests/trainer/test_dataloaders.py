@@ -359,7 +359,7 @@ def test_dataloaders_with_limit_val_batches(tmpdir, dataset, limit_val_batches):
 
     trainer.fit(model, train_dataloaders=train_dl, val_dataloaders=val_dl)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.num_val_batches[0] == limit_val_batches
+    assert trainer.num_val_batches == [] if limit_val_batches == 0 else [limit_val_batches]
     assert epoch_cb.val_epoch_count == (epochs if limit_val_batches > 0 else 0)
     assert epoch_cb.val_batches_seen == limit_val_batches * epochs
 

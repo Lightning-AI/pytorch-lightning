@@ -1094,7 +1094,7 @@ class Trainer(
         self.accelerator.setup_environment()
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
-        if self.state.fn == TrainerFn.FITTING:
+        if self.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
             # reset train dataloader and val dataloader
             self.reset_train_val_dataloaders(self.lightning_module)
 
@@ -1786,6 +1786,13 @@ class Trainer(
         """Check if dataloader should be reloaded in the current epoch."""
         n_epochs = self.reload_dataloaders_every_n_epochs
         return n_epochs and (not self.current_epoch % n_epochs)
+
+    @property
+    def enable_training(self) -> bool:
+        """Check if we should run training."""
+        model_ref = self.lightning_module
+        val_loop_enabled = is_overridden("training_step", model_ref) and self.limit_train_batches > 0
+        return val_loop_enabled
 
     @property
     def enable_validation(self) -> bool:

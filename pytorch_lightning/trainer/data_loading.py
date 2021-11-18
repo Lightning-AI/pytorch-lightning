@@ -557,7 +557,7 @@ class TrainerDataLoadingMixin(ABC):
         Args:
             model: The `LightningModule` if called outside of the trainer scope.
         """
-        if self.train_dataloader is None:
+        if self.train_dataloader is None and self.enable_training:
             self.reset_train_dataloader(model=model)
         if self.val_dataloaders is None and self.enable_validation:
             self.reset_val_dataloader(model=model)
