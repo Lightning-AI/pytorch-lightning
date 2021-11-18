@@ -44,7 +44,6 @@ class ClusterEnvironment(ABC):
     @abstractmethod
     def detect() -> bool:
         """Detects the environment settings corresponding to this cluster and returns ``True`` if they match."""
-        pass
 
     @abstractmethod
     def world_size(self) -> int:
