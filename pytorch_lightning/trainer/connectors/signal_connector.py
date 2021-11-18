@@ -5,7 +5,7 @@ import sys
 from signal import Signals
 from subprocess import call
 from types import FrameType, FunctionType
-from typing import Callable, List, Union
+from typing import Callable, List, Union, Dict, Any
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 
 
 class HandlersCompose:
-    def __init__(self, signal_handlers: Union[List[Callable], Callable]):
+    def __init__(self, signal_handlers: Union[List[Callable], Callable]) -> None:
         if not isinstance(signal_handlers, list):
             signal_handlers = [signal_handlers]
         self.signal_handlers = signal_handlers
@@ -25,11 +25,17 @@ class HandlersCompose:
 
 
 class SignalConnector:
-    def __init__(self, trainer: "pl.Trainer"):
+    def __init__(self, trainer: "pl.Trainer") -> None:
         self.trainer = trainer
         self.trainer._terminate_gracefully = False
+        self._original_handlers: Dict[int, Any] = {}
 
     def register_signal_handlers(self) -> None:
+        self._original_handlers = {
+            signal.SIGTERM: signal.getsignal(signal.SIGTERM),
+            signal.SIGUSR1: signal.getsignal(signal.SIGUSR1),
+        }
+
         sigusr1_handlers: List[Callable] = []
         sigterm_handlers: List[Callable] = []
 
@@ -86,6 +92,11 @@ class SignalConnector:
     def sigterm_handler_fn(self, signum: Signals, frame: FrameType) -> None:
         log.info("bypassing sigterm")
 
+    def teardown(self):
+        """Restores the signals that were previsouly configured before :class:`SignalConnector` replaced them."""
+        for signum, handler in self._original_handlers.items():
+            signal.signal(signum, handler)
+
     def _is_on_slurm(self) -> bool:
         # see if we're using slurm (not interactive)
         on_slurm = False
@@ -103,7 +114,4 @@ class SignalConnector:
         return sys.platform == "win32"
 
     def _has_already_handler(self, signum: Signals) -> bool:
-        try:
-            return isinstance(signal.getsignal(signum), FunctionType)
-        except AttributeError:
-            return False
+        return signal.getsignal(signum) is not signal.SIG_DFL
