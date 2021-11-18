@@ -809,7 +809,7 @@ class AcceleratorConnector:
             rank_zero_info("Multiprocessing is handled by SLURM.")
             return SLURMEnvironment()
 
-        for env_type in (TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment, LightningEnvironment):
+        for env_type in (TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment):
             if env_type.detect():
                 return env_type()
 
