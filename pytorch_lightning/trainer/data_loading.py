@@ -30,7 +30,12 @@ from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import _capture_metadata_collate
-from pytorch_lightning.utilities.data import _get_dataloader_init_kwargs, has_iterable_dataset, has_len_all_ranks
+from pytorch_lightning.utilities.data import (
+    _get_dataloader_init_kwargs,
+    has_iterable_dataset,
+    has_len_all_ranks,
+    update_dataloader,
+)
 from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
@@ -152,7 +157,7 @@ class TrainerDataLoadingMixin(ABC):
             or self._accelerator_connector.use_ipu  # IPUs use a custom `DataLoader`
         ):
             sampler = self._resolve_sampler(dataloader, shuffle=shuffle, mode=mode)
-            dataloader = self._update_dataloader(dataloader, sampler, mode=mode)
+            dataloader = update_dataloader(dataloader, sampler, mode=mode)
 
         if cycle_iterator is not None:
             cycle_iterator.loader = dataloader
@@ -174,13 +179,6 @@ class TrainerDataLoadingMixin(ABC):
             )
 
         return dataloader.sampler
-
-    @staticmethod
-    def _update_dataloader(dataloader: DataLoader, sampler: Sampler, mode: Optional[RunningStage] = None) -> DataLoader:
-        dl_kwargs = _get_dataloader_init_kwargs(dataloader, sampler, mode=mode)
-        dl_cls = type(dataloader)
-        dataloader = dl_cls(**dl_kwargs)
-        return dataloader
 
     @staticmethod
     def _get_distributed_sampler(
@@ -313,9 +311,7 @@ class TrainerDataLoadingMixin(ABC):
                         "You requested to overfit but enabled val/test dataloader shuffling."
                         " We are turning it off for you."
                     )
-                    dataloaders[loader_i] = self._update_dataloader(
-                        loader, SequentialSampler(loader.dataset), mode=mode
-                    )
+                    dataloaders[loader_i] = update_dataloader(loader, SequentialSampler(loader.dataset), mode=mode)
                 else:
                     rank_zero_warn(
                         f"Your `{mode.dataloader_prefix}_dataloader` has `shuffle=True`,"
@@ -475,9 +471,7 @@ class TrainerDataLoadingMixin(ABC):
             )
 
             def replace_sampler(dataloader: DataLoader) -> DataLoader:
-                return TrainerDataLoadingMixin._update_dataloader(
-                    dataloader, SequentialSampler(dataloader.dataset), mode=RunningStage.TRAINING
-                )
+                return update_dataloader(dataloader, SequentialSampler(dataloader.dataset), mode=RunningStage.TRAINING)
 
             dataloader = apply_to_collection(dataloader, DataLoader, replace_sampler)
 

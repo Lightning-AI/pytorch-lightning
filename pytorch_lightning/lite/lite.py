@@ -43,7 +43,7 @@ from pytorch_lightning.trainer.connectors.accelerator_connector import Accelerat
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.utilities import _StrategyType, DeviceType, move_data_to_device
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
-from pytorch_lightning.utilities.data import has_iterable_dataset
+from pytorch_lightning.utilities.data import has_iterable_dataset, update_dataloader
 from pytorch_lightning.utilities.device_parser import _parse_devices
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
@@ -239,7 +239,7 @@ class LightningLite(ABC):
             sampler = self._get_distributed_sampler(dataloader, **self._strategy.distributed_sampler_kwargs)
 
         # the dataloader needs to be re-instantiated because we want to update the input arguments (e.g., sampler)
-        dataloader = TrainerDataLoadingMixin._update_dataloader(dataloader, sampler)
+        dataloader = update_dataloader(dataloader, sampler)
 
         # add worker_init_fn for correct seeding in worker processes
         TrainerDataLoadingMixin._auto_add_worker_init_fn(dataloader, self.global_rank)
