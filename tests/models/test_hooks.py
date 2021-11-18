@@ -507,6 +507,10 @@ def _run_trainer_model_hook_system_fit(kwargs, tmpdir, automatic_optimization):
         *([dict(name="train_dataloader")] if kwargs.get("strategy") == "deepspeed" else []),
         dict(name="Callback.setup", args=(trainer, model), kwargs=dict(stage="fit")),
         dict(name="setup", kwargs=dict(stage="fit")),
+        dict(name="on_train_dataloader"),
+        dict(name="train_dataloader"),
+        dict(name="on_val_dataloader"),
+        dict(name="val_dataloader"),
         dict(name="configure_sharded_model"),
         dict(name="Callback.on_configure_sharded_model", args=(trainer, model)),
         # DeepSpeed skips initializing optimizers here as they are handled via config
@@ -521,8 +525,6 @@ def _run_trainer_model_hook_system_fit(kwargs, tmpdir, automatic_optimization):
         dict(name="Callback.on_pretrain_routine_end", args=(trainer, model)),
         dict(name="on_pretrain_routine_end"),
         dict(name="Callback.on_sanity_check_start", args=(trainer, model)),
-        dict(name="on_val_dataloader"),
-        dict(name="val_dataloader"),
         dict(name="train", args=(False,)),
         dict(name="on_validation_model_eval"),
         dict(name="zero_grad"),
@@ -536,8 +538,6 @@ def _run_trainer_model_hook_system_fit(kwargs, tmpdir, automatic_optimization):
         dict(name="Callback.on_sanity_check_end", args=(trainer, model)),
         # duplicate `train` because `_run_train` calls it again in case validation wasn't run
         dict(name="train", args=(True,)),
-        dict(name="on_train_dataloader"),
-        dict(name="train_dataloader"),
         dict(name="Callback.on_train_start", args=(trainer, model)),
         dict(name="on_train_start"),
         dict(name="Callback.on_epoch_start", args=(trainer, model)),
@@ -626,6 +626,8 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         dict(name="Callback.on_before_accelerator_backend_setup", args=(trainer, model)),
         dict(name="Callback.setup", args=(trainer, model), kwargs=dict(stage="fit")),
         dict(name="setup", kwargs=dict(stage="fit")),
+        dict(name="on_train_dataloader"),
+        dict(name="train_dataloader"),
         dict(
             name="on_load_checkpoint",
             args=(
@@ -651,11 +653,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         dict(name="Callback.on_pretrain_routine_end", args=(trainer, model)),
         dict(name="on_pretrain_routine_end"),
         dict(name="train", args=(True,)),
-        dict(name="on_train_dataloader"),
-        dict(name="train_dataloader"),
         # even though no validation runs, we initialize the val dataloader for properties like `num_val_batches`
-        dict(name="on_val_dataloader"),
-        dict(name="val_dataloader"),
         dict(name="Callback.on_train_start", args=(trainer, model)),
         dict(name="on_train_start"),
         dict(name="Callback.on_epoch_start", args=(trainer, model)),
@@ -879,12 +877,11 @@ def test_trainer_datamodule_hook_system(tmpdir):
     expected = [
         dict(name="prepare_data"),
         dict(name="setup", kwargs=dict(stage="fit")),
-        dict(name="val_dataloader"),
-        *batch_transfer * batches,
         dict(name="train_dataloader"),
-        *batch_transfer * batches,
         dict(name="val_dataloader"),
-        *batch_transfer * batches,
+        *batch_transfer * batches,  # sanity check using val_dataloader
+        *batch_transfer * batches,  # fit loop: train batches
+        *batch_transfer * batches,  # fit loop: val batches
         dict(
             name="on_save_checkpoint",
             args=(

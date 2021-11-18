@@ -245,6 +245,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             self.trainer.validating = True
             self._run_validation()
             self.trainer.training = True
+            self.trainer._fit_loop._is_fresh_start_loop = False
 
         # -----------------------------------------
         # SAVE LOGGERS (ie: Tensorboard, etc...)

@@ -165,7 +165,9 @@ class EvaluationLoop(DataLoaderLoop):
         """Reloads dataloaders if necessary."""
         if self.trainer.testing:
             self.trainer.reset_test_dataloader()
-        elif self.trainer.val_dataloaders is None or self.trainer._should_reload_dl_epoch:
+        elif self.trainer.val_dataloaders is None or (
+            not self.trainer._fit_loop._is_fresh_start_loop and self.trainer._should_reload_dl_epoch
+        ):
             self.trainer.reset_val_dataloader()
 
     def _on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:

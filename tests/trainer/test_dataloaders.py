@@ -1119,7 +1119,7 @@ def test_dataloaders_load_only_once(tmpdir):
     model.val_dataloader.assert_called_once()
     model.test_dataloader.assert_not_called()
 
-    assert tracker.mock_calls == [call.val_dataloader(), call.train_dataloader()]
+    assert tracker.mock_calls == [call.train_dataloader(), call.val_dataloader()]
 
 
 def test_dataloaders_load_only_once_val_interval(tmpdir):
@@ -1149,7 +1149,6 @@ def test_dataloaders_load_only_once_val_interval(tmpdir):
 
     # verify the sequence
     expected_sequence = [
-        call.val_dataloader(),
         call.train_dataloader(),
         call.val_dataloader(),
         call.val_dataloader(),
@@ -1216,7 +1215,7 @@ def test_dataloaders_load_every_n_epochs(tmpdir, n):
     trainer.test(model)
 
     # verify the sequence
-    expected_sequence = [call.val_dataloader()]
+    expected_sequence = []
     if n == 1:
         expected_sequence += [call.train_dataloader(), call.val_dataloader()] * 3
     elif n == 2:
@@ -1269,15 +1268,6 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
     expected_calls = [
         call.train_dataloader(),
         call.val_dataloader(),
-        # This has subsequent calls to val_dataloader
-        # because the training loop runs the evaluation loop,
-        # which reloads the val dataloader again.
-        # We cannot yet rely on trainer.current_epoch=0 to skip reloading
-        # the val dataloader on the first epoch because this only tracks the training epoch
-        # meaning multiple passes through the validation data within a single training epoch
-        # would not have the dataloader reloaded.
-        # This breaks the assumption behind reload_dataloaders_every_n_epochs=True
-        call.val_dataloader(),
         call.train_dataloader(),
         call.val_dataloader(),
         call.train_dataloader(),
@@ -1317,8 +1307,8 @@ def test_dataloaders_load_only_once_passed_loaders(tmpdir):
     trainer.reset_test_dataloader.assert_called_once()
 
     assert tracker.mock_calls == [
-        call.reset_val_dataloader(),
         call.reset_train_dataloader(model=model),
+        call.reset_val_dataloader(model=model),
         call.reset_test_dataloader(),
     ]
 

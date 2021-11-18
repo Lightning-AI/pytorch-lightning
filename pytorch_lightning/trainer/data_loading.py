@@ -559,7 +559,7 @@ class TrainerDataLoadingMixin(ABC):
         """
         if self.train_dataloader is None:
             self.reset_train_dataloader(model=model)
-        if self.val_dataloaders is None:
+        if self.val_dataloaders is None and self.enable_validation:
             self.reset_val_dataloader(model=model)
 
     def request_dataloader(

@@ -1327,9 +1327,6 @@ class Trainer(
 
             self.call_hook("on_sanity_check_start")
 
-            # reload dataloaders
-            self._evaluation_loop._reload_evaluation_dataloaders()
-
             # run eval step
             with torch.no_grad():
                 self._evaluation_loop.run()

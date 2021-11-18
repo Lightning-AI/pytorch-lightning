@@ -50,7 +50,7 @@ class FitLoop(Loop):
         self.min_epochs = min_epochs
         self.epoch_loop: Optional[TrainingEpochLoop] = None
         self.epoch_progress = Progress()
-        self._is_fresh_start_epoch: bool = True
+        self._is_fresh_start_loop: bool = True
 
     @property
     def current_epoch(self) -> int:
@@ -193,7 +193,7 @@ class FitLoop(Loop):
 
     def on_run_start(self) -> None:
         """Calls the ``on_train_start`` hook."""
-        self._is_fresh_start_epoch = True
+        self._is_fresh_start_loop = True
         self._results.to(device=self.trainer.lightning_module.device)
         self.trainer.call_hook("on_train_start")
 
@@ -203,9 +203,8 @@ class FitLoop(Loop):
         model = self.trainer.lightning_module
 
         # reset train dataloader
-        if not self._is_fresh_start_epoch and self.trainer._should_reload_dl_epoch:
+        if not self._is_fresh_start_loop and self.trainer._should_reload_dl_epoch:
             self.trainer.reset_train_dataloader(model)
-        self._is_fresh_start_epoch = False
 
         if self.trainer.train_dataloader is not None and callable(
             getattr(self.trainer.train_dataloader.sampler, "set_epoch", None)
@@ -230,6 +229,7 @@ class FitLoop(Loop):
 
         with self.trainer.profiler.profile("run_training_epoch"):
             self.epoch_loop.run(data_fetcher)
+            self._is_fresh_start_loop = False
 
             # the global step is manually decreased here due to backwards compatibility with existing loggers
             # as they expect that the same step is used when logging epoch end metrics even when the batch loop has

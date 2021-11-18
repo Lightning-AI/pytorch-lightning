@@ -110,6 +110,7 @@ def has_len_all_ranks(
     try:
         total_length = training_type.reduce(torch.tensor(len(dataloader)).to(model.device), reduce_op="sum")
         local_length = len(dataloader)
+        breakpoint()
 
         if total_length == 0:
             raise MisconfigurationException(
