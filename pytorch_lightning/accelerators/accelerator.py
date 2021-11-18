@@ -279,7 +279,6 @@ class Accelerator:
         .. deprecated::
             This property been deprecated and will be removed soon.
             Use ``training_type_plugin.precision_plugin.precision`` instead.
-
         """
         rank_zero_deprecation(
             f"`{self.__class__.__name__}.precision` has been deprecated and will be removed soon"
