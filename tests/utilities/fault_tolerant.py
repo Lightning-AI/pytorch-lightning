@@ -29,15 +29,24 @@ Command: `python -m tests.utilities.fault_tolerant`
 
 # Note, this file is used to ensure Fault Tolerant is working as expected
 import os
+import random as python_random
+from contextlib import suppress
 from time import sleep
 
+import numpy as np
 import torch
+from torch.utils.data import DataLoader, Dataset
 
-from pytorch_lightning import seed_everything  # E402
-from tests.utilities.test_auto_restart import _run_training, CustomException, RandomGetItemDataset, TestModel  # E402
+from pytorch_lightning import LightningModule, seed_everything, Trainer
 
 
-class SignalTestModel(TestModel):
+class Model(LightningModule):
+    def __init__(self, fail_on_step: int = -1):
+        super().__init__()
+        self.layer = torch.nn.Linear(1, 2)
+        self.seen_batches = []
+        self.fail_on_step = fail_on_step
+
     def training_step(self, batch, batch_idx):
         if self.global_step == self.fail_on_step:
             print("READY TO BE KILLED WITH SIGTERM SIGNAL.")
@@ -48,6 +57,44 @@ class SignalTestModel(TestModel):
         self.seen_batches.append(torch.stack(batch) if isinstance(batch, list) else batch)
         loss = sum(self.layer(b).sum() for b in batch)
         return loss
+
+    def configure_optimizers(self):
+        return torch.optim.SGD(self.layer.parameters(), lr=0.1)
+
+
+class CustomException(Exception):
+    pass
+
+
+class RandomGetItemDataset(Dataset):
+    """A dataset with random elements generated using global rng from torch, numpy and python."""
+
+    def __init__(self, length, size):
+        self.size = size
+        self.len = length
+
+    def __getitem__(self, index):
+        t = torch.rand(self.size)
+        n = torch.from_numpy(np.random.rand(self.size))
+        p = torch.tensor([python_random.random() for _ in range(self.size)])
+        sample = (index + (t + n + p) / 10).float()
+        return sample
+
+    def __len__(self):
+        return self.len
+
+
+def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1, ckpt_path=None):
+    seed_everything(1)
+    train_dataloader = [
+        DataLoader(dataset_class(3, 1), batch_size=1, num_workers=0) for dataset_class in dataset_classes
+    ]
+    train_dataloader = train_dataloader[0] if len(train_dataloader) == 1 else train_dataloader
+    model = Model(fail_on_step=fail_on_step)
+    trainer = Trainer(**trainer_kwargs)
+    with suppress(CustomException):
+        trainer.fit(model, train_dataloaders=train_dataloader, ckpt_path=ckpt_path)
+    return model.seen_batches, model.parameters()
 
 
 tmpdir = "/tmp/pl_fault_tolerant"
@@ -80,9 +127,7 @@ else:
     completed_batches = 4
 
 # Perform a failure
-complete_batches, weights = _run_training(
-    trainer_kwargs, dataset_classes, fail_on_step=fail_on_step, model_cls=SignalTestModel
-)
+complete_batches, weights = _run_training(trainer_kwargs, dataset_classes, fail_on_step=fail_on_step)
 assert len(complete_batches) == completed_batches
 
 if not auto_restart_checkpoint_path_exists:
