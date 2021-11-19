@@ -699,3 +699,27 @@ def test_filter_metrics_for_dataloader(kwargs, expected):
     """Logged metrics should only include metrics from the concerned dataloader."""
     actual = LoggerConnector._filter_metrics_for_dataloader(**kwargs)
     assert actual == expected
+
+
+def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir):
+    class TestModel(BoringModel):
+        def validation_step(self, *args):
+            x = torch.tensor(2.0, requires_grad=True, device=self.device)
+            y = x * 2
+            assert x.requires_grad is True
+            assert y.grad_fn is None  # disabled by validation
+
+            self.log("foo", y)
+            return y
+
+        def validation_epoch_end(self, outputs):
+            # the step outputs were not moved
+            assert all(o.device == self.device for o in outputs)
+            # but the logging results were
+            assert self.trainer.callback_metrics["foo"].device.type == "cpu"
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir, limit_val_batches=2, move_metrics_to_cpu=True, accelerator="auto", devices=1
+    )
+    trainer.validate(model, verbose=False)
