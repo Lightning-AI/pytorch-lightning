@@ -1332,7 +1332,7 @@ on_save_checkpoint
 load_from_checkpoint
 ~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.saving.ModelIO.on_save_checkpoint
+.. automethod:: pytorch_lightning.core.saving.ModelIO.load_from_checkpoint
     :noindex:
 
 on_hpc_save
