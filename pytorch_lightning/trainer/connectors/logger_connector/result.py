@@ -21,7 +21,6 @@ from torchmetrics import Metric
 from typing_extensions import TypedDict
 
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
-from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
 from pytorch_lightning.utilities.data import extract_batch_size
@@ -401,8 +400,7 @@ class ResultCollection(dict):
             return batch_size
 
         batch_size = 1
-        fx_validate = _FxValidator.functions.get(meta.fx.split(".")[0])
-        if meta.on_epoch and fx_validate is not None and (True in fx_validate["on_step"]) and meta.is_mean_reduction:
+        if self.batch is not None and meta.on_epoch and meta.is_mean_reduction:
             try:
                 # extract it
                 batch_size = extract_batch_size(self.batch)
