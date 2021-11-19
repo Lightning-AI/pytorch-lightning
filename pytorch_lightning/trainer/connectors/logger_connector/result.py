@@ -487,7 +487,7 @@ class ResultCollection(dict):
         self[key] = value
 
     def update_metrics(self, key: str, value: _METRIC_COLLECTION, batch_size: int) -> None:
-        def fn(result_metric: ResultMetric, v: ResultMetric) -> None:
+        def fn(result_metric: ResultMetric, v: torch.Tensor) -> None:
             # performance: avoid calling `__call__` to avoid the checks in `torch.nn.Module._call_impl`
             result_metric.forward(v.to(self.device), batch_size)
             result_metric.has_reset = False
