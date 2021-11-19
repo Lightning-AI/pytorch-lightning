@@ -377,9 +377,9 @@ class ResultCollection(dict):
     def __init__(self, training: bool, device: Optional[Union[str, torch.device]] = None) -> None:
         super().__init__()
         self.training = training
-        self._current_batch = None
-        self._current_batch_size: Optional[int] = None
         self.device: Optional[Union[str, torch.device]] = device
+        self.current_batch: Optional[Any] = None
+        self.current_batch_size: Optional[int] = None
 
     @property
     def result_metrics(self) -> List[ResultMetric]:
@@ -391,22 +391,6 @@ class ResultCollection(dict):
 
         apply_to_collection(list(self.values()), ResultMetric, append_fn)
         return o
-
-    @property
-    def current_batch_size(self) -> Optional[int]:
-        return self._current_batch_size
-
-    @current_batch_size.setter
-    def current_batch_size(self, val: Optional[int]) -> None:
-        self._current_batch_size = val
-
-    @property
-    def current_batch(self) -> Any:
-        return self._current_batch
-
-    @current_batch.setter
-    def current_batch(self, data: Any) -> None:
-        self._current_batch = data
 
     def _extract_batch_size(self, batch_size: Optional[int], on_epoch: bool, fx: str, meta: _Metadata) -> int:
         # check if we have extracted the batch size already
