@@ -122,8 +122,11 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             os.environ["PT_XLA_DEBUG"] = str(1)
 
     def setup(self, trainer: "pl.Trainer") -> None:
+        # Revisit strategy inheritance
         self.create_mp_queue()
-        super().setup(trainer)
+        if not self.setup_optimizers_in_pre_dispatch:
+            self.setup_optimizers(trainer)
+        self.setup_precision_plugin()
 
     def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
         """Moves the state of the optimizers to the TPU if needed."""

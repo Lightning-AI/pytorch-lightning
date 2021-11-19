@@ -119,11 +119,12 @@ class IPUPlugin(ParallelPlugin):
         # to use the simpler solution before adding abstractions to override the `DataLoader` class
         self._update_dataloader_original = pl.trainer.data_loading._update_dataloader
         pl.trainer.data_loading._update_dataloader = self._convert_to_poptorch_loader
-        super().setup(trainer)
+
+        if not self.setup_optimizers_in_pre_dispatch:
+            self.setup_optimizers(trainer)
+        self.setup_precision_plugin()
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
-        # refactor after move accelerator into strategy @four4fish
-        # RFC: I think set optimizer related logic should be in strategy instead of accelerator.
         if len(self.optimizers) > 1:
             raise MisconfigurationException("IPUs currently only support one optimizer.")
 

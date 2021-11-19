@@ -517,7 +517,7 @@ class DeepSpeedPlugin(DDPPlugin):
         self.model = model
 
     @contextlib.contextmanager
-    def model_sharded_context(self) -> Generator:
+    def model_sharded_context(self) -> Generator[None, None, None]:
         if self.zero_stage_3:
             assert self._config_initialized
             dtype = torch.float16 if self.precision in (16, "mixed") else torch.float32

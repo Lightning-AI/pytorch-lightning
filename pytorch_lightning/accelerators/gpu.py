@@ -44,7 +44,7 @@ class GPUAccelerator(Accelerator):
         torch.cuda.set_device(self.training_type_plugin.root_device)
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        self.set_nvidia_flags(getattr(self.training_type_plugin, "local_rank", 0))
+        self.set_nvidia_flags(trainer.local_rank)
         return super().setup(trainer)
 
     def on_train_start(self) -> None:

@@ -55,6 +55,7 @@ class SingleTPUPlugin(SingleDevicePlugin):
         return False
 
     def setup(self, trainer: "pl.Trainer") -> None:
+        # Revisit strategy inheritance.
         shared_params = find_shared_parameters(self.model)
         self.model_to_device()
         if is_overridden("on_post_move_to_device", self.lightning_module):
@@ -62,7 +63,9 @@ class SingleTPUPlugin(SingleDevicePlugin):
         else:
             set_shared_parameters(self.model, shared_params)
 
-        super().setup(trainer)
+        if not self.setup_optimizers_in_pre_dispatch:
+            self.setup_optimizers(trainer)
+        self.setup_precision_plugin()
 
     def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
         """Moves the state of the optimizers to the TPU if needed."""
