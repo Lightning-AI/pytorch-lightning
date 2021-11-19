@@ -12,12 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Note: This file is used to ensure Fault Tolerant is working properly when
-Lightning is used in an environment where users have full control on their
-Kubernetes Environnement
-
-Here are the steps to use this file to ensure your cluster is properly setup for Fault Tolerant Training.
+"""Here are the steps to use this file to ensure your cluster is properly setup for Fault Tolerant Training.
 
 1. Launch this script with `python tests/utilities/fault_tolerant.py`
 2. Once ``READY TO BE KILLED WITH SIGTERM SIGNAL`` is detected within
