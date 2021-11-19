@@ -222,6 +222,9 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
                 )
                 value = value.to(dtype)
 
+            if self.meta.on_step:
+                self._forward_cache = self.meta.sync(value.clone())  # `clone` because `sync` is in-place
+
             # performance: no need to accumulate on values only logged on_step
             if not self.meta.on_epoch:
                 self.value = self._forward_cache
