@@ -42,6 +42,7 @@ from pytorch_lightning.utilities.auto_restart import (
     CaptureIterableDataset,
     CaptureMapDataset,
     FastForwardSampler,
+    is_obj_stateful,
     MergedIteratorState,
 )
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
@@ -1192,3 +1193,32 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
         assert "dataloader_state_dict" not in state_dict
     else:
         assert "dataloader_state_dict" in state_dict
+
+
+def test_is_obj_stateful():
+    class StatefulClass:
+        def state_dict(self):
+            pass
+
+        def load_state_dict(self, state_dict):
+            pass
+
+    obj = StatefulClass()
+    assert is_obj_stateful(obj)
+
+    class NotStatefulClass:
+        def state_dict(self):
+            pass
+
+        def load_state_dict(self):
+            pass
+
+    obj = NotStatefulClass()
+    assert not is_obj_stateful(obj)
+
+    class NotStatefulClass:
+        def load_state_dict(self):
+            pass
+
+    obj = NotStatefulClass()
+    assert not is_obj_stateful(obj)

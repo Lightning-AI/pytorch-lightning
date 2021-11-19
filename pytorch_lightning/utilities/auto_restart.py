@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial, wraps
@@ -571,3 +572,15 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
 
     else:
         raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
+
+
+def is_obj_stateful(obj: Any) -> bool:
+    """In order to be stateful, an object should implement a ``state_dict`` and ``load_state_dict`` method."""
+    load_state_dict_fn = getattr(obj, "load_state_dict", None)
+    if not isinstance(load_state_dict_fn, Callable):
+        return False
+    params = inspect.signature(load_state_dict_fn).parameters
+    if len(params) == 0:
+        return False
+
+    return isinstance(getattr(obj, "state_dict", None), Callable)
