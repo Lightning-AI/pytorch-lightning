@@ -15,7 +15,7 @@ import functools
 import inspect
 from contextlib import contextmanager
 from itertools import chain
-from typing import Any, Callable, Dict, Generator, Iterable, Iterator, Optional, Set, Sized, Type, Union
+from typing import Any, Callable, Dict, Generator, Iterator, Optional, Set, Type, Union
 
 import torch
 from torch import nn as nn
