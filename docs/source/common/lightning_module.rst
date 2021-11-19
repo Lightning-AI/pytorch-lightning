@@ -5,13 +5,14 @@
 
 LightningModule
 ===============
-A :class:`~LightningModule` organizes your PyTorch code into 5 sections
+A :class:`~LightningModule` organizes your PyTorch code into 6 sections:
 
 - Computations (init).
 - Train loop (training_step)
 - Validation loop (validation_step)
 - Test loop (test_step)
-- Optimizers (configure_optimizers)
+- Prediction loop (predict_step)
+- Optimizers and LR Schedulers (configure_optimizers)
 
 |
 
@@ -36,7 +37,7 @@ Notice a few things.
         trainer = Trainer()
         trainer.fit(net)
 
-4.  There are no .cuda() or .to() calls... Lightning does these for you.
+4.  There are no ``.cuda()`` or ``.to(device)`` calls required. Lightning does these for you.
 
 |
 
@@ -54,7 +55,7 @@ Notice a few things.
         new_x = torch.Tensor(2, 3)
         new_x = new_x.type_as(x)
 
-5.  Lightning by default handles the distributed sampler for you.
+5.  Lightning by default handles the distributed sampler for you when running under a distributed environment.
 
 |
 
@@ -116,10 +117,10 @@ Which you can train by doing:
 .. code-block:: python
 
     train_loader = DataLoader(MNIST(os.getcwd(), download=True, transform=transforms.ToTensor()))
-    trainer = pl.Trainer()
+    trainer = pl.Trainer(max_epochs=1)
     model = LitModel()
 
-    trainer.fit(model, train_loader)
+    trainer.fit(model, train_dataloaders=train_loader)
 
 The LightningModule has many convenience methods, but the core ones you need to know about are:
 
@@ -139,6 +140,8 @@ The LightningModule has many convenience methods, but the core ones you need to 
      - the full validation loop
    * - test_step
      - the full test loop
+   * - predict_step
+     - the full prediction loop
    * - configure_optimizers
      - define optimizers and LR schedulers
 
@@ -149,7 +152,7 @@ Training
 
 Training loop
 ^^^^^^^^^^^^^
-To add a training loop use the `training_step` method
+To add a training loop use :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`.
 
 .. code-block:: python
 
@@ -190,7 +193,7 @@ Under the hood, Lightning does the following (pseudocode):
 
 Training epoch-level metrics
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If you want to calculate epoch-level metrics and log them, use the `.log` method
+If you want to calculate epoch-level metrics and log them, use :meth:`~pytorch_lightning.core.lightning.LightningModule.log`.
 
 .. code-block:: python
 
@@ -204,8 +207,8 @@ If you want to calculate epoch-level metrics and log them, use the `.log` method
          self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
          return loss
 
-The `.log` object automatically reduces the requested metrics across the full epoch.
-Here's the pseudocode of what it does under the hood:
+The :meth:`~pytorch_lightning.core.lightning.LightningModule.log` object automatically reduces the
+requested metrics across the full epoch. Here's the pseudocode of what it does under the hood:
 
 .. code-block:: python
 
@@ -228,7 +231,8 @@ Here's the pseudocode of what it does under the hood:
 
 Train epoch-level operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If you need to do something with all the outputs of each `training_step`, override `training_epoch_end` yourself.
+If you need to do something with all the outputs of each :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`.
+override :meth:`~pytorch_lightning.core.lightning.LightningModule.training_epoch_end`.
 
 .. code-block:: python
 
@@ -267,10 +271,10 @@ The matching pseudocode is:
 
 Training with DataParallel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-When training using an `accelerator` that splits data from each batch across GPUs, sometimes you might
+When training using an ``accelerator`` that splits data from each batch across GPUs, sometimes you might
 need to aggregate them on the main GPU for processing (dp, or ddp2).
 
-In this case, implement the `training_step_end` method
+In this case, implement the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step_end`.
 
 .. code-block:: python
 
@@ -299,7 +303,7 @@ In this case, implement the `training_step_end` method
          for out in training_step_outputs:
              ...
 
-The full pseudocode that lighting does under the hood is:
+The full pseudocode that lightning does under the hood is:
 
 .. code-block:: python
 
@@ -324,7 +328,7 @@ The full pseudocode that lighting does under the hood is:
 
 Validation loop
 ^^^^^^^^^^^^^^^
-To add a validation loop, override the `validation_step` method of the :class:`~LightningModule`:
+To add a validation loop during training, override :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`.
 
 .. code-block:: python
 
@@ -359,9 +363,19 @@ Under the hood, Lightning does the following:
             torch.set_grad_enabled(True)
             model.train()
 
+You can also run just the validation loop on your val_dataloaders by overriding :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`
+and calling :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`.
+
+.. code-block:: python
+
+    model = Model()
+    trainer = Trainer()
+    trainer.validate(model)
+
 Validation epoch-level metrics
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If you need to do something with all the outputs of each `validation_step`, override `validation_epoch_end`.
+If you need to do something with all the outputs of each :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`,
+override :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`
 
 .. code-block:: python
 
@@ -379,10 +393,10 @@ If you need to do something with all the outputs of each `validation_step`, over
 
 Validating with DataParallel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-When training using an `accelerator` that splits data from each batch across GPUs, sometimes you might
+When training using an ``accelerator`` that splits data from each batch across GPUs, sometimes you might
 need to aggregate them on the main GPU for processing (dp, or ddp2).
 
-In this case, implement the `validation_step_end` method
+In this case, implement :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step_end`.
 
 .. code-block:: python
 
@@ -411,7 +425,7 @@ In this case, implement the `validation_step_end` method
          for out in validation_step_outputs:
              ...
 
-The full pseudocode that lighting does under the hood is:
+The full pseudocode that lightning does under the hood is:
 
 .. code-block:: python
 
@@ -437,20 +451,20 @@ The full pseudocode that lighting does under the hood is:
 Test loop
 ^^^^^^^^^
 The process for adding a test loop is the same as the process for adding a validation loop. Please refer to
-the section above for details.
+the section above for details. For this you need to override :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step`.
 
-The only difference is that the test loop is only called when `.test()` is used:
+The only difference is that the test loop is only called when :meth:`~pytorch_lightning.trainer.trainer.Trainer.test` is used.
 
 .. code-block:: python
 
     model = Model()
     trainer = Trainer()
-    trainer.fit()
+    trainer.fit(model)
 
     # automatically loads the best weights for you
     trainer.test(model)
 
-There are two ways to call `test()`:
+There are two ways to call ``test()``:
 
 .. code-block:: python
 
@@ -458,7 +472,7 @@ There are two ways to call `test()`:
     trainer = Trainer()
     trainer.fit(model)
 
-    # automatically auto-loads the best weights
+    # automatically auto-loads the best weights from the previous run
     trainer.test(dataloaders=test_dataloader)
 
     # or call with pretrained model
@@ -468,8 +482,8 @@ There are two ways to call `test()`:
 
 ----------
 
-Inference
----------
+Inference (Prediction Loop)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 For research, LightningModules are best structured as systems.
 
 .. code-block:: python
@@ -531,7 +545,7 @@ This simple model generates examples that look like this (the encoders and decod
 .. figure:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/ae_docs.png
     :width: 300
 
-The methods above are part of the lightning interface:
+The methods above are part of the LightningModule interface:
 
 - training_step
 - validation_step
@@ -574,11 +588,11 @@ Note that in this case, the train loop and val loop are exactly the same. We can
         def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=0.0002)
 
-We create a new method called `shared_step` that all loops can use. This method name is arbitrary and NOT reserved.
+We create a new method called ``shared_step`` that all loops can use. This method name is arbitrary and NOT reserved.
 
 Inference in research
 ^^^^^^^^^^^^^^^^^^^^^
-In the case where we want to perform inference with the system we can add a `forward` method to the LightningModule.
+In the case where you want to perform inference with the system you can add a ``forward`` method to the LightningModule.
 
 .. note:: When using forward, you are responsible to call :func:`~torch.nn.Module.eval` and use the :func:`~torch.no_grad` context manager.
 
@@ -633,8 +647,7 @@ For cases like production, you might want to iterate different models inside a L
 
 .. code-block:: python
 
-    import pytorch_lightning as pl
-    from pytorch_lightning.metrics import functional as FM
+    from torchmetrics.functional import accuracy
 
 
     class ClassificationTask(pl.LightningModule):
@@ -664,12 +677,13 @@ For cases like production, you might want to iterate different models inside a L
             x, y = batch
             y_hat = self.model(x)
             loss = F.cross_entropy(y_hat, y)
-            acc = FM.accuracy(y_hat, y)
+            acc = accuracy(y_hat, y)
             return loss, acc
 
         def predict_step(self, batch, batch_idx, dataloader_idx=0):
             x, y = batch
             y_hat = self.model(x)
+            return y_hat
 
         def configure_optimizers(self):
             return torch.optim.Adam(self.model.parameters(), lr=0.02)
@@ -682,7 +696,7 @@ Then pass in any arbitrary model to be fit with this task
         task = ClassificationTask(model)
 
         trainer = Trainer(gpus=2)
-        trainer.fit(task, train_dataloader, val_dataloader)
+        trainer.fit(task, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 
 Tasks can be arbitrarily complex such as implementing GAN training, self-supervised or even RL.
 
@@ -697,21 +711,22 @@ Tasks can be arbitrarily complex such as implementing GAN training, self-supervi
         ...
 
 When used like this, the model can be separated from the Task and thus used in production without needing to keep it in
-a `LightningModule`.
+a ``LightningModule``.
 
-- You can export to onnx.
-- Or trace using Jit.
-- or run in the python runtime.
+- You can export to onnx using :meth:`~pytorch_lightning.core.lightning.LightningModule.to_onnx`.
+- Or trace using Jit using :meth:`~pytorch_lightning.core.lightning.LightningModule.to_torchscript`.
+- Or run in the python runtime.
 
 .. code-block:: python
 
-        task = ClassificationTask(model)
+    task = ClassificationTask(model)
 
-        trainer = Trainer(gpus=2)
-        trainer.fit(task, train_dataloader, val_dataloader)
+    trainer = Trainer(gpus=2)
+    trainer.fit(task, train_dataloader, val_dataloader)
 
-        # use model after training or load weights and drop into the production system
-        model.eval()
+    # use model after training or load weights and drop into the production system
+    model.eval()
+    with torch.no_grad():
         y_hat = model(x)
 
 -----------
@@ -721,6 +736,12 @@ LightningModule API
 
 Methods
 ^^^^^^^
+
+all_gather
+~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.all_gather
+    :noindex:
 
 configure_callbacks
 ~~~~~~~~~~~~~~~~~~~
@@ -758,10 +779,22 @@ log_dict
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.log_dict
     :noindex:
 
+lr_schedulers
+~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.lr_schedulers
+    :noindex:
+
 manual_backward
 ~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.manual_backward
+    :noindex:
+
+optimizers
+~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.optimizers
     :noindex:
 
 print
@@ -780,6 +813,12 @@ save_hyperparameters
 ~~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.save_hyperparameters
+    :noindex:
+
+toggle_optimizer
+~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.toggle_optimizer
     :noindex:
 
 test_step
@@ -833,6 +872,12 @@ unfreeze
 ~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.unfreeze
+    :noindex:
+
+untoggle_optimizer
+~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.untoggle_optimizer
     :noindex:
 
 validation_step
@@ -907,8 +952,8 @@ The current step (does not reset each epoch)
 
 hparams
 ~~~~~~~
-The arguments saved by calling ``save_hyperparameters`` passed through ``__init__()``
- could be accessed by the ``hparams`` attribute.
+The arguments saved by calling :meth:`~pytorch_lightning.core.mixins.HyperparametersMixin.save_hyperparameters`
+passed through ``__init__()`` could be accessed by the ``hparams`` attribute.
 
 .. code-block:: python
 
@@ -1285,6 +1330,24 @@ on_save_checkpoint
 .. automethod:: pytorch_lightning.core.hooks.CheckpointHooks.on_save_checkpoint
     :noindex:
 
+load_from_checkpoint
+~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelIO.on_save_checkpoint
+    :noindex:
+
+on_hpc_save
+~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelIO.on_hpc_save
+    :noindex:
+
+on_hpc_load
+~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelIO.on_hpc_load
+    :noindex:
+
 on_train_start
 ~~~~~~~~~~~~~~
 
@@ -1357,6 +1420,42 @@ on_test_end
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_end
     :noindex:
 
+on_predict_batch_start
+~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_predict_batch_start
+    :noindex:
+
+on_predict_batch_end
+~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_predict_batch_end
+    :noindex:
+
+on_predict_epoch_start
+~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_predict_epoch_start
+    :noindex:
+
+on_predict_epoch_end
+~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_predict_epoch_end
+    :noindex:
+
+on_predict_start
+~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_predict_start
+    :noindex:
+
+on_predict_end
+~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_predict_end
+    :noindex:
+
 on_train_batch_start
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -1423,6 +1522,12 @@ on_post_move_to_device
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_post_move_to_device
     :noindex:
 
+configure_sharded_model
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.configure_sharded_model
+    :noindex:
+
 on_validation_model_eval
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1471,6 +1576,12 @@ optimizer_zero_grad
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad
     :noindex:
 
+predict_dataloader
+~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.DataHooks.predict_dataloader
+    :noindex:
+
 prepare_data
 ~~~~~~~~~~~~
 
@@ -1511,6 +1622,30 @@ test_dataloader
 ~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.DataHooks.test_dataloader
+    :noindex:
+
+on_train_dataloader
+~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.DataHooks.on_train_dataloader
+    :noindex:
+
+on_val_dataloader
+~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.DataHooks.on_val_dataloader
+    :noindex:
+
+on_test_dataloader
+~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.DataHooks.on_test_dataloader
+    :noindex:
+
+on_predict_dataloader
+~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.DataHooks.on_predict_dataloader
     :noindex:
 
 transfer_batch_to_device

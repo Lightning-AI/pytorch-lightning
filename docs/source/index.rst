@@ -39,8 +39,8 @@ PyTorch Lightning
    :name: pl_docs
    :caption: Lightning API
 
-   common/lightning_module
    common/trainer
+   common/lightning_module
 
 .. toctree::
    :maxdepth: 1
@@ -81,8 +81,8 @@ PyTorch Lightning
    :caption: Optional extensions
 
    extensions/accelerators
-   extensions/callbacks
    extensions/datamodules
+   extensions/callbacks
    extensions/logging
    extensions/metrics
    extensions/plugins
