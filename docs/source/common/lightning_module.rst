@@ -55,7 +55,7 @@ Notice a few things.
         new_x = torch.Tensor(2, 3)
         new_x = new_x.type_as(x)
 
-5.  Lightning, by default, handles the distributed sampler for you when running under a distributed environment.
+5.  Lightning, by default, handles the distributed sampler for you when running under a distributed strategy.
 
 |
 
