@@ -37,6 +37,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning import LightningModule, seed_everything, Trainer
 
 
@@ -49,7 +50,7 @@ class Model(LightningModule):
 
     def training_step(self, batch, batch_idx):
         if self.global_step == self.fail_on_step:
-            print("READY TO BE KILLED WITH SIGTERM SIGNAL.")
+            log.info("READY TO BE KILLED WITH SIGTERM SIGNAL.")
             while not self.trainer._terminate_gracefully:
                 sleep(0.00001)
             raise CustomException()
@@ -133,10 +134,10 @@ assert len(complete_batches) == completed_batches
 if not auto_restart_checkpoint_path_exists:
     checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
     assert os.path.exists(checkpoint_path)
-    print(".pl_auto_save.ckpt exists.")
+    log.info(".pl_auto_save.ckpt exists.")
 
 if auto_restart_checkpoint_path_exists:
-    print([w for w in weights])
+    log.info([w for w in weights])
 
 os.environ.clear()
 os.environ.update(env_backup)
