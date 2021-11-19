@@ -243,5 +243,5 @@ def _get_default_scheduler_config() -> Dict[str, Any]:
         "reduce_on_plateau": False,  # most often not ReduceLROnPlateau scheduler
         "monitor": None,  # value to monitor for ReduceLROnPlateau
         "strict": True,  # enforce that the monitor exists for ReduceLROnPlateau
-        "opt_idx": None,  # necessary to store opt_idx when optimizer frequencies are specified
+        "opt_idx": 0,  # necessary to store opt_idx when optimizer frequencies are specified
     }

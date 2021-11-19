@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import defaultdict
-from typing import Any, Dict, Generator, Iterator, List, Optional, overload, Tuple, Union
+from typing import Any, Dict, Generator, Iterator, List, Optional, overload, Set, Tuple, Union
 
 import numpy as np
 import torch
@@ -70,6 +70,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self._dataloader_iter: Optional[Iterator] = None
         # caches the loaded dataloader state until dataloader objects are available
         self._dataloader_state_dict: Dict[str, Any] = {}
+        self._skipped_optimizer_step_indices: Set[int] = set()
 
     @property
     def total_batch_idx(self) -> int:
@@ -369,6 +370,12 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         )
         return not accumulation_done and ttp_accumulates_on_final_batch
 
+    def _should_skip_lr_scheduler_step(self, opt_idx) -> bool:
+        """Checks if `lr_scheduler.step()` should be skipped, e.g. when corresponding `optimizer.step()` is
+        skipped."""
+        should_skip = opt_idx in self._skipped_optimizer_step_indices
+        return should_skip
+
     @staticmethod
     def _prepare_outputs_training_batch_end(
         batch_output: _BATCH_OUTPUTS_TYPE,
@@ -474,8 +481,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             if update_plateau_schedulers ^ lr_scheduler["reduce_on_plateau"]:
                 continue
 
-            # skip if `optimizer.step()` is skipped
-            if getattr(lr_scheduler["scheduler"].optimizer, "skipped_optimizer_step", False):
+            if self._should_skip_lr_scheduler_step(lr_scheduler["opt_idx"]):
+                self._skipped_optimizer_step_indices.remove(lr_scheduler["opt_idx"])
                 continue
 
             current_idx = self.batch_idx if interval == "step" else self.trainer.current_epoch

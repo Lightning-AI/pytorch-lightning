@@ -94,7 +94,8 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             self.scaler.step(optimizer, **kwargs)
             self.scaler.update()
             scale_after_optimizer_step = self.scaler.get_scale()
-            optimizer.skipped_optimizer_step = scale_before_optimizer_step > scale_after_optimizer_step
+            if scale_before_optimizer_step > scale_after_optimizer_step:
+                model.trainer.fit_loop.epoch_loop._skipped_optimizer_step_indices.add(optimizer_idx)
 
     def autocast_context_manager(self) -> autocast:
         if _TORCH_GREATER_EQUAL_1_10:
