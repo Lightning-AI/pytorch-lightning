@@ -574,7 +574,7 @@ def test_metric_result_respects_dtype(floating_dtype):
     # two fixed point numbers - should be converted
     value, batch_size = torch.tensor(2), torch.tensor(3)
     assert value.dtype == fixed_dtype
-    with pytest.warns(UserWarning, match=rf"`self.log\(bar, ...\)` in your `foo` .* Converting it to {floating_dtype}"):
+    with pytest.warns(UserWarning, match=rf"`self.log\('bar', ...\)` in your `foo` .* Converting it to {floating_dtype}"):
         rm.update(value, batch_size)
     # floating and fixed
     rm.update(torch.tensor(4.0), torch.tensor(5))

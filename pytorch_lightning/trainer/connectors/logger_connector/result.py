@@ -218,7 +218,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
                 dtype = torch.get_default_dtype()
                 warning_cache.warn(
                     # do not include the value to avoid cache misses
-                    f"You called `self.log({self.meta.name}, ...)` in your `{self.meta.fx}` but the value needs to"
+                    f"You called `self.log({self.meta.name!r}, ...)` in your `{self.meta.fx}` but the value needs to"
                     f" be floating point. Converting it to {dtype}."
                 )
                 value = value.to(dtype)
