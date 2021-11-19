@@ -392,15 +392,20 @@ class ResultCollection(dict):
         apply_to_collection(list(self.values()), ResultMetric, append_fn)
         return o
 
-    def _extract_batch_size(self, batch_size: Optional[int], on_epoch: bool, fx: str, meta: _Metadata) -> int:
+    def _extract_batch_size(self, batch_size: Optional[int], meta: _Metadata) -> int:
         # check if we have extracted the batch size already
         if batch_size is None:
             batch_size = batch_size or self.batch_size
 
         # extract batch size if it is None and whenever it is required
         if batch_size is None:
-            fx_validate = _FxValidator.functions.get(fx.split(".")[0])
-            if on_epoch and fx_validate is not None and (True in fx_validate["on_step"]) and meta.is_mean_reduction:
+            fx_validate = _FxValidator.functions.get(meta.fx.split(".")[0])
+            if (
+                meta.on_epoch
+                and fx_validate is not None
+                and (True in fx_validate["on_step"])
+                and meta.is_mean_reduction
+            ):
                 try:
                     batch_size = extract_batch_size(self.batch)
                 except RecursionError:
@@ -472,7 +477,7 @@ class ResultCollection(dict):
                 f"You called `self.log({name}, ...)` twice in `{fx}` with different arguments. This is not allowed"
             )
 
-        batch_size = self._extract_batch_size(batch_size, on_epoch, fx, meta)
+        batch_size = self._extract_batch_size(batch_size, meta)
         self.update_metrics(key, value, batch_size)
 
     def register_key(self, key: str, meta: _Metadata, value: _METRIC_COLLECTION) -> None:
