@@ -378,7 +378,7 @@ def init_dist_connection(
         )
 
 
-def _collect_states_on_rank_zero(state: Dict[str, Any], device: torch.device) -> Optional[Dict[int, Dict[str, Any]]]:
+def _collect_states_on_rank_zero(state: Dict[str, Any], device: torch.device) -> Optional[Dict[int, Any]]:
     """This distributed utility collects dictionary state across all processes.
 
     Args:
