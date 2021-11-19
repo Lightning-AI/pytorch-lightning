@@ -576,14 +576,14 @@ class Trainer(
 
     def _init_debugging_flags(
         self,
-        limit_train_batches: Union[int, float],
-        limit_val_batches: Union[int, float],
-        limit_test_batches: Union[int, float],
-        limit_predict_batches: Union[int, float],
-        val_check_interval: Union[int, float],
-        overfit_batches: Union[int, float],
-        fast_dev_run: Union[int, bool],
-    ) -> None:
+        limit_train_batches,
+        limit_val_batches,
+        limit_test_batches,
+        limit_predict_batches,
+        val_check_interval,
+        overfit_batches,
+        fast_dev_run,
+    ):
         if isinstance(fast_dev_run, int) and (fast_dev_run < 0):
             raise MisconfigurationException(
                 f"fast_dev_run={fast_dev_run} is not a valid configuration. It should be >= 0."
