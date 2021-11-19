@@ -37,12 +37,14 @@ class GPUAccelerator(Accelerator):
                 If the selected device is not GPU.
         """
         super().setup_environment()
-        if "cuda" not in str(self.root_device):
-            raise MisconfigurationException(f"Device should be GPU, got {self.root_device} instead")
-        torch.cuda.set_device(self.root_device)
+        if "cuda" not in str(self.training_type_plugin.root_device):
+            raise MisconfigurationException(
+                f"Device should be GPU, got {self.training_type_plugin.root_device} instead"
+            )
+        torch.cuda.set_device(self.training_type_plugin.root_device)
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        self.set_nvidia_flags(trainer.local_rank)
+        self.set_nvidia_flags(getattr(self.training_type_plugin, "local_rank", 0))
         return super().setup(trainer)
 
     def on_train_start(self) -> None:
@@ -77,7 +79,7 @@ class GPUAccelerator(Accelerator):
 
     def teardown(self) -> None:
         super().teardown()
-        self._move_optimizer_state(torch.device("cpu"))
+        self.training_type_plugin._move_optimizer_state(torch.device("cpu"))
 
     @staticmethod
     def auto_device_count() -> int:

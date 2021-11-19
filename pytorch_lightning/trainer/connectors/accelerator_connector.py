@@ -584,7 +584,7 @@ class AcceleratorConnector:
     @property
     def root_gpu(self) -> Optional[int]:
         return (
-            self.accelerator.root_device.index
+            self.training_type_plugin.root_device.index
             if not isinstance(self.accelerator, (IPUAccelerator, TPUAccelerator))
             else None
         )

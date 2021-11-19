@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import torch
 from torch.nn import DataParallel, Module
 
+import pytorch_lightning as pl
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -61,10 +62,11 @@ class DataParallelPlugin(ParallelPlugin):
     def world_size(self) -> int:
         return 1
 
-    def setup(self) -> None:
+    def setup(self, trainer: "pl.Trainer") -> None:
         # model needs to be moved to the device before it is wrapped
         self.model_to_device()
         self._model = self._setup_model(LightningParallelModule(self._model))
+        super().setup(trainer)
 
     def _setup_model(self, model: Module) -> DataParallel:
         """Wraps the given model into a :class:`~torch.nn.parallel.DataParallel` module."""
@@ -94,6 +96,18 @@ class DataParallelPlugin(ParallelPlugin):
 
     def model_to_device(self) -> None:
         self._model.to(self.root_device)
+
+    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
+        """Moves the batch to the correct device. The returned batch is of the same type as the input batch, just
+        having all tensors on the correct device.
+
+        Args:
+            batch: The batch of samples to move to the correct device
+            device: The target device
+            dataloader_idx: The index of the dataloader to which the batch belongs.
+        """
+        model = self.lightning_module
+        return model._apply_batch_transfer_handler(batch, device=device, dataloader_idx=dataloader_idx)
 
     def barrier(self, *args, **kwargs):
         pass

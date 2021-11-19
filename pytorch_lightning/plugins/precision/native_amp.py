@@ -16,12 +16,14 @@ from typing import Any, Callable, Dict, Generator, Optional, Union
 
 import torch
 from torch import Tensor
+from torch.cuda.amp import GradScaler
 from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, AMPType
+from pytorch_lightning.utilities.enums import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TORCH_GREATER_EQUAL_1_10:
@@ -55,7 +57,15 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             raise MisconfigurationException(f"`precision='bf16'` does not use a scaler, found {scaler}.")
         self.precision = precision
         self.device = device
-        self.scaler = scaler
+        self._scaler = scaler
+
+    @property
+    def scaler(self) -> Optional["GradScaler"]:
+        return self._scaler
+
+    @property
+    def amp_backend(self) -> Optional[LightningEnum]:
+        return AMPType.NATIVE
 
     def pre_backward(self, model: "pl.LightningModule", closure_loss: torch.Tensor) -> torch.Tensor:
         if self.scaler is not None:

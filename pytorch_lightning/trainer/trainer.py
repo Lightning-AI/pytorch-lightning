@@ -1393,7 +1393,7 @@ class Trainer(
         self.training_type_plugin.barrier("post_setup")
 
     def _call_configure_sharded_model(self) -> None:
-        with self.accelerator.model_sharded_context():
+        with self.training_type_plugin.model_sharded_context():
             self._handle_meta_model()
             self.call_hook("configure_sharded_model")
             self.call_hook("on_configure_sharded_model")
@@ -1635,7 +1635,7 @@ class Trainer(
 
     @property
     def optimizers(self) -> List[Optimizer]:
-        return self.accelerator.optimizers
+        return self.training_type_plugin.optimizers
 
     @optimizers.setter
     def optimizers(self, new_optims: Optional[List[Optimizer]]) -> None:
@@ -1644,27 +1644,27 @@ class Trainer(
         # the `lightning_optimizers` trainer property
         self._lightning_optimizers = None
 
-        self.accelerator.optimizers = new_optims
+        self.training_type_plugin.optimizers = new_optims
 
     @property
     def lr_schedulers(self) -> List[LRSchedulerTypeUnion]:
-        return self.accelerator.lr_schedulers
+        return self.training_type_plugin.lr_schedulers
 
     @lr_schedulers.setter
     def lr_schedulers(self, new_schedulers: List[LRSchedulerTypeUnion]) -> None:
-        self.accelerator.lr_schedulers = new_schedulers
+        self.training_type_plugin.lr_schedulers = new_schedulers
 
     @property
     def optimizer_frequencies(self) -> list:
-        return self.accelerator.optimizer_frequencies
+        return self.training_type_plugin.optimizer_frequencies
 
     @optimizer_frequencies.setter
     def optimizer_frequencies(self, new_freqs: list) -> None:
-        self.accelerator.optimizer_frequencies = new_freqs
+        self.training_type_plugin.optimizer_frequencies = new_freqs
 
     @property
     def amp_backend(self) -> Optional[str]:
-        return self.accelerator.amp_backend
+        return self.precision_plugin.amp_backend
 
     @property
     def precision(self) -> Union[str, int]:
@@ -1672,7 +1672,7 @@ class Trainer(
 
     @property
     def scaler(self):
-        return self.accelerator.scaler
+        return self.precision_plugin.scaler
 
     @property
     def gpus(self) -> Optional[Union[List[int], str, int]]:

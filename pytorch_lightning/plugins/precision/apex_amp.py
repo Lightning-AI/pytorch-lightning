@@ -20,6 +20,7 @@ from torch.optim import LBFGS, Optimizer
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
+from pytorch_lightning.utilities.enums import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _PARAMETERS
 
@@ -47,12 +48,16 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def dispatch(self, trainer: "pl.Trainer") -> None:
         if not self._connected:
-            accelerator = trainer.accelerator
-            _, accelerator.optimizers = amp.initialize(
-                trainer.lightning_module, accelerator.optimizers, opt_level=self.amp_level
+            strategy = trainer.training_type_plugin
+            _, strategy.optimizers = amp.initialize(
+                trainer.lightning_module, strategy.optimizers, opt_level=self.amp_level
             )
             self._connected = True
         return super().dispatch(trainer)
+
+    @property
+    def amp_backend(self) -> Optional[LightningEnum]:
+        return AMPType.APEX
 
     def backward(
         self,
