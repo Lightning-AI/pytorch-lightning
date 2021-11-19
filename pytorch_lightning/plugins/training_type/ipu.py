@@ -28,6 +28,7 @@ from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.data import _get_dataloader_init_kwargs
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _POPTORCH_AVAILABLE:
@@ -116,7 +117,8 @@ class IPUPlugin(ParallelPlugin):
         # patch the dataloader creation function with the custom `poptorch.DataLoader`.
         # this violates the intended control flow for the plugins, but since this is experimental, we have chosen
         # to use the simpler solution before adding abstractions to override the `DataLoader` class
-        self.lightning_module.trainer._update_dataloader = self._convert_to_poptorch_loader
+        self._update_dataloader_original = pl.trainer.data_loading._update_dataloader
+        pl.trainer.data_loading._update_dataloader = self._convert_to_poptorch_loader
 
     def pre_dispatch(self) -> None:
         model = LightningIPUModule(self.lightning_module, self.precision_plugin.precision)
@@ -195,8 +197,7 @@ class IPUPlugin(ParallelPlugin):
     def _convert_to_poptorch_loader(
         self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None
     ) -> "poptorch.DataLoader":
-        # use full path to avoid circular imports
-        dl_kwargs = pl.trainer.trainer.TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler)
+        dl_kwargs = _get_dataloader_init_kwargs(dataloader, sampler)
         # Override to drop last uneven batch, as IPUs does not support uneven inputs.
         dl_kwargs["drop_last"] = True
 
@@ -261,7 +262,8 @@ class IPUPlugin(ParallelPlugin):
 
     def teardown(self) -> None:
         # undo dataloader patching
-        self.lightning_module.trainer._update_dataloader = pl.trainer.trainer.TrainerDataLoadingMixin._update_dataloader
+        pl.trainer.data_loading._update_dataloader = self._update_dataloader_original
+
         for model in self.poptorch_models.values():
             model.destroy()
 

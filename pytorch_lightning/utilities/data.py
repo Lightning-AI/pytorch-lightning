@@ -11,15 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from typing import Any, Generator, Iterable, Mapping, Union
+import inspect
+import os
+from functools import partial
+from typing import Any, Dict, Generator, Iterable, Mapping, Optional, Union
 
 import torch
-from torch.utils.data import DataLoader, IterableDataset
+from torch.utils.data import BatchSampler, DataLoader, IterableDataset, Sampler
 
 import pytorch_lightning as pl
+from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
+from pytorch_lightning.utilities.seed import pl_worker_init_function
 from pytorch_lightning.utilities.warnings import WarningCache
 
 BType = Union[torch.Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
@@ -157,3 +164,136 @@ def get_len(dataloader: DataLoader) -> Union[int, float]:
         return len(dataloader)
 
     return float("inf")
+
+
+def _update_dataloader(dataloader: DataLoader, sampler: Sampler, mode: Optional[RunningStage] = None) -> DataLoader:
+    dl_kwargs = _get_dataloader_init_kwargs(dataloader, sampler, mode=mode)
+    dl_cls = type(dataloader)
+    dataloader = dl_cls(**dl_kwargs)
+    return dataloader
+
+
+def _get_dataloader_init_kwargs(
+    dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
+) -> Dict[str, Any]:
+    if not isinstance(dataloader, DataLoader):
+        raise ValueError(f"The dataloader {dataloader} needs to subclass `torch.utils.data.DataLoader`")
+
+    # get the dataloader instance attributes
+    attrs = {k: v for k, v in vars(dataloader).items() if not k.startswith("_")}
+    # not part of `vars`
+    attrs["multiprocessing_context"] = dataloader.multiprocessing_context
+
+    # get the dataloader instance `__init__` parameters
+    params = dict(inspect.signature(dataloader.__init__).parameters)
+    has_variadic_kwargs = any(p.kind is p.VAR_KEYWORD for p in params.values())
+    if has_variadic_kwargs:
+        # if the signature takes **kwargs, assume they will be passed down with `super().__init__(**kwargs)`
+        params.update(inspect.signature(DataLoader.__init__).parameters)
+        del params["self"]
+
+    # keep only the params whose default is different to the current attr value
+    non_defaults = {name for name, p in params.items() if name in attrs and p.default != attrs[name]}
+    # add `dataset` as it might have been replaced with `*args`
+    non_defaults.add("dataset")
+
+    # kwargs to re-construct the dataloader
+    dl_kwargs = {k: v for k, v in attrs.items() if k in non_defaults}
+    dl_kwargs.update(_dataloader_init_kwargs_resolve_sampler(dataloader, sampler, mode=mode))
+
+    required_args = {
+        p.name
+        for p in params.values()
+        if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD) and p.default is p.empty and p.name not in dl_kwargs
+    }
+    # the dataloader has required args which we could not extract from the existing attributes
+    if required_args:
+        required_args = sorted(required_args)
+        dataloader_cls_name = dataloader.__class__.__name__
+        raise MisconfigurationException(
+            f"Trying to inject `DistributedSampler` into the `{dataloader_cls_name}` instance. "
+            "This would fail as some of the `__init__` arguments are not available as instance attributes. "
+            f"The missing attributes are {required_args}. "
+            f"HINT: If you wrote the `{dataloader_cls_name}` class, define `self.missing_arg_name` or "
+            "manually add the `DistributedSampler` as: "
+            f"`{dataloader_cls_name}(dataset, sampler=DistributedSampler(dataset))`."
+        )
+
+    if not has_variadic_kwargs:
+        # the dataloader signature does not allow keyword arguments that need to be passed
+        missing_kwargs = dl_kwargs.keys() - params.keys()
+        if missing_kwargs:
+            missing_kwargs = sorted(missing_kwargs)
+            dataloader_cls_name = dataloader.__class__.__name__
+            raise MisconfigurationException(
+                f"Trying to inject `DistributedSampler` into the `{dataloader_cls_name}` instance. "
+                "This would fail as it doesn't expose all its attributes in the `__init__` signature. "
+                f"The missing arguments are {missing_kwargs}. "
+                f"HINT: If you wrote the `{dataloader_cls_name}` class, add the `__init__` arguments or "
+                "manually add the `DistributedSampler` as: "
+                f"`{dataloader_cls_name}(dataset, sampler=DistributedSampler(dataset))`."
+            )
+
+    if isinstance(dl_kwargs["dataset"], IterableDataset):
+        dl_kwargs["batch_sampler"] = None
+        dl_kwargs["sampler"] = None
+
+    if _fault_tolerant_training():
+        dataset = dl_kwargs["dataset"]
+        if isinstance(dataset, IterableDataset):
+            # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
+            dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
+        elif get_len(dataset) != float("inf"):
+            dl_kwargs["dataset"] = CaptureMapDataset(dataset=dl_kwargs["dataset"])
+        else:
+            raise MisconfigurationException(
+                "This shouldn't happen, please open an issue on Lightning Github repository."
+            )
+
+    return dl_kwargs
+
+
+def _dataloader_init_kwargs_resolve_sampler(
+    dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
+) -> Dict[str, Any]:
+    """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its
+    re-instantiation.
+
+    If the dataloader is being used for prediction, the sampler will be wrapped into an `IndexBatchSamplerWrapper`, so
+    Lightning can keep track of its indices. If fault tolerant training is enabled, the sampler will be wrapped into a
+    `FastForwardSampler`.
+    """
+    batch_sampler = getattr(dataloader, "batch_sampler")
+    is_predicting = mode == RunningStage.PREDICTING
+    # checking the batch sampler type is different than PyTorch default.
+    if batch_sampler is not None and (type(batch_sampler) is not BatchSampler or is_predicting):
+        batch_sampler = type(batch_sampler)(
+            sampler,
+            batch_size=batch_sampler.batch_size,
+            drop_last=(False if is_predicting else batch_sampler.drop_last),
+        )
+        if is_predicting:
+            batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
+
+        if _fault_tolerant_training():
+            fast_forward_sampler = batch_sampler = FastForwardSampler(batch_sampler)
+            fast_forward_sampler.setup(dataloader_batch_size=1)
+
+        return {
+            "sampler": None,
+            "shuffle": False,
+            "batch_sampler": batch_sampler,
+            "batch_size": 1,
+            "drop_last": False,
+        }
+
+    if _fault_tolerant_training():
+        fast_forward_sampler = sampler = FastForwardSampler(sampler)
+        fast_forward_sampler.setup(dataloader_batch_size=dataloader.batch_size)
+
+    return {"sampler": sampler, "shuffle": False, "batch_sampler": None}
+
+
+def _auto_add_worker_init_fn(dataloader: DataLoader, rank: int) -> None:
+    if int(os.environ.get("PL_SEED_WORKERS", 0)) and dataloader.worker_init_fn is None:
+        dataloader.worker_init_fn = partial(pl_worker_init_function, rank=rank)
