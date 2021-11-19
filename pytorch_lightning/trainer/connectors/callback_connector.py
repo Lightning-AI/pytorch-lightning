@@ -94,9 +94,7 @@ class CallbackConnector:
                 " bar pass `enable_progress_bar = False` to the Trainer."
             )
 
-        self.trainer._progress_bar_callback = self.configure_progress_bar(
-            progress_bar_refresh_rate, process_position, enable_progress_bar
-        )
+        self.configure_progress_bar(progress_bar_refresh_rate, process_position, enable_progress_bar)
 
         # configure the ModelSummary callback
         self._configure_model_summary_callback(enable_model_summary, weights_summary)
@@ -193,9 +191,10 @@ class CallbackConnector:
                 )
             max_depth = ModelSummaryMode.get_max_depth(weights_summary)
 
-        is_progress_bar_rich = isinstance(self.trainer._progress_bar_callback, RichProgressBar)
+        progress_bar_callback = self.trainer.progress_bar_callback
+        is_progress_bar_rich = isinstance(progress_bar_callback, RichProgressBar)
 
-        if self.trainer._progress_bar_callback is not None and is_progress_bar_rich:
+        if progress_bar_callback is not None and is_progress_bar_rich:
             model_summary = RichModelSummary(max_depth=max_depth)
         else:
             model_summary = ModelSummary(max_depth=max_depth)
@@ -214,12 +213,7 @@ class CallbackConnector:
 
     def configure_progress_bar(
         self, refresh_rate: Optional[int] = None, process_position: int = 0, enable_progress_bar: bool = True
-    ) -> Optional[ProgressBarBase]:
-        if os.getenv("COLAB_GPU") and refresh_rate is None:
-            # smaller refresh rate on colab causes crashes, choose a higher value
-            refresh_rate = 20
-        refresh_rate = 1 if refresh_rate is None else refresh_rate
-
+    ) -> None:
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]
         if len(progress_bars) > 1:
             raise MisconfigurationException(
@@ -227,19 +221,28 @@ class CallbackConnector:
                 " progress bar is supported."
             )
         if len(progress_bars) == 1:
-            progress_bar_callback = progress_bars[0]
-            if not enable_progress_bar:
-                raise MisconfigurationException(
-                    "Trainer was configured with `enable_progress_bar=False`"
-                    f" but found `{progress_bar_callback.__class__.__name__}` in callbacks list."
-                )
-        elif refresh_rate > 0 and enable_progress_bar:
-            progress_bar_callback = TQDMProgressBar(refresh_rate=refresh_rate, process_position=process_position)
-            self.trainer.callbacks.append(progress_bar_callback)
-        else:
-            progress_bar_callback = None
+            # the user specified the progress bar in the callbacks list
+            # so the trainer doesn't need to provide a default one
+            if enable_progress_bar:
+                return
 
-        return progress_bar_callback
+            # otherwise the user specified a progress bar callback but also
+            # elected to disable the progress bar with the trainer flag
+            progress_bar_callback = progress_bars[0]
+            raise MisconfigurationException(
+                "Trainer was configured with `enable_progress_bar=False`"
+                f" but found `{progress_bar_callback.__class__.__name__}` in callbacks list."
+            )
+
+        # Return early if the user intends to disable the progress bar callback
+        if refresh_rate == 0 or not enable_progress_bar:
+            return
+        if refresh_rate is None:
+            # smaller refresh rate on colab causes crashes, choose a higher value
+            refresh_rate = 20 if os.getenv("COLAB_GPU") else 1
+
+        progress_bar_callback = TQDMProgressBar(refresh_rate=refresh_rate, process_position=process_position)
+        self.trainer.callbacks.append(progress_bar_callback)
 
     def _configure_timer_callback(self, max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None) -> None:
         if max_time is None:
