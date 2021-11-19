@@ -16,7 +16,7 @@ import os
 import matplotlib.pylab as plt
 import pandas as pd
 
-from benchmarks.test_basic_parity import measure_loops
+from tests.benchmarks.test_basic_parity import measure_loops
 from tests.helpers.advanced_models import ParityModuleMNIST, ParityModuleRNN
 
 NUM_EPOCHS = 20
