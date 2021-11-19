@@ -61,7 +61,7 @@ class DataModule(LightningDataModule):
         }
 
 
-trainer = Trainer(strategy=None, gpus=1, logger=None, replace_sampler_ddp=False)
+trainer = Trainer(strategy="ddp", gpus=2, logger=None, replace_sampler_ddp=False)
 os.environ["PL_FAULT_TOLERANT_TRAINING"] = "2"
 
 seed_everything(42)

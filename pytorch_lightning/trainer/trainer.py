@@ -2107,7 +2107,11 @@ class Trainer(
             return active_loop._results
 
     def _exit_gracefully_on_signal(self) -> None:
-        if _fault_tolerant_training() and self._terminate_gracefully:
+        if _fault_tolerant_training():
+            # the signal should be sent to rank 0
+            should_terminate_gracefully = self.training_type_plugin.broadcast(self._terminate_gracefully)
+            if not should_terminate_gracefully:
+                return
             caller = inspect.stack()[1]
             class_name = caller[0].f_locals["self"].__class__.__name__
             raise ExitGracefullyException(f"Exiting gracefully on {class_name}:{caller.function}")
