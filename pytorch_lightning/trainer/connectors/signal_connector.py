@@ -108,6 +108,6 @@ class SignalConnector:
         if isinstance(signal.getsignal(signum), HandlersCompose):
             signal.signal(signum, signal.SIG_DFL)
 
-    def teardown(self):
+    def teardown(self) -> None:
         self._reset_signal(signal.SIGTERM)
         self._reset_signal(signal.SIGUSR1)
