@@ -34,8 +34,8 @@ def test_invalid_on_cpu(tmpdir):
 def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp", gpus=1, precision=16)
-    assert isinstance(trainer.accelerator.training_type_plugin, DDPFullyShardedPlugin)
-    assert isinstance(trainer.accelerator.precision_plugin, FullyShardedNativeMixedPrecisionPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPFullyShardedPlugin)
+    assert isinstance(trainer.training_type_plugin.precision_plugin, FullyShardedNativeMixedPrecisionPlugin)
 
 
 class TestFSDPModel(BoringModel):
