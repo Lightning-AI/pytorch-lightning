@@ -816,7 +816,7 @@ save_hyperparameters
     :noindex:
 
 toggle_optimizer
-~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.toggle_optimizer
     :noindex:
@@ -875,7 +875,7 @@ unfreeze
     :noindex:
 
 untoggle_optimizer
-~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.untoggle_optimizer
     :noindex:
@@ -1332,19 +1332,19 @@ on_save_checkpoint
 load_from_checkpoint
 ~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelIO.on_save_checkpoint
+.. automethod:: pytorch_lightning.core.saving.ModelIO.on_save_checkpoint
     :noindex:
 
 on_hpc_save
 ~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelIO.on_hpc_save
+.. automethod:: pytorch_lightning.core.saving.ModelIO.on_hpc_save
     :noindex:
 
 on_hpc_load
 ~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelIO.on_hpc_load
+.. automethod:: pytorch_lightning.core.saving.ModelIO.on_hpc_load
     :noindex:
 
 on_train_start
@@ -1522,7 +1522,7 @@ on_post_move_to_device
     :noindex:
 
 configure_sharded_model
-~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.configure_sharded_model
     :noindex:
