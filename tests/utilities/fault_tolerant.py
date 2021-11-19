@@ -33,12 +33,21 @@ The training has been properly resumed and is fully reproduced.
 
 # Note, this file is used to ensure Fault Tolerant is working as expected
 import os
+import sys
 from time import sleep
 
 import torch
 
-from pytorch_lightning import seed_everything
-from tests.utilities.test_auto_restart import _run_training, CustomException, RandomGetItemDataset, TestModel
+import pytorch_lightning as pl
+
+sys.path.append(os.path.dirname(pl.__file__))
+from pytorch_lightning import seed_everything  # noqa E402
+from tests.utilities.test_auto_restart import (  # noqa E402
+    _run_training,
+    CustomException,
+    RandomGetItemDataset,
+    TestModel,
+)
 
 
 class SignalTestModel(TestModel):
