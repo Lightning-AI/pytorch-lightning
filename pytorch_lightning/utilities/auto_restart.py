@@ -573,7 +573,7 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
         raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
 
 
-def _detect_fault_tolerant_env_enum() -> FaultTolerantTrainingMode:
+def _detect_fault_tolerant_env_to_enum() -> FaultTolerantTrainingMode:
     value = os.getenv("PL_FAULT_TOLERANT_TRAINING", "0")
     if value == "0":
         return FaultTolerantTrainingMode.DISABLED
