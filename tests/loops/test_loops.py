@@ -22,12 +22,11 @@ import pytest
 import torch
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader
 
-from pl_examples.bug_report_model import RandomDataset
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from pytorch_lightning.loops import Loop, TrainingBatchLoop
 from pytorch_lightning.trainer.progress import BaseProgress
-from tests.helpers import BoringModel
+from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 
