@@ -336,8 +336,6 @@ def test_accelerator_choice_ddp_cpu_and_plugin_spawn(tmpdir):
 
 
 def _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class):
-
-    model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         plugins=[ddp_plugin_class(find_unused_parameters=True)],
@@ -349,7 +347,6 @@ def _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class):
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert trainer.training_type_plugin.num_processes == 2
     assert trainer.training_type_plugin.parallel_devices == [torch.device("cpu")] * 2
-    trainer.fit(model)
 
 
 @mock.patch.dict(
