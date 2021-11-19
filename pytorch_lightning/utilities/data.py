@@ -173,8 +173,6 @@ def _update_dataloader(dataloader: DataLoader, sampler: Sampler, mode: Optional[
 def _get_dataloader_init_kwargs(
     dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
 ) -> Dict[str, Any]:
-    from pytorch_lightning.utilities.auto_restart import _apply_fault_tolerant_automatic_capture_dataset_wrapper
-
     if not isinstance(dataloader, DataLoader):
         raise ValueError(f"The dataloader {dataloader} needs to subclass `torch.utils.data.DataLoader`")
 
