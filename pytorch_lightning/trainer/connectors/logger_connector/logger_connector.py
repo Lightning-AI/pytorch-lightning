@@ -154,6 +154,12 @@ class LoggerConnector:
         # increment the step even if nothing was logged
         self._increment_eval_log_step()
 
+    @staticmethod
+    def _filter_metrics_for_dataloader(
+        dl_idx: int, metrics: _OUT_DICT, metric_prefix: str = "dataloader_idx"
+    ) -> _OUT_DICT:
+        return {k: v for k, v in metrics.items() if metric_prefix not in k or k.endswith(f"{metric_prefix}_{dl_idx}")}
+
     def _prepare_eval_loop_results(self, metrics: _OUT_DICT) -> None:
         if self.trainer.sanity_checking:
             return
@@ -162,9 +168,7 @@ class LoggerConnector:
         has_been_initialized = len(self.eval_loop_results) == num_dataloaders
         for dl_idx in range(self.trainer._evaluation_loop.num_dataloaders):
             # remove callback metrics that don't belong to this dataloader
-            callback_metrics = {
-                k: v for k, v in metrics.items() if "dataloader_idx" not in k or f"dataloader_idx_{dl_idx}" in k
-            }
+            callback_metrics = self._filter_metrics_for_dataloader(dl_idx, metrics)
             if has_been_initialized:
                 self.eval_loop_results[dl_idx].update(callback_metrics)
             else:
