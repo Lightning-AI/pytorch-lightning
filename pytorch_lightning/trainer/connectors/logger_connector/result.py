@@ -217,7 +217,8 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             if not torch.is_floating_point(value):
                 dtype = torch.get_default_dtype()
                 warning_cache.warn(
-                    f"You called `self.log({self.meta.name}, {value})` in your `{self.meta.fx}` but the value needs to"
+                    # do not include the value to avoid cache misses
+                    f"You called `self.log({self.meta.name}, ...)` in your `{self.meta.fx}` but the value needs to"
                     f" be floating point. Converting it to {dtype}."
                 )
                 value = value.to(dtype)
