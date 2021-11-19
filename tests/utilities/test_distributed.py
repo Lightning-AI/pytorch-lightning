@@ -16,6 +16,12 @@ from typing import Mapping
 from unittest import mock
 
 import pytest
+import torch
+import torch.multiprocessing as mp
+
+import tests.helpers.utils as tutils
+from pytorch_lightning.utilities.distributed import _collect_states_on_rank_zero
+from tests.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize("env_vars", [{"RANK": "0"}, {"SLURM_PROCID": "0"}])
@@ -53,3 +59,24 @@ def test_rank_zero_none_set(rank_key, rank):
 
         x = foo()
         assert x is None
+
+
+def _test_collect_states(rank, worldsize):
+    os.environ["MASTER_ADDR"] = "localhost"
+
+    # initialize the process group
+    torch.distributed.init_process_group("nccl", rank=rank, world_size=worldsize)
+
+    state = {"something": torch.tensor([rank])}
+    collected_state = _collect_states_on_rank_zero(state, device=torch.device(f"cuda:{rank}"))
+    if rank == 1:
+        assert collected_state is None
+    else:
+        assert collected_state == {1: {"something": torch.tensor([1])}, 0: {"something": torch.tensor([0])}}
+
+
+@RunIf(skip_windows=True, min_gpus=2)
+def test_collect_states():
+    """Make sure result logging works with DDP."""
+    tutils.set_random_main_port()
+    mp.spawn(_test_collect_states, args=(2,), nprocs=2)

@@ -16,12 +16,13 @@ import logging
 import os
 from functools import wraps
 from platform import python_version
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
 
 if _TPU_AVAILABLE:
@@ -376,3 +377,22 @@ def init_dist_connection(
             f"All distributed processes registered. Starting with {world_size} processes\n"
             f"{'-' * 100}\n"
         )
+
+
+def _collect_states_on_rank_zero(state: Dict[str, Any], device: torch.device):
+    if not distributed_available():
+        return {0: state}
+    states = {}
+    state = apply_to_collection(state, torch.Tensor, lambda x: x.to(device))
+    for rank in range(1, torch.distributed.get_world_size()):
+        if torch.distributed.get_rank() == rank:
+            # Assumes world_size of 3.
+            objects = [state]
+        else:
+            objects = [None]
+        torch.distributed.broadcast_object_list(objects, src=rank, device=device)
+        states[rank] = objects[0]
+    if torch.distributed.get_rank() != 0:
+        return None
+    states[0] = state
+    return apply_to_collection(states, torch.Tensor, lambda x: x.to("cpu"))
