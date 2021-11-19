@@ -773,7 +773,7 @@ def _global_add_class_path(
     class_type: Type, init_args: Optional[Union[Namespace, Dict[str, Any]]] = None
 ) -> Dict[str, Any]:
     if isinstance(init_args, Namespace):
-        init_args = init_args.as_dict()  # type: ignore
+        init_args = init_args.as_dict()
     return {"class_path": class_type.__module__ + "." + class_type.__name__, "init_args": init_args or {}}
 
 
