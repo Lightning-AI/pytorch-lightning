@@ -386,7 +386,6 @@ def _collect_states_on_rank_zero(state: Dict[str, Any], device: torch.device) ->
     state = apply_to_collection(state, torch.Tensor, lambda x: x.to(device))
     for rank in range(1, torch.distributed.get_world_size()):
         if torch.distributed.get_rank() == rank:
-            # Assumes world_size of 3.
             objects = [state]
         else:
             objects = [None]
