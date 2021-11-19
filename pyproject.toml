@@ -7,7 +7,6 @@ requires = [
 
 [tool.isort]
 known_first_party = [
-    "benchmarks",
     "docs",
     "pl_examples",
     "pytorch_lightning",
@@ -24,7 +23,7 @@ line-length = 120
 
 
 [tool.mypy]
-files = ["pytorch_lightning", "pl_examples", "benchmarks"]
+files = ["pytorch_lightning"]
 disallow_untyped_defs = "True"
 ignore_missing_imports = "True"
 show_error_codes = "True"
@@ -52,9 +51,6 @@ module = [
     "pytorch_lightning.distributed.*",
     "pytorch_lightning.tuner.*",
     "pytorch_lightning.utilities.*",
-    "pl_examples.*",
-    "benchmarks.*",
-    "tests.helpers.*"
 ]
 ignore_errors = "True"
 

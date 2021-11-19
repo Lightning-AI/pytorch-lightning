@@ -20,7 +20,7 @@ export PL_RUNNING_SPECIAL_TESTS=1
 defaults='-m coverage run --source pytorch_lightning --append -m pytest --capture=no'
 
 # find tests marked as `@RunIf(special=True)`. done manually instead of with pytest because it is faster
-grep_output=$(grep --recursive --word-regexp 'tests' 'benchmarks' --regexp 'special=True' --include '*.py' --exclude 'tests/conftest.py')
+grep_output=$(grep --recursive --word-regexp 'tests' --regexp 'special=True' --include '*.py' --exclude 'tests/conftest.py')
 
 # file paths, remove duplicates
 files=$(echo "$grep_output" | cut -f1 -d: | sort | uniq)
