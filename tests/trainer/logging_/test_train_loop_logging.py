@@ -27,6 +27,7 @@ from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.deprecated_api import no_warning_call
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomDictDataset
 from tests.helpers.runif import RunIf
 
@@ -748,15 +749,15 @@ def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
 
 
 def test_no_batch_size_extraction_with_specifying_explictly(tmpdir):
-    batch_size = BoringModel().train_dataloader().batch_size + 10
+    batch_size = BoringModel().train_dataloader().batch_size + 1
     fast_dev_run = 2
-    log_val = 7.0
+    log_val = 7
 
     class CustomBoringModel(BoringModel):
         def on_before_batch_transfer(self, batch, *args, **kwargs):
             # This is an ambiguous batch which have multiple potential batch sizes
             if self.trainer.training:
-                batch = {"batch1": torch.randn(batch_size + 10, 10), "batch2": batch}
+                batch = {"batch1": torch.randn(batch_size, 10), "batch2": batch}
             return batch
 
         def training_step(self, batch, batch_idx):
@@ -765,7 +766,7 @@ def test_no_batch_size_extraction_with_specifying_explictly(tmpdir):
             self.log("epoch_sum_log_val", log_val, on_epoch=True, reduce_fx="sum")
             return super().training_step(batch["batch2"], batch_idx)
 
-        def training_epoch_end(self, *args, **kwargs):
+        def on_train_epoch_end(self, *args, **kwargs):
             results = self.trainer._results
             assert results["training_step.step_log_val"].value == log_val
             assert results["training_step.step_log_val"].cumulated_batch_size == 0
@@ -776,7 +777,5 @@ def test_no_batch_size_extraction_with_specifying_explictly(tmpdir):
     model = CustomBoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=fast_dev_run)
 
-    with pytest.warns(None) as record:
+    with no_warning_call(match="Trying to infer the `batch_size`"):
         trainer.fit(model)
-
-    assert not any("Trying to infer the `batch_size`" in warn.message.args[0] for warn in record.list)
