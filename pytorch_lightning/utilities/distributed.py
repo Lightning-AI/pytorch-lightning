@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import inspect
 import logging
 import os
 from functools import wraps
@@ -23,7 +22,6 @@ import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
 
 if _TPU_AVAILABLE:
@@ -394,20 +392,14 @@ def _collect_states_on_rank_zero(state: Dict[str, Any], device: torch.device) ->
     if not distributed_available():
         return {0: state}
     states = {}
-    state = apply_to_collection(state, torch.Tensor, lambda x: x.to(device))
-    # `broadcast_object_list` API changed between PyTorch 1.9.x and 1.10.x devices has been added
-    params = inspect.signature(torch.distributed.broadcast_object_list).parameters
     for rank in range(1, torch.distributed.get_world_size()):
         if torch.distributed.get_rank() == rank:
             objects = [state]
         else:
             objects = [None]
-        kwargs = dict(src=rank)
-        if "device" in params:
-            kwargs["device"] = device
-        torch.distributed.broadcast_object_list(objects, **kwargs)
+        torch.distributed.broadcast_object_list(objects, src=rank, device=device)
         states[rank] = objects[0]
     if torch.distributed.get_rank() != 0:
         return None
     states[0] = state
-    return apply_to_collection(states, torch.Tensor, lambda x: x.to("cpu"))
+    return states
