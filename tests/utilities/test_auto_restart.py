@@ -39,10 +39,10 @@ from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
     _dataloader_load_state_dict,
     _dataloader_to_state_dict,
+    _is_obj_stateful,
     CaptureIterableDataset,
     CaptureMapDataset,
     FastForwardSampler,
-    is_obj_stateful,
     MergedIteratorState,
 )
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
@@ -1195,7 +1195,7 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
         assert "dataloader_state_dict" in state_dict
 
 
-def test_is_obj_stateful():
+def test__is_obj_stateful():
     class StatefulClass:
         def state_dict(self):
             pass
@@ -1204,7 +1204,7 @@ def test_is_obj_stateful():
             pass
 
     obj = StatefulClass()
-    assert is_obj_stateful(obj)
+    assert _is_obj_stateful(obj)
 
     class NotStatefulClass:
         def state_dict(self):
@@ -1214,11 +1214,11 @@ def test_is_obj_stateful():
             pass
 
     obj = NotStatefulClass()
-    assert not is_obj_stateful(obj)
+    assert not _is_obj_stateful(obj)
 
     class NotStatefulClass:
         def load_state_dict(self):
             pass
 
     obj = NotStatefulClass()
-    assert not is_obj_stateful(obj)
+    assert not _is_obj_stateful(obj)

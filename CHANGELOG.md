@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fault Tolerant Manual
-    * Add `is_obj_stateful` utility to detect if user data loading components are stateful ([#10646](https://github.com/PyTorchLightning/pytorch-lightning/issues/10646))
+    * Add `_is_obj_stateful` utility to detect if user data loading components are stateful ([#10646](https://github.com/PyTorchLightning/pytorch-lightning/issues/10646))
 
 
 -

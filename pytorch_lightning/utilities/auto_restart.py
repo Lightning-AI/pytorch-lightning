@@ -574,7 +574,7 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
         raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
 
 
-def is_obj_stateful(obj: Any) -> bool:
+def _is_obj_stateful(obj: Any) -> bool:
     """In order to be stateful, an object should implement a ``state_dict`` and ``load_state_dict`` method."""
     load_state_dict_fn = getattr(obj, "load_state_dict", None)
     if not isinstance(load_state_dict_fn, Callable):
