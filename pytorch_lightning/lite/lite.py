@@ -107,7 +107,7 @@ class LightningLite(ABC):
         )
         self._accelerator = self._accelerator_connector.accelerator
         self._strategy = self._accelerator.training_type_plugin
-        self._precision_plugin = self._accelerator.precision_plugin
+        self._precision_plugin = self._strategy.precision_plugin
         self._models_setup: int = 0
 
         # wrap the run method so we can inject setup logic or spawn processes for the user
