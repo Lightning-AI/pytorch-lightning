@@ -168,8 +168,9 @@ class TrainingTypePlugin(ABC):
             device: The target device
             dataloader_idx: The index of the dataloader to which the batch belongs.
         """
+        model = self.lightning_module
         device = device or self.root_device
-        return move_data_to_device(batch, device)
+        return model._apply_batch_transfer_handler(batch, device=device, dataloader_idx=dataloader_idx)
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Setup a model and multiple optimizers together.

@@ -21,7 +21,7 @@ from pytorch_lightning.overrides.data_parallel import LightningParallelModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION
@@ -106,8 +106,8 @@ class DataParallelPlugin(ParallelPlugin):
             device: The target device
             dataloader_idx: The index of the dataloader to which the batch belongs.
         """
-        model = self.lightning_module
-        return model._apply_batch_transfer_handler(batch, device=device, dataloader_idx=dataloader_idx)
+        device = device or self.root_device
+        return move_data_to_device(batch, device)
 
     def barrier(self, *args, **kwargs):
         pass

@@ -147,7 +147,7 @@ def test_lite_optimizer_steps():
     """Test that the LiteOptimizer forwards the step() and zero_grad() calls to the wrapped optimizer."""
     optimizer = Mock()
     strategy = Mock()
-    accelerator = Accelerator(strategy)
+    accelerator = Accelerator(None, strategy)
     lite_optimizer = _LiteOptimizer(optimizer=optimizer, accelerator=accelerator)
     lite_optimizer.step()
     strategy = accelerator.training_type_plugin
