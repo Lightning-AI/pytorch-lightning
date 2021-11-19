@@ -166,7 +166,6 @@ class _LiteDataLoader:
             device: The device to which the data should be moved. By default the device is `None` and no data
                 transfers will be made (identical behavior as :class:`~torch.utils.data.DataLoader`).
         """
-        super().__init__()
         self.__dict__.update(dataloader.__dict__)
         self._dataloader = dataloader
         self._device = device
