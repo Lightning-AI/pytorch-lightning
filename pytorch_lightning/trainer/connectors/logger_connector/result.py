@@ -378,8 +378,8 @@ class ResultCollection(dict):
         super().__init__()
         self.training = training
         self.device: Optional[Union[str, torch.device]] = device
-        self.current_batch: Optional[Any] = None
-        self.current_batch_size: Optional[int] = None
+        self.batch: Optional[Any] = None
+        self.batch_size: Optional[int] = None
 
     @property
     def result_metrics(self) -> List[ResultMetric]:
@@ -395,19 +395,19 @@ class ResultCollection(dict):
     def _extract_batch_size(self, batch_size: Optional[int], on_epoch: bool, fx: str, meta: _Metadata) -> int:
         # check if we have extracted the batch size already
         if batch_size is None:
-            batch_size = batch_size or self.current_batch_size
+            batch_size = batch_size or self.batch_size
 
         # extract batch size if it is None and whenever it is required
         if batch_size is None:
             fx_validate = _FxValidator.functions.get(fx.split(".")[0])
             if on_epoch and fx_validate is not None and (True in fx_validate["on_step"]) and meta.is_mean_reduction:
                 try:
-                    batch_size = extract_batch_size(self.current_batch)
+                    batch_size = extract_batch_size(self.batch)
                 except RecursionError:
                     batch_size = 1
 
                 # cache batch_size
-                self.current_batch_size = batch_size
+                self.batch_size = batch_size
             else:
                 batch_size = 1
 

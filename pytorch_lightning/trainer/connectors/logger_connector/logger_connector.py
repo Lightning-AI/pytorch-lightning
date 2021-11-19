@@ -261,8 +261,8 @@ class LoggerConnector:
 
         assert self.trainer._results is not None
         # attach reference to the new batch and remove the cached batch_size
-        self.trainer._results.current_batch = batch
-        self.trainer._results.current_batch_size = None
+        self.trainer._results.batch = batch
+        self.trainer._results.batch_size = None
 
     def epoch_end_reached(self) -> None:
         self._epoch_end_reached = True
@@ -287,8 +287,8 @@ class LoggerConnector:
 
         assert self.trainer._results is not None
         # drop the reference to current batch and batch_size
-        self.trainer._results.current_batch = None
-        self.trainer._results.current_batch_size = None
+        self.trainer._results.batch = None
+        self.trainer._results.batch_size = None
 
     def should_reset_tensors(self, fx: str) -> bool:
         is_different_fx = self._current_fx != fx
