@@ -394,19 +394,22 @@ class ResultCollection(dict):
 
     def _extract_batch_size(self, batch_size: Optional[int], meta: _Metadata) -> int:
         # check if we have extracted the batch size already
-        batch_size = batch_size or self.batch_size
+        if batch_size is None:
+            batch_size = self.batch_size
+
         if batch_size is not None:
             return batch_size
-        batch_size = 1
 
-        # extract it
+        batch_size = 1
         fx_validate = _FxValidator.functions.get(meta.fx.split(".")[0])
         if meta.on_epoch and fx_validate is not None and (True in fx_validate["on_step"]) and meta.is_mean_reduction:
             try:
+                # extract it
                 batch_size = extract_batch_size(self.batch)
                 self.batch_size = batch_size
             except RecursionError:
                 pass
+
         return batch_size
 
     def log(
