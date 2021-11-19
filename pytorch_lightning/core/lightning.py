@@ -46,7 +46,7 @@ from pytorch_lightning.utilities import (
 )
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
+from pytorch_lightning.utilities.distributed import distributed_available, rank_zero_debug, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import get_model_size_mb
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
@@ -2059,7 +2059,8 @@ class LightningModule(
 
         These hooks ensure that ShardedTensors are included when saving, and are loaded the LightningModule correctly.
         """
-        if not _TORCH_GREATER_EQUAL_1_10 or _IS_WINDOWS:
+        if not _TORCH_GREATER_EQUAL_1_10 or _IS_WINDOWS or not torch.distributed.is_available():
+            rank_zero_debug("Could not register sharded tensor state dict hooks")
             return
 
         from torch.distributed._sharded_tensor import pre_load_state_dict_hook, state_dict_hook
