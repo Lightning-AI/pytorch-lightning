@@ -20,14 +20,13 @@ from unittest.mock import ANY
 
 import pytest
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader
 
-from pl_examples.bug_report_model import RandomDataset
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from pytorch_lightning.loops import Loop, TrainingBatchLoop
 from pytorch_lightning.trainer.progress import BaseProgress
-from tests.helpers import BoringModel
+from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 
@@ -253,7 +252,6 @@ def test_loop_hierarchy():
     assert state_dict == {"state_dict": {"a": 1}, "progress": {"increment": 1}}
 
 
-@RunIf(min_torch="1.7.0")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize("stop_epoch", (1, 2))
 @pytest.mark.parametrize("stop_batch", (1, 2))
@@ -323,7 +321,6 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     assert trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.state_dict() == expected
 
 
-@RunIf(min_torch="1.7.0")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))
 @pytest.mark.parametrize("n_optimizers", (1, 3, 5))
@@ -526,7 +523,6 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     assert state_dict["epoch_progress"]["current"]["started"] == stop_epoch
 
 
-@RunIf(min_torch="1.7.0")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize("n_optimizers", (1, 3, 5))
 def test_loop_state_on_complete_run(n_optimizers, tmpdir):
@@ -662,7 +658,6 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
     assert checkpoint["loops"]["fit_loop"] == expected
 
 
-@RunIf(min_torch="1.7.0")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_fit_loop_reset(tmpdir):
     """Test that the reset logic in fit- and epoch loop is aware of whether the loop is restarting from a completed
@@ -752,7 +747,6 @@ def test_fit_loop_reset(tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@RunIf(min_torch="1.7.0")
 @pytest.mark.parametrize(
     ["train_datasets", "val_datasets"],
     [([RandomDataset], [RandomDataset]), ([RandomDataset], [RandomDataset, RandomDataset])],
@@ -796,7 +790,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         max_epochs=1,
         val_check_interval=val_check_interval,
         num_sanity_val_steps=0,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
     trainer.fit(model)
 
@@ -834,7 +828,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         max_epochs=1,
         val_check_interval=val_check_interval,
         num_sanity_val_steps=0,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
     with pytest.raises(CustomException):
         # will stop during validation
@@ -885,7 +879,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         max_epochs=1,
         val_check_interval=val_check_interval,
         num_sanity_val_steps=0,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
     trainer.fit(model, ckpt_path=ckpt_path)
 
@@ -909,3 +903,64 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
     expected[val_batch_progress]["total"]["ready"] += 1
     expected[val_batch_progress]["total"]["started"] += 1
     assert state_dict_after_restart[val_batch_progress] == expected[val_batch_progress]
+
+
+@RunIf(min_torch="1.8.0")
+@pytest.mark.parametrize("should_fail", [False, True])
+# False is de-activated due to slowness
+@pytest.mark.parametrize("persistent_workers", [True])
+def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
+    # `num_workers == 1` uses `_MultiProcessingDataLoaderIter`
+    # `persistent_workers` makes sure `self._iterator` gets set on the `DataLoader` instance
+
+    class _TestMultiProcessingDataLoaderIter(_MultiProcessingDataLoaderIter):
+        def __init__(self, *args, dataloader, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.dataloader = dataloader
+
+        def _shutdown_workers(self):
+            self.dataloader.count_shutdown_workers += 1
+            super()._shutdown_workers()
+
+    class TestDataLoader(DataLoader):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.count_shutdown_workers = 0
+
+        def _get_iterator(self):
+            if self.num_workers == 0:
+                return super()._get_iterator()
+            else:
+                self.check_worker_number_rationality()
+                return _TestMultiProcessingDataLoaderIter(self, dataloader=self)
+
+    train_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
+    val_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
+
+    class TestCallback(Callback):
+        def on_train_epoch_end(self, trainer, *_):
+            if trainer.current_epoch == 1:
+                raise CustomException
+
+    max_epochs = 3
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=max_epochs,
+        callbacks=TestCallback() if should_fail else None,
+    )
+
+    if should_fail:
+        with pytest.raises(CustomException):
+            trainer.fit(model, train_dataloader, val_dataloader)
+    else:
+        trainer.fit(model, train_dataloader, val_dataloader)
+
+    assert train_dataloader.count_shutdown_workers == 2 if should_fail else (2 if persistent_workers else max_epochs)
+    # on sanity checking end, the workers are being deleted too.
+    assert val_dataloader.count_shutdown_workers == 2 if persistent_workers else (3 if should_fail else max_epochs + 1)
+    assert train_dataloader._iterator is None
+    assert val_dataloader._iterator is None

@@ -22,11 +22,13 @@ import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
-from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.data import _get_dataloader_init_kwargs
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _POPTORCH_AVAILABLE:
@@ -64,6 +66,7 @@ class IPUPlugin(ParallelPlugin):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
         training_opts: Optional["poptorch.Options"] = None,
         inference_opts: Optional["poptorch.Options"] = None,
     ) -> None:
@@ -84,6 +87,7 @@ class IPUPlugin(ParallelPlugin):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
+            precision_plugin=precision_plugin,
         )
         if not _IPU_AVAILABLE:
             raise MisconfigurationException(
@@ -113,28 +117,43 @@ class IPUPlugin(ParallelPlugin):
         # patch the dataloader creation function with the custom `poptorch.DataLoader`.
         # this violates the intended control flow for the plugins, but since this is experimental, we have chosen
         # to use the simpler solution before adding abstractions to override the `DataLoader` class
-        self.lightning_module.trainer._update_dataloader = self._convert_to_poptorch_loader
+        self._update_dataloader_original = pl.trainer.data_loading._update_dataloader
+        pl.trainer.data_loading._update_dataloader = self._convert_to_poptorch_loader
 
     def pre_dispatch(self) -> None:
-        precision = self.lightning_module.trainer.precision
-        model = LightningIPUModule(self.lightning_module, precision)
+        model = LightningIPUModule(self.lightning_module, self.precision_plugin.precision)
         self.model = model
+
+        # reset the backup
+        self.poptorch_models = {}
 
         # Separate models are instantiated for different stages, but they share the same weights on host.
         # When validation/test models are run, weights are synced first.
-
-        if self.lightning_module.trainer.state.stage is RunningStage.TRAINING:
-            # Create model for training which will run training.
+        trainer_fn = self.lightning_module.trainer.state.fn
+        if trainer_fn in (TrainerFn.FITTING, TrainerFn.TUNING):
+            # Create model for training and validation which will run on fit
+            training_opts = self.training_opts
+            inference_opts = self.inference_opts
             optimizer = self.lightning_module.trainer.optimizers[0]
-            model = poptorch.trainingModel(model=model, options=self.training_opts, optimizer=optimizer)
+            model = poptorch.trainingModel(model=model, options=training_opts, optimizer=optimizer)
             self.poptorch_models[RunningStage.TRAINING] = model
-        for x in (RunningStage.VALIDATING, RunningStage.TESTING, RunningStage.PREDICTING):
+
+            if self.lightning_module.trainer.enable_validation:
+                model = poptorch.inferenceModel(model=model, options=inference_opts)
+                self.poptorch_models[RunningStage.VALIDATING] = model
+        elif trainer_fn == TrainerFn.VALIDATING:
             model = poptorch.inferenceModel(model=model, options=self.inference_opts)
-            self.poptorch_models[x] = model
+            self.poptorch_models[RunningStage.VALIDATING] = model
+        elif trainer_fn == TrainerFn.TESTING:
+            model = poptorch.inferenceModel(model=model, options=self.inference_opts)
+            self.poptorch_models[RunningStage.TESTING] = model
+        elif trainer_fn == TrainerFn.PREDICTING:
+            model = poptorch.inferenceModel(model=model, options=self.inference_opts)
+            self.poptorch_models[RunningStage.PREDICTING] = model
 
     @property
     def replication_factor(self) -> int:
-        if not self.lightning_module:
+        if not self.lightning_module or not self.poptorch_models:
             # The plugin has been passed in by the user and has not been connected to the Trainer.
             # Check if the user has passed in custom poptorch.Options to infer number of IPUs being used.
             # In this scenario we prioritize the training options.
@@ -142,7 +161,11 @@ class IPUPlugin(ParallelPlugin):
                 return self._training_opts.replication_factor
             if self._inference_opts:
                 return self._inference_opts.replication_factor
-        return len(self.parallel_devices)
+
+            return len(self.parallel_devices)
+
+        stage = self.lightning_module.trainer.state.stage
+        return self.poptorch_models[stage]._options.toDict()["replication_factor"]
 
     def _create_opts(self, training: bool) -> "poptorch.Options":
         opts = poptorch.Options()
@@ -174,8 +197,7 @@ class IPUPlugin(ParallelPlugin):
     def _convert_to_poptorch_loader(
         self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None
     ) -> "poptorch.DataLoader":
-        # use full path to avoid circular imports
-        dl_kwargs = pl.trainer.trainer.TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler)
+        dl_kwargs = _get_dataloader_init_kwargs(dataloader, sampler)
         # Override to drop last uneven batch, as IPUs does not support uneven inputs.
         dl_kwargs["drop_last"] = True
 
@@ -218,25 +240,30 @@ class IPUPlugin(ParallelPlugin):
         args = apply_to_collection(args, dtype=(int, float), function=to_tensor)
         return args
 
-    def training_step(self, *args, **kwargs):
+    def _step(self, stage: RunningStage, *args: Any, **kwargs: Any):
         args = self._prepare_input(args)
-        return self.poptorch_models[RunningStage.TRAINING](*args, **kwargs)
+        poptorch_model = self.poptorch_models[stage]
+        self.lightning_module._running_torchscript = True
+        out = poptorch_model(*args, **kwargs)
+        self.lightning_module._running_torchscript = False
+        return out
+
+    def training_step(self, *args, **kwargs):
+        return self._step(RunningStage.TRAINING, *args, **kwargs)
 
     def validation_step(self, *args, **kwargs):
-        args = self._prepare_input(args)
-        return self.poptorch_models[RunningStage.VALIDATING](*args, **kwargs)
+        return self._step(RunningStage.VALIDATING, *args, **kwargs)
 
     def test_step(self, *args, **kwargs):
-        args = self._prepare_input(args)
-        return self.poptorch_models[RunningStage.TESTING](*args, **kwargs)
+        return self._step(RunningStage.TESTING, *args, **kwargs)
 
     def predict_step(self, *args, **kwargs):
-        args = self._prepare_input(args)
-        return self.poptorch_models[RunningStage.PREDICTING](*args, **kwargs)
+        return self._step(RunningStage.PREDICTING, *args, **kwargs)
 
     def teardown(self) -> None:
         # undo dataloader patching
-        self.lightning_module.trainer._update_dataloader = pl.trainer.trainer.TrainerDataLoadingMixin._update_dataloader
+        pl.trainer.data_loading._update_dataloader = self._update_dataloader_original
+
         for model in self.poptorch_models.values():
             model.destroy()
 

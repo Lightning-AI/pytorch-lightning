@@ -27,10 +27,12 @@ import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, rank_zero_warn, set_shared_parameters
+from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -55,11 +57,14 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self,
         parallel_devices: Optional[List[int]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
         **_: Any
     ) -> None:
         checkpoint_io = checkpoint_io or XLACheckpointIO()
-        super().__init__(parallel_devices=parallel_devices, checkpoint_io=checkpoint_io)
+        super().__init__(
+            parallel_devices=parallel_devices, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin
+        )
         self.debug = debug
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
@@ -138,12 +143,15 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
         TPUSpawnPlugin._validate_dataloader(dataloader)
-        return MpDeviceLoader(dataloader, self.root_device)
+        dataloader = MpDeviceLoader(dataloader, self.root_device)
+        # Mimic interface to torch.utils.data.DataLoader
+        dataloader.dataset = dataloader._loader.dataset
+        return dataloader
 
     def configure_ddp(self) -> None:
         pass
 
-    def init_ddp_connection(self, global_rank: int, world_size: int) -> None:
+    def init_dist_connection(self, global_rank: int, world_size: int) -> None:
         pass
 
     def set_world_ranks(self, process_idx: int = 0) -> None:
@@ -163,7 +171,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             set_shared_parameters(self.model.module, shared_params)
 
         trainer.accelerator.setup_optimizers(trainer)
-        trainer.precision_plugin.connect(self._model, None, None)
+        self.precision_plugin.connect(self._model, None, None)
 
         self.barrier("pre-run-stage")
 
@@ -260,8 +268,24 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             "start_method": self.start_method,
         }
 
-    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> None:
-        xmp.spawn(self._wrapped_function, args=(function, args, kwargs), **self.get_mp_spawn_kwargs())
+    def spawn(self, function: Callable, *args: Any, return_result: bool = True, **kwargs: Any) -> Optional[Any]:
+        context = mp.get_context(self.start_method or "fork")
+        return_queue = context.SimpleQueue() if return_result else None
+        xmp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), **self.get_mp_spawn_kwargs())
+        return return_queue.get() if return_result else None
+
+    def _wrapped_function(
+        self, process_idx: int, function: Callable, args: Any, kwargs: Any, return_queue: Optional[SimpleQueue]
+    ) -> None:
+        self._worker_setup(process_idx)
+        result = function(*args, **kwargs)
+        if return_queue is not None and self.local_rank == 0:
+            return_queue.put(move_data_to_device(result, "cpu"))
+
+        self.barrier("end-process")
+        # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
+        if self.local_rank == 0:
+            time.sleep(2)
 
     def _worker_setup(self, process_idx: int):
         reset_seed()
@@ -306,7 +330,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def _pod_progress_bar_force_stdout(self) -> None:
         # Why is it required? The way `pytorch_xla.distributed` streams logs
-        # from different vms to the master worker doesn't work well with tqdm
+        # from different vms to the main worker doesn't work well with tqdm
         # Ref: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/xla_dist.py#L140
         # The print statement seems to force tqdm to flush stdout.
         if self.tpu_global_core_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:

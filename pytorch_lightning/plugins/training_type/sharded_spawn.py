@@ -24,6 +24,7 @@ from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNative
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
+from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_AVAILABLE:
@@ -36,6 +37,8 @@ if _FAIRSCALE_AVAILABLE:
 
 class DDPSpawnShardedPlugin(DDPSpawnPlugin):
     """Optimizer sharded training provided by FairScale."""
+
+    distributed_backend = _StrategyType.DDP_SHARDED_SPAWN
 
     def configure_ddp(self) -> None:
         trainer = self.lightning_module.trainer
@@ -115,9 +118,8 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
     def new_process(self, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
         # Ensure that the scaler points to the correct process group
         # which is re-initialized in a new process
-        precision_plugin = trainer.accelerator.precision_plugin
-        if isinstance(precision_plugin, ShardedNativeMixedPrecisionPlugin):
-            precision_plugin.scaler = ShardedGradScaler()
+        if isinstance(self.precision_plugin, ShardedNativeMixedPrecisionPlugin):
+            self.precision_plugin.scaler = ShardedGradScaler()
         return super().new_process(trainer, mp_queue)
 
     @classmethod

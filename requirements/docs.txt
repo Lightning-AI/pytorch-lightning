@@ -3,7 +3,7 @@ myst-parser
 nbsphinx>=0.8.5
 ipython[notebook]
 pandoc>=1.0
-docutils>=0.16
+docutils>=0.16,<0.18  # Sphinx not yet compatible with docutils >= 0.18
 sphinxcontrib-fulltoc>=1.0
 sphinxcontrib-mockautodoc
 https://github.com/PyTorchLightning/lightning_sphinx_theme/archive/master.zip#egg=pt-lightning-sphinx-theme

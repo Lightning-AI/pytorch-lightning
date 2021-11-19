@@ -88,6 +88,7 @@ Synchronize validation and test logging
 When running in distributed mode, we have to ensure that the validation and test step logging calls are synchronized across processes.
 This is done by adding ``sync_dist=True`` to all ``self.log`` calls in the validation and test step.
 This ensures that each GPU worker has the same behaviour when tracking model checkpoints, which is important for later downstream tasks such as testing the best checkpoint across all workers.
+The ``sync_dist`` option can also be used in logging calls during the step methods, but be aware that this can lead to significant communication overhead and slow down your training.
 
 Note if you use any built in metrics or custom metrics that use the :doc:`Metrics API <../extensions/metrics>`, these do not need to be updated and are automatically handled for you.
 
@@ -97,7 +98,7 @@ Note if you use any built in metrics or custom metrics that use the :doc:`Metric
         x, y = batch
         logits = self(x)
         loss = self.loss(logits, y)
-        # Add sync_dist=True to sync logging across all GPU workers
+        # Add sync_dist=True to sync logging across all GPU workers (may have performance impact)
         self.log("validation_loss", loss, on_step=True, on_epoch=True, sync_dist=True)
 
 
@@ -105,7 +106,7 @@ Note if you use any built in metrics or custom metrics that use the :doc:`Metric
         x, y = batch
         logits = self(x)
         loss = self.loss(logits, y)
-        # Add sync_dist=True to sync logging across all GPU workers
+        # Add sync_dist=True to sync logging across all GPU workers (may have performance impact)
         self.log("test_loss", loss, on_step=True, on_epoch=True, sync_dist=True)
 
 It is possible to perform some computation manually and log the reduced result on rank 0 as follows:
@@ -543,8 +544,8 @@ To illustrate why this is needed, let's look at DataParallel
         return y_hat
 
 
-    def training_step_end(self, batch_parts_outputs):
-        # batch_parts_outputs has outputs of each part of the batch
+    def training_step_end(self, step_output):
+        # step_output has outputs of each part of the batch
 
         # do softmax here
         outputs = torch.cat(outputs, dim=1)
@@ -560,11 +561,11 @@ Validation and test step have the same option when using DP.
 
 .. testcode::
 
-    def validation_step_end(self, batch_parts_outputs):
+    def validation_step_end(self, step_output):
         ...
 
 
-    def test_step_end(self, batch_parts_outputs):
+    def test_step_end(self, step_output):
         ...
 
 
@@ -593,7 +594,7 @@ Below are the possible configurations we support.
 
 Implement Your Own Distributed (DDP) training
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.plugins.training_type.ddp.DDPPlugin.init_ddp_connection`.
+If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.plugins.training_type.ddp.DDPPlugin.init_dist_connection`.
 
 If you also need to use your own DDP implementation, override :meth:`pytorch_lightning.plugins.training_type.ddp.DDPPlugin.configure_ddp`.
 

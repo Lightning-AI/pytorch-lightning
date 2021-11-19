@@ -36,10 +36,11 @@ class TPUAccelerator(Accelerator):
             ValueError:
                 If the precision or training type plugin are unsupported.
         """
-        if not isinstance(self.precision_plugin, TPUPrecisionPlugin):
+        if not isinstance(self.training_type_plugin.precision_plugin, TPUPrecisionPlugin):
             # this configuration should have been avoided in the accelerator connector
             raise ValueError(
-                f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`, found: {self.precision_plugin}."
+                f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`,"
+                f" found: {self.training_type_plugin.precision_plugin}."
             )
         if not isinstance(self.training_type_plugin, (SingleTPUPlugin, TPUSpawnPlugin)):
             raise ValueError(
@@ -73,3 +74,8 @@ class TPUAccelerator(Accelerator):
             "avg. peak memory (MB)": peak_memory,
         }
         return device_stats
+
+    @staticmethod
+    def auto_device_count() -> int:
+        """Get the devices when set to auto."""
+        return 8

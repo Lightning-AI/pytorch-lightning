@@ -38,16 +38,26 @@ from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
-from pytorch_lightning.plugins import DDPSpawnPlugin
+from pytorch_lightning.plugins import (
+    DataParallelPlugin,
+    DDP2Plugin,
+    DDPFullyShardedPlugin,
+    DDPPlugin,
+    DDPShardedPlugin,
+    DDPSpawnPlugin,
+    DDPSpawnShardedPlugin,
+)
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import DeviceType, DistributedType
+from pytorch_lightning.utilities import _StrategyType, DeviceType
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.boring_model import RandomIterableDataset, RandomIterableDatasetWithLen
+from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
+from tests.helpers.simple_models import ClassificationModel
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -893,8 +903,8 @@ def test_nan_loss_detection(backward_mock, tmpdir):
 
     model = CurrentModel()
 
-    # fit model
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_inf + 1), terminate_on_nan=True)
+    with pytest.deprecated_call(match="terminate_on_nan` was deprecated in v1.5"):
+        trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_inf + 1), terminate_on_nan=True)
 
     with pytest.raises(ValueError, match=r".*The loss returned in `training_step` is.*"):
         trainer.fit(model)
@@ -906,7 +916,9 @@ def test_nan_loss_detection(backward_mock, tmpdir):
 
 
 def test_invalid_terminate_on_nan(tmpdir):
-    with pytest.raises(TypeError, match="`terminate_on_nan` should be a bool"):
+    with pytest.raises(TypeError, match="`terminate_on_nan` should be a bool"), pytest.deprecated_call(
+        match="terminate_on_nan` was deprecated in v1.5"
+    ):
         Trainer(default_root_dir=tmpdir, terminate_on_nan="False")
 
 
@@ -927,7 +939,9 @@ def test_nan_params_detection(backward_mock, tmpdir):
                 torch.nn.init.constant_(self.layer.bias, math.nan)
 
     model = CurrentModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_nan + 1), terminate_on_nan=True)
+
+    with pytest.deprecated_call(match="terminate_on_nan` was deprecated in v1.5"):
+        trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_nan + 1), terminate_on_nan=True)
 
     with pytest.raises(ValueError, match=r".*Detected nan and/or inf values in `layer.bias`.*"):
         trainer.fit(model)
@@ -981,85 +995,78 @@ def test_on_exception_hook(tmpdir):
     assert not trainer.interrupted
     assert handle_interrupt_callback.exception is None
     assert handle_interrupt_callback.exc_info is None
-    trainer.fit(model)
+    with pytest.deprecated_call(match="on_keyboard_interrupt` callback hook was deprecated in v1.5"):
+        trainer.fit(model)
     assert trainer.interrupted
     assert isinstance(handle_interrupt_callback.exception, KeyboardInterrupt)
     assert isinstance(handle_interrupt_callback.exc_info[1], KeyboardInterrupt)
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(MisconfigurationException), pytest.deprecated_call(
+        match="on_keyboard_interrupt` callback hook was deprecated in v1.5"
+    ):
         trainer.test(model)
     assert trainer.interrupted
     assert isinstance(handle_interrupt_callback.exception, MisconfigurationException)
 
 
-@pytest.mark.parametrize(
-    "precision",
-    [32, pytest.param(16, marks=RunIf(min_gpus=1))],
-)
+@pytest.mark.parametrize("precision", [32, pytest.param(16, marks=RunIf(min_gpus=1))])
 def test_gradient_clipping_by_norm(tmpdir, precision):
     """Test gradient clipping by norm."""
     tutils.reset_seed()
 
-    model = EvalModelTemplate()  # TODO: when precision=16, BoringModel produces NaN, but EvalModelTemplate not
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=1,
         max_epochs=1,
-        gpus=int(torch.cuda.is_available()),
+        accelerator="auto",
+        devices=1,
         precision=precision,
         gradient_clip_algorithm="norm",
-        gradient_clip_val=1.0,
+        gradient_clip_val=0.05,
     )
 
-    old_backward = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward
+    class TestModel(ClassificationModel):
+        def configure_gradient_clipping(self, *args, **kwargs):
+            super().configure_gradient_clipping(*args, **kwargs)
+            # test that gradient is clipped correctly
+            parameters = self.parameters()
+            grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
+            torch.testing.assert_allclose(grad_norm, torch.tensor(0.05))
+            self.assertion_called = True
 
-    def backward(*args, **kwargs):
-        # test that gradient is clipped correctly
-        ret_val = old_backward(*args, **kwargs)
-        parameters = model.parameters()
-        grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
-        assert (grad_norm - 1.0).abs() < 0.01, f"Gradient norm != 1.0: {grad_norm}"
-        return ret_val
-
-    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward = backward
-    trainer.fit(model)
+    model = TestModel()
+    trainer.fit(model, ClassifDataModule())
+    assert model.assertion_called
 
 
-@pytest.mark.parametrize(
-    "precision",
-    [32, pytest.param(16, marks=RunIf(min_gpus=1))],
-)
+@pytest.mark.parametrize("precision", [32, pytest.param(16, marks=RunIf(min_gpus=1))])
 def test_gradient_clipping_by_value(tmpdir, precision):
     """Test gradient clipping by value."""
     tutils.reset_seed()
 
-    model = BoringModel()
-
-    grad_clip_val = 1e-10
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_steps=1,
         max_epochs=1,
+        accelerator="auto",
+        devices=1,
         precision=precision,
-        gpus=int(torch.cuda.is_available()),
-        gradient_clip_val=grad_clip_val,
         gradient_clip_algorithm="value",
-        default_root_dir=tmpdir,
+        gradient_clip_val=1e-10,
     )
 
-    old_backward = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward
+    class TestModel(BoringModel):
+        def configure_gradient_clipping(self, *args, **kwargs):
+            super().configure_gradient_clipping(*args, **kwargs)
+            # test that gradient is clipped correctly
+            parameters = self.parameters()
+            grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
+            grad_max = torch.max(torch.stack(grad_max_list))
+            torch.testing.assert_allclose(grad_max.abs(), torch.tensor(1e-10))
+            self.assertion_called = True
 
-    def backward(*args, **kwargs):
-        # test that gradient is clipped correctly
-        ret_val = old_backward(*args, **kwargs)
-        parameters = model.parameters()
-        grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
-        grad_max = torch.max(torch.stack(grad_max_list))
-        assert (
-            abs(grad_max.item() - grad_clip_val) < 1e-11
-        ), f"Gradient max value {grad_max} != grad_clip_val {grad_clip_val} ."
-        return ret_val
-
-    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._backward = backward
+    model = TestModel()
     trainer.fit(model)
+    assert model.assertion_called
 
 
 def test_invalid_gradient_clip_value(tmpdir):
@@ -1154,15 +1161,15 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
         ),
         (
             dict(accelerator="ddp", num_processes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(accelerator="ddp", num_nodes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(accelerator="ddp_cpu", num_processes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(accelerator="ddp2", gpus=None),
@@ -1174,43 +1181,43 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
         ),
         (
             dict(accelerator="dp", gpus=1),
-            dict(_distrib_type=DistributedType.DP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+            dict(_distrib_type=_StrategyType.DP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(accelerator="ddp", gpus=1),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(accelerator="ddp_cpu", num_processes=2, gpus=1),
-            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(accelerator="ddp2", gpus=1),
-            dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP2, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(accelerator=None, gpus=2),
-            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
         ),
         (
             dict(accelerator="dp", gpus=2),
-            dict(_distrib_type=DistributedType.DP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+            dict(_distrib_type=_StrategyType.DP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
         (
             dict(accelerator="ddp", gpus=2),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
         ),
         (
             dict(accelerator="ddp2", gpus=2),
-            dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP2, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
         (
             dict(accelerator="ddp2", num_processes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(accelerator="dp", num_processes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
     ],
 )
@@ -1218,7 +1225,11 @@ def test_trainer_config(trainer_kwargs, expected, monkeypatch):
     if trainer_kwargs["gpus"] is not None:
         monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
         monkeypatch.setattr(torch.cuda, "device_count", lambda: trainer_kwargs["gpus"])
-    trainer = Trainer(**trainer_kwargs)
+    if trainer_kwargs["accelerator"] in (None, "ddp_cpu"):
+        trainer = Trainer(**trainer_kwargs)
+    else:
+        with pytest.deprecated_call(match=r"accelerator='.*'\)` has been deprecated in v1.5"):
+            trainer = Trainer(**trainer_kwargs)
     assert len(expected) == 4
     for k, v in expected.items():
         assert getattr(trainer, k) == v, f"Failed {k}: {v}"
@@ -1314,7 +1325,6 @@ def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, l
     trainer = Trainer(
         default_root_dir=tmpdir,
         log_every_n_steps=log_interval,
-        flush_logs_every_n_steps=log_interval,
         limit_train_batches=train_batches,
         limit_val_batches=0,
         max_steps=max_steps,
@@ -1368,9 +1378,9 @@ class CustomPredictionWriter(BasePredictionWriter):
 
 def predict(
     tmpdir,
-    strategy,
-    gpus,
-    num_processes,
+    strategy=None,
+    accelerator=None,
+    devices=None,
     model=None,
     plugins=None,
     datamodule=True,
@@ -1391,8 +1401,8 @@ def predict(
         log_every_n_steps=1,
         enable_model_summary=False,
         strategy=strategy,
-        gpus=gpus,
-        num_processes=num_processes,
+        accelerator=accelerator,
+        devices=devices,
         plugins=plugins,
         enable_progress_bar=enable_progress_bar,
         callbacks=[cb, cb_1] if use_callbacks else [],
@@ -1424,23 +1434,23 @@ def test_trainer_predict_no_return(tmpdir):
     """Test trainer.predict warns when nothing is returned."""
 
     class CustomBoringModel(BoringModel):
-        def predict_step(self, batch, batch_idx, dataloader_idx=None):
+        def predict_step(self, batch, batch_idx, dataloader_idx=0):
             if (batch_idx + 1) % 2 == 0:
                 return
 
             return super().predict_step(batch, batch_idx, dataloader_idx)
 
     with pytest.warns(UserWarning, match="predict returned None"):
-        predict(tmpdir, None, None, 1, model=CustomBoringModel(), use_callbacks=False)
+        predict(tmpdir, model=CustomBoringModel(), use_callbacks=False)
 
 
 def test_trainer_predict_grad(tmpdir):
     class CustomBoringModel(BoringModel):
-        def predict_step(self, batch, batch_idx, dataloader_idx=None):
+        def predict_step(self, batch, batch_idx, dataloader_idx=0):
             assert batch.expand_as(batch).grad_fn is None
             return super().predict_step(batch, batch_idx, dataloader_idx)
 
-    predict(tmpdir, None, None, 1, model=CustomBoringModel(), use_callbacks=False)
+    predict(tmpdir, model=CustomBoringModel(), use_callbacks=False)
 
     x = torch.zeros(1, requires_grad=True)
     assert x.expand_as(x).grad_fn is not None
@@ -1449,33 +1459,30 @@ def test_trainer_predict_grad(tmpdir):
 @pytest.mark.parametrize("enable_progress_bar", [False, True])
 @pytest.mark.parametrize("datamodule", [False, True])
 def test_trainer_predict_cpu(tmpdir, datamodule, enable_progress_bar):
-    predict(tmpdir, None, None, 1, datamodule=datamodule, enable_progress_bar=enable_progress_bar)
+    predict(tmpdir, datamodule=datamodule, enable_progress_bar=enable_progress_bar)
 
 
 @RunIf(min_gpus=2, special=True)
-@pytest.mark.parametrize("num_gpus", [1, 2])
-def test_trainer_predict_dp(tmpdir, num_gpus):
-    predict(tmpdir, "dp", num_gpus, None)
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"strategy": "dp", "devices": 1},
+        {"strategy": "dp", "devices": 2},
+        {"strategy": "ddp", "devices": 2},
+    ],
+)
+def test_trainer_predict_special(tmpdir, kwargs):
+    predict(tmpdir, accelerator="gpu", **kwargs)
 
 
-@RunIf(min_gpus=2, special=True, fairscale=True)
-def test_trainer_predict_ddp(tmpdir):
-    predict(tmpdir, "ddp", 2, None)
-
-
-@RunIf(min_gpus=2, skip_windows=True, special=True)
-def test_trainer_predict_ddp_spawn(tmpdir):
-    predict(tmpdir, "ddp_spawn", 2, None)
-
-
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=1)
 def test_trainer_predict_1_gpu(tmpdir):
-    predict(tmpdir, None, 1, None)
+    predict(tmpdir, accelerator="gpu", devices=1)
 
 
 @RunIf(skip_windows=True)
-def test_trainer_predict_ddp_cpu(tmpdir):
-    predict(tmpdir, "ddp_cpu", 0, 2)
+def test_trainer_predict_ddp_spawn(tmpdir):
+    predict(tmpdir, strategy="ddp_spawn", accelerator="auto", devices=2)
 
 
 @pytest.mark.parametrize("dataset_cls", [RandomDataset, RandomIterableDatasetWithLen, RandomIterableDataset])
@@ -1501,7 +1508,8 @@ def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmpdir):
 
 @patch("torch.cuda.device_count", return_value=2)
 @patch("torch.cuda.is_available", return_value=True)
-def test_spawn_predict_return_predictions(*_):
+@pytest.mark.parametrize("accelerator", ("cpu", "gpu"))
+def test_spawn_predict_return_predictions(_, __, accelerator):
     """Test that `return_predictions=True` raise a MisconfigurationException with spawn training type plugins."""
     model = BoringModel()
 
@@ -1511,8 +1519,7 @@ def test_spawn_predict_return_predictions(*_):
         with pytest.raises(MisconfigurationException, match="`return_predictions` should be set to `False`"):
             trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=True)
 
-    run(DDPSpawnPlugin, strategy="ddp_spawn", gpus=2)
-    run(DDPSpawnPlugin, strategy="ddp_cpu", num_processes=2)
+    run(DDPSpawnPlugin, accelerator=accelerator, strategy="ddp_spawn", devices=2)
 
 
 @pytest.mark.parametrize("return_predictions", [None, False, True])
@@ -1809,7 +1816,7 @@ class TrainerStagesModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "strategy,num_processes", [(None, 1), pytest.param("ddp_cpu", 2, marks=RunIf(skip_windows=True))]
+    "strategy,num_processes", [(None, 1), pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True, skip_49370=True))]
 )
 def test_model_in_correct_mode_during_stages(tmpdir, strategy, num_processes):
     model = TrainerStagesModel()
@@ -1830,14 +1837,14 @@ class TestDummyModelForCheckpoint(BoringModel):
         pass
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, skip_49370=True)
 def test_fit_test_synchronization(tmpdir):
     """Test that the trainer synchronizes processes before returning control back to the caller."""
     tutils.set_random_main_port()
     model = TestDummyModelForCheckpoint()
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="x", mode="min", save_top_k=1)
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, strategy="ddp_cpu", num_processes=2, callbacks=[checkpoint]
+        default_root_dir=tmpdir, max_epochs=2, strategy="ddp_spawn", num_processes=2, callbacks=[checkpoint]
     )
     trainer.fit(model)
     assert os.path.exists(checkpoint.best_model_path), f"Could not find checkpoint at rank {trainer.global_rank}"
@@ -1985,7 +1992,7 @@ class TrainerStagesErrorsModel(BoringModel):
     "strategy,num_processes",
     [
         (None, 1),
-        pytest.param("ddp_spawn", 2, marks=RunIf(skip_windows=True)),
+        pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True)),
     ],
 )
 def test_error_handling_all_stages(tmpdir, strategy, num_processes):
@@ -2096,11 +2103,11 @@ def test_detect_anomaly_nan(tmpdir):
         ),
         (
             dict(strategy="ddp", num_processes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(strategy="ddp", num_nodes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(strategy="ddp2", gpus=None),
@@ -2112,67 +2119,106 @@ def test_detect_anomaly_nan(tmpdir):
         ),
         (
             dict(strategy="dp", gpus=1),
-            dict(_distrib_type=DistributedType.DP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+            dict(_distrib_type=_StrategyType.DP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(strategy="ddp", gpus=1),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(strategy="ddp_spawn", gpus=1),
-            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(strategy="ddp2", gpus=1),
-            dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP2, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(strategy=None, gpus=2),
-            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
         ),
         (
             dict(strategy="dp", gpus=2),
-            dict(_distrib_type=DistributedType.DP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+            dict(_distrib_type=_StrategyType.DP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
         (
             dict(strategy="ddp", gpus=2),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
         ),
         (
             dict(strategy="ddp2", gpus=2),
-            dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP2, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
         (
             dict(strategy="ddp2", num_processes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(strategy="dp", num_processes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(strategy="ddp_spawn", num_processes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(strategy="ddp_spawn", num_processes=1, gpus=None),
             dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
-            dict(strategy="ddp_cpu", num_processes=1, num_nodes=1, gpus=None),
-            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+            dict(strategy="ddp_fully_sharded", gpus=1),
+            dict(
+                _distrib_type=_StrategyType.DDP_FULLY_SHARDED,
+                _device_type=DeviceType.GPU,
+                num_gpus=1,
+                num_processes=1,
+            ),
         ),
         (
-            dict(strategy="ddp_cpu", num_processes=2, num_nodes=1, gpus=None),
-            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(strategy=DDPSpawnPlugin(), num_processes=2, gpus=None),
+            dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
-            dict(strategy="ddp_cpu", num_processes=1, num_nodes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+            dict(strategy=DDPSpawnPlugin(), gpus=2),
+            dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
         (
-            dict(strategy="ddp_cpu", num_processes=2, num_nodes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(strategy=DDPPlugin(), num_processes=2, gpus=None),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
+        (
+            dict(strategy=DDPPlugin(), gpus=2),
+            dict(_distrib_type=_StrategyType.DDP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+        ),
+        (
+            dict(strategy=DDP2Plugin(), gpus=2),
+            dict(_distrib_type=_StrategyType.DDP2, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+        ),
+        (
+            dict(strategy=DataParallelPlugin(), gpus=2),
+            dict(_distrib_type=_StrategyType.DP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+        ),
+        (
+            dict(strategy=DDPFullyShardedPlugin(), gpus=2),
+            dict(
+                _distrib_type=_StrategyType.DDP_FULLY_SHARDED,
+                _device_type=DeviceType.GPU,
+                num_gpus=2,
+                num_processes=1,
+            ),
+        ),
+        (
+            dict(strategy=DDPSpawnShardedPlugin(), gpus=2),
+            dict(
+                _distrib_type=_StrategyType.DDP_SHARDED_SPAWN,
+                _device_type=DeviceType.GPU,
+                num_gpus=2,
+                num_processes=1,
+            ),
+        ),
+        (
+            dict(strategy=DDPShardedPlugin(), gpus=2),
+            dict(_distrib_type=_StrategyType.DDP_SHARDED, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
     ],
 )

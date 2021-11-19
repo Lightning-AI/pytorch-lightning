@@ -27,7 +27,7 @@ from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -93,7 +93,7 @@ class LearningRateMonitor(Callback):
         self.logging_interval = logging_interval
         self.log_momentum = log_momentum
         self.lrs: Dict[str, List[float]] = {}
-        self.lr_sch_names: List[str] = []
+        self._lr_sch_names: List[str] = []
 
     def on_train_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         """Called before training, determines unique names for all lr schedulers in the case of multiple of the
@@ -334,6 +334,16 @@ class LearningRateMonitor(Callback):
         name_list = [self._add_suffix(name, param_groups, i) for i in range(len(param_groups))]
 
         if add_lr_sch_names:
-            self.lr_sch_names.append(name)
+            self._lr_sch_names.append(name)
 
         return name_list
+
+    @property
+    def lr_sch_names(self) -> List[str]:
+        # TODO remove `lr_sch_names` and `add_lr_sch_names` argument in v1.7.0
+        rank_zero_deprecation(
+            "`LearningRateMonitor.lr_sch_names` has been deprecated in v1.5 and will be removed in 1.7."
+            " Consider accessing them using `LearningRateMonitor.lrs.keys()` which will return"
+            " the names of all the optimizers, even those without a scheduler."
+        )
+        return self._lr_sch_names

@@ -190,7 +190,7 @@ def test_model_tpu_early_stop(tmpdir):
         tpu_cores=8,
     )
     trainer.fit(model)
-    trainer.test(test_dataloaders=DataLoader(RandomDataset(32, 2000), batch_size=32))
+    trainer.test(dataloaders=DataLoader(RandomDataset(32, 2000), batch_size=32))
 
 
 @RunIf(tpu=True)
@@ -240,7 +240,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
     model = BoringModel()
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, tpu_cores=8)
-    trainer.fit(model, train_dataloader=model.train_dataloader(), val_dataloaders=model.val_dataloader())
+    trainer.fit(model, train_dataloaders=model.train_dataloader(), val_dataloaders=model.val_dataloader())
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
@@ -278,7 +278,7 @@ def test_accelerator_set_when_using_tpu(tmpdir, tpu_cores):
 @RunIf(tpu=True)
 @pl_multi_process_test
 def test_broadcast_on_tpu():
-    """Checks if an object from the master process is broadcasted to other processes correctly."""
+    """Checks if an object from the main process is broadcasted to other processes correctly."""
 
     def test_broadcast(rank):
         trainer = Trainer(tpu_cores=8)
@@ -407,7 +407,7 @@ def test_tpu_sync_dist():
     """Test tpu spawn sync dist operation."""
 
     def test_sync_dist(_):
-        sync = _Sync(TPUSpawnPlugin().reduce, should=True, op=torch.distributed.ReduceOp.SUM)
+        sync = _Sync(TPUSpawnPlugin().reduce, should=True, _op=torch.distributed.ReduceOp.SUM)
         value = torch.tensor([1.0])
         value = (sync(value),)
         assert value.item() == 8

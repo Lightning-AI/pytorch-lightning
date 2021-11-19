@@ -14,9 +14,10 @@
 from unittest import mock
 
 import pytest
+import torch
 
 from pl_examples import _DALI_AVAILABLE
-from tests.helpers.runif import RunIf
+from pytorch_lightning.utilities.imports import _IS_WINDOWS
 
 ARGS_DEFAULT = (
     "--trainer.default_root_dir %(tmpdir)s "
@@ -31,10 +32,11 @@ ARGS_GPU = ARGS_DEFAULT + "--trainer.gpus 1 "
 
 
 @pytest.mark.skipif(not _DALI_AVAILABLE, reason="Nvidia DALI required")
-@RunIf(min_gpus=1, skip_windows=True)
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA required")
+@pytest.mark.skipif(_IS_WINDOWS, reason="Not supported on Windows")
 @pytest.mark.parametrize("cli_args", [ARGS_GPU])
 def test_examples_mnist_dali(tmpdir, cli_args):
-    from pl_examples.basic_examples.dali_image_classifier import cli_main
+    from pl_examples.integration_examples.dali_image_classifier import cli_main
 
     # update the temp dir
     cli_args = cli_args % {"tmpdir": tmpdir}

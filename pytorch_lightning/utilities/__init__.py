@@ -18,6 +18,7 @@ import numpy
 from pytorch_lightning.utilities.apply_func import move_data_to_device  # noqa: F401
 from pytorch_lightning.utilities.distributed import AllGatherGrad, rank_zero_info, rank_zero_only  # noqa: F401
 from pytorch_lightning.utilities.enums import (  # noqa: F401
+    _StrategyType,
     AMPType,
     DeviceType,
     DistributedType,
@@ -44,11 +45,9 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _OMEGACONF_AVAILABLE,
     _POPTORCH_AVAILABLE,
     _RICH_AVAILABLE,
-    _TORCH_GREATER_EQUAL_1_7,
     _TORCH_GREATER_EQUAL_1_8,
     _TORCH_GREATER_EQUAL_1_9,
     _TORCH_GREATER_EQUAL_1_10,
-    _TORCH_GREATER_EQUAL_DEV_1_10,
     _TORCH_QUANTIZE_AVAILABLE,
     _TORCHTEXT_AVAILABLE,
     _TORCHVISION_AVAILABLE,

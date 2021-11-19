@@ -64,7 +64,6 @@ class DataConnector:
         self,
         check_val_every_n_epoch: int,
         reload_dataloaders_every_n_epochs: int,
-        reload_dataloaders_every_epoch: bool,
         prepare_data_per_node: Optional[bool] = None,
     ) -> None:
         self.trainer.datamodule = None
@@ -82,13 +81,6 @@ class DataConnector:
             )
 
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch
-
-        if reload_dataloaders_every_epoch:
-            reload_dataloaders_every_n_epochs = int(reload_dataloaders_every_epoch)
-            rank_zero_deprecation(
-                "`reload_dataloaders_every_epoch` is deprecated in v1.4 and will be removed in v1.6."
-                " Please use `reload_dataloaders_every_n_epochs` in Trainer."
-            )
 
         if not isinstance(reload_dataloaders_every_n_epochs, int) or (reload_dataloaders_every_n_epochs < 0):
             raise MisconfigurationException(
@@ -140,7 +132,7 @@ class DataConnector:
         lightning_module = self.trainer.lightning_module
         # handle datamodule prepare data:
         # check for prepare_data_per_node & datamodule lifecycle properties before calling datamodule.prepare_data
-        if datamodule is not None and not datamodule._has_prepared_data:
+        if datamodule is not None:
             dm_prepare_data_per_node = datamodule.prepare_data_per_node
             dm_eq_prepare_data = datamodule.prepare_data_per_node == self.trainer.prepare_data_per_node
             if self.trainer.prepare_data_per_node is not None and not dm_eq_prepare_data:

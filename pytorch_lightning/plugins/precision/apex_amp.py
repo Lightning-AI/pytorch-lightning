@@ -11,9 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Dict, Optional, Sequence, Union
+from typing import Any, Callable, Dict, Optional, Union
 
-import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
@@ -74,49 +73,24 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         with amp.scale_loss(closure_loss, opt) as closure_loss:
             super().backward(model, closure_loss, optimizer, *args, **kwargs)
 
-    @staticmethod
-    def reinit_scheduler_properties(optimizers: Sequence[Optimizer], schedulers: Sequence[Any]) -> None:
-        """Reinitializes schedulers with correct properties."""
-        # Reinitialize optimizer.step properties added by schedulers
-        for scheduler in schedulers:
-            scheduler = scheduler["scheduler"]
-            state = None
-
-            for optimizer in optimizers:
-                # check that we dont mix users optimizers and schedulers
-                if scheduler.optimizer == optimizer:
-                    # Find the mro belonging to the base lr scheduler class
-                    for i, mro in enumerate(scheduler.__class__.__mro__):
-                        if mro in (torch.optim.lr_scheduler._LRScheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-                            state = scheduler.state_dict()
-                            scheduler.__class__.__mro__[i].__init__(scheduler, optimizer)
-                            scheduler.load_state_dict(state)
-                            break
-
-                if state is not None:
-                    break
-
-    def pre_optimizer_step(
+    def optimizer_step(
         self,
         model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Callable[[], Any],
+        closure: Callable[[], Any],
         **kwargs: Any,
-    ) -> bool:
-        """Hook to do something before each optimizer step."""
+    ) -> None:
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"apex AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
-        result = lambda_closure()  # APEX amp does not support closures
-        super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
-        skipped_backward = result is None
+        closure_result = closure()
+        self._after_closure(model, optimizer, optimizer_idx)
+        skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if not isinstance(model, pl.LightningModule) or not model.automatic_optimization or not skipped_backward:
-            # the following should be in a `optimizer_step` hook but we don't have one in the precision plugin.
             optimizer.step(**kwargs)
-        return False
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         if "amp_scaling_state" in checkpoint:
