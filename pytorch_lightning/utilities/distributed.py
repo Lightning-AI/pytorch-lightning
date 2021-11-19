@@ -379,7 +379,7 @@ def init_dist_connection(
         )
 
 
-def _collect_states_on_rank_zero(state: Dict[str, Any], device: torch.device):
+def _collect_states_on_rank_zero(state: Dict[str, Any], device: torch.device) -> Optional[Dict[int, Dict[str, Any]]]:
     if not distributed_available():
         return {0: state}
     states = {}
