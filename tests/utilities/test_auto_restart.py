@@ -45,7 +45,7 @@ from pytorch_lightning.utilities.auto_restart import (
     FastForwardSampler,
     MergedIteratorState,
 )
-from pytorch_lightning.utilities.enums import AutoRestartBatchKeys, FaultTolerantTrainingMode
+from pytorch_lightning.utilities.enums import _FaultTolerantTrainingMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
@@ -1198,20 +1198,22 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
 def test_fault_tolerant_manual_mode_enum():
 
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "0"}):
-        assert FaultTolerantTrainingMode.DISABLED == _detect_fault_tolerant_env_to_enum()
+        assert _FaultTolerantTrainingMode.DISABLED == _detect_fault_tolerant_env_to_enum()
         trainer = Trainer()
         assert not trainer._fault_tolerant_mode.is_enabled
 
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"}):
-        assert FaultTolerantTrainingMode.AUTOMATIC == _detect_fault_tolerant_env_to_enum()
+        assert _FaultTolerantTrainingMode.AUTOMATIC == _detect_fault_tolerant_env_to_enum()
+        trainer = Trainer()
         assert trainer._fault_tolerant_mode.is_automatic
 
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "2"}):
-        assert FaultTolerantTrainingMode.MANUAL == _detect_fault_tolerant_env_to_enum()
+        assert _FaultTolerantTrainingMode.MANUAL == _detect_fault_tolerant_env_to_enum()
+        trainer = Trainer()
         assert trainer._fault_tolerant_mode.is_manual
 
     with pytest.raises(
         MisconfigurationException, match="The environnement flag `PL_FAULT_TOLERANT_TRAINING` should be either"
     ):
         with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "3"}):
-            assert FaultTolerantTrainingMode.MANUAL == _detect_fault_tolerant_env_to_enum()
+            assert _FaultTolerantTrainingMode.MANUAL == _detect_fault_tolerant_env_to_enum()

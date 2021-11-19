@@ -25,7 +25,7 @@ from torch.utils.data import Dataset, get_worker_info, Sampler
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.enums import AutoRestartBatchKeys, FaultTolerantTrainingMode
+from pytorch_lightning.utilities.enums import _FaultTolerantTrainingMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
@@ -573,15 +573,15 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
         raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
 
 
-def _detect_fault_tolerant_env_to_enum() -> FaultTolerantTrainingMode:
-    """This utility detect is Fault Tolerant is activated and maps it to `FaultTolerantTrainingMode`."""
+def _detect_fault_tolerant_env_to_enum() -> _FaultTolerantTrainingMode:
+    """This utility detect is Fault Tolerant is activated and maps it to `_FaultTolerantTrainingMode`."""
     env_value = os.getenv("PL_FAULT_TOLERANT_TRAINING", "0")
     if env_value == "0":
-        return FaultTolerantTrainingMode.DISABLED
+        return _FaultTolerantTrainingMode.DISABLED
     elif env_value == "1":
-        return FaultTolerantTrainingMode.AUTOMATIC
+        return _FaultTolerantTrainingMode.AUTOMATIC
     elif env_value == "2":
-        return FaultTolerantTrainingMode.MANUAL
+        return _FaultTolerantTrainingMode.MANUAL
     else:
         raise MisconfigurationException(
             "The environnement flag `PL_FAULT_TOLERANT_TRAINING` should be either "

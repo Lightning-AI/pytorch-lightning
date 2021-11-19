@@ -258,7 +258,7 @@ class _StrategyType(LightningEnum):
         return self in _StrategyType.interactive_compatible_types()
 
 
-class FaultTolerantTrainingMode(LightningEnum):
+class _FaultTolerantTrainingMode(LightningEnum):
 
     DISABLED = "disabled"
     AUTOMATIC = "automatic"
@@ -266,12 +266,12 @@ class FaultTolerantTrainingMode(LightningEnum):
 
     @property
     def is_enabled(self) -> bool:
-        return self is not FaultTolerantTrainingMode.DISABLED
+        return self is not _FaultTolerantTrainingMode.DISABLED
 
     @property
     def is_automatic(self) -> bool:
-        return self is not FaultTolerantTrainingMode.AUTOMATIC
+        return self is _FaultTolerantTrainingMode.AUTOMATIC
 
     @property
     def is_manual(self) -> bool:
-        return self is not FaultTolerantTrainingMode.MANUAL
+        return self is _FaultTolerantTrainingMode.MANUAL
