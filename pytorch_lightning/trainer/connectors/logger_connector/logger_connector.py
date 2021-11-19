@@ -156,16 +156,9 @@ class LoggerConnector:
 
     @staticmethod
     def _filter_metrics_for_dataloader(
-        dl_idx: int, metrics: Dict[str, Union[Any, Dict[str, Any]]], metric_prefix: str = "dataloader_idx"
-    ) -> Dict[str, Union[Any, Dict[str, Any]]]:
-        result = {}
-        for k, v in metrics.items():
-            if metric_prefix not in k:
-                result[k] = v
-                continue
-            if k.endswith(f"{metric_prefix}_{dl_idx}"):
-                result[k] = v
-        return result
+        dl_idx: int, metrics: _OUT_DICT, metric_prefix: str = "dataloader_idx"
+    ) -> _OUT_DICT:
+        return {k: v for k, v in metrics.items() if metric_prefix not in k or k.endswith(f"{metric_prefix}_{dl_idx}")}
 
     def _prepare_eval_loop_results(self, metrics: _OUT_DICT) -> None:
         if self.trainer.sanity_checking:
