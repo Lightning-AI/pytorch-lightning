@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
 import logging
 import os
 from functools import wraps
@@ -394,12 +395,17 @@ def _collect_states_on_rank_zero(state: Dict[str, Any], device: torch.device) ->
         return {0: state}
     states = {}
     state = apply_to_collection(state, torch.Tensor, lambda x: x.to(device))
+    # `broadcast_object_list` API changed between PyTorch 1.9.x and 1.10.x devices has been added
+    params = inspect.signature(torch.distributed.broadcast_object_list).parameters
     for rank in range(1, torch.distributed.get_world_size()):
         if torch.distributed.get_rank() == rank:
             objects = [state]
         else:
             objects = [None]
-        torch.distributed.broadcast_object_list(objects, src=rank, device=device)
+        kwargs = dict(src=rank)
+        if "device" in params:
+            kwargs["device"] = device
+        torch.distributed.broadcast_object_list(objects, **kwargs)
         states[rank] = objects[0]
     if torch.distributed.get_rank() != 0:
         return None
