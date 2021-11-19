@@ -23,10 +23,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.auto_restart import (
-    _apply_fault_tolerant_automatic_capture_dataset_wrapper,
-    FastForwardSampler,
-)
+from pytorch_lightning.utilities.auto_restart import FastForwardSampler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _fault_tolerant_training_mode
 from pytorch_lightning.utilities.seed import pl_worker_init_function
@@ -176,6 +173,8 @@ def _update_dataloader(dataloader: DataLoader, sampler: Sampler, mode: Optional[
 def _get_dataloader_init_kwargs(
     dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
 ) -> Dict[str, Any]:
+    from pytorch_lightning.utilities.auto_restart import _apply_fault_tolerant_automatic_capture_dataset_wrapper
+
     if not isinstance(dataloader, DataLoader):
         raise ValueError(f"The dataloader {dataloader} needs to subclass `torch.utils.data.DataLoader`")
 
