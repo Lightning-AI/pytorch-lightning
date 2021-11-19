@@ -266,7 +266,7 @@ def test_precision_selection_raises(monkeypatch):
     with mock.patch("torch.cuda.device_count", return_value=1), pytest.raises(
         MisconfigurationException, match="Sharded plugins are not supported with apex"
     ):
-        Trainer(amp_backend="apex", precision=16, gpus=1, accelerator="ddp_fully_sharded")
+        Trainer(amp_backend="apex", precision=16, gpus=1, strategy="ddp_fully_sharded")
 
     import pytorch_lightning.plugins.precision.apex_amp as apex
 

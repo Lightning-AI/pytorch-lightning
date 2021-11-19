@@ -1276,7 +1276,7 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
         # the val dataloader on the first epoch because this only tracks the training epoch
         # meaning multiple passes through the validation data within a single training epoch
         # would not have the dataloader reloaded.
-        # This breaks the assumption behind reload_dataloaders_every_epoch=True
+        # This breaks the assumption behind reload_dataloaders_every_n_epochs=True
         call.val_dataloader(),
         call.train_dataloader(),
         call.val_dataloader(),
@@ -1466,7 +1466,7 @@ def test_correct_dataloader_idx_in_hooks(tmpdir, multiple_trainloader_mode):
 
 
 def test_request_dataloader(tmpdir):
-    """This test asserts dataloader can be modified and properly set to the trainer."""
+    """This test asserts dataloader can be wrapped."""
 
     class DataLoaderWrapper:
         def __init__(self, loader):
@@ -1480,46 +1480,35 @@ def test_request_dataloader(tmpdir):
         def __next__(self):
             return next(self._iter)
 
-    class DataLoaderFunc:
-        def __init__(self, loader):
-            self.loader = loader
-
-        def __call__(self):
-            return self.loader
-
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
-            self.on_train_dataloader_called = False
             self.on_train_batch_start_called = False
-            self.on_val_dataloader_called = False
             self.on_val_batch_start_called = False
 
-        def on_train_dataloader(self) -> None:
-            loader = self.train_dataloader()
-            self.train_dataloader = DataLoaderFunc(DataLoaderWrapper(loader))
-            self.on_train_dataloader_called = True
+        def train_dataloader(self):
+            loader = super().train_dataloader()
+            return DataLoaderWrapper(loader)
 
         def on_train_batch_start(self, batch, batch_idx: int) -> None:
             assert isinstance(self.trainer.train_dataloader.loaders, DataLoaderWrapper)
             self.on_train_batch_start_called = True
 
-        def on_val_dataloader(self) -> None:
-            loader = self.val_dataloader()
-            self.val_dataloader = DataLoaderFunc(DataLoaderWrapper(loader))
-            self.on_val_dataloader_called = True
+        def val_dataloader(self):
+            loader = super().val_dataloader()
+            return DataLoaderWrapper(loader)
 
         def on_validation_batch_start(self, batch, batch_idx: int, dataloader_idx: int) -> None:
             assert isinstance(self.trainer.val_dataloaders[0], DataLoaderWrapper)
             self.on_val_batch_start_called = True
 
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, limit_test_batches=2, max_epochs=1
+    )
     model = TestModel()
     trainer.fit(model)
     trainer.test(model)
-    assert model.on_train_dataloader_called
     assert model.on_train_batch_start_called
-    assert model.on_val_dataloader_called
     assert model.on_val_batch_start_called
 
 

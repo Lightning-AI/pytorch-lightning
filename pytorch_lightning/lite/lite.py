@@ -41,7 +41,7 @@ from pytorch_lightning.plugins import (
 )
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.utilities import DeviceType, DistributedType, move_data_to_device
+from pytorch_lightning.utilities import _StrategyType, DeviceType, move_data_to_device
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.data import has_iterable_dataset
 from pytorch_lightning.utilities.device_parser import _parse_devices
@@ -108,7 +108,7 @@ class LightningLite(ABC):
         )
         self._accelerator = self._accelerator_connector.accelerator
         self._strategy = self._accelerator.training_type_plugin
-        self._precision_plugin = self._accelerator.precision_plugin
+        self._precision_plugin = self._strategy.precision_plugin
         self._models_setup: int = 0
 
         # wrap the run method so we can inject setup logic or spawn processes for the user
@@ -477,14 +477,14 @@ class LightningLite(ABC):
         )
 
     @staticmethod
-    def _supported_strategy_types() -> Sequence[DistributedType]:
+    def _supported_strategy_types() -> Sequence[_StrategyType]:
         return (
-            DistributedType.DP,
-            DistributedType.DDP,
-            DistributedType.DDP_SPAWN,
-            DistributedType.DEEPSPEED,
-            DistributedType.DDP_SHARDED,
-            DistributedType.DDP_SHARDED_SPAWN,
+            _StrategyType.DP,
+            _StrategyType.DDP,
+            _StrategyType.DDP_SPAWN,
+            _StrategyType.DEEPSPEED,
+            _StrategyType.DDP_SHARDED,
+            _StrategyType.DDP_SHARDED_SPAWN,
         )
 
     @staticmethod
