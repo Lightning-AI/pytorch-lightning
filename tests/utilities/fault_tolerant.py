@@ -29,25 +29,17 @@ Here are the steps to use this file to ensure your cluster is properly setup for
 The mode weights with the failure matches the weight without.
 The training has been properly resumed and is fully reproduced.
 
+Command: `python -m tests.utilities.fault_tolerant`
 """
 
 # Note, this file is used to ensure Fault Tolerant is working as expected
 import os
-import sys
 from time import sleep
 
 import torch
 
-import pytorch_lightning as pl
-
-sys.path.append(os.path.dirname(pl.__file__))
-from pytorch_lightning import seed_everything  # noqa E402
-from tests.utilities.test_auto_restart import (  # noqa E402
-    _run_training,
-    CustomException,
-    RandomGetItemDataset,
-    TestModel,
-)
+from pytorch_lightning import seed_everything  # E402
+from tests.utilities.test_auto_restart import _run_training, CustomException, RandomGetItemDataset, TestModel  # E402
 
 
 class SignalTestModel(TestModel):
