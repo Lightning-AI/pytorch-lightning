@@ -210,6 +210,14 @@ To get this behavior make sure to add the correct signal to your SLURM script
     # 90 seconds before training ends
     SBATCH --signal=SIGUSR1@90
 
+If auto-resubmit is not desired, it can be turned off in the :class:`~pytorch_lightning.plugins.environments.slurm_environment.SLURMEnvironment` plugin:
+
+.. code-block:: python
+
+    from pytorch_lightning.plugins import SLURMEnvironment
+
+    trainer = Trainer(plugins=[SLURMEnvironment(auto_requeue=False)])
+
 
 Building SLURM scripts
 ----------------------

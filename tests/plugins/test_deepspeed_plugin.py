@@ -170,8 +170,8 @@ def test_deepspeed_precision_choice(amp_backend, precision, tmpdir):
     )
 
     assert isinstance(trainer.accelerator.training_type_plugin, DeepSpeedPlugin)
-    assert isinstance(trainer.accelerator.precision_plugin, DeepSpeedPrecisionPlugin)
-    assert trainer.accelerator.precision_plugin.precision == precision
+    assert isinstance(trainer.training_type_plugin.precision_plugin, DeepSpeedPrecisionPlugin)
+    assert trainer.training_type_plugin.precision_plugin.precision == precision
 
 
 @RunIf(deepspeed=True)
@@ -1011,7 +1011,6 @@ def test_specific_gpu_device_id(tmpdir):
             pl_module: LightningModule,
             batch: Any,
             batch_idx: int,
-            dataloader_idx: int,
         ) -> None:
             assert batch.device.index == 1
 

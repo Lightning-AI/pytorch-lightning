@@ -103,7 +103,7 @@ def test_accelerator_choice_ddp_spawn(cuda_available_mock, device_count_mock):
 def test_accelerator_choice_ddp_slurm(set_device_mock, device_count_mock, setup_distributed_mock):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert trainer._accelerator_connector._is_slurm_managing_tasks
+            assert trainer._accelerator_connector._is_slurm_managing_tasks()
             assert isinstance(trainer.accelerator, GPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
@@ -136,7 +136,7 @@ def test_accelerator_choice_ddp_slurm(set_device_mock, device_count_mock, setup_
 def test_accelerator_choice_ddp2_slurm(set_device_mock, device_count_mock, setup_distributed_mock):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert trainer._accelerator_connector._is_slurm_managing_tasks
+            assert trainer._accelerator_connector._is_slurm_managing_tasks()
             assert isinstance(trainer.accelerator, GPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDP2Plugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
@@ -323,7 +323,7 @@ def test_accelerator_choice_ddp_cpu_kubeflow(device_count_mock, setup_distribute
 def test_accelerator_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_mock):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert trainer._accelerator_connector._is_slurm_managing_tasks
+            assert trainer._accelerator_connector._is_slurm_managing_tasks()
             assert isinstance(trainer.accelerator, CPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
@@ -343,7 +343,7 @@ def test_accelerator_choice_ddp_cpu_and_strategy(tmpdir):
     _test_accelerator_choice_ddp_cpu_and_strategy(tmpdir, ddp_strategy_class=DDPPlugin)
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, skip_49370=True)
 def test_accelerator_choice_ddp_cpu_and_strategy_spawn(tmpdir):
     """Test that accelerator="ddp_cpu" can work together with an instance of DDPPSpawnPlugin."""
     _test_accelerator_choice_ddp_cpu_and_strategy(tmpdir, ddp_strategy_class=DDPSpawnPlugin)
@@ -791,7 +791,7 @@ def test_strategy_choice_ddp_spawn(cuda_available_mock, device_count_mock):
 def test_strategy_choice_ddp_slurm(setup_distributed_mock, strategy):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert trainer._accelerator_connector._is_slurm_managing_tasks
+            assert trainer._accelerator_connector._is_slurm_managing_tasks()
             assert isinstance(trainer.accelerator, GPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
@@ -824,7 +824,7 @@ def test_strategy_choice_ddp_slurm(setup_distributed_mock, strategy):
 def test_strategy_choice_ddp2_slurm(set_device_mock, device_count_mock, setup_distributed_mock, strategy):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert trainer._accelerator_connector._is_slurm_managing_tasks
+            assert trainer._accelerator_connector._is_slurm_managing_tasks()
             assert isinstance(trainer.accelerator, GPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDP2Plugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
@@ -1008,7 +1008,7 @@ def test_strategy_choice_ddp_cpu_kubeflow(device_count_mock, setup_distributed_m
 def test_strategy_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_mock, strategy):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert trainer._accelerator_connector._is_slurm_managing_tasks
+            assert trainer._accelerator_connector._is_slurm_managing_tasks()
             assert isinstance(trainer.accelerator, CPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)

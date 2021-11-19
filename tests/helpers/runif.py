@@ -150,6 +150,8 @@ class RunIf:
             env_flag = os.getenv("PL_RUNNING_SPECIAL_TESTS", "0")
             conditions.append(env_flag != "1")
             reasons.append("Special execution")
+            # used in tests/conftest.py::pytest_collection_modifyitems
+            kwargs["special"] = True
 
         if fairscale:
             conditions.append(not _FAIRSCALE_AVAILABLE)
