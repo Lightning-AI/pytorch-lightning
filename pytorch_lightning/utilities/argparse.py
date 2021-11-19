@@ -317,7 +317,7 @@ def _precision_allowed_type(x: Union[int, str]) -> Union[int, str]:
 
 def _defaults_from_env_vars(fn: Callable) -> Callable:
     @wraps(fn)
-    def insert_env_defaults(self, *args, **kwargs) -> Any:
+    def insert_env_defaults(self, *args: Any, **kwargs: Any) -> Any:
         cls = self.__class__  # get the class
         if args:  # in case any args passed move them to kwargs
             # parse only the argument names
