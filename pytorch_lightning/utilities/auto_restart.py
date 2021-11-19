@@ -574,12 +574,13 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
 
 
 def _detect_fault_tolerant_env_to_enum() -> FaultTolerantTrainingMode:
-    value = os.getenv("PL_FAULT_TOLERANT_TRAINING", "0")
-    if value == "0":
+    """This utility detect is Fault Tolerant is activated and maps it to `FaultTolerantTrainingMode`."""
+    env_value = os.getenv("PL_FAULT_TOLERANT_TRAINING", "0")
+    if env_value == "0":
         return FaultTolerantTrainingMode.DISABLED
-    elif value == "1":
+    elif env_value == "1":
         return FaultTolerantTrainingMode.AUTOMATIC
-    elif value == "2":
+    elif env_value == "2":
         return FaultTolerantTrainingMode.MANUAL
     else:
         raise MisconfigurationException(
