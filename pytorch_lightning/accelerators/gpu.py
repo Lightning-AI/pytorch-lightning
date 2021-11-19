@@ -131,7 +131,7 @@ def get_nvidia_gpu_stats(device: torch.device) -> Dict[str, float]:
 
     s = result.stdout.strip()
     stats = [_to_float(x) for x in s.split(", ")]
-    gpu_stats = {f"{x} ({unit})": stat for (x, unit), stat in zip(gpu_stat_keys, stats)}
+    gpu_stats = {f"{x} ({unit})": stat for (x, unit), stat in zip(gpu_stat_metrics, stats)}
     return gpu_stats
 
 
