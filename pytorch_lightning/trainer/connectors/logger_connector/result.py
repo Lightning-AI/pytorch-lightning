@@ -211,7 +211,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             if self.meta.is_mean_reduction:
                 self.add_state("cumulated_batch_size", torch.tensor(0, dtype=torch.float), dist_reduce_fx=torch.sum)
 
-    def update(self, value: _IN_METRIC, batch_size: torch.Tensor) -> None:
+    def update(self, value: _IN_METRIC, batch_size: int) -> None:
         if self.is_tensor:
             value = value.float()
             if self.meta.on_step:
@@ -250,7 +250,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             self.value.reset()
         self.has_reset = True
 
-    def forward(self, value: _IN_METRIC, batch_size: torch.Tensor) -> None:
+    def forward(self, value: _IN_METRIC, batch_size: int) -> None:
         if self.meta.enable_graph:
             with torch.no_grad():
                 self.update(value, batch_size)
@@ -376,8 +376,9 @@ class ResultCollection(dict):
     def __init__(self, training: bool, device: Optional[Union[str, torch.device]] = None) -> None:
         super().__init__()
         self.training = training
-        self._batch_size = torch.tensor(1, device=device)
         self.device: Optional[Union[str, torch.device]] = device
+        self.batch: Optional[Any] = None
+        self.batch_size: Optional[int] = None
 
     @property
     def result_metrics(self) -> List[ResultMetric]:
@@ -390,14 +391,23 @@ class ResultCollection(dict):
         apply_to_collection(list(self.values()), ResultMetric, append_fn)
         return o
 
-    @property
-    def batch_size(self) -> torch.Tensor:
-        # performance: cache the `batch_size` tensor instead of re-creating it
-        return self._batch_size
+    def _extract_batch_size(self, batch_size: Optional[int], meta: _Metadata) -> int:
+        # check if we have extracted the batch size already
+        if batch_size is None:
+            batch_size = self.batch_size
 
-    @batch_size.setter
-    def batch_size(self, value: int) -> None:
-        self._batch_size = torch.tensor(value, device=self.device)
+        if batch_size is not None:
+            return batch_size
+
+        batch_size = 1
+        if self.batch is not None and meta.on_epoch and meta.is_mean_reduction:
+            try:
+                batch_size = extract_batch_size(self.batch)
+                self.batch_size = batch_size
+            except RecursionError:
+                pass
+
+        return batch_size
 
     def log(
         self,
@@ -458,10 +468,8 @@ class ResultCollection(dict):
                 f"You called `self.log({name}, ...)` twice in `{fx}` with different arguments. This is not allowed"
             )
 
-        if batch_size is not None:
-            self.batch_size = batch_size
-
-        self.update_metrics(key, value)
+        batch_size = self._extract_batch_size(batch_size, meta)
+        self.update_metrics(key, value, batch_size)
 
     def register_key(self, key: str, meta: _Metadata, value: _METRIC_COLLECTION) -> None:
         """Create one ResultMetric object per value.
@@ -478,10 +486,10 @@ class ResultCollection(dict):
             value = ResultMetricCollection(value)
         self[key] = value
 
-    def update_metrics(self, key: str, value: _METRIC_COLLECTION) -> None:
-        def fn(result_metric: ResultMetric, v: ResultMetric) -> None:
+    def update_metrics(self, key: str, value: _METRIC_COLLECTION, batch_size: int) -> None:
+        def fn(result_metric: ResultMetric, v: torch.Tensor) -> None:
             # performance: avoid calling `__call__` to avoid the checks in `torch.nn.Module._call_impl`
-            result_metric.forward(v.to(self.device), self.batch_size)
+            result_metric.forward(v.to(self.device), batch_size)
             result_metric.has_reset = False
 
         apply_to_collections(self[key], value, ResultMetric, fn)
@@ -575,19 +583,10 @@ class ResultCollection(dict):
 
         apply_to_collection(self, ResultMetric, fn)
 
-    def extract_batch_size(self, batch: Any) -> int:
-        try:
-            batch_size = extract_batch_size(batch)
-        except RecursionError:
-            batch_size = 1
-        self.batch_size = batch_size  # the setter converts it to `Tensor`
-        return batch_size
-
     def to(self, *args: Any, **kwargs: Any) -> "ResultCollection":
         """Move all data to the given device."""
         self.update(apply_to_collection(dict(self), (torch.Tensor, Metric), move_data_to_device, *args, **kwargs))
 
-        self._batch_size = self._batch_size.to(*args, **kwargs)
         if "device" in kwargs:
             self.device = kwargs["device"]
         return self
