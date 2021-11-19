@@ -29,7 +29,10 @@ warning_cache = WarningCache()
 
 def _extract_batch_size(batch: BType) -> Generator[int, None, None]:
     if isinstance(batch, torch.Tensor):
-        yield batch.size(0)
+        if batch.ndim == 0:
+            yield 1
+        else:
+            yield batch.size(0)
     elif isinstance(batch, str):
         yield len(batch)
     elif isinstance(batch, (Iterable, Mapping)):
