@@ -72,8 +72,9 @@ def _test_collect_states(rank, worldsize):
     if rank == 1:
         assert collected_state is None
     else:
-        print(collected_state)
         assert collected_state == {1: {"something": torch.tensor([1])}, 0: {"something": torch.tensor([0])}}
+
+    torch.distributed.destroy_process_group()
 
 
 @RunIf(skip_windows=True, min_gpus=2, min_torch="1.10")

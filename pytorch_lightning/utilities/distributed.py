@@ -392,14 +392,12 @@ def _collect_states_on_rank_zero(state: Dict[str, Any], device: torch.device) ->
     if not distributed_available():
         return {0: state}
     states = {}
+    current_rank = torch.distributed.get_rank()
     for rank in range(1, torch.distributed.get_world_size()):
-        if torch.distributed.get_rank() == rank:
-            objects = [state]
-        else:
-            objects = [None]  # type: ignore
+        objects = [state if current_rank == rank else None]  # type: ignore
         torch.distributed.broadcast_object_list(objects, src=rank, device=device)
         states[rank] = objects[0]
-    if torch.distributed.get_rank() != 0:
+    if current_rank != 0:
         return None
     states[0] = state
     return states
