@@ -57,6 +57,7 @@ ALL_LOGGER_CLASSES = (
     TestTubeLogger,
     WandbLogger,
 )
+ALL_LOGGER_CLASSES_WO_TTUBE = tuple(filter(lambda cls: cls is not TestTubeLogger, ALL_LOGGER_CLASSES))
 ALL_LOGGER_CLASSES_WO_NEPTUNE = tuple(filter(lambda cls: cls is not NeptuneLogger, ALL_LOGGER_CLASSES))
 ALL_LOGGER_CLASSES_WO_NEPTUNE_WANDB = tuple(filter(lambda cls: cls is not WandbLogger, ALL_LOGGER_CLASSES_WO_NEPTUNE))
 
@@ -81,7 +82,7 @@ def _instantiate_logger(logger_class, save_dir, **override_kwargs):
     return logger
 
 
-@pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES)
+@pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES_WO_TTUBE)
 def test_loggers_fit_test_all(tmpdir, monkeypatch, logger_class):
     """Verify that basic functionality of all loggers."""
     with contextlib.ExitStack() as stack:
