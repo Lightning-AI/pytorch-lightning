@@ -50,7 +50,7 @@ class _LiteOptimizer:
         self.__class__ = type("Lite" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
         self._optimizer = optimizer
         self._accelerator = accelerator
-        # TODO refactor to take Strategy as param, API breaking change for Lite? @
+        # TODO (@awaelchli) refactor to take Strategy as param
         self._strategy = self._accelerator.training_type_plugin
 
     @property
