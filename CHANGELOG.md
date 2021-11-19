@@ -15,7 +15,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added a flag `SLURMEnvironment(auto_requeue=True|False)` to control whether Lightning handles the requeuing ([#10601](https://github.com/PyTorchLightning/pytorch-lightning/issues/10601))
 
 
--
+- Fault Tolerant Manual:
+    - Added a utility to collect states across processes ([#10639](https://github.com/PyTorchLightning/pytorch-lightning/issues/10639))
 
 
 -
