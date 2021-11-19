@@ -35,7 +35,7 @@ def test_plugin_setup_optimizers_in_pre_dispatch(tmpdir, delay_dispatch):
             return delay_dispatch
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, plugins=CustomPlugin(device=torch.device("cpu")))
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy=CustomPlugin(device=torch.device("cpu")))
     trainer.fit(model)
 
 

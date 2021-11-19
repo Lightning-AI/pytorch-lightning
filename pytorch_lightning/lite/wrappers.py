@@ -24,6 +24,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from pytorch_lightning.plugins import PrecisionPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 
@@ -64,7 +65,7 @@ class _LiteOptimizer:
         )
 
 
-class _LiteModule(nn.Module):
+class _LiteModule(DeviceDtypeModuleMixin):
     def __init__(self, module: nn.Module, precision_plugin: PrecisionPlugin) -> None:
         """The LiteModule is a thin wrapper around the :class:`torch.nn.Module` and handles precision / autocast
         automatically for the forward pass.
@@ -113,8 +114,8 @@ def _wrap_init(f: Callable) -> Callable:
     @functools.wraps(f)
     def wrapper(module: Any, *args: Any, **kwargs: Dict[str, Any]) -> None:
         params = dict(inspect.signature(module._old_init).parameters)
-        params.pop("args")
-        params.pop("kwargs")
+        params.pop("args", None)
+        params.pop("kwargs", None)
         for init_name, init_arg in chain(zip(params, args), kwargs.items()):
             setattr(module, init_name, init_arg)
         f(module, *args, **kwargs)
