@@ -39,6 +39,7 @@ from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
     _dataloader_load_state_dict,
     _dataloader_to_state_dict,
+    _rotate_worker_indices,
     CaptureIterableDataset,
     CaptureMapDataset,
     FastForwardSampler,
@@ -1192,3 +1193,9 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
         assert "dataloader_state_dict" not in state_dict
     else:
         assert "dataloader_state_dict" in state_dict
+
+
+def test_rotate_worker_indices():
+    state_dict = {0: 0, 1: 1}
+    assert _rotate_worker_indices(state_dict, 0, 2) == {0: 1, 1: 0}
+    assert _rotate_worker_indices(state_dict, 1, 2) == {0: 0, 1: 1}

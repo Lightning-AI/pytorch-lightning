@@ -247,14 +247,7 @@ class CaptureMapDataset(Dataset):
     def load_state_dict(self, state_dict: Dict[int, Any], latest_worker_id: int, num_workers: int) -> None:
         # as workers aren't available, the ``state_dict``` is cached until workers are made available.
         state_dict = deepcopy(state_dict)
-
-        if num_workers > 0:
-            # remap states to worker ids starting at 0
-            next_worker_id = latest_worker_id + 1
-            old_to_new_worker_id_map = [((next_worker_id + i) % num_workers, i) for i in range(num_workers)]
-            state_dict = {
-                new_id: state_dict[old_id] for old_id, new_id in old_to_new_worker_id_map if old_id in state_dict
-            }
+        state_dict = _rotate_worker_indices(state_dict, latest_worker_id, num_workers)
         self._cached_state_dict = state_dict
 
     def state_dict(self) -> Dict[int, Dict[str, Any]]:
@@ -571,3 +564,13 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
 
     else:
         raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
+
+
+def _rotate_worker_indices(state, latest_worker_id: int, num_workers: int):
+    """This function is used to rotate the worker indices based on the `latest_worker_id` the training failed
+    on."""
+    if num_workers == 0:
+        return state
+    next_worker_id = latest_worker_id + 1
+    old_to_new_worker_id_map = [((next_worker_id + i) % num_workers, i) for i in range(num_workers)]
+    return {new_id: state[old_id] for old_id, new_id in old_to_new_worker_id_map if old_id in state}
