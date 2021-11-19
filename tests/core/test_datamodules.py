@@ -442,20 +442,24 @@ def test_hyperparameters_saving():
 
 
 def test_define_as_dataclass():
+    class BoringDataModule(LightningDataModule):
+        def __init__(self, foo=None):
+            super().__init__()
+
     # makes sure that no functionality is broken and the user can still manually make
     # super().__init__ call with parameters
     # also tests all the dataclass features that can be enabled without breaking anything
     @dataclass(init=True, repr=True, eq=True, order=True, unsafe_hash=True, frozen=False)
-    class BoringDataModule1(LightningDataModule):
+    class BoringDataModule1(BoringDataModule):
         batch_size: int
-        dims: int = 2
+        foo: int = 2
 
         def __post_init__(self):
-            super().__init__(dims=self.dims)
+            super().__init__(foo=self.foo)
 
     # asserts for the different dunder methods added by dataclass, when __init__ is implemented, i.e.
     # __repr__, __eq__, __lt__, __le__, etc.
-    assert BoringDataModule1(batch_size=64).dims == 2
+    assert BoringDataModule1(batch_size=64).foo == 2
     assert BoringDataModule1(batch_size=32)
     assert hasattr(BoringDataModule1, "__repr__")
     assert BoringDataModule1(batch_size=32) == BoringDataModule1(batch_size=32)
@@ -477,7 +481,8 @@ def test_inconsistent_prepare_data_per_node(tmpdir):
     with pytest.raises(MisconfigurationException, match="Inconsistent settings found for `prepare_data_per_node`."):
         model = BoringModel()
         dm = BoringDataModule()
-        trainer = Trainer(prepare_data_per_node=False)
+        with pytest.deprecated_call(match="prepare_data_per_node` with the trainer flag is deprecated"):
+            trainer = Trainer(prepare_data_per_node=False)
         trainer.model = model
         trainer.datamodule = dm
         trainer._data_connector.prepare_data()

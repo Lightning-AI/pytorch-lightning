@@ -162,7 +162,6 @@ class Trainer(
         benchmark: bool = False,
         deterministic: bool = False,
         reload_dataloaders_every_n_epochs: int = 0,
-        reload_dataloaders_every_epoch: bool = False,
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
         detect_anomaly: bool = False,
@@ -341,12 +340,6 @@ class Trainer(
 
             reload_dataloaders_every_n_epochs: Set to a non-negative integer to reload dataloaders every n epochs.
 
-            reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch.
-
-                .. deprecated:: v1.4
-                    ``reload_dataloaders_every_epoch`` has been deprecated in v1.4 and will be removed in v1.6.
-                    Please use ``reload_dataloaders_every_n_epochs``.
-
             replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this
                 will toggled automatically when DDP is used. By default it will add ``shuffle=True`` for
                 train sampler and ``shuffle=False`` for val/test sampler. If you want to customize it,
@@ -515,7 +508,6 @@ class Trainer(
         self._data_connector.on_trainer_init(
             check_val_every_n_epoch,
             reload_dataloaders_every_n_epochs,
-            reload_dataloaders_every_epoch,
             prepare_data_per_node,
         )
 
@@ -1576,7 +1568,7 @@ class Trainer(
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
-        return self.accelerator.precision_plugin
+        return self.training_type_plugin.precision_plugin
 
     @property
     def global_rank(self) -> int:
@@ -1680,7 +1672,7 @@ class Trainer(
 
     @property
     def precision(self) -> Union[str, int]:
-        return self.accelerator.precision
+        return self.training_type_plugin.precision_plugin.precision
 
     @property
     def scaler(self):
@@ -1772,10 +1764,6 @@ class Trainer(
         )
 
     @property
-    def progress_bar_callback(self) -> Optional[ProgressBarBase]:
-        return self._progress_bar_callback
-
-    @property
     def progress_bar_dict(self) -> dict:
         """Read-only for progress bar metrics."""
         rank_zero_deprecation(
@@ -1852,6 +1840,15 @@ class Trainer(
         """A list of all instances of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` found
         in the Trainer.callbacks list."""
         return [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
+
+    @property
+    def progress_bar_callback(self) -> Optional[ProgressBarBase]:
+        """An instance of :class:`~pytorch_lightning.callbacks.progress.base.ProgressBarBase` found in the
+        Trainer.callbacks list, or ``None`` if one doesn't exist."""
+        for c in self.callbacks:
+            if isinstance(c, ProgressBarBase):
+                return c
+        return None
 
     @property
     def resume_from_checkpoint(self) -> Optional[Union[str, Path]]:

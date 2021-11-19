@@ -50,3 +50,30 @@ if running_special:
 
     assert "test_warnings.py:39: UserWarning: test6" in output
     assert "test_warnings.py:40: LightningDeprecationWarning: test7" in output
+
+    # check that logging is properly configured
+    import logging
+
+    root_logger = logging.getLogger()
+    lightning_logger = logging.getLogger("pytorch_lightning")
+    # should have a `StreamHandler`
+    assert lightning_logger.hasHandlers() and len(lightning_logger.handlers) == 1
+    # set our own stream for testing
+    handler = lightning_logger.handlers[0]
+    assert isinstance(handler, logging.StreamHandler)
+    stderr = StringIO()
+    # necessary with `propagate = False`
+    lightning_logger.handlers[0].stream = stderr
+
+    # necessary with `propagate = True`
+    with redirect_stderr(stderr):
+        # Lightning should not configure the root `logging` logger by default
+        logging.info("test1")
+        root_logger.info("test1")
+        # but our logger instance
+        lightning_logger.info("test2")
+        # level is set to INFO
+        lightning_logger.debug("test3")
+
+    output = stderr.getvalue()
+    assert output == "test2\n", repr(output)

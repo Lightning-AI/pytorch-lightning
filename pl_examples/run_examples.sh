@@ -1,6 +1,7 @@
 #!/bin/bash
 set -ex
 
+export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 dir_path=$(dirname "${BASH_SOURCE[0]}")
 args="
   --data.batch_size=32

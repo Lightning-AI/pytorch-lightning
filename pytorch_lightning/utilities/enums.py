@@ -103,13 +103,6 @@ class PrecisionType(LightningEnum):
 class DistributedType(LightningEnum, metaclass=_OnAccessEnumMeta):
     """Define type of training strategy.
 
-    >>> # you can match the type with string
-    >>> DistributedType.DDP == 'ddp'
-    True
-    >>> # which is case invariant
-    >>> DistributedType.DDP2 in ('ddp2', )
-    True
-
     Deprecated since v1.6.0 and will be removed in v1.8.0.
 
     Use `_StrategyType` instead.
