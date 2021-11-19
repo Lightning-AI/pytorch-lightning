@@ -188,7 +188,7 @@ class LightningLite(ABC):
 
     def setup_dataloaders(
         self, *dataloaders: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
-    ) -> Union[Iterable, List[Iterable]]:
+    ) -> Union[_LiteDataLoader, List[_LiteDataLoader]]:
         """Setup one or multiple dataloaders for accelerated training. If you need different settings for each
         dataloader, call this method individually for each one.
 
@@ -213,7 +213,7 @@ class LightningLite(ABC):
 
     def _setup_dataloader(
         self, dataloader: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
-    ) -> Iterable:
+    ) -> _LiteDataLoader:
         """Setup a single dataloader for accelerated training.
 
         Args:
