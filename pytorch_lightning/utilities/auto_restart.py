@@ -30,7 +30,6 @@ from torch.utils.data.dataloader import (
 )
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _fault_tolerant_training_mode
@@ -572,18 +571,6 @@ def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
     dataloader.collate_fn = partial(
         _capture_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
     )
-
-
-def _apply_fault_tolerant_automatic_capture_dataset_wrapper(dl_kwargs: Dict) -> Dict:
-    dataset = dl_kwargs["dataset"]
-    if isinstance(dataset, IterableDataset):
-        # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
-        dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
-    elif get_len(dataset) != float("inf"):
-        dl_kwargs["dataset"] = CaptureMapDataset(dataset=dl_kwargs["dataset"])
-    else:
-        raise MisconfigurationException("This shouldn't happen, please open an issue on Lightning Github repository.")
-    return dl_kwargs
 
 
 def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, Any]) -> None:
