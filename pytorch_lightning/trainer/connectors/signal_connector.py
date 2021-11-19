@@ -2,12 +2,14 @@ import logging
 import os
 import signal
 import sys
+import threading
 from signal import Signals
 from subprocess import call
 from types import FrameType, FunctionType
 from typing import Callable, List, Union
 
 import pytorch_lightning as pl
+from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 log = logging.getLogger(__name__)
@@ -36,18 +38,19 @@ class SignalConnector:
         if _fault_tolerant_training():
             sigterm_handlers.append(self.fault_tolerant_sigterm_handler_fn)
 
-        if self._is_on_slurm():
-            log.info("Set SLURM handle signals.")
+        environment = self.trainer._accelerator_connector.cluster_environment
+        if isinstance(environment, SLURMEnvironment) and environment.auto_requeue:
+            log.info("SLURM auto-requeueing enabled. Setting signal handlers.")
             sigusr1_handlers.append(self.slurm_sigusr1_handler_fn)
             sigterm_handlers.append(self.sigterm_handler_fn)
 
         # signal.SIGUSR1 doesn't seem available on windows
         if not self._is_on_windows():
-            if not self._has_already_handler(signal.SIGUSR1):
-                signal.signal(signal.SIGUSR1, HandlersCompose(sigusr1_handlers))
+            if sigusr1_handlers and not self._has_already_handler(signal.SIGUSR1):
+                self._register_signal(signal.SIGUSR1, HandlersCompose(sigusr1_handlers))
 
-            if not self._has_already_handler(signal.SIGTERM):
-                signal.signal(signal.SIGTERM, HandlersCompose(sigterm_handlers))
+            if sigterm_handlers and not self._has_already_handler(signal.SIGTERM):
+                self._register_signal(signal.SIGTERM, HandlersCompose(sigterm_handlers))
 
     def slurm_sigusr1_handler_fn(self, signum: Signals, frame: FrameType) -> None:
         if self.trainer.is_global_zero:
@@ -86,19 +89,6 @@ class SignalConnector:
     def sigterm_handler_fn(self, signum: Signals, frame: FrameType) -> None:
         log.info("bypassing sigterm")
 
-    def _is_on_slurm(self) -> bool:
-        # see if we're using slurm (not interactive)
-        on_slurm = False
-        try:
-            job_name = os.environ["SLURM_JOB_NAME"]
-            if job_name != "bash":
-                on_slurm = True
-        # todo: specify the possible exception
-        except Exception:
-            pass
-
-        return on_slurm
-
     def _is_on_windows(self) -> bool:
         return sys.platform == "win32"
 
@@ -107,3 +97,17 @@ class SignalConnector:
             return isinstance(signal.getsignal(signum), FunctionType)
         except AttributeError:
             return False
+
+    @staticmethod
+    def _register_signal(signum: Signals, handlers: HandlersCompose) -> None:
+        if threading.current_thread() is threading.main_thread():
+            signal.signal(signum, handlers)
+
+    @staticmethod
+    def _reset_signal(signum: Signals) -> None:
+        if isinstance(signal.getsignal(signum), HandlersCompose):
+            signal.signal(signum, signal.SIG_DFL)
+
+    def teardown(self):
+        self._reset_signal(signal.SIGTERM)
+        self._reset_signal(signal.SIGUSR1)

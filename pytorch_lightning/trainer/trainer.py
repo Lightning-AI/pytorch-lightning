@@ -688,6 +688,7 @@ class Trainer(
             self.on_exception(exception)
             # shutdown workers
             self._data_connector.teardown()
+            self.signal_connector.teardown()
             raise
 
     def fit(
@@ -1225,6 +1226,7 @@ class Trainer(
         self._data_connector.teardown()
         self._active_loop.teardown()
         self.logger_connector.teardown()
+        self.signal_connector.teardown()
 
     def _dispatch(self):
         if self.evaluating:
@@ -1568,7 +1570,7 @@ class Trainer(
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
-        return self.accelerator.precision_plugin
+        return self.training_type_plugin.precision_plugin
 
     @property
     def global_rank(self) -> int:
@@ -1672,7 +1674,7 @@ class Trainer(
 
     @property
     def precision(self) -> Union[str, int]:
-        return self.accelerator.precision
+        return self.training_type_plugin.precision_plugin.precision
 
     @property
     def scaler(self):
@@ -1764,10 +1766,6 @@ class Trainer(
         )
 
     @property
-    def progress_bar_callback(self) -> Optional[ProgressBarBase]:
-        return self._progress_bar_callback
-
-    @property
     def progress_bar_dict(self) -> dict:
         """Read-only for progress bar metrics."""
         rank_zero_deprecation(
@@ -1844,6 +1842,15 @@ class Trainer(
         """A list of all instances of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` found
         in the Trainer.callbacks list."""
         return [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
+
+    @property
+    def progress_bar_callback(self) -> Optional[ProgressBarBase]:
+        """An instance of :class:`~pytorch_lightning.callbacks.progress.base.ProgressBarBase` found in the
+        Trainer.callbacks list, or ``None`` if one doesn't exist."""
+        for c in self.callbacks:
+            if isinstance(c, ProgressBarBase):
+                return c
+        return None
 
     @property
     def resume_from_checkpoint(self) -> Optional[Union[str, Path]]:

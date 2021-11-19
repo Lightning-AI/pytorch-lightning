@@ -18,6 +18,7 @@ from torch.nn import DataParallel, Module
 
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.enums import _StrategyType
@@ -35,8 +36,14 @@ class DataParallelPlugin(ParallelPlugin):
         self,
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
     ):
-        super().__init__(parallel_devices=parallel_devices, cluster_environment=None, checkpoint_io=checkpoint_io)
+        super().__init__(
+            parallel_devices=parallel_devices,
+            cluster_environment=None,
+            checkpoint_io=checkpoint_io,
+            precision_plugin=precision_plugin,
+        )
 
     @property
     def global_rank(self) -> int:
