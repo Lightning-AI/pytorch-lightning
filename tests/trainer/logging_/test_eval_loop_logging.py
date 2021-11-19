@@ -26,6 +26,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 def test__validation_step__log(tmpdir):
@@ -701,6 +702,7 @@ def test_filter_metrics_for_dataloader(kwargs, expected):
     assert actual == expected
 
 
+@RunIf(min_gpus=1)
 def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir):
     class TestModel(BoringModel):
         def validation_step(self, *args):
@@ -719,7 +721,5 @@ def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir):
             assert self.trainer.callback_metrics["foo"].device.type == "cpu"
 
     model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir, limit_val_batches=2, move_metrics_to_cpu=True, accelerator="auto", devices=1
-    )
+    trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=2, move_metrics_to_cpu=True, gpus=1)
     trainer.validate(model, verbose=False)
