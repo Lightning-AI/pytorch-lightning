@@ -94,7 +94,7 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
     gpus = _normalize_parse_gpu_input_to_list(gpus)
     if not gpus:
         raise MisconfigurationException("GPUs requested but none are available.")
-    if TorchElasticEnvironment.is_using_torchelastic() and len(gpus) != 1 and len(_get_all_available_gpus()) == 1:
+    if TorchElasticEnvironment.detect() and len(gpus) != 1 and len(_get_all_available_gpus()) == 1:
         # omit sanity check on torchelastic as by default shows one visible GPU per process
         return gpus
 

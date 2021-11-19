@@ -17,6 +17,7 @@ import socket
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.plugins.environments import ClusterEnvironment
+from pytorch_lightning.utilities import rank_zero_deprecation
 
 
 class LSFEnvironment(ClusterEnvironment):
@@ -41,16 +42,17 @@ class LSFEnvironment(ClusterEnvironment):
     """
 
     def __init__(self):
+        super().__init__()
+        # TODO: remove in 1.7
+        if hasattr(self, "is_using_lsf") and callable(self.is_using_lsf):
+            rank_zero_deprecation(
+                f"`{self.__class__.__name__}.is_using_lsf` has been deprecated in v1.6 and will be removed in v1.7."
+                " Implement the static method `detect()` instead (do not forget to add the `@staticmethod` decorator)."
+            )
         self._main_address = self._get_main_address()
         self._main_port = self._get_main_port()
         log.debug(f"MASTER_ADDR: {self._main_address}")
         log.debug(f"MASTER_PORT: {self._main_port}")
-
-    @staticmethod
-    def is_using_lsf() -> bool:
-        """Returns ``True`` if the current process was launched using the jsrun command."""
-        required_env_vars = ("LSB_JOBID", "LSB_HOSTS", "JSM_NAMESPACE_LOCAL_RANK", "JSM_NAMESPACE_SIZE")
-        return all(v in os.environ for v in required_env_vars)
 
     @property
     def creates_processes_externally(self) -> bool:
@@ -65,6 +67,12 @@ class LSFEnvironment(ClusterEnvironment):
     def main_port(self) -> int:
         """The main port gets calculated from the LSF job ID."""
         return self._main_port
+
+    @staticmethod
+    def detect() -> bool:
+        """Returns ``True`` if the current process was launched using the jsrun command."""
+        required_env_vars = ("LSB_JOBID", "LSB_HOSTS", "JSM_NAMESPACE_LOCAL_RANK", "JSM_NAMESPACE_SIZE")
+        return all(v in os.environ for v in required_env_vars)
 
     def world_size(self):
         """The world size is read from the environment variable `JSM_NAMESPACE_SIZE`."""

@@ -37,11 +37,6 @@ class SLURMEnvironment(ClusterEnvironment):
     def creates_processes_externally(self) -> bool:
         return True
 
-    @staticmethod
-    def detect() -> bool:
-        """Returns ``True`` if the current process was launched on a SLURM cluster."""
-        return "SLURM_NTASKS" in os.environ
-
     @property
     def main_address(self) -> str:
         # figure out the root node addr
@@ -83,6 +78,11 @@ class SLURMEnvironment(ClusterEnvironment):
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
         return int(default_port)
+
+    @staticmethod
+    def detect() -> bool:
+        """Returns ``True`` if the current process was launched on a SLURM cluster."""
+        return "SLURM_NTASKS" in os.environ
 
     def world_size(self) -> int:
         return int(os.environ["SLURM_NTASKS"])

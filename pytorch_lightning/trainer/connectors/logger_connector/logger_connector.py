@@ -156,16 +156,9 @@ class LoggerConnector:
 
     @staticmethod
     def _filter_metrics_for_dataloader(
-        dl_idx: int, metrics: Dict[str, Union[Any, Dict[str, Any]]], metric_prefix: str = "dataloader_idx"
-    ) -> Dict[str, Union[Any, Dict[str, Any]]]:
-        result = {}
-        for k, v in metrics.items():
-            if metric_prefix not in k:
-                result[k] = v
-                continue
-            if k.endswith(f"{metric_prefix}_{dl_idx}"):
-                result[k] = v
-        return result
+        dl_idx: int, metrics: _OUT_DICT, metric_prefix: str = "dataloader_idx"
+    ) -> _OUT_DICT:
+        return {k: v for k, v in metrics.items() if metric_prefix not in k or k.endswith(f"{metric_prefix}_{dl_idx}")}
 
     def _prepare_eval_loop_results(self, metrics: _OUT_DICT) -> None:
         if self.trainer.sanity_checking:
@@ -221,7 +214,6 @@ class LoggerConnector:
 
     def on_train_split_start(self, split_idx: int, split_batch: Any) -> None:
         self._split_idx = split_idx
-        self.on_new_batch(split_batch)
 
     def update_train_step_metrics(self) -> None:
         if self.trainer.fit_loop._should_accumulate() and self.trainer.lightning_module.automatic_optimization:
@@ -264,28 +256,23 @@ class LoggerConnector:
     Utilities and properties
     """
 
-    def on_new_batch(self, batch: Any) -> int:
-        # when the user requests `dataloader_iter`, we can't track the batch_size
-        # and this is left to user responsibility.
-        if not isinstance(batch, pl.utilities.fetching.StepFuncDataLoaderIter):
-            assert self.trainer._results is not None
-            return self.trainer._results.extract_batch_size(batch)
-        return 1
-
     def on_epoch_start(self) -> None:
         self._epoch_end_reached = False
 
-    def on_batch_start(self, batch_idx: int, batch: Any) -> int:
+    def on_batch_start(self, batch_idx: int, batch: Any) -> None:
         self._batch_idx = batch_idx
         self._epoch_end_reached = False
-        return self.on_new_batch(batch)
+
+        assert self.trainer._results is not None
+        # attach reference to the new batch and remove the cached batch_size
+        self.trainer._results.batch = batch
+        self.trainer._results.batch_size = None
 
     def epoch_end_reached(self) -> None:
         self._epoch_end_reached = True
         self._batch_idx = None
         self._split_idx = None
         assert self.trainer._results is not None
-        self.trainer._results.batch_size = 1
 
     def on_epoch_end(self) -> None:
         assert self._epoch_end_reached
@@ -301,6 +288,11 @@ class LoggerConnector:
         self._progress_bar_metrics.update(metrics["pbar"])
         self._callback_metrics.update(metrics["callback"])
         self._logged_metrics.update(metrics["log"])
+
+        assert self.trainer._results is not None
+        # drop the reference to current batch and batch_size
+        self.trainer._results.batch = None
+        self.trainer._results.batch_size = None
 
     def should_reset_tensors(self, fx: str) -> bool:
         is_different_fx = self._current_fx != fx
