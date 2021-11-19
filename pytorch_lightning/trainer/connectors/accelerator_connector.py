@@ -405,6 +405,9 @@ class AcceleratorConnector:
         # attach checkpoint plugin to the training type plugin
         if self._checkpoint_io is not None:
             self._training_type_plugin.checkpoint_io = self._checkpoint_io
+        precision_plugin = self.precision_plugin
+        if precision_plugin is not None:
+            self._training_type_plugin._precision_plugin = precision_plugin
         self._training_type_plugin_resolved = True
 
         return self._training_type_plugin
@@ -531,11 +534,11 @@ class AcceleratorConnector:
 
     @property
     def _is_sharded_training_type(self) -> bool:
-        return isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin))
+        return isinstance(self._training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin))
 
     @property
     def _is_fully_sharded_training_type(self) -> bool:
-        return isinstance(self.training_type_plugin, DDPFullyShardedPlugin)
+        return isinstance(self._training_type_plugin, DDPFullyShardedPlugin)
 
     @property
     def is_distributed(self) -> bool:
@@ -793,12 +796,10 @@ class AcceleratorConnector:
             acc_cls = IPUAccelerator
         else:
             acc_cls = CPUAccelerator
-        # as precision_plugin is dependent on training_type_plugin, make sure
-        # that we first select training_type_plugin, then precision_plugin
-        accelerator = acc_cls(training_type_plugin=self.training_type_plugin, precision_plugin=self.precision_plugin)
+
+        accelerator = acc_cls(precision_plugin=None, training_type_plugin=self.training_type_plugin)
         # transfer ownership of the plugins to the accelerator
         self._training_type_plugin = proxy(self.training_type_plugin)
-        self._precision_plugin = proxy(self.precision_plugin)
 
         return accelerator
 
