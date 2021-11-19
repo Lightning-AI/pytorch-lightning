@@ -1196,6 +1196,7 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
 
 
 def test_rotate_worker_indices():
+    """This test ensures `worker_id` are rotated properly depending on which one was the latest."""
     state_dict = {0: 0, 1: 1}
     assert _rotate_worker_indices(state_dict, 0, 2) == {0: 1, 1: 0}
     assert _rotate_worker_indices(state_dict, 1, 2) == {0: 0, 1: 1}
