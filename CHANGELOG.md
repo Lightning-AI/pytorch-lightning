@@ -155,6 +155,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - When a tensor is logged with `self.log`, run its computation with the same `dtype` ([#10076](https://github.com/PyTorchLightning/pytorch-lightning/pull/10076))
 
 
+- Fixed `ShardedTensor` state dict hook registration to check if torch distributed is available ([#10621](https://github.com/PyTorchLightning/pytorch-lightning/pull/10621))
+
+
 - Fixed LigtningLite `_wrap_init` popping unexisting keys from DataLoader signature parameters  ([#10613](https://github.com/PyTorchLightning/pytorch-lightning/pull/10613))
 
 
