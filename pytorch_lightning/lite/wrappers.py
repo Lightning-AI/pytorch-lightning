@@ -157,28 +157,26 @@ def _replace_dataloader_init_method() -> Generator:
 
 
 class _LiteDataLoader:
-    def __init__(self, dataloader: Union[Iterable, DataLoader], device: Optional[torch.device] = None) -> None:
-        """The LiteDataLoader is an extension of an Iterator. It would move the data to the device automatically if
-        the device is specified.
+    def __init__(self, dataloader: DataLoader, device: Optional[torch.device] = None) -> None:
+        """The LiteDataLoader is a wrapper for the :class:`~torch.utils.data.DataLoader`. It moves the data to the
+        device automatically if the device is specified.
 
         Args:
-            dataloader: The current dataloader to be used.
+            dataloader: The dataloader to wrap
             device: The device to which the data should be moved. By default the device is `None` and no data
                 transfers will be made (identical behavior as :class:`~torch.utils.data.DataLoader`).
         """
         super().__init__()
-        self.__dict__.update(getattr(dataloader, "__dict__", {}))
+        self.__dict__.update(dataloader.__dict__)
         self._dataloader = dataloader
         self._device = device
-
-    def __len__(self) -> Union[int, float]:
-        if isinstance(self._dataloader, Sized):
-            return len(self._dataloader)
-        return float("inf")
 
     @property
     def device(self) -> Optional[torch.device]:
         return self._device
+
+    def __len__(self) -> int:
+        return len(self._dataloader)
 
     def __iter__(self) -> Union[Iterator[Any], Generator[Any, None, None]]:
         iterator = iter(self._dataloader)
