@@ -75,7 +75,7 @@ class DDPShardedPlugin(DDPPlugin):
                 optim_class = type(optimizer)
                 zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
                 if _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE:
-                    precision = self._precision or self.lightning_module.trainer.precision
+                    precision = self._precision or self.precision_plugin.precision
                     is_fp16 = precision in ("mixed", 16)
                     # For multi-node training, compressing the model shards in fp16 before broadcasting
                     # improves performance. When using PyTorch AMP, it will not degrade

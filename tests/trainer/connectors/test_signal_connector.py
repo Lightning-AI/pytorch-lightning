@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import concurrent.futures
 import os
 import signal
 from time import sleep
@@ -116,3 +117,16 @@ def test_auto_requeue_flag(auto_requeue):
         assert signal.getsignal(signal.SIGUSR1) is signal.SIG_DFL
 
     connector.teardown()
+
+
+def _registering_signals():
+    trainer = Trainer()
+    trainer.signal_connector.register_signal_handlers()
+
+
+@RunIf(skip_windows=True)
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+def test_signal_connector_in_thread():
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        for future in concurrent.futures.as_completed([executor.submit(_registering_signals)]):
+            assert future.exception() is None

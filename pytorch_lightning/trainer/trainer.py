@@ -1569,7 +1569,7 @@ class Trainer(
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
-        return self.accelerator.precision_plugin
+        return self.training_type_plugin.precision_plugin
 
     @property
     def global_rank(self) -> int:
@@ -1673,7 +1673,7 @@ class Trainer(
 
     @property
     def precision(self) -> Union[str, int]:
-        return self.accelerator.precision
+        return self.training_type_plugin.precision_plugin.precision
 
     @property
     def scaler(self):

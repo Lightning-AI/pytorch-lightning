@@ -66,3 +66,20 @@ def test_attributes_from_environment_variables(caplog):
         env.set_world_size(100)
     assert env.world_size() == 20
     assert "setting world size is not allowed" in caplog.text
+
+
+def test_detect():
+    """Test the detection of a torchelastic environment configuration."""
+    with mock.patch.dict(os.environ, {}):
+        assert not TorchElasticEnvironment.detect()
+
+    with mock.patch.dict(
+        os.environ,
+        {
+            "RANK": "",
+            "GROUP_RANK": "",
+            "LOCAL_RANK": "",
+            "LOCAL_WORLD_SIZE": "",
+        },
+    ):
+        assert TorchElasticEnvironment.detect()
