@@ -256,3 +256,22 @@ class _StrategyType(LightningEnum):
     def is_interactive_compatible(self) -> bool:
         """Returns whether self is interactive compatible."""
         return self in _StrategyType.interactive_compatible_types()
+
+
+class FaultTolerantTrainingMode(LightningEnum):
+
+    DISABLED = "disabled"
+    AUTOMATIC = "automatic"
+    MANUAL = "manual"
+
+    @property
+    def is_enabled(self) -> bool:
+        return self is not FaultTolerantTrainingMode.DISABLED
+
+    @property
+    def is_automatic(self) -> bool:
+        return self is not FaultTolerantTrainingMode.AUTOMATIC
+
+    @property
+    def is_manual(self) -> bool:
+        return self is not FaultTolerantTrainingMode.MANUAL
