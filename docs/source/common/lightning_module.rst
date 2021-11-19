@@ -24,7 +24,7 @@ A :class:`~LightningModule` organizes your PyTorch code into 6 sections:
 
 Notice a few things.
 
-1.  It's the SAME code.
+1.  It is the SAME code.
 2.  The PyTorch code IS NOT abstracted - just organized.
 3.  All the other code that's not in the :class:`~LightningModule`
     has been automated for you by the trainer.
@@ -55,7 +55,7 @@ Notice a few things.
         new_x = torch.Tensor(2, 3)
         new_x = new_x.type_as(x)
 
-5.  Lightning by default handles the distributed sampler for you when running under a distributed environment.
+5.  Lightning, by default, handles the distributed sampler for you when running under a distributed environment.
 
 |
 
@@ -135,13 +135,13 @@ The LightningModule has many convenience methods, but the core ones you need to 
    * - forward
      - Use for inference only (separate from training_step)
    * - training_step
-     - the full training loop
+     - the complete training loop
    * - validation_step
-     - the full validation loop
+     - the complete validation loop
    * - test_step
-     - the full test loop
+     - the complete test loop
    * - predict_step
-     - the full prediction loop
+     - the complete prediction loop
    * - configure_optimizers
      - define optimizers and LR schedulers
 
@@ -208,7 +208,7 @@ If you want to calculate epoch-level metrics and log them, use :meth:`~pytorch_l
          return loss
 
 The :meth:`~pytorch_lightning.core.lightning.LightningModule.log` object automatically reduces the
-requested metrics across the full epoch. Here's the pseudocode of what it does under the hood:
+requested metrics across the complete epoch. Here's the pseudocode of what it does under the hood:
 
 .. code-block:: python
 
@@ -303,7 +303,7 @@ In this case, implement the :meth:`~pytorch_lightning.core.lightning.LightningMo
          for out in training_step_outputs:
              ...
 
-The full pseudocode that lightning does under the hood is:
+The complete pseudocode that lightning does under the hood is:
 
 .. code-block:: python
 
@@ -425,7 +425,7 @@ In this case, implement :meth:`~pytorch_lightning.core.lightning.LightningModule
          for out in validation_step_outputs:
              ...
 
-The full pseudocode that lightning does under the hood is:
+The complete pseudocode that lightning does under the hood is:
 
 .. code-block:: python
 
@@ -553,7 +553,7 @@ The methods above are part of the LightningModule interface:
 - predict_step
 - configure_optimizers
 
-Note that in this case, the train loop and val loop are exactly the same. We can of course reuse this code.
+Note that in this case, the train loop and val loop are exactly the same. We can, of course, reuse this code.
 
 .. code-block:: python
 
@@ -592,7 +592,7 @@ We create a new method called ``shared_step`` that all loops can use. This metho
 
 Inference in research
 ^^^^^^^^^^^^^^^^^^^^^
-In the case where you want to perform inference with the system you can add a ``forward`` method to the LightningModule.
+If you want to perform inference with the system, you can add a ``forward`` method to the LightningModule.
 
 .. note:: When using forward, you are responsible to call :func:`~torch.nn.Module.eval` and use the :func:`~torch.no_grad` context manager.
 
@@ -738,7 +738,7 @@ Methods
 ^^^^^^^
 
 all_gather
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.all_gather
     :noindex:
@@ -920,7 +920,7 @@ The current epoch
 
 device
 ~~~~~~
-The device the module is on. Use it to keep your code device agnostic
+The device the module is on. Use it to keep your code device agnostic.
 
 .. code-block:: python
 
@@ -931,8 +931,8 @@ The device the module is on. Use it to keep your code device agnostic
 
 global_rank
 ~~~~~~~~~~~
-The global_rank of this LightningModule. Lightning saves logs, weights etc only from global_rank = 0. You
-normally do not need to use this property
+The global_rank of this LightningModule. Lightning saves logs, weights etc. only from global_rank = 0. You
+usually do not need to use this property
 
 Global rank refers to the index of that GPU across ALL GPUs. For example, if using 10 machines, each with 4 GPUs,
 the 4th GPU on the 10th machine has global_rank = 39
@@ -983,12 +983,11 @@ The current logger being used (tensorboard or other supported logger)
 
 local_rank
 ~~~~~~~~~~~
-The local_rank of this LightningModule. Lightning saves logs, weights etc only from global_rank = 0. You
-normally do not need to use this property
+The local_rank of this LightningModule. Lightning saves logs, weights etc. only from global_rank = 0. You
+usually do not need to use this property
 
 Local rank refers to the rank on that machine. For example, if using 10 machines, the GPU at index 0 on each machine
 has local_rank = 0.
-
 
 -----------
 
@@ -1018,7 +1017,7 @@ Pointer to the trainer
 
 use_amp
 ~~~~~~~
-True if using Automatic Mixed Precision (AMP)
+``True`` if using Automatic Mixed Precision (AMP)
 
 --------------
 
@@ -1071,7 +1070,7 @@ Manual optimization is most useful for research topics like reinforcement learni
 
 example_input_array
 ~~~~~~~~~~~~~~~~~~~
-Set and access example_input_array which is basically a single batch.
+Set and access example_input_array, which basically represents a single batch.
 
 .. code-block:: python
 
@@ -1107,9 +1106,9 @@ Get the model file size (in megabytes) using ``self.model_size`` inside Lightnin
 truncated_bptt_steps
 ^^^^^^^^^^^^^^^^^^^^
 
-Truncated back prop breaks performs backprop every k steps of
+Truncated back prop breaks perform backprop every k steps of
 a much longer sequence. This is made possible by passing training batches
-splitted along the time-dimensions into splits of size k to the
+split along the time-dimensions into splits of size k to the
 ``training_step``. In order to keep the same forward propagation behavior, all
 hidden states should be kept in-between each time-dimension split.
 
@@ -1159,7 +1158,7 @@ recurrent network trajectories."
 
 Lightning takes care of splitting your batch along the time-dimension. It is
 assumed to be the second dimension of your batches. Therefore, in the
-example above we have set ``batch_first=True``.
+example above, we have set ``batch_first=True``.
 
 .. code-block:: python
 
@@ -1331,19 +1330,19 @@ on_save_checkpoint
     :noindex:
 
 load_from_checkpoint
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.ModelIO.on_save_checkpoint
     :noindex:
 
 on_hpc_save
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.ModelIO.on_hpc_save
     :noindex:
 
 on_hpc_load
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.ModelIO.on_hpc_load
     :noindex:
@@ -1421,37 +1420,37 @@ on_test_end
     :noindex:
 
 on_predict_batch_start
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_predict_batch_start
     :noindex:
 
 on_predict_batch_end
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_predict_batch_end
     :noindex:
 
 on_predict_epoch_start
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_predict_epoch_start
     :noindex:
 
 on_predict_epoch_end
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_predict_epoch_end
     :noindex:
 
 on_predict_start
-~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_predict_start
     :noindex:
 
 on_predict_end
-~~~~~~~~~~~
+~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_predict_end
     :noindex:
@@ -1576,12 +1575,6 @@ optimizer_zero_grad
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad
     :noindex:
 
-predict_dataloader
-~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.hooks.DataHooks.predict_dataloader
-    :noindex:
-
 prepare_data
 ~~~~~~~~~~~~
 
@@ -1624,26 +1617,32 @@ test_dataloader
 .. automethod:: pytorch_lightning.core.hooks.DataHooks.test_dataloader
     :noindex:
 
+predict_dataloader
+~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.DataHooks.predict_dataloader
+    :noindex:
+
 on_train_dataloader
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.DataHooks.on_train_dataloader
     :noindex:
 
 on_val_dataloader
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.DataHooks.on_val_dataloader
     :noindex:
 
 on_test_dataloader
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.DataHooks.on_test_dataloader
     :noindex:
 
 on_predict_dataloader
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.DataHooks.on_predict_dataloader
     :noindex:
