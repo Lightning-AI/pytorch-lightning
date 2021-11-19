@@ -32,12 +32,11 @@ from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import (
+    _apply_fault_tolerant_automatic_capture_dataset_wrapper,
     _capture_metadata_collate,
-    CaptureIterableDataset,
-    CaptureMapDataset,
     FastForwardSampler,
 )
-from pytorch_lightning.utilities.data import get_len, has_iterable_dataset, has_len_all_ranks
+from pytorch_lightning.utilities.data import has_iterable_dataset, has_len_all_ranks
 from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _fault_tolerant_training_mode
@@ -293,23 +292,9 @@ class TrainerDataLoadingMixin(ABC):
             dl_kwargs["batch_sampler"] = None
             dl_kwargs["sampler"] = None
 
-        dl_kwargs = TrainerDataLoadingMixin._prepare_fault_tolerance(dl_kwargs)
-
-        return dl_kwargs
-
-    @staticmethod
-    def _prepare_fault_tolerance(dl_kwargs: Dict) -> Dict:
         if _fault_tolerant_training_mode().is_automatic:
-            dataset = dl_kwargs["dataset"]
-            if isinstance(dataset, IterableDataset):
-                # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
-                dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
-            elif get_len(dataset) != float("inf"):
-                dl_kwargs["dataset"] = CaptureMapDataset(dataset=dl_kwargs["dataset"])
-            else:
-                raise MisconfigurationException(
-                    "This shouldn't happen, please open an issue on Lightning Github repository."
-                )
+            dl_kwargs = _apply_fault_tolerant_automatic_capture_dataset_wrapper(dl_kwargs)
+
         return dl_kwargs
 
     @staticmethod

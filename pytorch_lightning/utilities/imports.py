@@ -111,10 +111,10 @@ else:
     _IPU_AVAILABLE = False
 
 
-def _fault_tolerant_training_mode() -> "pl.utilities.enums.FaultTolerantTrainingModes":
-    from pytorch_lightning.utilities.enums import FaultTolerantTrainingModes
+def _fault_tolerant_training_mode() -> "pl.utilities.enums.FaultTolerantTrainingMode":
+    from pytorch_lightning.utilities.enums import FaultTolerantTrainingMode
 
-    return FaultTolerantTrainingModes(os.getenv("PL_FAULT_TOLERANT_TRAINING", "0"))
+    return FaultTolerantTrainingMode(os.getenv("PL_FAULT_TOLERANT_TRAINING", "0"))
 
 
 # experimental feature within PyTorch Lightning.

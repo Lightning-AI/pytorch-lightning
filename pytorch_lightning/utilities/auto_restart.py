@@ -30,6 +30,7 @@ from torch.utils.data.dataloader import (
 )
 
 import pytorch_lightning as pl
+from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _fault_tolerant_training_mode
@@ -252,15 +253,7 @@ class CaptureMapDataset(Dataset):
     def load_state_dict(self, state_dict: Dict[int, Any], latest_worker_id: int, num_workers: int) -> None:
         # as workers aren't available, the ``state_dict``` is cached until workers are made available.
         state_dict = deepcopy(state_dict)
-
-        if num_workers > 0:
-            # remap states to worker ids starting at 0
-            next_worker_id = latest_worker_id + 1
-            old_to_new_worker_id_map = [((next_worker_id + i) % num_workers, i) for i in range(num_workers)]
-            state_dict = {
-                new_id: state_dict[old_id] for old_id, new_id in old_to_new_worker_id_map if old_id in state_dict
-            }
-        self._cached_state_dict = state_dict
+        self._cached_state_dict = _rotate_worker_indices(state_dict, latest_worker_id, num_workers)
 
     def state_dict(self) -> Dict[int, Dict[str, Any]]:
         return {self.worker_id: {"rng_states": collect_rng_states()}}
@@ -356,9 +349,21 @@ class CaptureIterableDataset(IterableDataset):
         return next(self.iter_data)
 
 
+def _rotate_worker_indices(state, latest_worker_id: int, num_workers: int):
+    """This function is used to rotate the worker indices based on the `latest_worker_id` the training failed
+    on."""
+    if num_workers == 0:
+        return state
+    next_worker_id = latest_worker_id + 1
+    old_to_new_worker_id_map = [((next_worker_id + i) % num_workers, i) for i in range(num_workers)]
+    return {new_id: state[old_id] for old_id, new_id in old_to_new_worker_id_map if old_id in state}
+
+
 def is_obj_stateful(obj: Any) -> bool:
     """In order to be stateful, an object should implement a ``state_dict`` and ``load_state_dict`` method."""
-    return getattr(obj, "state_dict", None) is not None and getattr(obj, "load_state_dict", None) is not None
+    return isinstance(getattr(obj, "state_dict", None), Callable) and isinstance(
+        getattr(obj, "load_state_dict", None), Callable
+    )
 
 
 def _find_fast_forward_samplers(dataloader: DataLoader) -> Optional[FastForwardSampler]:
@@ -478,7 +483,9 @@ def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: 
         if state_dict_fn:
             metadata = state_dict_fn()
             if worker_id not in metadata:
-                raise MisconfigurationException("The state_dict needs to be indexed by `worker_id`")
+                raise MisconfigurationException(
+                    f"The state_dict returned by {dataset} needs to be indexed by `worker_id` integer keys."
+                )
         if metadata is None:
             metadata = {worker_id: {}}
 
@@ -567,6 +574,18 @@ def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
     )
 
 
+def _apply_fault_tolerant_automatic_capture_dataset_wrapper(dl_kwargs: Dict) -> Dict:
+    dataset = dl_kwargs["dataset"]
+    if isinstance(dataset, IterableDataset):
+        # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
+        dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
+    elif get_len(dataset) != float("inf"):
+        dl_kwargs["dataset"] = CaptureMapDataset(dataset=dl_kwargs["dataset"])
+    else:
+        raise MisconfigurationException("This shouldn't happen, please open an issue on Lightning Github repository.")
+    return dl_kwargs
+
+
 def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, Any]) -> None:
     """Utility to reload state_dict within dataloader for fault tolerance."""
 
@@ -622,15 +641,7 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
             for worker_id in state_dict["state"].keys()
         }
 
-        if num_workers > 0:
-            # remap states to worker ids starting at 0
-            next_worker_id = latest_worker_id + 1
-            old_to_new_worker_id_map = [((next_worker_id + i) % num_workers, i) for i in range(num_workers)]
-            dataset_state = {
-                new_id: dataset_state[old_id] for old_id, new_id in old_to_new_worker_id_map if old_id in dataset_state
-            }
-
-        dataset.load_state_dict(dataset_state)
+        dataset.load_state_dict(_rotate_worker_indices(dataset_state, latest_worker_id, num_workers))
 
 
 class _StatefulMixin:
