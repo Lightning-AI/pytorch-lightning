@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from functools import partial
+from functools import partial, update_wrapper
 from inspect import getmembers, isfunction
 from unittest import mock
 from unittest.mock import ANY, PropertyMock
@@ -223,7 +223,9 @@ class HookedCallback(Callback):
 
         for h in get_members(Callback):
             attr = getattr(self, h)
-            setattr(self, h, partial(call, h, attr))
+            partial_h = partial(call, h, attr)
+            update_wrapper(partial_h, attr)
+            setattr(self, h, partial_h)
 
     def on_save_checkpoint(*args, **kwargs):
         return {"foo": True}
@@ -256,7 +258,9 @@ class HookedModel(BoringModel):
 
         for h in pl_module_hooks:
             attr = getattr(self, h)
-            setattr(self, h, partial(call, h, attr))
+            partial_h = partial(call, h, attr)
+            update_wrapper(partial_h, attr)
+            setattr(self, h, partial_h)
 
     def validation_epoch_end(self, *args, **kwargs):
         # `BoringModel` does not have a return for `validation_step_end` so this would fail
@@ -481,8 +485,7 @@ def _run_trainer_model_hook_system_fit(kwargs, tmpdir, automatic_optimization):
         dict(name="Callback.on_init_start", args=(trainer,)),
         dict(name="Callback.on_init_end", args=(trainer,)),
     ]
-    with pytest.deprecated_call(match="on_train_dataloader` is deprecated in v1.5"):
-        trainer.fit(model)
+    trainer.fit(model)
     saved_ckpt = {
         "callbacks": ANY,
         "epoch": 1,
@@ -584,8 +587,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         enable_model_summary=False,
         callbacks=[HookedCallback([])],
     )
-    with pytest.deprecated_call(match="on_keyboard_interrupt` callback hook was deprecated in v1.5"):
-        trainer.fit(model)
+    trainer.fit(model)
     best_model_path = trainer.checkpoint_callback.best_model_path
 
     # resume from checkpoint with HookedModel
@@ -607,8 +609,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         dict(name="Callback.on_init_start", args=(trainer,)),
         dict(name="Callback.on_init_end", args=(trainer,)),
     ]
-    with pytest.deprecated_call(match="on_train_dataloader` is deprecated in v1.5"):
-        trainer.fit(model, ckpt_path=best_model_path)
+    trainer.fit(model, ckpt_path=best_model_path)
     saved_ckpt = {
         "callbacks": ANY,
         "epoch": 2,  # TODO: wrong saved epoch
@@ -703,8 +704,7 @@ def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader,
         dict(name="Callback.on_init_end", args=(trainer,)),
     ]
     fn = getattr(trainer, verb)
-    with pytest.deprecated_call(match=f"on_{dataloader}_dataloader` is deprecated in v1.5"):
-        fn(model, verbose=False)
+    fn(model, verbose=False)
     hooks = [
         dict(name="train", args=(False,)),
         dict(name=f"on_{noun}_model_eval"),
@@ -748,8 +748,7 @@ def test_trainer_model_hook_system_predict(tmpdir):
         dict(name="Callback.on_init_start", args=(trainer,)),
         dict(name="Callback.on_init_end", args=(trainer,)),
     ]
-    with pytest.deprecated_call(match="on_predict_dataloader` is deprecated in v1.5"):
-        trainer.predict(model)
+    trainer.predict(model)
     expected = [
         dict(name="Callback.on_init_start", args=(trainer,)),
         dict(name="Callback.on_init_end", args=(trainer,)),
@@ -852,7 +851,9 @@ def test_trainer_datamodule_hook_system(tmpdir):
 
             for h in get_members(LightningDataModule):
                 attr = getattr(self, h)
-                setattr(self, h, partial(call, h, attr))
+                partial_h = partial(call, h, attr)
+                update_wrapper(partial_h, attr)
+                setattr(self, h, partial_h)
 
     model = BoringModel()
     batches = 2
@@ -871,20 +872,12 @@ def test_trainer_datamodule_hook_system(tmpdir):
     called = []
     dm = HookedDataModule(called)
     trainer.fit(model, datamodule=dm)
-    batch_transfer = [
-        dict(name="on_before_batch_transfer", args=(ANY, 0)),
-        dict(name="transfer_batch_to_device", args=(ANY, torch.device("cpu"), 0)),
-        dict(name="on_after_batch_transfer", args=(ANY, 0)),
-    ]
     expected = [
         dict(name="prepare_data"),
         dict(name="setup", kwargs=dict(stage="fit")),
         dict(name="val_dataloader"),
-        *batch_transfer * batches,
         dict(name="train_dataloader"),
-        *batch_transfer * batches,
         dict(name="val_dataloader"),
-        *batch_transfer * batches,
         dict(
             name="on_save_checkpoint",
             args=(
@@ -910,7 +903,6 @@ def test_trainer_datamodule_hook_system(tmpdir):
         dict(name="prepare_data"),
         dict(name="setup", kwargs=dict(stage="validate")),
         dict(name="val_dataloader"),
-        *batch_transfer * batches,
         dict(name="teardown", kwargs=dict(stage="validate")),
     ]
     assert called == expected
@@ -922,7 +914,6 @@ def test_trainer_datamodule_hook_system(tmpdir):
         dict(name="prepare_data"),
         dict(name="setup", kwargs=dict(stage="test")),
         dict(name="test_dataloader"),
-        *batch_transfer * batches,
         dict(name="teardown", kwargs=dict(stage="test")),
     ]
     assert called == expected
@@ -934,7 +925,6 @@ def test_trainer_datamodule_hook_system(tmpdir):
         dict(name="prepare_data"),
         dict(name="setup", kwargs=dict(stage="predict")),
         dict(name="predict_dataloader"),
-        *batch_transfer * batches,
         dict(name="teardown", kwargs=dict(stage="predict")),
     ]
     assert called == expected
