@@ -28,7 +28,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, LightningEnum
-from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 class Accelerator:
@@ -45,14 +45,22 @@ class Accelerator:
     One to handle differences from the training routine and one to handle different precisions.
     """
 
-    def __init__(self, precision_plugin: PrecisionPlugin, training_type_plugin: TrainingTypePlugin) -> None:
+    def __init__(self, precision_plugin: Optional[PrecisionPlugin], training_type_plugin: TrainingTypePlugin) -> None:
         """
         Args:
             precision_plugin: the plugin to handle precision-specific parts
+
+                .. deprecated::
+                    The ``precision_plugin`` parameter has been deprecated and will be removed soon.
+                    Pass the precision plugin as a parameter to the ``TrainingTypePlugin`` instead.
+
             training_type_plugin: the plugin to handle different training routines
         """
-        self.precision_plugin = precision_plugin
+
         self.training_type_plugin = training_type_plugin
+
+        if precision_plugin is not None:
+            self.training_type_plugin._precision_plugin = precision_plugin
 
         self.optimizers: List = []
         self.lr_schedulers: List = []
@@ -77,42 +85,6 @@ class Accelerator:
             self.setup_optimizers(trainer)
         self.setup_precision_plugin()
 
-    def start_training(self, trainer: "pl.Trainer") -> None:
-        """
-        .. deprecated:: v1.5
-            This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call `training_type_plugin.start_training` directly.
-        """
-        rank_zero_deprecation(
-            "`Accelerator.start_training` is deprecated in v1.5 and will be removed in v1.6. "
-            "`start_training` logic is implemented directly in the `TrainingTypePlugin` implementations."
-        )
-        self.training_type_plugin.start_training(trainer)
-
-    def start_evaluating(self, trainer: "pl.Trainer") -> None:
-        """
-        .. deprecated:: v1.5
-            This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call `training_type_plugin.start_evaluating` directly.
-        """
-        rank_zero_deprecation(
-            "`Accelerator.start_evaluating` is deprecated in v1.5 and will be removed in v1.6. "
-            "`start_evaluating` logic is implemented directly in the `TrainingTypePlugin` implementations."
-        )
-        self.training_type_plugin.start_evaluating(trainer)
-
-    def start_predicting(self, trainer: "pl.Trainer") -> None:
-        """
-        .. deprecated:: v1.5
-            This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call `training_type_plugin.start_predicting` directly.
-        """
-        rank_zero_deprecation(
-            "`Accelerator.start_predicting` is deprecated in v1.5 and will be removed in v1.6. "
-            "`start_predicting` logic is implemented directly in the `TrainingTypePlugin` implementations."
-        )
-        self.training_type_plugin.start_predicting(trainer)
-
     def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
         self._move_optimizer_state()
@@ -121,7 +93,7 @@ class Accelerator:
         if self.training_type_plugin.setup_optimizers_in_pre_dispatch:
             self.setup_optimizers(trainer)
 
-        self.precision_plugin.pre_dispatch()
+        self.training_type_plugin.precision_plugin.pre_dispatch()
 
     def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
         """Moves the state of the optimizers to the GPU if needed."""
@@ -133,12 +105,12 @@ class Accelerator:
     def dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
         self.training_type_plugin.dispatch(trainer)
-        self.precision_plugin.dispatch(trainer)
+        self.training_type_plugin.precision_plugin.dispatch(trainer)
 
     def post_dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something after the training/evaluation/prediction starts."""
         self.training_type_plugin.post_dispatch(trainer)
-        self.precision_plugin.post_dispatch()
+        self.training_type_plugin.precision_plugin.post_dispatch()
 
     @property
     def model(self) -> Module:
@@ -196,7 +168,7 @@ class Accelerator:
 
         See :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` for more details
         """
-        with self.precision_plugin.train_step_context():
+        with self.training_type_plugin.precision_plugin.train_step_context():
             return self.training_type_plugin.training_step(*step_kwargs.values())
 
     def validation_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> Optional[STEP_OUTPUT]:
@@ -204,7 +176,7 @@ class Accelerator:
 
         See :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` for more details
         """
-        with self.precision_plugin.val_step_context():
+        with self.training_type_plugin.precision_plugin.val_step_context():
             return self.training_type_plugin.validation_step(*step_kwargs.values())
 
     def test_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> Optional[STEP_OUTPUT]:
@@ -212,7 +184,7 @@ class Accelerator:
 
         See :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step` for more details
         """
-        with self.precision_plugin.test_step_context():
+        with self.training_type_plugin.precision_plugin.test_step_context():
             return self.training_type_plugin.test_step(*step_kwargs.values())
 
     def predict_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> STEP_OUTPUT:
@@ -220,7 +192,7 @@ class Accelerator:
 
         See :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` for more details
         """
-        with self.precision_plugin.predict_step_context():
+        with self.training_type_plugin.precision_plugin.predict_step_context():
             return self.training_type_plugin.predict_step(*step_kwargs.values())
 
     def backward(self, closure_loss: Tensor, *args: Any, **kwargs: Any) -> Tensor:
@@ -230,11 +202,11 @@ class Accelerator:
             closure_loss: a tensor holding the loss value to backpropagate
         """
         self.training_type_plugin.pre_backward(closure_loss)
-        closure_loss = self.precision_plugin.pre_backward(self.lightning_module, closure_loss)
+        closure_loss = self.training_type_plugin.precision_plugin.pre_backward(self.lightning_module, closure_loss)
 
-        self.precision_plugin.backward(self.lightning_module, closure_loss, *args, **kwargs)
+        self.training_type_plugin.precision_plugin.backward(self.lightning_module, closure_loss, *args, **kwargs)
 
-        closure_loss = self.precision_plugin.post_backward(self.lightning_module, closure_loss)
+        closure_loss = self.training_type_plugin.precision_plugin.post_backward(self.lightning_module, closure_loss)
         self.training_type_plugin.post_backward(closure_loss)
 
         return closure_loss
@@ -245,7 +217,7 @@ class Accelerator:
         opt_idx: int,
         closure: Callable[[], Any],
         model: Optional[Union["pl.LightningModule", Module]] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
         """performs the actual optimizer step.
 
@@ -257,7 +229,7 @@ class Accelerator:
             **kwargs: Any extra arguments to ``optimizer.step``
         """
         model = model or self.lightning_module
-        self.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
+        self.training_type_plugin.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
 
     def optimizer_zero_grad(self, current_epoch: int, batch_idx: int, optimizer: Optimizer, opt_idx: int) -> None:
         """Zeros all model parameter's gradients."""
@@ -285,26 +257,38 @@ class Accelerator:
 
     def setup_precision_plugin(self) -> None:
         """Attaches the precision plugin to the accelerator."""
-        model, optimizers, schedulers = self.precision_plugin.connect(self.model, self.optimizers, self.lr_schedulers)
+        model, optimizers, schedulers = self.training_type_plugin.precision_plugin.connect(
+            self.model, self.optimizers, self.lr_schedulers
+        )
         self.model = model
         self.optimizers = optimizers
         self.lr_schedulers = schedulers
 
     @property
     def amp_backend(self) -> Optional[LightningEnum]:
-        if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
+        if isinstance(self.training_type_plugin.precision_plugin, ApexMixedPrecisionPlugin):
             return AMPType.APEX
-        if isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
+        if isinstance(self.training_type_plugin.precision_plugin, NativeMixedPrecisionPlugin):
             return AMPType.NATIVE
         return None
 
     @property
     def precision(self) -> Union[str, int]:
-        return self.precision_plugin.precision
+        """The type of precision being used with this accelerator.
+
+        .. deprecated::
+            This property been deprecated and will be removed soon.
+            Use ``training_type_plugin.precision_plugin.precision`` instead.
+        """
+        rank_zero_deprecation(
+            f"`{self.__class__.__name__}.precision` has been deprecated and will be removed soon"
+            f" Use `training_type_plugin.precision_plugin.precision` instead."
+        )
+        return self.training_type_plugin.precision_plugin.precision
 
     @property
     def scaler(self) -> Optional["GradScaler"]:
-        return getattr(self.precision_plugin, "scaler", None)
+        return getattr(self.training_type_plugin.precision_plugin, "scaler", None)
 
     def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
         """Returns state of an optimizer.
@@ -325,23 +309,6 @@ class Accelerator:
         """
         with self.training_type_plugin.model_sharded_context():
             yield
-
-    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: _PATH) -> None:
-        """Save model/training states as a checkpoint file through state-dump and file-write.
-
-        .. deprecated:: v1.5
-            This method is deprecated in v1.5 and will be removed in v1.6.
-            Please call `training_type_plugin.save_checkpoint` directly.
-
-        Args:
-            checkpoint: dict containing model and trainer state
-            filepath: write-target file's path
-        """
-        rank_zero_deprecation(
-            "`Accelerator.save_checkpoint` is deprecated in v1.5 and will be removed in v1.6. "
-            "`save_checkpoint` logic is implemented directly in the `TrainingTypePlugin` implementations."
-        )
-        self.training_type_plugin.save_checkpoint(checkpoint, filepath)
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """Gets stats for a given device.

@@ -115,6 +115,8 @@ class LightningModule(
         self._param_requires_grad_state = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
         self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
+        # TODO: remove after the 1.6 release
+        self._running_torchscript = False
 
         self._register_sharded_tensor_state_dict_hooks_if_available()
 
@@ -262,17 +264,7 @@ class LightningModule(
     ) -> Any:
         device = device or self.device
         batch = self.on_before_batch_transfer(batch, dataloader_idx)
-
-        if is_param_in_hook_signature(self.transfer_batch_to_device, "dataloader_idx"):
-            batch = self.transfer_batch_to_device(batch, device, dataloader_idx)
-        else:
-            warning_cache.deprecation(
-                "`transfer_batch_to_device` hook signature has changed in v1.4."
-                " `dataloader_idx` parameter has been added to it. Support for"
-                " the old signature will be removed in v1.6"
-            )
-            batch = self.transfer_batch_to_device(batch, device)
-
+        batch = self.transfer_batch_to_device(batch, device, dataloader_idx)
         batch = self.on_after_batch_transfer(batch, dataloader_idx)
         return batch
 
@@ -305,12 +297,9 @@ class LightningModule(
         logger: bool = True,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
-        reduce_fx: Union[str, Callable] = "default",  # TODO: change to 'mean' when `sync_dist_op` is removed in 1.6
-        tbptt_reduce_fx: Optional = None,  # todo: Remove in 1.6
-        tbptt_pad_token: Optional = None,  # todo: Remove in 1.6
+        reduce_fx: Union[str, Callable] = "mean",
         enable_graph: bool = False,
         sync_dist: bool = False,
-        sync_dist_op: Optional = None,  # todo: Remove in 1.6
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
         batch_size: Optional[int] = None,
@@ -358,28 +347,6 @@ class LightningModule(
             rank_zero_only: Whether the value will be logged only on rank 0. This will prevent synchronization which
                 would produce a deadlock as not all processes would perform this log call.
         """
-        if tbptt_reduce_fx is not None:
-            rank_zero_deprecation(
-                "`self.log(tbptt_reduce_fx=...)` is no longer supported. The flag will be removed in v1.6."
-                " Please, open a discussion explaining your use-case in"
-                " `https://github.com/PyTorchLightning/pytorch-lightning/discussions`"
-            )
-        if tbptt_pad_token is not None:
-            rank_zero_deprecation(
-                "`self.log(tbptt_pad_token=...)` is no longer supported. The flag will be removed in v1.6."
-                " Please, open a discussion explaining your use-case in"
-                " `https://github.com/PyTorchLightning/pytorch-lightning/discussions`"
-            )
-        if sync_dist_op is not None:
-            rank_zero_deprecation(
-                f"`self.log(sync_dist_op='{sync_dist_op}')` is deprecated and will be removed in v.1.6."
-                f" Use `self.log(reduce_fx={sync_dist_op})` instead."
-            )
-            if reduce_fx == "default":
-                reduce_fx = sync_dist_op
-        elif reduce_fx == "default":
-            reduce_fx = "mean"
-
         # check for invalid values
         apply_to_collection(value, dict, self.__check_not_nested, name)
         apply_to_collection(
@@ -481,12 +448,9 @@ class LightningModule(
         logger: bool = True,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
-        reduce_fx: Union[str, Callable] = "default",  # TODO: change to 'mean' when `sync_dist_op` is removed in 1.6
-        tbptt_reduce_fx: Optional[Any] = None,  # todo: Remove in 1.6
-        tbptt_pad_token: Optional[Any] = None,  # todo: Remove in 1.6
+        reduce_fx: Union[str, Callable] = "mean",
         enable_graph: bool = False,
         sync_dist: bool = False,
-        sync_dist_op: Optional[Any] = None,  # todo: Remove in 1.6
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
         batch_size: Optional[int] = None,
@@ -531,9 +495,6 @@ class LightningModule(
                 enable_graph=enable_graph,
                 sync_dist=sync_dist,
                 sync_dist_group=sync_dist_group,
-                sync_dist_op=sync_dist_op,
-                tbptt_pad_token=tbptt_pad_token,
-                tbptt_reduce_fx=tbptt_reduce_fx,
                 add_dataloader_idx=add_dataloader_idx,
                 batch_size=batch_size,
                 rank_zero_only=rank_zero_only,
@@ -1720,7 +1681,7 @@ class LightningModule(
 
         return splits
 
-    def summarize(self, mode: Optional[str] = "top", max_depth: Optional[int] = None) -> Optional[ModelSummary]:
+    def summarize(self, max_depth: int = 1) -> ModelSummary:
         """Summarize this LightningModule.
 
         .. deprecated:: v1.5
@@ -1728,24 +1689,19 @@ class LightningModule(
             and will be removed in v1.7.
 
         Args:
-            mode: Can be either ``'top'`` (summarize only direct submodules) or ``'full'`` (summarize all layers).
-
-                .. deprecated:: v1.4
-                    This parameter was deprecated in v1.4 in favor of `max_depth` and will be removed in v1.6.
-
             max_depth: The maximum depth of layer nesting that the summary will include. A value of 0 turns the
                 layer summary off. Default: 1.
 
         Return:
             The model summary object
         """
-        warning_cache.deprecation(
+        rank_zero_deprecation(
             "The `LightningModule.summarize` method is deprecated in v1.5 and will be removed in v1.7. "
             "Use `pytorch_lightning.utilities.model_summary.summarize` instead.",
             stacklevel=6,
         )
 
-        return summarize(self, mode, max_depth)
+        return summarize(self, max_depth)
 
     def freeze(self) -> None:
         r"""
@@ -1939,6 +1895,8 @@ class LightningModule(
         """
         mode = self.training
 
+        self._running_torchscript = True
+
         if method == "script":
             torchscript_module = torch.jit.script(self.eval(), **kwargs)
         elif method == "trace":
@@ -1964,6 +1922,8 @@ class LightningModule(
             with fs.open(file_path, "wb") as f:
                 torch.jit.save(torchscript_module, f)
 
+        self._running_torchscript = False
+
         return torchscript_module
 
     @property
@@ -1973,11 +1933,12 @@ class LightningModule(
         Note:
             This property will not return correct value for Deepspeed (stage 3) and fully-sharded training.
         """
-        rank_zero_deprecation(
-            "The `LightningModule.model_size` property was deprecated in v1.5 and will be removed in v1.7."
-            " Please use the `pytorch_lightning.utilities.memory.get_model_size_mb`.",
-            stacklevel=5,
-        )
+        if not self._running_torchscript:  # remove with the deprecation removal
+            rank_zero_deprecation(
+                "The `LightningModule.model_size` property was deprecated in v1.5 and will be removed in v1.7."
+                " Please use the `pytorch_lightning.utilities.memory.get_model_size_mb`.",
+                stacklevel=5,
+            )
         return get_model_size_mb(self)
 
     def add_to_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
