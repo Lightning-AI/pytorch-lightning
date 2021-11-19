@@ -527,9 +527,9 @@ def test_metrics_reset(tmpdir):
 
 
 def test_result_collection_on_tensor_with_mean_reduction():
-    result_collection = ResultCollection(True, torch.device("cpu"))
+    result_collection = ResultCollection(True)
     product = [(True, True), (False, True), (True, False), (False, False)]
-    values = torch.arange(1, 10).float()  # need to convert to float() due to precision issues using torch 1.4
+    values = torch.arange(1, 10)
     batches = values * values
 
     for i, v in enumerate(values):

@@ -552,12 +552,42 @@ def test_metric_collections(tmpdir):
 
 def test_metric_result_computed_check():
     """Unittest ``_get_cache`` with multielement tensors."""
-    sync = _Sync()
     metadata = _Metadata("foo", "bar", on_epoch=True, enable_graph=True)
-    metadata.sync = sync
+    metadata.sync = _Sync()
     rm = ResultMetric(metadata, is_tensor=True)
     computed_value = torch.tensor([1, 2, 3])
     rm._computed = computed_value
     cache = ResultCollection._get_cache(rm, on_step=False)
     # `enable_graph=True` so no detach, identity works
     assert cache is computed_value
+
+
+@pytest.mark.parametrize("floating_dtype", (torch.float, torch.double))
+def test_metric_result_respects_dtype(floating_dtype):
+    torch.set_default_dtype(floating_dtype)
+    fixed_dtype = torch.long  # default by PyTorch
+
+    metadata = _Metadata("foo", "bar")
+    metadata.sync = _Sync()
+    rm = ResultMetric(metadata, is_tensor=True)
+
+    assert rm.value.dtype == floating_dtype
+    assert rm.cumulated_batch_size.dtype == fixed_dtype
+
+    # two fixed point numbers - should be converted
+    value, batch_size = torch.tensor(2), torch.tensor(3)
+    assert value.dtype == fixed_dtype
+    with pytest.warns(
+        UserWarning, match=rf"`self.log\('bar', ...\)` in your `foo` .* Converting it to {floating_dtype}"
+    ):
+        rm.update(value, batch_size)
+    # floating and fixed
+    rm.update(torch.tensor(4.0), torch.tensor(5))
+
+    total = rm.compute()
+
+    assert total == (2 * 3 + 4 * 5) / (5 + 3)
+    assert total.dtype == floating_dtype
+
+    # restore to avoid impacting other tests
+    torch.set_default_dtype(torch.float)

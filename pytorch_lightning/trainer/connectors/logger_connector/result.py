@@ -207,13 +207,22 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         self.meta = metadata
         self.has_reset = False
         if is_tensor:
-            self.add_state("value", torch.tensor(0, dtype=torch.float), dist_reduce_fx=torch.sum)
+            # do not set a dtype in case the default dtype was changed
+            self.add_state("value", torch.tensor(0.0), dist_reduce_fx=torch.sum)
             if self.meta.is_mean_reduction:
-                self.add_state("cumulated_batch_size", torch.tensor(0, dtype=torch.float), dist_reduce_fx=torch.sum)
+                self.add_state("cumulated_batch_size", torch.tensor(0), dist_reduce_fx=torch.sum)
 
     def update(self, value: _IN_METRIC, batch_size: int) -> None:
         if self.is_tensor:
-            value = value.float()
+            if not torch.is_floating_point(value):
+                dtype = torch.get_default_dtype()
+                warning_cache.warn(
+                    # do not include the value to avoid cache misses
+                    f"You called `self.log({self.meta.name!r}, ...)` in your `{self.meta.fx}` but the value needs to"
+                    f" be floating point. Converting it to {dtype}."
+                )
+                value = value.to(dtype)
+
             if self.meta.on_step:
                 self._forward_cache = self.meta.sync(value.clone())  # `clone` because `sync` is in-place
 
