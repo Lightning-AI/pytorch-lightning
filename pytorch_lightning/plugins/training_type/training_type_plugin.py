@@ -159,19 +159,6 @@ class TrainingTypePlugin(ABC):
         model_ref = self.lightning_module
         model_ref.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
 
-    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
-        """Moves the batch to the correct device. The returned batch is of the same type as the input batch, just
-        having all tensors on the correct device.
-
-        Args:
-            batch: The batch of samples to move to the correct device
-            device: The target device
-            dataloader_idx: The index of the dataloader to which the batch belongs.
-        """
-        model = self.lightning_module
-        device = device or self.root_device
-        return model._apply_batch_transfer_handler(batch, device=device, dataloader_idx=dataloader_idx)
-
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Setup a model and multiple optimizers together.
 
