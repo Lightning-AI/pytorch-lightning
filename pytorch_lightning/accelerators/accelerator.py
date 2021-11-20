@@ -130,7 +130,7 @@ class Accelerator:
             dataloader_idx: The index of the dataloader to which the batch belongs.
         """
         model = self.lightning_module
-        device = device or self.root_device
+        device = device or self.training_type_plugin.root_device
 
         if model is not None and not isinstance(self.training_type_plugin, DataParallelPlugin):
             # no need to transfer batch to device in DP mode
