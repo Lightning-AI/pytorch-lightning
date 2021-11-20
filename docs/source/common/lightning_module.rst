@@ -271,7 +271,7 @@ The matching pseudocode is:
 
 Training with DataParallel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-When training using an ``strategy`` that splits data from each batch across GPUs, sometimes you might
+When training using a ``strategy`` that splits data from each batch across GPUs, sometimes you might
 need to aggregate them on the main GPU for processing (dp, or ddp2).
 
 In this case, implement the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step_end`.
@@ -393,7 +393,7 @@ override :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epo
 
 Validating with DataParallel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-When training using an ``strategy`` that splits data from each batch across GPUs, sometimes you might
+When training using a ``strategy`` that splits data from each batch across GPUs, sometimes you might
 need to aggregate them on the main GPU for processing (dp, or ddp2).
 
 In this case, implement :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step_end`.
