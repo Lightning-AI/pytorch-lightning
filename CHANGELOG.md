@@ -130,6 +130,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated `utilities.distributed.rank_zero_{warn/deprecation}` ([#10451](https://github.com/PyTorchLightning/pytorch-lightning/pull/10451))
 
 
+- Removed custom `AllGatherGrad` implementation in favor of PyTorch's ([#10504](https://github.com/PyTorchLightning/pytorch-lightning/pull/10504))
+
+
 - Removed deprecated `mode` argument from `ModelSummary` class ([#10449](https://github.com/PyTorchLightning/pytorch-lightning/pull/10449))
 
 
