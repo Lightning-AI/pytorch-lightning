@@ -46,7 +46,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Moved ownership of the `PrecisionPlugin` into `TrainingTypePlugin` and updated all references ([#10570](https://github.com/PyTorchLightning/pytorch-lightning/pull/10570))
 
 
--
+- DeepSpeed does not require optimizer for inference anymore ([#10655](https://github.com/PyTorchLightning/pytorch-lightning/pull/10655))
 
 
 -
