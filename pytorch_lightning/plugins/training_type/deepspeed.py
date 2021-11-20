@@ -465,7 +465,11 @@ class DeepSpeedPlugin(DDPPlugin):
             # Ensure the entire model has been moved to the appropriate device
             dtype = torch.float16 if self.precision in (16, "mixed") else torch.float32
             deepspeed.zero.Init(
-                module=model, remote_device=self.remote_device, pin_memory=True, config=self.config, dtype=dtype
+                module=model,
+                remote_device=self.remote_device,
+                pin_memory=True,
+                config_dict_or_path=self.config,
+                dtype=dtype,
             )
 
         if self.lightning_module.trainer and self.lightning_module.trainer.training:
@@ -522,7 +526,7 @@ class DeepSpeedPlugin(DDPPlugin):
             assert self._config_initialized
             dtype = torch.float16 if self.precision in (16, "mixed") else torch.float32
             model_parallel_context = deepspeed.zero.Init(
-                remote_device=self.remote_device, pin_memory=True, config=self.config, dtype=dtype
+                remote_device=self.remote_device, pin_memory=True, config_dict_or_path=self.config, dtype=dtype
             )
         else:
             model_parallel_context = super().model_sharded_context()
@@ -542,17 +546,8 @@ class DeepSpeedPlugin(DDPPlugin):
             )
 
     def _initialize_deepspeed_inference(self, model):
-        # todo: Currently DeepSpeed requires optimizers at inference to partition weights correctly
-        optimizer, scheduler = None, None
-        if "optimizer" not in self.config:
-            rank_zero_info(
-                "You have not specified an optimizer or scheduler within the DeepSpeed config."
-                " Using `configure_optimizers` to define optimizer and scheduler."
-            )
-            optimizer, lr_scheduler, _ = self._init_optimizers()
-            scheduler = lr_scheduler["scheduler"]
         inference_config = {
-            # todo: this is required for DeepSpeed throughput timers, or throughput timers will be incorrect
+            # todo: this is required for DeepSpeed throughput timers
             "train_micro_batch_size_per_gpu": 1
         }
         if "fp16" in self.config:
@@ -570,9 +565,6 @@ class DeepSpeedPlugin(DDPPlugin):
             args=argparse.Namespace(device_rank=self.root_device.index),
             config=inference_config,
             model=model,
-            optimizer=optimizer,
-            lr_scheduler=scheduler,
-            model_parameters=[],
             dist_init_required=False,
         )
         self.model = model
