@@ -125,10 +125,10 @@ class IPUPlugin(ParallelPlugin):
         self.setup_precision_plugin()
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
+        super().setup_optimizers(trainer)
+
         if len(self.optimizers) > 1:
             raise MisconfigurationException("IPUs currently only support one optimizer.")
-
-        super().setup_optimizers(trainer)
 
     def pre_dispatch(self) -> None:
         model = LightningIPUModule(self.lightning_module, self.precision_plugin.precision)

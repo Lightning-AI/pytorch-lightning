@@ -92,7 +92,6 @@ class TrainingTypePlugin(ABC):
         Args:
             trainer: the trainer instance
         """
-        # call super()
         if not self.setup_optimizers_in_pre_dispatch:
             self.setup_optimizers(trainer)
         self.setup_precision_plugin()
