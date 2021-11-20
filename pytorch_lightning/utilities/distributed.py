@@ -179,10 +179,10 @@ def sync_ddp(
 
 class AllGatherGrad(torch.autograd.Function):
     """
-        .. deprecated:: v1.6
-            This callback hook was deprecated in v1.6 and will be removed in v1.8.
+    .. deprecated:: v1.6
+        This callback hook was deprecated in v1.6 and will be removed in v1.8.
     """
-    
+
     @staticmethod
     def forward(
         ctx: Any,
