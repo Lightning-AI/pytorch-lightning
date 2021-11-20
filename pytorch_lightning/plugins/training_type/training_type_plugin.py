@@ -26,6 +26,7 @@ from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
+from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PATH, _PREDICT_OUTPUT
 
@@ -102,7 +103,9 @@ class TrainingTypePlugin(ABC):
         """
         model = self.lightning_module
         device = device or self.root_device
-        return model._apply_batch_transfer_handler(batch, device=device, dataloader_idx=dataloader_idx)
+        if model is not None:
+            return model._apply_batch_transfer_handler(batch, device=device, dataloader_idx=dataloader_idx)
+        return move_data_to_device(batch, device)
 
     @property
     @abstractmethod
