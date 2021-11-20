@@ -775,7 +775,7 @@ def test_deepspeed_multigpu_test_rnn(tmpdir):
     model = TestModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        strategy=DeepSpeedPlugin(stage=3, partition_module=False),
+        strategy=DeepSpeedPlugin(stage=3),
         gpus=1,
         fast_dev_run=True,
         precision=16,
