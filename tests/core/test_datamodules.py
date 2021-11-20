@@ -306,7 +306,7 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
     model.transfer_batch_to_device = dm.transfer_batch_to_device
     model.on_after_batch_transfer = dm.on_after_batch_transfer
 
-    batch_gpu = trainer.accelerator.batch_to_device(batch, expected_device)
+    batch_gpu = trainer.training_type_plugin.batch_to_device(batch, expected_device)
 
     assert dm.on_before_batch_transfer_hook_rank == 0
     assert dm.transfer_batch_to_device_hook_rank == 1
