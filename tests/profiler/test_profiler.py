@@ -22,6 +22,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.callbacks import StochasticWeightAveraging
 from pytorch_lightning.loggers.base import LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
@@ -161,7 +162,7 @@ def test_simple_profiler_with_nonexisting_dirpath(tmpdir):
     assert nonexisting_tmpdir.join("fit-profiler.txt").exists()
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, skip_49370=True)
 def test_simple_profiler_distributed_files(tmpdir):
     """Ensure the proper files are saved in distributed."""
     profiler = SimpleProfiler(dirpath=tmpdir, filename="profiler")
@@ -226,6 +227,7 @@ def test_advanced_profiler_iterable_durations(advanced_profiler, action: str, ex
     np.testing.assert_allclose(recored_total_duration, expected_total_duration, rtol=0.2)
 
 
+@pytest.mark.flaky(reruns=3)
 def test_advanced_profiler_overhead(advanced_profiler, n_iter=5):
     """ensure that the profiler doesn't introduce too much overhead during training."""
     for _ in range(n_iter):
@@ -287,7 +289,9 @@ def test_pytorch_profiler_describe(pytorch_profiler):
 def test_advanced_profiler_cprofile_deepcopy(tmpdir):
     """Checks for pickle issue reported in #6522."""
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, profiler="advanced", stochastic_weight_avg=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir, fast_dev_run=True, profiler="advanced", callbacks=StochasticWeightAveraging()
+    )
     trainer.fit(model)
 
 

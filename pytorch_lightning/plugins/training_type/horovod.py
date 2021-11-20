@@ -21,12 +21,13 @@ from torch.optim.lr_scheduler import _LRScheduler
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as dist_group
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
-from pytorch_lightning.utilities.enums import DistributedType
+from pytorch_lightning.utilities.enums import _StrategyType
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
@@ -35,14 +36,20 @@ if _HOROVOD_AVAILABLE:
 class HorovodPlugin(ParallelPlugin):
     """Plugin for Horovod distributed training integration."""
 
-    distributed_backend = DistributedType.HOROVOD
+    distributed_backend = _StrategyType.HOROVOD
 
     def __init__(
         self,
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
     ):
-        super().__init__(parallel_devices=parallel_devices, cluster_environment=None, checkpoint_io=checkpoint_io)
+        super().__init__(
+            parallel_devices=parallel_devices,
+            cluster_environment=None,
+            checkpoint_io=checkpoint_io,
+            precision_plugin=precision_plugin,
+        )
         rank_zero_only.rank = self.global_rank
 
     @property

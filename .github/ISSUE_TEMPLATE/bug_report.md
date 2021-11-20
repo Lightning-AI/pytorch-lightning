@@ -1,14 +1,14 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Create a bug report to help us improve
 title: ''
-labels: bug / fix, help wanted
+labels: bug
 assignees: ''
 ---
 
 ## 🐛 Bug
 
-<!-- A clear and concise description of what the bug is. -->
+<!-- A clear and concise description of the bug. -->
 
 ### To Reproduce
 
@@ -16,7 +16,7 @@ assignees: ''
 Please reproduce using the BoringModel!
 
 You can use the following Colab link:
-https://colab.research.google.com/drive/1HvWVVTK8j2Nj52qU4Q4YCyzOm0_aLQF3?usp=sharing
+https://colab.research.google.com/github/PytorchLightning/pytorch-lightning/blob/master/pl_examples/bug_report/The_BoringModel.ipynb
 IMPORTANT: has to be public.
 
 or this simple template:
