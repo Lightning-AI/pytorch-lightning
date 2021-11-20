@@ -70,7 +70,7 @@ def extract_batch_size(batch: BType) -> int:
     if batch_size is None:
         raise MisconfigurationException(
             "Trying to infer `batch_size` from an ambiguous collection but couldn't find one. Either"
-            " set `self.log(..., batch_size = batch_size)` or simply the batch collection passed"
+            " set `self.log(..., batch_size=batch_size)` or simplify the batch collection passed"
             " inside `*_step` functions."
         )
 
