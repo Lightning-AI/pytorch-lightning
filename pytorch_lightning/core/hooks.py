@@ -480,10 +480,6 @@ class DataHooks:
         r"""
         Implement one or multiple PyTorch DataLoaders for testing.
 
-        The dataloader you return will not be reloaded unless you set
-        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_n_epochs` to
-        a postive integer.
-
         For data processing use the following pattern:
 
             - download in :meth:`prepare_data`
