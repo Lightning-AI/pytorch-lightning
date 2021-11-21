@@ -411,8 +411,6 @@ class LightningLite(ABC):
         # todo: these are hacks as plugins rely on access to the precision plugin
         if isinstance(self._strategy, DeepSpeedPlugin):
             self._set_deepspeed_precision_variables()
-        if isinstance(self._strategy, DDPShardedPlugin):
-            self._strategy._precision = self._accelerator_connector.precision
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
         if isinstance(self._strategy, TPUSpawnPlugin):
