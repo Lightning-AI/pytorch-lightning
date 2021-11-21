@@ -12,6 +12,7 @@ from pytorch_lightning.utilities.data import (
     warning_cache,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.deprecated_api import no_warning_call
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 
 
@@ -19,9 +20,8 @@ def test_extract_batch_size():
     """Tests the behavior of extracting the batch size."""
 
     def _check_warning_not_raised(data, expected):
-        with pytest.warns(None) as record:
+        with no_warning_call(match="Trying to infer the `batch_size`"):
             assert extract_batch_size(data) == expected
-        assert len(record) == 0
 
     def _check_warning_raised(data, expected):
         with pytest.warns(UserWarning, match=f"Trying to infer the `batch_size` .* we found is {expected}."):
@@ -42,6 +42,9 @@ def test_extract_batch_size():
 
     batch = {"test": [{"test": [torch.zeros(11, 10)]}]}
     _check_warning_not_raised(batch, 11)
+
+    batch = {"a": [torch.tensor(1), torch.tensor(2)], "b": torch.tensor([1, 2, 3, 4])}
+    _check_warning_raised(batch, 1)
 
     batch = {"test": [{"test": [torch.zeros(11, 10), torch.zeros(10, 10)]}]}
     _check_warning_raised(batch, 11)

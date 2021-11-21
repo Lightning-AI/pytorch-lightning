@@ -170,8 +170,8 @@ def test_deepspeed_precision_choice(amp_backend, precision, tmpdir):
     )
 
     assert isinstance(trainer.accelerator.training_type_plugin, DeepSpeedPlugin)
-    assert isinstance(trainer.accelerator.precision_plugin, DeepSpeedPrecisionPlugin)
-    assert trainer.accelerator.precision_plugin.precision == precision
+    assert isinstance(trainer.training_type_plugin.precision_plugin, DeepSpeedPrecisionPlugin)
+    assert trainer.training_type_plugin.precision_plugin.precision == precision
 
 
 @RunIf(deepspeed=True)
@@ -213,7 +213,7 @@ def test_warn_deepspeed_ignored(tmpdir):
     trainer = Trainer(
         fast_dev_run=True, default_root_dir=tmpdir, strategy=DeepSpeedPlugin(), gpus=1, precision=16, track_grad_norm=2
     )
-    from pytorch_lightning.plugins.precision.deepspeed_precision import warning_cache
+    from pytorch_lightning.plugins.precision.deepspeed import warning_cache
 
     with pytest.warns(UserWarning, match="will be ignored since DeepSpeed handles the backward"):
         trainer.fit(model)
