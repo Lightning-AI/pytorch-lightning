@@ -383,7 +383,7 @@ def test_v1_7_0_deprecated_slurm_job_id():
     with pytest.deprecated_call(
         match="Method `slurm_job_id` is deprecated in v1.6.0 and will be removed in v1.7.0."
     ):
-        _ = trainer.slurm_job_id()
+        trainer.slurm_job_id
 
 
 @RunIf(min_gpus=1)
