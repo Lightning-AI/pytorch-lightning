@@ -16,11 +16,11 @@ assignees: ''
 Please reproduce using the BoringModel!
 
 You can use the following Colab link:
-https://colab.research.google.com/github/PytorchLightning/pytorch-lightning/blob/master/pl_examples/bug_report/The_BoringModel.ipynb
+https://colab.research.google.com/github/PytorchLightning/pytorch-lightning/blob/master/pl_examples/bug_report/bug_report_model.ipynb
 IMPORTANT: has to be public.
 
 or this simple template:
-https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/bug_report_model.py
+https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/bug_report/bug_report_model.py
 
 If you could not reproduce using the BoringModel and still think there's a bug, please post here
 but remember, bugs with code are fixed faster!
