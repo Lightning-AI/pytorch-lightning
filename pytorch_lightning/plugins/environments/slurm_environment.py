@@ -15,9 +15,9 @@
 import logging
 import os
 import re
+from typing import Optional
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from typing import Optional
 
 log = logging.getLogger(__name__)
 

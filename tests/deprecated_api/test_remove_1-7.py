@@ -380,9 +380,7 @@ def test_v1_7_0_trainer_log_gpu_memory(tmpdir):
 
 def test_v1_7_0_deprecated_slurm_job_id():
     trainer = Trainer()
-    with pytest.deprecated_call(
-        match="Method `slurm_job_id` is deprecated in v1.6.0 and will be removed in v1.7.0."
-    ):
+    with pytest.deprecated_call(match="Method `slurm_job_id` is deprecated in v1.6.0 and will be removed in v1.7.0."):
         trainer.slurm_job_id
 
 
