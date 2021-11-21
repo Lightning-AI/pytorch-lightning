@@ -32,7 +32,6 @@ from pytorch_lightning.lite.wrappers import (
     _replace_dataloader_init_method,
 )
 from pytorch_lightning.plugins import (
-    DDPShardedPlugin,
     DDPSpawnPlugin,
     DeepSpeedPlugin,
     PLUGIN_INPUT,
