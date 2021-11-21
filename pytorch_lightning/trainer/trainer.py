@@ -39,6 +39,7 @@ from pytorch_lightning.loops import PredictionLoop, TrainingBatchLoop, TrainingE
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.plugins import DDPSpawnPlugin, ParallelPlugin, PLUGIN_INPUT, PrecisionPlugin, TrainingTypePlugin
+from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
     BaseProfiler,
@@ -1727,6 +1728,14 @@ class Trainer(
     @property
     def is_global_zero(self) -> bool:
         return self.global_rank == 0
+
+    @property
+    def slurm_job_id(self) -> Optional[int]:
+        rank_zero_deprecation(
+            "Method `slurm_job_id` is deprecated in v1.6.0 and will be removed in v1.7.0."
+        )
+        job_id = SLURMEnvironment.job_id()
+        return job_id
 
     @property
     def lightning_optimizers(self) -> List[LightningOptimizer]:
