@@ -27,17 +27,17 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl
+import pytorch_lightning.plugins as plugins
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
-from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import AMPType, GradClipAlgorithmType
+from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.distributed import log, rank_zero_info, rank_zero_only
+from pytorch_lightning.utilities.distributed import log, rank_zero_info
 from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
@@ -631,7 +631,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
     def _format_precision_config(self) -> None:
         if self.precision_plugin.precision in (16, "mixed"):
-            if "fp16" not in self.config and isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
+            if "fp16" not in self.config and isinstance(self.precision_plugin, plugins.NativeMixedPrecisionPlugin):
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
                 self.config["fp16"] = {
@@ -642,7 +642,7 @@ class DeepSpeedPlugin(DDPPlugin):
                     "hysteresis": self.hysteresis,
                     "min_loss_scale": self.min_loss_scale,
                 }
-            elif "amp" not in self.config and isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
+            elif "amp" not in self.config and isinstance(self.precision_plugin, plugins.ApexMixedPrecisionPlugin):
                 rank_zero_info("Enabling DeepSpeed APEX Implementation.")
                 self.config["amp"] = {"enabled": True, "opt_level": self.precision_plugin.amp_level}
 
