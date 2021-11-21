@@ -46,9 +46,9 @@ python collect_env_details.py
 You can also fill out the list below manually.
 -->
 
-- PyTorch Lightning Version (e.g., 1.3.0):
-- PyTorch Version (e.g., 1.8)
-- Python version:
+- PyTorch Lightning Version (e.g., 1.5.0):
+- PyTorch Version (e.g., 1.10):
+- Python version (e.g., 3.9):
 - OS (e.g., Linux):
 - CUDA/cuDNN version:
 - GPU models and configuration:
