@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, cast, Dict, Generator, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -40,10 +40,9 @@ from pytorch_lightning.plugins import (
     TrainingTypePlugin,
 )
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
-from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.utilities import _StrategyType, DeviceType, move_data_to_device
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
-from pytorch_lightning.utilities.data import has_iterable_dataset
+from pytorch_lightning.utilities.data import _auto_add_worker_init_fn, _update_dataloader, has_iterable_dataset
 from pytorch_lightning.utilities.device_parser import _parse_devices
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
@@ -108,7 +107,7 @@ class LightningLite(ABC):
         )
         self._accelerator = self._accelerator_connector.accelerator
         self._strategy = self._accelerator.training_type_plugin
-        self._precision_plugin = self._accelerator.precision_plugin
+        self._precision_plugin = self._strategy.precision_plugin
         self._models_setup: int = 0
 
         # wrap the run method so we can inject setup logic or spawn processes for the user
@@ -188,7 +187,7 @@ class LightningLite(ABC):
 
     def setup_dataloaders(
         self, *dataloaders: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
-    ) -> Union[Iterable, List[Iterable]]:
+    ) -> Union[DataLoader, List[DataLoader]]:
         """Setup one or multiple dataloaders for accelerated training. If you need different settings for each
         dataloader, call this method individually for each one.
 
@@ -213,7 +212,7 @@ class LightningLite(ABC):
 
     def _setup_dataloader(
         self, dataloader: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
-    ) -> Iterable:
+    ) -> DataLoader:
         """Setup a single dataloader for accelerated training.
 
         Args:
@@ -239,14 +238,16 @@ class LightningLite(ABC):
             sampler = self._get_distributed_sampler(dataloader, **self._strategy.distributed_sampler_kwargs)
 
         # the dataloader needs to be re-instantiated because we want to update the input arguments (e.g., sampler)
-        dataloader = TrainerDataLoadingMixin._update_dataloader(dataloader, sampler)
+        dataloader = _update_dataloader(dataloader, sampler)
 
         # add worker_init_fn for correct seeding in worker processes
-        TrainerDataLoadingMixin._auto_add_worker_init_fn(dataloader, self.global_rank)
+        _auto_add_worker_init_fn(dataloader, self.global_rank)
 
         dataloader = self._strategy.process_dataloader(dataloader)
         device = self.device if move_to_device and not isinstance(self._strategy, TPUSpawnPlugin) else None
-        return _LiteDataLoader(dataloader=dataloader, device=device)
+        lite_dataloader = _LiteDataLoader(dataloader=dataloader, device=device)
+        lite_dataloader = cast(DataLoader, lite_dataloader)
+        return lite_dataloader
 
     def backward(self, tensor: Tensor, *args: Any, model: Optional[_LiteModule] = None, **kwargs: Any) -> None:
         """Replaces ``loss.backward()`` in your training loop. Handles precision and automatically for you.
