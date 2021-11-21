@@ -31,13 +31,7 @@ from pytorch_lightning.lite.wrappers import (
     _LiteOptimizer,
     _replace_dataloader_init_method,
 )
-from pytorch_lightning.plugins import (
-    DDPSpawnPlugin,
-    DeepSpeedPlugin,
-    PLUGIN_INPUT,
-    TPUSpawnPlugin,
-    TrainingTypePlugin,
-)
+from pytorch_lightning.plugins import DDPSpawnPlugin, DeepSpeedPlugin, PLUGIN_INPUT, TPUSpawnPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.utilities import _StrategyType, DeviceType, move_data_to_device
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
