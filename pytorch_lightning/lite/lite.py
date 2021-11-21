@@ -407,8 +407,6 @@ class LightningLite(ABC):
 
     def _set_plugin_specific_precision_variables(self) -> None:
         # todo: these are hacks as plugins rely on access to the precision plugin
-        if isinstance(self._strategy, DeepSpeedPlugin):
-            self._set_deepspeed_precision_variables()
         if isinstance(self._strategy, DDPShardedPlugin):
             self._strategy._precision = self._accelerator_connector.precision
 
@@ -429,13 +427,6 @@ class LightningLite(ABC):
         else:
             model = self.to_device(model)
         return model
-
-    def _set_deepspeed_precision_variables(self) -> None:
-        # TODO: Refactor this once precision pluging is part of the strategy.
-        amp_type = self._accelerator_connector.amp_type
-        amp_level = self._accelerator_connector.amp_level
-        precision = self._accelerator_connector.precision
-        self._strategy._amp_level, self._strategy._amp_type, self._strategy._precision = amp_level, amp_type, precision
 
     def _requires_distributed_sampler(self, dataloader: DataLoader) -> bool:
         return (
