@@ -455,7 +455,8 @@ class DDPPlugin(ParallelPlugin):
     def _share_pids(self) -> None:
         """Make all DDP processes aware of all processes pids."""
         self.barrier()
-        pids = self.all_gather(torch.tensor(os.getpid(), device=self.root_device))
+        # pids = self.all_gather(torch.tensor(os.getpid(), device=self.root_device))
+        pids = torch.distributed.nn.functional.all_gather(torch.tensor(os.getpid(), device=self.root_device))
         pids = pids.cpu().numpy().tolist()
         self._pids = pids if isinstance(pids, list) else [pids]
 
