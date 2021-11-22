@@ -282,6 +282,7 @@ class _FaultTolerantMode(LightningEnum):
     def detect_current_mode(cls) -> "_FaultTolerantMode":
         """This classmethod detects if `Fault Tolerant` is activated and maps its value to `_FaultTolerantMode`."""
         env_value = os.getenv("PL_FAULT_TOLERANT_TRAINING", "0").lower()
+        # the int values are kept for backwards compatibility, but long-term we want to keep only the strings
         if env_value in ("0", "disabled"):
             return _FaultTolerantMode.DISABLED
         elif env_value in ("1", "automatic"):
