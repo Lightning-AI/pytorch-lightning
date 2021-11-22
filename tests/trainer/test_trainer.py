@@ -908,10 +908,8 @@ def test_disabled_validation(tmpdir):
     assert model.validation_epoch_end_invoked, "did not run `validation_epoch_end` with `fast_dev_run=True`"
 
 
-def test_irrevelance_between_non_default_overfit_batches_and_non_default_batch_limitation(tmpdir):
-    """Verify that when `overfit_batches` > 0,  `limit_train/val/test_batches` won't be resetted to
-    `overfit_batches` unless they are of default value."""
-    """Assure that non-default value of `limit_train/val/test_batches` won't be reset by `DebuggingConnector` when `overfit_batches` > 0"""
+def test_disable_validation_when_overfit_batches_larger_than_zero(tmpdir):
+    """Verify that when `overfit_batches` > 0,  there will be no validation"""
 
     class CurrentModel(EvalModelTemplate):
 
@@ -942,28 +940,11 @@ def test_irrevelance_between_non_default_overfit_batches_and_non_default_batch_l
     trainer = Trainer(**trainer_options)
     trainer.fit(model)
 
-    # check that limit_xxx_batches won't be reset when they are non-default value and overfit_batches > 0
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.current_epoch == 1
     assert trainer.limit_train_batches == 1
-    assert trainer.limit_val_batches == 0.0
-    assert not model.validation_step_invoked, "`validation_step` should not run when `limit_val_batches=0`"
-    assert not model.validation_epoch_end_invoked, "`validation_epoch_end` should not run when `limit_val_batches=0`"
-
-    # check that limit_xxx_batches will be reset when they are default value and overfit_batches > 0
-    model = CurrentModel(**hparams)
-    trainer_options.update(overfit_batches=2)
-    trainer_options.update(limit_train_batches=1.0)
-    trainer_options.update(limit_val_batches=1.0)
-    trainer = Trainer(**trainer_options)
-    trainer.fit(model)
-
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.current_epoch == 1
-    assert trainer.limit_train_batches == 2
-    assert trainer.limit_val_batches == 2
-    assert model.validation_step_invoked, "did not run `validation_step` with `fast_dev_run=True`"
-    assert model.validation_epoch_end_invoked, "did not run `validation_epoch_end` with `fast_dev_run=True`"
+    assert not model.validation_step_invoked, "`validation_step` should not run when `overfit_batches>0`"
+    assert not model.validation_epoch_end_invoked, "`validation_step` should not run when `overfit_batches>0`"
 
 
 @mock.patch("torch.Tensor.backward")

@@ -82,8 +82,8 @@ class DebuggingConnector:
             # by overfit_batches
             if self.trainer.limit_train_batches > 0.0:
                 self.trainer.limit_train_batches = overfit_batches
-            if self.trainer.limit_val_batches > 0.0:
-                self.trainer.limit_val_batches = overfit_batches
+            # Disable validation completely when overfit_batches > 0
+            self.trainer.limit_val_batches = 0.0
             if self.trainer.limit_test_batches > 0.0:
                 self.trainer.limit_test_batches = overfit_batches
 
