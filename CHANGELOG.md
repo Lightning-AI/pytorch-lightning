@@ -62,7 +62,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated the `precision_plugin` constructor argument from `Accelerator` ([#10570](https://github.com/PyTorchLightning/pytorch-lightning/pull/10570))
 
 
--
+- Deprecated the property `Trainer.slurm_job_id` in favor of the new `SLURMEnvironment.slurm_job_id()` method ([#10622](https://github.com/PyTorchLightning/pytorch-lightning/pull/10622))
 
 
 -
