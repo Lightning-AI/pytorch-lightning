@@ -151,9 +151,7 @@ For debugging purposes or for dataloaders that load very small datasets, it is d
 
     import warnings
 
-    warnings.filterwarnings(
-        "ignore", ".*does not have many workers. Consider increasing the value of the `num_workers` argument*"
-    )
+    warnings.filterwarnings("ignore", ".*Consider increasing the value of the `num_workers` argument*")
 
 Spawn
 """""
