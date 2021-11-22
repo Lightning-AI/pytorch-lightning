@@ -57,9 +57,8 @@ def extract_batch_size(batch: BType) -> int:
         ``len(tensor)`` when found, or ``1`` when it hits an empty or non iterable.
     """
     error_msg = (
-        "Trying to infer `batch_size` from an ambiguous collection but couldn't find one. Either"
-        " set `self.log(..., batch_size=batch_size)` or simplify the batch collection passed"
-        " inside `*_step` functions."
+        "We could not infer the batch_size from the batch. Either simplify its structure"
+        " or provide the batch_size as `self.log(..., batch_size=batch_size)`."
     )
     try:
         batch_size = None
@@ -72,13 +71,13 @@ def extract_batch_size(batch: BType) -> int:
                     f" found is {batch_size}. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`."
                 )
                 break
-
-        if batch_size is None:
-            raise MisconfigurationException(error_msg)
-
-        return batch_size
     except RecursionError:
         raise RecursionError(error_msg)
+
+    if batch_size is None:
+        raise MisconfigurationException(error_msg)
+
+    return batch_size
 
 
 def has_iterable_dataset(dataloader: DataLoader) -> bool:

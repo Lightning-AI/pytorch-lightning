@@ -29,7 +29,7 @@ def test_extract_batch_size():
         warning_cache.clear()
 
     def _check_error_raised(data):
-        with pytest.raises(MisconfigurationException, match="ambiguous collection but couldn't find one"):
+        with pytest.raises(MisconfigurationException, match="We could not infer the batch_size"):
             extract_batch_size(batch)
 
     # Warning not raised
