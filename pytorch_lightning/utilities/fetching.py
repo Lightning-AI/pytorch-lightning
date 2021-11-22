@@ -28,6 +28,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to
 from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
     _patch_dataloader_get_iterators,
+    _teardown_dataloader_get_iterators,
     IteratorState,
     MergedIteratorState,
     patch_dataloader_iterator,
@@ -229,6 +230,7 @@ class AbstractDataFetcher(ABC):
         if isinstance(self.dataloader, DataLoader):
             CombinedLoader._shutdown_workers_and_reset_iterator(self.dataloader)
         self.dataloader_iter = None
+        _teardown_dataloader_get_iterators()
 
 
 class DataFetcher(AbstractDataFetcher):
