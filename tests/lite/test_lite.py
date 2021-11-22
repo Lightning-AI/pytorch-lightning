@@ -24,11 +24,7 @@ from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
 from pytorch_lightning.lite import LightningLite
-from pytorch_lightning.lite.wrappers import (
-    _LiteDataLoader,
-    _LiteModule,
-    _LiteOptimizer,
-)
+from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.plugins import DeepSpeedPlugin, PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.utilities import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
