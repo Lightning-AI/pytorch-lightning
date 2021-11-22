@@ -40,6 +40,7 @@ from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
     _dataloader_load_state_dict,
     _dataloader_to_state_dict,
+    _SupportsStateDict,
     CaptureIterableDataset,
     CaptureMapDataset,
     FastForwardSampler,
@@ -1193,6 +1194,29 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
         assert "dataloader_state_dict" not in state_dict
     else:
         assert "dataloader_state_dict" in state_dict
+
+
+def test_supports_state_dict_protocol():
+    class StatefulClass:
+        def state_dict(self):
+            pass
+
+        def load_state_dict(self, state_dict):
+            pass
+
+    assert isinstance(StatefulClass(), _SupportsStateDict)
+
+    class NotStatefulClass:
+        def state_dict(self):
+            pass
+
+    assert not isinstance(NotStatefulClass(), _SupportsStateDict)
+
+    class NotStateful2Class:
+        def load_state_dict(self, state_dict):
+            pass
+
+    assert not isinstance(NotStateful2Class(), _SupportsStateDict)
 
 
 def test_fault_tolerant_mode_enum():
