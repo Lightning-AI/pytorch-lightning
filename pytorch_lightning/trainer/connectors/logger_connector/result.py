@@ -410,11 +410,8 @@ class ResultCollection(dict):
 
         batch_size = 1
         if self.batch is not None and meta.on_epoch and meta.is_mean_reduction:
-            try:
-                batch_size = extract_batch_size(self.batch)
-                self.batch_size = batch_size
-            except RecursionError:
-                pass
+            batch_size = extract_batch_size(self.batch)
+            self.batch_size = batch_size
 
         return batch_size
 

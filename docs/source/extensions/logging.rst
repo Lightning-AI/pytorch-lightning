@@ -111,7 +111,7 @@ The :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method has a 
 .. note::
 
     -   Setting ``on_epoch=True`` will cache all your logged values during the full training epoch and perform a
-        reduction in ``on_train_epoch_end``. We recommend using the :doc:`metrics <../extensions/metrics>` API when working with custom reduction.
+        reduction in ``on_train_epoch_end``. We recommend using `TorchMetrics <https://torchmetrics.readthedocs.io/>`_, when working with custom reduction.
 
     -   Setting both ``on_step=True`` and ``on_epoch=True`` will create two keys per metric you log with
         suffix ``_step`` and ``_epoch``, respectively. You can refer to these keys e.g. in the `monitor`
