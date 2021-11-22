@@ -1204,22 +1204,19 @@ def test_supports_state_dict_protocol():
         def load_state_dict(self, state_dict):
             pass
 
-    obj = StatefulClass()
-    assert isinstance(obj, _SupportsStateDict)
+    assert isinstance(StatefulClass(), _SupportsStateDict)
 
     class NotStatefulClass:
         def state_dict(self):
             pass
 
-    obj = NotStatefulClass()
-    assert not isinstance(obj, _SupportsStateDict)
+    assert not isinstance(NotStatefulClass(), _SupportsStateDict)
 
     class NotStateful2Class:
         def load_state_dict(self, state_dict):
             pass
 
-    obj = NotStateful2Class()
-    assert not isinstance(obj, _SupportsStateDict)
+    assert not isinstance(NotStateful2Class(), _SupportsStateDict)
 
 
 def test_fault_tolerant_mode_enum():
