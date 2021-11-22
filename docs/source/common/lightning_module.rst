@@ -55,7 +55,7 @@ Notice a few things.
         new_x = torch.Tensor(2, 3)
         new_x = new_x.type_as(x)
 
-5.  Lightning, by default, handles the distributed sampler for you when running under a distributed strategy.
+5. When running under a distributed strategy, Lightning handles the distributed sampler for you by default.
 
 |
 
@@ -152,7 +152,7 @@ Training
 
 Training loop
 ^^^^^^^^^^^^^
-To add a training loop use :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`.
+To activate the training loop, override the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` method.
 
 .. code-block:: python
 
@@ -208,7 +208,7 @@ If you want to calculate epoch-level metrics and log them, use :meth:`~pytorch_l
          return loss
 
 The :meth:`~pytorch_lightning.core.lightning.LightningModule.log` object automatically reduces the
-requested metrics across the complete epoch. Here's the pseudocode of what it does under the hood:
+requested metrics across a complete epoch and devices. Here's the pseudocode of what it does under the hood:
 
 .. code-block:: python
 
@@ -232,7 +232,7 @@ requested metrics across the complete epoch. Here's the pseudocode of what it do
 Train epoch-level operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If you need to do something with all the outputs of each :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`.
-override :meth:`~pytorch_lightning.core.lightning.LightningModule.training_epoch_end`.
+override the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_epoch_end` method.
 
 .. code-block:: python
 
@@ -245,8 +245,8 @@ override :meth:`~pytorch_lightning.core.lightning.LightningModule.training_epoch
 
 
      def training_epoch_end(self, training_step_outputs):
-         for pred in training_step_outputs:
-             ...
+         all_preds = torch.stack(training_step_outputs)
+         ...
 
 The matching pseudocode is:
 
@@ -274,7 +274,8 @@ Training with DataParallel
 When training using a ``strategy`` that splits data from each batch across GPUs, sometimes you might
 need to aggregate them on the main GPU for processing (dp, or ddp2).
 
-In this case, implement the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step_end`.
+In this case, implement the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step_end`
+method which will have outputs from all the devices and you can accumulate to get the effective results.
 
 .. code-block:: python
 
@@ -303,7 +304,7 @@ In this case, implement the :meth:`~pytorch_lightning.core.lightning.LightningMo
          for out in training_step_outputs:
              ...
 
-The complete pseudocode that lightning does under the hood is:
+Here is the lightning training pseudo-code for DP:
 
 .. code-block:: python
 
@@ -328,7 +329,7 @@ The complete pseudocode that lightning does under the hood is:
 
 Validation loop
 ^^^^^^^^^^^^^^^
-To add a validation loop during training, override :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`.
+To activate the validation loop while training, override the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` method.
 
 .. code-block:: python
 
@@ -375,7 +376,7 @@ and calling :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`.
 Validation epoch-level metrics
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If you need to do something with all the outputs of each :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`,
-override :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`
+override the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end` method.
 
 .. code-block:: python
 
@@ -388,15 +389,16 @@ override :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epo
 
 
      def validation_epoch_end(self, validation_step_outputs):
-         for pred in validation_step_outputs:
-             ...
+         all_preds = torch.stack(validation_step_outputs)
+         ...
 
 Validating with DataParallel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 When training using a ``strategy`` that splits data from each batch across GPUs, sometimes you might
 need to aggregate them on the main GPU for processing (dp, or ddp2).
 
-In this case, implement :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step_end`.
+In this case, implement the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step_end`
+method which will have outputs from all the devices and you can accumulate to get the effective results.
 
 .. code-block:: python
 
@@ -425,7 +427,7 @@ In this case, implement :meth:`~pytorch_lightning.core.lightning.LightningModule
          for out in validation_step_outputs:
              ...
 
-The complete pseudocode that lightning does under the hood is:
+Here is the lightning validation pseudo-code for DP:
 
 .. code-block:: python
 
@@ -450,8 +452,8 @@ The complete pseudocode that lightning does under the hood is:
 
 Test loop
 ^^^^^^^^^
-The process for adding a test loop is the same as the process for adding a validation loop. Please refer to
-the section above for details. For this you need to override :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step`.
+The process for enabling a test loop is the same as the process for enabling a validation loop. Please refer to
+the section above for details. For this you need to override the :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step` method.
 
 The only difference is that the test loop is only called when :meth:`~pytorch_lightning.trainer.trainer.Trainer.test` is used.
 
@@ -931,11 +933,16 @@ The device the module is on. Use it to keep your code device agnostic.
 
 global_rank
 ~~~~~~~~~~~
-The global_rank of this LightningModule. Lightning saves logs, weights etc. only from global_rank = 0. You
-usually do not need to use this property
+The ``global_rank`` is the index of the current process across all nodes and devices.
+Lightning will perform some operations such as logging, weight checkpointing only when ``global_rank=0``. You
+usually do not need to use this property, but it is useful to know how to access it if needed.
 
-Global rank refers to the index of that GPU across ALL GPUs. For example, if using 10 machines, each with 4 GPUs,
-the 4th GPU on the 10th machine has global_rank = 39
+.. code-block:: python
+
+    def training_step(self):
+        if self.global_rank == 0:
+            # do something only once across all the nodes
+            self.log("global_step", self.trainer.global_step)
 
 -------------
 
@@ -983,11 +990,16 @@ The current logger being used (tensorboard or other supported logger)
 
 local_rank
 ~~~~~~~~~~~
-The local_rank of this LightningModule. Lightning saves logs, weights etc. only from global_rank = 0. You
-usually do not need to use this property
+The ``global_rank`` is the index of the current process across all the devices for the current node.
+You usually do not need to use this property, but it is useful to know how to access it if needed.
+For example, if using 10 machines (or nodes), the GPU at index 0 on each machine has local_rank = 0.
 
-Local rank refers to the rank on that machine. For example, if using 10 machines, the GPU at index 0 on each machine
-has local_rank = 0.
+.. code-block:: python
+
+    def training_step(self):
+        if self.global_rank == 0:
+            # do something only once across each node
+            self.log("global_step", self.trainer.global_step)
 
 -----------
 
@@ -1106,7 +1118,7 @@ Get the model file size (in megabytes) using ``self.model_size`` inside Lightnin
 truncated_bptt_steps
 ^^^^^^^^^^^^^^^^^^^^
 
-Truncated back prop breaks perform backprop every k steps of
+Truncated backpropagation through time performs perform backpropogation every k steps of
 a much longer sequence. This is made possible by passing training batches
 split along the time-dimensions into splits of size k to the
 ``training_step``. In order to keep the same forward propagation behavior, all
@@ -1167,7 +1179,7 @@ example above, we have set ``batch_first=True``.
     sub_batch = batch[0, 0:t, ...]
 
 To modify how the batch is split,
-override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`:
+override the :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch` method:
 
 .. testcode:: python
 
