@@ -30,6 +30,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.trainer.states import TrainerFn
@@ -129,6 +130,7 @@ class DeepSpeedPlugin(DDPPlugin):
         synchronize_checkpoint_boundary: bool = False,
         load_full_weights: bool = False,
         partition_module: bool = True,
+        precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
         billion parameter models. `For more information: https://pytorch-
@@ -273,6 +275,7 @@ class DeepSpeedPlugin(DDPPlugin):
         super().__init__(
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
+            precision_plugin=precision_plugin,
         )
 
         self.config = self._load_config(config)
@@ -331,7 +334,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
     @property
     def precision(self) -> Union[str, int]:
-        return self._precision or self.lightning_module.trainer.precision
+        return self._precision or self.precision_plugin.precision
 
     @property
     def amp_level(self) -> Optional[str]:
@@ -456,8 +459,7 @@ class DeepSpeedPlugin(DDPPlugin):
                 "DeepSpeed currently does not support different `accumulate_grad_batches` at different epochs."
             )
 
-        precision = self.lightning_module.trainer.accelerator.precision
-        model = LightningDeepSpeedModule(pl_module=self.model, precision=precision)
+        model = LightningDeepSpeedModule(pl_module=self.model, precision=self.precision)
 
         if self.zero_stage_3 and self.partition_module:
             # Ensure the entire model has been moved to the appropriate device
@@ -618,11 +620,6 @@ class DeepSpeedPlugin(DDPPlugin):
             )
         self.config["gradient_accumulation_steps"] = self.lightning_module.trainer.accumulate_grad_batches
         if "train_micro_batch_size_per_gpu" not in self.config:
-            rank_zero_warn(
-                "Inferring the batch size for internal deepspeed logging from the `train_dataloader()`. "
-                "If you require skipping this, please pass "
-                "`Trainer(strategy=DeepSpeedPlugin(logging_batch_size_per_gpu=batch_size))`"
-            )
             batch_size = self._auto_select_batch_size()
             self.config["train_micro_batch_size_per_gpu"] = batch_size
         if "gradient_clipping" not in self.config:
@@ -634,9 +631,19 @@ class DeepSpeedPlugin(DDPPlugin):
         batch_size = 1
         train_dl_source = self.lightning_module.trainer._data_connector._train_dataloader_source
         if train_dl_source.is_defined():
-            train_dataloader = train_dl_source.dataloader()
-            if hasattr(train_dataloader, "batch_sampler"):
-                batch_size = train_dataloader.batch_sampler.batch_size
+            try:
+                train_dataloader = train_dl_source.dataloader()
+                if hasattr(train_dataloader, "batch_sampler"):
+                    batch_size = train_dataloader.batch_sampler.batch_size
+            # broad exception on purpose as `source.dataloader()` will fail if the dataloader requires `setup`
+            # to have been called before
+            except Exception:
+                if self.global_rank == 0:
+                    deepspeed.utils.logging.logger.warning(
+                        "Tried to infer the batch size for internal deepspeed logging from the `train_dataloader()`. "
+                        "To ensure DeepSpeed logging remains correct, please manually pass the plugin with the "
+                        "batch size, `Trainer(strategy=DeepSpeedPlugin(logging_batch_size_per_gpu=batch_size))`."
+                    )
         return batch_size
 
     def _format_precision_config(self):

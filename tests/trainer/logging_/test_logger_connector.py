@@ -250,7 +250,8 @@ def test_fx_validator_integration(tmpdir):
         limit_predict_batches=1,
         callbacks=callback,
     )
-    trainer.fit(model)
+    with pytest.deprecated_call(match="on_train_dataloader` is deprecated in v1.5"):
+        trainer.fit(model)
 
     not_supported.update(
         {
@@ -262,7 +263,8 @@ def test_fx_validator_integration(tmpdir):
             "on_test_end": "You can't",
         }
     )
-    trainer.test(model, verbose=False)
+    with pytest.deprecated_call(match="on_test_dataloader` is deprecated in v1.5"):
+        trainer.test(model, verbose=False)
 
     not_supported.update({k: "ResultCollection` is not registered yet" for k in not_supported})
     not_supported.update(
@@ -279,7 +281,8 @@ def test_fx_validator_integration(tmpdir):
             "on_predict_end": "ResultCollection` is not registered yet",
         }
     )
-    trainer.predict(model)
+    with pytest.deprecated_call(match="on_predict_dataloader` is deprecated in v1.5"):
+        trainer.predict(model)
 
 
 @RunIf(min_gpus=2)
@@ -527,9 +530,9 @@ def test_metrics_reset(tmpdir):
 
 
 def test_result_collection_on_tensor_with_mean_reduction():
-    result_collection = ResultCollection(True, torch.device("cpu"))
+    result_collection = ResultCollection(True)
     product = [(True, True), (False, True), (True, False), (False, False)]
-    values = torch.arange(1, 10).float()  # need to convert to float() due to precision issues using torch 1.4
+    values = torch.arange(1, 10)
     batches = values * values
 
     for i, v in enumerate(values):

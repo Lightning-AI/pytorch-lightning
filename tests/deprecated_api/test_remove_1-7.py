@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.7.0."""
+import os
 from unittest import mock
 
 import pytest
-import torch
 
 from pytorch_lightning import Callback, LightningDataModule, Trainer
 from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
@@ -26,6 +26,7 @@ from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
+    LSFEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
@@ -233,22 +234,16 @@ def test_v1_7_0_flush_logs_every_n_steps_trainer_constructor(tmpdir):
 
 
 class BoringCallbackDDPSpawnModel(BoringModel):
-    def __init__(self):
-        super().__init__()
+    def add_to_queue(self, queue):
+        ...
 
-    def add_to_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
-        queue.put("test_val")
-        return super().add_to_queue(queue)
-
-    def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
-        self.test_val = queue.get()
-        return super().get_from_queue(queue)
+    def get_from_queue(self, queue):
+        ...
 
 
-@RunIf(skip_windows=True, skip_49370=True)
 def test_v1_7_0_deprecate_add_get_queue(tmpdir):
     model = BoringCallbackDDPSpawnModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, num_processes=2, strategy="ddp_spawn")
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
 
     with pytest.deprecated_call(match=r"`LightningModule.add_to_queue` method was deprecated in v1.5"):
         trainer.fit(model)
@@ -410,13 +405,6 @@ def test_v1_7_0_deprecated_max_steps_none(tmpdir):
 
 
 def test_v1_7_0_resume_from_checkpoint_trainer_constructor(tmpdir):
-    with pytest.deprecated_call(match=r"Setting `Trainer\(resume_from_checkpoint=\)` is deprecated in v1.5"):
-        trainer = Trainer(resume_from_checkpoint="a")
-    with pytest.deprecated_call(
-        match=r"trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7."
-    ):
-        _ = trainer.resume_from_checkpoint
-
     # test resume_from_checkpoint still works until v1.7 deprecation
     model = BoringModel()
     callback = OldStatefulCallback(state=111)
@@ -425,14 +413,22 @@ def test_v1_7_0_resume_from_checkpoint_trainer_constructor(tmpdir):
     ckpt_path = trainer.checkpoint_callback.best_model_path
 
     callback = OldStatefulCallback(state=222)
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback], resume_from_checkpoint=ckpt_path)
+    with pytest.deprecated_call(match=r"Setting `Trainer\(resume_from_checkpoint=\)` is deprecated in v1.5"):
+        trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback], resume_from_checkpoint=ckpt_path)
+    with pytest.deprecated_call(
+        match=r"trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7."
+    ):
+        _ = trainer.resume_from_checkpoint
     assert trainer.checkpoint_connector.resume_checkpoint_path is None
     assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path == ckpt_path
     trainer.validate(model=model, ckpt_path=ckpt_path)
     assert callback.state == 222
     assert trainer.checkpoint_connector.resume_checkpoint_path is None
     assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path == ckpt_path
-    trainer.fit(model)
+    with pytest.deprecated_call(
+        match=r"trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7."
+    ):
+        trainer.fit(model)
     assert callback.state == 111
     assert trainer.checkpoint_connector.resume_checkpoint_path is None
     assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path is None
@@ -445,7 +441,8 @@ def test_v1_7_0_resume_from_checkpoint_trainer_constructor(tmpdir):
 
     # test fit(ckpt_path=) precedence over Trainer(resume_from_checkpoint=) path
     model = BoringModel()
-    trainer = Trainer(resume_from_checkpoint="trainer_arg_path")
+    with pytest.deprecated_call(match=r"Setting `Trainer\(resume_from_checkpoint=\)` is deprecated in v1.5"):
+        trainer = Trainer(resume_from_checkpoint="trainer_arg_path")
     with pytest.raises(FileNotFoundError, match="Checkpoint at fit_arg_ckpt_path not found. Aborting training."):
         trainer.fit(model, ckpt_path="fit_arg_ckpt_path")
 
@@ -475,7 +472,7 @@ def test_v1_7_0_cluster_environment_master_address(cls):
             pass
 
     with pytest.deprecated_call(
-        match="MyClusterEnvironment.master_address` has been deprecated in v1.6 and will be removed in 1.7"
+        match="MyClusterEnvironment.master_address` has been deprecated in v1.6 and will be removed in v1.7"
     ):
         MyClusterEnvironment()
 
@@ -495,6 +492,35 @@ def test_v1_7_0_cluster_environment_master_port(cls):
             pass
 
     with pytest.deprecated_call(
-        match="MyClusterEnvironment.master_port` has been deprecated in v1.6 and will be removed in 1.7"
+        match="MyClusterEnvironment.master_port` has been deprecated in v1.6 and will be removed in v1.7"
+    ):
+        MyClusterEnvironment()
+
+
+@pytest.mark.parametrize(
+    "cls,method_name",
+    [
+        (KubeflowEnvironment, "is_using_kubeflow"),
+        (LSFEnvironment, "is_using_lsf"),
+        (TorchElasticEnvironment, "is_using_torchelastic"),
+    ],
+)
+@mock.patch.dict(os.environ, {"LSB_HOSTS": "batch 10.10.10.0 10.10.10.1", "LSB_JOBID": "1234"})
+def test_v1_7_0_cluster_environment_detection(cls, method_name):
+    class MyClusterEnvironment(cls):
+        @staticmethod
+        def is_using_kubeflow():
+            pass
+
+        @staticmethod
+        def is_using_lsf():
+            pass
+
+        @staticmethod
+        def is_using_torchelastic():
+            pass
+
+    with pytest.deprecated_call(
+        match=f"MyClusterEnvironment.{method_name}` has been deprecated in v1.6 and will be removed in v1.7"
     ):
         MyClusterEnvironment()
