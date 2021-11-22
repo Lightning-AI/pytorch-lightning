@@ -144,15 +144,6 @@ class DistributedType(LightningEnum, metaclass=_OnAccessEnumMeta):
 class DeviceType(LightningEnum, metaclass=_OnAccessEnumMeta):
     """Define Device type by its nature - accelerators.
 
-    >>> DeviceType.CPU == DeviceType.from_str('cpu')
-    True
-    >>> # you can match the type with string
-    >>> DeviceType.GPU == 'GPU'
-    True
-    >>> # which is case invariant
-    >>> DeviceType.TPU in ('tpu', 'CPU')
-    True
-
     Deprecated since v1.6.0 and will be removed in v1.8.0.
 
     Use `__AcceleratorType` instead.
