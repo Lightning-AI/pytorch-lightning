@@ -527,6 +527,15 @@ class DeepSpeedPlugin(DDPPlugin):
             )
 
     def _initialize_deepspeed_inference(self, model):
+        # todo: Currently DeepSpeed requires optimizers at inference to partition weights correctly
+        optimizer, scheduler = None, None
+        if "optimizer" not in self.config:
+            rank_zero_info(
+                "You have not specified an optimizer or scheduler within the DeepSpeed config."
+                " Using `configure_optimizers` to define optimizer and scheduler."
+            )
+            optimizer, lr_scheduler, _ = self._init_optimizers()
+            scheduler = lr_scheduler["scheduler"]
         inference_config = {
             # todo: this is required for DeepSpeed throughput timers
             "train_micro_batch_size_per_gpu": 1
@@ -546,6 +555,9 @@ class DeepSpeedPlugin(DDPPlugin):
             args=argparse.Namespace(device_rank=self.root_device.index),
             config=inference_config,
             model=model,
+            optimizer=optimizer,
+            lr_scheduler=scheduler,
+            model_parameters=[],
             dist_init_required=False,
         )
         self.model = model

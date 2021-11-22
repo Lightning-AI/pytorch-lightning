@@ -112,7 +112,7 @@ RUN \
 
 RUN \
     # install DeepSpeed
-    pip install deepspeed==0.5.4
+    pip install deepspeed==0.5.7
 
 RUN \
     # Show what we have
