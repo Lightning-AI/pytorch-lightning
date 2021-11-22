@@ -1732,8 +1732,7 @@ class Trainer(
     @property
     def slurm_job_id(self) -> Optional[int]:
         rank_zero_deprecation("Method `slurm_job_id` is deprecated in v1.6.0 and will be removed in v1.7.0.")
-        job_id = SLURMEnvironment.job_id()
-        return job_id
+        return SLURMEnvironment.job_id()
 
     @property
     def lightning_optimizers(self) -> List[LightningOptimizer]:
