@@ -575,6 +575,9 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
 
 @runtime_checkable
 class _SupportsStateDict(Protocol):
+
+    """This class is used to detect if an object is stateful using `isinstance(obj, _SupportsStateDict)`."""
+
     def state_dict(self) -> Dict[str, Any]:
         ...
 
