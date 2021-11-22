@@ -573,7 +573,7 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
         raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
 
 
-def _detect_fault_tolerant_env_to_enum() -> _FaultTolerantTrainingMode:
+def _detect_fault_tolerant_training_mode() -> _FaultTolerantTrainingMode:
     """This utility detect if Fault Tolerant is activated and maps its value to `_FaultTolerantTrainingMode`."""
     env_value = os.getenv("PL_FAULT_TOLERANT_TRAINING", "0")
     if env_value == "0":
@@ -582,8 +582,7 @@ def _detect_fault_tolerant_env_to_enum() -> _FaultTolerantTrainingMode:
         return _FaultTolerantTrainingMode.AUTOMATIC
     elif env_value == "2":
         return _FaultTolerantTrainingMode.MANUAL
-    else:
-        raise MisconfigurationException(
-            "The environnement flag `PL_FAULT_TOLERANT_TRAINING` should be either "
-            "'0' (disabled), '1' (automatic) or '2' (manual)."
-        )
+    raise MisconfigurationException(
+        "The environnement flag `PL_FAULT_TOLERANT_TRAINING` should be either "
+        "'0' (disabled), '1' (automatic) or '2' (manual)."
+    )

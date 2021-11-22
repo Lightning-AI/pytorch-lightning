@@ -39,7 +39,7 @@ from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
     _dataloader_load_state_dict,
     _dataloader_to_state_dict,
-    _detect_fault_tolerant_env_to_enum,
+    _detect_fault_tolerant_training_mode,
     CaptureIterableDataset,
     CaptureMapDataset,
     FastForwardSampler,
@@ -1198,17 +1198,17 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
 def test_fault_tolerant_manual_mode_enum():
 
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "0"}):
-        assert _FaultTolerantTrainingMode.DISABLED == _detect_fault_tolerant_env_to_enum()
+        assert _FaultTolerantTrainingMode.DISABLED == _detect_fault_tolerant_training_mode()
         trainer = Trainer()
         assert not trainer._fault_tolerant_mode.is_enabled
 
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"}):
-        assert _FaultTolerantTrainingMode.AUTOMATIC == _detect_fault_tolerant_env_to_enum()
+        assert _FaultTolerantTrainingMode.AUTOMATIC == _detect_fault_tolerant_training_mode()
         trainer = Trainer()
         assert trainer._fault_tolerant_mode.is_automatic
 
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "2"}):
-        assert _FaultTolerantTrainingMode.MANUAL == _detect_fault_tolerant_env_to_enum()
+        assert _FaultTolerantTrainingMode.MANUAL == _detect_fault_tolerant_training_mode()
         trainer = Trainer()
         assert trainer._fault_tolerant_mode.is_manual
 
@@ -1216,4 +1216,4 @@ def test_fault_tolerant_manual_mode_enum():
         MisconfigurationException, match="The environnement flag `PL_FAULT_TOLERANT_TRAINING` should be either"
     ):
         with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "3"}):
-            assert _FaultTolerantTrainingMode.MANUAL == _detect_fault_tolerant_env_to_enum()
+            _detect_fault_tolerant_training_mode()

@@ -80,7 +80,7 @@ from pytorch_lightning.utilities.argparse import (
     parse_argparser,
     parse_env_variables,
 )
-from pytorch_lightning.utilities.auto_restart import _detect_fault_tolerant_env_to_enum
+from pytorch_lightning.utilities.auto_restart import _detect_fault_tolerant_training_mode
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.enums import _FaultTolerantTrainingMode
@@ -473,7 +473,7 @@ class Trainer(
         self._lightning_optimizers = None
 
         # detect the fault tolerant flag
-        self._fault_tolerant_mode: _FaultTolerantTrainingMode = _detect_fault_tolerant_env_to_enum()
+        self._fault_tolerant_mode: _FaultTolerantTrainingMode = _detect_fault_tolerant_training_mode()
 
         # .validate() and .test() set this when they load a checkpoint
         self.validated_ckpt_path: Optional[str] = None
