@@ -118,14 +118,6 @@ class TQDMProgressBar(ProgressBarBase):
         state["predict_progress_bar"] = None
         return state
 
-    @staticmethod
-    def _resolve_refresh_rate(refresh_rate: int) -> int:
-        if os.getenv("COLAB_GPU") and refresh_rate == 1:
-            # smaller refresh rate on colab causes crashes, choose a higher value
-            rank_zero_debug("Using a higher refresh rate on Colab. Setting it to `20`")
-            refresh_rate = 20
-        return refresh_rate
-
     @property
     def refresh_rate(self) -> int:
         return self._refresh_rate
@@ -332,6 +324,14 @@ class TQDMProgressBar(ProgressBarBase):
             delta = self.refresh_rate
         if delta > 0:
             bar.update(delta)
+
+    @staticmethod
+    def _resolve_refresh_rate(refresh_rate: int) -> int:
+        if os.getenv("COLAB_GPU") and refresh_rate == 1:
+            # smaller refresh rate on colab causes crashes, choose a higher value
+            rank_zero_debug("Using a higher refresh rate on Colab. Setting it to `20`")
+            refresh_rate = 20
+        return refresh_rate
 
 
 def convert_inf(x: Optional[Union[int, float]]) -> Optional[Union[int, float]]:
