@@ -42,6 +42,7 @@ from pytorch_lightning.utilities.auto_restart import (
     _dataloader_to_state_dict,
     _MultiProcessingDataLoaderIterStateful,
     _patch_dataloader_get_iterators,
+    _rotate_worker_indices,
     _SingleProcessDataLoaderIterStateful,
     _SupportsStateDict,
     _teardown_dataloader_get_iterators,
@@ -248,6 +249,7 @@ class RangeIterableDataset(IterableDataset):
         return self.data[next(iter_sampler)]
 
 
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 30 sec and should be skipped in Azure CI")
 @pytest.mark.parametrize("num_workers", [0, 1, 2])
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
@@ -630,11 +632,13 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
         assert torch.equal(t, tr)
 
 
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 45 sec and should be skipped in Azure CI")
 def test_fast_forward_sampler_iterative_dataset():
     _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(0, 1)
 
 
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 55 sec and should be skipped in Azure CI")
 @RunIf(skip_windows=True)
 def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
@@ -1199,6 +1203,19 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
         assert "dataloader_state_dict" not in state_dict
     else:
         assert "dataloader_state_dict" in state_dict
+
+
+def test_rotate_worker_indices():
+    """This test ensures `worker_id` are rotated properly depending on which one was the latest."""
+    state_dict = {0: 0, 1: 1}
+    assert _rotate_worker_indices(state_dict, 0, 2) == {0: 1, 1: 0}
+    assert _rotate_worker_indices(state_dict, 1, 2) == {0: 0, 1: 1}
+
+    with pytest.raises(MisconfigurationException, match="The `latest_worker_id` should be within"):
+        _rotate_worker_indices(state_dict, 2, 2)
+
+    with pytest.raises(MisconfigurationException, match="The `state` should contain"):
+        _rotate_worker_indices(state_dict, 2, 3)
 
 
 def test_supports_state_dict_protocol():
