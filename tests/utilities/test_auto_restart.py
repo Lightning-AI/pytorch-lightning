@@ -39,12 +39,13 @@ from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
     _dataloader_load_state_dict,
     _dataloader_to_state_dict,
+    _patch_dataloader_get_iterators,
+    _SingleProcessDataLoaderIterStateful,
+    _teardown_dataloader_get_iterators,
     CaptureIterableDataset,
     CaptureMapDataset,
     FastForwardSampler,
     MergedIteratorState,
-    _patch_dataloader_get_iterators,
-    _teardown_dataloader_get_iterators,
 )
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
@@ -1196,6 +1197,27 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
         assert "dataloader_state_dict" in state_dict
 
 
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_stateful_workers():
 
+    seed_everything(42)
+
     _patch_dataloader_get_iterators()
+    assert DataLoader._ori_get_iterator is not None
+
+    data_fetcher = DataFetcher()
+    dataloader = DataLoader(range(10), shuffle=True)
+
+    with pytest.raises(MisconfigurationException, match="A stateful iterator should be used"):
+        iter(dataloader)
+
+    # This would attach the `data_fetcher` to the DataLoader.
+    data_fetcher.setup(dataloader)
+
+    dataloader_iter = iter(dataloader)
+    assert isinstance(dataloader_iter, _SingleProcessDataLoaderIterStateful)
+
+    batch = next(dataloader_iter)
+    print(batch)
+
+    _teardown_dataloader_get_iterators()

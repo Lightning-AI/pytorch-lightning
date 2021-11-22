@@ -22,7 +22,13 @@ from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Tup
 import numpy as np
 import torch
 from torch.utils.data import Dataset, get_worker_info, Sampler
-from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
+from torch.utils.data.dataloader import (
+    _BaseDataLoaderIter,
+    _MultiProcessingDataLoaderIter,
+    _SingleProcessDataLoaderIter,
+    DataLoader,
+    IterableDataset,
+)
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
@@ -610,6 +616,8 @@ class _StatefulMixin:
                 _capture_metadata_collate, dataset=loader.dataset, default_collate=loader.collate_fn
             )
         self._loader = loader
+        self._data_fetcher: "pl.utilities.fetching.AbstractDataFetcher" = loader._lightning_fetcher
+        self.num_batches_fetched = 0
 
     def __del__(self) -> None:
         if isinstance(self._loader.collate_fn, partial):
@@ -645,19 +653,19 @@ class _SingleProcessDataLoaderIterStateful(_StatefulMixin, _SingleProcessDataLoa
     def __init__(self, loader: DataLoader):
         self._prepare_loader(loader)
         super().__init__(loader)
-        self._data_fetcher: "pl.utilities.fetching.AbstractDataFetcher" = loader._lightning_fetcher
-        self.num_batches_fetched = 0
 
 
 class _MultiProcessingDataLoaderIterStateful(_StatefulMixin, _MultiProcessingDataLoaderIter):
     def __init__(self, loader: DataLoader):
         self._prepare_loader(loader)
         super().__init__(loader)
-        self._data_fetcher: "pl.utilities.fetching.AbstractDataFetcher" = loader._lightning_fetcher
-        self.num_batches_fetched = 0
 
 
 def _get_iterator(self) -> "_BaseDataLoaderIter":
+    if not hasattr(self, "_lightning_fetcher"):
+        raise MisconfigurationException(
+            "A stateful iterator should be used only when a DataFetcher has been attached to the DataLoader."
+        )
     if self.num_workers == 0:
         return _SingleProcessDataLoaderIterStateful(self)
     else:
@@ -668,10 +676,9 @@ def _get_iterator(self) -> "_BaseDataLoaderIter":
 
 def _patch_dataloader_get_iterators() -> None:
     """This function is used to replace the DataLoader iterator by their stateful version."""
-    if _fault_tolerant_training_mode().is_manual:
-        if not hasattr(DataLoader, "_ori_get_iterator"):
-            DataLoader._ori_get_iterator = DataLoader._get_iterator
-        DataLoader._get_iterator = _get_iterator
+    if not hasattr(DataLoader, "_ori_get_iterator"):
+        DataLoader._ori_get_iterator = DataLoader._get_iterator
+    DataLoader._get_iterator = _get_iterator
 
 
 def _teardown_dataloader_get_iterators() -> None:
