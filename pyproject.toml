@@ -44,7 +44,6 @@ module = [
     "pytorch_lightning.core.*",
     "pytorch_lightning.loggers.*",
     "pytorch_lightning.loops.*",
-    "pytorch_lightning.metrics.*",
     "pytorch_lightning.overrides.*",
     "pytorch_lightning.plugins.environments.*",
     "pytorch_lightning.plugins.training_type.*",
