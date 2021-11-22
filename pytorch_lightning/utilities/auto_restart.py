@@ -566,7 +566,7 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
         raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
 
 
-def _rotate_worker_indices(state, latest_worker_id: int, num_workers: int):
+def _rotate_worker_indices(state: Dict[int, Any], latest_worker_id: int, num_workers: int) -> Dict[int, Any]:
     """This function is used to rotate the worker indices based on the `latest_worker_id` the training failed
     on."""
     if num_workers == 0:
