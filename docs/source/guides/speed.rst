@@ -152,6 +152,10 @@ For debugging purposes or for dataloaders that load very small datasets, it is d
     import warnings
 
     warnings.filterwarnings("ignore", ".*Consider increasing the value of the `num_workers` argument*")
+    # or to ignore all warnings which could be false positives
+    from pytorch_lightning.utilities.warnings import PossibleUserWarning
+
+    warnings.filterwarnings("ignore", category=PossibleUserWarning)
 
 Spawn
 """""
