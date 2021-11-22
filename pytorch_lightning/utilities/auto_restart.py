@@ -11,14 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import inspect
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial, wraps
 from random import getstate as python_get_rng_state
 from random import setstate as python_set_rng_state
-from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Protocol, runtime_checkable, Tuple, Union
 
 import numpy as np
 import torch
@@ -450,8 +448,8 @@ def _find_current_worker(iterator: Iterator) -> Dict[str, Optional[int]]:
 
 
 def _capture_metadata_collate(
-    samples: List, dataset: Dataset, default_collate: Callable, fault_tolerant_mode: _FaultTolerantMode
-) -> Dict:
+    samples: List, dataset: Dataset, collate: Callable, fault_tolerant_mode: _FaultTolerantMode
+) -> Any:
     """A collate function that adds the state dict of a :class:`CaptureIterableDataset` or
     :class:`CaptureMapDataset` used in the worker processes. This function gets executed within the worker
     processes. The structure will be:
@@ -463,7 +461,7 @@ def _capture_metadata_collate(
             "__pl_restart_meta": {"sampler_name0": state_dict0, "sampler_name1": state_dict1},
         }
     """
-    data = default_collate(samples)
+    data = collate(samples)
     fault_tolerant_mode
     if not fault_tolerant_mode.is_enabled:
         return data
@@ -604,16 +602,13 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
         raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
 
 
-def _is_obj_stateful(obj: Any) -> bool:
-    """In order to be stateful, an object should implement a ``state_dict`` and ``load_state_dict`` method."""
-    load_state_dict_fn = getattr(obj, "load_state_dict", None)
-    if not isinstance(load_state_dict_fn, Callable):
-        return False
-    params = inspect.signature(load_state_dict_fn).parameters
-    if len(params) == 0:
-        return False
+@runtime_checkable
+class _SupportsStateDict(Protocol):
+    def state_dict(self) -> Dict[str, Any]:
+        ...
 
-    return isinstance(getattr(obj, "state_dict", None), Callable)
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        ...
 
 
 class _StatefulMixin:
@@ -637,7 +632,9 @@ class _StatefulMixin:
     def _store_sampler_state(self) -> None:
         """This function is used to extract the sampler states if any."""
         sampler_state = {
-            k: v.state_dict() for k, v in self._loader.__dict__.items() if _is_obj_stateful(v) and k != "dataset"
+            k: v.state_dict()
+            for k, v in self._loader.__dict__.items()
+            if isinstance(v, _SupportsStateDict) and k != "dataset"
         }
 
         self.__accumulate_state(sampler_state)

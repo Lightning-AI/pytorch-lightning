@@ -40,10 +40,10 @@ from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
     _dataloader_load_state_dict,
     _dataloader_to_state_dict,
-    _is_obj_stateful,
     _MultiProcessingDataLoaderIterStateful,
     _patch_dataloader_get_iterators,
     _SingleProcessDataLoaderIterStateful,
+    _SupportsStateDict,
     _teardown_dataloader_get_iterators,
     CaptureIterableDataset,
     CaptureMapDataset,
@@ -1200,7 +1200,7 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
         assert "dataloader_state_dict" in state_dict
 
 
-def test_is_obj_stateful():
+def test_supports_state_dict_protocol():
     class StatefulClass:
         def state_dict(self):
             pass
@@ -1208,25 +1208,19 @@ def test_is_obj_stateful():
         def load_state_dict(self, state_dict):
             pass
 
-    obj = StatefulClass()
-    assert _is_obj_stateful(obj)
+    assert isinstance(StatefulClass(), _SupportsStateDict)
 
     class NotStatefulClass:
         def state_dict(self):
             pass
 
-        def load_state_dict(self):
+    assert not isinstance(NotStatefulClass(), _SupportsStateDict)
+
+    class NotStateful2Class:
+        def load_state_dict(self, state_dict):
             pass
 
-    obj = NotStatefulClass()
-    assert not _is_obj_stateful(obj)
-
-    class NotStatefulClass:
-        def load_state_dict(self):
-            pass
-
-    obj = NotStatefulClass()
-    assert not _is_obj_stateful(obj)
+    assert not isinstance(NotStateful2Class(), _SupportsStateDict)
 
 
 def test_fault_tolerant_mode_enum():
