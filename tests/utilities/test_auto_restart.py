@@ -1351,3 +1351,5 @@ def test_stateful_workers(num_workers):
     _teardown_dataloader_get_iterators()
     assert not hasattr(DataLoader, "_ori_get_iterator")
     assert DataLoader._get_iterator == _get_iterator_fn
+
+    data_fetcher.teardown()
