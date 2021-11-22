@@ -461,25 +461,3 @@ def test_deepspeed_multiple_models():
             assert self.is_global_zero == (self.local_rank == 0)
 
     Lite(strategy=DeepSpeedPlugin(stage=3, logging_batch_size_per_gpu=1), devices=2, accelerator="gpu").run()
-
-
-def test_replace_dataloader_init_method():
-    """Test that the context manager enables to save the parameters passed to the DataLoader __init__ method."""
-
-    class CustomDataLoader(DataLoader):
-        def __init__(self, extra_argument: int, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-
-    dataloader = CustomDataLoader(extra_argument=1, dataset=range(1))
-    lite = EmptyLite()
-    with pytest.raises(MisconfigurationException, match="extra_argument"):
-        dataloader = lite.setup_dataloaders(dataloader)
-
-    with _replace_dataloader_init_method():
-        dataloader = CustomDataLoader(extra_argument=1, dataset=range(1))
-        assert dataloader.extra_argument == 1
-        dataloader = lite.setup_dataloaders(dataloader)
-
-        dataloader = CustomDataLoader(1, range(1))
-        assert dataloader.extra_argument == 1
-        dataloader = lite.setup_dataloaders(dataloader)
