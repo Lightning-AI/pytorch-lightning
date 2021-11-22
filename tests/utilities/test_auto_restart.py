@@ -41,6 +41,7 @@ from pytorch_lightning.utilities.auto_restart import (
     _dataloader_load_state_dict,
     _dataloader_to_state_dict,
     _is_obj_stateful,
+    _MultiProcessingDataLoaderIterStateful,
     _patch_dataloader_get_iterators,
     _SingleProcessDataLoaderIterStateful,
     _teardown_dataloader_get_iterators,
@@ -1228,40 +1229,48 @@ def test_is_obj_stateful():
     assert not _is_obj_stateful(obj)
 
 
+class StatefulRandomSampler(RandomSampler):
+
+    counter = 0
+
+    def state_dict(self):
+        self.counter += 1
+        return {"counter": self.counter}
+
+    def load_state_dict(self, state_dict):
+        self.counter = state_dict["counter"]
+
+
+class FailingStatefulRandomDataset(RandomDataset):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.counter = 0
+
+    def __getitem__(self, index):
+        self.counter += 1
+        return super().__getitem__(index)
+
+    def state_dict(self):
+        return {"counter": self.counter}
+
+    def load_state_dict(self, state_dict):
+        self.counter = state_dict["counter"]
+
+
+class StatefulRandomDataset(FailingStatefulRandomDataset):
+    def state_dict(self):
+        info = get_worker_info()
+        worker_id = info.id if info else 0
+        return {worker_id: {"counter": self.counter}}
+
+
+@pytest.mark.parametrize("num_workers", [0, 2])
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "2"})
-def test_stateful_workers():
-    class StatefulRandomSampler(RandomSampler):
-
-        counter = 0
-
-        def state_dict(self):
-            self.counter += 1
-            return {"counter": self.counter}
-
-        def load_state_dict(self, state_dict):
-            self.counter = state_dict["counter"]
-
-    class FailingStatefulRandomDataset(RandomDataset):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.counter = 0
-
-        def __getitem__(self, index):
-            self.counter += 1
-            return super().__getitem__(index)
-
-        def state_dict(self):
-            return {"counter": self.counter}
-
-        def load_state_dict(self, state_dict):
-            self.counter = state_dict["counter"]
-
-    class StatefulRandomDataset(FailingStatefulRandomDataset):
-        def state_dict(self):
-            return {0: {"counter": self.counter}}
+def test_stateful_workers(num_workers):
 
     seed_everything(42)
 
+    _get_iterator_fn = DataLoader._get_iterator
     _patch_dataloader_get_iterators()
     assert DataLoader._ori_get_iterator is not None
 
@@ -1282,27 +1291,46 @@ def test_stateful_workers():
 
     data_fetcher = DataFetcher()
     dataset = StatefulRandomDataset(1, 64)
-    dataloader = DataLoader(dataset, sampler=StatefulRandomSampler(dataset))
+    dataloader = DataLoader(dataset, sampler=StatefulRandomSampler(dataset), num_workers=num_workers)
 
     # This would attach the `data_fetcher` to the DataLoader.
     data_fetcher.setup(dataloader)
     data_fetcher_iter = iter(data_fetcher)
 
+    worker_type = _SingleProcessDataLoaderIterStateful if num_workers == 0 else _MultiProcessingDataLoaderIterStateful
+    assert isinstance(data_fetcher.dataloader_iter, worker_type)
+
     next(data_fetcher_iter)
-    assert data_fetcher.dataloader_iter.state.state[0].dataset_state == {0: {"counter": 1}}
-    assert data_fetcher.dataloader_iter.state.state[0].sampler_state["sampler"] == {"counter": 1}
+    state = data_fetcher.dataloader_iter.state.state
+    assert state[0].dataset_state == {0: {"counter": 1}}
+    assert state[0].sampler_state["sampler"] == {"counter": 1}
+
     next(data_fetcher_iter)
-    assert data_fetcher.dataloader_iter.previous_state.state[0].dataset_state == {0: {"counter": 1}}
-    assert data_fetcher.dataloader_iter.previous_state.state[0].sampler_state["sampler"] == {"counter": 1}
-    assert data_fetcher.dataloader_iter.state.state[0].dataset_state == {0: {"counter": 2}}
-    assert data_fetcher.dataloader_iter.state.state[0].sampler_state["sampler"] == {"counter": 2}
+    previous_state = data_fetcher.dataloader_iter.previous_state.state
+    state = data_fetcher.dataloader_iter.state.state
+    assert previous_state[0].dataset_state == {0: {"counter": 1}}
+    assert previous_state[0].sampler_state["sampler"] == {"counter": 1}
+    # TODO: Resolve the previous `sampler_state` associated to `worker_id: 0`.
+    worker_id = 1 if num_workers else 0
+    assert state[worker_id].sampler_state["sampler"] == {"counter": 2}
+
+    # each worker has its own copy of the dataset
+    assert state[0].dataset_state == ({0: {"counter": 2}} if num_workers == 0 else {0: {"counter": 1}})
+    target_previous_state = deepcopy(state)
+
     next(data_fetcher_iter)
-    assert data_fetcher.dataloader_iter.previous_state.state[0].dataset_state == {0: {"counter": 2}}
-    assert data_fetcher.dataloader_iter.previous_state.state[0].sampler_state["sampler"] == {"counter": 2}
-    assert data_fetcher.dataloader_iter.state.state[0].dataset_state == {0: {"counter": 3}}
-    assert data_fetcher.dataloader_iter.state.state[0].sampler_state["sampler"] == {"counter": 3}
+    latest_worker_id = data_fetcher.dataloader_iter.state.latest_worker_id
+    assert latest_worker_id == 0
+    previous_state = data_fetcher.dataloader_iter.previous_state.state
+    state = data_fetcher.dataloader_iter.state.state
+
+    assert target_previous_state == previous_state
+    assert state[0].sampler_state["sampler"] == {"counter": 3}
+    assert state[0].dataset_state == ({0: {"counter": 3}} if num_workers == 0 else {0: {"counter": 2}})
 
     _teardown_dataloader_get_iterators()
+    assert not hasattr(DataLoader, "_ori_get_iterator")
+    assert DataLoader._get_iterator == _get_iterator_fn
 
 
 def test_fault_tolerant_mode_enum():
