@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import inspect
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial, wraps
@@ -24,6 +22,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset, get_worker_info, Sampler
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
+from typing_extensions import Protocol, runtime_checkable
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
@@ -574,13 +573,10 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
         raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
 
 
-def _is_obj_stateful(obj: Any) -> bool:
-    """In order to be stateful, an object should implement a ``state_dict`` and ``load_state_dict`` method."""
-    load_state_dict_fn = getattr(obj, "load_state_dict", None)
-    if not isinstance(load_state_dict_fn, Callable):
-        return False
-    params = inspect.signature(load_state_dict_fn).parameters
-    if len(params) == 0:
-        return False
+@runtime_checkable
+class _SupportsStateDict(Protocol):
+    def state_dict(self) -> Dict[str, Any]:
+        ...
 
-    return isinstance(getattr(obj, "state_dict", None), Callable)
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        ...
