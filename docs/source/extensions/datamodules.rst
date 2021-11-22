@@ -268,6 +268,8 @@ Usually you just wrap the dataset you defined in :ref:`setup<extensions/datamodu
             return DataLoader(self.mnist_val, batch_size=64)
 
 
+.. _datamodule-test-dataloader-label:
+
 test_dataloader
 ^^^^^^^^^^^^^^^
 Use the :meth:`~pytorch_lightning.core.hooks.DataHooks.test_dataloader` method to generate the test dataloader(s).
