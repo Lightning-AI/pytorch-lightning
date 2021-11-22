@@ -84,7 +84,6 @@ PyTorch Lightning
    extensions/callbacks
    extensions/datamodules
    extensions/logging
-   extensions/metrics
    extensions/plugins
    extensions/loops
 
