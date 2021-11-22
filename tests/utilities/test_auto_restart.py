@@ -1202,6 +1202,12 @@ def test_rotate_worker_indices():
     assert _rotate_worker_indices(state_dict, 0, 2) == {0: 1, 1: 0}
     assert _rotate_worker_indices(state_dict, 1, 2) == {0: 0, 1: 1}
 
+    with pytest.raises(MisconfigurationException, match="The `latest_worker_id` should be within"):
+        _rotate_worker_indices(state_dict, 2, 2)
+
+    with pytest.raises(MisconfigurationException, match="The `state` should contain"):
+        _rotate_worker_indices(state_dict, 2, 3)
+
 
 def test_fault_tolerant_mode_enum():
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "0"}):
