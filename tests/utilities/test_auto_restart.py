@@ -41,6 +41,7 @@ from pytorch_lightning.utilities.auto_restart import (
     _dataloader_load_state_dict,
     _dataloader_to_state_dict,
     _rotate_worker_indices,
+    _SupportsStateDict,
     CaptureIterableDataset,
     CaptureMapDataset,
     FastForwardSampler,
@@ -1207,6 +1208,29 @@ def test_rotate_worker_indices():
 
     with pytest.raises(MisconfigurationException, match="The `state` should contain"):
         _rotate_worker_indices(state_dict, 2, 3)
+
+
+def test_supports_state_dict_protocol():
+    class StatefulClass:
+        def state_dict(self):
+            pass
+
+        def load_state_dict(self, state_dict):
+            pass
+
+    assert isinstance(StatefulClass(), _SupportsStateDict)
+
+    class NotStatefulClass:
+        def state_dict(self):
+            pass
+
+    assert not isinstance(NotStatefulClass(), _SupportsStateDict)
+
+    class NotStateful2Class:
+        def load_state_dict(self, state_dict):
+            pass
+
+    assert not isinstance(NotStateful2Class(), _SupportsStateDict)
 
 
 def test_fault_tolerant_mode_enum():

@@ -22,6 +22,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset, get_worker_info, Sampler
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
+from typing_extensions import Protocol, runtime_checkable
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
@@ -577,3 +578,14 @@ def _rotate_worker_indices(state: Dict[int, Any], latest_worker_id: int, num_wor
     next_worker_id = latest_worker_id + 1
     old_to_new_worker_id_map = [((next_worker_id + i) % num_workers, i) for i in range(num_workers)]
     return {new_id: state[old_id] for old_id, new_id in old_to_new_worker_id_map if old_id in state}
+
+
+@runtime_checkable
+class _SupportsStateDict(Protocol):
+    """This class is used to detect if an object is stateful using `isinstance(obj, _SupportsStateDict)`."""
+
+    def state_dict(self) -> Dict[str, Any]:
+        ...
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        ...
