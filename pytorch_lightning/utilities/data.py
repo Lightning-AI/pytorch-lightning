@@ -11,10 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import functools
 import inspect
 import os
+from contextlib import contextmanager
 from functools import partial
-from typing import Any, Dict, Generator, Iterable, Mapping, Optional, Union
+from itertools import chain
+from typing import Any, Dict, Generator, Iterable, Mapping, Optional, Union, Callable, Type, Set
 
 import torch
 from torch.utils.data import BatchSampler, DataLoader, IterableDataset, Sampler
@@ -305,3 +308,46 @@ def _dataloader_init_kwargs_resolve_sampler(
 def _auto_add_worker_init_fn(dataloader: DataLoader, rank: int) -> None:
     if int(os.environ.get("PL_SEED_WORKERS", 0)) and dataloader.worker_init_fn is None:
         dataloader.worker_init_fn = partial(pl_worker_init_function, rank=rank)
+
+
+def _wrap_init(init: Callable) -> Callable:
+    """Wraps the ``__init__`` method of the dataloader in order to enable re-instantiation of custom subclasses of
+    :class:`~torch.utils.data.DataLoader`."""
+
+    @functools.wraps(init)
+    def wrapper(obj: DataLoader, *args: Any, **kwargs: Any) -> None:
+        params = dict(inspect.signature(obj.__init__).parameters)
+        params.pop("args", None)
+        params.pop("kwargs", None)
+        for arg_name, arg_value in chain(zip(params, args), kwargs.items()):
+            setattr(obj, arg_name, arg_value)
+        init(obj, *args, **kwargs)
+
+    return wrapper
+
+
+# https://stackoverflow.com/a/63851681/9201239
+def _get_all_subclasses(cls: Type[Any]) -> Set[Type[Any]]:
+    """Returns a list of all classes that inherit directly or indirectly from the given class."""
+    subclasses = set()
+
+    def recurse(cl: Type[Any]) -> None:
+        for subclass in cl.__subclasses__():
+            subclasses.add(subclass)
+            recurse(subclass)
+
+    recurse(cls)
+    return subclasses
+
+
+@contextmanager
+def _replace_dataloader_init_method() -> Generator[None, None, None]:
+    """This context manager is used to add support for re-instantiation of custom (subclasses) of
+    :class:`~torch.utils.data.DataLoader`. It patches the ``__init__`` method."""
+    for subclass in _get_all_subclasses(DataLoader):
+        subclass._old_init = subclass.__init__
+        subclass.__init__ = _wrap_init(subclass.__init__)
+    yield
+    for subclass in _get_all_subclasses(DataLoader):
+        subclass.__init__ = subclass._old_init
+        del subclass._old_init

@@ -431,7 +431,8 @@ class TrainerDataLoadingMixin(ABC):
 
         hook = f"{stage.dataloader_prefix}_dataloader"
         self.call_hook("on_" + hook, pl_module=model)
-        dataloader = source.dataloader()
+        with _replace_dataloader_init_method():
+            dataloader = source.dataloader()
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
         self.training_type_plugin.barrier("get_dataloaders")
