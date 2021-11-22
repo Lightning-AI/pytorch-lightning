@@ -574,7 +574,7 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
 
 
 def _detect_fault_tolerant_training_mode() -> _FaultTolerantTrainingMode:
-    """This utility detect if Fault Tolerant is activated and maps its value to `_FaultTolerantTrainingMode`."""
+    """This utility detects if Fault Tolerant is activated and maps its value to `_FaultTolerantTrainingMode`."""
     env_value = os.getenv("PL_FAULT_TOLERANT_TRAINING", "0")
     if env_value == "0":
         return _FaultTolerantTrainingMode.DISABLED
