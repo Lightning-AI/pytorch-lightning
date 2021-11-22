@@ -52,7 +52,7 @@ class Model(LightningModule):
         if self.global_step == self.fail_on_step:
             log.info("READY TO BE KILLED WITH SIGTERM SIGNAL.")
             while not self.trainer._terminate_gracefully:
-                sleep(0.00001)
+                sleep(0.1)
             raise CustomException()
         batch = batch["data"] if isinstance(batch, dict) else batch
         self.seen_batches.append(torch.stack(batch) if isinstance(batch, list) else batch)
