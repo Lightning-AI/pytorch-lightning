@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Enumerated utilities."""
+import os
 from enum import Enum, EnumMeta
 from typing import Any, List, Optional, Union
 
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
@@ -275,3 +277,19 @@ class _FaultTolerantTrainingMode(LightningEnum):
     @property
     def is_manual(self) -> bool:
         return self is _FaultTolerantTrainingMode.MANUAL
+
+    @classmethod
+    def _detect_fault_tolerant_training_mode(cls) -> "_FaultTolerantTrainingMode":
+        """This utility detects if Fault Tolerant is activated and maps its value to
+        `_FaultTolerantTrainingMode`."""
+        env_value = os.getenv("PL_FAULT_TOLERANT_TRAINING", "0").lower()
+        if env_value in ("0", "disabled"):
+            return _FaultTolerantTrainingMode.DISABLED
+        elif env_value in ("1", "automatic"):
+            return _FaultTolerantTrainingMode.AUTOMATIC
+        elif env_value in ("2", "manual"):
+            return _FaultTolerantTrainingMode.MANUAL
+        raise MisconfigurationException(
+            "The environnement flag `PL_FAULT_TOLERANT_TRAINING` should be either "
+            "'0' (disabled), '1' (automatic) or '2' (manual)."
+        )

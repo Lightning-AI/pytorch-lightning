@@ -15,7 +15,6 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from pytorch_lightning.utilities import LightningEnum
-from pytorch_lightning.utilities.auto_restart import _detect_fault_tolerant_training_mode
 from pytorch_lightning.utilities.enums import _FaultTolerantTrainingMode
 
 
@@ -96,7 +95,9 @@ class TrainerState:
     stage: Optional[RunningStage] = None
 
     # detect the fault tolerant flag
-    _fault_tolerant_mode: _FaultTolerantTrainingMode = field(default_factory=_detect_fault_tolerant_training_mode)
+    _fault_tolerant_mode: _FaultTolerantTrainingMode = field(
+        default_factory=_FaultTolerantTrainingMode._detect_fault_tolerant_training_mode
+    )
 
     @property
     def finished(self) -> bool:

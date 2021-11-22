@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial, wraps
@@ -25,7 +24,7 @@ from torch.utils.data import Dataset, get_worker_info, Sampler
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.enums import _FaultTolerantTrainingMode, AutoRestartBatchKeys
+from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
@@ -571,18 +570,3 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
 
     else:
         raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
-
-
-def _detect_fault_tolerant_training_mode() -> _FaultTolerantTrainingMode:
-    """This utility detects if Fault Tolerant is activated and maps its value to `_FaultTolerantTrainingMode`."""
-    env_value = os.getenv("PL_FAULT_TOLERANT_TRAINING", "0")
-    if env_value == "0":
-        return _FaultTolerantTrainingMode.DISABLED
-    elif env_value == "1":
-        return _FaultTolerantTrainingMode.AUTOMATIC
-    elif env_value == "2":
-        return _FaultTolerantTrainingMode.MANUAL
-    raise MisconfigurationException(
-        "The environnement flag `PL_FAULT_TOLERANT_TRAINING` should be either "
-        "'0' (disabled), '1' (automatic) or '2' (manual)."
-    )
