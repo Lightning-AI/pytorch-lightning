@@ -116,7 +116,7 @@ def _wrap_init(init: Callable) -> Callable:
 
     @functools.wraps(init)
     def wrapper(obj: DataLoader, *args: Any, **kwargs: Any) -> None:
-        params = dict(inspect.signature(obj._old_init).parameters)
+        params = dict(inspect.signature(obj.__init__).parameters)
         params.pop("args", None)
         params.pop("kwargs", None)
         for arg_name, arg_value in chain(zip(params, args), kwargs.items()):
