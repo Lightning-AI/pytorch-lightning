@@ -55,8 +55,8 @@ class PrecisionPlugin(CheckpointHooks):
             model: the model to be optimized
             closure_loss: the loss value obtained from the closure
         """
-        model.trainer._call_hook(model.trainer, "on_before_backward", closure_loss)
-        model.trainer._call_hook(model, "on_before_backward", closure_loss)
+        model.trainer._call_callback_hooks("on_before_backward", closure_loss)
+        model.trainer._call_lightning_module_hook("on_before_backward", closure_loss)
         return closure_loss
 
     def backward(
@@ -89,8 +89,8 @@ class PrecisionPlugin(CheckpointHooks):
         """
         # once backward has been applied, release graph
         closure_loss = closure_loss.detach()
-        model.trainer._call_hook(model.trainer, "on_after_backward")
-        model.trainer._call_hook(model, "on_after_backward")
+        model.trainer._call_callback_hooks("on_after_backward")
+        model.trainer._call_lightning_module_hook("on_after_backward")
         return closure_loss
 
     def _run_backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
@@ -109,8 +109,8 @@ class PrecisionPlugin(CheckpointHooks):
             return
         trainer = model.trainer
         assert trainer is not None
-        trainer._call_hook(trainer, "on_before_optimizer_step", optimizer, optimizer_idx)
-        trainer._call_hook(model, "on_before_optimizer_step", optimizer, optimizer_idx)
+        trainer._call_callback_hooks("on_before_optimizer_step", optimizer, optimizer_idx)
+        trainer._call_lightning_module_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         # TODO: this is done for the entire model but should be changed to per-optimizer
         if optimizer_idx == 0:
             self._track_grad_norm(trainer)

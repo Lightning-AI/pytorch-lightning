@@ -256,8 +256,8 @@ class FitLoop(Loop):
         self.current_epoch = max(self.current_epoch - 1, 0)
 
         # hook
-        self.trainer._call_hook(self.trainer, "on_train_end")
-        self.trainer._call_hook(self.trainer.lightning_module, "on_train_end")
+        self.trainer._call_callback_hooks("on_train_end")
+        self.trainer._call_lightning_module_hook("on_train_end")
 
         # give accelerators a chance to finish
         self.trainer.training_type_plugin.on_train_end()

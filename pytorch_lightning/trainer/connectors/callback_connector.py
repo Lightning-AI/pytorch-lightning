@@ -269,7 +269,7 @@ class CallbackConnector:
         In addition, all :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks
         will be pushed to the end of the list, ensuring they run last.
         """
-        model_callbacks = self.trainer._call_hook(self.trainer.lightning_module, "configure_callbacks")
+        model_callbacks = self.trainer._call_lightning_module_hook("configure_callbacks")
         if not model_callbacks:
             return
         model_callback_types = {type(c) for c in model_callbacks}

@@ -387,7 +387,7 @@ class LightningModule(
         value = apply_to_collection(value, numbers.Number, self.__to_tensor)
 
         if self.trainer.logger_connector.should_reset_tensors(self._current_fx_name):
-            # if we started a new epoch (running it's first batch) the hook name has changed
+            # if we started a new epoch (running its first batch) the hook name has changed
             # reset any tensors for the new hook name
             results.reset(metrics=False, fx=self._current_fx_name)
 
